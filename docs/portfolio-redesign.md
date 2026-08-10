@@ -28,7 +28,7 @@ Portfolio (nav tab)
 ├── Risk              concentration score · heatmap · correlation matrix
 ├── Insights          market assistant · AI trading coach
 ├── Taxes             loss harvesting (TaxOptimizationWidget)
-└── Strategies        agentic · futures auto · options flow · rebalance · paper
+└── Strategies        agentic · futures auto · options flow · portfolio GEX · rebalance · paper
 ```
 
 ## Progressive disclosure
@@ -200,6 +200,7 @@ low-risk by omission.
 | `widgets/portfolio/portfolio_hero_stats_widget.dart` | Hero stat strip |
 | `widgets/portfolio/portfolio_movers_widget.dart` | Winners / losers |
 | `widgets/portfolio/portfolio_section_grid_widget.dart` | Browse grid |
+| `widgets/portfolio_gex_dashboard_widget.dart` | Holdings-only aggregate GEX, regime breadth, concentration, and symbol drill-downs |
 | `widgets/portfolio/portfolio_risk_summary_widget.dart` | Concentration score |
 | `widgets/portfolio/*_section_page.dart` | The six section pages |
 | `widgets/portfolio/analytics/metric_presentation.dart` | Stat tiles, definitions, explainer dialogs |

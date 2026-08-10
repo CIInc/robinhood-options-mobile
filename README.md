@@ -17,7 +17,7 @@ See our [docs](https://ciinc.github.io/robinhood-options-mobile/) for use cases 
     *   **Institutional Ownership:** Monitor top institutional holders and position changes to gauge "smart money" sentiment.
     *   **Twelve Data Integration:** Integrated Twelve Data API for real-time options and market data fetching, including support for `TWELVE_DATA_API_KEY` secret management.
     *   **Options Flow Analysis:** Real-time detection of significant option trades with "Whale", "Sweep", and "Steamroller" flags.
-    *   **[Gamma Exposure (GEX) Analysis](docs/gamma-exposure-analysis.md):** Market maker positioning tracker featuring custom interactive strike charts, a Market Maker Pinning Gauge, a Spot-Shift GEX Sensitivity dashboard, expandable high-liquidity ticker leaderboards, instrument preview/navigation shortcuts, and a real-time on-device Black-Scholes fallback engine in Dart.
+    *   **[Gamma Exposure (GEX) Analysis](docs/gamma-exposure-analysis.md):** Market maker positioning tracker featuring portfolio-wide net/gross gamma and concentration, actionable transition levels, volatility-regime context, interactive strike charts, a Market Maker Pinning Gauge, Spot-Shift sensitivity, and a real-time on-device Black-Scholes fallback engine in Dart.
     *   **[Instrument Notes](docs/instrument-notes.md):** Private, persistent trading journal per instrument with **Markdown support** and **AI-Assisted Drafting**.
 *   **[Progressive Portfolio](docs/portfolio-redesign.md):** Decision-focused overview answering what happened and what needs attention through hero statistics, an account-aware Action Center, movers, and capped holdings summaries. Dedicated Performance, Positions, Risk, Insights, Taxes, and Strategies sections share one analytics controller with custom benchmarks, health and ESG scoring, risk metrics, AI insights, correlation analysis, and CSV export.
 *   **Portfolio Allocation Visualization:** Interactive carousel of pie charts showing portfolio allocation breakdown by asset type, individual positions (top 5 holdings), sector, and industry. Features bidirectional highlighting between chart slices and legend entries with visual page indicators. **New:** Enhanced visualization with improved color mapping and dedicated support for Fixed Income instruments (treasury ETFs, bonds, etc.) in allocation views.
@@ -392,7 +392,7 @@ To use this tool, open GitHub Copilot Chat in VS Code and run the command:
 > /updateDocs [nextversion]
 
 This will trigger the agent to:
-- Determine the next version (e.g., `0.37.1`) based on commit impact (Features vs. Bug Fixes).
+- Determine the next version (e.g., `0.37.2`) based on commit impact (Features vs. Bug Fixes).
 - Update `pubspec.yaml` with the new version and incremented build number.
 - Generate a new entry in `CHANGELOG.md` summarizing features, changes, and fixes.
 - Mark completed items in `ROADMAP.md` and add the new release entry.

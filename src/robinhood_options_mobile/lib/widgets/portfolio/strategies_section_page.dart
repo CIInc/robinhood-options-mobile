@@ -4,11 +4,13 @@ import 'package:robinhood_options_mobile/widgets/home/agentic_trading_card_widge
 import 'package:robinhood_options_mobile/widgets/home/futures_auto_trading_card_widget.dart';
 import 'package:robinhood_options_mobile/widgets/home/options_flow_card_widget.dart';
 import 'package:robinhood_options_mobile/widgets/paper_trading_dashboard_widget.dart';
+import 'package:robinhood_options_mobile/widgets/portfolio_gex_dashboard_widget.dart';
 import 'package:robinhood_options_mobile/widgets/portfolio/portfolio_section_context.dart';
 import 'package:robinhood_options_mobile/widgets/portfolio/portfolio_section_scaffold.dart';
 import 'package:robinhood_options_mobile/widgets/rebalancing_widget.dart';
 
-/// Automation and simulation, gathered out of the middle of the old scroll.
+/// Automation, derivatives analysis, and simulation gathered from the old
+/// portfolio scroll.
 ///
 /// These are all "things running on your behalf" rather than facts about the
 /// portfolio, which is why they no longer sit between the allocation chart and
@@ -27,7 +29,7 @@ class StrategiesSectionPage extends StatelessWidget {
 
     return PortfolioSectionScaffold(
       title: 'Strategies',
-      subtitle: 'Automation, options flow & simulation',
+      subtitle: 'Automation, options flow, GEX & simulation',
       cards: [
         AgenticTradingCardWidget(
           user: appUser,
@@ -35,12 +37,14 @@ class StrategiesSectionPage extends StatelessWidget {
           brokerageUser: ctx.brokerageUser,
           service: ctx.service,
           analytics: ctx.analytics,
+          outerPadding: EdgeInsets.zero,
         ),
         FuturesAutoTradingCardWidget(
           user: appUser,
           userDocRef: userDocRef,
           service: ctx.service,
           analytics: ctx.analytics,
+          outerPadding: EdgeInsets.zero,
         ),
         OptionsFlowCardWidget(
           brokerageUser: ctx.brokerageUser,
@@ -51,6 +55,27 @@ class StrategiesSectionPage extends StatelessWidget {
           user: appUser,
           userDocRef: userDocRef,
           includePortfolioSymbols: true,
+          outerPadding: EdgeInsets.zero,
+        ),
+        _entry(
+          context,
+          icon: Icons.analytics_outlined,
+          title: 'Portfolio GEX Dashboard',
+          subtitle: 'Monitor aggregate dealer gamma across your holdings',
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => PortfolioGexDashboardWidget(
+                brokerageUser: ctx.brokerageUser,
+                service: ctx.service,
+                user: appUser,
+                userDocRef: userDocRef,
+                analytics: ctx.analytics,
+                observer: ctx.observer,
+                generativeService: ctx.generativeService,
+              ),
+            ),
+          ),
         ),
         if (appUser != null && userDocRef != null && account != null)
           _entry(

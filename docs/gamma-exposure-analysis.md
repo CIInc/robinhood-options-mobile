@@ -24,11 +24,12 @@ Where:
 *   $d_1 = \frac{\ln(S/K) + (r + \frac{1}{2}\sigma^2)T}{\sigma\sqrt{T}}$
 
 ### Dealer GEX Formulation
-$$\text{GEX}_{\text{Call}} = \Gamma_{\text{Call}} \times \text{OI}_{\text{Call}} \times 100 \times S$$
-$$\text{GEX}_{\text{Put}} = \Gamma_{\text{Put}} \times \text{OI}_{\text{Put}} \times 100 \times S \times M$$
+$$\text{GEX}_{\text{Call}} = \Gamma_{\text{Call}} \times \text{OI}_{\text{Call}} \times 100 \times S^2 \times 0.01$$
+$$\text{GEX}_{\text{Put}} = \Gamma_{\text{Put}} \times \text{OI}_{\text{Put}} \times 100 \times S^2 \times 0.01 \times M$$
 
 Where:
 *   $\text{OI}$ represents Open Interest totals on the specific strike.
+*   $S^2 \times 0.01$ converts per-dollar gamma into dollar exposure for a 1% move in the underlying.
 *   $M$ represents dealer direction adjustments (standard retail put purchasing positions dealers short puts/long gamma; standard retail call purchasing positions dealers short calls/short gamma).
 
 ---
@@ -37,7 +38,7 @@ Where:
 To provide extreme architectural resilience against server-side platform rate limits or API outage thresholds, the app hosts a dual-path calculation engine:
 
 1.  **Backend Path (Primary)**: Queries an optimized Node/TypeScript cloud engine (`getGammaExposure`) which hosts rapid centralized databases.
-2.  **On-Device Path (Failover)**: Implements standard Black-Scholes option pricing evaluations concurrently inside Dart ([src/robinhood_options_mobile/lib/widgets/gamma_exposure_widget.dart](src/robinhood_options_mobile/lib/widgets/gamma_exposure_widget.dart)).
+2.  **On-Device Path (Failover)**: Implements standard Black-Scholes option pricing evaluations concurrently inside Dart ([gamma_exposure_widget.dart](../src/robinhood_options_mobile/lib/widgets/gamma_exposure_widget.dart)).
     *   Fetches up to **4 distinct expirations in parallel** asynchronously using the direct Yahoo Finance public options API interface.
     *   Computes and maps GEX locally to bypass cloud network dependencies completely.
     *   Visualizes a custom `Local Calc` chip highlight row on the dashboard summary to notify traders of raw on-device math calculations in real-time.
@@ -68,6 +69,19 @@ To provide extreme architectural resilience against server-side platform rate li
 *   **Top-N Expansion Controls**: The dashboard defaults to a condensed list of leaders and expands on demand to preserve mobile readability.
 *   **Instrument Preview Navigation**: The dashboard includes a live instrument preview card and direct navigation into the instrument detail workflow.
 
+### Portfolio GEX Dashboard:
+*   **Holdings-Only Analysis**: Collects stock and option symbols from the active portfolio and explicitly excludes the general dashboard's default market symbols.
+*   **Aggregate Regime Summary**: Reports portfolio net and gross GEX, dampening versus amplifying breadth, largest-symbol concentration, and mixed-regime offsets.
+*   **Top Gamma Drivers**: Ranks holdings by absolute exposure so the positions with the strongest dealer-hedging influence remain visible.
+*   **Actionable Position Profiles**: Shows spot, Zero Gamma, Call Wall, Put Wall, the nearest key level and its signed distance, plus Call/Put exposure balance for every holding.
+*   **Risk Triage**: Supports sorting by exposure magnitude or nearest key level and filtering to short-gamma positions where hedging may amplify price moves.
+*   **Freshness & Recovery**: Aligns stale labels with the four-hour backend cache window and provides pull-to-refresh, retry, loading, and empty states.
+
+### Transition Map & Regime Context:
+*   **Closest Levels**: Ranks Gamma Flip, Call/Put Walls, and positive/negative transitions by distance from spot and links matching levels to strike details.
+*   **Transition Map**: Surfaces `P Trans`, `N Trans`, Put Mass, and +GEX target values in a responsive two- or four-column layout.
+*   **Regime Language**: Describes long gamma as dampening, short gamma as amplifying, and near-zero net-to-gross exposure as balanced without treating gamma sign as directional sentiment.
+
 ---
 
 ## 4. GEX-Based Trading Strategies & Automated Exits
@@ -92,15 +106,17 @@ The **Backtesting Engine** has been upgraded to support GEX exit simulation, ena
 
 ## 5. Reliability, Validation, and Workflow Notes
 *   **Backend + Client Fallback**: The GEX stack continues to prefer Cloud Functions first and gracefully falls back to device-side computation when server-side requests fail or return incomplete data.
-*   **Validation Coverage**: Serialization/deserialization validation exists for the GEX data model, and backend tests cover the Cloud Function path.
+*   **Standard Unit**: Backend and on-device engines report dollar gamma exposure for a 1% underlying move using `Gamma × OI × 100 × Spot² × 0.01`.
+*   **Validation Coverage**: Dart tests cover serialization, transition levels, freshness, nearest levels, and portfolio breadth. Backend tests cover 1%-move scaling, signal evaluation, and holdings-only symbol resolution.
 *   **Mobile-first Layout Tuning**: Leader cards, strike detail panels, and dashboard previews were adjusted to reduce overflow and improve scanning on narrow screens.
 
 ---
 
-## 5. File References & Setup
-*   **Backend Mathematics**: [src/robinhood_options_mobile/functions/src/gamma-exposure.ts](src/robinhood_options_mobile/functions/src/gamma-exposure.ts)
-*   **Frontend Model Layer**: [src/robinhood_options_mobile/lib/model/gamma_exposure_model.dart](src/robinhood_options_mobile/lib/model/gamma_exposure_model.dart)
-*   **Dynamic Visual UI & On-Device Engine**: [src/robinhood_options_mobile/lib/widgets/gamma_exposure_widget.dart](src/robinhood_options_mobile/lib/widgets/gamma_exposure_widget.dart)
-*   **Leaders Board & Search Dashboard**: [src/robinhood_options_mobile/lib/widgets/gamma_exposure_dashboard_widget.dart](src/robinhood_options_mobile/lib/widgets/gamma_exposure_dashboard_widget.dart)
-*   **Dart Validation Test**: [src/robinhood_options_mobile/test/gamma_exposure_validation_test.dart](src/robinhood_options_mobile/test/gamma_exposure_validation_test.dart)
-*   **Backend Function Test**: [src/robinhood_options_mobile/functions/tests/gamma-exposure.test.ts](src/robinhood_options_mobile/functions/tests/gamma-exposure.test.ts)
+## 6. File References & Setup
+*   **Backend Mathematics**: [gamma-exposure.ts](../src/robinhood_options_mobile/functions/src/gamma-exposure.ts)
+*   **Frontend Model Layer**: [gamma_exposure_model.dart](../src/robinhood_options_mobile/lib/model/gamma_exposure_model.dart)
+*   **Dynamic Visual UI & On-Device Engine**: [gamma_exposure_widget.dart](../src/robinhood_options_mobile/lib/widgets/gamma_exposure_widget.dart)
+*   **Portfolio GEX Dashboard**: [portfolio_gex_dashboard_widget.dart](../src/robinhood_options_mobile/lib/widgets/portfolio_gex_dashboard_widget.dart)
+*   **Leaders Board & Search Dashboard**: [gamma_exposure_dashboard_widget.dart](../src/robinhood_options_mobile/lib/widgets/gamma_exposure_dashboard_widget.dart)
+*   **Dart Validation Test**: [gamma_exposure_validation_test.dart](../src/robinhood_options_mobile/test/gamma_exposure_validation_test.dart)
+*   **Backend Function Test**: [gamma-exposure.test.ts](../src/robinhood_options_mobile/functions/tests/gamma-exposure.test.ts)

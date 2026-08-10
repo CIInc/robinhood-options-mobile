@@ -41,19 +41,21 @@ class PortfolioSectionGridWidget extends StatelessWidget {
               // stays legible on tablets without stretching tiles.
               final columns = constraints.maxWidth > 600 ? 3 : 2;
               const spacing = 12.0;
-              final tileWidth =
-                  (constraints.maxWidth - spacing * (columns - 1)) / columns;
 
-              return Wrap(
-                spacing: spacing,
-                runSpacing: spacing,
-                children: [
-                  for (final section in PortfolioSection.values)
-                    SizedBox(
-                      width: tileWidth,
-                      child: _tile(context, section),
-                    ),
-                ],
+              return GridView.builder(
+                shrinkWrap: true,
+                primary: false,
+                padding: EdgeInsets.zero,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: columns,
+                  crossAxisSpacing: spacing,
+                  mainAxisSpacing: spacing,
+                  mainAxisExtent: 138,
+                ),
+                itemCount: PortfolioSection.values.length,
+                itemBuilder: (context, index) =>
+                    _tile(context, PortfolioSection.values[index]),
               );
             },
           ),
@@ -83,7 +85,6 @@ class PortfolioSectionGridWidget extends StatelessWidget {
           padding: const EdgeInsets.all(16.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
             children: [
               Row(
                 children: [

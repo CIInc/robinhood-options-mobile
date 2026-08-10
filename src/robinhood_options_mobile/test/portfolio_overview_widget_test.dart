@@ -204,6 +204,22 @@ void main() {
       for (final section in PortfolioSection.values) {
         expect(find.text(section.label), findsOneWidget);
       }
+      final cardHeights = PortfolioSection.values.map((section) {
+        final card = find.ancestor(
+          of: find.text(section.label),
+          matching: find.byType(Card),
+        );
+        return tester.getSize(card).height;
+      }).toSet();
+      expect(cardHeights, hasLength(1));
+      final titleBottom = tester.getBottomLeft(find.text('Browse')).dy;
+      final firstCardTop = tester
+          .getTopLeft(find.ancestor(
+            of: find.text(PortfolioSection.positions.label),
+            matching: find.byType(Card),
+          ))
+          .dy;
+      expect(firstCardTop - titleBottom, 12);
       // A summary replaces the static description on its tile.
       expect(find.text('Moderate'), findsOneWidget);
 

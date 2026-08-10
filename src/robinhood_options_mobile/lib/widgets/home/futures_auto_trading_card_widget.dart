@@ -12,6 +12,7 @@ class FuturesAutoTradingCardWidget extends StatelessWidget {
   final DocumentReference<User>? userDocRef;
   final IBrokerageService? service;
   final FirebaseAnalytics? analytics;
+  final EdgeInsetsGeometry outerPadding;
 
   const FuturesAutoTradingCardWidget({
     super.key,
@@ -19,6 +20,8 @@ class FuturesAutoTradingCardWidget extends StatelessWidget {
     this.userDocRef,
     this.service,
     this.analytics,
+    this.outerPadding =
+        const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
   });
 
   @override
@@ -51,7 +54,7 @@ class FuturesAutoTradingCardWidget extends StatelessWidget {
         }
 
         return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+          padding: outerPadding,
           child: Card(
             elevation: 0,
             color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),

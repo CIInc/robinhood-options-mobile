@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.37.2] - 2026-08-09
+**Portfolio Gamma Intelligence & GEX Precision**
+
+### Added
+- **Portfolio GEX Dashboard:** Added a holdings-only gamma dashboard under Portfolio Strategies with aggregate net and gross exposure, dampening/amplifying breadth, concentration, top gamma drivers, and drill-down navigation for each symbol.
+- **Actionable GEX Levels:** Added volatility-regime context, nearest-level distance, Gamma Flip, Call/Put Walls, positive and negative transitions, Put Mass, and +GEX targets with chart/table selection support.
+- **Portfolio Risk Controls:** Added magnitude and key-level-proximity sorting, a short-gamma amplifying-risk filter, data-freshness labels, pull-to-refresh, retry handling, and dedicated empty states.
+
+### Changed
+- **Standardized GEX Units:** Updated backend and on-device calculations to report dollar gamma exposure for a 1% underlying move using `Gamma × OI × 100 × Spot² × 0.01`.
+- **Holdings-Only Symbol Resolution:** Extended the top-GEX callable so portfolio requests can exclude default market symbols while preserving normalized, deduplicated, 100-symbol-bounded requests for general dashboards.
+- **Portfolio Strategies Layout:** Integrated GEX analysis into the Strategies section, removed nested card padding, and stabilized the portfolio browse grid with fixed-height responsive tiles.
+
+### Fixed
+- **GEX Data Interpretation:** Preserved transition and target fields through client serialization, included them in visible strike selection, and added four-hour cache-aligned stale-data detection.
+- **GEX Detail Layout:** Improved selected-strike overlay placement and responsive transition-level presentation for dense mobile charts.
+
+### Testing
+- **Gamma Validation:** Added backend coverage for 1%-move scaling and portfolio symbol selection plus Dart coverage for transitions, freshness, nearest levels, mixed portfolio breadth, and zero-exposure summaries.
+- **Portfolio Navigation:** Expanded overview widget coverage for the Strategies route and Portfolio GEX entry point.
+
 ## [0.37.1] - 2026-08-09
 **Progressive Portfolio, Signal Diagnostics, and Trading Reliability**
 

@@ -113,6 +113,18 @@ class GexSensitivity {
       };
 }
 
+class GexKeyLevel {
+  final String label;
+  final double price;
+  final double distanceFromSpotPercent;
+
+  const GexKeyLevel({
+    required this.label,
+    required this.price,
+    required this.distanceFromSpotPercent,
+  });
+}
+
 class GammaExposureData {
   final String symbol;
   final double spotPrice;
@@ -128,6 +140,10 @@ class GammaExposureData {
   final String? expirationFilter;
   final double? callWall; // strike with highest callGEX
   final double? putWall; // strike with highest putGEX
+  final double? pTrans; // nearest positive GEX transition at/above spot
+  final double? nTrans; // nearest negative GEX transition below spot
+  final double? cotmp; // center of put mass
+  final double? plusGex; // positive GEX target
   final double gexRatio; // call GEX relative ratio
   final double riskFreeRate; // interest rate used
   final GexSensitivity? gexSensitivity;
@@ -147,6 +163,10 @@ class GammaExposureData {
     this.expirationFilter,
     this.callWall,
     this.putWall,
+    this.pTrans,
+    this.nTrans,
+    this.cotmp,
+    this.plusGex,
     this.gexRatio = 0.5,
     this.riskFreeRate = 0.05,
     this.gexSensitivity,
@@ -184,6 +204,10 @@ class GammaExposureData {
       expirationFilter: json['expirationFilter'] as String?,
       callWall: (json['callWall'] as num?)?.toDouble(),
       putWall: (json['putWall'] as num?)?.toDouble(),
+      pTrans: (json['pTrans'] as num?)?.toDouble(),
+      nTrans: (json['nTrans'] as num?)?.toDouble(),
+      cotmp: (json['cotmp'] as num?)?.toDouble(),
+      plusGex: (json['plusGex'] as num?)?.toDouble(),
       gexRatio: (json['gexRatio'] as num?)?.toDouble() ?? 0.5,
       riskFreeRate: (json['riskFreeRate'] as num?)?.toDouble() ?? 0.05,
       gexSensitivity: json['gexSensitivity'] != null
@@ -212,6 +236,10 @@ class GammaExposureData {
         'updatedAt': updatedAt,
         if (callWall != null) 'callWall': callWall,
         if (putWall != null) 'putWall': putWall,
+        if (pTrans != null) 'pTrans': pTrans,
+        if (nTrans != null) 'nTrans': nTrans,
+        if (cotmp != null) 'cotmp': cotmp,
+        if (plusGex != null) 'plusGex': plusGex,
         'gexRatio': gexRatio,
         'riskFreeRate': riskFreeRate,
         if (gexSensitivity != null) 'gexSensitivity': gexSensitivity!.toJson(),
@@ -227,7 +255,7 @@ class GammaExposureData {
   }
 
   /// Returns the visible strikes for chart or table, ensuring crucial levels
-  /// (Call Wall, Put Wall, Gamma Flip, Max Gamma Strike) are guaranteed to be included.
+  /// (walls, transitions, targets, Gamma Flip, Max Gamma Strike) are included.
   List<GexStrikeLevel> getVisibleStrikes({int count = 20}) {
     if (gexByStrike.isEmpty) return gexByStrike;
 
@@ -255,9 +283,56 @@ class GammaExposureData {
     addKeyLevel(putWall);
     addKeyLevel(gammaFlip);
     addKeyLevel(maxGammaStrike);
+    addKeyLevel(pTrans);
+    addKeyLevel(nTrans);
+    addKeyLevel(cotmp);
+    addKeyLevel(plusGex);
 
     baseList.sort((a, b) => a.strike.compareTo(b.strike));
     return baseList;
+  }
+
+  Duration ageAt(DateTime now) {
+    if (updatedAt <= 0) return const Duration(days: 36500);
+    final age = now.difference(
+      DateTime.fromMillisecondsSinceEpoch(updatedAt),
+    );
+    return age.isNegative ? Duration.zero : age;
+  }
+
+  bool isStaleAt(
+    DateTime now, {
+    Duration threshold = const Duration(hours: 4),
+  }) =>
+      updatedAt <= 0 || ageAt(now) > threshold;
+
+  GexKeyLevel? get nearestKeyLevel {
+    if (spotPrice <= 0) return null;
+
+    final levels = <String, double?>{
+      'Zero Gamma': gammaFlip,
+      'Call Wall': callWall,
+      'Put Wall': putWall,
+      'Max Gamma': maxGammaStrike,
+    };
+    final uniquePrices = <double>{};
+    final candidates = <GexKeyLevel>[];
+
+    for (final entry in levels.entries) {
+      final price = entry.value;
+      if (price == null || price <= 0 || !uniquePrices.add(price)) continue;
+      candidates.add(GexKeyLevel(
+        label: entry.key,
+        price: price,
+        distanceFromSpotPercent: ((price - spotPrice) / spotPrice) * 100,
+      ));
+    }
+
+    if (candidates.isEmpty) return null;
+    candidates.sort((a, b) => a.distanceFromSpotPercent
+        .abs()
+        .compareTo(b.distanceFromSpotPercent.abs()));
+    return candidates.first;
   }
 
   /// Net GEX formatted in billions/millions for display.
@@ -268,4 +343,73 @@ class GammaExposureData {
     if (abs >= 1e6) return '$sign\$${(abs / 1e6).toStringAsFixed(0)}M';
     return '$sign\$${abs.toStringAsFixed(0)}';
   }
+}
+
+class PortfolioGexSummary {
+  final double netGEX;
+  final double grossGEX;
+  final double dampeningGEX;
+  final double amplifyingGEX;
+  final double topConcentration;
+  final int dampeningSymbols;
+  final int amplifyingSymbols;
+  final DealerPositioning positioning;
+
+  const PortfolioGexSummary({
+    required this.netGEX,
+    required this.grossGEX,
+    required this.dampeningGEX,
+    required this.amplifyingGEX,
+    required this.topConcentration,
+    required this.dampeningSymbols,
+    required this.amplifyingSymbols,
+    required this.positioning,
+  });
+
+  factory PortfolioGexSummary.fromData(Iterable<GammaExposureData> data) {
+    double netGEX = 0;
+    double dampeningGEX = 0;
+    double amplifyingGEX = 0;
+    double largestAbsoluteGEX = 0;
+    int dampeningSymbols = 0;
+    int amplifyingSymbols = 0;
+
+    for (final item in data) {
+      netGEX += item.totalNetGEX;
+      final absoluteGEX = item.totalNetGEX.abs();
+      if (absoluteGEX > largestAbsoluteGEX) {
+        largestAbsoluteGEX = absoluteGEX;
+      }
+      if (item.totalNetGEX > 0) {
+        dampeningGEX += item.totalNetGEX;
+        dampeningSymbols++;
+      } else if (item.totalNetGEX < 0) {
+        amplifyingGEX += absoluteGEX;
+        amplifyingSymbols++;
+      }
+    }
+
+    final grossGEX = dampeningGEX + amplifyingGEX;
+    final netToGrossRatio = grossGEX == 0 ? 0 : netGEX.abs() / grossGEX;
+    final positioning = grossGEX == 0 || netToGrossRatio < 0.1
+        ? DealerPositioning.neutral
+        : netGEX > 0
+            ? DealerPositioning.longGamma
+            : DealerPositioning.shortGamma;
+
+    return PortfolioGexSummary(
+      netGEX: netGEX,
+      grossGEX: grossGEX,
+      dampeningGEX: dampeningGEX,
+      amplifyingGEX: amplifyingGEX,
+      topConcentration: grossGEX == 0 ? 0 : largestAbsoluteGEX / grossGEX,
+      dampeningSymbols: dampeningSymbols,
+      amplifyingSymbols: amplifyingSymbols,
+      positioning: positioning,
+    );
+  }
+
+  double get dampeningShare => grossGEX == 0 ? 0.5 : dampeningGEX / grossGEX;
+
+  bool get hasMixedExposure => dampeningSymbols > 0 && amplifyingSymbols > 0;
 }

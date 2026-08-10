@@ -19,6 +19,7 @@ class OptionsFlowCardWidget extends StatelessWidget {
   final User? user;
   final DocumentReference<User>? userDocRef;
   final bool includePortfolioSymbols;
+  final EdgeInsetsGeometry outerPadding;
 
   const OptionsFlowCardWidget({
     super.key,
@@ -30,12 +31,14 @@ class OptionsFlowCardWidget extends StatelessWidget {
     this.user,
     this.userDocRef,
     this.includePortfolioSymbols = false,
+    this.outerPadding =
+        const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
   });
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      padding: outerPadding,
       child: Card(
         elevation: 0,
         color: Theme.of(context)

@@ -44,7 +44,7 @@ extension PortfolioSectionDisplay on PortfolioSection {
       case PortfolioSection.taxes:
         return 'Loss harvesting & ESG scoring';
       case PortfolioSection.strategies:
-        return 'Automation, options flow & paper trading';
+        return 'Automation, options flow, GEX & paper trading';
     }
   }
 

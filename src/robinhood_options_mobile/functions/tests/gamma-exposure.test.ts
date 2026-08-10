@@ -10,9 +10,15 @@ import {
   computeGammaExposure,
   evaluateGammaExposure,
   GammaExposureData,
+  resolveGammaExposureSymbols,
+  scaleGammaExposure,
 } from "../src/gamma-exposure";
 
 describe("Gamma Exposure (GEX) Data Validation", () => {
+  it("should scale gamma exposure to a 1% underlying move", () => {
+    expect(scaleGammaExposure(0.02, 1000, 200)).toBe(800000);
+  });
+
   const mockOptionsChain = {
     options: [
       {
@@ -145,5 +151,25 @@ describe("Gamma Exposure (GEX) Data Validation", () => {
     const result = evaluateGammaExposure(neutralGexData);
     expect(result.signal).toBe("HOLD");
     expect(result.reason).toContain("neutral dealer positioning");
+  });
+});
+
+describe("Gamma Exposure symbol selection", () => {
+  it("includes market defaults for general dashboard requests", () => {
+    const symbols = resolveGammaExposureSymbols(["hood"]);
+
+    expect(symbols).toEqual(expect.arrayContaining(["SPY", "QQQ", "HOOD"]));
+  });
+
+  it("excludes defaults from portfolio requests", () => {
+    const symbols = resolveGammaExposureSymbols(
+      [" aapl ", "msft", "AAPL"],
+      false
+    );
+
+    expect(symbols).toEqual(["AAPL", "MSFT"]);
+    expect(symbols).not.toEqual(
+      expect.arrayContaining(["SPY", "QQQ", "IWM"])
+    );
   });
 });

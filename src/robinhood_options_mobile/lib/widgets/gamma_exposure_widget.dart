@@ -180,14 +180,16 @@ class _GammaExposureWidgetState extends State<GammaExposureWidget> {
                 });
 
         final entry = strikeMap[strike]!;
+        final dollarGexForOnePercentMove =
+            gamma * oi * 100 * spotPrice * spotPrice * 0.01;
         if (isCall) {
           entry['callGamma'] = entry['callGamma']! + gamma;
           entry['callOI'] = entry['callOI']! + oi;
-          entry['callGEX'] = entry['callGEX']! + (gamma * oi * 100 * spotPrice);
+          entry['callGEX'] = entry['callGEX']! + dollarGexForOnePercentMove;
         } else {
           entry['putGamma'] = entry['putGamma']! + gamma;
           entry['putOI'] = entry['putOI']! + oi;
-          entry['putGEX'] = entry['putGEX']! + (gamma * oi * 100 * spotPrice);
+          entry['putGEX'] = entry['putGEX']! + dollarGexForOnePercentMove;
         }
       }
 
@@ -229,6 +231,7 @@ class _GammaExposureWidgetState extends State<GammaExposureWidget> {
 
     // Calculate flip level
     double? gammaFlip;
+    final flipStrikes = <double>[];
     if (gexByStrike.length >= 2) {
       double closestDistance = double.infinity;
       for (int i = 1; i < gexByStrike.length; i++) {
@@ -242,15 +245,24 @@ class _GammaExposureWidgetState extends State<GammaExposureWidget> {
               (curr.strike - prev.strike) *
                   prev.netGEX.abs() /
                   (prev.netGEX.abs() + curr.netGEX.abs());
+          final roundedCrossing = (crossingStrike * 100).round() / 100.0;
+          flipStrikes.add(roundedCrossing);
 
           final dist = (crossingStrike - spotPrice).abs();
           if (dist < closestDistance) {
             closestDistance = dist;
-            gammaFlip = (crossingStrike * 100).round() / 100.0;
+            gammaFlip = roundedCrossing;
           }
         }
       }
     }
+
+    double? pTrans = gammaFlip;
+    double? nTrans = gammaFlip;
+    final flipsAbove = flipStrikes.where((strike) => strike >= spotPrice);
+    final flipsBelow = flipStrikes.where((strike) => strike < spotPrice);
+    if (flipsAbove.isNotEmpty) pTrans = flipsAbove.first;
+    if (flipsBelow.isNotEmpty) nTrans = flipsBelow.last;
 
     // Max absolute net GEX
     double? maxGammaStrike;
@@ -320,6 +332,10 @@ class _GammaExposureWidgetState extends State<GammaExposureWidget> {
       expirationFilter: _selectedFilter,
       callWall: callWall,
       putWall: putWall,
+      pTrans: pTrans,
+      nTrans: nTrans,
+      cotmp: putWall,
+      plusGex: callWall,
       gexRatio: gexRatio,
       riskFreeRate: 0.05,
       gexSensitivity: gexSensitivity,
@@ -481,15 +497,16 @@ class _GammaExposureWidgetState extends State<GammaExposureWidget> {
       children: [
         _buildSummaryRow(context, gex),
         const SizedBox(height: 12),
-        _buildControlRow(context),
-        _buildSelectedStrikeDetails(context, gex),
+        _buildRegimeAndClosestLevels(context, gex),
         const SizedBox(height: 12),
-        _showChart
-            ? _buildBarChart(context, gex)
-            : _buildStrikeTable(context, gex),
+        _buildControlRow(context, gex),
+        const SizedBox(height: 12),
+        _buildStrikeView(context, gex),
         const SizedBox(height: 8),
         if (_showChart) _buildLegend(context, gex),
         const SizedBox(height: 16),
+        _buildTransitionMap(context, gex),
+        const SizedBox(height: 12),
         _buildGexPinningGauge(context, gex),
         const SizedBox(height: 12),
         _buildGexSensitivityDashboard(context, gex),
@@ -498,6 +515,346 @@ class _GammaExposureWidgetState extends State<GammaExposureWidget> {
           _buildAICochCommentary(context, gex),
         ],
       ],
+    );
+  }
+
+  Widget _buildRegimeAndClosestLevels(
+      BuildContext context, GammaExposureData gex) {
+    final theme = Theme.of(context);
+    final isDampening = gex.dealerPositioning == DealerPositioning.longGamma;
+    final isAmplifying = gex.dealerPositioning == DealerPositioning.shortGamma;
+    final regimeColor = isDampening
+        ? Colors.green
+        : isAmplifying
+            ? Colors.red
+            : theme.colorScheme.outline;
+    final regimeLabel = isDampening
+        ? 'Dampening'
+        : isAmplifying
+            ? 'Amplifying'
+            : 'Balanced';
+    final regimeDescription = isDampening
+        ? 'Dealer hedging may suppress moves and favor range-bound price action.'
+        : isAmplifying
+            ? 'Dealer hedging may reinforce moves and increase realized volatility.'
+            : 'Dealer positioning is near neutral with no strong hedging regime.';
+
+    final levels = <({
+      String label,
+      String role,
+      double value,
+      Color color,
+      IconData icon,
+    })>[
+      if (gex.callWall != null)
+        (
+          label: 'Call Wall',
+          role: 'Resistance',
+          value: gex.callWall!,
+          color: Colors.green,
+          icon: Icons.arrow_upward,
+        ),
+      if (gex.putWall != null)
+        (
+          label: 'Put Wall',
+          role: 'Support',
+          value: gex.putWall!,
+          color: Colors.red,
+          icon: Icons.arrow_downward,
+        ),
+      if (gex.gammaFlip != null)
+        (
+          label: 'Gamma Flip',
+          role: 'Regime boundary',
+          value: gex.gammaFlip!,
+          color: Colors.orange,
+          icon: Icons.swap_vert,
+        ),
+      if (gex.pTrans != null && gex.pTrans != gex.gammaFlip)
+        (
+          label: 'Positive Transition',
+          role: 'Upper transition',
+          value: gex.pTrans!,
+          color: Colors.teal,
+          icon: Icons.trending_up,
+        ),
+      if (gex.nTrans != null && gex.nTrans != gex.gammaFlip)
+        (
+          label: 'Negative Transition',
+          role: 'Lower transition',
+          value: gex.nTrans!,
+          color: Colors.deepOrange,
+          icon: Icons.trending_down,
+        ),
+    ]..sort((a, b) => (a.value - gex.spotPrice)
+        .abs()
+        .compareTo((b.value - gex.spotPrice).abs()));
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: regimeColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Icon(
+                  isDampening ? Icons.compress : Icons.expand,
+                  size: 18,
+                  color: regimeColor,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Volatility Regime  $regimeLabel',
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        color: regimeColor,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      regimeDescription,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (levels.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            Text(
+              'CLOSEST LEVELS',
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.outline,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 4),
+            ...levels.take(3).map((level) {
+              final distancePct =
+                  (level.value - gex.spotPrice) / gex.spotPrice * 100;
+              final isAbove = distancePct >= 0;
+              final matchingStrike = gex.gexByStrike
+                  .where((strike) => (strike.strike - level.value).abs() < 0.01)
+                  .firstOrNull;
+
+              return InkWell(
+                borderRadius: BorderRadius.circular(6),
+                onTap: matchingStrike == null
+                    ? null
+                    : () => setState(() => _selectedStrike = matchingStrike),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Row(
+                    children: [
+                      Icon(level.icon, size: 16, color: level.color),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              level.label,
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            Text(
+                              '${level.role}  ${distancePct.abs().toStringAsFixed(1)}% ${isAbove ? 'above' : 'below'} spot',
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: theme.colorScheme.outline,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Text(
+                        '\$${level.value.toStringAsFixed(2)}',
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          color: level.color,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      if (matchingStrike != null) ...[
+                        const SizedBox(width: 8),
+                        Icon(Icons.chevron_right,
+                            size: 16, color: theme.colorScheme.outline),
+                      ],
+                    ],
+                  ),
+                ),
+              );
+            }),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStrikeView(BuildContext context, GammaExposureData gex) {
+    final strikes = gex.getVisibleStrikes(count: 20);
+    final selectedIndex = _selectedStrike == null
+        ? -1
+        : strikes.indexWhere(
+            (strike) => (strike.strike - _selectedStrike!.strike).abs() < 0.01,
+          );
+    final chartHeight = max(strikes.length * 24.0, 100.0);
+    final rowHeight = strikes.isEmpty ? 0.0 : chartHeight / strikes.length;
+    final placeAbove =
+        _showChart && selectedIndex >= 0 && selectedIndex >= strikes.length / 2;
+    final overlayTop = _showChart && selectedIndex >= 0
+        ? (placeAbove
+            ? selectedIndex * rowHeight - 6
+            : (selectedIndex + 1) * rowHeight + 6)
+        : 8.0;
+
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        _showChart
+            ? _buildBarChart(context, gex)
+            : _buildStrikeTable(context, gex),
+        if (_selectedStrike != null)
+          Positioned(
+            top: overlayTop,
+            right: 8,
+            child: FractionalTranslation(
+              translation: placeAbove ? const Offset(0, -1) : Offset.zero,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: min(MediaQuery.sizeOf(context).width - 48, 360),
+                ),
+                child: _buildSelectedStrikeDetails(context, gex),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildTransitionMap(BuildContext context, GammaExposureData gex) {
+    final levels =
+        <({String label, String description, double value, Color color})>[
+      if (gex.nTrans != null)
+        (
+          label: 'N Trans',
+          description: 'Lower regime transition',
+          value: gex.nTrans!,
+          color: Colors.red,
+        ),
+      if (gex.pTrans != null)
+        (
+          label: 'P Trans',
+          description: 'Upper regime transition',
+          value: gex.pTrans!,
+          color: Colors.green,
+        ),
+      if (gex.cotmp != null)
+        (
+          label: 'Put Mass',
+          description: 'Put concentration center',
+          value: gex.cotmp!,
+          color: Colors.orange,
+        ),
+      if (gex.plusGex != null)
+        (
+          label: '+GEX Target',
+          description: 'Positive gamma target',
+          value: gex.plusGex!,
+          color: Colors.teal,
+        ),
+    ];
+    if (levels.isEmpty) return const SizedBox.shrink();
+
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.route, size: 16, color: theme.colorScheme.primary),
+              const SizedBox(width: 8),
+              Text(
+                'GEX Transition Map',
+                style: theme.textTheme.labelMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final itemWidth = constraints.maxWidth >= 520
+                  ? (constraints.maxWidth - 24) / 4
+                  : (constraints.maxWidth - 8) / 2;
+              return Wrap(
+                spacing: 8,
+                runSpacing: 12,
+                children: levels
+                    .map((level) => SizedBox(
+                          width: itemWidth,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                level.label,
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                  color: theme.colorScheme.outline,
+                                ),
+                              ),
+                              Text(
+                                '\$${level.value.toStringAsFixed(2)}',
+                                style: theme.textTheme.titleSmall?.copyWith(
+                                  color: level.color,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              Text(
+                                level.description,
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ))
+                    .toList(),
+              );
+            },
+          ),
+        ],
+      ),
     );
   }
 
@@ -793,20 +1150,7 @@ class _GammaExposureWidgetState extends State<GammaExposureWidget> {
 
   Widget _buildSelectedStrikeDetails(
       BuildContext context, GammaExposureData gex) {
-    if (_selectedStrike == null) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12.0),
-        child: Center(
-          child: Text(
-            'Tip: Tap any strike on the chart or row on the table to inspect details.',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.outline,
-                  fontStyle: FontStyle.italic,
-                ),
-          ),
-        ),
-      );
-    }
+    if (_selectedStrike == null) return const SizedBox.shrink();
 
     final s = _selectedStrike!;
     final theme = Theme.of(context);
@@ -818,15 +1162,21 @@ class _GammaExposureWidgetState extends State<GammaExposureWidget> {
     final netGexColor = s.netGEX >= 0 ? Colors.green : Colors.red;
 
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(
           color: theme.colorScheme.primary.withValues(alpha: 0.25),
           width: 1,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: theme.colorScheme.shadow.withValues(alpha: 0.18),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1067,7 +1417,16 @@ class _GammaExposureWidgetState extends State<GammaExposureWidget> {
     }
   }
 
-  Widget _buildControlRow(BuildContext context) {
+  String _formatDataAge(GammaExposureData gex, DateTime now) {
+    if (gex.updatedAt <= 0) return 'Update time unavailable';
+    final age = gex.ageAt(now);
+    if (age.inMinutes < 1) return 'Updated just now';
+    if (age.inHours < 1) return 'Updated ${age.inMinutes}m ago';
+    if (age.inDays < 1) return 'Updated ${age.inHours}h ago';
+    return 'Updated ${age.inDays}d ago';
+  }
+
+  Widget _buildControlRow(BuildContext context, GammaExposureData gex) {
     final theme = Theme.of(context);
     final filterLabels = {
       'all': 'All Expirations',
@@ -1075,66 +1434,128 @@ class _GammaExposureWidgetState extends State<GammaExposureWidget> {
       '8-30': '8-30 Days (Monthly)',
       '30+': '30+ Days (Leaps)',
     };
+    final now = DateTime.now();
+    final isStale = gex.isStaleAt(now);
+    final freshnessColor = isStale ? Colors.orange : Colors.green;
+    final activeFilterLabel =
+        filterLabels[gex.expirationFilter ?? _selectedFilter] ??
+            filterLabels[_selectedFilter]!;
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Expanded(
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              value: _selectedFilter,
-              icon: const Icon(Icons.arrow_drop_down),
-              style: theme.textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-                color: theme.colorScheme.primary,
-              ),
-              isExpanded: true,
-              items: filterLabels.entries.map((entry) {
-                return DropdownMenuItem<String>(
-                  value: entry.key,
-                  child: Text(
-                    entry.value,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                );
-              }).toList(),
-              onChanged: (String? val) {
-                if (val != null && val != _selectedFilter) {
-                  setState(() {
-                    _selectedFilter = val;
-                  });
-                  _fetchGEX();
-                }
-              },
-            ),
-          ),
+    final expirationSelector = DropdownButtonHideUnderline(
+      child: DropdownButton<String>(
+        value: _selectedFilter,
+        icon: const Icon(Icons.arrow_drop_down),
+        style: theme.textTheme.bodyMedium?.copyWith(
+          fontWeight: FontWeight.w600,
+          color: theme.colorScheme.primary,
         ),
-        const SizedBox(width: 16),
-        SegmentedButton<bool>(
-          segments: const [
-            ButtonSegment<bool>(
-              value: true,
-              label: Text('Chart'),
-              icon: Icon(Icons.bar_chart),
+        isExpanded: true,
+        items: filterLabels.entries.map((entry) {
+          return DropdownMenuItem<String>(
+            value: entry.key,
+            child: Text(
+              entry.value,
+              overflow: TextOverflow.ellipsis,
             ),
-            ButtonSegment<bool>(
-              value: false,
-              label: Text('Table'),
-              icon: Icon(Icons.table_rows),
+          );
+        }).toList(),
+        onChanged: (String? val) {
+          if (val != null && val != _selectedFilter) {
+            setState(() {
+              _selectedFilter = val;
+            });
+            _fetchGEX();
+          }
+        },
+      ),
+    );
+
+    final viewSelector = SegmentedButton<bool>(
+      segments: const [
+        ButtonSegment<bool>(
+          value: true,
+          label: Text('Chart'),
+          icon: Icon(Icons.bar_chart),
+        ),
+        ButtonSegment<bool>(
+          value: false,
+          label: Text('Table'),
+          icon: Icon(Icons.table_rows),
+        ),
+      ],
+      selected: {_showChart},
+      onSelectionChanged: (Set<bool> newSelection) {
+        setState(() {
+          _showChart = newSelection.first;
+        });
+      },
+      style: const ButtonStyle(
+        visualDensity: VisualDensity.compact,
+        padding: WidgetStatePropertyAll(
+          EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        ),
+      ),
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.schedule,
+                size: 16, color: theme.colorScheme.onSurfaceVariant),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                '$activeFilterLabel • ${_formatDataAge(gex, now)}',
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: isStale
+                      ? freshnessColor
+                      : theme.colorScheme.onSurfaceVariant,
+                  fontWeight: isStale ? FontWeight.w600 : FontWeight.normal,
+                ),
+              ),
+            ),
+            if (isStale)
+              Padding(
+                padding: const EdgeInsets.only(left: 8),
+                child: Text(
+                  'STALE',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: freshnessColor,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            IconButton(
+              onPressed: _fetchGEX,
+              icon: const Icon(Icons.refresh, size: 19),
+              tooltip: 'Refresh GEX',
+              visualDensity: VisualDensity.compact,
             ),
           ],
-          selected: {_showChart},
-          onSelectionChanged: (Set<bool> newSelection) {
-            setState(() {
-              _showChart = newSelection.first;
-            });
+        ),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            if (constraints.maxWidth < 520) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  expirationSelector,
+                  const SizedBox(height: 8),
+                  Align(alignment: Alignment.centerLeft, child: viewSelector),
+                ],
+              );
+            }
+            return Row(
+              children: [
+                Expanded(child: expirationSelector),
+                const SizedBox(width: 16),
+                viewSelector,
+              ],
+            );
           },
-          style: const ButtonStyle(
-            visualDensity: VisualDensity.compact,
-            padding: WidgetStatePropertyAll(
-              EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            ),
-          ),
         ),
       ],
     );
@@ -1395,6 +1816,17 @@ class _GammaExposureWidgetState extends State<GammaExposureWidget> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                Text('Current Price',
+                    style: theme.textTheme.labelSmall
+                        ?.copyWith(color: theme.colorScheme.outline)),
+                Text('\$${gex.spotPrice.toStringAsFixed(2)}',
+                    style: theme.textTheme.titleSmall
+                        ?.copyWith(fontWeight: FontWeight.bold)),
+              ],
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
                 Text('Net GEX',
                     style: theme.textTheme.labelSmall
                         ?.copyWith(color: theme.colorScheme.outline)),
@@ -1542,7 +1974,7 @@ class _GammaExposureWidgetState extends State<GammaExposureWidget> {
             _selectedStrike = strikes[index];
           });
         },
-        onVerticalDragStart: (details) {
+        onLongPressStart: (details) {
           final double y = details.localPosition.dy;
           final double barHeight = chartHeight / strikes.length;
           final int index =
@@ -1551,7 +1983,7 @@ class _GammaExposureWidgetState extends State<GammaExposureWidget> {
             _selectedStrike = strikes[index];
           });
         },
-        onVerticalDragUpdate: (details) {
+        onLongPressMoveUpdate: (details) {
           final double y = details.localPosition.dy;
           final double barHeight = chartHeight / strikes.length;
           final int index =
