@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.37.3] - 2026-08-10
+**Whale Watch Accuracy, Signal Reliability, and Responsive Research**
+
+### Added
+- **Institutional Holdings Snapshots:** Whale Watch now persists aggregate institutional holdings and compares each run with the previous snapshot to rank positive accumulation accurately.
+- **Ranking Provenance:** Whale Watch payloads and cards identify whether a ranking represents measured accumulation or a first-run/current-holdings fallback.
+- **Signal Scheduler Cache Controls:** Added cache-only market-data and GEX execution modes for bulk daily, hourly, and 15-minute signal jobs.
+
+### Changed
+- **Bounded Signal Generation:** Scheduled jobs reuse persisted macro assessments, shared market-index context, cached GEX, and cached OHLCV bars instead of issuing a provider request for every symbol.
+- **Signal Freshness Semantics:** Successful unchanged calculations refresh `timestamp`, `date`, `currentPrice`, and `lastSuccessfulCalculationAt` while preserving `diagnostics.signalChangedAt` as the recommendation-change time.
+- **Market-State Navigation:** Macro Assessment remains the single aggregate market score; the overlapping Sentiment card is hidden pending a distinct news/social/community Alpha Feed.
+- **Research Discovery:** Search presents Options Flow, GEX, and Whale Watch in a clearer order with stable card heights, denser quote rows, and improved text wrapping.
+
+### Fixed
+- **Signal Persistence:** Omitted undefined optional indicator configuration from Firestore payloads, preventing scheduled signal writes from being rejected.
+- **Scheduler Deadlines:** Removed live provider fan-out from bulk signal generation; a production 15-minute run processed the 540-symbol universe in approximately 23 seconds instead of exceeding the nine-minute deadline.
+- **Cron Accounting:** Failed calculations are now counted as errors rather than successful processing, and symbols without usable cached bars preserve their previous signal.
+- **Yahoo Reliability:** Whale Watch now uses the authenticated Yahoo proxy and retries authorization failures once.
+- **Responsive Layouts:** Stabilized research grids, history/account selection, portfolio section scaffolds, chart dates, GEX labels, and Trade Signals scroll-to-top behavior on compact screens.
+
+### Testing
+- **Whale Watch Ranking:** Added unit coverage for positive snapshot deltas, first-snapshot holdings fallback, and no-positive-change fallback behavior.
+- **Production Signal Verification:** Confirmed cache-only GEX execution, persisted macro reuse, accurate partial-failure counts, and independent calculation/change timestamps.
+
 ## [0.37.2] - 2026-08-09
 **Portfolio Gamma Intelligence & GEX Precision**
 
@@ -103,9 +128,27 @@ All notable changes to this project will be documented in this file.
 ## [0.35.3] - 2026-06-10
 **GEX Sensitivity Dashboard, Login Polling, and Compatibility Updates**
 
+
+- **Institutional Holdings Snapshots:** Whale Watch now persists aggregate institutional holdings and compares each run with the previous snapshot to rank positive accumulation accurately.
+- **Ranking Provenance:** Whale Watch payloads and cards identify whether a ranking represents measured accumulation or a first-run/current-holdings fallback.
+- **Signal Scheduler Cache Controls:** Added cache-only market-data and GEX execution modes for bulk daily, hourly, and 15-minute signal jobs.
+
 ### Added
+- **Bounded Signal Generation:** Scheduled jobs reuse persisted macro assessments, shared market-index context, cached GEX, and cached OHLCV bars instead of issuing a provider request for every symbol.
+- **Signal Freshness Semantics:** Successful unchanged calculations refresh `timestamp`, `date`, `currentPrice`, and `lastSuccessfulCalculationAt` while preserving `diagnostics.signalChangedAt` as the recommendation-change time.
+- **Market-State Navigation:** Macro Assessment remains the single aggregate market score; the overlapping Sentiment card is hidden pending a distinct news/social/community Alpha Feed.
+- **Research Discovery:** Search presents Options Flow, GEX, and Whale Watch in a clearer order with stable card heights, denser quote rows, and improved text wrapping.
+
 - **Spot-Shift GEX Sensitivity Dashboard:** Added multi-point spot sensitivity calculations, a visual sensitivity curve, and a stress-test summary for rapid dealer-regime inspection.
+- **Signal Persistence:** Omitted undefined optional indicator configuration from Firestore payloads, preventing scheduled signal writes from being rejected.
+- **Scheduler Deadlines:** Removed live provider fan-out from bulk signal generation; a production 15-minute run processed the 540-symbol universe in approximately 23 seconds instead of exceeding the nine-minute deadline.
+- **Cron Accounting:** Failed calculations are now counted as errors rather than successful processing, and symbols without usable cached bars preserve their previous signal.
+- **Yahoo Reliability:** Whale Watch now uses the authenticated Yahoo proxy and retries authorization failures once.
+- **Responsive Layouts:** Stabilized research grids, history/account selection, portfolio section scaffolds, chart dates, GEX labels, and Trade Signals scroll-to-top behavior on compact screens.
+
 - **Market Maker Pinning Gauge:** Added a dedicated pinning gauge that visualizes current spot relative to the Put Wall, Call Wall, and Gamma Flip threshold.
+- **Whale Watch Ranking:** Added unit coverage for positive snapshot deltas, first-snapshot holdings fallback, and no-positive-change fallback behavior.
+- **Production Signal Verification:** Confirmed cache-only GEX execution, persisted macro reuse, accurate partial-failure counts, and independent calculation/change timestamps.
 - **Expanded GEX Dashboard Workflow:** Added instrument preview cards, direct navigation into instrument detail, expandable Top GEX Leaders, and better row-level exploration controls.
 - **Prompt Challenge Polling:** Added login polling support so prompt-based brokerage challenges can resolve inside the app without forcing a restart or manual retry loop.
 - **Gamma Exposure Validation Coverage:** Added Dart serialization coverage and backend test updates for GEX model and function validation.

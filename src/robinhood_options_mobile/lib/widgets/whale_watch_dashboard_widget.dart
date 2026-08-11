@@ -70,7 +70,9 @@ class _WhaleWatchDashboardWidgetState extends State<WhaleWatchDashboardWidget> {
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Text(
-                  'Top Institutional Accumulation',
+                  aggregate.institutionalRankingMode == 'holdings'
+                      ? 'Top Institutional Holdings'
+                      : 'Top Institutional Accumulation',
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
               ),
@@ -153,6 +155,14 @@ class _WhaleWatchDashboardWidgetState extends State<WhaleWatchDashboardWidget> {
   }
 
   Widget _buildTopAccumulated(WhaleWatchAggregate aggregate) {
+    if (aggregate.topAccumulatedSymbols.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.fromLTRB(16, 0, 16, 16),
+        child: Text('Institutional ownership data is currently unavailable.'),
+      );
+    }
+
+    final isHoldings = aggregate.institutionalRankingMode == 'holdings';
     return SizedBox(
       height: 100,
       child: ListView.builder(
@@ -195,8 +205,13 @@ class _WhaleWatchDashboardWidgetState extends State<WhaleWatchDashboardWidget> {
                       style: const TextStyle(
                           fontWeight: FontWeight.bold, fontSize: 18),
                     ),
-                    const Text('Accumulating',
-                        style: TextStyle(fontSize: 10, color: Colors.green)),
+                    Text(
+                      isHoldings ? 'Institutional holding' : 'Accumulating',
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: isHoldings ? Colors.blue : Colors.green,
+                      ),
+                    ),
                   ],
                 ),
               ),

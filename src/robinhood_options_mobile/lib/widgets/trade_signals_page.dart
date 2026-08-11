@@ -51,11 +51,18 @@ class TradeSignalsPage extends StatefulWidget {
 class _TradeSignalsPageState extends State<TradeSignalsPage> {
   final SubscriptionService _subscriptionService = SubscriptionService();
   final GlobalKey<TradeSignalsWidgetState> _tradeSignalsKey = GlobalKey();
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
     widget.analytics.logScreenView(screenName: 'TradeSignals');
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   @override
@@ -66,10 +73,12 @@ class _TradeSignalsPageState extends State<TradeSignalsPage> {
           appBar: AppBar(
             flexibleSpace: AppBarUtils.buildScrollToTopGestureDetector(
               context: context,
+              scrollController: _scrollController,
               child: const SizedBox.expand(),
             ),
             title: AppBarUtils.buildScrollToTopGestureDetector(
               context: context,
+              scrollController: _scrollController,
               child: const Text(Constants.appTitle),
             ), // Search
             centerTitle: false,
@@ -97,6 +106,7 @@ class _TradeSignalsPageState extends State<TradeSignalsPage> {
             // title: const Text('Trade Signals')
           ),
           body: CustomScrollView(
+            controller: _scrollController,
             slivers: [
               SliverFillRemaining(
                 hasScrollBody: false,
@@ -176,7 +186,7 @@ class _TradeSignalsPageState extends State<TradeSignalsPage> {
               _tradeSignalsKey.currentState?.refresh();
             },
             child: CustomScrollView(
-              primary: true,
+              controller: _scrollController,
               keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
               slivers: [
                 ExpandedSliverAppBar(
@@ -192,6 +202,7 @@ class _TradeSignalsPageState extends State<TradeSignalsPage> {
                   firestoreUser: widget.user,
                   userDocRef: widget.userDocRef,
                   service: widget.service,
+                  scrollController: _scrollController,
                   onChange: () {
                     _tradeSignalsKey.currentState?.refresh();
                   },

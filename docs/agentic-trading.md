@@ -123,6 +123,19 @@ Call the function with a JSON body to seed the `charts` collection.
   ```
   Seeds only the specified symbols.
 
+### Scheduled Signal Data Policy
+
+Daily, hourly, and 15-minute bulk jobs set `marketDataCacheOnly` and `gexCacheOnly` when calling `performTradeProposal`. This policy keeps a full-universe run bounded and prevents hundreds of concurrent fallback requests when an upstream provider is unavailable or rate limited.
+
+- Fresh cache entries are used normally.
+- Stale OHLCV cache entries are accepted and surfaced through `diagnostics.usedStaleCache` and the user-facing stale-data warning.
+- Missing/empty cached bars fail that symbol's calculation without replacing its previous signal.
+- Cached GEX is used when available; bulk jobs do not initiate live options-chain fetches.
+- The latest persisted macro assessment and shared market-index data are reused across adjacent calculations.
+- Cron summaries count returned calculation failures in `errorCount` instead of reporting them as processed.
+
+Interactive and explicitly requested calculations retain the normal provider fallback behavior unless these cache-only flags are supplied.
+
 ## Features
 
 ### Trade Signals Widget
@@ -167,7 +180,7 @@ To prevent conflicting queries, the system enforces exclusivity between high-lev
 To ensure reliability and prevent duplicate trades, the system implements robust signal processing logic:
 
 - **Local Persistence:** The IDs of processed signals are saved locally to the device. This ensures that even if the app is restarted, the system remembers which signals have already been acted upon (or rejected) for the current day.
-- **Server-Side Safety:** When the auto-trading system checks for signals, it uses a special flag (`skipSignalUpdate`) to prevent the server from updating the timestamp of existing signals. This ensures that the "freshness" of a signal is preserved based on its original generation time, not the time it was last checked.
+- **Server-Side Safety:** Routine auto-trading checks use `skipSignalUpdate` so checking an opportunity does not regenerate its signal. Scheduled calculation runs update calculation freshness even when the recommendation is unchanged.
 - **Detailed Inspection:** You can view the history of processed signals in the **Agentic Trading Settings**. Tapping on any processed signal reveals a detailed dialog showing:
   - The full AI reasoning for the decision.
   - Specific rejection reasons (if applicable).
@@ -175,7 +188,9 @@ To ensure reliability and prevent duplicate trades, the system implements robust
 
 ### Signal Calculation Diagnostics
 
-Instrument signal details expose backend calculation metadata for a recommendation: last attempt, last successful calculation, signal-change time, market-data timestamp, stale-cache use, data source, status, interval, and bars evaluated. Warnings distinguish stale or failed calculations from a current successful result without changing the persisted signal.
+Instrument signal details expose backend calculation metadata for a recommendation: last attempt, last successful calculation, signal-change time, market-data timestamp, stale-cache use, data source, status, interval, and bars evaluated. Warnings distinguish stale or failed calculations from a current successful result without replacing the persisted recommendation.
+
+On a successful unchanged calculation, the backend refreshes the top-level `timestamp`, `date`, `currentPrice`, and `diagnostics.lastSuccessfulCalculationAt`. It preserves `diagnostics.signalChangedAt`, which is the authoritative time at which the recommendation content last changed. Notification triggers compare signal values, so this diagnostic-only freshness update does not create a new actionable-signal notification.
 
 ### Paper Trading Mode
 

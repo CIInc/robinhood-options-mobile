@@ -398,7 +398,7 @@ class _HistoryPageState extends State<HistoryPage>
   final List<String> stockSymbolFilters = <String>[];
   final List<String> cryptoFilters = <String>[];
 
-  String orderDateFilterSelection = 'Past Week';
+  String orderDateFilterSelection = 'Past Month';
 
   bool showShareView = false;
   List<String> selectedPositionOrdersToShare = [];
@@ -823,7 +823,7 @@ class _HistoryPageState extends State<HistoryPage>
       optionOrdersPremiumBalance = filteredOptionOrders!.isNotEmpty
           ? filteredOptionOrders!.fold<double>(
               0.0,
-                (total, order) =>
+              (total, order) =>
                   total +
                   (order.processedPremium ?? 0.0) *
                       (order.direction == "credit" ? 1.0 : -1.0))
@@ -855,7 +855,7 @@ class _HistoryPageState extends State<HistoryPage>
       positionOrdersBalance = filteredPositionOrders!.isNotEmpty
           ? filteredPositionOrders!.fold<double>(
               0.0,
-                (total, order) =>
+              (total, order) =>
                   total +
                   (order.averagePrice != null
                           ? order.averagePrice! * order.quantity!
@@ -1054,13 +1054,7 @@ class _HistoryPageState extends State<HistoryPage>
                                     );
                                   },
                                 ),
-                                IconButton(
-                                  tooltip: 'Share selections',
-                                  onPressed: () => _showShareView(),
-                                  icon: Icon(showShareView
-                                      ? Icons.check
-                                      : Icons.ios_share),
-                                ),
+                                ..._buildSelectionActions(),
                               ],
                             ),
                           ],
@@ -1089,146 +1083,131 @@ class _HistoryPageState extends State<HistoryPage>
                                 child: Column(
                               mainAxisSize: MainAxisSize.min,
                               children: <Widget>[
-                                showShareView
-                                    ? CheckboxListTile(
-                                        value: selectedPositionOrdersToShare
-                                            .contains(order.id),
-                                        onChanged: (bool? newValue) {
-                                          if (newValue!) {
-                                            setState(() {
-                                              selectedPositionOrdersToShare
-                                                  .add(order.id);
-                                            });
-                                          } else {
-                                            setState(() {
-                                              selectedPositionOrdersToShare
-                                                  .remove(order.id);
-                                            });
-                                          }
-                                        },
-                                        title: Text(
-                                            "${order.instrumentObj?.symbol ?? ""} ${order.type} ${order.side} ${order.averagePrice != null ? formatCurrency.format(order.averagePrice) : ""}"),
-                                        subtitle: Text(
-                                            "${order.state} ${formatDate.format(order.updatedAt!)}"),
-                                      )
-                                    : ListTile(
-                                        contentPadding:
-                                            const EdgeInsets.symmetric(
-                                                horizontal: 16, vertical: 4),
-                                        leading: CircleAvatar(
-                                            radius: 22,
-                                            backgroundColor: order.side == 'buy'
-                                                ? Colors.green
-                                                    .withValues(alpha: 0.1)
-                                                : Colors.red
-                                                    .withValues(alpha: 0.1),
-                                            foregroundColor: order.side == 'buy'
+                                ListTile(
+                                  contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 16, vertical: 4),
+                                  leading: _buildSelectionLeading(
+                                    selected: selectedPositionOrdersToShare
+                                        .contains(order.id),
+                                    onChanged: (value) => _setSelection(
+                                      selectedPositionOrdersToShare,
+                                      order.id,
+                                      value,
+                                    ),
+                                    child: CircleAvatar(
+                                        radius: 22,
+                                        backgroundColor: order.side == 'buy'
+                                            ? Colors.green
+                                                .withValues(alpha: 0.1)
+                                            : Colors.red.withValues(alpha: 0.1),
+                                        foregroundColor: order.side == 'buy'
+                                            ? Colors.green
+                                            : Colors.red,
+                                        child: Text(
+                                          formatCompactNumber
+                                              .format(order.quantity!),
+                                          style: const TextStyle(
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.bold),
+                                        )),
+                                  ),
+                                  title: Row(
+                                    children: [
+                                      Text(
+                                        order.instrumentObj?.symbol ?? "",
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 16),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 6, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: (order.side == 'buy'
+                                                  ? Colors.green
+                                                  : Colors.red)
+                                              .withValues(alpha: 0.1),
+                                          borderRadius:
+                                              BorderRadius.circular(6),
+                                        ),
+                                        child: Text(
+                                          order.side.toUpperCase(),
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.bold,
+                                            color: order.side == 'buy'
                                                 ? Colors.green
                                                 : Colors.red,
-                                            child: Text(
-                                              formatCompactNumber
-                                                  .format(order.quantity!),
-                                              style: const TextStyle(
-                                                  fontSize: 13,
-                                                  fontWeight: FontWeight.bold),
-                                            )),
-                                        title: Row(
-                                          children: [
-                                            Text(
-                                              order.instrumentObj?.symbol ?? "",
-                                              style: const TextStyle(
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 16),
-                                            ),
-                                            const SizedBox(width: 8),
-                                            Container(
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  subtitle: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      const SizedBox(height: 4),
+                                      Text(
+                                          "${order.type} @ ${order.averagePrice != null ? formatCurrency.format(order.averagePrice) : "-"}"),
+                                      if (order.trailingPeg != null) ...[
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          "Trailing: ${order.trailingPeg!['percentage'] != null ? "${order.trailingPeg!['percentage']}%" : (order.trailingPeg!['price'] != null && order.trailingPeg!['price']['amount'] != null ? formatCurrency.format(double.tryParse(order.trailingPeg!['price']['amount'])) : "")}",
+                                          style: TextStyle(
+                                              fontSize: 12,
+                                              color: Theme.of(context)
+                                                  .textTheme
+                                                  .bodySmall
+                                                  ?.color),
+                                        )
+                                      ],
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        "${order.state} • ${formatDate.format(order.updatedAt!)}",
+                                        style: TextStyle(
+                                            fontSize: 12,
+                                            color: Theme.of(context)
+                                                .textTheme
+                                                .bodySmall
+                                                ?.color),
+                                      ),
+                                    ],
+                                  ),
+                                  trailing: order.averagePrice != null
+                                      ? Wrap(spacing: 8, children: [
+                                          Container(
                                               padding:
                                                   const EdgeInsets.symmetric(
-                                                      horizontal: 6,
-                                                      vertical: 2),
+                                                      horizontal: 8,
+                                                      vertical: 4),
                                               decoration: BoxDecoration(
-                                                color: (order.side == 'buy'
-                                                        ? Colors.green
-                                                        : Colors.red)
-                                                    .withValues(alpha: 0.1),
-                                                borderRadius:
-                                                    BorderRadius.circular(6),
-                                              ),
+                                                  color: _amountColor(amount)
+                                                      .withValues(alpha: 0.12),
+                                                  borderRadius:
+                                                      BorderRadius.circular(8),
+                                                  border: Border.all(
+                                                      color: _amountColor(
+                                                          amount))),
                                               child: Text(
-                                                order.side.toUpperCase(),
+                                                "${amount > 0 ? "+" : (amount < 0 ? "-" : "")}${formatCurrency.format(amount.abs())}",
                                                 style: TextStyle(
-                                                  fontSize: 10,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: order.side == 'buy'
-                                                      ? Colors.green
-                                                      : Colors.red,
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                        subtitle: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            const SizedBox(height: 4),
-                                            Text(
-                                                "${order.type} @ ${order.averagePrice != null ? formatCurrency.format(order.averagePrice) : "-"}"),
-                                            if (order.trailingPeg != null) ...[
-                                              const SizedBox(height: 2),
-                                              Text(
-                                                "Trailing: ${order.trailingPeg!['percentage'] != null ? "${order.trailingPeg!['percentage']}%" : (order.trailingPeg!['price'] != null && order.trailingPeg!['price']['amount'] != null ? formatCurrency.format(double.tryParse(order.trailingPeg!['price']['amount'])) : "")}",
-                                                style: TextStyle(
-                                                    fontSize: 12,
-                                                    color: Theme.of(context)
-                                                        .textTheme
-                                                        .bodySmall
-                                                        ?.color),
-                                              )
-                                            ],
-                                            const SizedBox(height: 2),
-                                            Text(
-                                              "${order.state} • ${formatDate.format(order.updatedAt!)}",
-                                              style: TextStyle(
-                                                  fontSize: 12,
-                                                  color: Theme.of(context)
-                                                      .textTheme
-                                                      .bodySmall
-                                                      ?.color),
-                                            ),
-                                          ],
-                                        ),
-                                        trailing: order.averagePrice != null
-                                            ? Wrap(spacing: 8, children: [
-                                                Container(
-                                                    padding: const EdgeInsets
-                                                        .symmetric(
-                                                        horizontal: 8,
-                                                        vertical: 4),
-                                                    decoration: BoxDecoration(
-                                                        color:
-                                                            _amountColor(amount)
-                                                                .withValues(
-                                                                    alpha:
-                                                                        0.12),
-                                                        borderRadius:
-                                                            BorderRadius
-                                                                .circular(8),
-                                                        border: Border.all(
-                                                            color: _amountColor(
-                                                                amount))),
-                                                    child: Text(
-                                                      "${amount > 0 ? "+" : (amount < 0 ? "-" : "")}${formatCurrency.format(amount.abs())}",
-                                                      style: TextStyle(
-                                                          fontSize: 16.5,
-                                                          fontWeight:
-                                                              FontWeight.w600,
-                                                          color: _amountColor(
-                                                              amount)),
-                                                    ))
-                                              ])
-                                            : null,
-                                        onTap: () {
+                                                    fontSize: 16.5,
+                                                    fontWeight: FontWeight.w600,
+                                                    color:
+                                                        _amountColor(amount)),
+                                              ))
+                                        ])
+                                      : null,
+                                  onTap: showShareView
+                                      ? () => _setSelection(
+                                            selectedPositionOrdersToShare,
+                                            order.id,
+                                            !selectedPositionOrdersToShare
+                                                .contains(order.id),
+                                          )
+                                      : () {
                                           _handleReadOnlyAction(() {
                                             /* For navigation within this tab, uncomment
                                 widget.navigatorKey!.currentState!.push(
@@ -1258,7 +1237,7 @@ class _HistoryPageState extends State<HistoryPage>
                                                         )));
                                           });
                                         },
-                                      ),
+                                ),
                               ],
                             ));
                           },
@@ -1340,13 +1319,7 @@ class _HistoryPageState extends State<HistoryPage>
                                     );
                                   },
                                 ),
-                                IconButton(
-                                  tooltip: 'Share selections',
-                                  onPressed: () => _showShareView(),
-                                  icon: Icon(showShareView
-                                      ? Icons.check
-                                      : Icons.ios_share),
-                                ),
+                                ..._buildSelectionActions(),
                               ],
                             ),
                           ],
@@ -1377,134 +1350,118 @@ class _HistoryPageState extends State<HistoryPage>
                                 child: Column(
                               mainAxisSize: MainAxisSize.min,
                               children: <Widget>[
-                                showShareView
-                                    ? CheckboxListTile(
-                                        value: selectedOptionOrdersToShare
-                                            .contains(optionOrder.id),
-                                        onChanged: (bool? newValue) {
-                                          if (newValue!) {
-                                            setState(() {
-                                              selectedOptionOrdersToShare
-                                                  .add(optionOrder.id);
-                                            });
-                                          } else {
-                                            setState(() {
-                                              selectedOptionOrdersToShare
-                                                  .remove(optionOrder.id);
-                                            });
-                                          }
-                                        },
-                                        title: Text(
-                                            "${optionOrder.chainSymbol} \$${formatCompactNumber.format(optionOrder.legs.first.strikePrice)} ${optionOrder.strategy} ${formatCompactDate.format(optionOrder.legs.first.expirationDate!)}"),
-                                        subtitle: subtitle,
-                                      )
-                                    : ListTile(
-                                        contentPadding:
-                                            const EdgeInsets.symmetric(
-                                                horizontal: 16, vertical: 4),
-                                        leading: CircleAvatar(
-                                            radius: 22,
-                                            backgroundColor:
-                                                optionOrder.direction ==
-                                                        'credit'
-                                                    ? Colors.green
-                                                        .withValues(alpha: 0.1)
-                                                    : Colors.red
-                                                        .withValues(alpha: 0.1),
-                                            foregroundColor:
-                                                optionOrder.direction ==
-                                                        'credit'
-                                                    ? Colors.green
-                                                    : Colors.red,
-                                            child: optionOrder.optionEvents !=
-                                                    null
-                                                ? const Icon(Icons.check,
-                                                    size: 20)
-                                                : Text(
-                                                    '${optionOrder.quantity!.round()}',
-                                                    style: const TextStyle(
-                                                        fontSize: 13,
-                                                        fontWeight:
-                                                            FontWeight.bold))),
-                                        title: Row(
-                                          children: [
-                                            Text(
-                                              optionOrder.chainSymbol,
-                                              style: const TextStyle(
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 16),
-                                            ),
-                                            const SizedBox(width: 8),
-                                            Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      horizontal: 6,
-                                                      vertical: 2),
-                                              decoration: BoxDecoration(
-                                                color: Theme.of(context)
-                                                    .colorScheme
-                                                    .primary
+                                ListTile(
+                                  contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 16, vertical: 4),
+                                  leading: _buildSelectionLeading(
+                                    selected: selectedOptionOrdersToShare
+                                        .contains(optionOrder.id),
+                                    onChanged: (value) => _setSelection(
+                                      selectedOptionOrdersToShare,
+                                      optionOrder.id,
+                                      value,
+                                    ),
+                                    child: CircleAvatar(
+                                        radius: 22,
+                                        backgroundColor:
+                                            optionOrder.direction == 'credit'
+                                                ? Colors.green
+                                                    .withValues(alpha: 0.1)
+                                                : Colors.red
                                                     .withValues(alpha: 0.1),
-                                                borderRadius:
-                                                    BorderRadius.circular(6),
-                                              ),
-                                              child: Text(
-                                                optionOrder.strategy
-                                                    .toUpperCase(),
-                                                style: TextStyle(
-                                                  fontSize: 10,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: Theme.of(context)
-                                                      .colorScheme
-                                                      .primary,
-                                                ),
-                                              ),
-                                            ),
-                                          ],
+                                        foregroundColor:
+                                            optionOrder.direction == 'credit'
+                                                ? Colors.green
+                                                : Colors.red,
+                                        child: optionOrder.optionEvents != null
+                                            ? const Icon(Icons.check, size: 20)
+                                            : Text(
+                                                '${optionOrder.quantity!.round()}',
+                                                style: const TextStyle(
+                                                    fontSize: 13,
+                                                    fontWeight:
+                                                        FontWeight.bold))),
+                                  ),
+                                  title: Row(
+                                    children: [
+                                      Text(
+                                        optionOrder.chainSymbol,
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 16),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 6, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .primary
+                                              .withValues(alpha: 0.1),
+                                          borderRadius:
+                                              BorderRadius.circular(6),
                                         ),
-                                        subtitle: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            const SizedBox(height: 4),
-                                            Text(
-                                                "\$${formatCompactNumber.format(optionOrder.legs.first.strikePrice)} ${optionOrder.legs.first.optionType.toUpperCase()} • ${formatCompactDate.format(optionOrder.legs.first.expirationDate!)}"),
-                                            const SizedBox(height: 2),
-                                            subtitle,
-                                          ],
+                                        child: Text(
+                                          optionOrder.strategy.toUpperCase(),
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.bold,
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .primary,
+                                          ),
                                         ),
-                                        trailing: Wrap(spacing: 8, children: [
-                                          Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      horizontal: 8,
-                                                      vertical: 4),
-                                              decoration: BoxDecoration(
-                                                  color: _amountColor(
-                                                          displayPremium)
-                                                      .withValues(alpha: 0.12),
-                                                  borderRadius:
-                                                      BorderRadius.circular(8),
-                                                  border: Border.all(
-                                                      color: _amountColor(
-                                                          displayPremium))),
-                                              child: Text(
-                                                (displayPremium > 0
-                                                        ? "+"
-                                                        : displayPremium < 0
-                                                            ? "-"
-                                                            : "") +
-                                                    formatCurrency.format(
-                                                        displayPremium.abs()),
-                                                style: TextStyle(
-                                                    fontSize: 16.5,
-                                                    fontWeight: FontWeight.w600,
-                                                    color: _amountColor(
-                                                        displayPremium)),
-                                              ))
-                                        ]),
-                                        isThreeLine: true,
-                                        onTap: () {
+                                      ),
+                                    ],
+                                  ),
+                                  subtitle: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      const SizedBox(height: 4),
+                                      Text(
+                                          "\$${formatCompactNumber.format(optionOrder.legs.first.strikePrice)} ${optionOrder.legs.first.optionType.toUpperCase()} • ${formatCompactDate.format(optionOrder.legs.first.expirationDate!)}"),
+                                      const SizedBox(height: 2),
+                                      subtitle,
+                                    ],
+                                  ),
+                                  trailing: Wrap(spacing: 8, children: [
+                                    Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 8, vertical: 4),
+                                        decoration: BoxDecoration(
+                                            color: _amountColor(displayPremium)
+                                                .withValues(alpha: 0.12),
+                                            borderRadius:
+                                                BorderRadius.circular(8),
+                                            border: Border.all(
+                                                color: _amountColor(
+                                                    displayPremium))),
+                                        child: Text(
+                                          (displayPremium > 0
+                                                  ? "+"
+                                                  : displayPremium < 0
+                                                      ? "-"
+                                                      : "") +
+                                              formatCurrency
+                                                  .format(displayPremium.abs()),
+                                          style: TextStyle(
+                                              fontSize: 16.5,
+                                              fontWeight: FontWeight.w600,
+                                              color:
+                                                  _amountColor(displayPremium)),
+                                        ))
+                                  ]),
+                                  isThreeLine: true,
+                                  onTap: showShareView
+                                      ? () => _setSelection(
+                                            selectedOptionOrdersToShare,
+                                            optionOrder.id,
+                                            !selectedOptionOrdersToShare
+                                                .contains(optionOrder.id),
+                                          )
+                                      : () {
                                           _handleReadOnlyAction(() {
                                             /* For navigation within this tab, uncomment
                                 widget.navigatorKey!.currentState!.push(
@@ -1533,7 +1490,7 @@ class _HistoryPageState extends State<HistoryPage>
                                                         )));
                                           });
                                         },
-                                      ),
+                                ),
                               ],
                             ));
                           },
@@ -1571,12 +1528,7 @@ class _HistoryPageState extends State<HistoryPage>
                                   ],
                                 );
                               }),
-                          IconButton(
-                              tooltip: 'Share selections',
-                              onPressed: () => _showShareView(),
-                              icon: Icon(showShareView
-                                  ? Icons.check
-                                  : Icons.ios_share))
+                          ..._buildSelectionActions(),
                         ],
                       ),
                     )),
@@ -1769,13 +1721,7 @@ class _HistoryPageState extends State<HistoryPage>
                                     );
                                   },
                                 ),
-                                IconButton(
-                                  tooltip: 'Share selections',
-                                  onPressed: () => _showShareView(),
-                                  icon: Icon(showShareView
-                                      ? Icons.check
-                                      : Icons.ios_share),
-                                ),
+                                ..._buildSelectionActions(),
                               ],
                             ),
                           ],
@@ -1805,48 +1751,17 @@ class _HistoryPageState extends State<HistoryPage>
                                 child: Column(
                               mainAxisSize: MainAxisSize.min,
                               children: <Widget>[
-                                showShareView
-                                    ? CheckboxListTile(
-                                        value: selectionsToShare.contains(
-                                            filteredDividends![index]["id"]),
-                                        onChanged: (bool? newValue) {
-                                          if (newValue!) {
-                                            setState(() {
-                                              selectionsToShare.add(
-                                                  filteredDividends![index]
-                                                      ["id"]);
-                                            });
-                                          } else {
-                                            setState(() {
-                                              selectionsToShare.remove(
-                                                  filteredDividends![index]
-                                                      ["id"]);
-                                            });
-                                          }
-                                        },
-                                        title: Text(
-                                          dividend["instrumentObj"] != null
-                                              ? "${dividend["instrumentObj"].symbol}"
-                                              : ""
-                                                  "${formatCurrency.format(double.parse(dividend!["rate"]))} ${dividend!["state"]}",
-                                          style:
-                                              const TextStyle(fontSize: 18.0),
-                                          //overflow: TextOverflow.visible
-                                        ), // ${formatNumber.format(double.parse(dividend!["position"]))}
-                                        // title: Text(
-                                        //     "${filteredDividends![index]['instrumentObj'] != null ? filteredDividends![index]['instrumentObj'].symbol : ""} ${filteredDividends![index]['type']} ${filteredDividends![index]['side']} ${filteredDividends![index]['averagePrice'] != null ? formatCurrency.format(filteredDividends![index]['averagePrice']) : ""}"),
-                                        subtitle: Text(
-                                            "${formatNumber.format(double.parse(dividend!["position"]))} shares on ${formatDate.format(DateTime.parse(dividend!["payable_date"]))}", // ${formatDate.format(DateTime.parse(dividend!["record_date"]))}s
-                                            style:
-                                                const TextStyle(fontSize: 14)),
-                                        // subtitle: Text(
-                                        //     "${filteredDividends![index]['state']} ${formatDate.format(filteredDividends![index]['updatedAt'] ?? DateTime.parse(filteredDividends![index]['payable_date']))}"),
-                                      )
-                                    : ListTile(
-                                        contentPadding:
-                                            const EdgeInsets.symmetric(
-                                                horizontal: 16, vertical: 4),
-                                        onTap: () {
+                                ListTile(
+                                  contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 16, vertical: 4),
+                                  onTap: showShareView
+                                      ? () => _setSelection(
+                                            selectionsToShare,
+                                            dividend["id"],
+                                            !selectionsToShare
+                                                .contains(dividend["id"]),
+                                          )
+                                      : () {
                                           Navigator.push(
                                               context,
                                               MaterialPageRoute(
@@ -1906,115 +1821,120 @@ class _HistoryPageState extends State<HistoryPage>
                                                                 )
                                                               ]))));
                                         },
-                                        leading: CircleAvatar(
-                                            radius: 22,
-                                            backgroundColor: Colors.green
-                                                .withValues(alpha: 0.1),
-                                            foregroundColor: Colors.green,
-                                            child: Text(
-                                              dividend["instrumentObj"] != null
-                                                  ? dividend["instrumentObj"]
-                                                      .symbol
-                                                  : "",
-                                              style: const TextStyle(
-                                                  fontSize: 10,
-                                                  fontWeight: FontWeight.bold),
-                                              overflow: TextOverflow.fade,
-                                              softWrap: false,
-                                            )),
-                                        title: Text(
+                                  leading: _buildSelectionLeading(
+                                    selected: selectionsToShare
+                                        .contains(dividend["id"]),
+                                    onChanged: (value) => _setSelection(
+                                      selectionsToShare,
+                                      dividend["id"],
+                                      value,
+                                    ),
+                                    child: CircleAvatar(
+                                        radius: 22,
+                                        backgroundColor:
+                                            Colors.green.withValues(alpha: 0.1),
+                                        foregroundColor: Colors.green,
+                                        child: Text(
                                           dividend["instrumentObj"] != null
-                                              ? "${dividend["instrumentObj"].symbol}"
-                                              : ""
-                                                  "${formatCurrency.format(double.parse(dividend!["rate"]))} ${dividend!["state"]}",
+                                              ? dividend["instrumentObj"].symbol
+                                              : "",
                                           style: const TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 16),
-                                          //overflow: TextOverflow.visible
-                                        ), // ${formatNumber.format(double.parse(dividend!["position"]))}
-                                        subtitle: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            const SizedBox(height: 4),
-                                            Text(
-                                                "${formatNumber.format(double.parse(dividend!["position"]))} shares on ${formatDate.format(DateTime.parse(dividend!["payable_date"]))}", // ${formatDate.format(DateTime.parse(dividend!["record_date"]))}s
-                                                style: TextStyle(
-                                                    fontSize: 12,
-                                                    color: Theme.of(context)
-                                                        .textTheme
-                                                        .bodySmall
-                                                        ?.color)),
-                                          ],
-                                        ),
-                                        trailing: Wrap(spacing: 8, children: [
-                                          Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      horizontal: 8,
-                                                      vertical: 4),
-                                              decoration: BoxDecoration(
-                                                  color: _amountColor(
-                                                          dividendAmount)
-                                                      .withValues(alpha: 0.12),
-                                                  borderRadius:
-                                                      BorderRadius.circular(8),
-                                                  border: Border.all(
-                                                      color: _amountColor(
-                                                          dividendAmount))),
-                                              child: Text(
-                                                (dividendAmount > 0
-                                                        ? "+"
-                                                        : dividendAmount < 0
-                                                            ? "-"
-                                                            : "") +
-                                                    formatCurrency.format(
-                                                        dividendAmount.abs()),
-                                                style: TextStyle(
-                                                    fontSize: 16.5,
-                                                    fontWeight: FontWeight.w600,
-                                                    color: _amountColor(
-                                                        dividendAmount)),
-                                              ))
-                                        ]),
-                                        //   onTap: () {
-                                        //     /* For navigation within this tab, uncomment
-                                        // widget.navigatorKey!.currentState!.push(
-                                        //     MaterialPageRoute(
-                                        //         builder: (context) => PositionOrderWidget(
-                                        //             widget.user,
-                                        //             filteredDividends![index])));
-                                        //             */
-                                        //     showDialog<String>(
-                                        //       context: context,
-                                        //       builder: (BuildContext context) =>
-                                        //           AlertDialog(
-                                        //         title: const Text('Alert'),
-                                        //         content: const Text(
-                                        //             'This feature is not implemented.\n'),
-                                        //         actions: <Widget>[
-                                        //           TextButton(
-                                        //             onPressed: () =>
-                                        //                 Navigator.pop(context, 'OK'),
-                                        //             child: const Text('OK'),
-                                        //           ),
-                                        //         ],
-                                        //       ),
-                                        //     );
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.bold),
+                                          overflow: TextOverflow.fade,
+                                          softWrap: false,
+                                        )),
+                                  ),
+                                  title: Text(
+                                    dividend["instrumentObj"] != null
+                                        ? "${dividend["instrumentObj"].symbol}"
+                                        : ""
+                                            "${formatCurrency.format(double.parse(dividend!["rate"]))} ${dividend!["state"]}",
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16),
+                                    //overflow: TextOverflow.visible
+                                  ), // ${formatNumber.format(double.parse(dividend!["position"]))}
+                                  subtitle: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      const SizedBox(height: 4),
+                                      Text(
+                                          "${formatNumber.format(double.parse(dividend!["position"]))} shares on ${formatDate.format(DateTime.parse(dividend!["payable_date"]))}", // ${formatDate.format(DateTime.parse(dividend!["record_date"]))}s
+                                          style: TextStyle(
+                                              fontSize: 12,
+                                              color: Theme.of(context)
+                                                  .textTheme
+                                                  .bodySmall
+                                                  ?.color)),
+                                    ],
+                                  ),
+                                  trailing: Wrap(spacing: 8, children: [
+                                    Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 8, vertical: 4),
+                                        decoration: BoxDecoration(
+                                            color: _amountColor(dividendAmount)
+                                                .withValues(alpha: 0.12),
+                                            borderRadius:
+                                                BorderRadius.circular(8),
+                                            border: Border.all(
+                                                color: _amountColor(
+                                                    dividendAmount))),
+                                        child: Text(
+                                          (dividendAmount > 0
+                                                  ? "+"
+                                                  : dividendAmount < 0
+                                                      ? "-"
+                                                      : "") +
+                                              formatCurrency
+                                                  .format(dividendAmount.abs()),
+                                          style: TextStyle(
+                                              fontSize: 16.5,
+                                              fontWeight: FontWeight.w600,
+                                              color:
+                                                  _amountColor(dividendAmount)),
+                                        ))
+                                  ]),
+                                  //   onTap: () {
+                                  //     /* For navigation within this tab, uncomment
+                                  // widget.navigatorKey!.currentState!.push(
+                                  //     MaterialPageRoute(
+                                  //         builder: (context) => PositionOrderWidget(
+                                  //             widget.user,
+                                  //             filteredDividends![index])));
+                                  //             */
+                                  //     showDialog<String>(
+                                  //       context: context,
+                                  //       builder: (BuildContext context) =>
+                                  //           AlertDialog(
+                                  //         title: const Text('Alert'),
+                                  //         content: const Text(
+                                  //             'This feature is not implemented.\n'),
+                                  //         actions: <Widget>[
+                                  //           TextButton(
+                                  //             onPressed: () =>
+                                  //                 Navigator.pop(context, 'OK'),
+                                  //             child: const Text('OK'),
+                                  //           ),
+                                  //         ],
+                                  //       ),
+                                  //     );
 
-                                        //     // Navigator.push(
-                                        //     //     context,
-                                        //     //     MaterialPageRoute(
-                                        //     //         builder: (context) => PositionOrderWidget(
-                                        //     //               widget.user,
-                                        //     //               filteredDividends![index],
-                                        //     //               analytics: widget.analytics,
-                                        //     //               observer: widget.observer,
-                                        //     //             )));
-                                        //   },
+                                  //     // Navigator.push(
+                                  //     //     context,
+                                  //     //     MaterialPageRoute(
+                                  //     //         builder: (context) => PositionOrderWidget(
+                                  //     //               widget.user,
+                                  //     //               filteredDividends![index],
+                                  //     //               analytics: widget.analytics,
+                                  //     //               observer: widget.observer,
+                                  //     //             )));
+                                  //   },
 
-                                        //isThreeLine: true,
-                                      ),
+                                  //isThreeLine: true,
+                                ),
                               ],
                             ));
                           },
@@ -2089,13 +2009,7 @@ class _HistoryPageState extends State<HistoryPage>
                                     );
                                   },
                                 ),
-                                IconButton(
-                                  tooltip: 'Share selections',
-                                  onPressed: () => _showShareView(),
-                                  icon: Icon(showShareView
-                                      ? Icons.check
-                                      : Icons.ios_share),
-                                ),
+                                ..._buildSelectionActions(),
                               ],
                             ),
                           ],
@@ -2125,91 +2039,78 @@ class _HistoryPageState extends State<HistoryPage>
                                 child: Column(
                               mainAxisSize: MainAxisSize.min,
                               children: <Widget>[
-                                showShareView
-                                    ? CheckboxListTile(
-                                        value: selectionsToShare
-                                            .contains(interest["id"]),
-                                        onChanged: (bool? newValue) {
-                                          if (newValue!) {
-                                            setState(() {
-                                              selectionsToShare
-                                                  .add(interest["id"]);
-                                            });
-                                          } else {
-                                            setState(() {
-                                              selectionsToShare
-                                                  .remove(interest["id"]);
-                                            });
-                                          }
-                                        },
-                                        title: Text(interest["payout_type"]
-                                            .toString()
-                                            .replaceAll("_", " ")
-                                            .capitalize()),
-                                        subtitle: Text(
-                                            "on ${formatDate.format(DateTime.parse(interest["pay_date"]!))}"),
-                                      )
-                                    : ListTile(
-                                        contentPadding:
-                                            const EdgeInsets.symmetric(
-                                                horizontal: 16, vertical: 4),
-                                        leading: CircleAvatar(
-                                            radius: 22,
-                                            backgroundColor: Colors.green
-                                                .withValues(alpha: 0.1),
-                                            foregroundColor: Colors.green,
-                                            child: const Icon(
-                                                Icons.attach_money,
-                                                size: 20)),
-                                        title: Text(
-                                          interest["payout_type"]
-                                              .toString()
-                                              .replaceAll("_", " ")
-                                              .capitalize(),
-                                          style: const TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 16),
-                                        ),
-                                        subtitle: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            const SizedBox(height: 4),
-                                            Text(
-                                                "on ${formatDate.format(DateTime.parse(interest!["pay_date"]))}"),
-                                          ],
-                                        ),
-                                        trailing: Wrap(spacing: 8, children: [
-                                          Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      horizontal: 8,
-                                                      vertical: 4),
-                                              decoration: BoxDecoration(
-                                                  color: _amountColor(
-                                                          interestAmount)
-                                                      .withValues(alpha: 0.12),
-                                                  borderRadius:
-                                                      BorderRadius.circular(8),
-                                                  border: Border.all(
-                                                      color: _amountColor(
-                                                          interestAmount))),
-                                              child: Text(
-                                                (interestAmount > 0
-                                                        ? "+"
-                                                        : interestAmount < 0
-                                                            ? "-"
-                                                            : "") +
-                                                    formatCurrency.format(
-                                                        interestAmount.abs()),
-                                                style: TextStyle(
-                                                    fontSize: 16.5,
-                                                    fontWeight: FontWeight.w600,
-                                                    color: _amountColor(
-                                                        interestAmount)),
-                                              ))
-                                        ]),
-                                        onTap: () {
+                                ListTile(
+                                  contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 16, vertical: 4),
+                                  leading: _buildSelectionLeading(
+                                    selected: selectionsToShare
+                                        .contains(interest["id"]),
+                                    onChanged: (value) => _setSelection(
+                                      selectionsToShare,
+                                      interest["id"],
+                                      value,
+                                    ),
+                                    child: CircleAvatar(
+                                        radius: 22,
+                                        backgroundColor:
+                                            Colors.green.withValues(alpha: 0.1),
+                                        foregroundColor: Colors.green,
+                                        child: const Icon(Icons.attach_money,
+                                            size: 20)),
+                                  ),
+                                  title: Text(
+                                    interest["payout_type"]
+                                        .toString()
+                                        .replaceAll("_", " ")
+                                        .capitalize(),
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16),
+                                  ),
+                                  subtitle: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      const SizedBox(height: 4),
+                                      Text(
+                                          "on ${formatDate.format(DateTime.parse(interest!["pay_date"]))}"),
+                                    ],
+                                  ),
+                                  trailing: Wrap(spacing: 8, children: [
+                                    Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 8, vertical: 4),
+                                        decoration: BoxDecoration(
+                                            color: _amountColor(interestAmount)
+                                                .withValues(alpha: 0.12),
+                                            borderRadius:
+                                                BorderRadius.circular(8),
+                                            border: Border.all(
+                                                color: _amountColor(
+                                                    interestAmount))),
+                                        child: Text(
+                                          (interestAmount > 0
+                                                  ? "+"
+                                                  : interestAmount < 0
+                                                      ? "-"
+                                                      : "") +
+                                              formatCurrency
+                                                  .format(interestAmount.abs()),
+                                          style: TextStyle(
+                                              fontSize: 16.5,
+                                              fontWeight: FontWeight.w600,
+                                              color:
+                                                  _amountColor(interestAmount)),
+                                        ))
+                                  ]),
+                                  onTap: showShareView
+                                      ? () => _setSelection(
+                                            selectionsToShare,
+                                            interest["id"],
+                                            !selectionsToShare
+                                                .contains(interest["id"]),
+                                          )
+                                      : () {
                                           Navigator.push(
                                               context,
                                               MaterialPageRoute(
@@ -2265,7 +2166,7 @@ class _HistoryPageState extends State<HistoryPage>
                                                                     )
                                                                   ])))));
                                         },
-                                      ),
+                                ),
                               ],
                             ));
                           },
@@ -2955,6 +2856,61 @@ class _HistoryPageState extends State<HistoryPage>
             ),
           ),
         ]));
+  }
+
+  List<Widget> _buildSelectionActions() {
+    return [
+      if (showShareView)
+        IconButton(
+          tooltip: 'Share selections',
+          onPressed: _showShareView,
+          icon: const Icon(Icons.ios_share),
+        ),
+      IconButton(
+        tooltip:
+            showShareView ? 'Exit selection mode' : 'Select items to share',
+        onPressed: _toggleSelectionMode,
+        icon: Icon(showShareView ? Icons.close : Icons.ios_share),
+      ),
+    ];
+  }
+
+  Widget _buildSelectionLeading({
+    required bool selected,
+    required ValueChanged<bool?> onChanged,
+    required Widget child,
+  }) {
+    return SizedBox.square(
+      dimension: 48,
+      child: showShareView
+          ? Checkbox(value: selected, onChanged: onChanged)
+          : Center(child: child),
+    );
+  }
+
+  void _setSelection(
+    List<String> selections,
+    String id,
+    bool? selected,
+  ) {
+    setState(() {
+      if (selected ?? false) {
+        if (!selections.contains(id)) selections.add(id);
+      } else {
+        selections.remove(id);
+      }
+    });
+  }
+
+  void _toggleSelectionMode() {
+    setState(() {
+      showShareView = !showShareView;
+      if (!showShareView) {
+        selectedOptionOrdersToShare.clear();
+        selectedPositionOrdersToShare.clear();
+        selectionsToShare.clear();
+      }
+    });
   }
 
   Future<void> _showShareView() async {

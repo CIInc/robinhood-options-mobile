@@ -85,7 +85,11 @@ export async function performTradeProposal(request: any) {
     skipSignalUpdate: request.data.skipSignalUpdate || false,
     skipRiskGuard: request.data.skipRiskGuard || false,
     tradingMode: request.data.tradingMode || "systematic",
-    enabledIndicators: request.data.enabledIndicators,
+    marketDataCacheOnly: request.data.marketDataCacheOnly || false,
+    gexCacheOnly: request.data.gexCacheOnly || false,
+    ...(request.data.enabledIndicators !== undefined ? {
+      enabledIndicators: request.data.enabledIndicators,
+    } : {}),
   };
 
   logger.info("Initiated Trade Proposal for symbol " +
@@ -106,7 +110,11 @@ export async function performTradeProposal(request: any) {
   // Delegate to Alpha agent implementation which will call RiskGuard internally
   try {
     const marketData = await getMarketData(symbol,
-      config.smaPeriodFast, config.smaPeriodSlow, interval, range);
+      config.smaPeriodFast, config.smaPeriodSlow, interval, range,
+      config.marketDataCacheOnly);
+    if (!Array.isArray(marketData?.closes) || marketData.closes.length === 0) {
+      throw new Error(`No usable ${interval} market data for ${symbol}`);
+    }
     const result = await alphaagent.handleAlphaTask(marketData,
       portfolioState, config, interval);
 

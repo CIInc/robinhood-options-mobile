@@ -1,11 +1,12 @@
 import * as admin from "firebase-admin";
 import * as logger from "firebase-functions/logger";
 import { onSchedule } from "firebase-functions/v2/scheduler";
-import { fetchWithRetry } from "./utils";
+import { fetchFromYahoo } from "./yahoo-proxy";
 import {
   WhaleWatchTransaction,
   InstitutionalAccumulation,
 } from "./whale-watch-models";
+import { rankInstitutionalActivity } from "./whale-watch-utils";
 
 // Ensure Firebase Admin is initialized
 if (admin.apps.length === 0) {
@@ -47,8 +48,14 @@ async function fetchCachedYahooData(
   }
 
   try {
-    const response = await fetchWithRetry(url);
-    const responseJson = await response.json();
+    let response = await fetchFromYahoo(url);
+    if (response.status === 401 || response.status === 403) {
+      response = await fetchFromYahoo(url);
+    }
+    if (response.status !== 200) {
+      throw new Error(`Yahoo returned HTTP ${response.status}`);
+    }
+    const responseJson = JSON.parse(response.body);
     if (responseJson) {
       await docRef.set({
         data: responseJson,
@@ -244,17 +251,22 @@ export const aggregateWhaleWatch = onSchedule(
     const buyCount = allTransactions.filter((t) => t.isBuy).length;
     const sellCount = allTransactions.filter((t) => t.isSale).length;
 
-    // 4. Calculate accumulation scores (sum of net position changes)
-    const symbolScores: Record<string, number> = {};
-    allAccumulations.forEach((acc) => {
-      symbolScores[acc.symbol] =
-        (symbolScores[acc.symbol] || 0) + acc.changeInShares;
-    });
-
-    const topAccumulated = Object.entries(symbolScores)
-      .map(([symbol, score]) => ({ symbol, score }))
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 10);
+    // 4. Compare current institutional holdings with the previous snapshot.
+    const holdingsRef = db.doc(
+      "market_intelligence/whale_watch_institutional_holdings"
+    );
+    let previousHoldings: Record<string, number> = {};
+    try {
+      const holdingsSnapshot = await holdingsRef.get();
+      previousHoldings = holdingsSnapshot.data()?.holdings || {};
+    } catch (error) {
+      logger.warn("Failed to read institutional holdings snapshot", error);
+    }
+    const institutionalRanking = rankInstitutionalActivity(
+      allAccumulations,
+      previousHoldings
+    );
+    const topAccumulated = institutionalRanking.topSymbols;
 
     // 5. Save to Firestore
     const aggregateData = {
@@ -263,15 +275,23 @@ export const aggregateWhaleWatch = onSchedule(
       buyCount,
       sellCount,
       topAccumulatedSymbols: topAccumulated,
+      institutionalRankingMode: institutionalRanking.mode,
       recentLargeTransactions: largeTransactions.slice(0, 50),
       timestamp: admin.firestore.FieldValue.serverTimestamp(),
     };
 
     try {
       const docPath = "market_intelligence/whale_watch_aggregate";
-      await db.doc(docPath).set(aggregateData);
+      const batch = db.batch();
+      batch.set(db.doc(docPath), aggregateData);
+      batch.set(holdingsRef, {
+        holdings: institutionalRanking.currentHoldings,
+        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+      });
+      await batch.commit();
       logger.info("Successfully updated Whale Watch aggregate data", {
         topSymbol: topAccumulated[0]?.symbol,
+        institutionalRankingMode: institutionalRanking.mode,
         buyTotal,
       });
     } catch (error) {

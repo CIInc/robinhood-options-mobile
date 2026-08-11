@@ -59,8 +59,16 @@ class PortfolioSectionScaffold extends StatelessWidget {
             ],
           ),
           actions: actions,
-          bottom: bottom,
         ),
+        if (bottom != null)
+          SliverPersistentHeader(
+            pinned: true,
+            delegate: _PortfolioSectionHeaderDelegate(
+              height: bottom!.preferredSize.height,
+              child: bottom!,
+              backgroundColor: theme.colorScheme.surface,
+            ),
+          ),
         if (cards.isNotEmpty)
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
@@ -80,5 +88,39 @@ class PortfolioSectionScaffold extends StatelessWidget {
     }
 
     return Scaffold(body: body);
+  }
+}
+
+class _PortfolioSectionHeaderDelegate extends SliverPersistentHeaderDelegate {
+  final double height;
+  final Widget child;
+  final Color backgroundColor;
+
+  const _PortfolioSectionHeaderDelegate({
+    required this.height,
+    required this.child,
+    required this.backgroundColor,
+  });
+
+  @override
+  double get minExtent => height;
+
+  @override
+  double get maxExtent => height;
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    return ColoredBox(color: backgroundColor, child: child);
+  }
+
+  @override
+  bool shouldRebuild(_PortfolioSectionHeaderDelegate oldDelegate) {
+    return height != oldDelegate.height ||
+        child != oldDelegate.child ||
+        backgroundColor != oldDelegate.backgroundColor;
   }
 }

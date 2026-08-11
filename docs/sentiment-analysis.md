@@ -4,10 +4,12 @@
 
 RealizeAlpha now includes a comprehensive **Market Sentiment Analysis** module designed to gauge the overall mood of the market. This feature leverages AI and quantitative data to provide a "Bullish", "Bearish", or "Neutral" outlook, helping traders align their strategies with the broader market direction.
 
+> **Current status:** The client implementation is retained but its Search card is disabled because its aggregate score overlaps with Macro Assessment. Consider evolving this surface into an **Alpha Feed** driven by distinct news, social, and community signals before re-enabling it.
+
 ## Features
 
 ### Market Sentiment Card
-Located on the main search and home dashboards, this card provides an at-a-glance view of the current market sentiment.
+The retained card implementation provides an at-a-glance view of market sentiment, but is currently hidden from Search.
 - **Visual Gauge:** A color-coded indicator (Green for Bullish, Red for Bearish, Grey for Neutral).
 - **Key Drivers:** A summary of the top factors influencing the current sentiment (e.g., "Tech Sector Rally", "Fed Rate Decision").
 

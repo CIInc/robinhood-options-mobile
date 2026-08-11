@@ -318,7 +318,7 @@ async function ensureYahooSession(): Promise<void> {
  * @param {string} target The validated Yahoo URL.
  * @return {Promise<{status: number, body: string}>} Upstream result.
  */
-async function fetchFromYahoo(
+export async function fetchFromYahoo(
   target: string,
 ): Promise<{ status: number; body: string }> {
   await ensureYahooSession();

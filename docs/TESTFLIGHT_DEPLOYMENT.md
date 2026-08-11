@@ -27,7 +27,7 @@ resolution, static analysis and tests, builds and validates the signed IPA, and
 uploads it to App Store Connect. For a new app version:
 
 ```sh
-scripts/deploy_testflight.sh --version 0.37.2
+scripts/deploy_testflight.sh --version 0.37.3
 ```
 
 Use `--dry-run` to preview the version change or `--skip-upload` to build

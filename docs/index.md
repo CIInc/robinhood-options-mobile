@@ -68,11 +68,12 @@
 - **[Group Performance Analytics](portfolio-analytics.md):** Leaderboards and aggregated performance metrics for investor groups.
 - **[ESG Scoring](esg-scoring.md):** Comprehensive Environmental, Social, and Governance scoring for individual instruments and portfolio-wide weighted averages to align investments with values.
 - **[AI Trading Coach](ai-trading-coach.md):** Behavioral analysis tool that assigns a **Trader Archetype** and **Discipline Score** based on execution history. Features **Coaching Personas** (Drill Sergeant, Zen Master), **Sub-score breakdowns** (Risk, Consistency), and an **Accountability Loop** with tracked challenges.
-- **[Sentiment Analysis](sentiment-analysis.md):** Visualize market mood (Bullish/Bearish/Neutral) with a dedicated dashboard and card widget.
+- **[Sentiment Analysis](sentiment-analysis.md):** Retained for a future Alpha Feed focused on news, social, and community signals; its aggregate market card is currently hidden to avoid conflicting with Macro Assessment.
+- **[Whale Watch](whale-watch.md):** Track insider transactions and institutional ownership with snapshot-based accumulation ranking and explicit holdings fallback labels.
 - **[Insider Activity](insider-activity.md):** Track officer and director trading behavior with detailed Buy/Sell transaction analysis.
 - **[Institutional Ownership](institutional-ownership.md):** Monitor top institutional holders, position changes, and smart money flow sentiment.
 - **[Paper Trading](paper-trading.md):** Comprehensive simulation environment. **New:** AI Portfolio Analysis and interactive Allocation Charts. See also the [Architecture & Technical Design](paper-trading-architecture.md).
-- **[Macro Assessment](macro-assessment.md):** Real-time market risk evaluation (Risk On/Off) analyzing VIX, yields, and trend with a dedicated dashboard for deeper analysis.
+- **[Macro Assessment](macro-assessment.md):** The single aggregate market-state view, combining sentiment, volatility, breadth, yields, trend, and cross-asset indicators into a consistent Risk On/Off score and detailed dashboard.
 - **[Deep Linking & Referrals](deep-linking.md):** Seamless navigation into the app from external links with a built-in referral tracking system for user growth.
 ## Investment Profile Feature
 

@@ -677,7 +677,7 @@ class _PortfolioChartWidgetState extends State<PortfolioChartWidget> {
                             children: [
                               Container(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 12, vertical: 6),
+                                    horizontal: 16, vertical: 9),
                                 decoration: BoxDecoration(
                                   color: changeColor.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(12),
@@ -692,16 +692,16 @@ class _PortfolioChartWidgetState extends State<PortfolioChartWidget> {
                                       changeInPeriod >= 0
                                           ? Icons.trending_up_rounded
                                           : Icons.trending_down_rounded,
-                                      size: 16,
+                                      size: 20,
                                       color: changeColor,
                                     ),
-                                    const SizedBox(width: 8),
+                                    const SizedBox(width: 10),
                                     Text(
                                       showBalances
                                           ? '$returnText ($returnPercentText)'
                                           : '•••••• ($returnPercentText)',
                                       style: TextStyle(
-                                        fontSize: 14,
+                                        fontSize: 16,
                                         fontWeight: FontWeight.w800,
                                         color: changeColor,
                                       ),

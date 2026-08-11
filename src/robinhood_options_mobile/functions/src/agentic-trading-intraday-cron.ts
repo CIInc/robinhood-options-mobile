@@ -69,9 +69,13 @@ export const agenticTradingIntradayCron = onSchedule(
               interval: "1h",
               portfolioState: {},
               skipRiskGuard: true,
+              gexCacheOnly: true,
+              marketDataCacheOnly: true,
             };
             const result = await performTradeProposal({ data } as any);
-            if (result && result.status === "no_action") {
+            if (result && result.status === "error") {
+              errorCount++;
+            } else if (result && result.status === "no_action") {
               skippedCount++;
             } else {
               processedCount++;
@@ -152,9 +156,13 @@ export const agenticTrading15mCron = onSchedule(
               interval: "15m",
               portfolioState: {},
               skipRiskGuard: true,
+              gexCacheOnly: true,
+              marketDataCacheOnly: true,
             };
             const result = await performTradeProposal({ data } as any);
-            if (result && result.status === "no_action") {
+            if (result && result.status === "error") {
+              errorCount++;
+            } else if (result && result.status === "no_action") {
               skippedCount++;
             } else {
               processedCount++;

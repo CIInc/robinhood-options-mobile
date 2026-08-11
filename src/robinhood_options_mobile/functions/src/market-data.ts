@@ -187,12 +187,13 @@ export async function fetchFromTwelveData(
  * @param {number} smaPeriodSlow The slow SMA period.
  * @param {string} interval The chart interval (1d, 1h, 30m, 15m, etc.)
  * @param {string} range The time range (1y, 5d, 1mo, etc.)
+ * @param {boolean} onlyUseCache Skip external providers when cache is stale.
  * @return {Promise<object>} An object containing the symbol, prices,
  * volumes, and current price.
  */
 export async function getMarketData(symbol: string,
   smaPeriodFast: number, smaPeriodSlow: number,
-  interval = "1d", range?: string) {
+  interval = "1d", range?: string, onlyUseCache = false) {
   // Decode symbols if encoded (e.g. ^VIX -> %5EVIX)
   const decodedSymbol = decodeURIComponent(symbol);
 
@@ -357,7 +358,7 @@ export async function getMarketData(symbol: string,
   }
 
   // Handle Put/Call Ratio symbols separately (Primary CBOE, Fallback Fid/Yahoo)
-  if (!closes.length && isPccSymbol) {
+  if (!closes.length && !onlyUseCache && isPccSymbol) {
     try {
       const cboeRes = await fetchFromCBOE(decodedSymbol);
       if (cboeRes && cboeRes.indicators?.quote?.[0]?.close) {
@@ -387,7 +388,7 @@ export async function getMarketData(symbol: string,
   }
 
   // If still no prices, fetch from Twelve Data (Primary)
-  if (!closes.length) {
+  if (!closes.length && !onlyUseCache) {
     const twelveSymbol = mapToTwelveDataSymbol(decodedSymbol);
 
     logger.info(`🌐 FRESH FETCH: Attempting Twelve Data for ${twelveSymbol}`);
@@ -423,7 +424,7 @@ export async function getMarketData(symbol: string,
   }
 
   // If still no prices, fetch from Fidelity Open API (Secondary)
-  if (!closes.length) {
+  if (!closes.length && !onlyUseCache) {
     logger.info(`🌐 FRESH FETCH: Attempting Fidelity Open API for ${symbol}`);
     try {
       // Ensure we have enough data for MACD (35) and RSI (15)
@@ -481,7 +482,7 @@ export async function getMarketData(symbol: string,
   }
 
   // Fallback to Yahoo Finance if Fidelity fails
-  if (!closes.length) {
+  if (!closes.length && !onlyUseCache) {
     logger.info(`🌐 FALLBACK: Attempting Yahoo Finance for ${symbol}`);
     try {
       // Ensure we have enough data for MACD (35) and Patterns (30-60)

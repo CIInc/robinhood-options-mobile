@@ -10,6 +10,84 @@ import { handleAgenticDecision } from "./agentic-agent";
 import { getFirestore } from "firebase-admin/firestore";
 
 const db = getFirestore();
+const SHARED_CONTEXT_TTL_MS = 5 * 60 * 1000;
+
+type MacroAssessment = Awaited<ReturnType<typeof getMacroAssessment>>;
+
+let macroAssessmentCache: {
+  expiresAt: number;
+  promise: Promise<MacroAssessment>;
+} | null = null;
+
+const marketIndexCache = new Map<string, {
+  expiresAt: number;
+  promise: Promise<any>;
+}>();
+
+/**
+ * Returns one shared macro assessment for adjacent signal calculations.
+ * @return {Promise<MacroAssessment>} Shared macro assessment promise.
+ */
+function getSharedMacroAssessment(): Promise<MacroAssessment> {
+  const now = Date.now();
+  if (macroAssessmentCache && macroAssessmentCache.expiresAt > now) {
+    return macroAssessmentCache.promise;
+  }
+
+  const promise = db.collection("macro_assessments")
+    .orderBy("timestamp", "desc")
+    .limit(1)
+    .get()
+    .then((snapshot) => {
+      if (!snapshot.empty) {
+        const doc = snapshot.docs[0];
+        logger.info(`Using persisted macro assessment ${doc.id}`);
+        return doc.data() as MacroAssessment;
+      }
+      return getMacroAssessment();
+    }).catch((error) => {
+      macroAssessmentCache = null;
+      throw error;
+    });
+  macroAssessmentCache = {
+    expiresAt: now + SHARED_CONTEXT_TTL_MS,
+    promise,
+  };
+  return promise;
+}
+
+/**
+ * Returns shared daily index data for concurrent signal calculations.
+ * @param {string} symbol Market index symbol.
+ * @param {number} fastPeriod Fast moving-average period.
+ * @param {number} slowPeriod Slow moving-average period.
+ * @return {Promise<any>} Shared market data promise.
+ */
+function getSharedMarketIndexData(
+  symbol: string,
+  fastPeriod: number,
+  slowPeriod: number
+): Promise<any> {
+  const cacheKey = `${symbol}:${fastPeriod}:${slowPeriod}`;
+  const now = Date.now();
+  const cached = marketIndexCache.get(cacheKey);
+  if (cached && cached.expiresAt > now) return cached.promise;
+
+  const promise = getMarketData(
+    symbol,
+    fastPeriod,
+    slowPeriod,
+    "1d"
+  ).catch((error) => {
+    marketIndexCache.delete(cacheKey);
+    throw error;
+  });
+  marketIndexCache.set(cacheKey, {
+    expiresAt: now + SHARED_CONTEXT_TTL_MS,
+    promise,
+  });
+  return promise;
+}
 
 
 /**
@@ -49,14 +127,19 @@ export async function handleAlphaTask(marketData: any,
     enabledIndicatorKeys.length === 0; // also fetch if all indicators active
 
   const [marketIndexData, macroAssessment, gexData] = await Promise.all([
-    getMarketData(
+    getSharedMarketIndexData(
       marketIndexSymbol,
       config?.smaPeriodFast || 10,
-      config?.smaPeriodSlow || 30,
-      "1d"
+      config?.smaPeriodSlow || 30
     ),
-    getMacroAssessment(),
-    gexEnabled ? fetchGammaExposure(symbol).catch((e) => {
+    getSharedMacroAssessment(),
+    gexEnabled ? fetchGammaExposure(
+      symbol,
+      undefined,
+      undefined,
+      undefined,
+      config?.gexCacheOnly === true
+    ).catch((e) => {
       logger.warn(`GEX fetch failed for ${symbol}`, e);
       return null;
     }) : Promise.resolve(null),
@@ -409,9 +492,17 @@ export async function handleAlphaTask(marketData: any,
           logger.warn(`Failed to persist trade signal for ${symbol}`, err);
         }
       } else {
+        const now = new Date();
+        await db.doc(`signals/${signalDocId}`).set({
+          timestamp: now.getTime(),
+          date: new Date(now.getFullYear(), now.getMonth(), now.getDate()),
+          currentPrice: marketData.currentPrice,
+          diagnostics: {
+            lastSuccessfulCalculationAt: now.getTime(),
+          },
+        }, { merge: true });
         logger.info(
-          `Signal unchanged for ${symbol} - skipping write to reduce ` +
-          "onTradeSignalUpdated invocations"
+          `Signal unchanged for ${symbol} - refreshed calculation timestamp`
         );
       }
     } else {
@@ -616,9 +707,17 @@ export async function handleAlphaTask(marketData: any,
         logger.warn(`Failed to persist trade signal for ${symbol}`, err);
       }
     } else {
+      const now = new Date();
+      await db.doc(`signals/${signalDocId}`).set({
+        timestamp: now.getTime(),
+        date: new Date(now.getFullYear(), now.getMonth(), now.getDate()),
+        currentPrice: marketData.currentPrice,
+        diagnostics: {
+          lastSuccessfulCalculationAt: now.getTime(),
+        },
+      }, { merge: true });
       logger.info(
-        `Signal unchanged for ${symbol} - skipping write to reduce ` +
-        "onTradeSignalUpdated invocations"
+        `Signal unchanged for ${symbol} - refreshed calculation timestamp`
       );
     }
   } else {

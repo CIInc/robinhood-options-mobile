@@ -85,6 +85,7 @@ class WhaleWatchAggregate {
   final int buyCount;
   final int sellCount;
   final List<TopAccumulatedSymbol> topAccumulatedSymbols;
+  final String institutionalRankingMode;
   final List<WhaleWatchTransaction> recentLargeTransactions;
   final DateTime timestamp;
 
@@ -94,6 +95,7 @@ class WhaleWatchAggregate {
     required this.buyCount,
     required this.sellCount,
     required this.topAccumulatedSymbols,
+    required this.institutionalRankingMode,
     required this.recentLargeTransactions,
     required this.timestamp,
   });
@@ -110,6 +112,8 @@ class WhaleWatchAggregate {
               ?.map((e) => TopAccumulatedSymbol.fromJson(e))
               .toList() ??
           [],
+      institutionalRankingMode:
+          data['institutionalRankingMode'] ?? 'accumulation',
       recentLargeTransactions: (data['recentLargeTransactions'] as List?)
               ?.map((e) => WhaleWatchTransaction.fromJson(e))
               .toList() ??

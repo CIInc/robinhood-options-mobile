@@ -1816,7 +1816,7 @@ class _GammaExposureWidgetState extends State<GammaExposureWidget> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Current Price',
+                Text('Spot',
                     style: theme.textTheme.labelSmall
                         ?.copyWith(color: theme.colorScheme.outline)),
                 Text('\$${gex.spotPrice.toStringAsFixed(2)}',
@@ -2061,7 +2061,7 @@ class _GammaExposureWidgetState extends State<GammaExposureWidget> {
                 height: 12,
                 color: theme.colorScheme.primary.withValues(alpha: 0.7)),
             const SizedBox(width: 4),
-            Text('Current Price',
+            Text('Spot',
                 style: theme.textTheme.labelSmall
                     ?.copyWith(color: theme.colorScheme.outline)),
           ],

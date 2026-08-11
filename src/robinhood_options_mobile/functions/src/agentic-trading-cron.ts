@@ -85,6 +85,8 @@ export async function runAgenticTradingCron() {
           interval: "1d",
           portfolioState: {},
           skipRiskGuard: true,
+          gexCacheOnly: true,
+          marketDataCacheOnly: true,
         };
         interface PerformTradeProposalRequest {
           data: {
@@ -97,7 +99,9 @@ export async function runAgenticTradingCron() {
         const result = await performTradeProposal(
           { data } as PerformTradeProposalRequest
         );
-        if (result && result.status === "no_action") {
+        if (result && result.status === "error") {
+          errorCount++;
+        } else if (result && result.status === "no_action") {
           skippedCount++;
         } else {
           processedCount++;

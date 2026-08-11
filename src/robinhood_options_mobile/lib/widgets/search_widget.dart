@@ -29,7 +29,8 @@ import 'package:robinhood_options_mobile/widgets/trade_signals_widget.dart';
 import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
-import 'package:robinhood_options_mobile/widgets/market_sentiment_card_widget.dart';
+// Reserved for a future Alpha Feed with distinct news and social signals.
+// import 'package:robinhood_options_mobile/widgets/market_sentiment_card_widget.dart';
 import 'package:robinhood_options_mobile/widgets/macro_assessment_widget.dart';
 import 'package:robinhood_options_mobile/widgets/home/options_flow_card_widget.dart';
 import 'package:robinhood_options_mobile/widgets/list_widget.dart';
@@ -80,6 +81,7 @@ class _SearchWidgetState extends State<SearchWidget>
     with AutomaticKeepAliveClientMixin<SearchWidget> {
   final FirestoreService _firestoreService = FirestoreService();
   final YahooService _yahooService = YahooService();
+  final ScrollController _scrollController = ScrollController();
 
   String? query;
   TextEditingController? searchCtl;
@@ -142,6 +144,7 @@ class _SearchWidgetState extends State<SearchWidget>
   void dispose() {
     _searchDebounce?.cancel();
     searchCtl?.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -336,7 +339,7 @@ class _SearchWidgetState extends State<SearchWidget>
           }
         },
         child: CustomScrollView(
-          primary: true,
+          controller: _scrollController,
           keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           slivers: [
             if (!widget.embedded)
@@ -351,6 +354,7 @@ class _SearchWidgetState extends State<SearchWidget>
                 firestoreUser: widget.user,
                 userDocRef: widget.userDocRef,
                 service: widget.service,
+                scrollController: _scrollController,
                 onChange: () {
                   setState(() {});
                 },
@@ -526,10 +530,23 @@ class _SearchWidgetState extends State<SearchWidget>
                 ),
               ),
             ),
+            // Keep this disabled until it becomes an Alpha Feed backed by
+            // news, social, and community signals distinct from macro state.
+            // SliverToBoxAdapter(
+            //   child: MarketSentimentCardWidget(
+            //     widget.brokerageUser,
+            //     widget.service,
+            //     analytics: widget.analytics,
+            //     observer: widget.observer,
+            //     generativeService: widget.generativeService,
+            //     user: widget.user,
+            //     userDocRef: widget.userDocRef,
+            //   ),
+            // ),
             SliverToBoxAdapter(
-              child: MarketSentimentCardWidget(
-                widget.brokerageUser,
-                widget.service,
+              child: OptionsFlowCardWidget(
+                brokerageUser: widget.brokerageUser,
+                service: widget.service,
                 analytics: widget.analytics,
                 observer: widget.observer,
                 generativeService: widget.generativeService,
@@ -537,6 +554,92 @@ class _SearchWidgetState extends State<SearchWidget>
                 userDocRef: widget.userDocRef,
               ),
             ),
+            if (widget.brokerageUser != null && widget.service != null)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16.0, vertical: 8.0),
+                  child: Card(
+                    elevation: 0,
+                    color: Theme.of(context)
+                        .colorScheme
+                        .surfaceContainerHighest
+                        .withValues(alpha: 0.3),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      side: BorderSide(
+                        color: Theme.of(context).colorScheme.outlineVariant,
+                        width: 1,
+                      ),
+                    ),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(16),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => GammaExposureDashboardWidget(
+                              brokerageUser: widget.brokerageUser,
+                              service: widget.service,
+                              user: widget.user,
+                              userDocRef: widget.userDocRef,
+                              analytics: widget.analytics,
+                              observer: widget.observer,
+                              generativeService: widget.generativeService,
+                            ),
+                          ),
+                        );
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: Colors.green.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(Icons.adjust_outlined,
+                                  size: 24, color: Colors.green),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    "Gamma Exposure (GEX)",
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleMedium
+                                        ?.copyWith(fontWeight: FontWeight.bold),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    "Analyze dealer positioning & volatility regimes",
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium
+                                        ?.copyWith(
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onSurfaceVariant),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Icon(Icons.chevron_right,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             if (widget.brokerageUser != null && widget.service != null)
               SliverToBoxAdapter(
                 child: Padding(
@@ -650,92 +753,6 @@ class _SearchWidgetState extends State<SearchWidget>
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => GammaExposureDashboardWidget(
-                              brokerageUser: widget.brokerageUser,
-                              service: widget.service,
-                              user: widget.user,
-                              userDocRef: widget.userDocRef,
-                              analytics: widget.analytics,
-                              observer: widget.observer,
-                              generativeService: widget.generativeService,
-                            ),
-                          ),
-                        );
-                      },
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                color: Colors.green.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: const Icon(Icons.adjust_outlined,
-                                  size: 24, color: Colors.green),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    "Gamma Exposure (GEX)",
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .titleMedium
-                                        ?.copyWith(fontWeight: FontWeight.bold),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    "Analyze dealer positioning & volatility regimes",
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .bodyMedium
-                                        ?.copyWith(
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .onSurfaceVariant),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Icon(Icons.chevron_right,
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurfaceVariant),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            if (widget.brokerageUser != null && widget.service != null)
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 16.0, vertical: 8.0),
-                  child: Card(
-                    elevation: 0,
-                    color: Theme.of(context)
-                        .colorScheme
-                        .surfaceContainerHighest
-                        .withValues(alpha: 0.3),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      side: BorderSide(
-                        color: Theme.of(context).colorScheme.outlineVariant,
-                        width: 1,
-                      ),
-                    ),
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(16),
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
                             builder: (context) =>
                                 const AlphaFactorDiscoveryWidget(),
                           ),
@@ -791,17 +808,6 @@ class _SearchWidgetState extends State<SearchWidget>
                   ),
                 ),
               ),
-            SliverToBoxAdapter(
-              child: OptionsFlowCardWidget(
-                brokerageUser: widget.brokerageUser,
-                service: widget.service,
-                analytics: widget.analytics,
-                observer: widget.observer,
-                generativeService: widget.generativeService,
-                user: widget.user,
-                userDocRef: widget.userDocRef,
-              ),
-            ),
             // Moved to its own page
             // TradeSignalsWidget(
             //   key: _tradeSignalsKey,
@@ -933,7 +939,7 @@ class _SearchWidgetState extends State<SearchWidget>
                           maxCrossAxisExtent: 220.0,
                           mainAxisSpacing: 8.0,
                           crossAxisSpacing: 8.0,
-                          childAspectRatio: 1.25,
+                          mainAxisExtent: 144.0,
                         ),
                         delegate: SliverChildBuilderDelegate(
                           (BuildContext context, int index) {
@@ -981,7 +987,7 @@ class _SearchWidgetState extends State<SearchWidget>
                           maxCrossAxisExtent: 220.0,
                           mainAxisSpacing: 8.0,
                           crossAxisSpacing: 8.0,
-                          childAspectRatio: 1.25,
+                          mainAxisExtent: 144.0,
                         ),
                         delegate: SliverChildBuilderDelegate(
                           (BuildContext context, int index) {
@@ -1033,7 +1039,7 @@ class _SearchWidgetState extends State<SearchWidget>
                           maxCrossAxisExtent: 220.0,
                           mainAxisSpacing: 8.0,
                           crossAxisSpacing: 8.0,
-                          childAspectRatio: 1.37,
+                          mainAxisExtent: 144.0,
                         ),
                         delegate: SliverChildBuilderDelegate(
                           (BuildContext context, int index) {
@@ -1086,7 +1092,7 @@ class _SearchWidgetState extends State<SearchWidget>
                           maxCrossAxisExtent: 150.0,
                           mainAxisSpacing: 6.0,
                           crossAxisSpacing: 2.0,
-                          childAspectRatio: 1.25,
+                          mainAxisExtent: 144.0,
                         ),
                         delegate: SliverChildBuilderDelegate(
                           (BuildContext context, int index) {
@@ -1169,9 +1175,21 @@ class _SearchWidgetState extends State<SearchWidget>
                             color: Theme.of(context).colorScheme.onSurface,
                           ),
                           overflow: TextOverflow.ellipsis),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 6),
                       Row(
                         children: [
+                          Expanded(
+                            child: Text(
+                                formatCurrency
+                                    .format(movers[index].marketHoursLastPrice),
+                                style: TextStyle(
+                                  fontSize: 16.0,
+                                  fontWeight: FontWeight.w500,
+                                  color:
+                                      Theme.of(context).colorScheme.onSurface,
+                                ),
+                                overflow: TextOverflow.ellipsis),
+                          ),
                           Icon(
                               isPositive
                                   ? Icons.trending_up
@@ -1198,15 +1216,6 @@ class _SearchWidgetState extends State<SearchWidget>
                         ],
                       ),
                       const SizedBox(height: 6),
-                      Text(
-                          formatCurrency
-                              .format(movers[index].marketHoursLastPrice),
-                          style: TextStyle(
-                            fontSize: 16.0,
-                            fontWeight: FontWeight.w500,
-                            color: Theme.of(context).colorScheme.onSurface,
-                          )),
-                      const SizedBox(height: 8),
                       Expanded(
                         child: Text(movers[index].description,
                             style: TextStyle(
@@ -1216,7 +1225,8 @@ class _SearchWidgetState extends State<SearchWidget>
                                   .onSurface
                                   .withValues(alpha: 0.6),
                             ),
-                            maxLines: 2,
+                            softWrap: true,
+                            maxLines: 3,
                             overflow: TextOverflow.ellipsis),
                       ),
                     ])),
@@ -1475,27 +1485,21 @@ class _SearchWidgetState extends State<SearchWidget>
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 6),
-
-                    // Current Price
-                    if (lastTradePrice != null) ...[
-                      AnimatedPriceText(
-                        price: lastTradePrice,
-                        format: formatCurrency,
-                        style: TextStyle(
-                          fontSize: 15.0,
-                          fontWeight: FontWeight.w500,
-                          color: Theme.of(context).colorScheme.onSurface,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 4),
-                    ],
-
-                    // Change indicator with percentage
-                    if (hasQuote) ...[
+                    if (hasQuote && lastTradePrice != null) ...[
                       Row(
-                        mainAxisSize: MainAxisSize.min,
                         children: [
+                          Expanded(
+                            child: AnimatedPriceText(
+                              price: lastTradePrice,
+                              format: formatCurrency,
+                              style: TextStyle(
+                                fontSize: 15.0,
+                                fontWeight: FontWeight.w500,
+                                color: Theme.of(context).colorScheme.onSurface,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
                           Icon(
                             changeToday > 0
                                 ? Icons.trending_up
@@ -1508,20 +1512,18 @@ class _SearchWidgetState extends State<SearchWidget>
                             size: 15,
                           ),
                           const SizedBox(width: 4),
-                          Flexible(
-                            child: Text(
-                              formatPercentage.format(changePercentToday.abs()),
-                              style: TextStyle(
-                                fontSize: 13.0,
-                                fontWeight: FontWeight.w600,
-                                color: changeToday > 0
-                                    ? Colors.green
-                                    : (changeToday < 0
-                                        ? Colors.red
-                                        : Colors.grey),
-                              ),
-                              overflow: TextOverflow.ellipsis,
+                          Text(
+                            formatPercentage.format(changePercentToday.abs()),
+                            style: TextStyle(
+                              fontSize: 13.0,
+                              fontWeight: FontWeight.w600,
+                              color: changeToday > 0
+                                  ? Colors.green
+                                  : (changeToday < 0
+                                      ? Colors.red
+                                      : Colors.grey),
                             ),
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ],
                       ),
@@ -1534,7 +1536,7 @@ class _SearchWidgetState extends State<SearchWidget>
                                 Theme.of(context).colorScheme.onSurfaceVariant),
                       ),
                     ],
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 6),
                     Expanded(
                       child:
                           Text(instrumentObj.fundamentalsObj?.description ?? '',
@@ -1545,7 +1547,8 @@ class _SearchWidgetState extends State<SearchWidget>
                                     .onSurface
                                     .withValues(alpha: 0.6),
                               ),
-                              maxLines: 2,
+                              softWrap: true,
+                              maxLines: 3,
                               overflow: TextOverflow.ellipsis),
                     ),
                   ],
