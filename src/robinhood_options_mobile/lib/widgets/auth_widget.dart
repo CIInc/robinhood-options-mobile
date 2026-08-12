@@ -132,9 +132,9 @@ class _AuthGateState extends State<AuthGate> {
       };
     } else {
       authButtons = {
-        AuthButtonType.apple: () => _handleMultiFactorException(
-              _signInWithApple,
-            ),
+        // AuthButtonType.apple: () => _handleMultiFactorException(
+        //       _signInWithApple,
+        //     ),
         AuthButtonType.google: () => _handleMultiFactorException(
               _signInWithGoogle,
             ),
@@ -211,52 +211,54 @@ class _AuthGateState extends State<AuthGate> {
                               ),
                             ),
                             const SizedBox(height: 20),
-                            ...authButtons.keys.map(
-                              (button) => Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 5),
-                                child: AnimatedSwitcher(
-                                  duration: const Duration(milliseconds: 200),
-                                  child: isLoading
-                                      ? Container(
-                                          color: Colors.grey[200],
-                                          height: 50,
-                                          width: double.infinity,
-                                        )
-                                      : SizedBox(
-                                          width: double.infinity,
-                                          height: 50,
-                                          child: _buildAuthButton(
-                                            button,
-                                            authButtons[button],
+                            if (authButtons.isNotEmpty) ...[
+                              ...authButtons.keys.map(
+                                (button) => Padding(
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 5),
+                                  child: AnimatedSwitcher(
+                                    duration: const Duration(milliseconds: 200),
+                                    child: isLoading
+                                        ? Container(
+                                            color: Colors.grey[200],
+                                            height: 50,
+                                            width: double.infinity,
+                                          )
+                                        : SizedBox(
+                                            width: double.infinity,
+                                            height: 50,
+                                            child: _buildAuthButton(
+                                              button,
+                                              authButtons[button],
+                                            ),
                                           ),
-                                        ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 20),
-                            Row(
-                              children: [
-                                const Expanded(child: Divider()),
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 16),
-                                  child: Text(
-                                    'Or sign in with',
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .bodyMedium
-                                        ?.copyWith(
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .onSurfaceVariant,
-                                        ),
                                   ),
                                 ),
-                                const Expanded(child: Divider()),
-                              ],
-                            ),
-                            const SizedBox(height: 20),
+                              ),
+                              const SizedBox(height: 20),
+                              Row(
+                                children: [
+                                  const Expanded(child: Divider()),
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 16),
+                                    child: Text(
+                                      'Or sign in with',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodyMedium
+                                          ?.copyWith(
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onSurfaceVariant,
+                                          ),
+                                    ),
+                                  ),
+                                  const Expanded(child: Divider()),
+                                ],
+                              ),
+                              const SizedBox(height: 20),
+                            ],
                             SegmentedButton(
                               expandedInsets: const EdgeInsets.all(8),
                               style: SegmentedButton.styleFrom(
@@ -832,6 +834,17 @@ class _AuthGateState extends State<AuthGate> {
       if (widget.onSignin != null && auth.currentUser != null) {
         widget.onSignin!(auth.currentUser!);
       }
+    } on GoogleSignInException catch (e) {
+      debugPrint('Google sign-in failed (${e.code}): ${e.description}');
+      if (e.code == GoogleSignInExceptionCode.canceled ||
+          e.code == GoogleSignInExceptionCode.interrupted) {
+        return;
+      }
+      setState(() {
+        error = e.code == GoogleSignInExceptionCode.clientConfigurationError
+            ? 'Google sign-in is not configured for this app build.'
+            : e.description ?? 'Google sign-in failed. Please try again.';
+      });
     } on FirebaseAuthException catch (e) {
       setState(() {
         error = e.message ?? 'Google sign-in failed. Please try again.';
@@ -870,6 +883,7 @@ class _AuthGateState extends State<AuthGate> {
   // }
 }
 
+// ignore: unused_element, retained until Apple authentication is configured
 Future<void> _signInWithApple() async {
   final appleProvider = AppleAuthProvider();
   appleProvider.addScope('email');

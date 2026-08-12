@@ -14,6 +14,22 @@
       },
       "oauth_client": [
         {
+          "client_id": "409452439863-6u4pl11siibujne7ck8ici2fa10ilo1n.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.cidevelop.robinhood_options_mobile",
+            "certificate_hash": "d2a88f40b3b8e5050e4f36737a5f3ee90cdc80b6"
+          }
+        },
+        {
+          "client_id": "409452439863-fqv00sla6f0fbgeq04vhihcnah1dp7hh.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.cidevelop.robinhood_options_mobile",
+            "certificate_hash": "aa1e2dc2977ea88c00d252a80833ca0240e7e0db"
+          }
+        },
+        {
           "client_id": "409452439863-mv2c3i1q6igoo9o7tr11k6c9ktufcr3b.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
