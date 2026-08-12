@@ -256,6 +256,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
   AppLifecycleState? _notification;
   bool _lastAggregateMode = false;
   String? _lastSelectedAccountNumber;
+  bool _dependencyReloadScheduled = false;
   List<_BrokerBreakdownRow> _brokerBreakdownRows = [];
 
   final ScrollController _scrollController = ScrollController();
@@ -1368,23 +1369,30 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
       needsReload = true;
     }
 
-    if (needsReload && mounted) {
-      setState(() {
-        // Immediately update the account object to reflect the new selection
-        account = _isAggregateMode() ? null : accountStore.selectedAccount;
+    if (needsReload && !_dependencyReloadScheduled) {
+      _dependencyReloadScheduled = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _dependencyReloadScheduled = false;
+        if (!mounted) return;
 
-        // Clear account-specific stores to ensure stale data isn't displayed while loading
-        Provider.of<PortfolioHistoricalsStore>(context, listen: false)
-            .removeAll();
-        Provider.of<PortfolioStore>(context, listen: false).removeAll();
-        Provider.of<DividendStore>(context, listen: false).removeAll();
-        Provider.of<InterestStore>(context, listen: false).removeAll();
-        Provider.of<OptionPositionStore>(context, listen: false).removeAll();
-        Provider.of<InstrumentPositionStore>(context, listen: false)
-            .removeAll();
-        Provider.of<ForexHoldingStore>(context, listen: false).removeAll();
+        final currentAccountStore =
+            Provider.of<AccountStore>(context, listen: false);
+        setState(() {
+          account =
+              _isAggregateMode() ? null : currentAccountStore.selectedAccount;
 
-        _loadData();
+          Provider.of<PortfolioHistoricalsStore>(context, listen: false)
+              .removeAll();
+          Provider.of<PortfolioStore>(context, listen: false).removeAll();
+          Provider.of<DividendStore>(context, listen: false).removeAll();
+          Provider.of<InterestStore>(context, listen: false).removeAll();
+          Provider.of<OptionPositionStore>(context, listen: false).removeAll();
+          Provider.of<InstrumentPositionStore>(context, listen: false)
+              .removeAll();
+          Provider.of<ForexHoldingStore>(context, listen: false).removeAll();
+
+          _loadData();
+        });
       });
     }
   }
@@ -1843,8 +1851,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
               builder: (context, stockStore, optionStore, child) =>
                   PortfolioSectionGridWidget(
                 summaries: _sectionSummaries(context, stockStore, optionStore),
-                flagged: _flaggedSections(
-                    context, stockStore, optionStore, account),
+                flagged:
+                    _flaggedSections(context, stockStore, optionStore, account),
                 onSectionTap: (section) => PortfolioNavigator.openSection(
                     context, section, _sectionContext(account)),
               ),

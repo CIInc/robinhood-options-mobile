@@ -1,8 +1,12 @@
-import 'package:flutter_test/flutter_test.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:provider/provider.dart';
+import 'package:robinhood_options_mobile/model/agentic_trading_config.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
 import 'package:robinhood_options_mobile/model/trade_signals_provider.dart';
 import 'package:robinhood_options_mobile/utils/market_hours.dart';
+import 'package:robinhood_options_mobile/widgets/home/agentic_trading_card_widget.dart';
 
 class FakeFirebaseAnalytics extends Fake implements FirebaseAnalytics {
   @override
@@ -12,6 +16,22 @@ class FakeFirebaseAnalytics extends Fake implements FirebaseAnalytics {
     List<AnalyticsEventItem>? items,
     AnalyticsCallOptions? callOptions,
   }) async {}
+}
+
+class RejectingTradeSignalsProvider {
+  Future<Map<String, dynamic>> initiateTradeProposal({
+    required String symbol,
+    required double currentPrice,
+    required Map<String, dynamic> portfolioState,
+    required dynamic config,
+    String? interval,
+    bool skipSignalUpdate = false,
+  }) async {
+    return {
+      'status': 'rejected',
+      'message': 'Risk threshold exceeded',
+    };
+  }
 }
 
 void main() {
@@ -193,6 +213,75 @@ void main() {
       expect(result['tradesExecuted'], equals(0));
       expect(result['message'],
           contains('No BUY signals matching enabled indicators'));
+    });
+
+    test('autoTrade logs a rejected trade proposal once', () async {
+      provider.loadConfigFromUser(null);
+      provider.config.autoTradeEnabled = true;
+      provider.config.paperTradingMode = true;
+      provider.config.tradingMode = TradingMode.reasoning;
+      MarketHours.testTime = DateTime.utc(2023, 10, 25, 15, 0);
+
+      try {
+        await provider.autoTrade(
+          tradeSignals: [
+            {
+              'symbol': 'NUE',
+              'currentPrice': 150.0,
+            }
+          ],
+          tradeSignalsProvider: RejectingTradeSignalsProvider(),
+          portfolioState: {'buyingPower': 10000.0},
+          brokerageUser: null,
+          account: null,
+          brokerageService: null,
+          instrumentStore: 'mock',
+        );
+      } finally {
+        MarketHours.testTime = null;
+      }
+
+      final rejectionEntries = provider.activityLog
+          .where((entry) => entry.contains('Trade proposal rejected for NUE'));
+      expect(rejectionEntries, hasLength(1));
+      expect(rejectionEntries.single, contains('Risk threshold exceeded'));
+    });
+
+    testWidgets('duplicate activity is logged once and shown on stock card',
+        (tester) async {
+      Future<void> runDisabledAutoTrade() => provider.autoTrade(
+            tradeSignals: [],
+            tradeSignalsProvider: null,
+            portfolioState: {},
+            brokerageUser: 'mock',
+            account: 'mock',
+            brokerageService: 'mock',
+            instrumentStore: 'mock',
+          );
+      await runDisabledAutoTrade();
+      await runDisabledAutoTrade();
+
+      final conditionEntries = provider.activityLog.where(
+        (entry) => entry.contains('Conditions not met: Auto-trade disabled'),
+      );
+      expect(conditionEntries, hasLength(1));
+
+      await tester.pumpWidget(
+        ChangeNotifierProvider<AgenticTradingProvider>.value(
+          value: provider,
+          child: const MaterialApp(
+            home: Scaffold(
+              body: SingleChildScrollView(
+                child: AgenticTradingCardWidget(),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      expect(find.textContaining('Conditions not met: Auto-trade disabled'),
+          findsOneWidget);
+      await tester.pump(const Duration(seconds: 3));
     });
 
     test('Emergency stop should prevent auto-trading', () async {

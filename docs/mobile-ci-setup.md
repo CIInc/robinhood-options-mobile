@@ -65,7 +65,12 @@ The easiest way for Flutter developers to generate a valid `ExportOptions.plist`
 | :--- | :--- |
 | `ANDROID_KEY_PROPERTIES` | The full content of your `android/key.properties` file. |
 | `ANDROID_KEYSTORE_BASE64` | Base64 encoded `upload-keystore.jks` file. |
-| `PLAY_STORE_UPLOAD_SERVICE_ACCOUNT_JSON` | The raw JSON key for the Google Play service account. |
+| `PLAY_STORE_UPLOAD_SERVICE_ACCOUNT_JSON` | The raw JSON key for a Google Play service account with permission to publish releases. |
+
+When `pubspec.yaml` contains a version that does not already have a Git tag,
+the CD workflow publishes the generated App Bundle as a completed release on
+the Google Play internal track. A Play publication failure fails the Android
+build job so a GitHub release is not created for an unpublished Android build.
 
 ### How to encode Android secrets
 

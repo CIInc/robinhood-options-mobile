@@ -1039,7 +1039,7 @@ class _FuturesTradingSettingsWidgetState
                   itemBuilder: (context, index) {
                     final log = provider.activityLog[index];
                     return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      padding: const EdgeInsets.symmetric(vertical: 4),
                       child: Text(
                         log,
                         style: theme.textTheme.bodySmall?.copyWith(

@@ -137,7 +137,7 @@ class _FuturesTradingPerformanceWidgetState
       itemCount: logs.length,
       itemBuilder: (context, index) {
         return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 2.0),
           child: Text(
             logs[index],
             style: const TextStyle(

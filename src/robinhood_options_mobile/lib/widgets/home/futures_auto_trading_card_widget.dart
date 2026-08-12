@@ -34,6 +34,7 @@ class FuturesAutoTradingCardWidget extends StatelessWidget {
         final config = provider.config;
         final isEnabled = config.autoTradeEnabled;
         final isPaper = config.paperTradingMode;
+        final statusColor = isEnabled ? Colors.green : Colors.orange;
 
         final history = provider.autoTradeHistory;
         final today = DateTime.now();
@@ -62,7 +63,7 @@ class FuturesAutoTradingCardWidget extends StatelessWidget {
               borderRadius: BorderRadius.circular(20),
               side: BorderSide(
                 color: isEnabled
-                    ? Colors.green.withValues(alpha: 0.5)
+                    ? statusColor.withValues(alpha: 0.5)
                     : colorScheme.outlineVariant,
                 width: isEnabled ? 1.5 : 1,
               ),
@@ -93,13 +94,12 @@ class FuturesAutoTradingCardWidget extends StatelessWidget {
                         Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: (isEnabled ? Colors.green : Colors.orange)
-                                .withValues(alpha: 0.1),
+                            color: statusColor.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Icon(
                             isEnabled ? Icons.sensors : Icons.sensors_off,
-                            color: isEnabled ? Colors.green : Colors.orange,
+                            color: statusColor,
                             size: 24,
                           ),
                         ),

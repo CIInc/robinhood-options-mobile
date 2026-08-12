@@ -497,8 +497,9 @@ class _AgenticTradingSettingsWidgetState
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color:
-            passed ? Colors.green.withValues(alpha: 0.1) : colorScheme.errorContainer,
+        color: passed
+            ? Colors.green.withValues(alpha: 0.1)
+            : colorScheme.errorContainer,
         borderRadius: BorderRadius.circular(4),
         border: Border.all(
           color: passed
@@ -2555,7 +2556,7 @@ class _AgenticTradingSettingsWidgetState
                   itemCount: agenticTradingProvider.activityLog.length,
                   itemBuilder: (context, index) {
                     return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8.0),
+                      padding: const EdgeInsets.symmetric(vertical: 4),
                       child: Text(
                         agenticTradingProvider.activityLog[index],
                         style: TextStyle(
@@ -2763,8 +2764,7 @@ class _AgenticTradingSettingsWidgetState
                       ),
                     ),
                   ],
-                  if (assessment != null &&
-                      assessment['metrics'] != null) ...[
+                  if (assessment != null && assessment['metrics'] != null) ...[
                     const SizedBox(height: 8),
                     Wrap(
                       spacing: 8,
@@ -2865,7 +2865,8 @@ class _AgenticTradingSettingsWidgetState
                       ),
                     ),
                   ],
-                  if (proposal != null && proposal['macroAssessment'] != null) ...[
+                  if (proposal != null &&
+                      proposal['macroAssessment'] != null) ...[
                     const SizedBox(height: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(

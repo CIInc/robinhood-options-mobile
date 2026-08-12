@@ -8,6 +8,7 @@ import { getMarketData } from "./market-data";
 import { fetchGammaExposure, evaluateGammaExposure } from "./gamma-exposure";
 import { handleAgenticDecision } from "./agentic-agent";
 import { getFirestore } from "firebase-admin/firestore";
+import { formatAgenticProposalRejection } from "./agentic-proposal-message";
 
 const db = getFirestore();
 const SHARED_CONTEXT_TTL_MS = 5 * 60 * 1000;
@@ -243,10 +244,14 @@ export async function handleAlphaTask(marketData: any,
 
       // If agentic decision is to HOLD, follow standard rejection flow
       if (agenticResult.signal === "HOLD" || !assessment.approved) {
+        const rejectedByAgent = agenticResult.signal === "HOLD";
         return {
           status: "rejected",
-          message: `Agentic: ${agenticResult.reason}. ` +
-            `RiskGuard Approved: ${assessment.approved}`,
+          message: formatAgenticProposalRejection(
+            agenticResult.reason,
+            rejectedByAgent,
+            assessment.reason
+          ),
           reason: agenticResult.reason,
           signal: "HOLD",
           interval,

@@ -111,9 +111,25 @@ export interface YahooOptionsResult {
 
 // Simple in-memory cache with LRU eviction
 const CACHE_CONFIG = {
-  TTL: 30 * 24 * 60 * 60 * 1000, // 30 day cache for Firestore
+  TTL: 24 * 60 * 60 * 1000,
   COLLECTION: "yahoo_options_results",
 };
+
+/**
+ * Checks whether an options chain has open-interest depth on both sides.
+ * @param {YahooOptionsResult | null} result Options-chain result.
+ * @return {boolean} Whether the chain can support structural GEX levels.
+ */
+export function hasUsableOptionsOpenInterest(
+  result: YahooOptionsResult | null
+): boolean {
+  const options = result?.options || [];
+  const callOpenInterest = options.flatMap((item) => item.calls || [])
+    .reduce((sum, option) => sum + (option.openInterest || 0), 0);
+  const putOpenInterest = options.flatMap((item) => item.puts || [])
+    .reduce((sum, option) => sum + (option.openInterest || 0), 0);
+  return callOpenInterest > 0 && putOpenInterest > 0;
+}
 
 /**
  * Converts Firestore Timestamps to JavaScript Date objects.
@@ -157,10 +173,12 @@ export const getYahooOptionsResult = async (
     const data = doc.data();
     if (!data) return null;
 
-    // if (Date.now() - (data.lastUpdated || 0) > CACHE_CONFIG.TTL) {
-    //   console.log(`Cached options for ${symbol} expired`);
-    //   return null;
-    // }
+    const lastUpdated = typeof data.lastUpdated === "number" ?
+      data.lastUpdated : data.lastUpdated?.toDate?.().getTime() || 0;
+    if (Date.now() - lastUpdated > CACHE_CONFIG.TTL) {
+      console.log(`Cached options for ${symbol} expired`);
+      return null;
+    }
 
     const result = convertTimestampsToDates(data) as YahooOptionsResult;
 
@@ -373,37 +391,45 @@ const fetchTwelveDataOptions = async (
   }
 
   try {
-    // 1. Get expiration dates if not provided
-    let targetExpiration = expirationDate;
-    if (!targetExpiration) {
+    let targetExpirations: string[] = expirationDate ? [expirationDate] : [];
+    if (targetExpirations.length === 0) {
       const datesUrl = `https://api.twelvedata.com/options/expiration?symbol=${symbol}&apikey=${apiKey}`;
       const datesResp = await fetchWithRetry(datesUrl);
       const datesData = await datesResp.json() as any;
       if (datesData.dates && datesData.dates.length > 0) {
-        targetExpiration = datesData.dates[0];
+        targetExpirations = datesData.dates.slice(0, 4);
       }
     }
 
-    if (!targetExpiration) return null;
+    if (targetExpirations.length === 0) return null;
 
-    // 2. Fetch the chain
-    const chainUrl = `https://api.twelvedata.com/options/chain?symbol=${symbol}&expiration_date=${targetExpiration}&apikey=${apiKey}`;
-    const chainResp = await fetchWithRetry(chainUrl);
-    const chainData = await chainResp.json() as any;
+    const chains = await Promise.all(targetExpirations.map(
+      async (expiration) => {
+        const chainUrl = `https://api.twelvedata.com/options/chain?symbol=${symbol}&expiration_date=${expiration}&apikey=${apiKey}`;
+        const chainResp = await fetchWithRetry(chainUrl);
+        const chainData = await chainResp.json() as any;
+        return { expiration, chainData };
+      }
+    ));
 
-    if (!chainData.calls && !chainData.puts) {
+    const usableChains = chains.filter(({ chainData }) =>
+      chainData.calls || chainData.puts
+    );
+    if (usableChains.length === 0) {
       console.warn(`No options found for ${symbol} via Twelve Data`);
       return null;
     }
 
-    // 3. Transform to Yahoo-compatible format
-    return {
-      expirationDates: [new Date(targetExpiration)],
+    const result = {
+      expirationDates: usableChains.map(({ expiration }) =>
+        new Date(expiration)),
       quote: {
-        regularMarketPrice: parseFloat(chainData.underlying_price || "0"),
+        regularMarketPrice: parseFloat(
+          usableChains[0].chainData.underlying_price || "0"
+        ),
       },
-      options: [{
-        expirationDate: new Date(targetExpiration),
+      options: usableChains.map(({ expiration, chainData }) => ({
+        expirationDate: new Date(expiration),
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         calls: chainData.calls?.map((c: any) => ({
           strike: parseFloat(c.strike),
@@ -426,16 +452,21 @@ const fetchTwelveDataOptions = async (
           ask: parseFloat(p.ask),
           contractSymbol: p.symbol,
         })) || [],
-      }],
+      })),
       strikes: [
         ...new Set([
-          ...(chainData.calls?.map((c: any) => parseFloat(c.strike)) || []),
-          ...(chainData.puts?.map((p: any) => parseFloat(p.strike)) || []),
+          ...usableChains.flatMap(({ chainData }) =>
+            chainData.calls?.map((c: any) => parseFloat(c.strike)) || []
+          ),
+          ...usableChains.flatMap(({ chainData }) =>
+            chainData.puts?.map((p: any) => parseFloat(p.strike)) || []
+          ),
         ]),
       ].sort((a, b) => a - b),
       underlyingSymbol: symbol,
       lastUpdated: Date.now(),
     } as YahooOptionsResult;
+    return hasUsableOptionsOpenInterest(result) ? result : null;
   } catch (err) {
     console.error(`Error fetching Twelve Data options for ${symbol}:`, err);
     return null;
@@ -587,12 +618,19 @@ const fetchForSymbol = async (
       console.log(`Cache miss for ${symbol}, fetching fresh data`);
       // Try Twelve Data FIRST
       let initialResult = await fetchTwelveDataOptions(symbol);
-      if (!initialResult) {
+      if (!hasUsableOptionsOpenInterest(initialResult)) {
         // Fallback to Yahoo
-        console.log(`Twelve Data failed for ${symbol}, falling back to Yahoo`);
+        console.log(
+          `Twelve Data lacked usable OI for ${symbol}, falling back to Yahoo`
+        );
         initialResult = await fetchYahooOptions(symbol);
       }
+      if (!hasUsableOptionsOpenInterest(initialResult)) {
+        console.warn(`No structurally usable options chain for ${symbol}`);
+        return [];
+      }
       cachedResult = initialResult as YahooOptionsResult;
+      await saveYahooOptionsResult(symbol, cachedResult);
     }
 
     // Now we have a cachedResult

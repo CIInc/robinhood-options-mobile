@@ -76,6 +76,8 @@ class AgenticTradingProvider with ChangeNotifier {
   DateTime? _dailyTradeCountResetDate;
   bool _emergencyStopActivated = false;
   final List<Map<String, dynamic>> _autoTradeHistory = [];
+  String? _loadingAutoTradeHistoryPath;
+  String? _loadedAutoTradeHistoryPath;
   // Track automated BUY trades for TP/SL monitoring (with quantity and entry price)
   // Each entry: {symbol, quantity, entryPrice, timestamp}
   List<Map<String, dynamic>> _automatedBuyTrades = [];
@@ -95,6 +97,7 @@ class AgenticTradingProvider with ChangeNotifier {
 
   // Activity Log
   final List<String> _activityLog = [];
+  final Map<String, DateTime> _recentActivityMessages = {};
   List<String> get activityLog => _activityLog;
 
   // Macro Assessment
@@ -154,6 +157,13 @@ class AgenticTradingProvider with ChangeNotifier {
   void _log(String message) {
     debugPrint(message);
     final now = DateTime.now();
+    _recentActivityMessages.removeWhere(
+      (_, loggedAt) => now.difference(loggedAt) >= const Duration(seconds: 5),
+    );
+    if (_recentActivityMessages.containsKey(message)) {
+      return;
+    }
+    _recentActivityMessages[message] = now;
     final timeStr =
         "${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}";
     _activityLog.insert(0, '[$timeStr] $message');
@@ -166,6 +176,7 @@ class AgenticTradingProvider with ChangeNotifier {
 
   void clearLog() {
     _activityLog.clear();
+    _recentActivityMessages.clear();
     _processedSignalTimestamps.clear();
     notifyListeners();
   }
@@ -692,6 +703,13 @@ class AgenticTradingProvider with ChangeNotifier {
       return;
     }
 
+    final userPath = userDocRef.path;
+    if (_loadingAutoTradeHistoryPath == userPath ||
+        _loadedAutoTradeHistoryPath == userPath) {
+      return;
+    }
+    _loadingAutoTradeHistoryPath = userPath;
+
     try {
       final historyCollection = userDocRef.collection('auto_trade_history');
       final snapshot = await historyCollection
@@ -704,10 +722,15 @@ class AgenticTradingProvider with ChangeNotifier {
         snapshot.docs.map((doc) => doc.data()),
       );
 
+      _loadedAutoTradeHistoryPath = userPath;
       _log('📖 Loaded ${_autoTradeHistory.length} trade history records');
       notifyListeners();
     } catch (e) {
       _log('❌ Failed to load auto-trade history: $e');
+    } finally {
+      if (_loadingAutoTradeHistoryPath == userPath) {
+        _loadingAutoTradeHistoryPath = null;
+      }
     }
   }
 
@@ -1345,11 +1368,6 @@ class AgenticTradingProvider with ChangeNotifier {
               ? Map<String, dynamic>.from(proposalResult['assessment'] as Map)
               : null;
 
-          if (proposalStatus == 'rejected') {
-            final message = proposalResult['message'] ?? 'Rejected by agent';
-            _log('❌ Trade proposal for $symbol rejected: $message');
-          }
-
           // If proposal was approved, execute the order
           if (proposal != null && proposalStatus == 'approved') {
             final action = proposal['action'] as String?;
@@ -1406,7 +1424,7 @@ class AgenticTradingProvider with ChangeNotifier {
                 var reason = 'Auto-trade signal';
 
                 // Use the reasoning from the agent if available
-                final agentReason = proposal != null ? proposal['reason'] : null;
+                final agentReason = proposal['reason'];
                 final agentConfidence = proposalResult['analysis'] != null
                     ? proposalResult['analysis']['score']
                     : null;
@@ -1578,8 +1596,9 @@ class AgenticTradingProvider with ChangeNotifier {
                 }
               }
             }
-            final reasonToLog =
-                assessmentReason ?? (proposalResult['message'] as String?);
+            final reasonToLog = assessmentReason ??
+                (proposalResult['message'] as String?) ??
+                'Rejected by agent';
             _log('❌ Trade proposal rejected for $symbol: $reasonToLog');
           }
 

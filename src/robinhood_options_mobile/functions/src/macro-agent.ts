@@ -6,6 +6,10 @@ import { getMessaging } from "firebase-admin/messaging";
 import { getMarketData } from "./market-data";
 import { computeSMA } from "./technical-indicators";
 import { VertexAI } from "@google-cloud/vertexai";
+import {
+  containsNonFiniteNumber,
+  sanitizeNonFiniteNumbers,
+} from "./json-sanitizer";
 
 const db = getFirestore();
 const messaging = getMessaging();
@@ -1625,10 +1629,12 @@ async function saveMacroAssessmentToHistory(assessment: MacroAssessment) {
     }
 
     // Save to historical collection using date as ID to persist once per day
-    await db.collection("macro_assessments").doc(dateStr).set({
+    const sanitizedAssessment = sanitizeNonFiniteNumbers({
       ...assessment,
       timestamp: Date.now(),
     });
+    await db.collection("macro_assessments").doc(dateStr)
+      .set(sanitizedAssessment as Record<string, unknown>);
 
     // If regime changed, trigger a notification
     if (previousStatus && previousStatus !== assessment.status) {
@@ -1723,7 +1729,15 @@ export const getMacroAssessmentCall = onCall({
 
     if (existingDoc.exists) {
       logger.info(`Returning cached macro assessment for ${dateStr}`);
-      return existingDoc.data();
+      const cachedAssessment = existingDoc.data();
+      const sanitizedAssessment = sanitizeNonFiniteNumbers(cachedAssessment);
+      if (containsNonFiniteNumber(cachedAssessment)) {
+        logger.warn(`Repairing non-finite macro values for ${dateStr}`);
+        await existingDoc.ref.set(
+          sanitizedAssessment as Record<string, unknown>
+        );
+      }
+      return sanitizedAssessment;
     }
   }
 
@@ -1737,7 +1751,7 @@ export const getMacroAssessmentCall = onCall({
   // Persist to history
   await saveMacroAssessmentToHistory(assessment);
 
-  return assessment;
+  return sanitizeNonFiniteNumbers(assessment);
 });
 
 /**
@@ -1775,5 +1789,7 @@ export const getMacroHistoryCall = onCall({
     .limit(limit)
     .get();
 
-  return snapshot.docs.map((doc) => doc.data()).reverse();
+  return snapshot.docs
+    .map((doc) => sanitizeNonFiniteNumbers(doc.data()))
+    .reverse();
 });

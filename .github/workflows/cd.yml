@@ -195,15 +195,15 @@ jobs:
           path: src/robinhood_options_mobile/build/app/outputs/bundle/release/app-release.aab
         continue-on-error: false
 
-      - name: Upload to Play Store
+      - name: Publish Google Play Internal Release
         uses: r0adkll/upload-google-play@v1.0.19
         with:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_STORE_UPLOAD_SERVICE_ACCOUNT_JSON }}
           packageName: com.cidevelop.robinhood_options_mobile
           releaseFiles: src/robinhood_options_mobile/build/app/outputs/bundle/release/app-release.aab
           track: internal
-          status: draft
-        continue-on-error: true
+          status: completed
+        continue-on-error: false
 
   build_ios:
     name: Build iOS
