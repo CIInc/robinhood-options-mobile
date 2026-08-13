@@ -99,6 +99,103 @@ class OptionsFlowStore extends ChangeNotifier {
         'Large block trade, possibly executed off-exchange (Dark Pool). Institutional accumulation or distribution.',
   };
 
+  static const Map<String, String> flagRecommendations = {
+    'SWEEP':
+        'Confirm the trade side, premium, and repeated same-direction sweeps before treating urgency as directional conviction.',
+    'BLOCK':
+        'Treat as context rather than a standalone entry; blocks may be negotiated hedges or portfolio transfers.',
+    'DARK POOL':
+        'Wait for price and volume confirmation because off-exchange activity does not reveal whether the position is directional.',
+    'BULLISH':
+        'Confirm with the underlying trend and support levels, then define downside risk before considering bullish exposure.',
+    'BEARISH':
+        'Confirm with the underlying trend and resistance levels, then define upside risk before considering bearish exposure.',
+    'NEUTRAL':
+        'Avoid assigning direction without related legs or follow-up flow that clarifies the strategy.',
+    'ITM':
+        'Compare break-even, liquidity, and capital at risk with owning or shorting the underlying.',
+    'OTM':
+        'Require a clear catalyst and keep position size small because time decay and low probability of profit can dominate.',
+    'WHALE':
+        'Look for repeated flow, execution at the ask or bid, and price confirmation; large premium alone may represent a hedge.',
+    'Super Whale':
+        'Validate whether the order is opening and directional before following; unusually large trades often hedge broader portfolios.',
+    'Institutional':
+        'Use as supporting evidence only after checking execution side, open interest, and related trades.',
+    'Golden Sweep':
+        'Prioritize repeated same-direction sweeps with liquid contracts and confirm the underlying breaks a relevant level.',
+    'Steamroller':
+        'Treat as a short-term, high-risk signal; verify liquidity and use predefined loss limits.',
+    'Mega Vol':
+        'Check whether volume creates new open interest after settlement and seek price confirmation before acting.',
+    'Vol Explosion':
+        'Investigate the catalyst and execution side, then confirm the activity is not closing volume.',
+    'High Vol/OI':
+        'Use the ratio as an unusual-activity filter, not proof of a new directional position.',
+    'New Position':
+        'Recheck next-session open interest when available; intraday volume above prior open interest does not guarantee opening trades.',
+    'Aggressive':
+        'Confirm the quote was current and look for repeated aggressive fills before inferring sustained demand.',
+    'Tight Spread':
+        'Prefer limit orders near the midpoint and compare displayed size before execution.',
+    'Wide Spread':
+        'Avoid market orders; reduce size or skip the trade when a reasonable limit price cannot fill.',
+    'Bullish Divergence':
+        'Wait for the underlying to stabilize or reclaim support; divergence can persist while price continues lower.',
+    'Bearish Divergence':
+        'Wait for rejection at resistance or a trend break; divergence can persist while price continues higher.',
+    'Panic Hedge':
+        'Do not assume outright bearish speculation; compare with existing put interest and broader market stress.',
+    'Gamma Squeeze':
+        'Require rising underlying price and concentrated near-dated call activity; cap risk because squeeze conditions can reverse quickly.',
+    'Contrarian':
+        'Wait for reversal confirmation and use smaller size because trading against momentum carries elevated timing risk.',
+    'Earnings Play':
+        'Compare the option-implied move with your expected move and plan for post-earnings volatility contraction.',
+    'IV Crush Risk':
+        'Avoid buying elevated volatility without a move large enough to offset likely post-event IV contraction.',
+    'Floor Protection':
+        'Interpret as insurance unless other evidence shows speculative put buying; avoid using it alone as a bearish entry.',
+    'Extreme IV':
+        'Identify the event driving volatility and use defined-risk structures; avoid uncovered short-volatility exposure.',
+    'High IV':
+        'Compare IV rank and expected move before paying premium, and account for volatility contraction.',
+    'Low IV':
+        'Confirm a catalyst or directional thesis; low implied volatility can remain low and does not make an option inexpensive by itself.',
+    'Cheap Vol':
+        'Verify liquidity and probability of reaching the strike; low contract price can still imply a near-total-loss outcome.',
+    'High Premium':
+        'Compare contract price with intrinsic value and spread quality; expensive contracts are not automatically high conviction.',
+    '0DTE':
+        'Use only defined risk and an amount you can lose entirely; gamma and time decay can change exposure within minutes.',
+    'Weekly OTM':
+        'Require a near-term catalyst and defined risk, with enough expected movement to overcome rapid time decay.',
+    'LEAPS':
+        'Check liquidity, break-even, and implied volatility, then size for long-duration drawdowns.',
+    'Lotto':
+        'Treat as speculation with a high probability of total loss and keep exposure minimal.',
+    'ATM Flow':
+        'Monitor the underlying around the strike and expiration; gamma exposure can amplify moves in either direction.',
+    'Deep ITM':
+        'Compare delta, spread, and remaining extrinsic value with a stock position before using it as a substitute.',
+    'Deep OTM':
+        'Require a specific catalyst and minimal sizing because the contract has a low probability of finishing in the money.',
+    'UNUSUAL':
+        'Confirm execution side, catalyst, and next-session open interest before interpreting unusual volume as directional.',
+    'Above Ask':
+        'Check quote timing and repeated fills; a single print above the ask can be stale or part of a multi-leg order.',
+    'Below Bid':
+        'Check quote timing and repeated fills; a single print below the bid can be stale or part of a multi-leg order.',
+    'Mid Market':
+        'Treat direction as unknown unless related legs, open-interest changes, or subsequent flow clarify intent.',
+    'Ask Side':
+        'Look for repeated ask-side fills and underlying confirmation before interpreting the trade as buying pressure.',
+    'Bid Side':
+        'Look for repeated bid-side fills and underlying confirmation before interpreting the trade as selling pressure.',
+    'Large Block / Dark Pool':
+        'Treat direction as uncertain and wait for related flow or price confirmation before considering a trade.',
+  };
+
   static const Map<String, List<String>> flagCategories = {
     'Volume & Institutional': [
       'Super Whale',

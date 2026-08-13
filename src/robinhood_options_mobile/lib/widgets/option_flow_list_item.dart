@@ -10,6 +10,136 @@ import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+String? buildOptionFlowTooltipMessage(String label, {String? reason}) {
+  final documentation = OptionsFlowStore.flagDocumentation[label];
+  final recommendation = OptionsFlowStore.flagRecommendations[label];
+  final sections = <String>[
+    if (documentation != null) documentation,
+    if (reason != null) reason,
+    if (recommendation != null) 'Recommendation: $recommendation',
+  ];
+  return sections.isEmpty ? null : sections.join('\n\n');
+}
+
+List<MapEntry<String, String>> buildOptionFlowRecommendations(
+    Iterable<String> labels) {
+  final seen = <String>{};
+  return labels
+      .where(seen.add)
+      .map((label) {
+        final recommendation = OptionsFlowStore.flagRecommendations[label];
+        return recommendation == null ? null : MapEntry(label, recommendation);
+      })
+      .whereType<MapEntry<String, String>>()
+      .toList(growable: false);
+}
+
+void showOptionFlowGuidanceSheet(BuildContext context, String label,
+    {String? reason}) {
+  final documentation = OptionsFlowStore.flagDocumentation[label];
+  final recommendation = OptionsFlowStore.flagRecommendations[label];
+  if (documentation == null && reason == null && recommendation == null) return;
+
+  showModalBottomSheet<void>(
+    context: context,
+    showDragHandle: true,
+    useSafeArea: true,
+    isScrollControlled: true,
+    builder: (context) => SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.menu_book_outlined,
+                  color: Theme.of(context).colorScheme.primary),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  label,
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                ),
+              ),
+            ],
+          ),
+          if (documentation != null) ...[
+            const SizedBox(height: 24),
+            _GuidanceSection(
+              icon: Icons.info_outline,
+              title: 'Definition',
+              body: documentation,
+            ),
+          ],
+          if (reason != null) ...[
+            const SizedBox(height: 20),
+            _GuidanceSection(
+              icon: Icons.manage_search,
+              title: 'Why it was detected',
+              body: reason,
+            ),
+          ],
+          if (recommendation != null) ...[
+            const SizedBox(height: 20),
+            _GuidanceSection(
+              icon: Icons.fact_check_outlined,
+              title: 'Recommendation',
+              body: recommendation,
+            ),
+          ],
+          const SizedBox(height: 20),
+          Text(
+            'Use flow as supporting evidence, not as a standalone trade signal.',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+class _GuidanceSection extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String body;
+
+  const _GuidanceSection({
+    required this.icon,
+    required this.title,
+    required this.body,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon,
+            size: 20, color: Theme.of(context).colorScheme.onSurfaceVariant),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      )),
+              const SizedBox(height: 4),
+              Text(body),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class OptionFlowListItem extends StatelessWidget {
   static final NumberFormat _currencyFormat = NumberFormat.simpleCurrency();
   static final NumberFormat _compactFormat = NumberFormat.compact();
@@ -247,7 +377,7 @@ class OptionFlowListItem extends StatelessWidget {
                             ? Colors.purple.shade200
                             : Colors.purple.shade700,
                         icon: Icons.bolt,
-                        showTooltip: false),
+                        showTooltip: true),
                   if (item.daysToExpiration == 0)
                     OptionFlowBadge(
                         label: '0DTE',
@@ -261,13 +391,13 @@ class OptionFlowListItem extends StatelessWidget {
                             ? Colors.orange.shade300
                             : Colors.orange.shade900,
                         icon: Icons.waves,
-                        showTooltip: false),
+                        showTooltip: true),
                   if (item.flowType == FlowType.block)
                     OptionFlowBadge(
                         label: 'BLOCK',
                         color: Colors.blue,
                         icon: Icons.view_module,
-                        showTooltip: false),
+                        showTooltip: true),
                   if (item.flowType == FlowType.darkPool)
                     OptionFlowBadge(
                         label: 'DARK POOL',
@@ -501,23 +631,19 @@ class OptionFlowBadge extends StatelessWidget {
     );
 
     if (showTooltip) {
-      final doc = OptionsFlowStore.flagDocumentation[label];
       final tooltipMessage =
-          reason != null ? (doc != null ? '$doc\n\n$reason' : reason) : doc;
+          buildOptionFlowTooltipMessage(label, reason: reason);
 
       if (tooltipMessage != null) {
-        return Tooltip(
-          message: tooltipMessage,
-          triggerMode: TooltipTriggerMode.tap,
-          padding: const EdgeInsets.all(12),
-          margin: const EdgeInsets.symmetric(horizontal: 20),
-          showDuration: const Duration(seconds: 5),
-          decoration: BoxDecoration(
-            color: Colors.grey[800],
-            borderRadius: BorderRadius.circular(8),
+        return Semantics(
+          button: true,
+          label: '$label guidance',
+          child: InkWell(
+            onTap: () =>
+                showOptionFlowGuidanceSheet(context, label, reason: reason),
+            borderRadius: BorderRadius.circular(6),
+            child: badge,
           ),
-          textStyle: const TextStyle(color: Colors.white),
-          child: badge,
         );
       }
     }
@@ -580,23 +706,19 @@ class OptionFlowFlagBadge extends StatelessWidget {
       );
 
       if (showTooltip) {
-        final doc = OptionsFlowStore.flagDocumentation[flag];
         final tooltipMessage =
-            reason != null ? (doc != null ? '$doc\n\n$reason' : reason) : doc;
+            buildOptionFlowTooltipMessage(flag, reason: reason);
 
         if (tooltipMessage != null) {
-          return Tooltip(
-            message: tooltipMessage,
-            triggerMode: TooltipTriggerMode.tap,
-            padding: const EdgeInsets.all(12),
-            margin: const EdgeInsets.symmetric(horizontal: 20),
-            showDuration: const Duration(seconds: 5),
-            decoration: BoxDecoration(
-              color: Colors.grey[800],
-              borderRadius: BorderRadius.circular(8),
+          return Semantics(
+            button: true,
+            label: '$flag guidance',
+            child: InkWell(
+              onTap: () =>
+                  showOptionFlowGuidanceSheet(context, flag, reason: reason),
+              borderRadius: BorderRadius.circular(4),
+              child: badge,
             ),
-            textStyle: const TextStyle(color: Colors.white),
-            child: badge,
           );
         }
       }

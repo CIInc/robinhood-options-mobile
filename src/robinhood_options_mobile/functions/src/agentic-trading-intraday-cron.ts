@@ -69,7 +69,7 @@ export const agenticTradingIntradayCron = onSchedule(
               interval: "1h",
               portfolioState: {},
               skipRiskGuard: true,
-              gexCacheOnly: true,
+              gexCacheOnly: false,
               marketDataCacheOnly: true,
             };
             const result = await performTradeProposal({ data } as any);
@@ -156,7 +156,7 @@ export const agenticTrading15mCron = onSchedule(
               interval: "15m",
               portfolioState: {},
               skipRiskGuard: true,
-              gexCacheOnly: true,
+              gexCacheOnly: false,
               marketDataCacheOnly: true,
             };
             const result = await performTradeProposal({ data } as any);

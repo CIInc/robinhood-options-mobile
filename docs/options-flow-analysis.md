@@ -62,6 +62,17 @@ You can filter the options flow real-time feed to focus on specific opportunitie
 *   **LEAPS:** Long-term Equity Anticipation Securities. Contracts expiring in > 1 year (365 days). Long-term conviction.
 *   **Leaps Buy:** Long-term OTM bullish speculation.
 
+### Interpretation Recommendations
+Definitions explain why a trade received a flag; recommendations explain what to verify before using that flag in a trading thesis. Tap a flag in the feed or detail view to open a structured guidance sheet with its definition, detection reason, and recommendation. The detail view also promotes the three highest-priority checks in an **Interpretation Checklist**, with the complete trade-specific list available on demand.
+
+*   **Confirm direction:** Check whether the trade executed near the bid or ask, whether it may be one leg of a spread, and whether related flow points in the same direction.
+*   **Confirm positioning:** Intraday volume above prior open interest suggests unusual activity but does not prove contracts were opened. Recheck next-session open interest when available.
+*   **Confirm price action:** Use the underlying trend, support or resistance, and repeated same-direction flow to validate a directional interpretation.
+*   **Account for events and volatility:** Compare the option-implied move with the expected catalyst move and plan for post-event implied-volatility contraction.
+*   **Protect execution:** Prefer limit orders, especially for wide spreads, and avoid treating contract price or premium size as proof of liquidity or conviction.
+*   **Define risk:** Use smaller or defined-risk exposure for short-dated, far OTM, extreme-IV, and contrarian trades. A low-priced contract can still have a high probability of total loss.
+*   **Treat institutional flow as context:** Blocks, dark-pool activity, whale orders, and put volume may represent hedges, transfers, or multi-leg strategies rather than outright directional bets.
+
 ### Sentiment Analysis
 *   **Bullish/Bearish Flow:** Visualize the ratio of bullish (calls bought, puts sold) vs. bearish (puts bought, calls sold) flow.
 *   **Premium Analysis:** Track the total premium spent on bullish vs. bearish positions.
@@ -85,9 +96,11 @@ A proprietary 0-100 score that rates the significance of each trade based on:
 2.  Select **Options Flow** from the menu.
 3.  **Filter:** Use the filter bar to narrow down results by symbol, sentiment, or specific flags like "WHALE" or "Earnings Play".
 4.  **Analyze:** Tap on a flow item to open the **Detail View**. This shows all active flags, moneyness, and detailed contract stats.
-5.  **Learn:** Tap on any flag, score, or multiplier badge to see a **Tooltip** with its definition.
-6.  **Sort:** Use the sort button to rank trades by Premium, Time, or Volume/OI ratio.
-7.  **Review Alerts:** Open the Option Flow Notifications page to search, filter, and review triggered alerts.
+5.  **Review recommendations:** Read the visible **Interpretation Checklist** before treating the flow as directional. Open the complete checklist when more than three recommendations apply.
+6.  **Learn a signal:** Tap any flag to open its persistent guidance sheet with separate **Definition**, **Why it was detected**, and **Recommendation** sections.
+7.  **Open the guide:** Use the book icon in the Options Flow app bar for definitions, methodology, analysis tips, and strategy context.
+8.  **Sort:** Use the sort menu to rank trades by Premium, Time, or Volume/OI ratio.
+9.  **Review Alerts:** Open the Option Flow Notifications page to search, filter, and review triggered alerts.
 
 ## Methodology
 

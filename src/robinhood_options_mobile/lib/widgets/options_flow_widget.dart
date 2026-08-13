@@ -107,7 +107,13 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
         title: const Text('Options Flow Analysis'),
         actions: [
           IconButton(
+            icon: const Icon(Icons.menu_book_outlined),
+            tooltip: 'Options Flow Guide',
+            onPressed: _showHelpDialog,
+          ),
+          IconButton(
             icon: const Icon(Icons.filter_list),
+            tooltip: 'Filter Options Flow',
             onPressed: _showFilterDialog,
           ),
           PopupMenuButton<String>(
@@ -116,8 +122,6 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
             onSelected: (value) {
               if (value == 'alerts') {
                 _showAlertsDialog();
-              } else if (value == 'help') {
-                _showHelpDialog();
               } else if (value.startsWith('sort_')) {
                 final index = int.parse(value.split('_')[1]);
                 Provider.of<OptionsFlowStore>(context, listen: false)
@@ -136,16 +140,6 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
                       Icon(Icons.notifications_outlined),
                       SizedBox(width: 12),
                       Text('Alerts'),
-                    ],
-                  ),
-                ),
-                const PopupMenuItem<String>(
-                  value: 'help',
-                  child: Row(
-                    children: [
-                      Icon(Icons.help_outline),
-                      SizedBox(width: 12),
-                      Text('Help & Definitions'),
                     ],
                   ),
                 ),
@@ -1788,7 +1782,9 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
                             ...entry.value.map((flag) => _buildHelpItem(
                                 flag,
                                 OptionsFlowStore.flagDocumentation[flag] ??
-                                    'Multi-factor institutional signal.')),
+                                    'Multi-factor institutional signal.',
+                                recommendation: OptionsFlowStore
+                                    .flagRecommendations[flag])),
                             const SizedBox(height: 16),
                           ],
                         );
@@ -1874,7 +1870,7 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
                       _buildBulletPoint(
                           'Contrarian Plays: Heavy put flow on a stock that has already dropped significantly might indicate a bottom (Panic Hedge vs Speculation).'),
                       _buildBulletPoint(
-                          'Combo Power: Trades with multiple flags (e.g. Golden Sweep + Bullish Divergence) have significantly higher win rates.'),
+                          'Combo Confirmation: Multiple aligned flags (e.g. Golden Sweep + Bullish Divergence) can strengthen a thesis, but still require price, liquidity, and catalyst confirmation.'),
                       const SizedBox(height: 24),
                       Text(
                         'Strategy Cheat Sheet',
@@ -1942,7 +1938,10 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
             ));
   }
 
-  Widget _buildHelpItem(String title, String description) {
+  Widget _buildHelpItem(String title, String description,
+      {String? recommendation}) {
+    final effectiveRecommendation =
+        recommendation ?? OptionsFlowStore.flagRecommendations[title];
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Row(
@@ -1957,7 +1956,29 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
             ),
           ),
           Expanded(
-            child: Text(description),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(description),
+                if (effectiveRecommendation != null) ...[
+                  const SizedBox(height: 6),
+                  Text.rich(
+                    TextSpan(
+                      children: [
+                        const TextSpan(
+                          text: 'Recommendation: ',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        TextSpan(text: effectiveRecommendation),
+                      ],
+                    ),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                  ),
+                ],
+              ],
+            ),
           ),
         ],
       ),

@@ -140,6 +140,20 @@ Based on this specific trade data and the flags, provide a professional trading 
         sentimentLabel = 'NEUTRAL';
         break;
     }
+    final flowTypeLabel = switch (item.flowType) {
+      FlowType.sweep => 'SWEEP',
+      FlowType.block => 'BLOCK',
+      FlowType.split => null,
+      FlowType.darkPool => 'DARK POOL',
+    };
+    final recommendations = buildOptionFlowRecommendations([
+      ...item.flags,
+      if (item.daysToExpiration == 0) '0DTE',
+      if (item.isUnusual) 'UNUSUAL',
+      isItm ? 'ITM' : 'OTM',
+      if (flowTypeLabel != null) flowTypeLabel,
+      sentimentLabel,
+    ]);
 
     return Scaffold(
       appBar: AppBar(
@@ -214,63 +228,58 @@ Based on this specific trade data and the flags, provide a professional trading 
                     ),
                   ),
                   const Spacer(),
-                  Tooltip(
-                    message:
-                        OptionsFlowStore.flagDocumentation[sentimentLabel] ??
-                            sentimentLabel,
-                    triggerMode: TooltipTriggerMode.tap,
-                    padding: const EdgeInsets.all(12),
-                    margin: const EdgeInsets.symmetric(horizontal: 20),
-                    showDuration: const Duration(seconds: 5),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[800],
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    textStyle: const TextStyle(color: Colors.white),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: (item.sentiment == Sentiment.bullish
-                                ? Colors.green
-                                : item.sentiment == Sentiment.bearish
-                                    ? Colors.red
-                                    : Colors.grey)
-                            .withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            item.sentiment == Sentiment.bullish
-                                ? Icons.trending_up
-                                : item.sentiment == Sentiment.bearish
-                                    ? Icons.trending_down
-                                    : Icons.remove,
-                            size: 16,
-                            color: item.sentiment == Sentiment.bullish
-                                ? Colors.green
-                                : item.sentiment == Sentiment.bearish
-                                    ? Colors.red
-                                    : Colors.grey,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            item.sentiment
-                                .toString()
-                                .split('.')
-                                .last
-                                .toUpperCase(),
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
+                  Semantics(
+                    button: true,
+                    label: '$sentimentLabel guidance',
+                    child: InkWell(
+                      onTap: () =>
+                          showOptionFlowGuidanceSheet(context, sentimentLabel),
+                      borderRadius: BorderRadius.circular(20),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: (item.sentiment == Sentiment.bullish
+                                  ? Colors.green
+                                  : item.sentiment == Sentiment.bearish
+                                      ? Colors.red
+                                      : Colors.grey)
+                              .withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              item.sentiment == Sentiment.bullish
+                                  ? Icons.trending_up
+                                  : item.sentiment == Sentiment.bearish
+                                      ? Icons.trending_down
+                                      : Icons.remove,
+                              size: 16,
                               color: item.sentiment == Sentiment.bullish
                                   ? Colors.green
                                   : item.sentiment == Sentiment.bearish
                                       ? Colors.red
                                       : Colors.grey,
                             ),
-                          ),
-                        ],
+                            const SizedBox(width: 4),
+                            Text(
+                              item.sentiment
+                                  .toString()
+                                  .split('.')
+                                  .last
+                                  .toUpperCase(),
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: item.sentiment == Sentiment.bullish
+                                    ? Colors.green
+                                    : item.sentiment == Sentiment.bearish
+                                        ? Colors.red
+                                        : Colors.grey,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -467,6 +476,74 @@ Based on this specific trade data and the flags, provide a professional trading 
                     valueColor: AlwaysStoppedAnimation<Color>(
                         getScoreColor(context, item.score)),
                     minHeight: 6,
+                  ),
+                ),
+              ],
+              if (recommendations.isNotEmpty) ...[
+                const SizedBox(height: 24),
+                _buildSectionHeader(context, 'Interpretation Checklist'),
+                const SizedBox(height: 8),
+                Card(
+                  elevation: 0,
+                  color: Theme.of(context)
+                      .colorScheme
+                      .primaryContainer
+                      .withValues(alpha: 0.24),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: BorderSide(
+                      color: Theme.of(context).colorScheme.outlineVariant,
+                    ),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.fact_check_outlined,
+                                color: Theme.of(context).colorScheme.primary),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Confirm before acting',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleSmall
+                                    ?.copyWith(fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'These checks are based on the signals detected for this trade.',
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant,
+                                  ),
+                        ),
+                        const SizedBox(height: 16),
+                        ...recommendations.take(3).map(
+                              (entry) => _buildRecommendationRow(
+                                  context, entry.key, entry.value),
+                            ),
+                        if (recommendations.length > 3)
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: TextButton.icon(
+                              onPressed: () => _showAllRecommendations(
+                                  context, recommendations),
+                              icon: const Icon(Icons.menu_book_outlined),
+                              label: Text(
+                                  'View all ${recommendations.length} recommendations'),
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
                 ),
               ],
@@ -915,6 +992,74 @@ Based on this specific trade data and the flags, provide a professional trading 
       style: Theme.of(context).textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.bold,
           ),
+    );
+  }
+
+  Widget _buildRecommendationRow(
+      BuildContext context, String label, String recommendation) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.check_circle_outline,
+              size: 18, color: Theme.of(context).colorScheme.primary),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text.rich(
+              TextSpan(
+                children: [
+                  TextSpan(
+                    text: '$label: ',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  TextSpan(text: recommendation),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showAllRecommendations(
+      BuildContext context, List<MapEntry<String, String>> recommendations) {
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      useSafeArea: true,
+      isScrollControlled: true,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.72,
+        minChildSize: 0.45,
+        maxChildSize: 0.95,
+        expand: false,
+        builder: (context, controller) => ListView(
+          controller: controller,
+          padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
+          children: [
+            Text(
+              'Interpretation Checklist',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Review each active signal before treating this flow as directional.',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+            ),
+            const SizedBox(height: 24),
+            ...recommendations.map(
+              (entry) =>
+                  _buildRecommendationRow(context, entry.key, entry.value),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
