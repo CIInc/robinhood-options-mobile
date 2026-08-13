@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:provider/provider.dart';
+import 'package:robinhood_options_mobile/model/account.dart';
+import 'package:robinhood_options_mobile/model/account_store.dart';
 import 'package:robinhood_options_mobile/model/portfolio_alert.dart';
+import 'package:robinhood_options_mobile/widgets/portfolio/portfolio_hero_stats_widget.dart';
 import 'package:robinhood_options_mobile/widgets/portfolio/action_center_widget.dart';
 import 'package:robinhood_options_mobile/widgets/portfolio/metric_disclosure_card.dart';
 import 'package:robinhood_options_mobile/widgets/portfolio/portfolio_risk_summary_widget.dart';
 import 'package:robinhood_options_mobile/widgets/portfolio/portfolio_section.dart';
 import 'package:robinhood_options_mobile/widgets/portfolio/analytics/risk_analytics_card.dart';
 import 'package:robinhood_options_mobile/widgets/portfolio/portfolio_section_grid_widget.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'portfolio_alert_service_test.dart' show buildPosition;
 
@@ -28,6 +33,51 @@ PortfolioAlert alert(String id, PortfolioAlertSeverity severity) =>
     );
 
 void main() {
+  testWidgets('portfolio stats stay mounted while balances are hidden',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({'show_balances': true});
+    final accountStore = AccountStore();
+    final statsKey = GlobalKey();
+    final account = Account(
+      '',
+      2500,
+      'account-1',
+      'cash',
+      10000,
+      '',
+      0,
+      0,
+      0,
+    );
+
+    await tester.pumpWidget(
+      ChangeNotifierProvider.value(
+        value: accountStore,
+        child: MaterialApp(
+          home: Scaffold(
+            body: PortfolioHeroStatsWidget(
+              key: statsKey,
+              account: account,
+              totalEquity: 20000,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final originalState = statsKey.currentContext;
+    final originalSize = tester.getSize(find.byKey(statsKey));
+    expect(find.text(r'$10,000'), findsOneWidget);
+
+    accountStore.toggleShowBalances();
+    await tester.pump();
+
+    expect(statsKey.currentContext, same(originalState));
+    expect(tester.getSize(find.byKey(statsKey)), originalSize);
+    expect(find.text(r'$••••••'), findsOneWidget);
+    expect(find.text('Cash'), findsOneWidget);
+  });
+
   group('ActionCenterWidget', () {
     testWidgets('renders nothing when there is nothing to act on',
         (tester) async {

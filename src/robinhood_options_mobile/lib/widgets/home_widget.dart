@@ -257,6 +257,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
   bool _lastAggregateMode = false;
   String? _lastSelectedAccountNumber;
   bool _dependencyReloadScheduled = false;
+  AccountStore? _accountStore;
   List<_BrokerBreakdownRow> _brokerBreakdownRows = [];
 
   final ScrollController _scrollController = ScrollController();
@@ -1354,7 +1355,12 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
     _updatePaperStoreBinding();
     final aggregateMode =
         Provider.of<BrokerageUserStore>(context).aggregateAllAccounts;
-    final accountStore = Provider.of<AccountStore>(context);
+    final accountStore = Provider.of<AccountStore>(context, listen: false);
+    if (!identical(_accountStore, accountStore)) {
+      _accountStore?.removeListener(_handleAccountStoreChanged);
+      _accountStore = accountStore;
+      _accountStore?.addListener(_handleAccountStoreChanged);
+    }
     final selectedNo = accountStore.selectedAccountNumber;
 
     bool needsReload = false;
@@ -1369,32 +1375,42 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
       needsReload = true;
     }
 
-    if (needsReload && !_dependencyReloadScheduled) {
-      _dependencyReloadScheduled = true;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _dependencyReloadScheduled = false;
-        if (!mounted) return;
+    if (needsReload) _scheduleDependencyReload();
+  }
 
-        final currentAccountStore =
-            Provider.of<AccountStore>(context, listen: false);
-        setState(() {
-          account =
-              _isAggregateMode() ? null : currentAccountStore.selectedAccount;
+  void _handleAccountStoreChanged() {
+    final selectedNo = _accountStore?.selectedAccountNumber;
+    if (_lastSelectedAccountNumber == selectedNo) return;
+    _lastSelectedAccountNumber = selectedNo;
+    _scheduleDependencyReload();
+  }
 
-          Provider.of<PortfolioHistoricalsStore>(context, listen: false)
-              .removeAll();
-          Provider.of<PortfolioStore>(context, listen: false).removeAll();
-          Provider.of<DividendStore>(context, listen: false).removeAll();
-          Provider.of<InterestStore>(context, listen: false).removeAll();
-          Provider.of<OptionPositionStore>(context, listen: false).removeAll();
-          Provider.of<InstrumentPositionStore>(context, listen: false)
-              .removeAll();
-          Provider.of<ForexHoldingStore>(context, listen: false).removeAll();
+  void _scheduleDependencyReload() {
+    if (_dependencyReloadScheduled) return;
+    _dependencyReloadScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _dependencyReloadScheduled = false;
+      if (!mounted) return;
 
-          _loadData();
-        });
+      final currentAccountStore =
+          Provider.of<AccountStore>(context, listen: false);
+      setState(() {
+        account =
+            _isAggregateMode() ? null : currentAccountStore.selectedAccount;
+
+        Provider.of<PortfolioHistoricalsStore>(context, listen: false)
+            .removeAll();
+        Provider.of<PortfolioStore>(context, listen: false).removeAll();
+        Provider.of<DividendStore>(context, listen: false).removeAll();
+        Provider.of<InterestStore>(context, listen: false).removeAll();
+        Provider.of<OptionPositionStore>(context, listen: false).removeAll();
+        Provider.of<InstrumentPositionStore>(context, listen: false)
+            .removeAll();
+        Provider.of<ForexHoldingStore>(context, listen: false).removeAll();
+
+        _loadData();
       });
-    }
+    });
   }
 
   void _updatePaperStoreBinding() {
@@ -1465,6 +1481,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
 
   @override
   void dispose() {
+    _accountStore?.removeListener(_handleAccountStoreChanged);
     _paperStore?.removeListener(_syncPaperPositions);
     _analyticsController?.dispose();
     _scrollController.dispose();
@@ -1494,7 +1511,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
   }
 
   Widget _buildScaffold() {
-    final accountStore = Provider.of<AccountStore>(context);
+    final accountStore = Provider.of<AccountStore>(context, listen: false);
     bool isSessionExpired = false;
     if (widget.brokerageUser?.source == BrokerageSource.robinhood) {
       isSessionExpired =
@@ -1685,7 +1702,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
             SliverToBoxAdapter(
               child: PortfolioChartWidget(
                 key: ValueKey(
-                    'portfolio-chart-${_isAggregateMode() ? 'all' : "${widget.brokerageUser?.userName ?? ""}-${Provider.of<AccountStore>(context).selectedAccountNumber ?? ""}"}'),
+                    'portfolio-chart-${_isAggregateMode() ? 'all' : "${widget.brokerageUser?.userName ?? ""}-${Provider.of<AccountStore>(context, listen: false).selectedAccountNumber ?? ""}"}'),
                 brokerageUser: widget.brokerageUser!,
                 chartDateSpanFilter: chartDateSpanFilter,
                 chartBoundsFilter: chartBoundsFilter,

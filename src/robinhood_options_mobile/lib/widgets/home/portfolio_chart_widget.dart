@@ -113,6 +113,8 @@ class _PortfolioChartWidgetState extends State<PortfolioChartWidget> {
         return baseData;
       },
       builder: (context, portfolioHistoricals, child) {
+        final accountStore = Provider.of<AccountStore>(context);
+        final showBalances = accountStore.showBalances;
         var dataToShow = portfolioHistoricals ?? _previousPortfolioHistoricals;
 
         if (dataToShow == null || dataToShow.equityHistoricals.isEmpty) {
@@ -228,8 +230,9 @@ class _PortfolioChartWidgetState extends State<PortfolioChartWidget> {
               domainFn: (EquityHistorical history, _) => history.beginsAt!,
               measureFn: (EquityHistorical history, index) =>
                   history.adjustedOpenEquity,
-              labelAccessorFn: (EquityHistorical history, index) =>
-                  formatCompactNumber.format((history.adjustedOpenEquity)),
+              labelAccessorFn: (EquityHistorical history, index) => showBalances
+                  ? formatCompactNumber.format(history.adjustedOpenEquity)
+                  : '••••••',
               data: allHistoricals,
             ),
             if (allHistoricals.any((element) => element.openEquity! > 0)) ...[
@@ -253,10 +256,13 @@ class _PortfolioChartWidgetState extends State<PortfolioChartWidget> {
                   data: allHistoricals),
             ]
           ],
+          key: ValueKey('portfolio-history-$showBalances'),
           animate: shouldAnimate,
           zeroBound: false,
           open: open,
           close: close,
+          showRangeAnnotationValues: showBalances,
+          hidePrimaryMeasureAxisValues: !showBalances,
           seriesLegend: (allHistoricals
                       .any((element) => element.openEquity! > 0) ||
                   allHistoricals.any((element) => element.openMarketValue! > 0))
@@ -286,7 +292,16 @@ class _PortfolioChartWidgetState extends State<PortfolioChartWidget> {
               changeInPeriod = close - open;
               changePercentInPeriod = (close / open) - 1;
             }
-            return "${formatCurrency.format(provider.selection != null ? provider.selection!.adjustedCloseEquity : close)}\n${formatCompactDateTimeWithHour.format(provider.selection != null ? provider.selection!.beginsAt!.toLocal() : lastHistorical!.beginsAt!.toLocal())}";
+            final date = formatCompactDateTimeWithHour.format(
+                provider.selection != null
+                    ? provider.selection!.beginsAt!.toLocal()
+                    : lastHistorical!.beginsAt!.toLocal());
+            final value = showBalances
+                ? formatCurrency.format(provider.selection != null
+                    ? provider.selection!.adjustedCloseEquity
+                    : close)
+                : '••••••';
+            return '$value\n$date';
           },
               marginBottom: 16,
               backgroundColor: Theme.of(context).colorScheme.inverseSurface,
@@ -296,8 +311,6 @@ class _PortfolioChartWidgetState extends State<PortfolioChartWidget> {
         return Column(children: [
           Consumer<PortfolioHistoricalsSelectionStore>(
               builder: (context, value, child) {
-            final accountStore = Provider.of<AccountStore>(context);
-            final showBalances = accountStore.showBalances;
             var selection = value.selection;
             if (selection != null) {
               changeInPeriod = selection.adjustedCloseEquity! - open;
@@ -383,19 +396,30 @@ class _PortfolioChartWidgetState extends State<PortfolioChartWidget> {
                                 child: FittedBox(
                                   alignment: Alignment.centerLeft,
                                   fit: BoxFit.scaleDown,
-                                  child: AnimatedPriceText(
-                                    price: selection != null
-                                        ? selection.adjustedCloseEquity!
-                                        : close,
-                                    format: formatCurrency,
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w700,
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurface,
-                                    ),
-                                  ),
+                                  child: showBalances
+                                      ? AnimatedPriceText(
+                                          price: selection != null
+                                              ? selection.adjustedCloseEquity!
+                                              : close,
+                                          format: formatCurrency,
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w700,
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onSurface,
+                                          ),
+                                        )
+                                      : Text(
+                                          '\$••••••',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w700,
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onSurface,
+                                          ),
+                                        ),
                                 ),
                               ),
                             ],
@@ -435,7 +459,7 @@ class _PortfolioChartWidgetState extends State<PortfolioChartWidget> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Text(
-                                'CHANGE',
+                                '${_chartDateSpanFilter.label} CHANGE',
                                 style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w700,
@@ -462,7 +486,7 @@ class _PortfolioChartWidgetState extends State<PortfolioChartWidget> {
                                         alignment: Alignment.centerLeft,
                                         fit: BoxFit.scaleDown,
                                         child: Text(
-                                          returnText,
+                                          showBalances ? returnText : '••••••',
                                           style: TextStyle(
                                             fontSize: 16,
                                             fontWeight: FontWeight.w600,
@@ -513,7 +537,7 @@ class _PortfolioChartWidgetState extends State<PortfolioChartWidget> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Text(
-                                'CHANGE %',
+                                '${_chartDateSpanFilter.label} CHANGE %',
                                 style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w700,
@@ -714,11 +738,11 @@ class _PortfolioChartWidgetState extends State<PortfolioChartWidget> {
                                 crossAxisAlignment: CrossAxisAlignment.end,
                                 children: [
                                   Text(
-                                    formatCompactDate.format(
+                                    '${_chartDateSpanFilter.label} · ${formatCompactDate.format(
                                       selection != null
                                           ? selection.beginsAt!.toLocal()
                                           : lastHistorical!.beginsAt!.toLocal(),
-                                    ),
+                                    )}',
                                     style: TextStyle(
                                       fontSize: 11,
                                       fontWeight: FontWeight.w700,
@@ -758,25 +782,26 @@ class _PortfolioChartWidgetState extends State<PortfolioChartWidget> {
                   padding: const EdgeInsets.fromLTRB(10.0, 0.0, 10.0, 10.0),
                   child: Stack(
                     children: [
-                      _showCandles
+                      _showCandles && showBalances
                           ? Candlesticks(
                               candles: _generateCandles(allHistoricals),
                             )
                           : historicalChart,
-                      Positioned(
-                        top: 0,
-                        right: 0,
-                        child: IconButton(
-                          icon: Icon(_showCandles
-                              ? Icons.show_chart
-                              : Icons.candlestick_chart),
-                          onPressed: () {
-                            setState(() {
-                              _showCandles = !_showCandles;
-                            });
-                          },
+                      if (showBalances)
+                        Positioned(
+                          top: 0,
+                          right: 0,
+                          child: IconButton(
+                            icon: Icon(_showCandles
+                                ? Icons.show_chart
+                                : Icons.candlestick_chart),
+                            onPressed: () {
+                              setState(() {
+                                _showCandles = !_showCandles;
+                              });
+                            },
+                          ),
                         ),
-                      ),
                     ],
                   ),
                 ))
@@ -819,14 +844,14 @@ class _PortfolioChartWidgetState extends State<PortfolioChartWidget> {
                 scrollDirection: Axis.horizontal,
                 itemBuilder: (context, index) {
                   return Row(children: [
-                    _buildChip('1H', ChartDateSpan.hour),
-                    _buildChip('1D', ChartDateSpan.day),
-                    _buildChip('1W', ChartDateSpan.week),
-                    _buildChip('1M', ChartDateSpan.month),
-                    _buildChip('3M', ChartDateSpan.month_3),
-                    _buildChip('YTD', ChartDateSpan.ytd),
-                    _buildChip('1Y', ChartDateSpan.year),
-                    _buildChip('All', ChartDateSpan.all),
+                    _buildChip(ChartDateSpan.hour),
+                    _buildChip(ChartDateSpan.day),
+                    _buildChip(ChartDateSpan.week),
+                    _buildChip(ChartDateSpan.month),
+                    _buildChip(ChartDateSpan.month_3),
+                    _buildChip(ChartDateSpan.ytd),
+                    _buildChip(ChartDateSpan.year),
+                    _buildChip(ChartDateSpan.all),
                     Container(width: 10),
                     _buildBoundsChip('Regular Hours', Bounds.regular),
                     _buildBoundsChip('24/7 Hours', Bounds.t24_7),
@@ -840,11 +865,11 @@ class _PortfolioChartWidgetState extends State<PortfolioChartWidget> {
     );
   }
 
-  Widget _buildChip(String label, ChartDateSpan span) {
+  Widget _buildChip(ChartDateSpan span) {
     return Padding(
       padding: const EdgeInsets.all(4.0),
       child: ChoiceChip(
-        label: Text(label),
+        label: Text(span.label),
         selected: _chartDateSpanFilter == span,
         onSelected: (bool value) {
           if (value) {

@@ -15,11 +15,13 @@ class TimeSeriesChart extends StatefulWidget {
   final bool animate;
   final double? open;
   final double? close;
+  final bool showRangeAnnotationValues;
   final charts.SeriesRendererConfig<DateTime>? seriesRendererConfig;
   final List<charts.SeriesRendererConfig<DateTime>>? customSeriesRenderers;
   final charts.NumericExtents? viewport;
   final bool zeroBound;
   final bool dataIsInWholeNumbers;
+  final bool hidePrimaryMeasureAxisValues;
   final common.SelectionMode selectionMode;
   final List<charts.ChartBehavior<DateTime>>? behaviors;
   final charts.ChartBehavior<DateTime>? seriesLegend;
@@ -42,6 +44,7 @@ class TimeSeriesChart extends StatefulWidget {
       // this.getTextForTextSymbolRenderer,
       this.open,
       this.close,
+      this.showRangeAnnotationValues = true,
       this.seriesRendererConfig,
       this.customSeriesRenderers,
       this.selectionMode = common.SelectionMode.expandToDomain,
@@ -54,6 +57,7 @@ class TimeSeriesChart extends StatefulWidget {
       this.viewport,
       this.zeroBound = true,
       this.dataIsInWholeNumbers = true,
+      this.hidePrimaryMeasureAxisValues = false,
       this.showVerticalFollowLine =
           charts.LinePointHighlighterFollowLineType.all,
       this.drawFollowLinesAcrossChart});
@@ -76,6 +80,9 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
       rangeAnnotationLabelColor = charts.MaterialPalette.gray.shade500;
       axisLabelColor = charts.MaterialPalette.gray.shade800;
     }
+    final measureAxisLabelColor = widget.hidePrimaryMeasureAxisValues
+        ? charts.ColorUtil.fromDartColor(Colors.transparent)
+        : axisLabelColor;
 
     return charts.TimeSeriesChart(
       widget.seriesList,
@@ -97,7 +104,7 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
             //showAxisLine: true,
             //renderSpec: charts.GridlineRendererSpec(),
             renderSpec: charts.SmallTickRendererSpec(
-                labelStyle: charts.TextStyleSpec(color: axisLabelColor)),
+                labelStyle: charts.TextStyleSpec(color: measureAxisLabelColor)),
             //renderSpec: charts.NoneRenderSpec(),
             tickProviderSpec: charts.BasicNumericTickProviderSpec(
                 zeroBound: widget.zeroBound,
@@ -175,11 +182,15 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
                         : widget.open!,
                     charts.RangeAnnotationAxisType.measure,
                     startLabel: widget.open! <= widget.close!
-                        ? 'open ${formatCurrency.format(widget.open!)}'
-                        : 'close ${formatCurrency.format(widget.close!)}',
+                        ? _rangeAnnotationLabel('open', widget.open!,
+                            widget.showRangeAnnotationValues)
+                        : _rangeAnnotationLabel('close', widget.close!,
+                            widget.showRangeAnnotationValues),
                     endLabel: widget.open! <= widget.close!
-                        ? 'close ${formatCurrency.format(widget.close!)}'
-                        : 'open ${formatCurrency.format(widget.open!)}',
+                        ? _rangeAnnotationLabel('close', widget.close!,
+                            widget.showRangeAnnotationValues)
+                        : _rangeAnnotationLabel('open', widget.open!,
+                            widget.showRangeAnnotationValues),
                     labelStyleSpec: charts.TextStyleSpec(
                         fontSize: 14,
                         color: rangeAnnotationLabelColor), //axisLabelColor
@@ -205,6 +216,10 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
     //widget.onSelected(selected);
   }
   */
+}
+
+String _rangeAnnotationLabel(String label, double value, bool showValue) {
+  return showValue ? '$label ${formatCurrency.format(value)}' : label;
 }
 
 // import 'package:charts_flutter/flutter.dart';
