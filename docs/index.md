@@ -14,7 +14,7 @@
 - Cross-platform access for iOS and Android users.
 - Community-driven features for shared insights and discussions.
 - Enhanced security and privacy for user data.
-  - **Balance Visibility Toggle:** Global privacy mask to hide sensitive P&L and equity data in public settings.
+  - **Balance Visibility Toggle:** Global privacy mask for sensitive P&L and equity data, including portfolio-chart axes, annotations, tooltips, and summary values.
 - **Watchlist Management:** Comprehensive tools to create, edit, and manage custom watchlists with real-time data tracking.
 - Advanced charting tools for technical analysis.
 - **Generative Actions:** AI-driven actions and insights directly within the UI for enhanced decision making.
@@ -44,14 +44,14 @@
 - **[Custom Alerts](custom-alerts.md):** Configurable price and event-based alerts for instruments and portfolio events.
 - **[Order Templates](order-templates.md):** Save and reuse order configurations for faster execution.
 - **[Multi-Account Aggregation](index.md#multi-account-aggregation):** Support for viewing aggregated positions across multiple brokerage accounts with navigation controls.
-- **[Model Context Protocol (MCP) Integration](mcp-integration.md):** Secure on-device sandbox client executing localized tools for portfolio inspection, real-time balances, advanced trading strategy executions, and trace views. Read complete information in [docs/mcp-integration.md](docs/mcp-integration.md).
+- **[Model Context Protocol (MCP) Integration](mcp-integration.md):** Secure on-device sandbox client executing localized tools for portfolio inspection, real-time balances, advanced trading strategy executions, and trace views.
 - **[Mobile CI/CD](mobile-ci-setup.md):** Standardized build and deployment workflows for iOS and Android.
 - **[TestFlight Deployment](TESTFLIGHT_DEPLOYMENT.md):** App Store Connect setup and validated iOS deployment workflow.
 - **[Testing Standards](testing-standards.md):** Required UI, state, data-integrity, and regression testing patterns.
 - **[RiskGuard](risk-guard.md):** Advanced risk validation for manual and automated trading, including **Dynamic Position Sizing**.
 - **[Schwab Integration](schwab-integration.md):** Seamless integration with Schwab brokerage accounts for enhanced trading capabilities.
 - **[Fidelity Integration](fidelity-integration.md):** Manual import of positions and history via CSV files.
-- **[Options Flow Analysis](options-flow-analysis.md):** Real-time monitoring of institutional option orders with 30+ smart flags (Whale, Sweep, etc.) and visual indicators. **New:** Option Flow alerts and a dedicated notifications feed.
+- **[Options Flow Analysis](options-flow-analysis.md):** Real-time monitoring of institutional option orders with 30+ smart flags, alerts, a notifications feed, and structured definition, detection-reason, and recommendation guidance.
 - **[Gamma Exposure (GEX) Analysis Pro](gamma-exposure-analysis.md):** Real-time monitoring of portfolio and symbol-level GEX, Call/Put Walls, Gamma Flip and transition levels, dealer-regime breadth and concentration, interactive strike scrubbing, Spot-Shift sensitivity, and an on-device Black-Scholes fallback engine.
 - **[Market Data Providers Research](market-data-providers-research.md):** Comparative analysis of equities, options, and futures data vendors.
 - **[Options/Futures API Endpoints](options-futures-api-endpoints.md):** Survey of broker and market data APIs for derivatives coverage.
@@ -246,14 +246,14 @@ Futures Auto-Trading extends the agentic system to futures contracts with config
 
 ## [Model Context Protocol (MCP) & AI Assistant Chat](mcp-integration.md)
 
-The conversational AI coaching assistant has been upgraded with Model Context Protocol (MCP) support and automated proposal parsing for direct, secure mobile brokerage integration. Read more about technical capabilities in [docs/mcp-integration.md](docs/mcp-integration.md).
+The conversational AI coaching assistant has been upgraded with Model Context Protocol (MCP) support and automated proposal parsing for direct, secure mobile brokerage integration. Read more about the technical capabilities in [MCP Integration](mcp-integration.md).
 
 ### Key Capabilities
-- **Local MCP Client:** Implemented a secure, high-performance local MCP Dart client utilizing `package:mcp_dart` in [src/robinhood_options_mobile/lib/services/generative_service.dart](src/robinhood_options_mobile/lib/services/generative_service.dart). Gemini can dynamically discover, inspect, and execute real-time brokerage actions (details, accounts, positions, watchlists) as native tools.
-- **Secure OAuth Authentication Webview:** An in-app, secure OAuth2 login overlay in [src/robinhood_options_mobile/lib/widgets/mcp_oauth_webview.dart](src/robinhood_options_mobile/lib/widgets/mcp_oauth_webview.dart) targeting the agent trading scopes directly.
-- **Interactive Tool Execution Visualcards:** Displays real-time API call traces (`ToolExecutionCard`) on the screen in [src/robinhood_options_mobile/lib/widgets/chat_widget.dart](src/robinhood_options_mobile/lib/widgets/chat_widget.dart). Users can expand execution logs, pretty-print JSON arguments/responses, and control data pagination/truncation.
+- **Local MCP Client:** Implemented a secure, high-performance local MCP Dart client utilizing `package:mcp_dart` in [generative_service.dart](../src/robinhood_options_mobile/lib/services/generative_service.dart). Gemini can dynamically discover, inspect, and execute real-time brokerage actions (details, accounts, positions, watchlists) as native tools.
+- **Secure OAuth Authentication Webview:** An in-app, secure OAuth2 login overlay in [mcp_oauth_webview.dart](../src/robinhood_options_mobile/lib/widgets/mcp_oauth_webview.dart) targeting the agent trading scopes directly.
+- **Interactive Tool Execution Visualcards:** Displays real-time API call traces (`ToolExecutionCard`) on the screen in [chat_widget.dart](../src/robinhood_options_mobile/lib/widgets/chat_widget.dart). Users can expand execution logs, pretty-print JSON arguments/responses, and control data pagination/truncation.
 - **Chat Trade Proposal Overlays:** Intercepts structured text payloads (`[TRADE_PROPOSAL]`) and renders beautifully designed Native Order checkout cards (`AgenticTradeCard`). Review margin, compute estimated cost, and execute orders natively straight from a chat block.
-- **Switchable Multi-Account Syncing:** Dynamically routes AI assistant inquiries and actions to the selected active portfolio configured under User Settings via [src/robinhood_options_mobile/lib/model/account_store.dart](src/robinhood_options_mobile/lib/model/account_store.dart).
+- **Switchable Multi-Account Syncing:** Dynamically routes AI assistant inquiries and actions to the selected active portfolio configured under User Settings via [account_store.dart](../src/robinhood_options_mobile/lib/model/account_store.dart).
 
 ## Investor Groups Feature
 

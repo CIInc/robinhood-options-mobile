@@ -53,7 +53,24 @@ import 'package:robinhood_options_mobile/model/user_info.dart';
 import 'package:robinhood_options_mobile/model/watchlist.dart';
 import 'package:robinhood_options_mobile/model/watchlist_item.dart';
 
+class _FuturesMarginCacheEntry {
+  const _FuturesMarginCacheEntry(this.value, this.expiresAt);
+
+  final double value;
+  final DateTime expiresAt;
+}
+
+class _FuturesOrdersCacheEntry {
+  const _FuturesOrdersCacheEntry(this.value, this.expiresAt);
+
+  final List<dynamic> value;
+  final DateTime expiresAt;
+}
+
 class RobinhoodService implements IBrokerageService {
+  static const _futuresMarginCacheTtl = Duration(minutes: 15);
+  static const _futuresOrdersCacheTtl = Duration(minutes: 1);
+
   @override
   String name = 'Robinhood';
   @override
@@ -82,6 +99,11 @@ class RobinhoodService implements IBrokerageService {
   static Map<String, dynamic> logoUrls = {};
 
   static List<dynamic> forexPairs = [];
+
+  final Map<String, _FuturesMarginCacheEntry> _futuresMarginCache = {};
+  final Map<String, Future<double?>> _futuresMarginRequests = {};
+  final Map<String, _FuturesOrdersCacheEntry> _futuresOrdersCache = {};
+  final Map<String, Future<List<dynamic>>> _futuresOrdersRequests = {};
 
   /* 
   AUTH 
@@ -400,16 +422,20 @@ Response: {
       results = await RobinhoodService.pagedGet(brokerageUser,
           "$endpoint/accounts/?default_to_all_accounts=true&include_managed=true&include_multiple_individual=true&is_default=false");
     } catch (e) {
-      debugPrint("Failed to fetch with robust multi-accounts parameters, trying second-tier multi-accounts... Error: $e");
+      debugPrint(
+          "Failed to fetch with robust multi-accounts parameters, trying second-tier multi-accounts... Error: $e");
       try {
         results = await RobinhoodService.pagedGet(brokerageUser,
             "$endpoint/accounts/?include_managed=true&include_multiple_individual=true");
       } catch (e2) {
-        debugPrint("Failed to fetch next-tier accounts, trying simple accounts endpoint... Error: $e2");
+        debugPrint(
+            "Failed to fetch next-tier accounts, trying simple accounts endpoint... Error: $e2");
         try {
-          results = await RobinhoodService.pagedGet(brokerageUser, "$endpoint/accounts/");
+          results = await RobinhoodService.pagedGet(
+              brokerageUser, "$endpoint/accounts/");
         } catch (e3) {
-          debugPrint("Failed all attempts to fetch accounts. Letting error propagate. Error: $e3");
+          debugPrint(
+              "Failed all attempts to fetch accounts. Letting error propagate. Error: $e3");
           rethrow;
         }
       }
@@ -810,7 +836,57 @@ https://api.robinhood.com/ceres/v1/accounts?rhsAccountNumber={accountNumber}
     return results;
   }
 
-  // https://api.robinhood.com/arsenal/v1/futures/margin_requirement?contractId=b4daeb2e-ab77-4f22-b49e-ad0db4b14d40&marginType=MARGIN_TYPE_OVERNIGHT&accountType=ACCOUNT_TYPE_MARGIN_LIMITED
+  Future<double?> _getFuturesMarginRequirement(
+    BrokerageUser user,
+    String contractId,
+    String marginType,
+  ) async {
+    final cacheKey = '${user.userName}:$contractId:$marginType';
+    final cached = _futuresMarginCache[cacheKey];
+    if (cached != null && cached.expiresAt.isAfter(DateTime.now())) {
+      return cached.value;
+    }
+
+    final pendingRequest = _futuresMarginRequests[cacheKey];
+    if (pendingRequest != null) {
+      return pendingRequest;
+    }
+
+    final request = _fetchFuturesMarginRequirement(
+      user,
+      contractId,
+      marginType,
+    );
+    _futuresMarginRequests[cacheKey] = request;
+    try {
+      final value = await request;
+      if (value != null) {
+        _futuresMarginCache[cacheKey] = _FuturesMarginCacheEntry(
+          value,
+          DateTime.now().add(_futuresMarginCacheTtl),
+        );
+      }
+      return value;
+    } finally {
+      _futuresMarginRequests.remove(cacheKey);
+    }
+  }
+
+  Future<double?> _fetchFuturesMarginRequirement(
+    BrokerageUser user,
+    String contractId,
+    String marginType,
+  ) async {
+    final url =
+        '$endpoint/arsenal/v1/futures/margin_requirement?contractId=${Uri.encodeQueryComponent(contractId)}&marginType=$marginType&accountType=ACCOUNT_TYPE_MARGIN_LIMITED';
+    final result = await getJson(user, url);
+    final value = result['marginRequirement'] ??
+        (result['result'] is Map
+            ? result['result']['marginRequirement']
+            : null);
+    return double.tryParse(value?.toString() ?? '');
+  }
+
   Future<dynamic> getFuturesProduct(
       BrokerageUser user, String productId) async {
     var url = "$endpoint/arsenal/v1/futures/products/$productId";
@@ -870,7 +946,28 @@ https://api.robinhood.com/ceres/v1/accounts?rhsAccountNumber={accountNumber}
     var url =
         "$endpoint/arsenal/v1/futures/contracts?contractIds=${Uri.encodeComponent(contractIds.join(","))}";
     var resultJson = await getJson(user, url);
-    return resultJson['results'] ?? [];
+    final contracts = resultJson['results'] is List
+        ? List<dynamic>.from(resultJson['results'])
+        : resultJson['result'] != null
+            ? <dynamic>[resultJson['result']]
+            : <dynamic>[];
+    await Future.wait(contracts.whereType<Map>().map((contract) async {
+      final contractId = contract['id']?.toString();
+      if (contractId == null) {
+        return;
+      }
+      try {
+        contract['marginRequirement'] = await _getFuturesMarginRequirement(
+          user,
+          contractId,
+          'MARGIN_TYPE_OVERNIGHT',
+        );
+      } catch (e) {
+        debugPrint(
+            'getFuturesContractsByIds: margin fetch error for $contractId: $e');
+      }
+    }));
+    return contracts;
   }
 
   @override
@@ -913,6 +1010,40 @@ https://api.robinhood.com/ceres/v1/accounts?rhsAccountNumber={accountNumber}
     return resultJson['data'] ?? [];
   }
 
+  Future<Map<String, double>> _getTodayFuturesRealizedPnlByContract(
+    BrokerageUser user,
+    String account,
+  ) async {
+    final realizedPnlByContract = <String, double>{};
+    final orders = await getFuturesOrders(user, account);
+    final today = DateTime.now().toUtc().toIso8601String().substring(0, 10);
+    for (final order in orders) {
+      if (order is! Map ||
+          !const {'FILLED', 'PARTIALLY_FILLED'}.contains(order['orderState']) ||
+          !(order['updatedAt']?.toString().startsWith(today) ?? false)) {
+        continue;
+      }
+      final realizedPnl = order['realizedPnl'];
+      final amount = realizedPnl is Map && realizedPnl['realizedPnl'] is Map
+          ? double.tryParse(
+                  realizedPnl['realizedPnl']['amount']?.toString() ?? '') ??
+              0.0
+          : 0.0;
+      final orderLegs = order['orderLegs'];
+      if (amount == 0 || orderLegs is! List || orderLegs.isEmpty) {
+        continue;
+      }
+      final firstLeg = orderLegs.first;
+      final contractId =
+          firstLeg is Map ? firstLeg['contractId']?.toString() : null;
+      if (contractId != null) {
+        realizedPnlByContract[contractId] =
+            (realizedPnlByContract[contractId] ?? 0.0) + amount;
+      }
+    }
+    return realizedPnlByContract;
+  }
+
 /*
 https://api.robinhood.com/ceres/v1/accounts/{accountGuid}/aggregated_positions
 {
@@ -945,39 +1076,8 @@ https://api.robinhood.com/ceres/v1/accounts/{accountGuid}/aggregated_positions
       // Calculate Realized P&L from today's orders
       Map<String, double> realizedPnlByContract = {};
       try {
-        var orders = await getFuturesOrders(user, account);
-        var today = DateTime.now().toUtc().toIso8601String().substring(0, 10);
-        for (var order in orders) {
-          var updatedAt = order['updatedAt']?.toString();
-          // Filter for orders filled today
-          if (updatedAt != null && updatedAt.startsWith(today)) {
-            var orderState = order['orderState'];
-            if (orderState == 'FILLED' || orderState == 'PARTIALLY_FILLED') {
-              // Parse realized P&L
-              // Structure: "realizedPnl": { "realizedPnl": { "amount": "100.0", "currency": "USD" } }
-              if (order['realizedPnl'] != null &&
-                  order['realizedPnl']['realizedPnl'] != null) {
-                var amountStr =
-                    order['realizedPnl']['realizedPnl']['amount']?.toString();
-                var amount = double.tryParse(amountStr ?? '') ?? 0.0;
-                if (amount != 0) {
-                  // Find contractId
-                  if (order['orderLegs'] is List &&
-                      (order['orderLegs'] as List).isNotEmpty) {
-                    // Assuming single leg for attribution or attributing to first leg
-                    // TODO: Handle complex multi-leg futures attribution if needed
-                    var leg = order['orderLegs'][0];
-                    var contractId = leg['contractId']?.toString();
-                    if (contractId != null) {
-                      realizedPnlByContract[contractId] =
-                          (realizedPnlByContract[contractId] ?? 0.0) + amount;
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
+        realizedPnlByContract =
+            await _getTodayFuturesRealizedPnlByContract(user, account);
       } catch (e) {
         debugPrint('streamFuturePositions: futures orders fetch error: $e');
       }
@@ -1123,6 +1223,15 @@ https://api.robinhood.com/ceres/v1/accounts/{accountGuid}/aggregated_positions
             double? multiplier =
                 multiplierStr != null ? double.tryParse(multiplierStr) : null;
             double openPnl = 0.0;
+            if (quantity != null) {
+              final contractCount = quantity.abs();
+              final marginRequirement = double.tryParse(
+                  contract['marginRequirement']?.toString() ?? '');
+              if (marginRequirement != null) {
+                position['marginRequirement'] =
+                    marginRequirement * contractCount;
+              }
+            }
             if (lastTradePrice is double &&
                 avgTradePrice != null &&
                 quantity != null &&
@@ -1207,7 +1316,15 @@ https://api.robinhood.com/ceres/v1/accounts/{accountGuid}/aggregated_positions
     var results = await pagedGet(
         user, "$endpoint/ceres/v1/accounts/$account/aggregated_positions");
 
-    if (results.isEmpty) {
+    var realizedPnlByContract = <String, double>{};
+    try {
+      realizedPnlByContract =
+          await _getTodayFuturesRealizedPnlByContract(user, account);
+    } catch (e) {
+      debugPrint('getFuturesPositions: futures orders fetch error: $e');
+    }
+
+    if (results.isEmpty && realizedPnlByContract.isEmpty) {
       store.removeAll();
       return results;
     }
@@ -1219,6 +1336,8 @@ https://api.robinhood.com/ceres/v1/accounts/{accountGuid}/aggregated_positions
         .toSet()
         .toList()
         .cast<String>();
+    contractIds.addAll(realizedPnlByContract.keys);
+    contractIds = contractIds.toSet().toList();
 
     if (contractIds.isNotEmpty) {
       // Fetch contract details
@@ -1294,6 +1413,8 @@ https://api.robinhood.com/ceres/v1/accounts/{accountGuid}/aggregated_positions
       // Enrich positions with contract and product data
       for (var position in results) {
         var contractId = position['contractId'];
+        final realizedPnl = realizedPnlByContract.remove(contractId) ?? 0.0;
+        position['realizedPnl'] = realizedPnl;
         var contract = contracts.firstWhere(
           (c) => c['id'] == contractId,
           orElse: () => null,
@@ -1335,6 +1456,14 @@ https://api.robinhood.com/ceres/v1/accounts/{accountGuid}/aggregated_positions
               quantityStr != null ? double.tryParse(quantityStr) : null;
           double? multiplier =
               multiplierStr != null ? double.tryParse(multiplierStr) : null;
+          if (quantity != null) {
+            final contractCount = quantity.abs();
+            final marginRequirement = double.tryParse(
+                contract['marginRequirement']?.toString() ?? '');
+            if (marginRequirement != null) {
+              position['marginRequirement'] = marginRequirement * contractCount;
+            }
+          }
           if (lastTradePrice is double &&
               avgTradePrice != null &&
               quantity != null &&
@@ -1356,9 +1485,38 @@ https://api.robinhood.com/ceres/v1/accounts/{accountGuid}/aggregated_positions
               multiplier != null) {
             // Day P&L formula: (Last - PreviousClose) * Quantity * Multiplier
             position['dayPnlCalc'] =
-                (lastTradePrice - previousClosePrice) * quantity * multiplier;
+                (lastTradePrice - previousClosePrice) * quantity * multiplier +
+                    realizedPnl;
+          } else {
+            position['dayPnlCalc'] = realizedPnl;
           }
         }
+      }
+
+      for (final entry in realizedPnlByContract.entries) {
+        final contract = contracts.firstWhere(
+          (candidate) => candidate['id'] == entry.key,
+          orElse: () => null,
+        );
+        if (contract == null) {
+          continue;
+        }
+        final syntheticPosition = <String, dynamic>{
+          'contractId': entry.key,
+          'contract': contract,
+          'quantity': 0,
+          'openPnlCalc': 0.0,
+          'realizedPnl': entry.value,
+          'dayPnlCalc': entry.value,
+        };
+        final product = products.firstWhere(
+          (candidate) => candidate['id'] == contract['productId'],
+          orElse: () => null,
+        );
+        if (product != null) {
+          syntheticPosition['product'] = product;
+        }
+        results.add(syntheticPosition);
       }
     }
 
@@ -1369,16 +1527,49 @@ https://api.robinhood.com/ceres/v1/accounts/{accountGuid}/aggregated_positions
   @override
   Future<List<dynamic>> getFuturesOrders(
       BrokerageUser user, String account) async {
+    final cacheKey = '${user.userName}:$account';
+    final cached = _futuresOrdersCache[cacheKey];
+    if (cached != null && cached.expiresAt.isAfter(DateTime.now())) {
+      return cached.value;
+    }
+
+    final pendingRequest = _futuresOrdersRequests[cacheKey];
+    if (pendingRequest != null) {
+      return pendingRequest;
+    }
+
+    final request = _loadFuturesOrders(user, account, cacheKey);
+    _futuresOrdersRequests[cacheKey] = request;
+    try {
+      return await request;
+    } finally {
+      _futuresOrdersRequests.remove(cacheKey);
+    }
+  }
+
+  Future<List<dynamic>> _loadFuturesOrders(
+      BrokerageUser user, String account, String cacheKey) async {
+    try {
+      final orders = await _fetchFuturesOrders(user, account);
+      _futuresOrdersCache[cacheKey] = _FuturesOrdersCacheEntry(
+        orders,
+        DateTime.now().add(_futuresOrdersCacheTtl),
+      );
+      return orders;
+    } catch (e) {
+      debugPrint('Error getting futures orders: $e');
+      return [];
+    }
+  }
+
+  Future<List<dynamic>> _fetchFuturesOrders(
+      BrokerageUser user, String account) async {
     // https://api.robinhood.com/ceres/v1/accounts/{params}/orders?orderState=QUEUED&orderState=CONFIRMED&orderState=UNCONFIRMED&orderState=PENDING_CANCELLED&orderState=PARTIALLY_FILLED&orderState=FILLED&orderState=CANCELLED&orderState=REJECTED
     var url =
         "$endpoint/ceres/v1/accounts/$account/orders?orderState=FILLED&orderState=PARTIALLY_FILLED";
-    try {
-      var response = await getJson(user, url);
-      if (response != null && response['results'] != null) {
-        return response['results'] as List<dynamic>;
-      }
-    } catch (e) {
-      debugPrint('Error getting futures orders: $e');
+    var response = await getJson(user, url);
+    if (response != null && response['results'] != null) {
+      return response['results'] as List<dynamic>;
     }
     return [];
   }
@@ -1431,6 +1622,8 @@ https://api.robinhood.com/ceres/v1/accounts/{accountGuid}/aggregated_positions
         'accept': 'application/json',
       },
     );
+
+    _futuresOrdersCache.remove('${user.userName}:$accountId');
 
     return result;
   }

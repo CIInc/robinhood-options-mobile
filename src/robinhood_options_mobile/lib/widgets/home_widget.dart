@@ -1809,6 +1809,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                   user: widget.user,
                   userDocRef: widget.userDoc,
                   showList: false,
+                  chartRowLimit: _overviewChartRowLimit,
                   disableNavigation: isAggregateMode,
                 ),
               ),

@@ -70,8 +70,9 @@ Starting in **v0.37.0**, RealizeAlpha includes a global **Balance Visibility Tog
 - Total Equity and P&L charts.
 - Portfolio Health Score details when showing absolute values.
 - Individual position sizes and valuations.
+- Portfolio chart axes, range annotations, selected-point tooltips, and change values.
 
-The toggle can be found in the **User Settings** menu and is reflected immediately across all views.
+The toggle can be found in the **User Settings** menu and on the portfolio chart. It is reflected immediately across all views. The active chart period remains visible through labels such as `1D CHANGE`, `1M CHANGE`, or `ALL CHANGE`, while monetary values are replaced with masking characters when balances are hidden.
 
 ## Key Features
 

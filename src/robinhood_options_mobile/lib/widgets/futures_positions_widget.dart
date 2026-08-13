@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:community_charts_flutter/community_charts_flutter.dart'
     as charts;
@@ -10,11 +11,25 @@ import 'package:robinhood_options_mobile/model/futures_position_store.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
+import 'package:robinhood_options_mobile/widgets/chart_bar_widget.dart';
 import 'package:robinhood_options_mobile/widgets/future_instrument_widget.dart';
 import 'package:robinhood_options_mobile/widgets/futures_positions_page_widget.dart';
 import 'package:robinhood_options_mobile/widgets/chart_pie_widget.dart' as pie;
 import 'package:robinhood_options_mobile/widgets/pnl_badge.dart';
 import 'package:robinhood_options_mobile/widgets/animated_price_text.dart';
+
+enum _FuturesChartMeasure {
+  notional('Notional'),
+  totalCost('Total Cost'),
+  marginRequirement('Margin Requirement'),
+  openPnl('Open P&L'),
+  dayPnl('Day P&L'),
+  realizedPnl('Realized P&L');
+
+  const _FuturesChartMeasure(this.label);
+
+  final String label;
+}
 
 class FuturesPositionsWidget extends StatefulWidget {
   const FuturesPositionsWidget(
@@ -30,11 +45,13 @@ class FuturesPositionsWidget extends StatefulWidget {
     this.showList = false,
     this.showGroupHeader = true,
     this.disableNavigation = false,
+    this.chartRowLimit,
   });
 
   final bool showList;
   final bool showGroupHeader;
   final bool disableNavigation;
+  final int? chartRowLimit;
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
   final BrokerageUser brokerageUser;
@@ -50,6 +67,8 @@ class FuturesPositionsWidget extends StatefulWidget {
 
 class _FuturesPositionsWidgetState extends State<FuturesPositionsWidget> {
   late FuturesPositionStore store;
+  _FuturesChartMeasure _chartMeasure = _FuturesChartMeasure.openPnl;
+  bool _sortDescending = true;
 
   void _showAggregateTradeDisabled(BuildContext context) {
     ScaffoldMessenger.of(context)
@@ -69,6 +88,130 @@ class _FuturesPositionsWidgetState extends State<FuturesPositionsWidget> {
       return;
     }
     action();
+  }
+
+  String _positionSymbol(dynamic position) {
+    if (position is! Map) {
+      return 'Other';
+    }
+    final contract = position['contract'];
+    final product = position['product'];
+    final symbol = contract is Map
+        ? (contract['rootSymbol'] ??
+                contract['symbol'] ??
+                contract['displaySymbol'] ??
+                position['contractId'] ??
+                'Other')
+            .toString()
+        : product is Map
+            ? (product['symbol'] ??
+                    product['displaySymbol'] ??
+                    position['contractId'] ??
+                    'Other')
+                .toString()
+            : (position['contractId'] ?? 'Other').toString();
+    return symbol.split(':').first;
+  }
+
+  double _positionChartValue(dynamic position) {
+    if (position is! Map) {
+      return 0;
+    }
+
+    double readValue(String key) =>
+        double.tryParse(position[key]?.toString() ?? '0') ?? 0;
+
+    switch (_chartMeasure) {
+      case _FuturesChartMeasure.notional:
+        return readValue('notionalValue').abs();
+      case _FuturesChartMeasure.totalCost:
+        final contract = position['contract'];
+        final multiplier = contract is Map
+            ? double.tryParse(contract['multiplier']?.toString() ?? '0') ?? 0
+            : 0;
+        return readValue('avgTradePrice') *
+            readValue('quantity').abs() *
+            multiplier;
+      case _FuturesChartMeasure.marginRequirement:
+        return readValue('marginRequirement');
+      case _FuturesChartMeasure.openPnl:
+        return readValue('openPnlCalc');
+      case _FuturesChartMeasure.dayPnl:
+        return readValue('dayPnlCalc');
+      case _FuturesChartMeasure.realizedPnl:
+        return readValue('realizedPnl');
+    }
+  }
+
+  void _showChartMeasurePicker(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (sheetContext) => SafeArea(
+        child: DraggableScrollableSheet(
+          expand: false,
+          initialChildSize: 0.65,
+          minChildSize: 0.35,
+          maxChildSize: 0.9,
+          builder: (context, scrollController) => Column(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.bar_chart_rounded),
+                title: const Text('Primary Measure'),
+                subtitle: const Text('Choose how to display futures positions'),
+              ),
+              Expanded(
+                child: RadioGroup<_FuturesChartMeasure>(
+                  groupValue: _chartMeasure,
+                  onChanged: (value) {
+                    if (value == null) {
+                      return;
+                    }
+                    setState(() => _chartMeasure = value);
+                    Navigator.pop(sheetContext);
+                  },
+                  child: ListView.builder(
+                    controller: scrollController,
+                    itemCount: _FuturesChartMeasure.values.length,
+                    itemBuilder: (context, index) {
+                      final measure = _FuturesChartMeasure.values[index];
+                      return RadioListTile<_FuturesChartMeasure>(
+                        title: Text(measure.label),
+                        value: measure,
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _navigateToPosition(BuildContext context, dynamic position) {
+    if (position is! Map<String, dynamic>) {
+      return;
+    }
+    _handleNavigation(context, () {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => FutureInstrumentWidget(
+            brokerageUser: widget.brokerageUser,
+            service: widget.service,
+            position: position,
+            analytics: widget.analytics,
+            observer: widget.observer,
+            generativeService: widget.generativeService,
+            user: widget.user,
+            userDocRef: widget.userDocRef,
+          ),
+        ),
+      );
+    });
   }
 
   @override
@@ -105,6 +248,115 @@ class _FuturesPositionsWidgetState extends State<FuturesPositionsWidget> {
           if (items.isEmpty) {
             return const SliverToBoxAdapter(child: SizedBox.shrink());
           }
+          final contracts = items.fold<double>(0, (total, position) {
+            if (position is! Map) {
+              return total;
+            }
+            final quantity =
+                double.tryParse(position['quantity']?.toString() ?? '0') ?? 0;
+            return total + quantity.abs();
+          });
+          final notionalEntries = localStore.notionalDistribution.entries
+              .where((entry) => entry.value > 0)
+              .toList();
+          final chartValuesBySymbol = <String, double>{};
+          for (final position in items) {
+            if (position is Map) {
+              final symbol = _positionSymbol(position);
+              chartValuesBySymbol[symbol] = (chartValuesBySymbol[symbol] ?? 0) +
+                  _positionChartValue(position);
+            }
+          }
+          final sortedChartEntries = chartValuesBySymbol.entries.toList()
+            ..sort((a, b) => _sortDescending
+                ? b.value.compareTo(a.value)
+                : a.value.compareTo(b.value));
+          final chartEntries = widget.chartRowLimit == null
+              ? sortedChartEntries
+              : sortedChartEntries.take(widget.chartRowLimit!).toList();
+          final chartRowsOmitted =
+              sortedChartEntries.length - chartEntries.length;
+          final grossNotional = notionalEntries.fold<double>(
+            0,
+            (total, entry) => total + entry.value,
+          );
+          final compactCurrency = NumberFormat.compactSimpleCurrency();
+          final chartData = chartEntries
+              .map((entry) => {
+                    'domain': entry.key,
+                    'measure': entry.value,
+                    'label': compactCurrency.format(entry.value),
+                  })
+              .toList();
+          final chartSeries = <charts.Series<dynamic, String>>[
+            charts.Series<dynamic, String>(
+              id: _chartMeasure.label,
+              data: chartData,
+              seriesColor: charts.ColorUtil.fromDartColor(
+                Theme.of(context).brightness == Brightness.light
+                    ? Theme.of(context).colorScheme.primary
+                    : Theme.of(context).colorScheme.primaryContainer,
+              ),
+              domainFn: (datum, _) => datum['domain'],
+              measureFn: (datum, _) => datum['measure'],
+              labelAccessorFn: (datum, _) => datum['label'],
+              insideLabelStyleAccessorFn: (datum, index) =>
+                  charts.TextStyleSpec(
+                fontSize: 14,
+                color: charts.ColorUtil.fromDartColor(
+                  Theme.of(context).brightness == Brightness.light
+                      ? Theme.of(context).colorScheme.surface
+                      : Theme.of(context).colorScheme.inverseSurface,
+                ),
+              ),
+              outsideLabelStyleAccessorFn: (datum, index) =>
+                  charts.TextStyleSpec(
+                fontSize: 14,
+                color: charts.ColorUtil.fromDartColor(
+                  Theme.of(context).textTheme.labelSmall!.color!,
+                ),
+              ),
+            ),
+          ];
+          final axisLabelColor =
+              Theme.of(context).brightness == Brightness.light
+                  ? charts.MaterialPalette.gray.shade700
+                  : charts.MaterialPalette.gray.shade500;
+          final openPnlChart = BarChart(
+            chartSeries,
+            barGroupingType: null,
+            renderer: charts.BarRendererConfig(
+              groupingType: charts.BarGroupingType.stacked,
+              barRendererDecorator: charts.BarLabelDecorator<String>(),
+              cornerStrategy: const charts.ConstCornerStrategy(10),
+            ),
+            primaryMeasureAxis: charts.NumericAxisSpec(
+              renderSpec: charts.GridlineRendererSpec(
+                labelStyle: charts.TextStyleSpec(color: axisLabelColor),
+              ),
+              tickFormatterSpec:
+                  charts.BasicNumericTickFormatterSpec.fromNumberFormat(
+                compactCurrency,
+              ),
+            ),
+            domainAxis: charts.OrdinalAxisSpec(
+              renderSpec: charts.SmallTickRendererSpec(
+                labelStyle: charts.TextStyleSpec(color: axisLabelColor),
+              ),
+            ),
+            behaviors: [charts.SeriesLegend()],
+            onSelected: (dynamic selected) {
+              if (selected == null) {
+                return;
+              }
+              final position = items.cast<dynamic>().firstWhere(
+                    (item) => _positionSymbol(item) == selected['domain'],
+                    orElse: () => null,
+                  );
+              setState(() {});
+              _navigateToPosition(context, position);
+            },
+          );
           return SliverToBoxAdapter(
             child: Column(
               children: [
@@ -147,10 +399,12 @@ class _FuturesPositionsWidgetState extends State<FuturesPositionsWidget> {
                       ]
                     ]),
                     subtitle: Text(
-                        '${items.length} positions • Day: ${formatCurrency.format(localStore.totalDayPnl)}'),
+                        '${formatCompactNumber.format(items.length)} positions, ${formatCompactNumber.format(contracts)} contracts${chartRowsOmitted > 0 ? ', charting top ${chartEntries.length}' : ''}'),
                     trailing: InkWell(
                       onTap: () {
-                        // Placeholder for functionality to switch display value
+                        setState(() {
+                          _chartMeasure = _FuturesChartMeasure.openPnl;
+                        });
                       },
                       child: Wrap(spacing: 8, children: [
                         Padding(
@@ -183,8 +437,7 @@ class _FuturesPositionsWidgetState extends State<FuturesPositionsWidget> {
                                     widget.futuresPositions,
                                     analytics: widget.analytics,
                                     observer: widget.observer,
-                                    generativeService:
-                                        widget.generativeService,
+                                    generativeService: widget.generativeService,
                                     user: widget.user,
                                     userDocRef: widget.userDocRef,
                                   ),
@@ -193,6 +446,57 @@ class _FuturesPositionsWidgetState extends State<FuturesPositionsWidget> {
                             });
                           }
                         : null,
+                  ),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 5),
+                    child: Row(
+                      children: [
+                        _buildSummaryMetric(
+                          'Day P&L',
+                          localStore.totalDayPnl,
+                          measure: _FuturesChartMeasure.dayPnl,
+                        ),
+                        _buildSummaryMetric(
+                          'Open P&L',
+                          localStore.totalOpenPnl,
+                          measure: _FuturesChartMeasure.openPnl,
+                        ),
+                        _buildSummaryMetric(
+                          'Realized',
+                          localStore.totalRealizedPnl,
+                          measure: _FuturesChartMeasure.realizedPnl,
+                        ),
+                        _buildSummaryMetric(
+                          'Notional',
+                          grossNotional,
+                          measure: _FuturesChartMeasure.notional,
+                          neutral: true,
+                        ),
+                        _buildSummaryMetric(
+                          'Margin',
+                          localStore.totalMarginRequirement,
+                          measure: _FuturesChartMeasure.marginRequirement,
+                          neutral: true,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                if (chartData.isNotEmpty)
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      SizedBox(
+                        height: chartData.length * 26 + 80,
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
+                          child: openPnlChart,
+                        ),
+                      ),
+                      _buildChartControls(context),
+                    ],
                   ),
                 if (localStore.notionalDistribution.isNotEmpty &&
                     widget.showList) ...[
@@ -253,6 +557,7 @@ class _FuturesPositionsWidgetState extends State<FuturesPositionsWidget> {
                       double? previousClosePrice;
                       double? totalCost;
                       double? notionalValue;
+                      double? marginRequirement;
                       if (pos is Map) {
                         // Get product info for display
                         var product = pos['product'];
@@ -310,6 +615,10 @@ class _FuturesPositionsWidgetState extends State<FuturesPositionsWidget> {
                         if (pos['previousClosePrice'] != null) {
                           previousClosePrice = double.tryParse(
                               pos['previousClosePrice'].toString());
+                        }
+                        if (pos['marginRequirement'] != null) {
+                          marginRequirement = double.tryParse(
+                              pos['marginRequirement'].toString());
                         }
 
                         // Calculate total cost if we have all components
@@ -499,6 +808,26 @@ class _FuturesPositionsWidgetState extends State<FuturesPositionsWidget> {
                                             ],
                                           ),
                                         ),
+                                      if (marginRequirement != null)
+                                        Padding(
+                                          padding: const EdgeInsets.all(
+                                              summaryEgdeInset),
+                                          child: Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              PnlBadge(
+                                                text: formatCurrency
+                                                    .format(marginRequirement),
+                                                neutral: true,
+                                              ),
+                                              const SizedBox(height: 4),
+                                              const Text("Margin Requirement",
+                                                  style: TextStyle(
+                                                      fontSize:
+                                                          summaryLabelFontSize)),
+                                            ],
+                                          ),
+                                        ),
                                       if (multiplier != null)
                                         Padding(
                                           padding: const EdgeInsets.all(
@@ -550,5 +879,111 @@ class _FuturesPositionsWidgetState extends State<FuturesPositionsWidget> {
             ),
           );
         }));
+  }
+
+  Widget _buildSummaryMetric(
+    String label,
+    double value, {
+    required _FuturesChartMeasure measure,
+    bool neutral = false,
+  }) {
+    return Semantics(
+      button: true,
+      selected: _chartMeasure == measure,
+      label: 'Show ${measure.label} chart',
+      child: InkWell(
+        onTap: () => setState(() => _chartMeasure = measure),
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.all(summaryEgdeInset),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              PnlBadge(
+                text: formatCurrency.format(value),
+                value: neutral ? null : value,
+                neutral: neutral,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: const TextStyle(fontSize: summaryLabelFontSize),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildChartControls(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      child: Container(
+        padding: const EdgeInsets.all(2),
+        decoration: BoxDecoration(
+          color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+          ),
+        ),
+        child: IntrinsicHeight(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildToolbarButton(
+                context,
+                label: _chartMeasure.label,
+                icon: Icons.bar_chart_rounded,
+                onTap: () => _showChartMeasurePicker(context),
+              ),
+              VerticalDivider(
+                width: 1,
+                thickness: 1,
+                indent: 8,
+                endIndent: 8,
+                color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+              ),
+              _buildToolbarButton(
+                context,
+                label: _sortDescending ? 'High to low' : 'Low to high',
+                icon:
+                    _sortDescending ? Icons.arrow_downward : Icons.arrow_upward,
+                iconColor: colorScheme.secondary,
+                onTap: () {
+                  setState(() => _sortDescending = !_sortDescending);
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildToolbarButton(
+    BuildContext context, {
+    required String label,
+    required IconData icon,
+    required VoidCallback onTap,
+    Color? iconColor,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 17, color: iconColor),
+            const SizedBox(width: 6),
+            Text(label, style: Theme.of(context).textTheme.labelMedium),
+          ],
+        ),
+      ),
+    );
   }
 }

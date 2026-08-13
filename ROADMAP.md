@@ -48,7 +48,7 @@ This document outlines the planned features and enhancements for RealizeAlpha.
 ### Key Highlights
 - ✅ **Recently Completed**: Accurate Whale Watch snapshot ranking, bounded trade-signal schedulers, independent signal freshness diagnostics, and responsive research/navigation polish.
 - 🔥 **In Progress**: Schwab Options Trading (Phases 2-3).
-- 🚀 **Next Milestone**: **Quantitative Research Workbench & Schwab API Phase 2** (v0.37.4).
+- 🚀 **Next Milestone**: **Quantitative Research Workbench & Schwab API Phase 2** (v0.37.5).
 - **Focus Areas**: Institutional-grade options analytics (GEX), AI-powered trade orchestration, and multi-brokerage expansion.
 - 🎯 **2026 Priorities**: 
   - **Q3**: AI Portfolio Architect, Smart Alerts & Market Intelligence, News & Sentiment Intelligence, Social Platform Evolution, Tax Optimization Suite
@@ -258,7 +258,16 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ **Reliable Signal Persistence:** Omit undefined Firestore fields, preserve prior signals when cached bars are unavailable, and report partial failures accurately.
 - ✅ **Research & Navigation Polish:** Stabilize research cards, History account selection, portfolio section layouts, chart labels, and Trade Signals scroll-to-top behavior.
 
-### v0.37.4 (Q3 2026 - August)
+### v0.37.4 ✅ (Released August 13, 2026)
+**Interpretable Options Flow, Private Portfolio Charts, and Trading Reliability**
+- ✅ **Options Flow Guidance:** Added recommendations for every supported smart flag, trade-specific detection reasons, and prioritized interpretation checklists.
+- ✅ **Portfolio Chart Privacy:** Extended balance masking to chart values, axes, annotations, tooltips, and summary metrics.
+- ✅ **Portfolio Chart Context:** Added active date-span labels to change metrics and selected-point annotations.
+- ✅ **Android Google Sign-In:** Added Firebase configuration, initialization, cancellation handling, and actionable authentication errors.
+- ✅ **Trading Reliability:** Standardized rejection messages, deduplicated activity logs, validated two-sided options-chain open interest, and sanitized non-finite macro values.
+- ✅ **Google Play Delivery:** Changed Android CD uploads from draft to completed releases.
+
+### v0.37.5 (Q3 2026 - August)
 **Quantitative Research Workbench & Schwab API Phase 2**
 - [ ] **Options order placement on Schwab** ([Tracking: #138](https://github.com/CIInc/robinhood-options-mobile/issues/138))
 - [ ] **Event Study Analyzer:** Analyze stock performance around earnings, FDA decisions, and other event windows.
@@ -673,9 +682,9 @@ Q3 2026 shifts focus from basic execution to **Advanced Intelligence** and **Reg
 
 #### Research & Quantitative ([Tracking: #137](https://github.com/CIInc/robinhood-options-mobile/issues/137))
 - [x] **Alpha Factor Discovery**: Research engine for signal correlation - **Medium** (3-4 weeks)
-- [ ] **Event Study Analyzer** (v0.37.4): Stock performance around specific event windows - **Medium** (3-4 weeks)
-- [ ] **Rolling Statistics Dashboard** (v0.37.4): Dynamic volatility and correlation tracking - **Small** (2 weeks)
-- [ ] **Custom Screener Builder** (v0.37.4): Advanced multi-factor filtering UI - **Medium** (3-4 weeks)
+- [ ] **Event Study Analyzer** (v0.37.5): Stock performance around specific event windows - **Medium** (3-4 weeks)
+- [ ] **Rolling Statistics Dashboard** (v0.37.5): Dynamic volatility and correlation tracking - **Small** (2 weeks)
+- [ ] **Custom Screener Builder** (v0.37.5): Advanced multi-factor filtering UI - **Medium** (3-4 weeks)
 - [x] **Income View NAV** ([#20](https://github.com/CIInc/robinhood-options-mobile/issues/20)): Net Asset Value tracking - **Small** (1 week)
 - [x] **Income Chart** ([#17](https://github.com/CIInc/robinhood-options-mobile/issues/17)): Portfolio income visualization - **Small** (1 week)
 - [x] **Dividend History** ([#3](https://github.com/CIInc/robinhood-options-mobile/issues/3)): Historical dividend tracking - **Small** (1 week)
@@ -810,7 +819,7 @@ Technical debt accumulation slows velocity. Investing in testing, CI/CD, and sec
 #### Data & Integration
 - [x] **Schwab Integration**: Full portfolio and trading support ([#91](https://github.com/CIInc/robinhood-options-mobile/issues/91), [#93](https://github.com/CIInc/robinhood-options-mobile/issues/93), [#122](https://github.com/CIInc/robinhood-options-mobile/issues/122))
     - [x] Schwab Auth & Portfolio Sync (Phase 1)
-    - [ ] Schwab Options Order Placement (Phase 2, v0.37.4) - [Tracking: #138](https://github.com/CIInc/robinhood-options-mobile/issues/138)
+    - [ ] Schwab Options Order Placement (Phase 2, v0.37.5) - [Tracking: #138](https://github.com/CIInc/robinhood-options-mobile/issues/138)
     - [ ] Schwab Multi-Account Support (Phase 3)
 - [x] **Yahoo Finance**: Real-time news and charting
 - [ ] **Plaid Integration**: Full account linking and options support ([#15](https://github.com/CIInc/robinhood-options-mobile/issues/15), [#92](https://github.com/CIInc/robinhood-options-mobile/issues/92))
@@ -861,6 +870,6 @@ Staying ahead of the curve requires exploring frontier technologies. Decentraliz
 We value community feedback! If you have suggestions for the roadmap or want to contribute:
 1. **Open an Issue**: Submit feature requests or bug reports on GitHub.
 2. **Join the Discussion**: Participate in our community forums (coming soon).
-3. **Submit a PR**: We welcome contributions! See our [Contribution Guide](CONTRIBUTING.md).
+3. **Submit a PR**: We welcome focused pull requests that include relevant tests and documentation.
 
 

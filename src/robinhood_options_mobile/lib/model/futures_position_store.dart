@@ -56,6 +56,15 @@ class FuturesPositionStore extends ChangeNotifier {
         })
       : 0.0;
 
+  double get totalMarginRequirement => _sumPositionValue('marginRequirement');
+
+  double _sumPositionValue(String key) => _items.fold(0.0, (total, item) {
+        if (item is! Map) {
+          return total;
+        }
+        return total + (double.tryParse(item[key]?.toString() ?? '') ?? 0.0);
+      });
+
   Map<String, double> get notionalDistribution {
     var distribution = <String, double>{};
     for (var position in _items) {

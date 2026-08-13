@@ -22,6 +22,7 @@ The Agentic Trading system provides autonomous, AI-powered trading capabilities 
    - Manages trade execution, TP/SL monitoring, and safety checks.
    - Handles automated buy trades tracking and Firebase persistence.
    - Loads auto-trade history from Firestore ensuring persistence across app restarts.
+  - Mirrors backend decision and rejection messages into a bounded activity log while suppressing duplicate messages received within a short interval.
 
 3. **TradeSignalsProvider** (`lib/model/trade_signals_provider.dart`) *[NEW]*
    - Centralized trade signal management
@@ -58,6 +59,8 @@ The Agentic Trading system provides autonomous, AI-powered trading capabilities 
    - Trade signal generation cron jobs (daily, hourly, 15-min)
    - `seedAgenticTrading` function: Initializes monitored stocks (supports batch processing)
    - `stock-list.ts`: Source of S&P 500 symbols
+  - `agentic-proposal-message.ts`: Produces consistent HOLD and RiskGuard rejection messages for agent proposals.
+  - `json-sanitizer.ts`: Recursively replaces non-finite numbers with `null` before macro data is written to Firestore or returned to clients.
 
 8. **TradeSignalsWidget** (`lib/widgets/trade_signals_widget.dart`) *[NEW]*
    - Dedicated home screen widget for trade signals

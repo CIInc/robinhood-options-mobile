@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.37.4] - 2026-08-13
+**Interpretable Options Flow, Private Portfolio Charts, and Trading Reliability**
+
+### Added
+- **Options Flow Guidance:** Every supported smart flag now includes a recommendation, and flag sheets separate the definition, trade-specific detection reason, and verification guidance.
+- **Interpretation Checklist:** Options Flow details promote the three highest-priority checks for a trade with access to the complete recommendation list.
+- **Portfolio Chart Labels:** Portfolio charts display the active date span in change metrics and selected-point annotations.
+- **Android Google Sign-In:** Added the Android Firebase configuration and initialization required for Google authentication.
+
+### Changed
+- **Portfolio Chart Privacy:** The global balance-visibility setting now masks chart values, axes, range annotations, tooltips, and summary metrics while preserving the privacy toggle.
+- **Auto-Trading Activity:** Stock auto-trading surfaces backend decision messages in the activity log and suppresses duplicate entries during repeated provider updates.
+- **Google Play Delivery:** Android CD now completes the Play Console release instead of leaving uploaded bundles in draft status.
+
+### Fixed
+- **Options Chain Quality:** Server-side options-flow retrieval rejects chains unless both call and put sides contain usable open interest, allowing fallback providers to supply complete data.
+- **Agentic Rejection Messages:** Standardized proposal rejection text so HOLD and RiskGuard outcomes no longer produce contradictory status messages.
+- **Macro Persistence:** Non-finite numeric values are recursively converted to Firestore-safe `null` values before macro assessments are persisted or returned.
+- **Authentication Errors:** Google sign-in failures now distinguish user cancellation, missing Android configuration, and other Firebase or platform failures.
+
+### Testing
+- **Options Flow:** Added coverage for recommendation completeness and options-chain open-interest validation.
+- **Portfolio Privacy:** Added chart masking, date-span label, and portfolio overview coverage.
+- **Trading Reliability:** Added tests for rejection-message formatting, recursive numeric sanitization, and activity-log message handling.
+
 ## [0.37.3] - 2026-08-10
 **Whale Watch Accuracy, Signal Reliability, and Responsive Research**
 
