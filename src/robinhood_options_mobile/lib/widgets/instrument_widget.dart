@@ -75,6 +75,7 @@ import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/widgets/agentic_trading_settings_widget.dart';
 import 'package:robinhood_options_mobile/widgets/auto_trade_status_badge_widget.dart';
 import 'package:robinhood_options_mobile/widgets/backtesting_widget.dart';
+import 'package:robinhood_options_mobile/widgets/event_study_widget.dart';
 import 'package:share_plus/share_plus.dart';
 
 import 'package:robinhood_options_mobile/model/account_store.dart';
@@ -2927,77 +2928,98 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                   ),
                   itemBuilder: (context, index) {
                     var earning = displayEarnings[index];
+                    final reportDate = earning["report"]?["date"];
+                    final eventDate = reportDate is String
+                        ? DateTime.tryParse(reportDate)
+                        : null;
                     return Column(
                       children: [
                         ListTile(
-                            title: Text(
-                              "${earning!["year"]} Q${earning!["quarter"]}",
-                              style: const TextStyle(
-                                  fontSize: 16.0, fontWeight: FontWeight.w500),
-                            ),
-                            subtitle: Text(
-                                earning!["report"] != null
-                                    ? "Report${earning!["report"]["verified"] ? "ed" : "ing"} ${formatDate.format(DateTime.parse(earning!["report"]["date"]))} ${earning!["report"]["timing"]}"
-                                    : "",
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Theme.of(context)
-                                      .textTheme
-                                      .bodySmall
-                                      ?.color,
-                                )),
-                            trailing: (earning!["eps"]["estimate"] != null ||
-                                    earning!["eps"]["actual"] != null)
-                                ? Wrap(spacing: 16.0, children: [
-                                    if (earning!["eps"]["estimate"] !=
-                                        null) ...[
-                                      Column(
-                                        mainAxisSize: MainAxisSize.min,
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.end,
-                                        children: [
-                                          Text("Estimate",
-                                              style: TextStyle(
-                                                  fontSize: 11,
-                                                  color: Theme.of(context)
-                                                      .textTheme
-                                                      .bodySmall
-                                                      ?.color)),
-                                          Text(
-                                              formatCurrency.format(
-                                                  double.parse(earning!["eps"]
-                                                      ["estimate"])),
-                                              style: const TextStyle(
-                                                  fontSize: 16,
-                                                  fontWeight: FontWeight.w500)),
-                                        ],
-                                      )
-                                    ],
-                                    if (earning!["eps"]["actual"] != null) ...[
-                                      Column(
-                                        mainAxisSize: MainAxisSize.min,
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.end,
-                                        children: [
-                                          Text("Actual",
-                                              style: TextStyle(
-                                                  fontSize: 11,
-                                                  color: Theme.of(context)
-                                                      .textTheme
-                                                      .bodySmall
-                                                      ?.color)),
-                                          Text(
-                                              formatCurrency.format(
-                                                  double.parse(earning!["eps"]
-                                                      ["actual"])),
-                                              style: const TextStyle(
-                                                  fontSize: 16,
-                                                  fontWeight: FontWeight.bold))
-                                        ],
-                                      )
-                                    ]
-                                  ])
-                                : null),
+                          onTap: eventDate == null
+                              ? null
+                              : () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => EventStudyWidget(
+                                        initialSymbol: instrument.symbol,
+                                        initialEventDate: eventDate,
+                                      ),
+                                    ),
+                                  );
+                                },
+                          leading: eventDate == null
+                              ? null
+                              : const Icon(Icons.event_available,
+                                  color: Colors.teal),
+                          title: Text(
+                            "${earning!["year"]} Q${earning!["quarter"]}",
+                            style: const TextStyle(
+                                fontSize: 16.0, fontWeight: FontWeight.w500),
+                          ),
+                          subtitle: Text(
+                              earning!["report"] != null
+                                  ? "Report${earning!["report"]["verified"] ? "ed" : "ing"} ${formatDate.format(DateTime.parse(earning!["report"]["date"]))} ${earning!["report"]["timing"]}"
+                                  : "",
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Theme.of(context)
+                                    .textTheme
+                                    .bodySmall
+                                    ?.color,
+                              )),
+                          trailing: (earning!["eps"]["estimate"] != null ||
+                                  earning!["eps"]["actual"] != null)
+                              ? Wrap(spacing: 16.0, children: [
+                                  if (earning!["eps"]["estimate"] != null) ...[
+                                    Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.end,
+                                      children: [
+                                        Text("Estimate",
+                                            style: TextStyle(
+                                                fontSize: 11,
+                                                color: Theme.of(context)
+                                                    .textTheme
+                                                    .bodySmall
+                                                    ?.color)),
+                                        Text(
+                                            formatCurrency.format(double.parse(
+                                                earning!["eps"]["estimate"])),
+                                            style: const TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.w500)),
+                                      ],
+                                    )
+                                  ],
+                                  if (earning!["eps"]["actual"] != null) ...[
+                                    Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.end,
+                                      children: [
+                                        Text("Actual",
+                                            style: TextStyle(
+                                                fontSize: 11,
+                                                color: Theme.of(context)
+                                                    .textTheme
+                                                    .bodySmall
+                                                    ?.color)),
+                                        Text(
+                                            formatCurrency.format(double.parse(
+                                                earning!["eps"]["actual"])),
+                                            style: const TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.bold))
+                                      ],
+                                    )
+                                  ]
+                                ])
+                              : (eventDate == null
+                                  ? null
+                                  : const Icon(Icons.chevron_right)),
+                        ),
                         if (earning!["call"] != null &&
                             ((pastEarning["year"] == earning!["year"] &&
                                     pastEarning["quarter"] ==

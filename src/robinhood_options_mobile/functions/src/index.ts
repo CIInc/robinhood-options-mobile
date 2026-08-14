@@ -45,6 +45,7 @@ import * as rebalancingCronFuncs from "./rebalancing-cron";
 import * as whaleWatchCron from "./whale-watch-cron";
 import * as migrations from "./migrations";
 import * as gammaExposureFuncs from "./gamma-exposure";
+import * as eventStudy from "./event-study";
 import { verifySubscription as verifySubscriptionFunc } from "./subscriptions";
 // import * as alphaagent from "./alphaagent";
 
@@ -57,6 +58,7 @@ import { verifySubscription as verifySubscriptionFunc } from "./subscriptions";
 // });
 
 export const discoverAlphaFactors = alphaFactorDiscovery.discoverAlphaFactors;
+export const analyzeEventStudy = eventStudy.analyzeEventStudy;
 
 // export const createPlaidLinkToken = plaidfunc.createPlaidLinkToken;
 // export const exchangePublicTokenForAccessToken =

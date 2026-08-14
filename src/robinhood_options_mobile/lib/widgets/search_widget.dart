@@ -25,6 +25,7 @@ import 'package:robinhood_options_mobile/services/yahoo_service.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
 import 'package:robinhood_options_mobile/widgets/animated_price_text.dart';
 import 'package:robinhood_options_mobile/widgets/alpha_factor_discovery_widget.dart';
+import 'package:robinhood_options_mobile/widgets/event_study_widget.dart';
 import 'package:robinhood_options_mobile/widgets/trade_signals_widget.dart';
 import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
@@ -618,6 +619,84 @@ class _SearchWidgetState extends State<SearchWidget>
                                   const SizedBox(height: 4),
                                   Text(
                                     "Analyze dealer positioning & volatility regimes",
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium
+                                        ?.copyWith(
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onSurfaceVariant),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Icon(Icons.chevron_right,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            if (widget.brokerageUser != null && widget.service != null)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16.0, vertical: 8.0),
+                  child: Card(
+                    elevation: 0,
+                    color: Theme.of(context)
+                        .colorScheme
+                        .surfaceContainerHighest
+                        .withValues(alpha: 0.3),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      side: BorderSide(
+                        color: Theme.of(context).colorScheme.outlineVariant,
+                        width: 1,
+                      ),
+                    ),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(16),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const EventStudyWidget(),
+                          ),
+                        );
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: Colors.teal.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(Icons.event_available,
+                                  size: 24, color: Colors.teal),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Event Study Analyzer',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleMedium
+                                        ?.copyWith(fontWeight: FontWeight.bold),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Measure stock performance around earnings and other events',
                                     style: Theme.of(context)
                                         .textTheme
                                         .bodyMedium
