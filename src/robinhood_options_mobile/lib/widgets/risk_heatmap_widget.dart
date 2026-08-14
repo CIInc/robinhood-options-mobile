@@ -408,49 +408,19 @@ class _RiskHeatmapWidgetState extends State<RiskHeatmapWidget> {
             return Container();
           }
 
-          return Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                sectorName,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: textColor,
-                  fontWeight: FontWeight.bold,
-                  fontSize: (constraints.maxWidth / 10).clamp(10.0, 14.0),
-                  shadows: [
-                    Shadow(
-                      offset: const Offset(0, 1),
-                      blurRadius: 2,
-                      color: Colors.black.withValues(alpha: 0.5),
-                    ),
-                  ],
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-              if (constraints.maxHeight > 50) ...[
-                const SizedBox(height: 2),
+          return FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.center,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
                 Text(
-                  NumberFormat.compactSimpleCurrency().format(equity),
-                  style: TextStyle(
-                    color: textColor.withValues(alpha: 0.9),
-                    fontSize: (constraints.maxWidth / 12).clamp(9.0, 12.0),
-                    shadows: [
-                      Shadow(
-                        offset: const Offset(0, 1),
-                        blurRadius: 2,
-                        color: Colors.black.withValues(alpha: 0.5),
-                      ),
-                    ],
-                  ),
-                ),
-                Text(
-                  "${(changePercent * 100).toStringAsFixed(2)}%",
+                  sectorName,
+                  textAlign: TextAlign.center,
                   style: TextStyle(
                     color: textColor,
-                    fontSize: (constraints.maxWidth / 10).clamp(10.0, 14.0),
                     fontWeight: FontWeight.bold,
+                    fontSize: (constraints.maxWidth / 10).clamp(10.0, 14.0),
                     shadows: [
                       Shadow(
                         offset: const Offset(0, 1),
@@ -459,13 +429,18 @@ class _RiskHeatmapWidgetState extends State<RiskHeatmapWidget> {
                       ),
                     ],
                   ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                if (constraints.maxHeight > 70)
+                if (constraints.maxHeight > 50) ...[
+                  const SizedBox(height: 2),
                   Text(
-                    "(${(equity / portfolioEquity * 100).toStringAsFixed(1)}%)",
+                    NumberFormat.compactSimpleCurrency().format(equity),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      color: textColor.withValues(alpha: 0.8),
-                      fontSize: (constraints.maxWidth / 14).clamp(8.0, 10.0),
+                      color: textColor.withValues(alpha: 0.9),
+                      fontSize: (constraints.maxWidth / 12).clamp(9.0, 12.0),
                       shadows: [
                         Shadow(
                           offset: const Offset(0, 1),
@@ -475,8 +450,43 @@ class _RiskHeatmapWidgetState extends State<RiskHeatmapWidget> {
                       ],
                     ),
                   ),
-              ]
-            ],
+                  Text(
+                    "${(changePercent * 100).toStringAsFixed(2)}%",
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: textColor,
+                      fontSize: (constraints.maxWidth / 10).clamp(10.0, 14.0),
+                      fontWeight: FontWeight.bold,
+                      shadows: [
+                        Shadow(
+                          offset: const Offset(0, 1),
+                          blurRadius: 2,
+                          color: Colors.black.withValues(alpha: 0.5),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (constraints.maxHeight > 70)
+                    Text(
+                      "(${(equity / portfolioEquity * 100).toStringAsFixed(1)}%)",
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: textColor.withValues(alpha: 0.8),
+                        fontSize: (constraints.maxWidth / 14).clamp(8.0, 10.0),
+                        shadows: [
+                          Shadow(
+                            offset: const Offset(0, 1),
+                            blurRadius: 2,
+                            color: Colors.black.withValues(alpha: 0.5),
+                          ),
+                        ],
+                      ),
+                    ),
+                ]
+              ],
+            ),
           );
         }),
       ),
@@ -485,98 +495,142 @@ class _RiskHeatmapWidgetState extends State<RiskHeatmapWidget> {
 
   void _showSectorDetails(BuildContext context, String groupName,
       _SectorPerformance data, double portfolioEquity) {
-    showModalBottomSheet(
+    showModalBottomSheet<void>(
       context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      useSafeArea: true,
       builder: (context) {
-        // Sort positions by equity descending
-        final sortedPositions = data.positions
+        final sortedPositions = [...data.positions]
           ..sort((a, b) => b.equity.compareTo(a.equity));
 
-        return Container(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        return DraggableScrollableSheet(
+          expand: false,
+          initialChildSize: 0.72,
+          minChildSize: 0.45,
+          maxChildSize: 0.95,
+          builder: (context, scrollController) {
+            final colorScheme = Theme.of(context).colorScheme;
+            return Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          groupName,
+                          style: Theme.of(context).textTheme.titleLarge,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      // const SizedBox(width: 12),
+                      // Text(
+                      //   _selectedMetric == HeatmapMetric.dailyChange
+                      //       ? 'Daily Change'
+                      //       : 'Total Return',
+                      //   style: Theme.of(context).textTheme.labelSmall,
+                      // ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 24,
+                    runSpacing: 8,
+                    children: [
+                      _buildDetailChip(
+                        context,
+                        'Equity',
+                        NumberFormat.compactSimpleCurrency()
+                            .format(data.equity),
+                      ),
+                      _buildDetailChip(
+                        context,
+                        'Portfolio',
+                        '${(data.equity / portfolioEquity * 100).toStringAsFixed(1)}%',
+                      ),
+                      _buildDetailChip(
+                        context,
+                        'Positions',
+                        '${data.positions.length}',
+                      ),
+                      _buildDetailChip(
+                        context,
+                        _selectedMetric == HeatmapMetric.dailyChange
+                            ? 'Daily Change'
+                            : 'Total Return',
+                        '${(data.weightedChangePercent * 100).toStringAsFixed(2)}%',
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Divider(color: colorScheme.outlineVariant),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
                     child: Text(
-                      "$groupName Details",
-                      style: Theme.of(context).textTheme.titleLarge,
-                      overflow: TextOverflow.ellipsis,
+                      'Positions',
+                      style: Theme.of(context)
+                          .textTheme
+                          .labelLarge
+                          ?.copyWith(fontWeight: FontWeight.bold),
                     ),
                   ),
-                  Text(
-                    _selectedMetric == HeatmapMetric.dailyChange
-                        ? "Daily Change"
-                        : "Total Return",
-                    style: Theme.of(context).textTheme.labelSmall,
+                  Expanded(
+                    child: ListView.separated(
+                      controller: scrollController,
+                      itemCount: sortedPositions.length,
+                      separatorBuilder: (_, __) => const Divider(height: 1),
+                      itemBuilder: (context, index) {
+                        final pos = sortedPositions[index];
+                        final changeColor =
+                            pos.changePercent >= 0 ? Colors.green : Colors.red;
+                        return ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: CircleAvatar(
+                            backgroundColor:
+                                colorScheme.surfaceContainerHighest,
+                            child: Text(
+                              pos.type == 'Option' ? 'Op' : 'St',
+                              style: const TextStyle(fontSize: 10),
+                            ),
+                          ),
+                          title: Text(
+                            pos.symbol,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          subtitle: Text(
+                            pos.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          trailing: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                NumberFormat.simpleCurrency()
+                                    .format(pos.equity),
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.bold),
+                              ),
+                              Text(
+                                '${(pos.changePercent * 100).toStringAsFixed(2)}%',
+                                style: TextStyle(color: changeColor),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  _buildDetailChip(
-                    context,
-                    "Equity",
-                    NumberFormat.compactSimpleCurrency().format(data.equity),
-                  ),
-                  const SizedBox(width: 12),
-                  _buildDetailChip(
-                    context,
-                    "Portfolio",
-                    "${(data.equity / portfolioEquity * 100).toStringAsFixed(1)}%",
-                  ),
-                  const SizedBox(width: 12),
-                  _buildDetailChip(
-                    context,
-                    "Positions",
-                    "${data.positions.length}",
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Expanded(
-                child: ListView.builder(
-                  itemCount: sortedPositions.length,
-                  itemBuilder: (context, index) {
-                    final pos = sortedPositions[index];
-                    final changeColor =
-                        pos.changePercent >= 0 ? Colors.green : Colors.red;
-                    return ListTile(
-                      leading: CircleAvatar(
-                        backgroundColor: Theme.of(context)
-                            .colorScheme
-                            .surfaceContainerHighest,
-                        child: Text(pos.type == 'Option' ? 'Op' : 'St',
-                            style: const TextStyle(fontSize: 10)),
-                      ),
-                      title: Text(pos.symbol),
-                      subtitle: Text(pos.name,
-                          maxLines: 1, overflow: TextOverflow.ellipsis),
-                      trailing: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text(
-                            NumberFormat.simpleCurrency().format(pos.equity),
-                            style: const TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                          Text(
-                            "${(pos.changePercent * 100).toStringAsFixed(2)}%",
-                            style: TextStyle(color: changeColor),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
+            );
+          },
         );
       },
     );
@@ -643,7 +697,8 @@ class _RiskHeatmapWidgetState extends State<RiskHeatmapWidget> {
     // 2. Process Options
     for (var position in optionStore.items) {
       final optionInstrument = position.optionInstrument;
-      if (optionInstrument == null || optionInstrument.optionMarketData == null) {
+      if (optionInstrument == null ||
+          optionInstrument.optionMarketData == null) {
         continue;
       }
 
