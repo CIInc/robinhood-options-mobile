@@ -112,7 +112,7 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
                 Tooltip(
                   triggerMode: TooltipTriggerMode.tap,
                   message:
-                      "Real-time snapshot of 19 critical indicators. Signals update daily to quantify market health. Tap individual pillars below for more details.",
+                      "Real-time snapshot of 20 critical indicators. Signals update daily to quantify market health. Tap individual pillars below for more details.",
                   child: Icon(Icons.info_outline,
                       size: 16,
                       color: Theme.of(context)
@@ -474,6 +474,7 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
       'VIX',
       'TNX',
       'SPY',
+      'QQQ',
       'Put/Call',
       'Credit (HYG)',
       'Dollar (DXY)',
@@ -483,6 +484,7 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
       'VIX': current.indicators.vix.signal,
       'TNX': current.indicators.tnx.signal,
       'SPY': current.indicators.marketTrend.signal,
+      'QQQ': current.indicators.technologyLeadership?.signal,
       'Put/Call': current.indicators.putCallRatio?.signal,
       'Credit (HYG)': current.indicators.hyg?.signal,
       'Dollar (DXY)': current.indicators.dxy?.signal,
@@ -492,6 +494,7 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
       'VIX': previous.indicators.vix.signal,
       'TNX': previous.indicators.tnx.signal,
       'SPY': previous.indicators.marketTrend.signal,
+      'QQQ': previous.indicators.technologyLeadership?.signal,
       'Put/Call': previous.indicators.putCallRatio?.signal,
       'Credit (HYG)': previous.indicators.hyg?.signal,
       'Dollar (DXY)': previous.indicators.dxy?.signal,
@@ -664,6 +667,18 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
           Icons.show_chart_rounded,
           unit: '\$',
         ),
+        if (assessment.indicators.technologyLeadership != null) ...[
+          const SizedBox(height: 12),
+          buildIndicatorCard(
+            context,
+            "QQQ",
+            "Technology Leadership",
+            assessment.indicators.technologyLeadership!,
+            "The Nasdaq-100 (QQQ) reflects leadership from large-cap technology and growth companies. Strength above its 50-day average confirms participation from growth leaders, while weakness can signal narrowing risk appetite.",
+            Icons.computer_rounded,
+            unit: '\$',
+          ),
+        ],
         if (assessment.indicators.yieldCurve != null) ...[
           const SizedBox(height: 12),
           buildIndicatorCard(
@@ -926,7 +941,7 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
                       Tooltip(
                         triggerMode: TooltipTriggerMode.tap,
                         message:
-                            "Composite score (0-100) based on all 19 indicators. Higher values indicate a more favorable 'Risk-On' environment.",
+                            "Composite score (0-100) based on all 20 indicators. Higher values indicate a more favorable 'Risk-On' environment.",
                         child: Icon(Icons.info_outline,
                             size: 14,
                             color: statusColor.withValues(alpha: 0.6)),
@@ -1199,6 +1214,8 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
       assessment.indicators.vix.signal,
       assessment.indicators.tnx.signal,
       assessment.indicators.marketTrend.signal,
+      if (assessment.indicators.technologyLeadership != null)
+        assessment.indicators.technologyLeadership!.signal,
       if (assessment.indicators.yieldCurve != null)
         assessment.indicators.yieldCurve!.signal,
       if (assessment.indicators.putCallRatio != null)
@@ -1259,7 +1276,7 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
                 Tooltip(
                   triggerMode: TooltipTriggerMode.tap,
                   message:
-                      "Shows the internal alignment of all 19 indicators. High 'Signal Breadth' (more Bullish than Bearish) confirms the strength of the current regime.",
+                      "Shows the internal alignment of all 20 indicators. High 'Signal Breadth' (more Bullish than Bearish) confirms the strength of the current regime.",
                   child: Icon(Icons.info_outline,
                       size: 14,
                       color: colorScheme.onSurface.withValues(alpha: 0.4)),
@@ -2092,6 +2109,7 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
       'VIX': assessment.indicators.vix,
       'TNX': assessment.indicators.tnx,
       'SPY': assessment.indicators.marketTrend,
+      'QQQ': assessment.indicators.technologyLeadership,
       'CURV': assessment.indicators.yieldCurve,
       'PCR': assessment.indicators.putCallRatio,
       'BTC': assessment.indicators.btc,
@@ -2357,7 +2375,7 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
                                 ),
                                 const SizedBox(height: 12),
                                 Text(
-                                  "RealizeAlpha's proprietary engine synthesizes 19 institutional-grade indicators into a single actionable signal. It continuously monitors the 'Market Regime'—the underlying DNA of price action—to distinguish between sustainable trends and trap-filled environments.",
+                                  "RealizeAlpha's proprietary engine synthesizes 20 institutional-grade indicators into a single actionable signal. It continuously monitors the 'Market Regime'—the underlying DNA of price action—to distinguish between sustainable trends and trap-filled environments.",
                                   style: textTheme.bodyMedium
                                       ?.copyWith(height: 1.5),
                                 ),
@@ -2644,7 +2662,7 @@ class _MacroScoreTimeline extends StatefulWidget {
 }
 
 class _MacroScoreTimelineState extends State<_MacroScoreTimeline> {
-  static const _eventChipWidth = 96.0;
+  static const _eventChipWidth = 100.0;
   static const _eventChipSpacing = 6.0;
 
   final ScrollController _eventScrollController = ScrollController();
@@ -2846,6 +2864,7 @@ class _MacroScoreTimelineState extends State<_MacroScoreTimeline> {
         'VIX': indicators.vix,
         'TNX': indicators.tnx,
         'SPY': indicators.marketTrend,
+        'QQQ': indicators.technologyLeadership,
         'CURV': indicators.yieldCurve,
         'PCR': indicators.putCallRatio,
         'BTC': indicators.btc,
@@ -3312,6 +3331,8 @@ class _MacroScoreTimelineState extends State<_MacroScoreTimeline> {
                         ),
                         label: Text(
                           DateFormat.MMMd().format(event.assessment.timestamp),
+                          // maxLines: 1,
+                          // overflow: TextOverflow.ellipsis,
                         ),
                         onSelected: (_) => _selectEvent(event),
                       ),

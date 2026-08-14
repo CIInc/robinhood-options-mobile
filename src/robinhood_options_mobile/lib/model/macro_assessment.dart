@@ -149,6 +149,7 @@ class MacroIndicators {
   final MacroIndicator vix;
   final MacroIndicator tnx;
   final MacroIndicator marketTrend;
+  final MacroIndicator? technologyLeadership; // QQQ
   final MacroIndicator? yieldCurve;
   final MacroIndicator? gold;
   final MacroIndicator? oil;
@@ -170,6 +171,7 @@ class MacroIndicators {
     required this.vix,
     required this.tnx,
     required this.marketTrend,
+    this.technologyLeadership,
     this.yieldCurve,
     this.gold,
     this.oil,
@@ -194,6 +196,10 @@ class MacroIndicators {
       tnx: MacroIndicator.fromMap(Map<String, dynamic>.from(map['tnx'] ?? {})),
       marketTrend: MacroIndicator.fromMap(
           Map<String, dynamic>.from(map['marketTrend'] ?? {})),
+      technologyLeadership: map['technologyLeadership'] != null
+          ? MacroIndicator.fromMap(
+              Map<String, dynamic>.from(map['technologyLeadership'] ?? {}))
+          : null,
       yieldCurve: map['yieldCurve'] != null
           ? MacroIndicator.fromMap(
               Map<String, dynamic>.from(map['yieldCurve'] ?? {}))

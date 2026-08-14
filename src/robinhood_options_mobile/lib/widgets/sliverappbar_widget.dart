@@ -66,7 +66,6 @@ class ExpandedSliverAppBar extends StatelessWidget {
 
   Future<void> showAccountSwitcher(BuildContext context,
       BrokerageUserStore brokerageUserStore, AccountStore accountStore) async {
-    final accountStore = Provider.of<AccountStore>(context);
     final showBalances = accountStore.showBalances;
     final formatCurrency = NumberFormat.simpleCurrency();
 
@@ -401,13 +400,17 @@ class ExpandedSliverAppBar extends StatelessWidget {
                                           brokerageUserStore, accountStore)
                                       : null,
                                   child: Row(
-                                    mainAxisSize: MainAxisSize.min,
+                                    mainAxisSize: MainAxisSize.max,
                                     children: [
-                                      Text(
-                                        subtitle,
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .labelSmall,
+                                      Flexible(
+                                        child: Text(
+                                          subtitle,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .labelSmall,
+                                        ),
                                       ),
                                       if (canSwitch) ...[
                                         const SizedBox(width: 4),

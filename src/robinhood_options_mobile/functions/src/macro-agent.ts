@@ -24,7 +24,8 @@ export interface MacroStrategy {
 // Indicator weights in the scoring system (sum = 100)
 const MACRO_WEIGHTS = {
   vix: 15,
-  marketTrend: 15, // SPY
+  marketTrend: 14, // SPY
+  technologyLeadership: 1, // QQQ
   tnx: 10,
   yieldCurve: 10,
   hyg: 8,
@@ -72,6 +73,11 @@ export interface MacroAssessment {
       signal: "BULLISH" | "BEARISH" | "NEUTRAL";
       trend: string;
       momentum?: string;
+    };
+    technologyLeadership: {
+      value: number | null;
+      signal: "BULLISH" | "BEARISH" | "NEUTRAL";
+      trend: string;
     };
     yieldCurve: {
       value: number | null; // Spread (10Y - 13W)
@@ -264,7 +270,7 @@ export async function getMacroAssessment(): Promise<MacroAssessment> {
     // Fetch VIX, TNX, SPY, IRX, GLD, USO, BTC, DXY
     // We use "1d" interval and "1y" range to calculate SMAs
     const [
-      vixData, tnxData, spyData, irxData, gldData, usoData, btcData,
+      vixData, tnxData, spyData, qqqData, irxData, gldData, usoData, btcData,
       dxyData, hygData, pccrData, nyaData, iwmData, lqdData, eemData, hgfData,
       moveData, kreData, rspData, fxiData,
     ] = await Promise.all([
@@ -279,6 +285,10 @@ export async function getMacroAssessment(): Promise<MacroAssessment> {
       }),
       getMarketData("SPY", 50, 200, "1d", "1y").catch((e) => {
         logger.error("Failed to fetch SPY data", e);
+        return null;
+      }),
+      getMarketData("QQQ", 50, 200, "1d", "1y").catch((e) => {
+        logger.error("Failed to fetch QQQ data", e);
         return null;
       }),
       // High freq not needed, just price
@@ -591,6 +601,28 @@ export async function getMacroAssessment(): Promise<MacroAssessment> {
     }
 
     // 4. Evaluate Yield Curve (10Y - 13W) - IMPORTANT recession indicator
+    // 4. Evaluate QQQ (Technology Leadership)
+    let qqqSignal: "BULLISH" | "BEARISH" | "NEUTRAL" = "NEUTRAL";
+    let qqqTrend = "Flat";
+    let qqqValue: number | null = null;
+    if (qqqData && qqqData.closes && qqqData.closes.length > 0) {
+      qqqValue = qqqData.currentPrice ||
+        qqqData.closes[qqqData.closes.length - 1];
+      const sma50 = computeSMA(qqqData.closes, 50);
+      if (qqqValue !== null && sma50) {
+        if (qqqValue > sma50) {
+          qqqSignal = "BULLISH";
+          qqqTrend = "Leading";
+          explanation.push("Technology leadership (QQQ) is strong.");
+        } else {
+          qqqSignal = "BEARISH";
+          qqqTrend = "Lagging";
+          explanation.push("Technology leadership (QQQ) is weakening.");
+        }
+      }
+    }
+
+    // 5. Evaluate Yield Curve (10Y - 13W) - IMPORTANT recession indicator
     let yieldCurveSignal: "BULLISH" | "BEARISH" | "NEUTRAL" = "NEUTRAL";
     let yieldCurveTrend = "Flat";
     let yieldSpread: number | null = null;
@@ -1127,6 +1159,7 @@ export async function getMacroAssessment(): Promise<MacroAssessment> {
     const bullishSignals = [
       { signal: vixSignal, weight: MACRO_WEIGHTS.vix },
       { signal: spySignal, weight: MACRO_WEIGHTS.marketTrend },
+      { signal: qqqSignal, weight: MACRO_WEIGHTS.technologyLeadership },
       { signal: tnxSignal, weight: MACRO_WEIGHTS.tnx },
       { signal: yieldCurveSignal, weight: MACRO_WEIGHTS.yieldCurve },
       { signal: hygSignal, weight: MACRO_WEIGHTS.hyg },
@@ -1185,7 +1218,7 @@ export async function getMacroAssessment(): Promise<MacroAssessment> {
 
     // Calculate Signal Divergence and Confidence
     const signals = [
-      vixSignal, tnxSignal, spySignal, yieldCurveSignal,
+      vixSignal, tnxSignal, spySignal, qqqSignal, yieldCurveSignal,
       goldSignal, oilSignal, dxySignal, btcSignal,
       hygSignal, pccrSignal, nyaSignal, riskSignal,
       creditSignal, globalSignal, copperSignal,
@@ -1377,6 +1410,11 @@ export async function getMacroAssessment(): Promise<MacroAssessment> {
           trend: spyTrend,
           momentum: spyMomentum,
         },
+        technologyLeadership: {
+          value: qqqValue,
+          signal: qqqSignal,
+          trend: qqqTrend,
+        },
         yieldCurve: {
           value: yieldSpread,
           signal: yieldCurveSignal,
@@ -1477,13 +1515,16 @@ export async function getMacroAssessment(): Promise<MacroAssessment> {
       signalDivergence: {
         bullishCount: 0,
         bearishCount: 0,
-        neutralCount: 12,
+        neutralCount: 20,
         isConflicted: true,
       },
       indicators: {
         vix: { value: null, signal: "NEUTRAL", trend: "Unknown" },
         tnx: { value: null, signal: "NEUTRAL", trend: "Unknown" },
         marketTrend: { value: null, signal: "NEUTRAL", trend: "Unknown" },
+        technologyLeadership: {
+          value: null, signal: "NEUTRAL", trend: "Unknown",
+        },
         yieldCurve: { value: null, signal: "NEUTRAL", trend: "Unknown" },
         gold: { value: null, signal: "NEUTRAL", trend: "Unknown" },
         oil: { value: null, signal: "NEUTRAL", trend: "Unknown" },
@@ -1539,7 +1580,7 @@ async function getAiMacroAnalysis(
   });
 
   const {
-    vix, tnx, marketTrend: spy, yieldCurve: curv,
+    vix, tnx, marketTrend: spy, technologyLeadership: qqq, yieldCurve: curv,
     dxy, btc, putCallRatio: pcr,
     advDecline: nya,
     creditSpreads: lqd, globalRisk: eem, copper: hgf,
@@ -1561,6 +1602,7 @@ async function getAiMacroAnalysis(
     - VIX: ${vix.value} (${vix.signal})
     - Yields (TNX): ${tnx.value} (${tnx.signal})
     - Trend (SPY): ${spy.value} (${spy.signal})
+    - Technology Leadership (QQQ): ${qqq?.value} (${qqq?.signal})
     - Curve: ${curv?.value}% (${curv?.signal})
     - Bond Vol (MOVE): ${move?.value} (${move?.signal})
     - Regional Banks (KRE): ${kre?.value} (${kre?.signal})
