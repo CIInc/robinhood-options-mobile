@@ -299,7 +299,8 @@ class FirestoreService {
   /// - [marketCapMin]/[marketCapMax]: Market capitalization range in USD
   /// - [peMin]/[peMax]: Price-to-Earnings ratio range
   /// - [dividendYieldMin]/[dividendYieldMax]: Dividend yield percentage range
-  /// - [limit]: Maximum number of results to return (default: 100)
+  /// - [limit]: Maximum number of results to return. When null, all matching
+  ///   cached instruments are returned.
   /// - [sort]: Field to sort by (default: 'fundamentalsObj.market_cap')
   /// - [sortDescending]: Sort direction (default: true)
   ///
@@ -326,7 +327,7 @@ class FirestoreService {
     int? peMax,
     int? dividendYieldMin,
     int? dividendYieldMax,
-    int limit = 100,
+    int? limit,
     String sort = 'fundamentalsObj.market_cap',
     bool sortDescending = true,
   }) async {
@@ -358,7 +359,10 @@ class FirestoreService {
       query = query.where('fundamentalsObj.dividend_yield',
           isLessThanOrEqualTo: dividendYieldMax);
     }
-    query = query.orderBy(sort, descending: sortDescending).limit(limit);
+    query = query.orderBy(sort, descending: sortDescending);
+    if (limit != null) {
+      query = query.limit(limit);
+    }
     var results = await query.get();
     return results.docs.map((doc) => doc.data()).toList();
   }

@@ -5,6 +5,7 @@ import 'package:flutter_sticky_header/flutter_sticky_header.dart';
 import 'package:intl/intl.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
+import 'package:robinhood_options_mobile/model/screener_criterion.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
@@ -40,6 +41,7 @@ class ScreenerWidget extends StatefulWidget {
 
 class _ScreenerWidgetState extends State<ScreenerWidget> {
   final FirestoreService _firestoreService = FirestoreService();
+  final ScrollController _scrollController = ScrollController();
 
   // Advanced Stock Screener UI state
   List<Instrument>? screenerResults;
@@ -56,6 +58,7 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
   bool screenerLoading = false;
   String? errorText;
   String screenerSortBy = 'symbol'; // symbol, marketCap, pe, dividend, price
+  final List<ScreenerCriterion> customCriteria = [];
 
   // Controllers for screener fields
   late TextEditingController marketCapMinCtl;
@@ -94,6 +97,7 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
     priceMinCtl.dispose();
     priceMaxCtl.dispose();
     volumeMinCtl.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -104,6 +108,7 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
         title: const Text('Stock Screener'),
       ),
       body: CustomScrollView(
+        controller: _scrollController,
         slivers: [
           _buildScreenerSliver(),
         ],
@@ -130,20 +135,75 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
                         .withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Icon(Icons.filter_alt,
-                      color: Theme.of(context).colorScheme.primary, size: 22),
+                  child: IconButton(
+                    tooltip: 'Show filters',
+                    onPressed: _scrollToFilters,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    icon: Icon(Icons.filter_alt,
+                        color: Theme.of(context).colorScheme.primary, size: 22),
+                  ),
                 ),
                 title: Text(
-                  screenerResults != null && screenerResults!.isNotEmpty
-                      ? 'Results (${screenerResults!.length})'
-                      : 'Filters',
+                  screenerLoading
+                      ? 'Finding matches...'
+                      : screenerResults != null
+                          ? 'Results (${screenerResults!.length})'
+                          : 'Stock screener',
                   style: TextStyle(
                     fontSize: 20.0,
                     fontWeight: FontWeight.bold,
                     color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
-                trailing: null,
+                subtitle: _activeFilterCount == 0
+                    ? Text(
+                        'Start with a preset or build your own screen',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withValues(alpha: 0.65),
+                        ),
+                      )
+                    : InkWell(
+                        onTap: _scrollToFilters,
+                        borderRadius: BorderRadius.circular(4),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 2,
+                            horizontal: 4,
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                '$_activeFilterCount active ${_activeFilterCount == 1 ? 'filter' : 'filters'}',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                              ),
+                              const SizedBox(width: 2),
+                              Icon(
+                                Icons.keyboard_arrow_up,
+                                size: 16,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                trailing: _activeFilterCount == 0
+                    ? null
+                    : IconButton(
+                        tooltip: 'Clear all filters',
+                        onPressed: screenerLoading
+                            ? null
+                            : () => _applyPreset('clear'),
+                        icon: const Icon(Icons.clear_all),
+                      ),
               ),
             ],
           ),
@@ -310,14 +370,6 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
       'Transportation',
     ];
 
-    // Keep controllers in sync with state
-    marketCapMinCtl.text = screenerMarketCapMin?.toString() ?? '';
-    marketCapMaxCtl.text = screenerMarketCapMax?.toString() ?? '';
-    peMinCtl.text = screenerPeMin?.toString() ?? '';
-    peMaxCtl.text = screenerPeMax?.toString() ?? '';
-    dividendYieldMinCtl.text = screenerDividendYieldMin?.toString() ?? '';
-    dividendYieldMaxCtl.text = screenerDividendYieldMax?.toString() ?? '';
-
     return Padding(
       padding: EdgeInsets.fromLTRB(12, 0, 12, 12), // .all(12),
       child: Column(
@@ -335,15 +387,25 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
             scrollDirection: Axis.horizontal,
             child: Row(
               children: [
-                _buildPresetButton(
-                    'High Dividend', () => _applyPreset('dividend')),
+                _buildPresetButton('High Dividend', () async {
+                  _applyPreset('dividend');
+                  await _runScreener(scrollToResults: true);
+                }),
                 SizedBox(width: 8),
-                _buildPresetButton(
-                    'Growth Stocks', () => _applyPreset('growth')),
+                _buildPresetButton('Growth Stocks', () async {
+                  _applyPreset('growth');
+                  await _runScreener(scrollToResults: true);
+                }),
                 SizedBox(width: 8),
-                _buildPresetButton('Value Stocks', () => _applyPreset('value')),
+                _buildPresetButton('Value Stocks', () async {
+                  _applyPreset('value');
+                  await _runScreener(scrollToResults: true);
+                }),
                 SizedBox(width: 8),
-                _buildPresetButton('Large Cap', () => _applyPreset('largecap')),
+                _buildPresetButton('Large Cap', () async {
+                  _applyPreset('largecap');
+                  await _runScreener(scrollToResults: true);
+                }),
                 SizedBox(width: 8),
                 OutlinedButton.icon(
                   onPressed: () => _applyPreset('clear'),
@@ -361,6 +423,10 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
               ],
             ),
           ),
+          if (_activeFilterLabels.isNotEmpty) ...[
+            SizedBox(height: 14),
+            _buildActiveFilters(),
+          ],
           SizedBox(height: 16),
           DropdownButtonFormField<String>(
             initialValue: screenerSector,
@@ -400,7 +466,10 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
                   .withValues(alpha: 0.08),
               labelStyle: TextStyle(
                 fontWeight: FontWeight.w500,
-                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSurface
+                    .withValues(alpha: 0.7),
               ),
               contentPadding:
                   EdgeInsets.symmetric(horizontal: 12, vertical: 12),
@@ -557,7 +626,10 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
           Text('Value: <15, Growth: >20',
               style: TextStyle(
                 fontSize: 11,
-                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSurface
+                    .withValues(alpha: 0.6),
               )),
           SizedBox(height: 4),
           Row(children: [
@@ -655,7 +727,10 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
           Text('High dividend: >3%',
               style: TextStyle(
                 fontSize: 11,
-                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSurface
+                    .withValues(alpha: 0.6),
               )),
           SizedBox(height: 4),
           Row(children: [
@@ -850,7 +925,10 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
           Text('Minimum average daily volume',
               style: TextStyle(
                 fontSize: 11,
-                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSurface
+                    .withValues(alpha: 0.6),
               )),
           SizedBox(height: 4),
           SingleChildScrollView(
@@ -928,6 +1006,8 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
             onChanged: (v) =>
                 setState(() => screenerVolumeMin = int.tryParse(v)),
           ),
+          SizedBox(height: 20),
+          _buildCustomCriteriaBuilder(),
           if (errorText != null) ...[
             SizedBox(height: 8),
             Text(errorText!, style: TextStyle(color: Colors.red)),
@@ -949,120 +1029,7 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
                           ),
                         )
                       : Icon(Icons.filter_list_sharp),
-                  onPressed: screenerLoading
-                      ? null
-                      : () async {
-                          // Validate min/max fields
-                          if (screenerMarketCapMin != null &&
-                              screenerMarketCapMax != null &&
-                              screenerMarketCapMin! > screenerMarketCapMax!) {
-                            setState(() {
-                              errorText =
-                                  'Market Cap Min cannot be greater than Max.';
-                            });
-                            return;
-                          }
-                          if (screenerPeMin != null &&
-                              screenerPeMax != null &&
-                              screenerPeMin! > screenerPeMax!) {
-                            setState(() {
-                              errorText = 'P/E Min cannot be greater than Max.';
-                            });
-                            return;
-                          }
-                          if (screenerDividendYieldMin != null &&
-                              screenerDividendYieldMax != null &&
-                              screenerDividendYieldMin! >
-                                  screenerDividendYieldMax!) {
-                            setState(() {
-                              errorText =
-                                  'Dividend Yield Min cannot be greater than Max.';
-                            });
-                            return;
-                          }
-                          if (screenerPriceMin != null &&
-                              screenerPriceMax != null &&
-                              screenerPriceMin! > screenerPriceMax!) {
-                            setState(() {
-                              errorText =
-                                  'Price Min cannot be greater than Max.';
-                            });
-                            return;
-                          }
-                          setState(() {
-                            screenerLoading = true;
-                            errorText = null;
-                            screenerResults = null;
-                          });
-                          try {
-                            var results = await _firestoreService.stockScreener(
-                              sector: screenerSector,
-                              marketCapMin: screenerMarketCapMin,
-                              marketCapMax: screenerMarketCapMax,
-                              peMin: screenerPeMin,
-                              peMax: screenerPeMax,
-                              dividendYieldMin: screenerDividendYieldMin,
-                              dividendYieldMax: screenerDividendYieldMax,
-                            );
-
-                            // Client-side filtering for price and volume
-                            if (screenerPriceMin != null) {
-                              results = results
-                                  .where((i) =>
-                                      (i.quoteObj?.lastTradePrice ?? 0) >=
-                                      screenerPriceMin!)
-                                  .toList();
-                            }
-                            if (screenerPriceMax != null) {
-                              results = results
-                                  .where((i) =>
-                                      (i.quoteObj?.lastTradePrice ??
-                                          double.infinity) <=
-                                      screenerPriceMax!)
-                                  .toList();
-                            }
-                            if (screenerVolumeMin != null) {
-                              results = results
-                                  .where((i) =>
-                                      (i.fundamentalsObj?.averageVolume ?? 0) >=
-                                      screenerVolumeMin!)
-                                  .toList();
-                            }
-
-                            setState(() {
-                              screenerResults = results;
-                              screenerLoading = false;
-                              // Keep controllers in sync after results
-                              marketCapMinCtl.text =
-                                  screenerMarketCapMin?.toString() ?? '';
-                              marketCapMaxCtl.text =
-                                  screenerMarketCapMax?.toString() ?? '';
-                              peMinCtl.text = screenerPeMin?.toString() ?? '';
-                              peMaxCtl.text = screenerPeMax?.toString() ?? '';
-                              dividendYieldMinCtl.text =
-                                  screenerDividendYieldMin?.toString() ?? '';
-                              dividendYieldMaxCtl.text =
-                                  screenerDividendYieldMax?.toString() ?? '';
-                              priceMinCtl.text =
-                                  screenerPriceMin?.toString() ?? '';
-                              priceMaxCtl.text =
-                                  screenerPriceMax?.toString() ?? '';
-                              volumeMinCtl.text =
-                                  screenerVolumeMin?.toString() ?? '';
-                            });
-                          } catch (e) {
-                            setState(() {
-                              screenerLoading = false;
-                            });
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                    content: SelectableText(
-                                        'Error running screener: $e')),
-                              );
-                            }
-                          }
-                        },
+                  onPressed: screenerLoading ? null : _runScreener,
                   label: Text(
                     screenerLoading ? 'Screening...' : 'Run Screener',
                     style: TextStyle(
@@ -1074,8 +1041,10 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
                     padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     backgroundColor: Theme.of(context).colorScheme.primary,
                     foregroundColor: Theme.of(context).colorScheme.onPrimary,
-                    disabledBackgroundColor:
-                        Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
+                    disabledBackgroundColor: Theme.of(context)
+                        .colorScheme
+                        .primary
+                        .withValues(alpha: 0.5),
                   ),
                 ),
               ),
@@ -1084,6 +1053,208 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
         ],
       ),
     );
+  }
+
+  int get _activeFilterCount => _activeFilterLabels.length;
+
+  Future<void> _runScreener({bool scrollToResults = false}) async {
+    if (screenerMarketCapMin != null &&
+        screenerMarketCapMax != null &&
+        screenerMarketCapMin! > screenerMarketCapMax!) {
+      setState(() => errorText = 'Market Cap Min cannot be greater than Max.');
+      return;
+    }
+    if (screenerPeMin != null &&
+        screenerPeMax != null &&
+        screenerPeMin! > screenerPeMax!) {
+      setState(() => errorText = 'P/E Min cannot be greater than Max.');
+      return;
+    }
+    if (screenerDividendYieldMin != null &&
+        screenerDividendYieldMax != null &&
+        screenerDividendYieldMin! > screenerDividendYieldMax!) {
+      setState(
+          () => errorText = 'Dividend Yield Min cannot be greater than Max.');
+      return;
+    }
+    if (screenerPriceMin != null &&
+        screenerPriceMax != null &&
+        screenerPriceMin! > screenerPriceMax!) {
+      setState(() => errorText = 'Price Min cannot be greater than Max.');
+      return;
+    }
+
+    setState(() {
+      screenerLoading = true;
+      errorText = null;
+      screenerResults = null;
+    });
+    try {
+      List<Instrument> results;
+      try {
+        results = await _firestoreService.stockScreener(
+          sector: screenerSector,
+          marketCapMin: screenerMarketCapMin,
+          marketCapMax: screenerMarketCapMax,
+          peMin: screenerPeMin,
+          peMax: screenerPeMax,
+          dividendYieldMin: screenerDividendYieldMin,
+          dividendYieldMax: screenerDividendYieldMax,
+          limit: null,
+        );
+      } on FirebaseException catch (error) {
+        if (error.code != 'failed-precondition') rethrow;
+
+        results = await _firestoreService.stockScreener(
+          sector: screenerSector,
+          limit: null,
+        );
+      }
+
+      results = results.where(_matchesScreenerFilters).toList();
+
+      if (!mounted) return;
+      setState(() {
+        screenerResults = results;
+        screenerLoading = false;
+      });
+      if (scrollToResults) _scrollToResults();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => screenerLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: SelectableText('Error running screener: $e')),
+      );
+    }
+  }
+
+  bool _matchesScreenerFilters(Instrument instrument) {
+    final fundamentals = instrument.fundamentalsObj;
+    final price = instrument.quoteObj?.lastTradePrice;
+    final marketCap = fundamentals?.marketCap;
+    final peRatio = fundamentals?.peRatio;
+    final dividendYield = fundamentals?.dividendYield;
+    final averageVolume = fundamentals?.averageVolume;
+
+    return (screenerMarketCapMin == null ||
+            (marketCap != null && marketCap >= screenerMarketCapMin!)) &&
+        (screenerMarketCapMax == null ||
+            (marketCap != null && marketCap <= screenerMarketCapMax!)) &&
+        (screenerPeMin == null ||
+            (peRatio != null && peRatio >= screenerPeMin!)) &&
+        (screenerPeMax == null ||
+            (peRatio != null && peRatio <= screenerPeMax!)) &&
+        (screenerDividendYieldMin == null ||
+            (dividendYield != null &&
+                dividendYield >= screenerDividendYieldMin!)) &&
+        (screenerDividendYieldMax == null ||
+            (dividendYield != null &&
+                dividendYield <= screenerDividendYieldMax!)) &&
+        (screenerPriceMin == null ||
+            (price != null && price >= screenerPriceMin!)) &&
+        (screenerPriceMax == null ||
+            (price != null && price <= screenerPriceMax!)) &&
+        (screenerVolumeMin == null ||
+            (averageVolume != null && averageVolume >= screenerVolumeMin!)) &&
+        customCriteria.every((criterion) => criterion.matches(instrument));
+  }
+
+  void _scrollToResults() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 450),
+          curve: Curves.easeOutCubic,
+        );
+      }
+    });
+  }
+
+  void _scrollToFilters() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.minScrollExtent,
+          duration: const Duration(milliseconds: 450),
+          curve: Curves.easeOutCubic,
+        );
+      }
+    });
+  }
+
+  Widget _buildActiveFilters() {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(12, 10, 8, 10),
+      decoration: BoxDecoration(
+        color: scheme.secondaryContainer.withValues(alpha: 0.35),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: scheme.outlineVariant),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.tune, size: 18, color: scheme.onSecondaryContainer),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: _activeFilterLabels
+                  .map((label) => Chip(
+                        label: Text(label),
+                        visualDensity: VisualDensity.compact,
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        labelStyle: TextStyle(
+                          fontSize: 11,
+                          color: scheme.onSecondaryContainer,
+                        ),
+                        backgroundColor: scheme.secondaryContainer,
+                        side: BorderSide.none,
+                      ))
+                  .toList(),
+            ),
+          ),
+          IconButton(
+            tooltip: 'Clear filters',
+            onPressed: screenerLoading ? null : () => _applyPreset('clear'),
+            icon: const Icon(Icons.close, size: 18),
+            visualDensity: VisualDensity.compact,
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<String> get _activeFilterLabels {
+    String? range(String label, num? minimum, num? maximum,
+        {String suffix = ''}) {
+      if (minimum == null && maximum == null) return null;
+      final bounds = [
+        if (minimum != null) '>= ${_formatFilterValue(minimum)}',
+        if (maximum != null) '<= ${_formatFilterValue(maximum)}',
+      ].join(' ');
+      return '$label $bounds$suffix';
+    }
+
+    return [
+      if (screenerSector != null) 'Sector: $screenerSector',
+      range('Cap', screenerMarketCapMin, screenerMarketCapMax),
+      range('P/E', screenerPeMin, screenerPeMax),
+      range('Yield', screenerDividendYieldMin, screenerDividendYieldMax,
+          suffix: '%'),
+      range('Price', screenerPriceMin, screenerPriceMax, suffix: ' USD'),
+      if (screenerVolumeMin != null)
+        'Volume >= ${_formatFilterValue(screenerVolumeMin!)}',
+      ...customCriteria.map(_criterionLabel),
+    ].whereType<String>().toList();
+  }
+
+  String _formatFilterValue(num value) {
+    if (value % 1 == 0) return NumberFormat.compact().format(value);
+    return value.toStringAsFixed(2);
   }
 
   Widget _buildQuickFilterChip(String label, VoidCallback onTap) {
@@ -1105,9 +1276,100 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
     );
   }
 
+  Widget _buildCustomCriteriaBuilder() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Custom factors',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
+            ),
+            TextButton.icon(
+              onPressed: _addCustomCriterion,
+              icon: const Icon(Icons.add, size: 18),
+              label: const Text('Add factor'),
+            ),
+          ],
+        ),
+        Text(
+          'Every factor must match. Add as many as you need.',
+          style: TextStyle(
+            fontSize: 11,
+            color:
+                Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+          ),
+        ),
+        if (customCriteria.isEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 10),
+            child: Text(
+              'No custom factors added',
+              style: TextStyle(
+                fontSize: 12,
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSurface
+                    .withValues(alpha: 0.5),
+              ),
+            ),
+          )
+        else
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: customCriteria.asMap().entries.map((entry) {
+                final criterion = entry.value;
+                return InputChip(
+                  label: Text(_criterionLabel(criterion)),
+                  onDeleted: () =>
+                      setState(() => customCriteria.removeAt(entry.key)),
+                  deleteIcon: const Icon(Icons.close, size: 16),
+                );
+              }).toList(),
+            ),
+          ),
+      ],
+    );
+  }
+
+  String _criterionLabel(ScreenerCriterion criterion) {
+    if (criterion.field.isText) {
+      return '${criterion.field.label}: ${criterion.textValue}';
+    }
+    String? formatBound(double? value) => value?.toStringAsFixed(
+          value % 1 == 0 ? 0 : 2,
+        );
+    final minimum = formatBound(criterion.minimum);
+    final maximum = formatBound(criterion.maximum);
+    final range = [
+      if (minimum != null) '>= $minimum',
+      if (maximum != null) '<= $maximum',
+    ].join(' ');
+    return '${criterion.field.label} $range${criterion.field.unit.isEmpty ? '' : ' ${criterion.field.unit}'}';
+  }
+
+  Future<void> _addCustomCriterion() async {
+    final criterion = await showDialog<ScreenerCriterion>(
+      context: context,
+      builder: (context) => const _ScreenerCriterionDialog(),
+    );
+    if (criterion != null && mounted) {
+      setState(() => customCriteria.add(criterion));
+    }
+  }
+
   Widget _buildPresetButton(String label, VoidCallback onTap) {
     return OutlinedButton(
-      onPressed: onTap,
+      onPressed: screenerLoading ? null : onTap,
       style: OutlinedButton.styleFrom(
         padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         side: BorderSide(
@@ -1137,6 +1399,7 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
       screenerPriceMin = null;
       screenerPriceMax = null;
       screenerVolumeMin = null;
+      customCriteria.clear();
       marketCapMinCtl.clear();
       marketCapMaxCtl.clear();
       peMinCtl.clear();
@@ -1146,6 +1409,10 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
       priceMinCtl.clear();
       priceMaxCtl.clear();
       volumeMinCtl.clear();
+      if (preset == 'clear') {
+        screenerResults = null;
+        errorText = null;
+      }
 
       // Apply preset filters
       switch (preset) {
@@ -1252,7 +1519,8 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
                 : (changeToday < 0
                     ? Colors.red.withValues(alpha: 0.3)
                     : Colors.grey.withValues(
-                        alpha: 0.2)), // Theme.of(context).colorScheme.outlineVariant)
+                        alpha:
+                            0.2)), // Theme.of(context).colorScheme.outlineVariant)
             width: 1.5,
           ),
         ),
@@ -1364,5 +1632,133 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
                             userDocRef: widget.userDocRef,
                           )));
             }));
+  }
+}
+
+class _ScreenerCriterionDialog extends StatefulWidget {
+  const _ScreenerCriterionDialog();
+
+  @override
+  State<_ScreenerCriterionDialog> createState() =>
+      _ScreenerCriterionDialogState();
+}
+
+class _ScreenerCriterionDialogState extends State<_ScreenerCriterionDialog> {
+  ScreenerField field = ScreenerField.marketCap;
+  final minimumController = TextEditingController();
+  final maximumController = TextEditingController();
+  final textController = TextEditingController();
+  String? errorText;
+
+  @override
+  void dispose() {
+    minimumController.dispose();
+    maximumController.dispose();
+    textController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Add custom factor'),
+      content: SizedBox(
+        width: 420,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            DropdownButtonFormField<ScreenerField>(
+              initialValue: field,
+              decoration: const InputDecoration(labelText: 'Factor'),
+              items: ScreenerField.values
+                  .map((value) => DropdownMenuItem(
+                        value: value,
+                        child: Text(value.label),
+                      ))
+                  .toList(),
+              onChanged: (value) {
+                if (value != null) setState(() => field = value);
+              },
+            ),
+            const SizedBox(height: 12),
+            if (field.isText)
+              TextField(
+                controller: textController,
+                decoration: const InputDecoration(
+                  labelText: 'Value',
+                  hintText: 'Technology Services',
+                ),
+              )
+            else
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: minimumController,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      decoration: InputDecoration(
+                        labelText: 'Minimum',
+                        suffixText: field.unit.isEmpty ? null : field.unit,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextField(
+                      controller: maximumController,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      decoration: InputDecoration(
+                        labelText: 'Maximum',
+                        suffixText: field.unit.isEmpty ? null : field.unit,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            if (errorText != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 10),
+                child: Text(
+                  errorText!,
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
+              ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: _submit,
+          child: const Text('Add factor'),
+        ),
+      ],
+    );
+  }
+
+  void _submit() {
+    final criterion = field.isText
+        ? ScreenerCriterion(field: field, textValue: textController.text.trim())
+        : ScreenerCriterion(
+            field: field,
+            minimum: double.tryParse(minimumController.text.trim()),
+            maximum: double.tryParse(maximumController.text.trim()),
+          );
+    if (!criterion.isValid) {
+      setState(() {
+        errorText = field.isText
+            ? 'Enter a value for this factor.'
+            : 'Enter a valid range. Minimum must not exceed maximum.';
+      });
+      return;
+    }
+    Navigator.pop(context, criterion);
   }
 }

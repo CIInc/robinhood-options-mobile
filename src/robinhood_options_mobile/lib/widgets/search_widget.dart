@@ -36,6 +36,7 @@ import 'package:robinhood_options_mobile/widgets/macro_assessment_widget.dart';
 import 'package:robinhood_options_mobile/widgets/home/options_flow_card_widget.dart';
 import 'package:robinhood_options_mobile/widgets/list_widget.dart';
 import 'package:robinhood_options_mobile/widgets/lists_widget.dart';
+import 'package:robinhood_options_mobile/widgets/screener_widget.dart';
 import 'package:robinhood_options_mobile/widgets/whale_watch_dashboard_widget.dart';
 import 'package:robinhood_options_mobile/widgets/gamma_exposure_dashboard_widget.dart';
 import 'package:robinhood_options_mobile/model/quote_store.dart';
@@ -217,6 +218,27 @@ class _SearchWidgetState extends State<SearchWidget>
   } // WidgetsBinding.instance.addPostFrameCallback((_) {
 
   //   _fetchTradeSignalsWithFilters();
+
+  void _openScreener() {
+    final brokerageUser = widget.brokerageUser;
+    final service = widget.service;
+    if (brokerageUser == null || service == null) return;
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => ScreenerWidget(
+          brokerageUser,
+          service,
+          analytics: widget.analytics,
+          observer: widget.observer,
+          generativeService: widget.generativeService,
+          user: widget.user,
+          userDocRef: widget.userDocRef,
+        ),
+      ),
+    );
+  }
+
   //override
   @override
   Widget build(BuildContext context) {
@@ -356,6 +378,15 @@ class _SearchWidgetState extends State<SearchWidget>
                 userDocRef: widget.userDocRef,
                 service: widget.service,
                 scrollController: _scrollController,
+                actions: widget.brokerageUser != null && widget.service != null
+                    ? [
+                        IconButton(
+                          tooltip: 'Stock screener',
+                          icon: const Icon(Icons.filter_alt_outlined),
+                          onPressed: _openScreener,
+                        ),
+                      ]
+                    : null,
                 onChange: () {
                   setState(() {});
                 },
