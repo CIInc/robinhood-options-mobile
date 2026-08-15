@@ -1,9 +1,9 @@
 # Futures Positions
 
-RealizeAlpha now enriches futures positions with contract & product metadata, real-time quotes, and settlement prices, exposing Open P&L, Day P&L, and Realized P&L calculations per contract.
+RealizeAlpha now enriches futures positions with contract & product metadata, real-time quotes, and settlement prices, exposing Open P&L, Day P&L, Realized P&L, and margin requirement calculations per contract.
 
 ## Overview
-Futures data is aggregated client-side from brokerage APIs, then augmented with metadata (contract + product), live quotes, and previous close prices before being displayed. The implementation provides transparent Open P&L, Day P&L, and Realized P&L; margin analytics and roll logic are planned.
+Futures data is aggregated client-side from brokerage APIs, then augmented with metadata (contract + product), live quotes, and previous close prices before being displayed. The implementation provides transparent Open P&L, Day P&L, Realized P&L, and margin requirement estimates. Contract roll logic remains planned.
 
 ## Data Sources
 - **Aggregated Positions:** Base quantity and average trade price.
@@ -29,6 +29,7 @@ Futures data is aggregated client-side from brokerage APIs, then augmented with 
 | `openPnlCalc` | Computed Open P&L value (see formula). |
 | `dayPnlCalc` | Computed Day P&L value (see formula). |
 | `notionalValue` | Computed Notional Value (Last Price * |Quantity| * Multiplier). |
+| `marginRequirement` | Estimated margin requirement for the position when supplied by the brokerage data. |
 
 ## P&L Formulas
 
@@ -65,6 +66,10 @@ Realized P&L is calculated based on closed positions during the current session,
 
 ### Risk Metrics
 Basic risk metrics are provided to monitor exposure.
+
+**Margin Requirement**
+
+Margin requirements are displayed when the brokerage supplies the data needed for the position. Treat the value as an estimate of capital required for the position; broker-specific maintenance rules, intraday rules, and portfolio offsets may change the final requirement.
 
 **Notional Value**
 Represents the total value of the assets controlled by the futures position.
@@ -110,14 +115,14 @@ Futures Auto-Trading adds automated strategy execution on futures contracts with
 - Enriched positions exposed as a stream for reactive UI updates.
 - No secrets: all sensitive logic (if any future brokerage write operations are needed) should move to Firebase Functions.
 ## Limitations
-- Margin impact / maintenance requirement not shown.
+- Contract roll detection and calendar spread awareness are not yet available.
 - No contract roll detection or calendar spread awareness.
 - No Greeks or implied volatility surface metrics.
 - Assumes multiplier is available and non-null; positions without multiplier may show `openPnlCalc = null` and `dayPnlCalc = null`.
 - Day P&L calculation depends on availability of previous close price; if unavailable, `dayPnlCalc` will be null.
 
 ## Planned Enhancements
-- Margin metrics & risk layer (SPAN-style summary).
+- Expanded margin metrics and a SPAN-style portfolio risk layer.
 - Realized P&L tracking using trade history.
 - Contract roll assistant (alerts near expiration, auto-suggest roll strikes/months).
 - Greeks and term structure analytics for rate-sensitive products.

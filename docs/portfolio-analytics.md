@@ -150,6 +150,16 @@ Analysis of your daily trading performance:
 ### 9. Risk Heatmap
 A visual representation of your portfolio's risk distribution. It maps positions based on their day's performance or other risk factors, allowing you to instantly spot outliers and concentration risks.
 
+### Rolling Statistics
+
+Rolling Statistics tracks how portfolio risk changes over time relative to the selected benchmark. The dashboard requires enough aligned trading sessions for the selected period and displays:
+
+- **Rolling volatility:** Annualized standard deviation of portfolio returns.
+- **Rolling beta:** Sensitivity to the selected benchmark over each rolling sample.
+- **Rolling correlation:** How closely portfolio returns move with the selected benchmark.
+
+The latest values appear alongside time-series charts. The selected benchmark can be one of the standard indices or a custom ticker supported by Portfolio Analytics.
+
 ### 10. Tax Optimization
 Smart, seasonality-aware tax loss harvesting suggestions:
 - **Smart Visibility**: Shows opportunities based on urgency (e.g., highly visible in Q4).

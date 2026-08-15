@@ -23,6 +23,7 @@ The assessment algorithm aggregates data from 19 indicators across four primary 
 *   **Advance/Decline (NYA):** Measures the net number of stocks rising versus falling to confirm trend quality.
 *   **Breadth Quality (RSP/SPY):** Compares equal-weight vs. cap-weight performance to detect high-concentration fragility.
 *   **Small Caps (IWM):** Outperformance in small caps is a key sign of "risk-on" rotation.
+*   **Technology Leadership (QQQ):** Tracks Nasdaq-100 leadership as an additional growth and technology risk-appetite signal.
 
 ### 4. Global Context & Sentiment
 *   **Put/Call Ratio (PCCR):** Extremes act as powerful contrarian signals for market reversals.

@@ -30,6 +30,7 @@
 - **[Advanced Exit Strategies](agentic-trading.md#advanced-exit-strategies):** Implement Partial, Time-Based, and Market Close exits for precise trade management.
 - **[Correlation Analysis](correlation-analysis.md):** Portfolio diversification analysis with correlation matrix heatmap.
 - **[Stock Universe](agentic-trading.md#stock-universe--seeding):** Monitoring of S&P 500 and popular high-volume stocks with automated database seeding.
+- **[Event Study Analyzer](event-study.md):** Compare asset, benchmark, and abnormal returns around dated events with rolling volatility, beta, and correlation.
 - **[Alpha Factor Discovery](alpha-factor-discovery.md):** Research engine to discovering predictive alpha factors by analyzing correlation with future returns.
 - **[ML Optimization](agentic-trading.md#ml-optimization):** Benefit from Machine Learning enhanced signal accuracy.
 - **[Copy Trading Dashboard](copy-trading.md#2-copy-trading-dashboard):** Centralized hub for managing copy trading activities and history.
@@ -49,7 +50,7 @@
 - **[TestFlight Deployment](TESTFLIGHT_DEPLOYMENT.md):** App Store Connect setup and validated iOS deployment workflow.
 - **[Testing Standards](testing-standards.md):** Required UI, state, data-integrity, and regression testing patterns.
 - **[RiskGuard](risk-guard.md):** Advanced risk validation for manual and automated trading, including **Dynamic Position Sizing**.
-- **[Schwab Integration](schwab-integration.md):** Seamless integration with Schwab brokerage accounts for enhanced trading capabilities.
+- **[Schwab Integration](schwab-integration.md):** Schwab account linking, portfolio and order history, single-leg option orders, and multi-leg option order placement.
 - **[Fidelity Integration](fidelity-integration.md):** Manual import of positions and history via CSV files.
 - **[Options Flow Analysis](options-flow-analysis.md):** Real-time monitoring of institutional option orders with 30+ smart flags, alerts, a notifications feed, and structured definition, detection-reason, and recommendation guidance.
 - **[Gamma Exposure (GEX) Analysis Pro](gamma-exposure-analysis.md):** Real-time monitoring of portfolio and symbol-level GEX, Call/Put Walls, Gamma Flip and transition levels, dealer-regime breadth and concentration, interactive strike scrubbing, Spot-Shift sensitivity, and an on-device Black-Scholes fallback engine.
@@ -58,7 +59,7 @@
 - **[Databento vs. Twelve Data](databento-vs-twelve-data-analysis.md):** Vendor comparison on latency, coverage, and pricing.
 - **[Twelve Data Migration](twelve-data-migration.md):** Migration plan and phased rollout strategy for market data ingestion.
 - **[Risk Heatmap](risk-heatmap.md):** Interactive treemap visualization of portfolio exposure and performance with sector/symbol grouping and smart "Others" aggregation.
-- **[Portfolio Analytics](portfolio-analytics.md):** Professional-grade dashboard with Sharpe, Sortino, Alpha, Beta, and other advanced risk/return metrics compared against major benchmarks (SPY, QQQ, DIA, IWM, and **Custom Tickers**). **New:** Export analytics data to CSV.
+- **[Portfolio Analytics](portfolio-analytics.md):** Professional-grade dashboard with Sharpe, Sortino, Alpha, Beta, rolling volatility, rolling beta, rolling correlation, and other advanced risk/return metrics compared against major benchmarks (SPY, QQQ, DIA, IWM, and **Custom Tickers**). **New:** Export analytics data to CSV.
 - **[Portfolio Redesign](portfolio-redesign.md):** Progressive-disclosure information architecture for the Portfolio tab — an Overview answering "what happened / what should I do", an Action Center alert feed, and six drill-down sections.
 - **[Trade Signals Widget](agentic-trading.md#trade-signals-widget):** Dedicated home screen widget for viewing and filtering real-time trade signals.
 - **[Premium Features](index.md#subscriptions):** Subscription management for accessing advanced tools like Trade Signals.

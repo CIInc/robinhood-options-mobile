@@ -8,7 +8,7 @@ RealizeAlpha has integrated with Charles Schwab to provide users with a broader 
 - **Portfolio Management:** View your Schwab portfolio holdings, including stocks, options, and cash.
 - **Order Management:**
     - **View Orders:** Access your history of executed and pending orders.
-    - **Option Orders:** Enhanced handling of option orders, including multi-leg strategies. **(Updated v0.25.0)**
+    - **Option Orders:** Place single-leg and multi-leg option orders through the Schwab brokerage integration. **(Updated v0.37.5)**
 - **Real-Time Data:** Fetch real-time quotes and market data for your holdings.
 - **Seamless Navigation:** The app's navigation has been updated to support Schwab accounts, providing a consistent experience across different brokerages.
 
@@ -24,9 +24,9 @@ RealizeAlpha has integrated with Charles Schwab to provide users with a broader 
 - **`SchwabService`:** A dedicated service class handles all interactions with the Schwab API, ensuring secure and efficient data retrieval.
 - **Data Models:** New data models (e.g., `Instrument.fromSchwabJson`, `OptionOrder.fromSchwabJson`) have been implemented to parse Schwab-specific data formats.
 - **Token Management:** The app handles OAuth token refresh automatically to maintain a secure connection.
-- **Enhanced Integration (v0.25.0):** Improved reliability for option order execution and status tracking.
+- **Options Trading (v0.37.5):** `SchwabService.placeOptionsOrder()` supports single-leg option orders, while `placeMultiLegOptionsOrder()` supports multi-leg strategies. Both methods use the linked Schwab account and preserve the existing order-status workflow.
 
 ## Limitations & Future Work
 
-- **Trading:** Currently, the integration focuses on portfolio and order management. Full trading capabilities (placing new orders) are planned for future updates.
+- **Trading:** Stock and option order placement is available for linked Schwab accounts. Review order details in the app before submission and follow Schwab account permissions and buying-power requirements.
 - **Streaming Data:** Real-time streaming of quotes is being enhanced for better performance.

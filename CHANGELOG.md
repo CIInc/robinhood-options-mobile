@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.37.5] - 2026-08-15
+**Quantitative Research, Stock Screening, and Portfolio Risk Analytics**
+
+### Added
+- **Event Study Analyzer:** Compare an instrument with a benchmark around earnings, FDA decisions, product launches, guidance changes, and other dated events using configurable trading-day windows.
+- **Rolling Statistics:** Added rolling annualized volatility, beta, and correlation views to event studies and portfolio risk analytics.
+- **Custom Stock Screener:** Added sector, market-cap, P/E, dividend-yield, price, and volume filters with presets, sorting, custom criteria, and a seeded Firestore instrument universe.
+- **QQQ Macro Indicator:** Added technology-leadership context to macro assessment scoring and dashboard presentation.
+- **Futures Margin Analytics:** Added margin requirement calculations and expanded futures position charting.
+
+### Changed
+- **Risk Heatmap:** Refined the layout for more readable and responsive portfolio risk visualization.
+- **Android Build Tooling:** Updated the Android Gradle Plugin and Gradle distribution used by the project.
+- **Schwab Options Documentation:** Updated integration status to reflect available option-order placement methods and multi-leg order support.
+
+### Testing
+- Added backend event-study coverage, screener normalization and criterion coverage, and rolling-statistics portfolio analytics coverage.
+
 ## [0.37.4] - 2026-08-13
 **Interpretable Options Flow, Private Portfolio Charts, and Trading Reliability**
 
