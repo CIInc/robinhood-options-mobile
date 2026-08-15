@@ -2932,10 +2932,12 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                     final eventDate = reportDate is String
                         ? DateTime.tryParse(reportDate)
                         : null;
+                    final isFutureEvent =
+                        eventDate != null && eventDate.isAfter(DateTime.now());
                     return Column(
                       children: [
                         ListTile(
-                          onTap: eventDate == null
+                          onTap: eventDate == null || isFutureEvent
                               ? null
                               : () {
                                   Navigator.push(
@@ -2950,8 +2952,10 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                                 },
                           leading: eventDate == null
                               ? null
-                              : const Icon(Icons.event_available,
-                                  color: Colors.teal),
+                              : Icon(Icons.event_available,
+                                  color: isFutureEvent
+                                      ? Colors.grey
+                                      : Colors.teal),
                           title: Text(
                             "${earning!["year"]} Q${earning!["quarter"]}",
                             style: const TextStyle(

@@ -151,6 +151,42 @@ class AnalyticsUtils {
     return calculateStdDev(returns) * sqrt(252);
   }
 
+  /// Calculates rolling annualized risk statistics for aligned price series.
+  ///
+  /// Each point uses [window] trading sessions ending on its date. The first
+  /// point therefore appears after [window] price observations, and contains
+  /// volatility, beta, and correlation for the same return sample.
+  static List<Map<String, dynamic>> calculateRollingStatistics({
+    required List<DateTime> dates,
+    required List<double> assetPrices,
+    required List<double> benchmarkPrices,
+    int window = 30,
+  }) {
+    if (window < 2 ||
+        assetPrices.length != benchmarkPrices.length ||
+        assetPrices.length != dates.length ||
+        assetPrices.length <= window) {
+      return [];
+    }
+
+    final points = <Map<String, dynamic>>[];
+    for (var end = window; end < assetPrices.length; end++) {
+      final assetWindow = assetPrices.sublist(end - window, end + 1);
+      final benchmarkWindow = benchmarkPrices.sublist(end - window, end + 1);
+      final assetReturns = calculateDailyReturns(assetWindow);
+      final benchmarkReturns = calculateDailyReturns(benchmarkWindow);
+
+      points.add({
+        'date': dates[end],
+        'volatility': calculateVolatility(assetReturns),
+        'beta': calculateBeta(assetReturns, benchmarkReturns),
+        'correlation': calculateCorrelation(assetReturns, benchmarkReturns),
+        'maxDrawdown': calculateMaxDrawdown(assetWindow),
+      });
+    }
+    return points;
+  }
+
   /// Calculates the Compound Annual Growth Rate (CAGR)
   static double calculateCAGR(double totalReturn, double periodYears) {
     if (periodYears <= 0) return 0.0;

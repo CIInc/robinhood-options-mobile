@@ -130,6 +130,28 @@ void main() {
           [100.0, 103.0, 106.0, 110.0]);
     });
 
+    test('exposes rolling volatility, beta, and correlation', () async {
+      final portfolio = List<double>.generate(
+          35, (i) => 100.0 * (1 + i * 0.002 + (i.isEven ? 0.001 : -0.001)));
+      final benchmark = List<double>.generate(35, (i) => 100.0 + i * 0.1);
+      final controller = PortfolioAnalyticsController(
+        portfolioHistoricalsFuture: Future.value(buildHistoricals(portfolio)),
+        benchmarkHistoricals: {
+          'SPY': Future.value(buildBenchmarkPayload(benchmark)),
+        },
+      );
+      await controller.ensureLoaded();
+
+      final rolling =
+          controller.metrics['rollingStatistics'] as List<Map<String, dynamic>>;
+      expect(rolling, hasLength(5));
+      expect(rolling.first['date'], DateTime(2026, 2, 4, 12));
+      expect(rolling.first['volatility'], greaterThan(0));
+      expect(rolling.first['beta'], isA<double>());
+      expect(rolling.first['correlation'], isA<double>());
+      expect(rolling.first['maxDrawdown'], isA<double>());
+    });
+
     test('groups monthly returns by year and month', () async {
       // 5 Jan through 5 Mar, so the series spans three calendar months.
       final closes = List<double>.generate(60, (i) => 100.0 + i);

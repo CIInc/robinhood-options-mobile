@@ -1,7 +1,16 @@
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:community_charts_flutter/community_charts_flutter.dart'
+    as charts;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+
+class _RollingPoint {
+  const _RollingPoint(this.date, this.value);
+
+  final DateTime date;
+  final double value;
+}
 
 class EventStudyWidget extends StatefulWidget {
   const EventStudyWidget(
@@ -19,6 +28,7 @@ class _EventStudyWidgetState extends State<EventStudyWidget> {
   final _benchmarkController = TextEditingController(text: 'SPY');
   final _preWindowController = TextEditingController(text: '10');
   final _postWindowController = TextEditingController(text: '10');
+  final _rollingWindowController = TextEditingController(text: '30');
   late DateTime _eventDate;
   String _eventType = 'Earnings';
   bool _isLoading = false;
@@ -30,8 +40,10 @@ class _EventStudyWidgetState extends State<EventStudyWidget> {
     super.initState();
     _symbolController = TextEditingController(
         text: widget.initialSymbol?.toUpperCase() ?? 'AAPL');
-    _eventDate = widget.initialEventDate ??
-        DateTime.now().subtract(const Duration(days: 7));
+    final today = DateTime.now();
+    final requestedEventDate =
+        widget.initialEventDate ?? today.subtract(const Duration(days: 7));
+    _eventDate = requestedEventDate.isAfter(today) ? today : requestedEventDate;
     if (widget.initialSymbol != null && widget.initialEventDate != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _runStudy();
@@ -45,6 +57,7 @@ class _EventStudyWidgetState extends State<EventStudyWidget> {
     _benchmarkController.dispose();
     _preWindowController.dispose();
     _postWindowController.dispose();
+    _rollingWindowController.dispose();
     super.dispose();
   }
 
@@ -63,13 +76,18 @@ class _EventStudyWidgetState extends State<EventStudyWidget> {
     final benchmark = _benchmarkController.text.trim().toUpperCase();
     final preWindow = int.tryParse(_preWindowController.text);
     final postWindow = int.tryParse(_postWindowController.text);
+    final rollingWindow = int.tryParse(_rollingWindowController.text);
     if (symbol.isEmpty ||
         benchmark.isEmpty ||
         preWindow == null ||
         postWindow == null ||
+        rollingWindow == null ||
         preWindow < 1 ||
-        postWindow < 1) {
-      setState(() => _error = 'Enter symbols and windows of at least 1 day.');
+        postWindow < 1 ||
+        rollingWindow < 5 ||
+        rollingWindow > 120) {
+      setState(() => _error =
+          'Enter event windows of at least 1 day and a rolling window from 5 to 120 days.');
       return;
     }
 
@@ -88,10 +106,12 @@ class _EventStudyWidgetState extends State<EventStudyWidget> {
         'eventDate': DateFormat('yyyy-MM-dd').format(_eventDate),
         'preWindow': preWindow,
         'postWindow': postWindow,
+        'rollingWindow': rollingWindow,
       });
-      if (mounted)
+      if (mounted) {
         setState(
             () => _result = Map<String, dynamic>.from(response.data as Map));
+      }
     } catch (error) {
       if (mounted) setState(() => _error = error.toString());
     } finally {
@@ -185,7 +205,7 @@ class _EventStudyWidgetState extends State<EventStudyWidget> {
                     ]),
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
-                      value: _eventType,
+                      initialValue: _eventType,
                       decoration:
                           const InputDecoration(labelText: 'Event type'),
                       items: const [
@@ -224,6 +244,16 @@ class _EventStudyWidgetState extends State<EventStudyWidget> {
                               decoration: const InputDecoration(
                                   labelText: 'Days after'))),
                     ]),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _rollingWindowController,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        labelText: 'Rolling statistics window',
+                        helperText: '5-120 trading days',
+                        suffixText: 'days',
+                      ),
+                    ),
                     const SizedBox(height: 8),
                     Text('Window presets', style: theme.textTheme.labelMedium),
                     const SizedBox(height: 4),
@@ -279,8 +309,123 @@ class _EventStudyWidgetState extends State<EventStudyWidget> {
       _buildMetricGrid(result, theme),
       const SizedBox(height: 16),
       _buildEventPath(points, result, theme),
+      const SizedBox(height: 16),
+      _buildRollingDashboard(result, theme),
     ];
   }
+
+  Widget _buildRollingDashboard(Map<String, dynamic> result, ThemeData theme) {
+    final stats = (result['rollingStats'] as List? ?? [])
+        .map((point) => Map<String, dynamic>.from(point as Map))
+        .toList();
+    if (stats.isEmpty) {
+      return Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Text(
+            'Rolling statistics need at least ${result['rollingWindow']} aligned trading days.',
+            style: theme.textTheme.bodyMedium,
+          ),
+        ),
+      );
+    }
+    final latest = stats.last;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Rolling statistics',
+                    style: theme.textTheme.titleSmall
+                        ?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                ),
+                Text('${result['rollingWindow']}-day window',
+                    style: theme.textTheme.labelMedium),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+                'Annualized volatility, market sensitivity, and co-movement with ${result['benchmark']}.',
+                style: theme.textTheme.bodySmall),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                    child: _metric(
+                        'Volatility', _percent(latest['volatility']), theme)),
+                const SizedBox(width: 8),
+                Expanded(
+                    child: _metric('Beta', _number(latest['beta']), theme)),
+                const SizedBox(width: 8),
+                Expanded(
+                    child: _metric(
+                        'Correlation', _number(latest['correlation']), theme)),
+              ],
+            ),
+            const SizedBox(height: 14),
+            _rollingChart(
+                'Volatility', stats, 'volatility', Colors.orange, theme),
+            const SizedBox(height: 14),
+            _rollingChart('Beta', stats, 'beta', Colors.blue, theme),
+            const SizedBox(height: 14),
+            _rollingChart(
+                'Correlation', stats, 'correlation', Colors.green, theme),
+            const SizedBox(height: 4),
+            Text(
+                'Latest observation: ${latest['date']}  |  ${latest['sampleSize']} daily returns',
+                style: theme.textTheme.labelSmall),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _rollingChart(String title, List<Map<String, dynamic>> stats,
+      String key, Color color, ThemeData theme) {
+    final points = stats
+        .map((point) => _RollingPoint(
+              DateTime.parse(point['date'].toString()),
+              (point[key] as num).toDouble(),
+            ))
+        .toList();
+    final series = charts.Series<_RollingPoint, DateTime>(
+      id: title,
+      data: points,
+      domainFn: (point, _) => point.date,
+      measureFn: (point, _) => point.value,
+      colorFn: (_, __) => charts.ColorUtil.fromDartColor(color),
+    );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(title, style: theme.textTheme.labelLarge),
+        SizedBox(
+          height: 150,
+          child: charts.TimeSeriesChart(
+            [series],
+            animate: false,
+            defaultRenderer: charts.LineRendererConfig(
+              includeArea: true,
+              areaOpacity: 35,
+              strokeWidthPx: 2,
+            ),
+            domainAxis: const charts.DateTimeAxisSpec(
+              renderSpec: charts.NoneRenderSpec(),
+            ),
+            behaviors: const [],
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _number(double value) => value.toStringAsFixed(2);
 
   Widget _buildReactionSummary(Map<String, dynamic> result, ThemeData theme) {
     final abnormalReturn =

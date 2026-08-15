@@ -279,6 +279,11 @@ class PortfolioAnalyticsController extends ChangeNotifier {
       alignedDates: alignedDates,
       alignedPortfolioPrices: alignedPortfolioPrices,
     );
+    metrics['rollingStatistics'] = AnalyticsUtils.calculateRollingStatistics(
+      dates: alignedDates,
+      assetPrices: alignedPortfolioPrices,
+      benchmarkPrices: alignedBenchmarkPrices,
+    );
     metrics['benchmarkSymbol'] = _selectedBenchmark;
 
     return metrics;

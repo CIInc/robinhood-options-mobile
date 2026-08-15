@@ -33,8 +33,13 @@ class RiskAnalyticsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     if (data.isEmpty) return const SizedBox.shrink();
 
-    final score = _RiskScore.from(data);
-    final groups = _groups(context);
+    final rolling = (data['rollingStatistics'] as List?)
+        ?.whereType<Map>()
+        .cast<Map<String, dynamic>>()
+        .lastOrNull;
+    final scoreData = {...data, if (rolling != null) ...rolling};
+    final score = _RiskScore.from(scoreData);
+    final groups = _groups(context, scoreData);
     if (groups.isEmpty) return const SizedBox.shrink();
 
     final theme = Theme.of(context);
@@ -91,7 +96,7 @@ class RiskAnalyticsCard extends StatelessWidget {
 
   /// The advanced tier, preserving the original four groupings so a metric is
   /// still found where a returning user expects it.
-  List<_MetricGroup> _groups(BuildContext context) {
+  List<_MetricGroup> _groups(BuildContext context, Map<String, dynamic> data) {
     final groups = <_MetricGroup>[];
 
     final risk = <Widget>[];
@@ -233,9 +238,14 @@ class _RiskScore {
   const _RiskScore(this.value, this.tiles);
 
   static _RiskScore from(Map<String, dynamic> data) {
-    final volatility = (data['volatility'] as double?)?.abs();
-    final maxDrawdown = (data['maxDrawdown'] as double?)?.abs();
-    final beta = data['beta'] as double?;
+    final rolling = (data['rollingStatistics'] as List?)
+        ?.whereType<Map>()
+        .cast<Map<String, dynamic>>()
+        .lastOrNull;
+    final source = rolling ?? data;
+    final volatility = (source['volatility'] as num?)?.toDouble().abs();
+    final maxDrawdown = (source['maxDrawdown'] as num?)?.toDouble().abs();
+    final beta = (source['beta'] as num?)?.toDouble();
 
     var score = 0.0;
     var weight = 0.0;

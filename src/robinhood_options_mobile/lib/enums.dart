@@ -10,6 +10,9 @@ enum ChartDateSpan {
   week,
   month,
   month_3,
+  rolling_30,
+  rolling_60,
+  rolling_90,
   ytd,
   year,
   year_2,
@@ -25,6 +28,9 @@ extension ChartDateSpanDisplay on ChartDateSpan {
         ChartDateSpan.week => '1W',
         ChartDateSpan.month => '1M',
         ChartDateSpan.month_3 => '3M',
+        ChartDateSpan.rolling_30 => '30D',
+        ChartDateSpan.rolling_60 => '60D',
+        ChartDateSpan.rolling_90 => '90D',
         ChartDateSpan.ytd => 'YTD',
         ChartDateSpan.year => '1Y',
         ChartDateSpan.year_2 => '2Y',
@@ -88,6 +94,13 @@ String convertChartSpanFilter(ChartDateSpan chartDateSpanFilter) {
     case ChartDateSpan.month_3:
       span = "3month";
       break;
+    case ChartDateSpan.rolling_30:
+      span = "month";
+      break;
+    case ChartDateSpan.rolling_60:
+    case ChartDateSpan.rolling_90:
+      span = "3month";
+      break;
     case ChartDateSpan.ytd:
       span = "ytd";
       break;
@@ -135,6 +148,15 @@ List<String> convertChartSpanFilterWithInterval(
       // bounds = "24_7"; // Does not look good with regular?!
       break;
     case ChartDateSpan.month_3:
+      interval = "day";
+      span = "3month";
+      break;
+    case ChartDateSpan.rolling_30:
+      interval = "day";
+      span = "month";
+      break;
+    case ChartDateSpan.rolling_60:
+    case ChartDateSpan.rolling_90:
       interval = "day";
       span = "3month";
       break;

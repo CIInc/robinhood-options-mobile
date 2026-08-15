@@ -15,6 +15,7 @@ describe("calculateEventStudy", () => {
   it("calculates returns around the nearest trading date", () => {
     const result = calculateEventStudy(
       "ABC", "SPY", "Earnings", "2023-11-16", 1, 2,
+      2,
       data([100, 98, 110, 112]), data([100, 99, 101, 102]),
     );
 
@@ -29,5 +30,10 @@ describe("calculateEventStudy", () => {
       3,
     );
     expect(result.points.map((point) => point.offset)).toEqual([-1, 0, 1]);
+    expect(result.rollingWindow).toBe(2);
+    expect(result.rollingStats).toHaveLength(2);
+    expect(result.rollingStats[1].volatility).toBeGreaterThan(0);
+    expect(result.rollingStats[1].beta).toBeGreaterThan(0);
+    expect(result.rollingStats[1].correlation).toBeGreaterThan(0.9);
   });
 });

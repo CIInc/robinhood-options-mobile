@@ -4111,6 +4111,15 @@ GET https://api.robinhood.com/marketdata/futures/historicals/contracts/v1/?ids=b
       case ChartDateSpan.month_3:
         startTime = now.subtract(const Duration(days: 90));
         break;
+      case ChartDateSpan.rolling_30:
+        startTime = now.subtract(const Duration(days: 30));
+        break;
+      case ChartDateSpan.rolling_60:
+        startTime = now.subtract(const Duration(days: 60));
+        break;
+      case ChartDateSpan.rolling_90:
+        startTime = now.subtract(const Duration(days: 90));
+        break;
       case ChartDateSpan.ytd:
         startTime = DateTime(now.year, 1, 1);
         break;

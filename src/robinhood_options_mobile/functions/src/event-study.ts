@@ -10,6 +10,14 @@ export interface EventStudyPoint {
   abnormalReturn: number;
 }
 
+export interface RollingStatistic {
+  date: string;
+  volatility: number;
+  beta: number;
+  correlation: number;
+  sampleSize: number;
+}
+
 export interface EventStudyResult {
   symbol: string;
   benchmark: string;
@@ -18,6 +26,7 @@ export interface EventStudyResult {
   tradingEventDate: string;
   preWindow: number;
   postWindow: number;
+  rollingWindow: number;
   sampleSize: number;
   eventDayAssetReturn: number;
   eventDayBenchmarkReturn: number;
@@ -25,6 +34,7 @@ export interface EventStudyResult {
   cumulativeAssetReturn: number;
   cumulativeAbnormalReturn: number;
   points: EventStudyPoint[];
+  rollingStats: RollingStatistic[];
 }
 
 interface PricePoint {
@@ -57,6 +67,80 @@ function returnFrom(base: number, value: number): number {
   return base === 0 ? 0 : value / base - 1;
 }
 
+/** Calculates rolling annualized risk statistics from aligned daily closes.
+ * @param {PricePoint[]} asset Asset price points.
+ * @param {PricePoint[]} benchmark Benchmark price points.
+ * @param {number} window Number of daily returns in each rolling sample.
+ * @return {RollingStatistic[]} Rolling risk statistics.
+ */
+function calculateRollingStats(
+  asset: PricePoint[],
+  benchmark: PricePoint[],
+  window: number,
+): RollingStatistic[] {
+  const benchmarkByTimestamp = new Map(
+    benchmark.map((point) => [point.timestamp, point.close]),
+  );
+  const pairedReturns: Array<{
+    timestamp: number;
+    assetReturn: number;
+    benchmarkReturn: number;
+  }> = [];
+  for (let index = 1; index < asset.length; index++) {
+    const previousBenchmark = benchmarkByTimestamp.get(
+      asset[index - 1].timestamp,
+    );
+    const currentBenchmark = benchmarkByTimestamp.get(asset[index].timestamp);
+    if (previousBenchmark == null || currentBenchmark == null ||
+      asset[index - 1].close === 0 || previousBenchmark === 0) {
+      continue;
+    }
+    pairedReturns.push({
+      timestamp: asset[index].timestamp,
+      assetReturn: asset[index].close / asset[index - 1].close - 1,
+      benchmarkReturn: currentBenchmark / previousBenchmark - 1,
+    });
+  }
+
+  const stats: RollingStatistic[] = [];
+  for (let end = window - 1; end < pairedReturns.length; end++) {
+    const sample = pairedReturns.slice(end - window + 1, end + 1);
+    const assetReturns = sample.map((point) => point.assetReturn);
+    const benchmarkReturns = sample.map((point) => point.benchmarkReturn);
+    const assetMean = assetReturns.reduce((sum, value) => sum + value, 0) /
+      assetReturns.length;
+    const benchmarkMean = benchmarkReturns.reduce(
+      (sum, value) => sum + value, 0,
+    ) / benchmarkReturns.length;
+    let covariance = 0;
+    let assetVariance = 0;
+    let benchmarkVariance = 0;
+    for (let index = 0; index < sample.length; index++) {
+      const assetDiff = assetReturns[index] - assetMean;
+      const benchmarkDiff = benchmarkReturns[index] - benchmarkMean;
+      covariance += assetDiff * benchmarkDiff;
+      assetVariance += assetDiff * assetDiff;
+      benchmarkVariance += benchmarkDiff * benchmarkDiff;
+    }
+    const denominator = Math.max(1, sample.length - 1);
+    covariance /= denominator;
+    assetVariance /= denominator;
+    benchmarkVariance /= denominator;
+    const benchmarkVolatility = Math.sqrt(benchmarkVariance);
+    const assetVolatility = Math.sqrt(assetVariance);
+    stats.push({
+      date: new Date(pairedReturns[end].timestamp * 1000)
+        .toISOString().split("T")[0],
+      volatility: assetVolatility * Math.sqrt(252),
+      beta: benchmarkVariance === 0 ? 0 : covariance / benchmarkVariance,
+      correlation: assetVolatility === 0 || benchmarkVolatility === 0 ?
+        0 : covariance / (assetVolatility * benchmarkVolatility),
+      sampleSize: sample.length,
+    });
+  }
+  return stats;
+}
+
 /** Calculates asset, benchmark, and abnormal returns around an event.
  * @param {string} symbol Asset symbol.
  * @param {string} benchmark Benchmark symbol.
@@ -64,6 +148,7 @@ function returnFrom(base: number, value: number): number {
  * @param {string} eventDate Requested event date.
  * @param {number} preWindow Trading days before the event.
  * @param {number} postWindow Trading days after the event.
+ * @param {number} rollingWindow Daily returns in each rolling sample.
  * @param {any} assetData Asset market data.
  * @param {any} benchmarkData Benchmark market data.
  * @return {EventStudyResult} Event-study result.
@@ -75,6 +160,7 @@ export function calculateEventStudy(
   eventDate: string,
   preWindow: number,
   postWindow: number,
+  rollingWindow: number,
   assetData: any,
   benchmarkData: any,
 ): EventStudyResult {
@@ -148,6 +234,8 @@ export function calculateEventStudy(
     cumulativeAssetReturn: finalPoint.assetReturn,
     cumulativeAbnormalReturn: finalPoint.abnormalReturn,
     points,
+    rollingWindow,
+    rollingStats: calculateRollingStats(asset, benchmarkPrices, rollingWindow),
   };
 }
 
@@ -165,9 +253,12 @@ export const analyzeEventStudy = onCall({
   const eventDate = String(data.eventDate ?? "");
   const preWindow = Number(data.preWindow ?? 10);
   const postWindow = Number(data.postWindow ?? 10);
+  const rollingWindow = Number(data.rollingWindow ?? 30);
   if (!symbol || !/^\d{4}-\d{2}-\d{2}$/.test(eventDate) ||
     !Number.isInteger(preWindow) || !Number.isInteger(postWindow) ||
-    preWindow < 1 || postWindow < 1 || preWindow > 120 || postWindow > 120) {
+    !Number.isInteger(rollingWindow) || preWindow < 1 || postWindow < 1 ||
+    rollingWindow < 5 || rollingWindow > 120 || preWindow > 120 ||
+    postWindow > 120) {
     throw new HttpsError(
       "invalid-argument",
       "Provide a symbol, event date, and windows from 1 to 120 trading days.",
@@ -179,6 +270,7 @@ export const analyzeEventStudy = onCall({
   try {
     const result = calculateEventStudy(
       symbol, benchmark, eventType, eventDate, preWindow, postWindow,
+      rollingWindow,
       assetData, benchmarkData,
     );
     logger.info("Event study completed", { symbol, eventType, eventDate });

@@ -207,6 +207,12 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
         return "Past Month";
       case ChartDateSpan.month_3:
         return "Past 3 Months";
+      case ChartDateSpan.rolling_30:
+        return "Past 30 Days";
+      case ChartDateSpan.rolling_60:
+        return "Past 60 Days";
+      case ChartDateSpan.rolling_90:
+        return "Past 90 Days";
       case ChartDateSpan.ytd:
         return "YTD";
       case ChartDateSpan.year:

@@ -144,6 +144,13 @@ class _FullScreenPerformanceChartWidgetState
       case ChartDateSpan.month:
         range = "1mo";
         break;
+      case ChartDateSpan.rolling_30:
+        range = "1mo";
+        break;
+      case ChartDateSpan.rolling_60:
+      case ChartDateSpan.rolling_90:
+        range = "3mo";
+        break;
       case ChartDateSpan.month_3:
         range = "3mo";
         break;
@@ -245,6 +252,15 @@ class _FullScreenPerformanceChartWidgetState
         interval = '1d';
         break;
       case ChartDateSpan.month_3: // Fixed
+        range = '3mo';
+        interval = '1d';
+        break;
+      case ChartDateSpan.rolling_30:
+        range = '1mo';
+        interval = '1d';
+        break;
+      case ChartDateSpan.rolling_60:
+      case ChartDateSpan.rolling_90:
         range = '3mo';
         interval = '1d';
         break;

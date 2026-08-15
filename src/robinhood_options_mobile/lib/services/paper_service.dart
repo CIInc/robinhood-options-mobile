@@ -97,6 +97,9 @@ class PaperService implements IBrokerageService {
     final appInterval = chartInterval ??
         switch (chartDateSpanFilter) {
           ChartDateSpan.month_3 ||
+          ChartDateSpan.rolling_30 ||
+          ChartDateSpan.rolling_60 ||
+          ChartDateSpan.rolling_90 ||
           ChartDateSpan.ytd ||
           ChartDateSpan.year =>
             'day',
@@ -114,6 +117,9 @@ class PaperService implements IBrokerageService {
       ChartDateSpan.week => '5d',
       ChartDateSpan.month => '1mo',
       ChartDateSpan.month_3 => '3mo',
+      ChartDateSpan.rolling_30 => '1mo',
+      ChartDateSpan.rolling_60 => '3mo',
+      ChartDateSpan.rolling_90 => '3mo',
       ChartDateSpan.ytd => 'ytd',
       ChartDateSpan.year => '1y',
       ChartDateSpan.year_2 => '2y',
@@ -375,7 +381,7 @@ class PaperService implements IBrokerageService {
         final fetched = await getOptionInstrumentByIds(user, optionIds);
         for (var pos in positions) {
           pos.optionInstrument ??= fetched
-                .firstWhereOrNull((i) => pos.legs.first.option.contains(i.id));
+              .firstWhereOrNull((i) => pos.legs.first.option.contains(i.id));
         }
       }
 
@@ -1322,8 +1328,7 @@ class PaperService implements IBrokerageService {
           'side': side,
           'ratio_quantity': 1,
           'option': optionInstrument.url,
-          'expiration_date':
-              optionInstrument.expirationDate?.toIso8601String(),
+          'expiration_date': optionInstrument.expirationDate?.toIso8601String(),
           'strike_price': optionInstrument.strikePrice,
           'option_type': optionInstrument.type,
           'executions': [],
@@ -1331,9 +1336,8 @@ class PaperService implements IBrokerageService {
       ],
       'pending_quantity': result.state == 'filled' ? '0' : quantity.toString(),
       'premium': (price * 100).toString(),
-      'processed_premium': result.state == 'filled'
-          ? (price * 100 * quantity).toString()
-          : '0',
+      'processed_premium':
+          result.state == 'filled' ? (price * 100 * quantity).toString() : '0',
       'price': price.toString(),
       'processed_quantity':
           result.state == 'filled' ? quantity.toString() : '0',

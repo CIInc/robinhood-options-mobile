@@ -7,6 +7,7 @@ import 'package:robinhood_options_mobile/widgets/portfolio/analytics/analytics_f
 import 'package:robinhood_options_mobile/widgets/portfolio/analytics/metric_presentation.dart';
 import 'package:robinhood_options_mobile/widgets/portfolio/analytics/portfolio_health_card.dart';
 import 'package:robinhood_options_mobile/widgets/portfolio/analytics/risk_analytics_card.dart';
+import 'package:robinhood_options_mobile/widgets/portfolio/analytics/rolling_statistics_dashboard.dart';
 import 'package:robinhood_options_mobile/widgets/portfolio/portfolio_risk_summary_widget.dart';
 import 'package:robinhood_options_mobile/widgets/portfolio/portfolio_section_context.dart';
 import 'package:robinhood_options_mobile/widgets/portfolio/portfolio_section_scaffold.dart';
@@ -78,6 +79,7 @@ class _RiskSectionPageState extends State<RiskSectionPage> {
                     child: Center(child: CircularProgressIndicator()),
                   ),
                 RiskAnalyticsCard(data: metrics),
+                RollingStatisticsDashboard(controller: controller),
                 if (healthScore != null)
                   _healthCard(context, healthScore, metrics),
                 PortfolioRiskSummaryWidget(positions: store.items),

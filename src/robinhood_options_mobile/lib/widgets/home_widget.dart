@@ -201,7 +201,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
   Bounds chartBoundsFilter = Bounds.t24_7;
   ChartDateSpan prevChartDateSpanFilter = ChartDateSpan.day;
   Bounds prevChartBoundsFilter = Bounds.t24_7;
-  ChartDateSpan benchmarkChartDateSpanFilter = ChartDateSpan.ytd;
+  ChartDateSpan benchmarkChartDateSpanFilter = ChartDateSpan.rolling_30;
   // EquityHistorical? selection;
   bool animateChart = true;
 

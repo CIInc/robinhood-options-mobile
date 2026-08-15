@@ -3,6 +3,9 @@ import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/portfolio_analytics_controller.dart';
 
 const _spans = <String, ChartDateSpan>{
+  '30D': ChartDateSpan.rolling_30,
+  '60D': ChartDateSpan.rolling_60,
+  '90D': ChartDateSpan.rolling_90,
   'YTD': ChartDateSpan.ytd,
   '1Y': ChartDateSpan.year,
   '2Y': ChartDateSpan.year_2,
@@ -17,7 +20,8 @@ const _spans = <String, ChartDateSpan>{
 /// scaffold's `bottom` slot on both pages — rather than as a card on Performance
 /// alone — means neither page can show numbers keyed to a window the reader can
 /// neither see nor change from where they are standing.
-class AnalyticsPeriodBar extends StatelessWidget implements PreferredSizeWidget {
+class AnalyticsPeriodBar extends StatelessWidget
+    implements PreferredSizeWidget {
   final PortfolioAnalyticsController controller;
 
   /// Fallback selection for the first frame, before the controller has been
@@ -149,8 +153,8 @@ class BenchmarkMenuButton extends StatelessWidget {
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () =>
-                Navigator.pop(context, textController.text.trim().toUpperCase()),
+            onPressed: () => Navigator.pop(
+                context, textController.text.trim().toUpperCase()),
             child: const Text('Add'),
           ),
         ],
