@@ -2219,8 +2219,14 @@ https://api.schwabapi.com/marketdata/v1/instruments?symbol=Google&projection=sea
 
   @override
   Future<dynamic> cancelOrder(BrokerageUser user, String cancel) {
-    // TODO: implement
-    throw UnimplementedError();
+    final parts = cancel.split('/').where((s) => s.isNotEmpty).toList();
+    final cancelIndex = parts.indexOf('cancel');
+    final target = cancelIndex > 0 ? parts[cancelIndex - 1] : parts.last;
+    return Future.value({
+      'status': 'not_supported',
+      'message': 'Order cancellation is not supported for Schwab manual accounts.',
+      'target': target,
+    });
   }
 
   @override

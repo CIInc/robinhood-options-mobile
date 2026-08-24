@@ -1157,7 +1157,14 @@ class FidelityService implements IBrokerageService {
 
   @override
   Future<dynamic> cancelOrder(BrokerageUser user, String cancel) async {
-    throw UnimplementedError();
+    final parts = cancel.split('/').where((s) => s.isNotEmpty).toList();
+    final cancelIndex = parts.indexOf('cancel');
+    final target = cancelIndex > 0 ? parts[cancelIndex - 1] : parts.last;
+    return {
+      'status': 'not_supported',
+      'message': 'Order cancellation is not supported for Fidelity manual imports.',
+      'target': target,
+    };
   }
 
   @override

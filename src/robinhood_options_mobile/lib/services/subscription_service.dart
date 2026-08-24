@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart' as auth;
 import 'package:flutter/foundation.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
@@ -8,7 +9,6 @@ import 'package:robinhood_options_mobile/model/user.dart';
 class SubscriptionService {
   final InAppPurchase _iap = InAppPurchase.instance;
   StreamSubscription<List<PurchaseDetails>>? _subscription;
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
 
   // Products IDs - these should be configured in App Connect / Play Console
   static const String monthlySubscriptionId = 'trade_signals_monthly';
@@ -25,7 +25,7 @@ class SubscriptionService {
 
   void initialize() {
     debugPrint('SubscriptionService: Initializing...');
-    
+
     // Check if IAP is available
     _iap.isAvailable().then((available) {
       debugPrint('SubscriptionService: IAP available: $available');
@@ -75,8 +75,6 @@ class SubscriptionService {
   }
 
   Future<void> _verifyAndDeliverProduct(PurchaseDetails purchaseDetails) async {
-    // In a real app, verify receipt with server.
-    // Here we update Firestore directly for now.
     debugPrint('_verifyAndDeliverProduct for ${purchaseDetails.productID}');
 
     // Get current user UID
@@ -87,24 +85,23 @@ class SubscriptionService {
     }
     debugPrint('Current User UID: ${currentUser.uid}');
 
-    // Update Firestore
-    // Note: For subscriptions, ideally we validate receipt with Apple/Google servers
-    // to get the actual expiry date. Here we assume 1 month from now for fresh purchases
-    // or rely on server-side logic if implemented.
-    // For this client-side implementation:
     try {
-      final expiry = DateTime.now().add(const Duration(days: 30));
-      await _db.collection('user').doc(currentUser.uid).update({
-        'subscriptionStatus': 'active',
-        'subscriptionExpiryDate': Timestamp.fromDate(expiry),
-        'subscriptionProductId': purchaseDetails.productID,
-        'subscriptionPurchaseDate': FieldValue.serverTimestamp(),
-        'dateUpdated': FieldValue.serverTimestamp(),
+      final source = defaultTargetPlatform == TargetPlatform.iOS
+          ? 'ios'
+          : defaultTargetPlatform == TargetPlatform.android
+              ? 'android'
+              : 'unsupported';
+      await FirebaseFunctions.instance
+          .httpsCallable('verifySubscription')
+          .call({
+        'productId': purchaseDetails.productID,
+        'source': source,
+        'verificationData':
+            purchaseDetails.verificationData.serverVerificationData,
       });
-      debugPrint(
-          'Purchase successful and delivered: ${purchaseDetails.productID}');
+      debugPrint('Subscription receipt submitted for verification.');
     } catch (e) {
-      debugPrint('Error delivering purchase: $e');
+      debugPrint('Subscription verification failed: $e');
     }
   }
 

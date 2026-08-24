@@ -3,14 +3,15 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     match /user/{uid} {
-      allow read, create: if request.auth.uid != null;
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow create: if request.auth != null && request.auth.uid == uid;
       allow update: if request.auth.uid == uid || request.auth.token.role == 'admin';
       allow delete: if request.auth.token.role == 'admin';
       
       // DEFAULT SUB-COLLECTION RULE
       // Covers common sub-collections (instrumentPosition, optionOrder, auto_trade_history, etc.)
       match /{collectionId}/{id} {
-        allow read: if request.auth.uid != null;
+        allow read: if request.auth != null && request.auth.uid == uid;
         allow create, update: if request.auth.uid == uid || request.auth.token.role == 'admin';
         allow delete: if request.auth.token.role == 'admin';
       }
@@ -32,11 +33,11 @@ service cloud.firestore {
         allow delete: if request.auth.uid == uid;
       }
       match /paper_account/{id} {
-        allow read: if request.auth.uid != null;
+        allow read: if request.auth != null && request.auth.uid == uid;
         allow write: if request.auth.uid == uid || request.auth.token.role == 'admin';
       }
       match /futures_paper_account/{id} {
-        allow read: if request.auth.uid != null;
+        allow read: if request.auth != null && request.auth.uid == uid;
         allow write: if request.auth.uid == uid || request.auth.token.role == 'admin';
       }
       match /paper_equity_history/{id} {
@@ -49,57 +50,57 @@ service cloud.firestore {
     }
     match /instrument/{instrumentid} {
       allow read: if true;
-      allow create, update: if request.auth.uid != null;
+      allow create, update: if false;
       allow delete: if request.auth.token.role == 'admin';
     }
     
     match /agentic_trading/{doc} {
       allow read: if true;
-      allow create, update: if request.auth.uid != null;
+      allow create, update: if false;
       allow delete: if request.auth.token.role == 'admin';
     }
 
     match /signals/{doc} {
       allow read: if true;
-      allow create, update: if request.auth.uid != null;
+      allow create, update: if false;
       allow delete: if request.auth.token.role == 'admin';
     }
 
     match /charts/{doc} {
       allow read: if true;
-      allow create, update: if request.auth.uid != null;
+      allow create, update: if false;
       allow delete: if request.auth.token.role == 'admin';
     }
 
     match /market_intelligence/{doc} {
       allow read: if true;
-      allow create, update: if request.auth.uid != null;
+      allow create, update: if false;
       allow delete: if request.auth.token.role == 'admin';
     }
 
     match /yahoo_options_results/{symbol} {
       allow read: if true;
-      allow create, update: if request.auth.uid != null;
+      allow create, update: if false;
 
       match /expirations/{expirationId} {
         allow read: if true;
-        allow create, update: if request.auth.uid != null;
+        allow create, update: if false;
       }
     }
 
     match /yahoo_quote_summaries/{symbol} {
       allow read: if true;
-      allow create, update: if request.auth.uid != null;
+      allow create, update: if false;
     }
 
     match /yahoo_data/{doc} {
       allow read: if true;
-      allow create, update: if request.auth.uid != null;
+      allow create, update: if false;
     }
 
     match /gamma_exposure/{symbol} {
       allow read: if true;
-      allow create, update: if request.auth.uid != null;
+      allow create, update: if false;
     }
 
     match /investor_groups/{groupId} {
@@ -208,13 +209,13 @@ service cloud.firestore {
 
     match /option_instruments/{doc} {
       allow read: if true;
-      allow create, update: if request.auth.uid != null;
+      allow create, update: if false;
       allow delete: if request.auth.token.role == 'admin';
     }
 
     match /option_market_data/{doc} {
       allow read: if true;
-      allow create, update: if request.auth.uid != null;
+      allow create, update: if false;
       allow delete: if request.auth.token.role == 'admin';
     }
 
