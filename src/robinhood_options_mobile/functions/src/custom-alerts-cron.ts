@@ -1,3 +1,4 @@
+import { initializeApp, getApps } from "firebase-admin/app";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { getFirestore, Timestamp } from "firebase-admin/firestore";
 import { getMessaging } from "firebase-admin/messaging";
@@ -5,8 +6,190 @@ import { logger } from "firebase-functions";
 import { getMarketData } from "./market-data";
 import { computeSMA, computeRSI } from "./technical-indicators";
 
+if (getApps().length === 0) {
+  initializeApp();
+}
+
 const db = getFirestore();
 const messaging = getMessaging();
+
+type AlertRule = {
+  type?: string;
+  condition?: string;
+  value?: number;
+  period?: number;
+};
+
+type SmartAlertInput = {
+  symbol?: string;
+  currentPrice?: number;
+  closes?: number[];
+  volumes?: number[];
+  type?: string;
+  condition?: string;
+  value?: number;
+  period?: number;
+  logic?: "all" | "any";
+  rules?: AlertRule[];
+};
+
+type MarketSnapshotInput = {
+  symbol?: string;
+  currentPrice?: number;
+  closes?: number[];
+  volumes?: number[];
+  percentChange?: number;
+};
+
+/**
+ * Evaluate whether a custom alert should trigger using the current market data.
+ * Supports both legacy single-condition alerts and multi-rule smart alerts.
+ *
+ * @param {SmartAlertInput} alert
+ * @param {MarketSnapshotInput} marketSnapshot
+ * @return {{ triggered: boolean, triggerValue: number, message: string }}
+ */
+export function evaluateSmartAlert(
+  alert: SmartAlertInput,
+  marketSnapshot: MarketSnapshotInput,
+): { triggered: boolean; triggerValue: number; message: string } {
+  const rules = (alert.rules && alert.rules.length > 0) ?
+    alert.rules :
+    [{
+      type: alert.type,
+      condition: alert.condition,
+      value: alert.value,
+      period: alert.period,
+    }];
+
+  const symbol = marketSnapshot.symbol ?? alert.symbol ?? "UNKNOWN";
+  const currentPrice = marketSnapshot.currentPrice ?? 0;
+  const closes = marketSnapshot.closes ?? [];
+  const volumes = marketSnapshot.volumes ?? [];
+  const derivedPercentChange = closes.length > 1 ?
+    ((closes[closes.length - 1] - closes[closes.length - 2]) /
+      Math.max(closes[closes.length - 2], 0.0001)) * 100 :
+    0;
+  const percentChange = marketSnapshot.percentChange ?? derivedPercentChange;
+  const logic = alert.logic ?? "all";
+
+  const evaluated: Array<{
+    matched: boolean;
+    message: string;
+    value: number;
+  }> = [];
+
+  for (const rule of rules) {
+    const type = rule.type ?? "price";
+    const condition = rule.condition ?? "above";
+    const value = rule.value ?? 0;
+    const period = rule.period ?? 14;
+
+    let matched = false;
+    let message = "";
+    let triggerValue = 0;
+
+    if (type === "price") {
+      if (condition === "above" && currentPrice > value) {
+        matched = true;
+        triggerValue = currentPrice;
+        message = `Price for ${symbol} is $${currentPrice.toFixed(2)} ` +
+          `(Target: > $${value})`;
+      } else if (condition === "below" && currentPrice < value) {
+        matched = true;
+        triggerValue = currentPrice;
+        message = `Price for ${symbol} is $${currentPrice.toFixed(2)} ` +
+          `(Target: < $${value})`;
+      }
+    } else if (type === "volume") {
+      const currentVolume = volumes.length > 0 ?
+        volumes[volumes.length - 1] : 0;
+      if ((condition === "spike" || condition === "above") &&
+        currentVolume > value) {
+        matched = true;
+        triggerValue = currentVolume;
+        message = `Volume for ${symbol} spiked to ` +
+          `${currentVolume.toLocaleString()} ` +
+          `(Target: > ${value.toLocaleString()})`;
+      }
+    } else if (type === "volatility") {
+      if (condition === "percent_change" && Math.abs(percentChange) > value) {
+        matched = true;
+        triggerValue = percentChange;
+        message = `${symbol} moved ${percentChange.toFixed(2)}% ` +
+          `(Target: > ${value}%)`;
+      }
+    } else if (type === "moving_average") {
+      if (!closes.length) {
+        matched = false;
+      } else {
+        const sma = computeSMA(closes, period);
+        if (sma !== null) {
+          if (condition === "above" && sma > value) {
+            matched = true;
+            triggerValue = sma;
+            message = `SMA(${period}) for ${symbol} is ${sma.toFixed(2)} ` +
+              `(Target: > ${value})`;
+          } else if (condition === "below" && sma < value) {
+            matched = true;
+            triggerValue = sma;
+            message = `SMA(${period}) for ${symbol} is ${sma.toFixed(2)} ` +
+              `(Target: < ${value})`;
+          }
+        }
+      }
+    } else if (type === "rsi") {
+      if (!closes.length) {
+        matched = false;
+      } else {
+        const rsi = computeRSI(closes, period);
+        if (rsi !== null) {
+          if (condition === "above" && rsi > value) {
+            matched = true;
+            triggerValue = rsi;
+            message = `RSI(${period}) for ${symbol} is ${rsi.toFixed(2)} ` +
+              `(Target: > ${value})`;
+          } else if (condition === "below" && rsi < value) {
+            matched = true;
+            triggerValue = rsi;
+            message = `RSI(${period}) for ${symbol} is ${rsi.toFixed(2)} ` +
+              `(Target: < ${value})`;
+          }
+        }
+      }
+    }
+
+    evaluated.push({ matched, message, value: triggerValue });
+  }
+
+  if (evaluated.length === 0) {
+    return {
+      triggered: false,
+      triggerValue: 0,
+      message: "No valid alert rules",
+    };
+  }
+
+  const matchedRules = evaluated.filter((entry) => entry.matched);
+  const triggered = logic === "any" ?
+    matchedRules.length > 0 :
+    matchedRules.length === evaluated.length;
+
+  if (!triggered) {
+    return {
+      triggered: false,
+      triggerValue: 0,
+      message: "Alert conditions not met",
+    };
+  }
+
+  const bestMatch = matchedRules[0] ?? evaluated[0];
+  return {
+    triggered: true,
+    triggerValue: bestMatch.value,
+    message: bestMatch.message,
+  };
+}
 
 /**
  * Fetch all FCM tokens for a user.
@@ -101,8 +284,6 @@ export const checkCustomAlerts = onSchedule("every 5 minutes", async () => {
         continue;
       }
 
-      const currentVolume = volumes.length > 0 ?
-        volumes[volumes.length - 1] : 0;
       // Calculate basic volatility (daily range percentage)
       // (High - Low) / Open? Or just absolute change from yesterday?
       // Let's use % change from previous close for "percent_change" condition
@@ -111,10 +292,6 @@ export const checkCustomAlerts = onSchedule("every 5 minutes", async () => {
       const percentChange = ((currentPrice - prevClose) / prevClose) * 100;
 
       for (const alert of alertsBySymbol[symbol]) {
-        let triggered = false;
-        let triggerValue = 0;
-        let message = "";
-
         // Check cooldown (default 60 mins)
         const lastTriggered = alert.lastTriggered instanceof Timestamp ?
           alert.lastTriggered.toMillis() :
@@ -124,87 +301,28 @@ export const checkCustomAlerts = onSchedule("every 5 minutes", async () => {
           continue;
         }
 
-        switch (alert.type) {
-        case "price":
-          if (alert.condition === "above" && currentPrice > alert.value) {
-            triggered = true;
-            triggerValue = currentPrice;
-            message = `Price for ${symbol} is $${currentPrice.toFixed(2)} ` +
-              `(Target: > $${alert.value})`;
-          } else if (alert.condition === "below" &&
-            currentPrice < alert.value) {
-            triggered = true;
-            triggerValue = currentPrice;
-            message = `Price for ${symbol} is $${currentPrice.toFixed(2)} ` +
-              `(Target: < $${alert.value})`;
+        const evaluation = evaluateSmartAlert(
+          {
+            symbol,
+            type: alert.type,
+            condition: alert.condition,
+            value: alert.value,
+            period: alert.period,
+            logic: alert.logic,
+            rules: alert.rules,
+          },
+          {
+            symbol,
+            currentPrice,
+            closes,
+            volumes,
+            percentChange,
           }
-          break;
+        );
 
-        case "volume":
-          // Check usage for Volume Spike
-          if (alert.condition === "spike" || alert.condition === "above") {
-            if (currentVolume > alert.value) {
-              triggered = true;
-              triggerValue = currentVolume;
-              message = `Volume for ${symbol} spiked to ` +
-                `${currentVolume.toLocaleString()} ` +
-                `(Target: > ${alert.value.toLocaleString()})`;
-            }
-          }
-          break;
-
-        case "volatility":
-          // Using percent change as a proxy for volatility/movement for now
-          if (alert.condition === "percent_change") {
-            if (Math.abs(percentChange) > alert.value) {
-              triggered = true;
-              triggerValue = percentChange;
-              message = `${symbol} moved ${percentChange.toFixed(2)}% ` +
-                `(Target: > ${alert.value}%)`;
-            }
-          }
-          break;
-
-        case "moving_average": {
-          if (!alert.period) break;
-          const sma = computeSMA(closes, alert.period);
-          if (sma !== null) {
-            if (alert.condition === "above" && sma > alert.value) {
-              triggered = true;
-              triggerValue = sma;
-              message = `SMA(${alert.period}) for ${symbol} is ` +
-                `${sma.toFixed(2)} (Target: > ${alert.value})`;
-            } else if (alert.condition === "below" && sma < alert.value) {
-              triggered = true;
-              triggerValue = sma;
-              message = `SMA(${alert.period}) for ${symbol} is ` +
-                `${sma.toFixed(2)} (Target: < ${alert.value})`;
-            }
-          }
-          break;
-        }
-
-        case "rsi": {
-          if (!alert.period) break;
-          const rsi = computeRSI(closes, alert.period);
-          if (rsi !== null) {
-            if (alert.condition === "above" && rsi > alert.value) {
-              triggered = true;
-              triggerValue = rsi;
-              message = `RSI(${alert.period}) for ${symbol} is ` +
-                `${rsi.toFixed(2)} (Target: > ${alert.value})`;
-            } else if (alert.condition === "below" && rsi < alert.value) {
-              triggered = true;
-              triggerValue = rsi;
-              message = `RSI(${alert.period}) for ${symbol} is ` +
-                `${rsi.toFixed(2)} (Target: < ${alert.value})`;
-            }
-          }
-          break;
-        }
-        }
-
-        if (triggered) {
+        if (evaluation.triggered) {
+          const triggerValue = evaluation.triggerValue;
+          const message = evaluation.message;
           logger.info(`Alert triggered for ${symbol}: ${message}`);
 
           // Send Notification

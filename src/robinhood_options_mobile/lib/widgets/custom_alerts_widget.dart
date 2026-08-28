@@ -75,8 +75,12 @@ class _CustomAlertsWidgetState extends State<CustomAlertsWidget> {
               final currencyFormatter = NumberFormat.simpleCurrency();
               final numberFormatter = NumberFormat.decimalPattern();
 
+              final isMultiRule = alert.rules.length > 1;
               String valueText;
-              if (alert.type == AlertType.price) {
+              if (isMultiRule) {
+                valueText =
+                    '${alert.rules.length} rules (${alert.logic == AlertLogic.all ? "ALL" : "ANY"})';
+              } else if (alert.type == AlertType.price) {
                 valueText = currencyFormatter.format(alert.value);
               } else if (alert.type == AlertType.moving_average) {
                 valueText =
@@ -139,12 +143,13 @@ class _CustomAlertsWidgetState extends State<CustomAlertsWidget> {
                           text: '${alert.symbol} ',
                           style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
-                        TextSpan(
-                          text:
-                              '${alert.condition.name.replaceAll('_', ' ').toUpperCase()} ',
-                          style: TextStyle(
-                              color: Theme.of(context).colorScheme.secondary),
-                        ),
+                        if (!isMultiRule)
+                          TextSpan(
+                            text:
+                                '${alert.condition.name.replaceAll('_', ' ').toUpperCase()} ',
+                            style: TextStyle(
+                                color: Theme.of(context).colorScheme.secondary),
+                          ),
                         TextSpan(
                           text: valueText,
                           style: const TextStyle(fontWeight: FontWeight.bold),
@@ -152,11 +157,29 @@ class _CustomAlertsWidgetState extends State<CustomAlertsWidget> {
                       ],
                     ),
                   ),
-                  subtitle: Text(
-                    alert.lastTriggered != null
-                        ? 'Last triggered: ${DateFormat.yMMMd().add_jm().format(alert.lastTriggered!)}'
-                        : 'Never triggered',
-                    style: Theme.of(context).textTheme.bodySmall,
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (isMultiRule)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 2, bottom: 2),
+                          child: Text(
+                            alert.rules
+                                .map((r) =>
+                                    '${r.type.name.toUpperCase()} ${r.condition.name.replaceAll('_', ' ')} ${r.type == AlertType.price ? currencyFormatter.format(r.value) : (r.type == AlertType.volatility || r.condition == AlertCondition.percent_change || r.condition == AlertCondition.spike || r.condition == AlertCondition.drop ? '${r.value}%' : r.value)}')
+                                .join(' • '),
+                            style: Theme.of(context).textTheme.bodySmall,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      Text(
+                        alert.lastTriggered != null
+                            ? 'Last triggered: ${DateFormat.yMMMd().add_jm().format(alert.lastTriggered!)}'
+                            : 'Never triggered',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
                   ),
                   trailing: Switch(
                     value: alert.active,
@@ -169,6 +192,8 @@ class _CustomAlertsWidgetState extends State<CustomAlertsWidget> {
                           condition: alert.condition,
                           value: alert.value,
                           period: alert.period,
+                          logic: alert.logic,
+                          rules: alert.rules,
                           active: val,
                           lastTriggered: alert.lastTriggered,
                           createdAt: alert.createdAt,
@@ -245,16 +270,55 @@ class _AlertEditorDialog extends StatefulWidget {
   State<_AlertEditorDialog> createState() => _AlertEditorDialogState();
 }
 
+class _RuleEditState {
+  AlertType type;
+  AlertCondition condition;
+  late final TextEditingController valueController;
+  late final TextEditingController periodController;
+
+  _RuleEditState({
+    required this.type,
+    required this.condition,
+    double value = 0.0,
+    int period = 14,
+    bool isNew = false,
+  }) {
+    valueController = TextEditingController(
+      text: (value == 0.0 && isNew)
+          ? ''
+          : (value == value.roundToDouble() && value != 0
+              ? value.toInt().toString()
+              : (value == 0.0 ? '' : value.toString())),
+    );
+    periodController = TextEditingController(text: period.toString());
+  }
+
+  void dispose() {
+    valueController.dispose();
+    periodController.dispose();
+  }
+
+  double get value => double.tryParse(valueController.text) ?? 0.0;
+  int get period => int.tryParse(periodController.text) ?? 14;
+
+  SmartAlertRule toRule() {
+    return SmartAlertRule(
+      type: type,
+      condition: condition,
+      value: value,
+      period: (type == AlertType.moving_average || type == AlertType.rsi)
+          ? period
+          : null,
+    );
+  }
+}
+
 class _AlertEditorDialogState extends State<_AlertEditorDialog> {
   final _formKey = GlobalKey<FormState>();
   late String _symbol;
-  late AlertType _type;
-  late AlertCondition _condition;
-  late double _value;
-  late int _period;
+  late AlertLogic _logic;
+  late List<_RuleEditState> _rules;
   late TextEditingController _symbolController;
-  late TextEditingController _valueController;
-  late TextEditingController _periodController;
 
   final YahooService _yahooService = YahooService();
   Quote? _currentQuote;
@@ -265,15 +329,38 @@ class _AlertEditorDialogState extends State<_AlertEditorDialog> {
     super.initState();
     final alert = widget.alert;
     _symbol = alert?.symbol ?? widget.initialSymbol ?? '';
-    _type = alert?.type ?? AlertType.price;
-    _condition = alert?.condition ?? AlertCondition.above;
-    _value = alert?.value ?? 0.0;
-    _period = alert?.period ?? 14;
-
+    _logic = alert?.logic ?? AlertLogic.all;
     _symbolController = TextEditingController(text: _symbol);
-    _valueController = TextEditingController(
-        text: _value == 0.0 && widget.alert == null ? '' : _value.toString());
-    _periodController = TextEditingController(text: _period.toString());
+
+    if (alert != null && alert.rules.isNotEmpty) {
+      _rules = alert.rules
+          .map((r) => _RuleEditState(
+                type: r.type,
+                condition: r.condition,
+                value: r.value,
+                period: r.period ?? 14,
+              ))
+          .toList();
+    } else if (alert != null) {
+      _rules = [
+        _RuleEditState(
+          type: alert.type,
+          condition: alert.condition,
+          value: alert.value,
+          period: alert.period ?? 14,
+        ),
+      ];
+    } else {
+      _rules = [
+        _RuleEditState(
+          type: AlertType.price,
+          condition: AlertCondition.above,
+          value: 0.0,
+          period: 14,
+          isNew: true,
+        ),
+      ];
+    }
 
     if (_symbol.isNotEmpty) {
       _fetchQuote(_symbol);
@@ -283,8 +370,9 @@ class _AlertEditorDialogState extends State<_AlertEditorDialog> {
   @override
   void dispose() {
     _symbolController.dispose();
-    _valueController.dispose();
-    _periodController.dispose();
+    for (final rule in _rules) {
+      rule.dispose();
+    }
     super.dispose();
   }
 
@@ -305,11 +393,31 @@ class _AlertEditorDialogState extends State<_AlertEditorDialog> {
     }
   }
 
-  void _useCurrentPrice() {
+  void _addRule() {
+    setState(() {
+      _rules.add(_RuleEditState(
+        type: AlertType.price,
+        condition: AlertCondition.above,
+        value: 0.0,
+        period: 14,
+        isNew: true,
+      ));
+    });
+  }
+
+  void _removeRule(int index) {
+    if (_rules.length > 1) {
+      setState(() {
+        final removed = _rules.removeAt(index);
+        removed.dispose();
+      });
+    }
+  }
+
+  void _useCurrentPrice(_RuleEditState rule) {
     if (_currentQuote?.lastTradePrice != null) {
       setState(() {
-        _value = _currentQuote!.lastTradePrice!;
-        _valueController.text = _value.toString();
+        rule.valueController.text = _currentQuote!.lastTradePrice!.toString();
       });
     }
   }
@@ -344,174 +452,265 @@ class _AlertEditorDialogState extends State<_AlertEditorDialog> {
     }
   }
 
+  InputDecoration _getValueDecoration(_RuleEditState rule) {
+    String? suffixText;
+    String? prefixText;
+    if (rule.type == AlertType.price || rule.type == AlertType.moving_average) {
+      prefixText = '\$';
+    } else if (rule.type == AlertType.volatility ||
+        rule.condition == AlertCondition.percent_change ||
+        rule.condition == AlertCondition.spike ||
+        rule.condition == AlertCondition.drop) {
+      suffixText = '%';
+    }
+    return InputDecoration(
+      labelText: 'Value',
+      prefixText: prefixText,
+      suffixText: suffixText,
+    );
+  }
+
+  Widget _buildRuleCard(BuildContext context, int index, _RuleEditState rule) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerLow,
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outlineVariant,
+        ),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Rule ${index + 1}',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+              if (_rules.length > 1)
+                IconButton(
+                  icon: const Icon(Icons.delete_outline, size: 20),
+                  visualDensity: VisualDensity.compact,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  tooltip: 'Remove rule',
+                  onPressed: () => _removeRule(index),
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          DropdownButtonFormField<AlertType>(
+            initialValue: rule.type,
+            isExpanded: true,
+            decoration: const InputDecoration(labelText: 'Type'),
+            items: AlertType.values
+                .map((t) => DropdownMenuItem(
+                      value: t,
+                      child: Text(
+                        t.name.toUpperCase(),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ))
+                .toList(),
+            onChanged: (val) {
+              if (val != null) {
+                setState(() {
+                  rule.type = val;
+                  final validConditions = _getConditionsForType(rule.type);
+                  if (!validConditions.contains(rule.condition)) {
+                    rule.condition = validConditions.first;
+                  }
+                });
+              }
+            },
+          ),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<AlertCondition>(
+            initialValue: rule.condition,
+            isExpanded: true,
+            decoration: const InputDecoration(labelText: 'Condition'),
+            items: _getConditionsForType(rule.type)
+                .map((c) => DropdownMenuItem(
+                      value: c,
+                      child: Text(
+                        c.name.replaceAll('_', ' ').toUpperCase(),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ))
+                .toList(),
+            onChanged: (val) {
+              if (val != null) setState(() => rule.condition = val);
+            },
+          ),
+          if (rule.type == AlertType.moving_average ||
+              rule.type == AlertType.rsi) ...[
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: rule.periodController,
+              decoration: const InputDecoration(labelText: 'Period'),
+              keyboardType: TextInputType.number,
+              validator: (val) {
+                if (val == null || val.isEmpty) return 'Required';
+                final numVal = int.tryParse(val);
+                if (numVal == null) return 'Invalid number';
+                if (numVal <= 0) return 'Must be positive';
+                return null;
+              },
+            ),
+          ],
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: TextFormField(
+                  controller: rule.valueController,
+                  decoration: _getValueDecoration(rule),
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  validator: (val) {
+                    if (val == null || val.isEmpty) return 'Required';
+                    final numVal = double.tryParse(val);
+                    if (numVal == null) return 'Invalid number';
+                    if (numVal < 0) return 'Must be non-negative';
+                    return null;
+                  },
+                ),
+              ),
+              if (rule.type == AlertType.price &&
+                  _currentQuote?.lastTradePrice != null) ...[
+                const SizedBox(width: 8),
+                TextButton(
+                  onPressed: () => _useCurrentPrice(rule),
+                  child: const Text('Use Current'),
+                ),
+              ],
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isEditing = widget.alert != null;
 
-    InputDecoration getValueDecoration() {
-      String? suffixText;
-      String? prefixText;
-      if (_type == AlertType.price || _type == AlertType.moving_average) {
-        prefixText = '\$';
-      } else if (_type == AlertType.volatility ||
-          _condition == AlertCondition.percent_change ||
-          _condition == AlertCondition.spike ||
-          _condition == AlertCondition.drop) {
-        suffixText = '%';
-      }
-      return InputDecoration(
-        labelText: 'Value',
-        prefixText: prefixText,
-        suffixText: suffixText,
-      );
-    }
-
     return AlertDialog(
       title: Text(isEditing ? 'Edit Alert' : 'Add Alert'),
-      content: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (widget.initialSymbol == null)
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextFormField(
-                        controller: _symbolController,
-                        decoration: const InputDecoration(labelText: 'Symbol'),
-                        textCapitalization: TextCapitalization.characters,
-                        onChanged: (val) {
-                          _symbol = val.toUpperCase();
-                        },
-                        validator: (val) =>
-                            val == null || val.isEmpty ? 'Required' : null,
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.refresh),
-                      onPressed: () => _fetchQuote(_symbolController.text),
-                      tooltip: 'Refresh Quote',
-                    ),
-                  ],
-                ),
-              if (_isLoadingQuote)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8.0),
-                  child: LinearProgressIndicator(),
-                ),
-              if (_currentQuote != null) ...[
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color:
-                        Theme.of(context).colorScheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      content: SizedBox(
+        width: double.maxFinite,
+        child: Form(
+          key: _formKey,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (widget.initialSymbol == null)
+                  Row(
                     children: [
-                      Text(
-                        'Current Price:',
-                        style: Theme.of(context).textTheme.bodyMedium,
+                      Expanded(
+                        child: TextFormField(
+                          controller: _symbolController,
+                          decoration:
+                              const InputDecoration(labelText: 'Symbol'),
+                          textCapitalization: TextCapitalization.characters,
+                          onChanged: (val) {
+                            _symbol = val.toUpperCase();
+                          },
+                          validator: (val) =>
+                              val == null || val.isEmpty ? 'Required' : null,
+                        ),
                       ),
-                      Text(
-                        _currentQuote?.lastTradePrice != null
-                            ? NumberFormat.simpleCurrency()
-                                .format(_currentQuote!.lastTradePrice)
-                            : '--',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      IconButton(
+                        icon: const Icon(Icons.refresh),
+                        onPressed: () => _fetchQuote(_symbolController.text),
+                        tooltip: 'Refresh Quote',
                       ),
                     ],
                   ),
-                ),
-              ],
-              const SizedBox(height: 16),
-              DropdownButtonFormField<AlertType>(
-                initialValue: _type,
-                decoration: const InputDecoration(labelText: 'Type'),
-                items: AlertType.values
-                    .map((t) => DropdownMenuItem(
-                          value: t,
-                          child: Text(t.name.toUpperCase()),
-                        ))
-                    .toList(),
-                onChanged: (val) {
-                  if (val != null) {
-                    setState(() {
-                      _type = val;
-                      // Reset condition if not valid for new type
-                      final validConditions = _getConditionsForType(_type);
-                      if (!validConditions.contains(_condition)) {
-                        _condition = validConditions.first;
-                      }
-                    });
-                  }
-                },
-              ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<AlertCondition>(
-                initialValue: _condition,
-                decoration: const InputDecoration(labelText: 'Condition'),
-                items: _getConditionsForType(_type)
-                    .map((c) => DropdownMenuItem(
-                          value: c,
-                          child:
-                              Text(c.name.replaceAll('_', ' ').toUpperCase()),
-                        ))
-                    .toList(),
-                onChanged: (val) {
-                  if (val != null) setState(() => _condition = val);
-                },
-              ),
-              if (_type == AlertType.moving_average ||
-                  _type == AlertType.rsi) ...[
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _periodController,
-                  decoration: const InputDecoration(labelText: 'Period'),
-                  keyboardType: TextInputType.number,
-                  onChanged: (val) => _period = int.tryParse(val) ?? 14,
-                  validator: (val) {
-                    if (val == null || val.isEmpty) return 'Required';
-                    final numVal = int.tryParse(val);
-                    if (numVal == null) return 'Invalid number';
-                    if (numVal <= 0) return 'Must be positive';
-                    return null;
-                  },
-                ),
-              ],
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _valueController,
-                      decoration: getValueDecoration(),
-                      keyboardType:
-                          const TextInputType.numberWithOptions(decimal: true),
-                      onChanged: (val) => _value = double.tryParse(val) ?? 0.0,
-                      validator: (val) {
-                        if (val == null || val.isEmpty) return 'Required';
-                        final numVal = double.tryParse(val);
-                        if (numVal == null) return 'Invalid number';
-                        if (numVal < 0) return 'Must be non-negative';
-                        return null;
-                      },
+                if (_isLoadingQuote)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8.0),
+                    child: LinearProgressIndicator(),
+                  ),
+                if (_currentQuote != null) ...[
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color:
+                          Theme.of(context).colorScheme.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Current Price:',
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+                        Text(
+                          _currentQuote?.lastTradePrice != null
+                              ? NumberFormat.simpleCurrency()
+                                  .format(_currentQuote!.lastTradePrice)
+                              : '--',
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ],
                     ),
                   ),
-                  if (_type == AlertType.price &&
-                      _currentQuote?.lastTradePrice != null)
-                    TextButton(
-                      onPressed: _useCurrentPrice,
-                      child: const Text('Use Current'),
-                    ),
                 ],
-              ),
-            ],
+                const SizedBox(height: 16),
+                if (_rules.length > 1) ...[
+                  DropdownButtonFormField<AlertLogic>(
+                    initialValue: _logic,
+                    isExpanded: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Smart Trigger Logic',
+                      helperText: 'How conditions should be combined',
+                    ),
+                    items: AlertLogic.values
+                        .map((logic) => DropdownMenuItem(
+                              value: logic,
+                              child: Text(
+                                logic == AlertLogic.all
+                                    ? 'Trigger when ALL rules match (AND)'
+                                    : 'Trigger when ANY rule matches (OR)',
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ))
+                        .toList(),
+                    onChanged: (val) {
+                      if (val != null) setState(() => _logic = val);
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                ],
+                Text(
+                  _rules.length > 1 ? 'Rules' : 'Rule',
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                ),
+                const SizedBox(height: 8),
+                for (int i = 0; i < _rules.length; i++) ...[
+                  _buildRuleCard(context, i, _rules[i]),
+                  const SizedBox(height: 12),
+                ],
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: OutlinedButton.icon(
+                    onPressed: _addRule,
+                    icon: const Icon(Icons.add, size: 18),
+                    label: const Text('Add Rule'),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -527,7 +726,7 @@ class _AlertEditorDialogState extends State<_AlertEditorDialog> {
               // Ensure symbol is updated
               _symbol = _symbolController.text.toUpperCase();
 
-              if (userId != null && _symbol.isNotEmpty) {
+              if (userId != null && _symbol.isNotEmpty && _rules.isNotEmpty) {
                 // Get device token if new or missing
                 String? token = widget.alert?.deviceToken;
                 if (token == null) {
@@ -538,17 +737,19 @@ class _AlertEditorDialogState extends State<_AlertEditorDialog> {
                   }
                 }
 
+                final smartRules = _rules.map((r) => r.toRule()).toList();
+                final primaryRule = smartRules.first;
+
                 final newAlert = CustomAlert(
                   id: widget.alert?.id ?? '',
                   userId: userId,
                   symbol: _symbol,
-                  type: _type,
-                  condition: _condition,
-                  value: _value,
-                  period: (_type == AlertType.moving_average ||
-                          _type == AlertType.rsi)
-                      ? _period
-                      : null,
+                  type: primaryRule.type,
+                  condition: primaryRule.condition,
+                  value: primaryRule.value,
+                  period: primaryRule.period,
+                  logic: _logic,
+                  rules: smartRules,
                   active: widget.alert?.active ?? true,
                   lastTriggered: widget.alert?.lastTriggered,
                   createdAt: widget.alert?.createdAt ?? DateTime.now(),

@@ -4,6 +4,46 @@ enum AlertType { price, volume, volatility, moving_average, rsi, custom }
 
 enum AlertCondition { above, below, spike, drop, percent_change }
 
+enum AlertLogic { all, any }
+
+class SmartAlertRule {
+  final AlertType type;
+  final AlertCondition condition;
+  final double value;
+  final int? period;
+
+  const SmartAlertRule({
+    required this.type,
+    required this.condition,
+    required this.value,
+    this.period,
+  });
+
+  factory SmartAlertRule.fromMap(Map<String, dynamic> map) {
+    return SmartAlertRule(
+      type: AlertType.values.firstWhere(
+        (e) => e.name == (map['type'] ?? 'price'),
+        orElse: () => AlertType.price,
+      ),
+      condition: AlertCondition.values.firstWhere(
+        (e) => e.name == (map['condition'] ?? 'above'),
+        orElse: () => AlertCondition.above,
+      ),
+      value: (map['value'] ?? 0).toDouble(),
+      period: map['period'] as int?,
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'type': type.name,
+      'condition': condition.name,
+      'value': value,
+      'period': period,
+    };
+  }
+}
+
 class CustomAlert {
   final String id;
   final String userId;
@@ -13,6 +53,8 @@ class CustomAlert {
   final double value; // Threshold value
   final int?
       period; // Period for technical indicators (e.g. 50 for SMA, 14 for RSI)
+  final AlertLogic logic;
+  final List<SmartAlertRule> rules;
   final bool active;
   final DateTime? lastTriggered;
   final DateTime createdAt;
@@ -26,6 +68,8 @@ class CustomAlert {
     required this.condition,
     required this.value,
     this.period,
+    this.logic = AlertLogic.all,
+    this.rules = const [],
     this.active = true,
     this.lastTriggered,
     required this.createdAt,
@@ -34,6 +78,15 @@ class CustomAlert {
 
   factory CustomAlert.fromFirestore(DocumentSnapshot doc) {
     Map data = doc.data() as Map<String, dynamic>;
+    final rulesData = data['rules'];
+    final rules = (rulesData is List)
+        ? rulesData
+            .whereType<Map>()
+            .map((rule) =>
+                SmartAlertRule.fromMap(Map<String, dynamic>.from(rule as Map)))
+            .toList()
+        : <SmartAlertRule>[];
+
     return CustomAlert(
       id: doc.id,
       userId: data['userId'] ?? '',
@@ -48,6 +101,11 @@ class CustomAlert {
       ),
       value: (data['value'] ?? 0).toDouble(),
       period: data['period'],
+      logic: AlertLogic.values.firstWhere(
+        (e) => e.name == (data['logic'] ?? 'all'),
+        orElse: () => AlertLogic.all,
+      ),
+      rules: rules,
       active: data['active'] ?? true,
       lastTriggered: data['lastTriggered'] != null
           ? (data['lastTriggered'] as Timestamp).toDate()
@@ -67,6 +125,8 @@ class CustomAlert {
       'condition': condition.name,
       'value': value,
       'period': period,
+      'logic': logic.name,
+      'rules': rules.map((rule) => rule.toMap()).toList(),
       'active': active,
       'lastTriggered':
           lastTriggered != null ? Timestamp.fromDate(lastTriggered!) : null,
