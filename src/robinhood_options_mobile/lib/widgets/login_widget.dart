@@ -63,6 +63,57 @@ class _LoginWidgetState extends State<LoginWidget> {
   bool mfaRequired = false;
   bool loading = false;
 
+  final List<Map<String, dynamic>> _brokerageOptions = const [
+    {
+      'source': BrokerageSource.demo,
+      'label': 'Demo',
+      'subtitle': 'Sample data',
+      'icon': Icons.computer_rounded,
+      'accent': Color(0xFF8B5CF6),
+    },
+    {
+      'source': BrokerageSource.paper,
+      'label': 'Paper',
+      'subtitle': 'Simulated',
+      'icon': Icons.science_rounded,
+      'accent': Color(0xFF3B82F6),
+    },
+    {
+      'source': BrokerageSource.robinhood,
+      'label': 'Robinhood',
+      'subtitle': 'Live login',
+      'icon': Icons.account_balance_wallet_rounded,
+      'accent': Color(0xFF00C805),
+    },
+    {
+      'source': BrokerageSource.schwab,
+      'label': 'Schwab',
+      'subtitle': 'Brokerage',
+      'icon': Icons.account_balance_rounded,
+      'accent': Color(0xFF00A3E0),
+    },
+    {
+      'source': BrokerageSource.fidelity,
+      'label': 'Fidelity',
+      'subtitle': 'CSV import',
+      'icon': Icons.file_upload_rounded,
+      'accent': Color(0xFF22C55E),
+    },
+  ];
+
+  static const _invisibleCarouselSpacer = {
+    'source': null,
+    'label': '',
+    'subtitle': '',
+    'icon': Icons.help_outline,
+    'accent': Colors.transparent,
+  };
+
+  List<Map<String, dynamic>> get _carouselItems => [
+        ..._brokerageOptions,
+        _invisibleCarouselSpacer,
+      ];
+
   bool popped = false;
 
   // Define the focus node. To manage the lifecycle, create the FocusNode in
@@ -71,6 +122,7 @@ class _LoginWidgetState extends State<LoginWidget> {
 
   late final CarouselController _carouselController;
   final ValueNotifier<int> _currentCarouselPageNotifier = ValueNotifier<int>(0);
+  double _brokerageItemExtent = 160.0;
 
   // Plaid integration
   // LinkTokenConfiguration? _configuration;
@@ -145,11 +197,32 @@ class _LoginWidgetState extends State<LoginWidget> {
   }
 
   void _onCarouselScroll() {
-    if (!_carouselController.hasClients) return;
-    // Calculate the current item index based on the offset and itemExtent (185)
-    final page = (_carouselController.offset / 185).round();
-    if (page != _currentCarouselPageNotifier.value && page >= 0 && page < 5) {
-      _currentCarouselPageNotifier.value = page;
+    if (!_carouselController.hasClients || _brokerageItemExtent <= 0) return;
+
+    final page = (_carouselController.offset / _brokerageItemExtent).round();
+    if (page >= 0 && page < _brokerageOptions.length) {
+      final nextSource = _brokerageOptions[page]['source'] as BrokerageSource;
+      if (source != nextSource) {
+        setState(() {
+          source = nextSource;
+        });
+      }
+      if (page != _currentCarouselPageNotifier.value) {
+        _currentCarouselPageNotifier.value = page;
+      }
+    }
+  }
+
+  void _setSelectedBrokerage(BrokerageSource selected, [int? index]) {
+    final nextIndex = index ??
+        _brokerageOptions.indexWhere((option) => option['source'] == selected);
+    if (nextIndex >= 0) {
+      _currentCarouselPageNotifier.value = nextIndex;
+    }
+    if (source != selected) {
+      setState(() {
+        source = selected;
+      });
     }
   }
 
@@ -373,177 +446,159 @@ class _LoginWidgetState extends State<LoginWidget> {
                   color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
             const SizedBox(height: 20),
-            ConstrainedBox(
-                constraints: const BoxConstraints(maxHeight: 80),
-                child: CarouselView(
-                  controller: _carouselController,
-                  scrollDirection: Axis.horizontal,
-                  enableSplash: false,
-                  itemSnapping: true,
-                  itemExtent: 185,
-                  onTap: (value) {
-                    debugPrint(value.toString());
-                    setState(() {
-                      source = value == 0
-                          ? BrokerageSource.demo
-                          : value == 1
-                              ? BrokerageSource.paper
-                              : value == 2
-                                  ? BrokerageSource.robinhood
-                                  : value == 3
-                                      ? BrokerageSource.schwab
-                                      /*
-                                      : value == 4
-                                          ? BrokerageSource.plaid
-                                      */
-                                      : BrokerageSource.fidelity;
-                    });
-                  },
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.all(4.0),
-                      child: ChoiceChip(
-                        avatar: const Icon(Icons.computer, size: 22),
-                        showCheckmark: false,
-                        labelStyle: const TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.w500),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 10),
-                        label: const SizedBox(
-                            width: 110,
-                            child: Text(
-                              'Demo',
-                              textAlign: TextAlign.center,
-                            )),
-                        selected: source == BrokerageSource.demo,
-                        onSelected: (bool selected) {
-                          setState(() {
-                            source = BrokerageSource.demo;
-                          });
-                        },
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(4.0),
-                      child: ChoiceChip(
-                        avatar: const Icon(Icons.science, size: 22),
-                        showCheckmark: false,
-                        labelStyle: const TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.w500),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 10),
-                        label: const SizedBox(
-                            width: 110,
-                            child: Text(
-                              'Paper Trading',
-                              textAlign: TextAlign.center,
-                            )),
-                        selected: source == BrokerageSource.paper,
-                        onSelected: (bool selected) {
-                          setState(() {
-                            source = BrokerageSource.paper;
-                          });
-                        },
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(4.0),
-                      child: ChoiceChip(
-                        avatar:
-                            const Icon(Icons.account_balance_wallet, size: 22),
-                        showCheckmark: false,
-                        labelStyle: const TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.w500),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 10),
-                        label: const SizedBox(
-                          width: 110,
-                          child: Text(
-                            'Robinhood',
-                            textAlign: TextAlign.center,
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final maxWidth = constraints.maxWidth.isFinite
+                    ? constraints.maxWidth
+                    : MediaQuery.sizeOf(context).width;
+                _brokerageItemExtent = (maxWidth * 0.46).clamp(118.0, 168.0);
+
+                return ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 120),
+                  child: CarouselView(
+                    controller: _carouselController,
+                    scrollDirection: Axis.horizontal,
+                    enableSplash: false,
+                    itemSnapping: true,
+                    itemExtent: _brokerageItemExtent,
+                    onTap: (value) {
+                      if (value >= 0 && value < _brokerageOptions.length) {
+                        final option = _brokerageOptions[value];
+                        _setSelectedBrokerage(
+                            option['source'] as BrokerageSource, value);
+                      }
+                    },
+                    children: List.generate(_carouselItems.length, (index) {
+                      final option = _carouselItems[index];
+                      if (option['source'] == null) {
+                        return const SizedBox(width: 20, height: 20);
+                      }
+
+                      final accent = option['accent'] as Color;
+                      final isSelected = source == option['source'];
+
+                      return Padding(
+                        padding: const EdgeInsets.all(4.0),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 220),
+                          curve: Curves.easeOutCubic,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(18),
+                            border: Border.all(
+                              color: isSelected
+                                  ? accent
+                                  : Theme.of(context)
+                                      .colorScheme
+                                      .outlineVariant
+                                      .withValues(alpha: 0.9),
+                              width: isSelected ? 2.0 : 1.0,
+                            ),
+                            color: isSelected
+                                ? accent.withValues(alpha: 0.12)
+                                : Theme.of(context)
+                                    .colorScheme
+                                    .surfaceContainerHighest,
+                            boxShadow: isSelected
+                                ? [
+                                    BoxShadow(
+                                      color: accent.withValues(alpha: 0.18),
+                                      blurRadius: 18,
+                                      offset: const Offset(0, 6),
+                                    ),
+                                  ]
+                                : null,
+                          ),
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(18),
+                              onTap: () => _setSelectedBrokerage(
+                                  option['source'] as BrokerageSource,
+                                  _brokerageOptions.indexWhere(
+                                      (item) => item['source'] == option['source'])),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 10, vertical: 8),
+                                child: LayoutBuilder(
+                                  builder: (context, itemConstraints) {
+                                    return Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Container(
+                                          width: 38,
+                                          height: 38,
+                                          decoration: BoxDecoration(
+                                            color: isSelected
+                                                ? accent.withValues(alpha: 0.18)
+                                                : Theme.of(context)
+                                                    .colorScheme
+                                                    .surfaceContainerLow,
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: Icon(
+                                            option['icon'] as IconData,
+                                            size: 20,
+                                            color: isSelected
+                                                ? accent
+                                                : Theme.of(context)
+                                                    .colorScheme
+                                                    .onSurfaceVariant,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 7),
+                                        SizedBox(
+                                          width: itemConstraints.maxWidth,
+                                          child: Text(
+                                            option['label'] as String,
+                                            textAlign: TextAlign.center,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              fontSize: 15,
+                                              fontWeight: isSelected
+                                                  ? FontWeight.w700
+                                                  : FontWeight.w600,
+                                              color: isSelected
+                                                  ? Theme.of(context)
+                                                      .colorScheme
+                                                      .onSurface
+                                                  : Theme.of(context)
+                                                      .colorScheme
+                                                      .onSurfaceVariant,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        SizedBox(
+                                          width: itemConstraints.maxWidth,
+                                          child: Text(
+                                            option['subtitle'] as String,
+                                            textAlign: TextAlign.center,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              fontSize: 10.5,
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .onSurfaceVariant,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    );
+                                  },
+                                ),
+                              ),
+                            ),
                           ),
                         ),
-                        selected: source == BrokerageSource.robinhood,
-                        onSelected: (bool selected) {
-                          setState(() {
-                            source = BrokerageSource.robinhood;
-                          });
-                        },
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(4.0),
-                      child: ChoiceChip(
-                        avatar: const Icon(Icons.account_balance, size: 22),
-                        showCheckmark: false,
-                        labelStyle: const TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.w500),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 10),
-                        label: const SizedBox(
-                            width: 110,
-                            child: Text(
-                              'Schwab',
-                              textAlign: TextAlign.center,
-                            )),
-                        selected: source == BrokerageSource.schwab,
-                        onSelected: (bool selected) {
-                          setState(() {
-                            source = BrokerageSource.schwab;
-                          });
-                        },
-                      ),
-                    ),
-                    /*
-                    Padding(
-                      padding: const EdgeInsets.all(4.0),
-                      child: ChoiceChip(
-                        avatar: const Icon(Icons.link, size: 22),
-                        showCheckmark: false,
-                        labelStyle: const TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.w500),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 10),
-                        label: const SizedBox(
-                            width: 110,
-                            child: Text(
-                              'Plaid',
-                              textAlign: TextAlign.center,
-                            )),
-                        selected: source == BrokerageSource.plaid,
-                        onSelected: (bool selected) {
-                          setState(() {
-                            source = BrokerageSource.plaid;
-                          });
-                        },
-                      ),
-                    ),
-                    */
-                    Padding(
-                      padding: const EdgeInsets.all(4.0),
-                      child: ChoiceChip(
-                        avatar: const Icon(Icons.file_upload, size: 22),
-                        showCheckmark: false,
-                        labelStyle: const TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.w500),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 10),
-                        label: const SizedBox(
-                            width: 110,
-                            child: Text(
-                              'Fidelity',
-                              textAlign: TextAlign.center,
-                            )),
-                        selected: source == BrokerageSource.fidelity,
-                        onSelected: (bool selected) {
-                          setState(() {
-                            source = BrokerageSource.fidelity;
-                          });
-                        },
-                      ),
-                    ),
-                  ],
-                )),
+                      );
+                    }),
+                  ),
+                );
+              },
+            ),
             ValueListenableBuilder<int>(
               valueListenable: _currentCarouselPageNotifier,
               builder: (context, currentPage, child) {
@@ -551,7 +606,7 @@ class _LoginWidgetState extends State<LoginWidget> {
                   padding: const EdgeInsets.only(top: 12.0),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
-                    children: List.generate(5, (index) {
+                    children: List.generate(_brokerageOptions.length, (index) {
                       return AnimatedContainer(
                         duration: const Duration(milliseconds: 300),
                         width: currentPage == index ? 20.0 : 6.0,
