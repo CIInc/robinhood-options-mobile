@@ -3,8 +3,8 @@ name: Integration Tests
 on:
   workflow_dispatch:
   pull_request:
-    branches: [ main ]
-    paths: ['src/robinhood_options_mobile/**']
+    branches: [main]
+    paths: ["src/robinhood_options_mobile/**"]
 
 jobs:
   drive_android:
@@ -19,13 +19,13 @@ jobs:
 
     steps:
       - name: Checkout source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Install Java
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
-          distribution: 'zulu'
-          java-version: '17'
+          distribution: "zulu"
+          java-version: "17"
 
       - name: Install Flutter
         uses: subosito/flutter-action@v2
