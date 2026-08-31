@@ -36,8 +36,7 @@ void main() {
         dateCreated: DateTime.now());
   }
 
-  PaperTradingStore makeStore() =>
-      PaperTradingStore(
+  PaperTradingStore makeStore() => PaperTradingStore(
       firestore: _UnusedFirestore(), isMarketOpen: () => true);
 
   /// 10,000 cash account with a 100-share short at $100
@@ -100,8 +99,7 @@ void main() {
       expect(entry['profitLoss'], (100.0 - 180.0) * 63);
     });
 
-    test('blown account liquidates everything and records a warning',
-        () async {
+    test('blown account liquidates everything and records a warning', () async {
       final store = await storeWithShort();
 
       // At 400: maintenance = 52,000 vs 20,000 cash — covering everything
@@ -120,8 +118,7 @@ void main() {
       expect(warning['state'], 'warning');
     });
 
-    test('covers the largest exposure first across multiple shorts',
-        () async {
+    test('covers the largest exposure first across multiple shorts', () async {
       final store = makeStore();
       await store.resetAccount(initialCapital: 20000.0);
       await store.submitStockOrder(
@@ -141,14 +138,14 @@ void main() {
       // AAPL rises to 250 (TSLA flat): maintenance = 32,500 + 1,300 vs
       // 31,000 cash — deficit 2,800. Each covered AAPL share frees
       // 0.3 x 250 = 75, so ceil(2800 / 75) = 38 shares are bought back.
-      await store.processMarginCalls(
-          stockPrices: {'AAPL': 250.0, 'TSLA': 100.0});
+      await store
+          .processMarginCalls(stockPrices: {'AAPL': 250.0, 'TSLA': 100.0});
 
-      final tsla = store.positions
-          .firstWhere((p) => p.instrumentObj?.symbol == 'TSLA');
+      final tsla =
+          store.positions.firstWhere((p) => p.instrumentObj?.symbol == 'TSLA');
       expect(tsla.quantity, -10); // untouched
-      final aapl = store.positions
-          .firstWhere((p) => p.instrumentObj?.symbol == 'AAPL');
+      final aapl =
+          store.positions.firstWhere((p) => p.instrumentObj?.symbol == 'AAPL');
       expect(aapl.quantity, -62);
       expect(store.cashBalance, 31000.0 - 38 * 250.0);
     });

@@ -29,7 +29,8 @@ class InstitutionalOwnership {
       totalShares: (json['totalShares'] as num?)?.toDouble(),
       percentageHeld: (json['percentageHeld'] as num?)?.toDouble(),
       floatPercentageHeld: (json['floatPercentageHeld'] as num?)?.toDouble(),
-      insidersPercentageHeld: (json['insidersPercentageHeld'] as num?)?.toDouble(),
+      insidersPercentageHeld:
+          (json['insidersPercentageHeld'] as num?)?.toDouble(),
       institutionCount: (json['institutionCount'] as num?)?.toInt(),
       topHolders: (json['topHolders'] as List<dynamic>?)
               ?.map((e) =>

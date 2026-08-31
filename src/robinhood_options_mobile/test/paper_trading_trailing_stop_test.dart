@@ -35,8 +35,7 @@ void main() {
         dateCreated: DateTime.now());
   }
 
-  PaperTradingStore makeStore() =>
-      PaperTradingStore(
+  PaperTradingStore makeStore() => PaperTradingStore(
       firestore: _UnusedFirestore(), isMarketOpen: () => true);
 
   Future<PaperTradingStore> storeWithLong(

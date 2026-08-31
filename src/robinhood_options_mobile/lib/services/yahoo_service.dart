@@ -831,7 +831,9 @@ class YahooService {
       final docSnapshot = await docRef.get();
       if (docSnapshot.exists) {
         final data = docSnapshot.data();
-        if (data != null && data.containsKey('lastUpdated') && data['lastUpdated'] != null) {
+        if (data != null &&
+            data.containsKey('lastUpdated') &&
+            data['lastUpdated'] != null) {
           final lastUpdated = (data['lastUpdated'] as Timestamp).toDate();
           if (DateTime.now().difference(lastUpdated) < ttl &&
               data['data'] != null) {
@@ -923,8 +925,7 @@ class YahooService {
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
     }
-    debugPrint(
-        "Yahoo proxy error: ${response.statusCode} ${response.body}");
+    debugPrint("Yahoo proxy error: ${response.statusCode} ${response.body}");
     throw Exception("Failed to load data: ${response.statusCode}");
   }
 

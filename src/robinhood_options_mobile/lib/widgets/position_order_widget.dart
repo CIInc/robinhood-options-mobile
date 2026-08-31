@@ -161,9 +161,8 @@ class _PositionOrderWidgetState extends State<PositionOrderWidget> {
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
               ListTile(
-                title: const Text("Order Detail",
-                    style:
-                        TextStyle(fontSize: 20)),
+                title:
+                    const Text("Order Detail", style: TextStyle(fontSize: 20)),
                 trailing: Chip(
                   label: Text(positionOrder.state.toUpperCase()),
                   backgroundColor: positionOrder.state == 'filled'

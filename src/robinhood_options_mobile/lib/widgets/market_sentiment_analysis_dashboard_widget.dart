@@ -479,8 +479,8 @@ class _SentimentAnalysisDashboardWidgetState
 
     final instrumentStore =
         Provider.of<InstrumentStore>(context, listen: false);
-    final instrument = await widget.service!.getInstrumentBySymbol(
-        widget.brokerageUser!, instrumentStore, symbol);
+    final instrument = await widget.service!
+        .getInstrumentBySymbol(widget.brokerageUser!, instrumentStore, symbol);
 
     if (instrument != null && mounted) {
       Navigator.push(
@@ -605,8 +605,8 @@ class _SentimentAnalysisDashboardWidgetState
                                           padding: const EdgeInsets.symmetric(
                                               horizontal: 8, vertical: 4),
                                           decoration: BoxDecoration(
-                                            color: scoreColor
-                                                .withValues(alpha: 0.1),
+                                            color: scoreColor.withValues(
+                                                alpha: 0.1),
                                             borderRadius:
                                                 BorderRadius.circular(8),
                                           ),

@@ -12,7 +12,8 @@ void main() {
     await setupFirebaseMocks();
   });
 
-  testWidgets('login carousel adds an invisible end spacer so final option stays swipe-reachable',
+  testWidgets(
+      'login carousel adds an invisible end spacer so final option stays swipe-reachable',
       (tester) async {
     final analytics = FirebaseAnalytics.instance;
 

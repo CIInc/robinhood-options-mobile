@@ -48,8 +48,8 @@ class OptionEvent {
                 ? DateTime.tryParse(json['created_at'])
                 : null),
         direction = json['direction'],
-        equityComponents =
-            List<String>.from(json['equity_components']?.map((e) => e.toString()) ?? []),
+        equityComponents = List<String>.from(
+            json['equity_components']?.map((e) => e.toString()) ?? []),
         eventDate = json['event_date'] is Timestamp
             ? (json['event_date'] as Timestamp).toDate()
             : (json['event_date'] is String
@@ -64,8 +64,8 @@ class OptionEvent {
         sourceRefId = json['source_ref_id'],
         state = json['state'],
         totalCashAmount = json['total_cash_amount'] is num
-             ? (json['total_cash_amount'] as num).toDouble()
-             : double.tryParse(json['total_cash_amount'] ?? ''),
+            ? (json['total_cash_amount'] as num).toDouble()
+            : double.tryParse(json['total_cash_amount'] ?? ''),
         type = json['type'],
         underlyingPrice = json['underlying_price'] is num
             ? (json['underlying_price'] as num).toDouble()

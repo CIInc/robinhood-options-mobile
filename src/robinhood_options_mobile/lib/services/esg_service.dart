@@ -126,5 +126,4 @@ class ESGService {
     var futures = symbols.map((symbol) => getESGScore(symbol));
     return await Future.wait(futures);
   }
-
 }

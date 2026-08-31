@@ -17,7 +17,8 @@ void main() {
     expect(find.text('Welcome to RealizeAlpha'), findsOneWidget);
   });
 
-  testWidgets('Initial state shows Welcome screen', (WidgetTester tester) async {
+  testWidgets('Initial state shows Welcome screen',
+      (WidgetTester tester) async {
     // Build our app and trigger a frame.
     await tester.pumpWidget(const MyApp());
     await tester.pumpAndSettle();

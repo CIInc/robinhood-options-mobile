@@ -703,95 +703,84 @@ class _GroupWatchlistDetailWidgetState
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
-                                      ...symbolAlerts
-                                          .map((alert) => Padding(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                        vertical: 8),
-                                                child: Row(
-                                                  children: [
-                                                    Container(
-                                                      padding:
-                                                          const EdgeInsets.all(
-                                                              4),
-                                                      decoration: BoxDecoration(
-                                                        color: alert.active
-                                                            ? Colors.green
-                                                                .withOpacity(
-                                                                    0.1)
-                                                            : Colors.grey
-                                                                .withOpacity(
-                                                                    0.1),
-                                                        borderRadius:
-                                                            BorderRadius
-                                                                .circular(3),
-                                                      ),
-                                                      child: Icon(
-                                                        alert.active
-                                                            ? Icons.check_circle
-                                                            : Icons
-                                                                .pause_circle,
-                                                        size: 16,
-                                                        color: alert.active
-                                                            ? Colors.green
-                                                            : Colors.grey,
-                                                      ),
-                                                    ),
-                                                    const SizedBox(width: 8),
-                                                    Expanded(
-                                                      child: Column(
-                                                        crossAxisAlignment:
-                                                            CrossAxisAlignment
-                                                                .start,
-                                                        children: [
-                                                          Text(
-                                                            alert.type ==
-                                                                    'price_above'
-                                                                ? 'Price above \$${alert.threshold.toStringAsFixed(2)}'
-                                                                : 'Price below \$${alert.threshold.toStringAsFixed(2)}',
-                                                            style: Theme.of(
-                                                                    context)
-                                                                .textTheme
-                                                                .labelMedium,
-                                                          ),
-                                                          const SizedBox(
-                                                              height: 2),
-                                                          Text(
-                                                            alert.active
-                                                                ? 'Active'
-                                                                : 'Inactive',
-                                                            style: TextStyle(
-                                                              fontSize: 12,
-                                                              color: alert
-                                                                      .active
-                                                                  ? Colors.green
-                                                                  : Colors.grey,
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .w500,
-                                                            ),
-                                                          ),
-                                                        ],
-                                                      ),
-                                                    ),
-                                                    if (isEditor)
-                                                      IconButton(
-                                                        icon: const Icon(Icons
-                                                            .delete_outline),
-                                                        onPressed: () {
-                                                          _showDeleteAlertConfirmation(
-                                                            context,
-                                                            symbol.symbol,
-                                                            alert.id,
-                                                          );
-                                                        },
-                                                        iconSize: 20,
-                                                        color: Colors.red[600],
-                                                      ),
-                                                  ],
+                                      ...symbolAlerts.map((alert) => Padding(
+                                            padding: const EdgeInsets.symmetric(
+                                                vertical: 8),
+                                            child: Row(
+                                              children: [
+                                                Container(
+                                                  padding:
+                                                      const EdgeInsets.all(4),
+                                                  decoration: BoxDecoration(
+                                                    color: alert.active
+                                                        ? Colors.green
+                                                            .withOpacity(0.1)
+                                                        : Colors.grey
+                                                            .withOpacity(0.1),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            3),
+                                                  ),
+                                                  child: Icon(
+                                                    alert.active
+                                                        ? Icons.check_circle
+                                                        : Icons.pause_circle,
+                                                    size: 16,
+                                                    color: alert.active
+                                                        ? Colors.green
+                                                        : Colors.grey,
+                                                  ),
                                                 ),
-                                              ))
-                                          ,
+                                                const SizedBox(width: 8),
+                                                Expanded(
+                                                  child: Column(
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment
+                                                            .start,
+                                                    children: [
+                                                      Text(
+                                                        alert.type ==
+                                                                'price_above'
+                                                            ? 'Price above \$${alert.threshold.toStringAsFixed(2)}'
+                                                            : 'Price below \$${alert.threshold.toStringAsFixed(2)}',
+                                                        style: Theme.of(context)
+                                                            .textTheme
+                                                            .labelMedium,
+                                                      ),
+                                                      const SizedBox(height: 2),
+                                                      Text(
+                                                        alert.active
+                                                            ? 'Active'
+                                                            : 'Inactive',
+                                                        style: TextStyle(
+                                                          fontSize: 12,
+                                                          color: alert.active
+                                                              ? Colors.green
+                                                              : Colors.grey,
+                                                          fontWeight:
+                                                              FontWeight.w500,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                                if (isEditor)
+                                                  IconButton(
+                                                    icon: const Icon(
+                                                        Icons.delete_outline),
+                                                    onPressed: () {
+                                                      _showDeleteAlertConfirmation(
+                                                        context,
+                                                        symbol.symbol,
+                                                        alert.id,
+                                                      );
+                                                    },
+                                                    iconSize: 20,
+                                                    color: Colors.red[600],
+                                                  ),
+                                              ],
+                                            ),
+                                          )),
                                       if (isEditor) ...[
                                         const SizedBox(height: 12),
                                         SizedBox(

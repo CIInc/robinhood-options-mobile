@@ -40,7 +40,10 @@ class Account {
         settledAmountBorrowed = json['margin_balances'] != null
             ? parseDouble(json['margin_balances']['settled_amount_borrowed'])
             : parseDouble(json['settled_amount_borrowed']),
-        isAgentic = json['is_agentic'] ?? json['agentic_allowed'] ?? (json['type'] == 'agentic') ?? false;
+        isAgentic = json['is_agentic'] ??
+            json['agentic_allowed'] ??
+            (json['type'] == 'agentic') ??
+            false;
 
   Account.fromSchwabJson(dynamic json) //, BrokerageUser user
       : // userId = user.id,

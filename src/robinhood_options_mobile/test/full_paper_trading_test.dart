@@ -194,8 +194,7 @@ class FakePaperTradingStore extends ChangeNotifier
 
   @override
   Future<bool> processMarginCalls(
-          {required Map<String, double> stockPrices,
-          bool? marketOpen}) async =>
+          {required Map<String, double> stockPrices, bool? marketOpen}) async =>
       false;
 
   @override

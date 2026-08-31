@@ -206,8 +206,9 @@ class _FutureInstrumentWidgetState extends State<FutureInstrumentWidget> {
                                               context,
                                               listen: false)
                                           .selectionChanged(model
-                                              .selectedDatum.first.datum
-                                              as InstrumentHistorical);
+                                              .selectedDatum
+                                              .first
+                                              .datum as InstrumentHistorical);
                                     }
                                   },
                                 );

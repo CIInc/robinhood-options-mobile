@@ -754,7 +754,8 @@ class TradeSignalsProvider with ChangeNotifier {
       final signals = snapshot.docs.map((doc) => doc.data()).toList();
 
       // Apply client-side sort if DB sort was compromised by inequality constraints
-      if (sortBy == 'signalStrength' && (startDate != null || endDate != null)) {
+      if (sortBy == 'signalStrength' &&
+          (startDate != null || endDate != null)) {
         signals.sort((a, b) {
           final aStrength =
               (a['multiIndicatorResult']?['signalStrength'] as num?)

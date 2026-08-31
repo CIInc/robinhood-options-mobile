@@ -77,8 +77,7 @@ class OptionInstrument {
                 ? double.tryParse(json['min_ticks']['below_tick'].toString())
                 : null,
             json['min_ticks']['cutoff_price'] != null
-                ? double.tryParse(
-                    json['min_ticks']['cutoff_price'].toString())
+                ? double.tryParse(json['min_ticks']['cutoff_price'].toString())
                 : null),
         rhsTradability = json['rhs_tradability'],
         state = json['state'],

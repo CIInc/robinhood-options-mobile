@@ -189,163 +189,164 @@ class _TradingStrategiesPageState extends State<TradingStrategiesPage>
           FocusScope.of(context).unfocus();
         },
         child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Search strategies...',
-                prefixIcon: const Icon(Icons.search_rounded),
-                suffixIcon: _searchController.text.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.close_rounded, size: 20),
-                        onPressed: () {
-                          _searchController.clear();
-                          FocusScope.of(context).unfocus();
-                        },
-                      )
-                    : null,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(24),
-                  borderSide: BorderSide.none,
+          children: [
+            Container(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: TextField(
+                controller: _searchController,
+                decoration: InputDecoration(
+                  hintText: 'Search strategies...',
+                  prefixIcon: const Icon(Icons.search_rounded),
+                  suffixIcon: _searchController.text.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.close_rounded, size: 20),
+                          onPressed: () {
+                            _searchController.clear();
+                            FocusScope.of(context).unfocus();
+                          },
+                        )
+                      : null,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(24),
+                    borderSide: BorderSide.none,
+                  ),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 0),
+                  filled: true,
+                  fillColor: Theme.of(context)
+                      .colorScheme
+                      .surfaceContainerHighest
+                      .withValues(alpha: 0.5),
                 ),
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 0),
-                filled: true,
-                fillColor: Theme.of(context)
-                    .colorScheme
-                    .surfaceContainerHighest
-                    .withValues(alpha: 0.5),
               ),
             ),
-          ),
-          SizedBox(
-            height: 48,
-            child: ListView.separated(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              scrollDirection: Axis.horizontal,
-              itemCount: _indicatorNames.length,
-              separatorBuilder: (context, index) => const SizedBox(width: 8),
-              itemBuilder: (context, index) {
-                final key = _indicatorNames.keys.elementAt(index);
-                final label = _indicatorNames.values.elementAt(index);
-                final isSelected = _selectedIndicators.contains(key);
-                return FilterChip(
-                  label: Text(label),
-                  selected: isSelected,
-                  showCheckmark: false,
-                  labelStyle: TextStyle(
-                    fontSize: 13,
-                    color: isSelected
-                        ? Theme.of(context).colorScheme.onSecondaryContainer
-                        : Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                  backgroundColor: Theme.of(context)
-                      .colorScheme
-                      .surfaceContainer
-                      .withValues(alpha: 0.5),
-                  selectedColor:
-                      Theme.of(context).colorScheme.secondaryContainer,
-                  side: BorderSide.none,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
-                  onSelected: (selected) {
-                    setState(() {
-                      if (selected) {
-                        _selectedIndicators.add(key);
-                      } else {
-                        _selectedIndicators.remove(key);
-                      }
-                    });
-                  },
-                );
-              },
+            SizedBox(
+              height: 48,
+              child: ListView.separated(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                scrollDirection: Axis.horizontal,
+                itemCount: _indicatorNames.length,
+                separatorBuilder: (context, index) => const SizedBox(width: 8),
+                itemBuilder: (context, index) {
+                  final key = _indicatorNames.keys.elementAt(index);
+                  final label = _indicatorNames.values.elementAt(index);
+                  final isSelected = _selectedIndicators.contains(key);
+                  return FilterChip(
+                    label: Text(label),
+                    selected: isSelected,
+                    showCheckmark: false,
+                    labelStyle: TextStyle(
+                      fontSize: 13,
+                      color: isSelected
+                          ? Theme.of(context).colorScheme.onSecondaryContainer
+                          : Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                    backgroundColor: Theme.of(context)
+                        .colorScheme
+                        .surfaceContainer
+                        .withValues(alpha: 0.5),
+                    selectedColor:
+                        Theme.of(context).colorScheme.secondaryContainer,
+                    side: BorderSide.none,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
+                    onSelected: (selected) {
+                      setState(() {
+                        if (selected) {
+                          _selectedIndicators.add(key);
+                        } else {
+                          _selectedIndicators.remove(key);
+                        }
+                      });
+                    },
+                  );
+                },
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-          Expanded(
-            child: Consumer<BacktestingProvider>(
-              builder: (context, provider, child) {
-                final allTemplates = provider.templates;
-                final systemTemplates = allTemplates
-                    .where((t) => t.id.startsWith('default_'))
-                    .toList();
-                final userTemplates = allTemplates
-                    .where((t) => !t.id.startsWith('default_'))
-                    .toList();
+            const SizedBox(height: 8),
+            Expanded(
+              child: Consumer<BacktestingProvider>(
+                builder: (context, provider, child) {
+                  final allTemplates = provider.templates;
+                  final systemTemplates = allTemplates
+                      .where((t) => t.id.startsWith('default_'))
+                      .toList();
+                  final userTemplates = allTemplates
+                      .where((t) => !t.id.startsWith('default_'))
+                      .toList();
 
-                return TabBarView(
-                  controller: _tabController,
-                  children: [
-                    StrategyListWidget(
-                      strategies: allTemplates,
-                      allowDelete: false,
-                      searchQuery: _searchQuery,
-                      indicatorNames: _indicatorNames,
-                      selectedIndicators: _selectedIndicators,
-                      sortBy: _sortBy,
-                      selectedStrategyId: widget.selectedStrategyId,
-                      onSelect: (template) {
-                        _showTemplateDetailsSheet(context, template);
-                      },
-                      onDelete: (template) =>
-                          _confirmDeleteTemplate(context, template),
-                      onEdit: (template) =>
-                          _showEditTemplateDialog(context, template),
-                      onUpdate: widget.currentConfig != null
-                          ? (template) =>
-                              _confirmUpdateTemplateConfig(context, template)
-                          : null,
-                      onDuplicate: (template) =>
-                          _duplicateTemplate(context, template),
-                    ),
-                    StrategyListWidget(
-                      strategies: systemTemplates,
-                      allowDelete: false,
-                      searchQuery: _searchQuery,
-                      indicatorNames: _indicatorNames,
-                      selectedIndicators: _selectedIndicators,
-                      sortBy: _sortBy,
-                      selectedStrategyId: widget.selectedStrategyId,
-                      onSelect: (template) {
-                        _showTemplateDetailsSheet(context, template);
-                      },
-                      onDuplicate: (template) =>
-                          _duplicateTemplate(context, template),
-                    ),
-                    StrategyListWidget(
-                      strategies: userTemplates,
-                      allowDelete: true,
-                      searchQuery: _searchQuery,
-                      indicatorNames: _indicatorNames,
-                      selectedIndicators: _selectedIndicators,
-                      sortBy: _sortBy,
-                      selectedStrategyId: widget.selectedStrategyId,
-                      onSelect: (template) {
-                        _showTemplateDetailsSheet(context, template);
-                      },
-                      onDelete: (template) =>
-                          _confirmDeleteTemplate(context, template),
-                      onEdit: (template) =>
-                          _showEditTemplateDialog(context, template),
-                      onUpdate: widget.currentConfig != null
-                          ? (template) =>
-                              _confirmUpdateTemplateConfig(context, template)
-                          : null,
-                      onDuplicate: (template) =>
-                          _duplicateTemplate(context, template),
-                    ),
-                  ],
-                );
-              },
+                  return TabBarView(
+                    controller: _tabController,
+                    children: [
+                      StrategyListWidget(
+                        strategies: allTemplates,
+                        allowDelete: false,
+                        searchQuery: _searchQuery,
+                        indicatorNames: _indicatorNames,
+                        selectedIndicators: _selectedIndicators,
+                        sortBy: _sortBy,
+                        selectedStrategyId: widget.selectedStrategyId,
+                        onSelect: (template) {
+                          _showTemplateDetailsSheet(context, template);
+                        },
+                        onDelete: (template) =>
+                            _confirmDeleteTemplate(context, template),
+                        onEdit: (template) =>
+                            _showEditTemplateDialog(context, template),
+                        onUpdate: widget.currentConfig != null
+                            ? (template) =>
+                                _confirmUpdateTemplateConfig(context, template)
+                            : null,
+                        onDuplicate: (template) =>
+                            _duplicateTemplate(context, template),
+                      ),
+                      StrategyListWidget(
+                        strategies: systemTemplates,
+                        allowDelete: false,
+                        searchQuery: _searchQuery,
+                        indicatorNames: _indicatorNames,
+                        selectedIndicators: _selectedIndicators,
+                        sortBy: _sortBy,
+                        selectedStrategyId: widget.selectedStrategyId,
+                        onSelect: (template) {
+                          _showTemplateDetailsSheet(context, template);
+                        },
+                        onDuplicate: (template) =>
+                            _duplicateTemplate(context, template),
+                      ),
+                      StrategyListWidget(
+                        strategies: userTemplates,
+                        allowDelete: true,
+                        searchQuery: _searchQuery,
+                        indicatorNames: _indicatorNames,
+                        selectedIndicators: _selectedIndicators,
+                        sortBy: _sortBy,
+                        selectedStrategyId: widget.selectedStrategyId,
+                        onSelect: (template) {
+                          _showTemplateDetailsSheet(context, template);
+                        },
+                        onDelete: (template) =>
+                            _confirmDeleteTemplate(context, template),
+                        onEdit: (template) =>
+                            _showEditTemplateDialog(context, template),
+                        onUpdate: widget.currentConfig != null
+                            ? (template) =>
+                                _confirmUpdateTemplateConfig(context, template)
+                            : null,
+                        onDuplicate: (template) =>
+                            _duplicateTemplate(context, template),
+                      ),
+                    ],
+                  );
+                },
+              ),
             ),
-          ),
-        ],
-      ),
+          ],
+        ),
       ),
     );
   }

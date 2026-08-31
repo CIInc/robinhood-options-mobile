@@ -63,8 +63,7 @@ void main() {
         'short');
   }
 
-  PaperTradingStore makeStore() =>
-      PaperTradingStore(
+  PaperTradingStore makeStore() => PaperTradingStore(
       firestore: _UnusedFirestore(), isMarketOpen: () => true);
 
   group('short stock', () {
@@ -269,8 +268,7 @@ void main() {
       expect(store.optionPositions, isEmpty);
     });
 
-    test('buy-to-close realizes premium P&L and releases collateral',
-        () async {
+    test('buy-to-close realizes premium P&L and releases collateral', () async {
       final store = makeStore();
       final put = makeOption(type: 'put', strike: 150.0);
       await store.submitOptionOrder(
@@ -296,8 +294,7 @@ void main() {
       expect(store.history.first['profitLoss'], 200.0);
     });
 
-    test('assignment: expired ITM put buys the shares at the strike',
-        () async {
+    test('assignment: expired ITM put buys the shares at the strike', () async {
       final store = makeStore();
       final put = makeOption(
           type: 'put',
@@ -311,8 +308,8 @@ void main() {
           limitPrice: 5.0,
           marketPrice: 5.0);
 
-      final settled = store.processExpiredOptions(
-          underlyingPrices: {'AAPL': 140.0});
+      final settled =
+          store.processExpiredOptions(underlyingPrices: {'AAPL': 140.0});
 
       expect(settled, hasLength(1));
       expect(store.optionPositions, isEmpty);
@@ -348,8 +345,7 @@ void main() {
   });
 
   group('covered calls', () {
-    test('writing a call requires 100 unpledged shares per contract',
-        () async {
+    test('writing a call requires 100 unpledged shares per contract', () async {
       final store = makeStore();
       final instrument = makeInstrument();
       final call = makeOption(type: 'call', strike: 160.0);
@@ -387,8 +383,8 @@ void main() {
       // A second contract is no longer covered.
       expect(
           () => store.submitOptionOrder(
-                optionInstrument: makeOption(
-                    id: 'opt_id2', type: 'call', strike: 165.0),
+                optionInstrument:
+                    makeOption(id: 'opt_id2', type: 'call', strike: 165.0),
                 quantity: 1,
                 side: 'sell',
                 orderType: 'limit',
@@ -528,8 +524,7 @@ void main() {
           marketPrice: 2.0);
 
       expect(store.optionPositions, hasLength(2));
-      expect(
-          store.optionPositions.map((p) => p.direction).toSet(),
+      expect(store.optionPositions.map((p) => p.direction).toSet(),
           {'debit', 'credit'});
     });
   });

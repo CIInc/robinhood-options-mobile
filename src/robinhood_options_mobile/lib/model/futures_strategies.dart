@@ -169,7 +169,8 @@ class FuturesStrategyDefaults {
     FuturesStrategyTemplate(
       id: 'futures_mean_reversion',
       name: 'Mean Reversion',
-      description: 'Exploits price extremes with RSI and Bollinger Band mean reversion signals.',
+      description:
+          'Exploits price extremes with RSI and Bollinger Band mean reversion signals.',
       config: FuturesStrategyConfig(
         interval: '1h',
         minSignalStrength: 70.0,
@@ -213,7 +214,8 @@ class FuturesStrategyDefaults {
     FuturesStrategyTemplate(
       id: 'futures_momentum_reversal',
       name: 'Momentum Reversal',
-      description: 'Captures momentum fade and reversal patterns using multiple momentum indicators.',
+      description:
+          'Captures momentum fade and reversal patterns using multiple momentum indicators.',
       config: FuturesStrategyConfig(
         interval: '30m',
         minSignalStrength: 75.0,

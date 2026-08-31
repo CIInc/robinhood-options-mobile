@@ -128,7 +128,7 @@ class _PaywallWidgetState extends State<PaywallWidget> {
         });
       }
     } finally {
-      // We keep loading true while wait for the stream if it's quick, 
+      // We keep loading true while wait for the stream if it's quick,
       // but usually buySubscription returns after the system dialog is shown.
       // If the user cancels it, we might stay in loading state indefinitely if we don't reset it.
       // However, the system dialog is modal.

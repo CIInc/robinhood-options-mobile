@@ -72,7 +72,9 @@ class _AllocationWidgetState extends State<AllocationWidget> {
           .toList();
       final stockEquity = filteredStockItems.isEmpty
           ? 0.0
-          : filteredStockItems.map((e) => e.marketValue).reduce((a, b) => a + b);
+          : filteredStockItems
+              .map((e) => e.marketValue)
+              .reduce((a, b) => a + b);
 
       final filteredOptionItems = optionPositionStore.items
           .where((e) =>
@@ -83,7 +85,8 @@ class _AllocationWidgetState extends State<AllocationWidget> {
       final optionEquity = filteredOptionItems.isEmpty
           ? 0.0
           : filteredOptionItems
-              .map((e) => e.direction == 'debit' ? e.marketValue : -e.marketValue)
+              .map((e) =>
+                  e.direction == 'debit' ? e.marketValue : -e.marketValue)
               .reduce((a, b) => a + b);
 
       final portfolioCash = widget.account?.portfolioCash ?? 0.0;
@@ -430,8 +433,8 @@ class _AllocationWidgetState extends State<AllocationWidget> {
 
     if (optionEquity > 0) {
       // final percent = optionPositionStore.equity / totalAssets;
-      data.add(PieChartData(
-          'Options', optionEquity)); //  ${formatPercentageInteger.format(percent)}
+      data.add(PieChartData('Options',
+          optionEquity)); //  ${formatPercentageInteger.format(percent)}
     }
     if (stockEquity > 0) {
       // final percent = stockPositionStore.equity / totalAssets;

@@ -107,7 +107,8 @@ class FuturesMarketDataService {
       debugPrint('🌐 Fetching $interval data for $symbol (range: $dataRange)');
 
       // Fetch from Yahoo using shared service method
-      final result = await _yahooService.getChartData(symbol, dataRange, interval);
+      final result =
+          await _yahooService.getChartData(symbol, dataRange, interval);
 
       if (result == null) {
         debugPrint('❌ No data returned from Yahoo for $symbol');
@@ -144,9 +145,11 @@ class FuturesMarketDataService {
   /// Parse cached chart data from Firestore
   FuturesMarketData _parseChartData(Map<String, dynamic> chart) {
     try {
-      final timestamp = (chart['timestamp'] as List<dynamic>?)?.cast<int>() ?? [];
+      final timestamp =
+          (chart['timestamp'] as List<dynamic>?)?.cast<int>() ?? [];
       final indicators = chart['indicators'] as Map<String, dynamic>?;
-      final quote = (indicators?['quote'] as List<dynamic>?)?[0] as Map<String, dynamic>?;
+      final quote =
+          (indicators?['quote'] as List<dynamic>?)?[0] as Map<String, dynamic>?;
 
       if (quote == null || timestamp.isEmpty) {
         return FuturesMarketData(
@@ -163,8 +166,11 @@ class FuturesMarketDataService {
       final highs = _parseArray(quote['high']);
       final lows = _parseArray(quote['low']);
       final closes = _parseArray(quote['close']);
-      final volumes = (quote['volume'] as List?)?.map((v) => (v as num?)?.toInt() ?? 0).toList() ?? [];
-      
+      final volumes = (quote['volume'] as List?)
+              ?.map((v) => (v as num?)?.toInt() ?? 0)
+              .toList() ??
+          [];
+
       // Filter out nulls matching backend logic
       final validIndices = <int>[];
       for (int i = 0; i < closes.length; i++) {
@@ -244,7 +250,7 @@ class FuturesMarketDataService {
     try {
       // Create a copy to modify
       final resultToCache = Map<String, dynamic>.from(result);
-      
+
       // Fix for Firebase which does not support arrays inside arrays
       // Matching backend logic in market-data.ts
       if (resultToCache['meta'] != null) {

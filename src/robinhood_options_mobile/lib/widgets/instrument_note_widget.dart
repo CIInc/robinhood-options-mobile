@@ -54,8 +54,9 @@ class _InstrumentNoteWidgetState extends State<InstrumentNoteWidget> {
                       : () async {
                           setDialogState(() => isSaving = true);
                           try {
-                            final prompt = GenerativeService.buildDraftNotePrompt(
-                                widget.instrument.symbol);
+                            final prompt =
+                                GenerativeService.buildDraftNotePrompt(
+                                    widget.instrument.symbol);
                             final result = await widget.generativeService
                                 .generateContentFromServer(
                                     prompt, null, null, null);

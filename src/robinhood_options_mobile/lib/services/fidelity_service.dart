@@ -1162,7 +1162,8 @@ class FidelityService implements IBrokerageService {
     final target = cancelIndex > 0 ? parts[cancelIndex - 1] : parts.last;
     return {
       'status': 'not_supported',
-      'message': 'Order cancellation is not supported for Fidelity manual imports.',
+      'message':
+          'Order cancellation is not supported for Fidelity manual imports.',
       'target': target,
     };
   }

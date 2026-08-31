@@ -254,8 +254,8 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
           );
     if (widget.brokerageUser.displayValue == DisplayValue.todayReturn ||
         widget.brokerageUser.displayValue == DisplayValue.totalReturn) {
-      var positionDisplayValues = chartPositions.map((e) =>
-          widget.brokerageUser.getDisplayValueInstrumentPosition(e,
+      var positionDisplayValues = chartPositions.map((e) => widget.brokerageUser
+          .getDisplayValueInstrumentPosition(e,
               displayValue:
                   widget.brokerageUser.displayValue == DisplayValue.todayReturn
                       ? DisplayValue.todayReturnPercent
@@ -278,16 +278,14 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
         }
       }
     }
-    var secondaryExtents = charts.NumericExtents.fromValues(
-        chartPositions.map((e) => widget.brokerageUser
-            .getDisplayValueInstrumentPosition(e,
-                displayValue: widget.brokerageUser.displayValue ==
-                        DisplayValue.todayReturn
-                    ? DisplayValue.todayReturnPercent
-                    : (widget.brokerageUser.displayValue ==
-                            DisplayValue.totalReturn
-                        ? DisplayValue.totalReturnPercent
-                        : null))));
+    var secondaryExtents = charts.NumericExtents.fromValues(chartPositions.map(
+        (e) => widget.brokerageUser.getDisplayValueInstrumentPosition(e,
+            displayValue: widget.brokerageUser.displayValue ==
+                    DisplayValue.todayReturn
+                ? DisplayValue.todayReturnPercent
+                : (widget.brokerageUser.displayValue == DisplayValue.totalReturn
+                    ? DisplayValue.totalReturnPercent
+                    : null))));
     secondaryExtents = charts.NumericExtents(
         secondaryExtents.min - (secondaryExtents.width * 0.1),
         secondaryExtents.max + (secondaryExtents.width * 0.1));

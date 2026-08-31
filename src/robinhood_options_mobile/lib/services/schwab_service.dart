@@ -2224,7 +2224,8 @@ https://api.schwabapi.com/marketdata/v1/instruments?symbol=Google&projection=sea
     final target = cancelIndex > 0 ? parts[cancelIndex - 1] : parts.last;
     return Future.value({
       'status': 'not_supported',
-      'message': 'Order cancellation is not supported for Schwab manual accounts.',
+      'message':
+          'Order cancellation is not supported for Schwab manual accounts.',
       'target': target,
     });
   }

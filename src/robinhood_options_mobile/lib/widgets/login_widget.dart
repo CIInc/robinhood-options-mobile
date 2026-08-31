@@ -514,8 +514,8 @@ class _LoginWidgetState extends State<LoginWidget> {
                               borderRadius: BorderRadius.circular(18),
                               onTap: () => _setSelectedBrokerage(
                                   option['source'] as BrokerageSource,
-                                  _brokerageOptions.indexWhere(
-                                      (item) => item['source'] == option['source'])),
+                                  _brokerageOptions.indexWhere((item) =>
+                                      item['source'] == option['source'])),
                               child: Padding(
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 10, vertical: 8),

@@ -163,8 +163,7 @@ class TradeStrategyConfig {
           enableDrawdownProtection ?? this.enableDrawdownProtection,
       maxDrawdown: maxDrawdown ?? this.maxDrawdown,
       reduceSizeOnRiskOff: reduceSizeOnRiskOff ?? this.reduceSizeOnRiskOff,
-      riskOffSizeReduction:
-          riskOffSizeReduction ?? this.riskOffSizeReduction,
+      riskOffSizeReduction: riskOffSizeReduction ?? this.riskOffSizeReduction,
       rsiExitEnabled: rsiExitEnabled ?? this.rsiExitEnabled,
       rsiExitThreshold: rsiExitThreshold ?? this.rsiExitThreshold,
       signalStrengthExitEnabled:
@@ -386,8 +385,7 @@ class TradeStrategyConfig {
         signalStrengthExitThreshold:
             (json['signalStrengthExitThreshold'] as num?)?.toDouble() ?? 40.0,
         gexExitEnabled: json['gexExitEnabled'] as bool? ?? false,
-        gexExitThreshold:
-            (json['gexExitThreshold'] as num?)?.toDouble() ?? 0.0,
+        gexExitThreshold: (json['gexExitThreshold'] as num?)?.toDouble() ?? 0.0,
       );
 
   Map<String, String> getDifferences(TradeStrategyConfig other) {

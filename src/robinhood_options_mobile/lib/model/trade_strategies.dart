@@ -3724,7 +3724,8 @@ class TradeStrategyDefaults {
           'pivotPoints': false,
         },
         indicatorReasons: {
-          'gammaExposure': 'High GEX confirms intraday pinning or trending regime.',
+          'gammaExposure':
+              'High GEX confirms intraday pinning or trending regime.',
           'vwap': 'Ensures entry at institutional value levels.',
           'momentum': 'Captures short-term momentum shifts.',
         },

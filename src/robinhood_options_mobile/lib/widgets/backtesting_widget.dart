@@ -495,7 +495,8 @@ class BacktestRunTabState extends State<BacktestRunTab> {
       _signalStrengthExitThresholdController.text =
           config.signalStrengthExitThreshold.toString();
       _gexExitEnabled = config.gexExitEnabled;
-      _gexExitThresholdController.text = (config.gexExitThreshold / 1e6).toString();
+      _gexExitThresholdController.text =
+          (config.gexExitThreshold / 1e6).toString();
     });
 
     // Switch to Run tab

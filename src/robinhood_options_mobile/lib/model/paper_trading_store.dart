@@ -195,7 +195,8 @@ class PaperTradingStore extends ChangeNotifier {
   /// aren't dependent on the wall clock.
   final bool Function() _isMarketOpen;
 
-  PaperTradingStore({FirebaseFirestore? firestore, bool Function()? isMarketOpen})
+  PaperTradingStore(
+      {FirebaseFirestore? firestore, bool Function()? isMarketOpen})
       : _firestore = firestore ?? FirebaseFirestore.instance,
         _isMarketOpen = isMarketOpen ?? (() => MarketHours.isMarketOpen());
 
@@ -227,14 +228,12 @@ class PaperTradingStore extends ChangeNotifier {
   bool get isLoading => _isLoading;
 
   /// Cash reserved by working buy orders (each also reserves its commission).
-  double get reservedCash => _pendingOrders
-      .where((o) => o.side == 'buy')
-      .fold(
-          0.0,
-          (total, o) =>
-              total +
-              o.quantity * o.reservePrice * o.contractMultiplier +
-              _commission);
+  double get reservedCash => _pendingOrders.where((o) => o.side == 'buy').fold(
+      0.0,
+      (total, o) =>
+          total +
+          o.quantity * o.reservePrice * o.contractMultiplier +
+          _commission);
 
   /// Initial margin required to open a short: 150% of the entry value
   /// (Reg-T style: the 100% proceeds already credited to cash plus 50%).
@@ -246,9 +245,8 @@ class PaperTradingStore extends ChangeNotifier {
 
   /// Cash held against short stock positions: 130% of current market value
   /// (falls back to the entry price until a quote is available).
-  double get shortStockCollateral => _positions
-      .where((p) => (p.quantity ?? 0) < 0)
-      .fold(
+  double get shortStockCollateral =>
+      _positions.where((p) => (p.quantity ?? 0) < 0).fold(
           0.0,
           (total, p) =>
               total +
@@ -259,9 +257,9 @@ class PaperTradingStore extends ChangeNotifier {
                   shortStockMaintenanceMultiplier);
 
   /// Cash securing short puts: strike × 100 per contract.
-  double get shortPutCollateral =>
-      _optionPositions.where((p) => p.direction == 'credit').fold(0.0,
-          (total, p) {
+  double get shortPutCollateral => _optionPositions
+          .where((p) => p.direction == 'credit')
+          .fold(0.0, (total, p) {
         final leg = p.legs.isNotEmpty ? p.legs.first : null;
         final type =
             (leg?.optionType ?? p.optionInstrument?.type ?? '').toLowerCase();
@@ -275,9 +273,9 @@ class PaperTradingStore extends ChangeNotifier {
   double get collateralCash => shortStockCollateral + shortPutCollateral;
 
   /// Shares of [symbol] pledged as covered-call collateral (100/contract).
-  double coveredCallShares(String symbol) =>
-      _optionPositions.where((p) => p.direction == 'credit').fold(0.0,
-          (total, p) {
+  double coveredCallShares(String symbol) => _optionPositions
+          .where((p) => p.direction == 'credit')
+          .fold(0.0, (total, p) {
         final leg = p.legs.isNotEmpty ? p.legs.first : null;
         final type =
             (leg?.optionType ?? p.optionInstrument?.type ?? '').toLowerCase();
@@ -437,8 +435,7 @@ class PaperTradingStore extends ChangeNotifier {
   /// Copies embedded history entries into the paper_orders subcollection
   /// exactly once (guarded by the historyMigrated flag). Legacy entries
   /// without an id get a deterministic one so re-runs stay idempotent.
-  Future<void> _migrateHistoryToSubcollection(
-      Map<String, dynamic> data) async {
+  Future<void> _migrateHistoryToSubcollection(Map<String, dynamic> data) async {
     if (_user == null || data['historyMigrated'] == true) return;
     try {
       final userDoc = _firestore.collection('user').doc(_user!.uid);
@@ -458,8 +455,7 @@ class PaperTradingStore extends ChangeNotifier {
       batch.set(userDoc.collection('paper_account').doc('main'),
           {'historyMigrated': true}, SetOptions(merge: true));
       await batch.commit();
-      debugPrint(
-          'Migrated ${_history.length} paper fills to paper_orders.');
+      debugPrint('Migrated ${_history.length} paper fills to paper_orders.');
     } catch (e) {
       debugPrint('Error migrating paper history: $e');
     }
@@ -666,8 +662,7 @@ class PaperTradingStore extends ChangeNotifier {
         var marketDataList =
             await service.getOptionMarketDataByIds(user, optionIds);
         for (var marketData in marketDataList) {
-          final mark =
-              marketData.adjustedMarkPrice ?? marketData.markPrice;
+          final mark = marketData.adjustedMarkPrice ?? marketData.markPrice;
           if (mark != null) {
             optionMarks[marketData.instrumentId] = mark;
           }
@@ -977,8 +972,7 @@ class PaperTradingStore extends ChangeNotifier {
       // Queued for the open: anchor the buying-power reservation to the
       // last seen price.
       order.watermark = marketPrice;
-    } else if (marketOpen &&
-        await _tryFillPendingOrder(order, marketPrice)) {
+    } else if (marketOpen && await _tryFillPendingOrder(order, marketPrice)) {
       // Already-marketable limit/stop orders fill immediately.
       return PaperOrderResult(order.id, 'filled');
     }
@@ -1176,8 +1170,8 @@ class PaperTradingStore extends ChangeNotifier {
       if (order.timeInForce == 'gfd' &&
           !_isSameDay(order.createdAt, evalTime)) {
         _pendingOrders.remove(order);
-        _addToHistory(order.assetType, order.side, order.symbol,
-            order.quantity, order.reservePrice,
+        _addToHistory(order.assetType, order.side, order.symbol, order.quantity,
+            order.reservePrice,
             detail: 'GFD order expired unfilled',
             orderType: order.orderType,
             state: 'cancelled');
@@ -1202,8 +1196,8 @@ class PaperTradingStore extends ChangeNotifier {
         filled = await _tryFillPendingOrder(order, price);
       } catch (e) {
         // e.g. cash consumed by an earlier fill — reject rather than retry.
-        _addToHistory(order.assetType, order.side, order.symbol,
-            order.quantity, order.reservePrice,
+        _addToHistory(order.assetType, order.side, order.symbol, order.quantity,
+            order.reservePrice,
             detail: 'Order rejected on trigger: $e',
             orderType: order.orderType,
             state: 'rejected');
@@ -1243,15 +1237,13 @@ class PaperTradingStore extends ChangeNotifier {
         p.averageBuyPrice ??
         0;
 
-    double maintenance() => _positions
-        .where((p) => (p.quantity ?? 0) < 0)
-        .fold(
-            0.0,
-            (total, p) =>
-                total +
-                (p.quantity ?? 0).abs() *
-                    priceFor(p) *
-                    shortStockMaintenanceMultiplier);
+    double maintenance() => _positions.where((p) => (p.quantity ?? 0) < 0).fold(
+        0.0,
+        (total, p) =>
+            total +
+            (p.quantity ?? 0).abs() *
+                priceFor(p) *
+                shortStockMaintenanceMultiplier);
 
     double deficit() =>
         reservedCash + maintenance() + shortPutCollateral - _cashBalance;
@@ -1271,8 +1263,7 @@ class PaperTradingStore extends ChangeNotifier {
 
       // Covering one share spends its price but releases its maintenance
       // requirement, freeing (multiplier - 1) x price of buying power.
-      final freedPerShare =
-          price * (shortStockMaintenanceMultiplier - 1);
+      final freedPerShare = price * (shortStockMaintenanceMultiplier - 1);
       final held = (pos.quantity ?? 0).abs();
       final sharesToCover =
           (currentDeficit / freedPerShare).ceilToDouble().clamp(0.0, held);
@@ -1290,8 +1281,7 @@ class PaperTradingStore extends ChangeNotifier {
       _cashBalance -= sharesToCover * price;
       _updateStockPosition(instrument, sharesToCover, price, 1);
       _addToHistory('stock', 'buy', instrument.symbol, sharesToCover, price,
-          detail:
-              'Margin call: bought to cover at ${price.toStringAsFixed(2)}',
+          detail: 'Margin call: bought to cover at ${price.toStringAsFixed(2)}',
           orderType: 'market',
           instrumentUrl: instrument.url,
           profitLoss: profitLoss);
@@ -1385,8 +1375,7 @@ class PaperTradingStore extends ChangeNotifier {
               "Shares are pledged as covered-call collateral; close the call first.");
         }
 
-        double costBasis =
-            (_positions[index].averageBuyPrice ?? 0) * quantity;
+        double costBasis = (_positions[index].averageBuyPrice ?? 0) * quantity;
         double profitLoss = amount - costBasis;
 
         _cashBalance += amount;
@@ -1531,11 +1520,10 @@ class PaperTradingStore extends ChangeNotifier {
         if ((existing!.quantity ?? 0) < quantity) {
           throw Exception("Buy exceeds the short option position.");
         }
-        final profitLoss =
-            ((existing.averageOpenPrice ?? 0) - executionPrice) *
-                    quantity *
-                    multiplier -
-                _commission;
+        final profitLoss = ((existing.averageOpenPrice ?? 0) - executionPrice) *
+                quantity *
+                multiplier -
+            _commission;
         _cashBalance -= amount;
         _updateOptionPosition(optionInstrument, quantity, executionPrice, -1,
             direction: 'credit');
@@ -1559,7 +1547,8 @@ class PaperTradingStore extends ChangeNotifier {
       executionPrice -= _slippage;
       amount = (quantity * executionPrice * multiplier) - _commission;
 
-      if (existing?.direction != 'credit' && existing != null &&
+      if (existing?.direction != 'credit' &&
+          existing != null &&
           effect != 'open') {
         // Sell-to-close a long position.
         if ((existing.quantity ?? 0) < quantity) {
@@ -1917,8 +1906,7 @@ class PaperTradingStore extends ChangeNotifier {
           p.instrumentObj?.symbol == pos.symbol && (p.quantity ?? 0) > 0);
       if (stockIdx >= 0) {
         final stockPos = _positions[stockIdx];
-        final callAway =
-            shares.clamp(0.0, stockPos.quantity ?? 0.0).toDouble();
+        final callAway = shares.clamp(0.0, stockPos.quantity ?? 0.0).toDouble();
         final avgCost = stockPos.averageBuyPrice ?? 0;
         _cashBalance += callAway * strike;
         final profitLoss = (strike - avgCost) * callAway;
@@ -1943,8 +1931,8 @@ class PaperTradingStore extends ChangeNotifier {
     } else {
       // Cash-secured put assigned: buy the shares at the strike, merging
       // into an existing position for the symbol when there is one.
-      final stockIdx = _positions.indexWhere(
-          (p) => p.instrumentObj?.symbol == pos.symbol);
+      final stockIdx =
+          _positions.indexWhere((p) => p.instrumentObj?.symbol == pos.symbol);
       final instrument = stockIdx >= 0
           ? (_positions[stockIdx].instrumentObj ??
               Instrument.forSymbol(pos.symbol,
