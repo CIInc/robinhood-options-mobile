@@ -2533,32 +2533,37 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
       chunks.add(remainingIds.sublist(i, end));
     }
     for (var chunk in chunks) {
-      List<Fundamentals> fundamentals =
-          await getFundamentalsById(user, chunk.cast<String>(), store);
       //https://api.robinhood.com/instruments/?ids=c0bb3aec-bd1e-471e-a4f0-ca011cbec711%2C50810c35-d215-4866-9758-0ada4ac79ffa%2Cebab2398-028d-4939-9f1d-13bf38f81c50%2C81733743-965a-4d93-b87a-6973cb9efd34
       var url =
           "$endpoint/instruments/?ids=${Uri.encodeComponent(chunk.join(","))}";
       // debugPrint(url);
       var resultJson = await getJson(user, url);
+      final results = (resultJson['results'] as List<dynamic>? ?? [])
+          .whereType<Map<String, dynamic>>()
+          .toList();
+      final fundamentals = await getFundamentalsById(
+          user,
+          results
+              .map((result) => result['symbol'] as String?)
+              .whereType<String>()
+              .toList(),
+          store);
 
-      for (var i = 0; i < resultJson['results'].length; i++) {
-        var result = resultJson['results'][i];
-        if (result != null) {
-          var instrument = Instrument.fromJson(result);
+      for (var result in results) {
+        var instrument = Instrument.fromJson(result);
 
-          if (logoUrls.containsKey(instrument.symbol)) {
-            instrument.logoUrl = logoUrls[instrument.symbol];
-          }
-
-          Fundamentals? fundamental = fundamentals.firstWhereOrNull(
-              (f) => f.instrument.endsWith("${instrument.id}/"));
-          if (fundamental != null) {
-            instrument.fundamentalsObj = fundamental;
-          }
-
-          list.add(instrument);
-          store.addOrUpdate(instrument);
+        if (logoUrls.containsKey(instrument.symbol)) {
+          instrument.logoUrl = logoUrls[instrument.symbol];
         }
+
+        Fundamentals? fundamental = fundamentals.firstWhereOrNull(
+            (f) => f.instrument.endsWith("${instrument.id}/"));
+        if (fundamental != null) {
+          instrument.fundamentalsObj = fundamental;
+        }
+
+        list.add(instrument);
+        store.addOrUpdate(instrument);
       }
     }
     return list;
@@ -2801,7 +2806,8 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
     }
     List<Fundamentals> list = [];
     for (var chunk in chunks) {
-      var url = "$endpoint/fundamentals/?ids=${chunk.join(",")}";
+      var url =
+          "$endpoint/fundamentals/?symbols=${Uri.encodeComponent(chunk.join(","))}";
       final dynamic resultJson;
       try {
         resultJson = await getJson(user, url);

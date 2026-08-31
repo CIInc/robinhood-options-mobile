@@ -23,7 +23,7 @@ describe("Smart custom alert evaluation", () => {
     expect(result.message).toContain("Price");
   });
 
-  it("triggers when any rule matches while respecting a single-rule fallback", () => {
+  it("triggers when any rule matches with fallback", () => {
     const result = evaluateSmartAlert(
       {
         logic: "any",
@@ -41,6 +41,52 @@ describe("Smart custom alert evaluation", () => {
 
     expect(result.triggered).toBe(true);
     expect(result.message).toContain("Price");
+  });
+
+  it("triggers on GEX thresholds (Call Wall / Put Wall / Net GEX)", () => {
+    const result = evaluateSmartAlert(
+      {
+        logic: "all",
+        rules: [
+          { type: "gex", condition: "above_call_wall", value: 0 },
+          { type: "gex", condition: "net_gex_above", value: 50 },
+        ],
+      },
+      {
+        symbol: "NVDA",
+        currentPrice: 130,
+        gexData: {
+          totalNetGEX: 75000000,
+          callWall: 125,
+          putWall: 110,
+          gammaFlip: 120,
+        },
+      }
+    );
+
+    expect(result.triggered).toBe(true);
+    expect(result.message).toContain("Call Wall");
+    expect(result.message).toContain("Net GEX");
+  });
+
+  it("triggers on Dynamic Thresholds using ATR expansion", () => {
+    const result = evaluateSmartAlert(
+      {
+        logic: "all",
+        rules: [
+          { type: "dynamic_threshold", condition: "above_band", value: 1.5 },
+        ],
+      },
+      {
+        symbol: "AAPL",
+        currentPrice: 235,
+        closes: [220, 222, 225, 228],
+        atr: 3.0,
+      }
+    );
+
+    expect(result.triggered).toBe(true);
+    expect(result.message).toContain("upper dynamic band");
   });
 
   it("falls back to legacy alert fields when no rules are stored", () => {

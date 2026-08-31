@@ -179,6 +179,21 @@ void main() {
       expect(alert.icon, Icons.trending_up);
     });
 
+    test('describes a negative move as a fall', () {
+      final alerts = PortfolioAlertService.buildAlerts(
+        instrumentPositions: [
+          buildPosition(
+              symbol: 'HOOD', price: 94.8, quantity: 10, previousClose: 100),
+        ],
+        optionPositions: const [],
+      );
+
+      final alert = alerts.firstWhere((a) => a.id == 'mover-HOOD');
+      expect(alert.title, 'HOOD fell 5.2% today');
+      expect(alert.severity, PortfolioAlertSeverity.warning);
+      expect(alert.icon, Icons.trending_down);
+    });
+
     test('ignores moves below the notable threshold', () {
       final alerts = PortfolioAlertService.buildAlerts(
         instrumentPositions: [

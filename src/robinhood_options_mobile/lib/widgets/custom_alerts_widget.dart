@@ -88,6 +88,13 @@ class _CustomAlertsWidgetState extends State<CustomAlertsWidget> {
               } else if (alert.type == AlertType.rsi) {
                 valueText =
                     'RSI(${alert.period}): ${numberFormatter.format(alert.value)}';
+              } else if (alert.type == AlertType.gex) {
+                valueText = (alert.condition == AlertCondition.above ||
+                        alert.condition == AlertCondition.below)
+                    ? '\$${alert.value}M GEX'
+                    : alert.condition.name.replaceAll('_', ' ').toUpperCase();
+              } else if (alert.type == AlertType.dynamic_threshold) {
+                valueText = '${alert.value}x ATR';
               } else {
                 valueText = numberFormatter.format(alert.value);
               }
@@ -226,6 +233,10 @@ class _CustomAlertsWidgetState extends State<CustomAlertsWidget> {
         return const Icon(Icons.trending_up);
       case AlertType.rsi:
         return const Icon(Icons.speed);
+      case AlertType.gex:
+        return const Icon(Icons.layers);
+      case AlertType.dynamic_threshold:
+        return const Icon(Icons.auto_graph);
       default:
         return const Icon(Icons.notifications);
     }
@@ -440,12 +451,28 @@ class _AlertEditorDialogState extends State<_AlertEditorDialog> {
         return [
           AlertCondition.above,
           AlertCondition.spike,
+          AlertCondition.percent_change,
         ];
       case AlertType.moving_average:
       case AlertType.rsi:
         return [
           AlertCondition.above,
           AlertCondition.below,
+        ];
+      case AlertType.gex:
+        return [
+          AlertCondition.above,
+          AlertCondition.below,
+          AlertCondition.above_call_wall,
+          AlertCondition.below_put_wall,
+          AlertCondition.above_gamma_flip,
+          AlertCondition.below_gamma_flip,
+        ];
+      case AlertType.dynamic_threshold:
+        return [
+          AlertCondition.above_band,
+          AlertCondition.below_band,
+          AlertCondition.spike,
         ];
       default:
         return AlertCondition.values;
@@ -457,6 +484,13 @@ class _AlertEditorDialogState extends State<_AlertEditorDialog> {
     String? prefixText;
     if (rule.type == AlertType.price || rule.type == AlertType.moving_average) {
       prefixText = '\$';
+    } else if (rule.type == AlertType.gex &&
+        (rule.condition == AlertCondition.above ||
+            rule.condition == AlertCondition.below)) {
+      prefixText = '\$';
+      suffixText = 'M Net GEX';
+    } else if (rule.type == AlertType.dynamic_threshold) {
+      suffixText = 'x ATR';
     } else if (rule.type == AlertType.volatility ||
         rule.condition == AlertCondition.percent_change ||
         rule.condition == AlertCondition.spike ||

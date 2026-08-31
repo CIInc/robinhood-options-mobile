@@ -277,12 +277,12 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ **Futures Margin Analytics:** Added margin calculations and expanded futures position charting.
 - ✅ **Responsive Risk Heatmap:** Improved risk visualization across screen sizes.
 
-### v0.38.0 (Q3 2026 - August)
+### v0.38.0 ✅ (Released August 27, 2026)
 **News Intelligence & Smart Alerts**
-- [ ] **Real-Time News Integration:** AI-powered summarization of breaking news for watchlist instruments.
-- [ ] **Smart Alerts:** Multi-condition alerts correlated with technical indicators (e.g., "Alert if price > SMA200 AND GEX > $0").
-- [ ] **Sentiment Scoring:** News/Social sentiment impact analysis for Agentic Reasoning.
-- [ ] **Dynamic Alert Thresholds:** AI-calculated alert levels based on historical volatility.
+- ✅ **Real-Time News Integration:** AI-powered summarization and structured catalyst extraction for watchlist and instrument views.
+- ✅ **Smart Alerts:** Multi-condition alerts correlated with technical indicators, moving averages, RSI, and Gamma Exposure (GEX).
+- ✅ **Sentiment Scoring:** Automated sentiment scoring, impact classification (High/Medium/Low), and bullish/bearish driver analysis.
+- ✅ **Dynamic Alert Thresholds:** AI- and ATR-calculated dynamic volatility bands and threshold breakouts.
 
 ### v0.39.0 (Q3 2026 - August)
 **Forex Trading & Advanced Crypto**
@@ -699,9 +699,9 @@ Q3 2026 shifts focus from basic execution to **Advanced Intelligence** and **Reg
     - [x] **Agentic Reasoning Mode** (v0.37.0): Deep multi-step analysis for trade generation
     - [x] **Personalized AI Coach**: Analyze user's manual trading history to identify biases and suggest improvements (v0.28.0) - **Large** (5-7 weeks)
     - [ ] **Natural Language Interface**: "Chat with your Portfolio" feature to ask questions about performance and risk - **Large** (6-8 weeks)
-- [ ] **News Intelligence & Summarization** (v0.38.0):
-    - [ ] **AI News Summarizer**: Breaking news impact analysis for watchlists
-    - [ ] **Real-time Sentiment Scoring**: Quantifying news/social impact on specific tickers
+- [x] **News Intelligence & Summarization** (v0.38.0):
+    - [x] **AI News Summarizer**: Breaking news impact analysis and catalyst extraction for instruments and watchlists
+    - [x] **Real-time Sentiment Scoring**: Quantifying news and catalyst impact on specific tickers
     - [ ] **Event Impact Prediction**: Modeling price responses to news events
 - [ ] **Sentiment Analysis 2.0**: Real-time video/audio sentiment analysis (e.g., Fed speeches) - **Large** (4-5 weeks)
 - [x] **Macro-Economic Indicators**: Incorporate interest rates, inflation, and economic calendar events into the "Market Direction" indicator - **Medium** (3-4 weeks)
@@ -722,8 +722,8 @@ Q3 2026 shifts focus from basic execution to **Advanced Intelligence** and **Reg
 - [ ] **News Alerts**: News notifications for holdings
 - [ ] **Unusual Activity Alerts**: Unusual volume/price movement detection
 - [ ] **Group Activity Notifications**: Investor group trade updates
-- [ ] **Multi-Condition Alert Builder** (v0.38.0): Combine multiple conditions (price + volume + RSI + GEX) - **Medium** (3-4 weeks)
-- [ ] **Dynamic Alert Thresholds**: AI-calculated levels based on trailing volatility - **Small** (1-2 weeks)
+- [x] **Multi-Condition Alert Builder** (v0.38.0): Combine multiple conditions (price + volume + RSI + GEX) - **Medium** (3-4 weeks)
+- [x] **Dynamic Alert Thresholds**: AI-calculated levels based on trailing volatility - **Small** (1-2 weeks)
 - [ ] **Earnings Surprise Predictor**: Machine learning model to predict earnings beats/misses - **Large** (5-6 weeks)
 - [ ] **Dark Pool Activity Alerts**: Monitor off-exchange trading anomalies - **Medium** (3-4 weeks)
 - [ ] **Insider Trading Pattern Recognition**: Detect significant insider buying/selling - **Medium** (3-4 weeks)

@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.38.0] - 2026-08-27
+**News Intelligence & Smart Alerts**
+
+### Added
+- **AI News Intelligence:** Real-time sentiment scoring (0-100), automated catalyst extraction (Bullish Drivers vs Bearish Risks), impact categorization (High/Medium/Low), and breaking news summaries for instruments and watchlists.
+- **Smart Multi-Condition Alerts:** Correlate price targets with technical indicators (SMA, RSI), Gamma Exposure (GEX Net GEX, Call Wall, Put Wall, Gamma Flip), and Volume.
+- **Dynamic Alert Thresholds:** Added ATR- and historical volatility-calculated dynamic price bands and expansion alert triggers.
+- **News Intelligence Widget:** Added interactive news analysis dashboard with sentiment gauges, catalyst breakdowns, and external article deep linking.
+
+### Changed
+- **Alert Rule Engine:** Evaluator now combines multi-condition rule results with logic conjunctions (`ALL` / `ANY`) and generates consolidated trigger notifications.
+- **Instrument Detail Navigation:** Added direct AI News Intelligence shortcut from the news section.
+
+### Testing
+- Added backend tests for news sentiment scoring, multi-article intelligence extraction, GEX smart alerts, and ATR dynamic threshold alerts.
+- Added Flutter tests for `NewsIntelligence` and enhanced `CustomAlert` model serialization.
+
 ## [0.37.5] - 2026-08-15
 **Quantitative Research, Stock Screening, and Portfolio Risk Analytics**
 

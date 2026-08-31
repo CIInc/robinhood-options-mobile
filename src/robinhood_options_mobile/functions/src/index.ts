@@ -47,6 +47,7 @@ import * as migrations from "./migrations";
 import * as gammaExposureFuncs from "./gamma-exposure";
 import * as eventStudy from "./event-study";
 import * as screenerUniverse from "./screener-universe";
+import * as newsIntelligence from "./news-intelligence";
 import { verifySubscription as verifySubscriptionFunc } from "./subscriptions";
 // import * as alphaagent from "./alphaagent";
 
@@ -142,3 +143,6 @@ export const futuresSignalsCronJob = futuresSignalsCron.futuresSignalsCron;
 export const aggregateWhaleWatch = whaleWatchCron.aggregateWhaleWatch;
 export const getGammaExposure = gammaExposureFuncs.getGammaExposure;
 export const getTopGammaExposure = gammaExposureFuncs.getTopGammaExposure;
+export const getNewsIntelligence = newsIntelligence.getNewsIntelligence;
+export const getWatchlistNewsIntelligence =
+  newsIntelligence.getWatchlistNewsIntelligence;

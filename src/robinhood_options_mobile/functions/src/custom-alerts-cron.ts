@@ -4,7 +4,7 @@ import { getFirestore, Timestamp } from "firebase-admin/firestore";
 import { getMessaging } from "firebase-admin/messaging";
 import { logger } from "firebase-functions";
 import { getMarketData } from "./market-data";
-import { computeSMA, computeRSI } from "./technical-indicators";
+import { computeSMA, computeRSI, computeATR } from "./technical-indicators";
 
 if (getApps().length === 0) {
   initializeApp();
@@ -36,9 +36,21 @@ type SmartAlertInput = {
 type MarketSnapshotInput = {
   symbol?: string;
   currentPrice?: number;
+  highs?: number[];
+  lows?: number[];
   closes?: number[];
   volumes?: number[];
   percentChange?: number;
+  gexData?: {
+    totalNetGEX?: number;
+    callWall?: number;
+    putWall?: number;
+    gammaFlip?: number;
+    cotmp?: number;
+    plusGex?: number;
+    dealerPositioning?: string;
+  };
+  atr?: number;
 };
 
 /**
@@ -157,6 +169,98 @@ export function evaluateSmartAlert(
           }
         }
       }
+    } else if (type === "gex") {
+      const gex = marketSnapshot.gexData;
+      if (!gex) {
+        matched = false;
+      } else if (condition === "above" || condition === "net_gex_above") {
+        const netGexM = (gex.totalNetGEX ?? 0) / 1e6;
+        if (netGexM > value) {
+          matched = true;
+          triggerValue = netGexM;
+          message = `Net GEX for ${symbol} is $${netGexM.toFixed(2)}M ` +
+            `(Target: > $${value}M)`;
+        }
+      } else if (condition === "below" || condition === "net_gex_below") {
+        const netGexM = (gex.totalNetGEX ?? 0) / 1e6;
+        if (netGexM < value) {
+          matched = true;
+          triggerValue = netGexM;
+          message = `Net GEX for ${symbol} is $${netGexM.toFixed(2)}M ` +
+            `(Target: < $${value}M)`;
+        }
+      } else if (condition === "above_call_wall" && gex.callWall != null) {
+        if (currentPrice >= gex.callWall) {
+          matched = true;
+          triggerValue = currentPrice;
+          message = `${symbol} reached Call Wall ` +
+            `($${gex.callWall.toFixed(2)})`;
+        }
+      } else if (condition === "below_put_wall" && gex.putWall != null) {
+        if (currentPrice <= gex.putWall) {
+          matched = true;
+          triggerValue = currentPrice;
+          message = `${symbol} breached Put Wall ` +
+            `($${gex.putWall.toFixed(2)})`;
+        }
+      } else if (condition === "above_gamma_flip" && gex.gammaFlip != null) {
+        if (currentPrice >= gex.gammaFlip) {
+          matched = true;
+          triggerValue = currentPrice;
+          message = `${symbol} crossed above Gamma Flip ` +
+            `($${gex.gammaFlip.toFixed(2)})`;
+        }
+      } else if (condition === "below_gamma_flip" && gex.gammaFlip != null) {
+        if (currentPrice <= gex.gammaFlip) {
+          matched = true;
+          triggerValue = currentPrice;
+          message = `${symbol} crossed below Gamma Flip ` +
+            `($${gex.gammaFlip.toFixed(2)})`;
+        }
+      }
+    } else if (type === "dynamic_threshold" || type === "atr") {
+      const highs = marketSnapshot.highs ?? [];
+      const lows = marketSnapshot.lows ?? [];
+      let atrVal = marketSnapshot.atr;
+      if (
+        atrVal == null &&
+        highs.length >= period &&
+        lows.length >= period &&
+        closes.length >= period
+      ) {
+        atrVal = computeATR(highs, lows, closes, period) ?? undefined;
+      }
+      if (atrVal == null) {
+        atrVal = currentPrice * 0.02; // 2% fallback
+      }
+
+      const referencePrice = closes.length > 1 ?
+        closes[closes.length - 2] : currentPrice;
+      const upperBand = referencePrice + value * atrVal;
+      const lowerBand = referencePrice - value * atrVal;
+
+      if (condition === "above" || condition === "above_band") {
+        if (currentPrice > upperBand) {
+          matched = true;
+          triggerValue = currentPrice;
+          message = `${symbol} broke upper dynamic band ` +
+            `($${upperBand.toFixed(2)}, ${value}x ATR)`;
+        }
+      } else if (condition === "below" || condition === "below_band") {
+        if (currentPrice < lowerBand) {
+          matched = true;
+          triggerValue = currentPrice;
+          message = `${symbol} broke lower dynamic band ` +
+            `($${lowerBand.toFixed(2)}, ${value}x ATR)`;
+        }
+      } else if (condition === "spike" || condition === "expansion") {
+        if (atrVal > value) {
+          matched = true;
+          triggerValue = atrVal;
+          message = `ATR(${period}) for ${symbol} expanded to ` +
+            `$${atrVal.toFixed(2)} (Target: > $${value})`;
+        }
+      }
     }
 
     evaluated.push({ matched, message, value: triggerValue });
@@ -183,11 +287,12 @@ export function evaluateSmartAlert(
     };
   }
 
+  const combinedMessage = matchedRules.map((r) => r.message).join(" • ");
   const bestMatch = matchedRules[0] ?? evaluated[0];
   return {
     triggered: true,
     triggerValue: bestMatch.value,
-    message: bestMatch.message,
+    message: matchedRules.length > 1 ? combinedMessage : bestMatch.message,
   };
 }
 

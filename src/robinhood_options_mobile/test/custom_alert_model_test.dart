@@ -46,6 +46,17 @@ void main() {
             value: 30.0,
             period: 14,
           ),
+          SmartAlertRule(
+            type: AlertType.gex,
+            condition: AlertCondition.above_call_wall,
+            value: 0.0,
+          ),
+          SmartAlertRule(
+            type: AlertType.dynamic_threshold,
+            condition: AlertCondition.above_band,
+            value: 1.5,
+            period: 14,
+          ),
         ],
         active: true,
         createdAt: now,
@@ -56,9 +67,11 @@ void main() {
       expect(firestoreMap['logic'], 'all');
       expect(firestoreMap['rules'], isA<List>());
       final rules = firestoreMap['rules'] as List;
-      expect(rules.length, 2);
+      expect(rules.length, 4);
       expect(rules[0]['type'], 'price');
       expect(rules[1]['type'], 'rsi');
+      expect(rules[2]['type'], 'gex');
+      expect(rules[3]['type'], 'dynamic_threshold');
       expect(firestoreMap['active'], true);
     });
   });

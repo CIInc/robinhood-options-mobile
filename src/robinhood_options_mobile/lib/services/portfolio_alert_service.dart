@@ -171,7 +171,7 @@ class PortfolioAlertService {
             ? PortfolioAlertSeverity.positive
             : PortfolioAlertSeverity.warning,
         icon: isGain ? Icons.trending_up : Icons.trending_down,
-        title: '${mover.instrumentObj!.symbol} moved '
+        title: '${mover.instrumentObj!.symbol} ${isGain ? 'moved up' : 'fell'} '
             '${_percent.format(mover.gainLossPercentToday.abs())} today',
         detail: isGain
             ? 'Your largest contributor to today\'s gain.'

@@ -37,11 +37,11 @@ import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
 import 'package:robinhood_options_mobile/widgets/chat_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/income_transactions_widget.dart';
-import 'package:robinhood_options_mobile/widgets/insider_activity_widget.dart';
+// import 'package:robinhood_options_mobile/widgets/insider_activity_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_chart_widget.dart';
-import 'package:robinhood_options_mobile/model/institutional_ownership.dart';
+/* import 'package:robinhood_options_mobile/model/institutional_ownership.dart';
 import 'package:robinhood_options_mobile/widgets/institutional_ownership_widget.dart';
-import 'package:robinhood_options_mobile/services/yahoo_service.dart';
+import 'package:robinhood_options_mobile/services/yahoo_service.dart'; */
 import 'package:robinhood_options_mobile/widgets/option_chain_widget.dart';
 import 'package:robinhood_options_mobile/widgets/list_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_order_widget.dart';
@@ -55,6 +55,7 @@ import 'package:robinhood_options_mobile/widgets/price_targets_widget.dart';
 import 'package:robinhood_options_mobile/widgets/trade_signal_notification_settings_widget.dart';
 import 'package:robinhood_options_mobile/widgets/strategy_builder_widget.dart';
 import 'package:robinhood_options_mobile/widgets/trade_instrument_widget.dart';
+import 'package:robinhood_options_mobile/widgets/news_intelligence_widget.dart';
 import 'package:url_launcher/url_launcher.dart';
 //import 'package:charts_flutter/flutter.dart' as charts;
 
@@ -80,8 +81,8 @@ import 'package:share_plus/share_plus.dart';
 
 import 'package:robinhood_options_mobile/model/account_store.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:robinhood_options_mobile/model/esg_score.dart';
-import 'package:robinhood_options_mobile/services/esg_service.dart';
+/* import 'package:robinhood_options_mobile/model/esg_score.dart';
+import 'package:robinhood_options_mobile/services/esg_service.dart'; */
 
 class InstrumentWidget extends StatefulWidget {
   const InstrumentWidget(
@@ -117,10 +118,10 @@ class InstrumentWidget extends StatefulWidget {
 }
 
 class _InstrumentWidgetState extends State<InstrumentWidget> {
-  Future<ESGScore?>? _esgFuture;
-  final ESGService _esgService = ESGService();
-  Future<InstitutionalOwnership?>? _institutionalOwnershipFuture;
-  final YahooService _yahooService = YahooService();
+  /* Future<ESGScore?>? _esgFuture;
+  final ESGService _esgService = ESGService(); */
+  /* Future<InstitutionalOwnership?>? _institutionalOwnershipFuture;
+  final YahooService _yahooService = YahooService(); */
 
   // ... existing state variables ...
   final FirestoreService _firestoreService = FirestoreService();
@@ -254,9 +255,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     var instrument = widget.instrument;
     var user = widget.brokerageUser;
 
-    _esgFuture = _esgService.getESGScore(instrument.symbol);
-    _institutionalOwnershipFuture =
-        _yahooService.getInstitutionalOwnership(instrument.symbol);
+    // _esgFuture = _esgService.getESGScore(instrument.symbol);
+    // _institutionalOwnershipFuture =
+    //     _yahooService.getInstitutionalOwnership(instrument.symbol);
 
     final isPaper = user.source == BrokerageSource.paper;
     final paperStore =
@@ -1702,7 +1703,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                 )),
                 fundamentalsWidget(instrument)
               ],
-              SliverToBoxAdapter(child: _buildESGCard()),
+              // SliverToBoxAdapter(child: _buildESGCard()),
               SliverToBoxAdapter(
                   child: Padding(
                 padding:
@@ -1712,35 +1713,36 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                   generativeService: widget.generativeService,
                 ),
               )),
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 16.0, vertical: 8.0),
-                  child: FutureBuilder<InstitutionalOwnership?>(
-                    future: _institutionalOwnershipFuture,
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const SizedBox(
-                          height: 100,
-                          child: Center(child: CircularProgressIndicator()),
-                        );
-                      }
-                      if (snapshot.hasError || !snapshot.hasData) {
-                        return const SizedBox.shrink();
-                      }
-                      return InstitutionalOwnershipWidget(
-                        ownership: snapshot.data,
-                        currentPrice: instrument.quoteObj?.lastTradePrice,
-                      );
-                    },
-                  ),
-                ),
-              ),
-              SliverToBoxAdapter(
-                  child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: InsiderActivityWidget(symbol: instrument.symbol),
-              )),
+              // Not working, show progress indicator indefinitely
+              // SliverToBoxAdapter(
+              //   child: Padding(
+              //     padding: const EdgeInsets.symmetric(
+              //         horizontal: 16.0, vertical: 8.0),
+              //     child: FutureBuilder<InstitutionalOwnership?>(
+              //       future: _institutionalOwnershipFuture,
+              //       builder: (context, snapshot) {
+              //         if (snapshot.connectionState == ConnectionState.waiting) {
+              //           return const SizedBox(
+              //             height: 100,
+              //             child: Center(child: CircularProgressIndicator()),
+              //           );
+              //         }
+              //         if (snapshot.hasError || !snapshot.hasData) {
+              //           return const SizedBox.shrink();
+              //         }
+              //         return InstitutionalOwnershipWidget(
+              //           ownership: snapshot.data,
+              //           currentPrice: instrument.quoteObj?.lastTradePrice,
+              //         );
+              //       },
+              //     ),
+              //   ),
+              // ),
+              // SliverToBoxAdapter(
+              //     child: Padding(
+              //   padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              //   child: InsiderActivityWidget(symbol: instrument.symbol),
+              // )),
               if (instrument.ratingsObj != null &&
                   instrument.ratingsObj["summary"] != null) ...[
                 const SliverToBoxAdapter(
@@ -2737,10 +2739,12 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                   child: Column(children: [
                 for (var rating in ratings) ...[
                   if (rating["type"] == type) ...[
-                    Text("${rating["text"]}\n"),
-                    Text(
-                        "${formatLongDate.format(DateTime.parse(rating["published_at"]))}\n",
-                        style: const TextStyle(fontSize: 11.0)),
+                    if (rating["text"] != null) Text("${rating["text"]}\n"),
+                    if (rating["published_at"] != null) ...[
+                      Text(
+                          "${formatLongDate.format(DateTime.tryParse(rating["published_at"].toString()) ?? DateTime.now())}\n",
+                          style: const TextStyle(fontSize: 11.0)),
+                    ]
                   ]
                 ]
               ])),
@@ -2775,9 +2779,48 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   }
 
   Widget _buildRatingsOverviewWidget(Instrument instrument) {
-    if (instrument.ratingsOverviewObj == null) {
+    final overview = instrument.ratingsOverviewObj;
+    if (overview == null || overview is! Map) {
       return const SliverToBoxAdapter(child: SizedBox.shrink());
     }
+
+    final fairValueMap = overview["fair_value"];
+    final fairValueVal = (fairValueMap is Map && fairValueMap["value"] != null)
+        ? double.tryParse(fairValueMap["value"].toString())
+        : null;
+
+    final economicMoat = overview["economic_moat"]?.toString();
+    final starRatingStr = overview["star_rating"]?.toString();
+    final starRating =
+        starRatingStr != null ? int.tryParse(starRatingStr) : null;
+    final stewardship = overview["stewardship"]?.toString();
+    final uncertainty = overview["uncertainty"]?.toString();
+    final reportTitle = overview["report_title"]?.toString();
+
+    final updatedAt = overview["report_updated_at"] != null
+        ? DateTime.tryParse(overview["report_updated_at"].toString())
+        : null;
+    final publishedAt = overview["report_published_at"] != null
+        ? DateTime.tryParse(overview["report_published_at"].toString())
+        : null;
+    final source = overview["source"]?.toString();
+    final sourceSuffix =
+        (source != null && source.isNotEmpty && source != 'null')
+            ? " by ${source.capitalize()}"
+            : "";
+
+    String? reportSubtitle;
+    if (updatedAt != null) {
+      reportSubtitle = "Updated ${formatDate.format(updatedAt)}$sourceSuffix";
+    } else if (publishedAt != null) {
+      reportSubtitle =
+          "Published ${formatDate.format(publishedAt)}$sourceSuffix";
+    } else if (sourceSuffix.isNotEmpty) {
+      reportSubtitle = source!.capitalize();
+    }
+
+    final downloadUrl = overview["download_url"]?.toString();
+
     return SliverToBoxAdapter(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2800,88 +2843,90 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
-                if (instrument.ratingsOverviewObj!["fair_value"] != null) ...[
+                if (fairValueVal != null) ...[
                   ListTile(
                     title: const Text("Fair Value"),
-                    trailing: Text(
-                        formatCurrency.format(double.parse(instrument
-                            .ratingsOverviewObj!["fair_value"]["value"])),
+                    trailing: Text(formatCurrency.format(fairValueVal),
                         style: const TextStyle(
                             fontSize: 16, fontWeight: FontWeight.w500)),
                   ),
                 ],
-                ListTile(
-                  title: const Text("Economic Moat"),
-                  trailing: Text(
-                      instrument.ratingsOverviewObj!["economic_moat"]
-                          .toString()
-                          .capitalize(),
-                      style: const TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.w500)),
-                ),
-                if (instrument.ratingsOverviewObj!["star_rating"] != null) ...[
+                if (economicMoat != null &&
+                    economicMoat.isNotEmpty &&
+                    economicMoat != "null") ...[
+                  ListTile(
+                    title: const Text("Economic Moat"),
+                    trailing: Text(economicMoat.capitalize(),
+                        style: const TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.w500)),
+                  ),
+                ],
+                if (starRating != null && starRating > 0) ...[
                   ListTile(
                       title: const Text("Star Rating"),
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          for (var i = 0;
-                              i <
-                                  int.parse(instrument
-                                      .ratingsOverviewObj!["star_rating"]);
-                              i++) ...[
+                          for (var i = 0; i < starRating; i++) ...[
                             const Icon(Icons.star, color: Colors.amber),
                           ]
                         ],
                       )),
                 ],
-                ListTile(
-                  title: const Text("Stewardship"),
-                  trailing: Text(
-                      instrument.ratingsOverviewObj!["stewardship"]
-                          .toString()
-                          .capitalize(),
-                      style: const TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.w500)),
-                ),
-                ListTile(
-                  title: const Text("Uncertainty"),
-                  trailing: Text(
-                      instrument.ratingsOverviewObj!["uncertainty"]
-                          .toString()
-                          .replaceAll('_', ' ')
-                          .capitalize(),
-                      style: const TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.w500)),
-                ),
-                ListTile(
-                  title: Text(
-                    instrument.ratingsOverviewObj!["report_title"],
-                    style: const TextStyle(
-                        fontSize: 16.0, fontWeight: FontWeight.w500),
+                if (stewardship != null &&
+                    stewardship.isNotEmpty &&
+                    stewardship != "null") ...[
+                  ListTile(
+                    title: const Text("Stewardship"),
+                    trailing: Text(stewardship.capitalize(),
+                        style: const TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.w500)),
                   ),
-                  subtitle: Text(
-                      instrument.ratingsOverviewObj!["report_updated_at"] !=
-                              null
-                          ? "Updated ${formatDate.format(DateTime.parse(instrument.ratingsOverviewObj!["report_updated_at"]))} by ${instrument.ratingsOverviewObj!["source"].toString().capitalize()}"
-                          : "Published ${formatDate.format(DateTime.parse(instrument.ratingsOverviewObj!["report_published_at"]))} by ${instrument.ratingsOverviewObj!["source"].toString().capitalize()}",
-                      style: const TextStyle(fontSize: 14)),
-                ),
-                Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: <Widget>[
-                      TextButton(
-                        child: const Text('DOWNLOAD REPORT'),
-                        onPressed: () async {
-                          var url =
-                              instrument.ratingsOverviewObj!["download_url"];
-                          var uri = Uri.parse(url);
-                          await canLaunchUrl(uri)
-                              ? await launchUrl(uri)
-                              : throw 'Could not launch $url';
-                        },
-                      ),
-                    ])
+                ],
+                if (uncertainty != null &&
+                    uncertainty.isNotEmpty &&
+                    uncertainty != "null") ...[
+                  ListTile(
+                    title: const Text("Uncertainty"),
+                    trailing: Text(
+                        uncertainty.replaceAll('_', ' ').capitalize(),
+                        style: const TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.w500)),
+                  ),
+                ],
+                if ((reportTitle != null && reportTitle.isNotEmpty) ||
+                    reportSubtitle != null) ...[
+                  ListTile(
+                    title: (reportTitle != null && reportTitle.isNotEmpty)
+                        ? Text(
+                            reportTitle,
+                            style: const TextStyle(
+                                fontSize: 16.0, fontWeight: FontWeight.w500),
+                          )
+                        : null,
+                    subtitle: reportSubtitle != null
+                        ? Text(reportSubtitle,
+                            style: const TextStyle(fontSize: 14))
+                        : null,
+                  ),
+                ],
+                if (downloadUrl != null &&
+                    downloadUrl.isNotEmpty &&
+                    downloadUrl != "null") ...[
+                  Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: <Widget>[
+                        TextButton(
+                          child: const Text('DOWNLOAD REPORT'),
+                          onPressed: () async {
+                            var uri = Uri.tryParse(downloadUrl);
+                            if (uri != null && await canLaunchUrl(uri)) {
+                              await launchUrl(uri);
+                            }
+                          },
+                        ),
+                      ]),
+                ],
               ],
             ),
           ),
@@ -2957,25 +3002,31 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                                       ? Colors.grey
                                       : Colors.teal),
                           title: Text(
-                            "${earning!["year"]} Q${earning!["quarter"]}",
+                            "${earning!["year"] ?? ''} Q${earning!["quarter"] ?? ''}"
+                                .trim(),
                             style: const TextStyle(
                                 fontSize: 16.0, fontWeight: FontWeight.w500),
                           ),
-                          subtitle: Text(
-                              earning!["report"] != null
-                                  ? "Report${earning!["report"]["verified"] ? "ed" : "ing"} ${formatDate.format(DateTime.parse(earning!["report"]["date"]))} ${earning!["report"]["timing"]}"
-                                  : "",
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Theme.of(context)
-                                    .textTheme
-                                    .bodySmall
-                                    ?.color,
-                              )),
-                          trailing: (earning!["eps"]["estimate"] != null ||
-                                  earning!["eps"]["actual"] != null)
+                          subtitle: earning!["report"] != null
+                              ? Text(
+                                  "Report${earning!["report"]["verified"] == true ? "ed" : "ing"}${earning!["report"]["date"] != null ? " ${formatDate.format(DateTime.tryParse(earning!["report"]["date"].toString()) ?? DateTime.now())}" : ""}${earning!["report"]["timing"] != null ? " ${earning!["report"]["timing"]}" : ""}",
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Theme.of(context)
+                                        .textTheme
+                                        .bodySmall
+                                        ?.color,
+                                  ))
+                              : null,
+                          trailing: (earning!["eps"] != null &&
+                                  (earning!["eps"]["estimate"] != null ||
+                                      earning!["eps"]["actual"] != null))
                               ? Wrap(spacing: 16.0, children: [
-                                  if (earning!["eps"]["estimate"] != null) ...[
+                                  if (earning!["eps"]["estimate"] != null &&
+                                      double.tryParse(earning!["eps"]
+                                                  ["estimate"]
+                                              .toString()) !=
+                                          null) ...[
                                     Column(
                                       mainAxisSize: MainAxisSize.min,
                                       crossAxisAlignment:
@@ -2989,15 +3040,20 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                                                     .bodySmall
                                                     ?.color)),
                                         Text(
-                                            formatCurrency.format(double.parse(
-                                                earning!["eps"]["estimate"])),
+                                            formatCurrency.format(
+                                                double.tryParse(earning!["eps"]
+                                                        ["estimate"]
+                                                    .toString())!),
                                             style: const TextStyle(
                                                 fontSize: 16,
                                                 fontWeight: FontWeight.w500)),
                                       ],
                                     )
                                   ],
-                                  if (earning!["eps"]["actual"] != null) ...[
+                                  if (earning!["eps"]["actual"] != null &&
+                                      double.tryParse(earning!["eps"]["actual"]
+                                              .toString()) !=
+                                          null) ...[
                                     Column(
                                       mainAxisSize: MainAxisSize.min,
                                       crossAxisAlignment:
@@ -3011,8 +3067,10 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                                                     .bodySmall
                                                     ?.color)),
                                         Text(
-                                            formatCurrency.format(double.parse(
-                                                earning!["eps"]["actual"])),
+                                            formatCurrency.format(
+                                                double.tryParse(earning!["eps"]
+                                                        ["actual"]
+                                                    .toString())!),
                                             style: const TextStyle(
                                                 fontSize: 16,
                                                 fontWeight: FontWeight.bold))
@@ -3025,10 +3083,12 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                                   : const Icon(Icons.chevron_right)),
                         ),
                         if (earning!["call"] != null &&
-                            ((pastEarning["year"] == earning!["year"] &&
+                            ((pastEarning != null &&
+                                    pastEarning["year"] == earning!["year"] &&
                                     pastEarning["quarter"] ==
                                         earning!["quarter"]) ||
-                                (futureEarning["year"] == earning!["year"] &&
+                                (futureEarning != null &&
+                                    futureEarning["year"] == earning!["year"] &&
                                     futureEarning["quarter"] ==
                                         earning!["quarter"]))) ...[
                           Padding(
@@ -3037,24 +3097,28 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                if (!earning!["report"]["verified"]) ...[
+                                if (earning!["report"] != null &&
+                                    earning!["report"]["verified"] != true) ...[
                                   const SizedBox(height: 8),
                                   Text(
-                                    "Report${earning!["report"]["verified"] ? "ed" : "ing"} ${formatDate.format(DateTime.parse(earning!["report"]["date"]))} ${earning!["report"]["timing"]}",
+                                    "Report${earning!["report"]["verified"] == true ? "ed" : "ing"}${earning!["report"]["date"] != null ? " ${formatDate.format(DateTime.tryParse(earning!["report"]["date"].toString()) ?? DateTime.now())}" : ""}${earning!["report"]["timing"] != null ? " ${earning!["report"]["timing"]}" : ""}",
                                     style: const TextStyle(
                                         fontSize: 14,
                                         fontWeight: FontWeight.w500),
                                   ),
-                                  Text(
-                                    formatLongDate.format(DateTime.parse(
-                                        earning!["call"]["datetime"])),
-                                    style: TextStyle(
-                                        fontSize: 14,
-                                        color: Theme.of(context)
-                                            .textTheme
-                                            .bodySmall
-                                            ?.color),
-                                  ),
+                                  if (earning!["call"]["datetime"] != null)
+                                    Text(
+                                      formatLongDate.format(DateTime.tryParse(
+                                              earning!["call"]["datetime"]
+                                                  .toString()) ??
+                                          DateTime.now()),
+                                      style: TextStyle(
+                                          fontSize: 14,
+                                          color: Theme.of(context)
+                                              .textTheme
+                                              .bodySmall
+                                              ?.color),
+                                    ),
                                 ],
                                 Row(
                                     mainAxisAlignment: MainAxisAlignment.end,
@@ -3696,10 +3760,26 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                 showAllNews ? news.length : (news.length > 3 ? 3 : news.length);
             return Column(
               children: [
-                const ListTile(
-                  title: Text(
+                ListTile(
+                  title: const Text(
                     "News",
                     style: TextStyle(fontSize: 20),
+                  ),
+                  trailing: TextButton.icon(
+                    icon: const Icon(Icons.auto_awesome,
+                        size: 16, color: Colors.amber),
+                    label: const Text("AI Intelligence"),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => NewsIntelligenceWidget(
+                            symbol: instrument.symbol,
+                            rawArticles: instrument.newsObj,
+                          ),
+                        ),
+                      );
+                    },
                   ),
                 ),
                 ListView.separated(
@@ -6657,7 +6737,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     );
   }
 
-  Widget _buildESGCard() {
+  /* Widget _buildESGCard() {
     return FutureBuilder<ESGScore?>(
       future: _esgFuture,
       builder: (context, snapshot) {
@@ -6775,7 +6855,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         ),
       ],
     );
-  }
+  } */
 
   Iterable<Widget> getHeaderWidgets(QuoteStore quoteStore) sync* {
     var instrument = widget.instrument;

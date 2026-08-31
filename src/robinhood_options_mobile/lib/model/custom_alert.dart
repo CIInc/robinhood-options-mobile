@@ -1,8 +1,29 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-enum AlertType { price, volume, volatility, moving_average, rsi, custom }
+enum AlertType {
+  price,
+  volume,
+  volatility,
+  moving_average,
+  rsi,
+  gex,
+  dynamic_threshold,
+  custom
+}
 
-enum AlertCondition { above, below, spike, drop, percent_change }
+enum AlertCondition {
+  above,
+  below,
+  spike,
+  drop,
+  percent_change,
+  above_call_wall,
+  below_put_wall,
+  above_gamma_flip,
+  below_gamma_flip,
+  above_band,
+  below_band
+}
 
 enum AlertLogic { all, any }
 
@@ -83,7 +104,7 @@ class CustomAlert {
         ? rulesData
             .whereType<Map>()
             .map((rule) =>
-                SmartAlertRule.fromMap(Map<String, dynamic>.from(rule as Map)))
+                SmartAlertRule.fromMap(Map<String, dynamic>.from(rule)))
             .toList()
         : <SmartAlertRule>[];
 
