@@ -294,7 +294,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 ### v0.40.0 (Q3 2026 - September)
 **Risk Management Suite 2.0 & Futures Ordering**
 - Futures manual order placement and contract management.
-- Portfolio stress testing ([Tracking: #135](https://github.com/CIInc/robinhood-options-mobile/issues/135))
+- [x] Portfolio stress testing ([Tracking: #135](https://github.com/CIInc/robinhood-options-mobile/issues/135))
 - Greeks aggregation (Delta/Gamma/Theta/Vega) across entire multi-account portfolio.
 - Tail risk hedging recommendations and liquidity assessment.
 

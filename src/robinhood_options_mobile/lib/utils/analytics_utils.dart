@@ -1,6 +1,34 @@
 import 'dart:math';
 
 class AnalyticsUtils {
+  /// Projects portfolio value under simple proportional market shocks.
+  ///
+  /// This is deliberately transparent rather than predictive: every holding
+  /// is shocked by the same percentage and short exposure moves in the
+  /// opposite direction. Invalid or zero-value holdings are excluded.
+  static List<Map<String, double>> calculateStressScenarios(
+    Map<String, double> exposures, {
+    List<double> shocks = const [-0.20, -0.10, -0.05, 0.05, 0.10, 0.20],
+  }) {
+    final validExposures = exposures.values
+        .where((value) => value.isFinite && value != 0)
+        .toList();
+    final portfolioValue =
+        validExposures.fold<double>(0, (sum, value) => sum + value);
+    if (!portfolioValue.isFinite || portfolioValue == 0) return const [];
+
+    return shocks
+        .where((shock) => shock.isFinite)
+        .map((shock) => {
+              'shock': shock,
+              'change': validExposures.fold<double>(
+                  0, (sum, value) => sum + value * shock),
+              'projectedValue': portfolioValue * (1 + shock),
+              'portfolioValue': portfolioValue,
+            })
+        .toList();
+  }
+
   static List<double> calculateDailyReturns(List<double> prices) {
     if (prices.length < 2) return [];
     List<double> returns = [];

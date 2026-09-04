@@ -3,6 +3,7 @@ import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/equity_historical.dart';
 import 'package:robinhood_options_mobile/model/portfolio_analytics_controller.dart';
 import 'package:robinhood_options_mobile/model/portfolio_historicals.dart';
+import 'package:robinhood_options_mobile/utils/analytics_utils.dart';
 
 /// Builds portfolio historicals whose closes follow [closes], one trading day
 /// apart starting 2026-01-05.
@@ -71,6 +72,30 @@ Map<String, dynamic> buildBenchmarkPayload(
 }
 
 void main() {
+  group('Portfolio stress scenarios', () {
+    test('projects signed exposure across market shocks', () {
+      final scenarios = AnalyticsUtils.calculateStressScenarios({
+        'AAPL': 1000,
+        'TSLA': -400,
+      });
+
+      expect(scenarios, hasLength(6));
+      expect(scenarios.first['change'], closeTo(-120, 0.001));
+      expect(scenarios.first['projectedValue'], closeTo(480, 0.001));
+      expect(scenarios.last['change'], closeTo(120, 0.001));
+    });
+
+    test('ignores invalid and zero exposures', () {
+      final scenarios = AnalyticsUtils.calculateStressScenarios({
+        'AAPL': 1000,
+        'EMPTY': 0,
+        'BAD': double.nan,
+      });
+
+      expect(scenarios.first['portfolioValue'], 1000);
+    });
+  });
+
   group('PortfolioAnalyticsController', () {
     test('yields no metrics without historicals', () async {
       final controller = PortfolioAnalyticsController();
