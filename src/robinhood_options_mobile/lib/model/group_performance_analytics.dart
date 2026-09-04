@@ -1,3 +1,5 @@
+double? _jsonDouble(dynamic value) => (value as num?)?.toDouble();
+
 /// Member performance metrics for leaderboard and analytics
 class MemberPerformanceMetrics {
   final String memberId;
@@ -42,18 +44,18 @@ class MemberPerformanceMetrics {
       : memberId = json['memberId'] as String,
         memberName = json['memberName'] as String,
         memberPhotoUrl = json['memberPhotoUrl'] as String?,
-        totalReturnPercent = json['totalReturnPercent'] as double? ?? 0,
-        totalReturnDollars = json['totalReturnDollars'] as double? ?? 0,
-        winRate = json['winRate'] as double? ?? 0,
+        totalReturnPercent = _jsonDouble(json['totalReturnPercent']) ?? 0,
+        totalReturnDollars = _jsonDouble(json['totalReturnDollars']) ?? 0,
+        winRate = _jsonDouble(json['winRate']) ?? 0,
         totalTrades = json['totalTrades'] as int? ?? 0,
         winningTrades = json['winningTrades'] as int? ?? 0,
         losingTrades = json['losingTrades'] as int? ?? 0,
-        averageWin = json['averageWin'] as double? ?? 0,
-        averageLoss = json['averageLoss'] as double? ?? 0,
-        profitFactor = json['profitFactor'] as double? ?? 0,
-        sharpeRatio = json['sharpeRatio'] as double? ?? 0,
-        maxDrawdownPercent = json['maxDrawdownPercent'] as double? ?? 0,
-        avgHoldTimeHours = json['avgHoldTimeHours'] as double?,
+        averageWin = _jsonDouble(json['averageWin']) ?? 0,
+        averageLoss = _jsonDouble(json['averageLoss']) ?? 0,
+        profitFactor = _jsonDouble(json['profitFactor']) ?? 0,
+        sharpeRatio = _jsonDouble(json['sharpeRatio']) ?? 0,
+        maxDrawdownPercent = _jsonDouble(json['maxDrawdownPercent']) ?? 0,
+        avgHoldTimeHours = _jsonDouble(json['avgHoldTimeHours']),
         firstTradeDate = json['firstTradeDate'] != null
             ? DateTime.parse(json['firstTradeDate'] as String)
             : null,
@@ -127,20 +129,20 @@ class GroupPerformanceMetrics {
   GroupPerformanceMetrics.fromJson(Map<String, dynamic> json)
       : groupId = json['groupId'] as String,
         groupTotalReturnPercent =
-            json['groupTotalReturnPercent'] as double? ?? 0,
+            _jsonDouble(json['groupTotalReturnPercent']) ?? 0,
         groupTotalReturnDollars =
-            json['groupTotalReturnDollars'] as double? ?? 0,
+            _jsonDouble(json['groupTotalReturnDollars']) ?? 0,
         groupAverageReturnPercent =
-            json['groupAverageReturnPercent'] as double? ?? 0,
+            _jsonDouble(json['groupAverageReturnPercent']) ?? 0,
         groupAverageReturnDollars =
-            json['groupAverageReturnDollars'] as double? ?? 0,
+            _jsonDouble(json['groupAverageReturnDollars']) ?? 0,
         totalMembersTraded = json['totalMembersTraded'] as int? ?? 0,
         totalGroupTrades = json['totalGroupTrades'] as int? ?? 0,
-        groupWinRate = json['groupWinRate'] as double? ?? 0,
+        groupWinRate = _jsonDouble(json['groupWinRate']) ?? 0,
         groupAverageSharpeRatio =
-            json['groupAverageSharpeRatio'] as double? ?? 0,
+            _jsonDouble(json['groupAverageSharpeRatio']) ?? 0,
         topPerformerReturnPercent =
-            json['topPerformerReturnPercent'] as double? ?? 0,
+            _jsonDouble(json['topPerformerReturnPercent']) ?? 0,
         topPerformerId = json['topPerformerId'] as String?,
         membersWithPositiveReturn =
             json['membersWithPositiveReturn'] as int? ?? 0,

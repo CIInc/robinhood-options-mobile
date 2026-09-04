@@ -9,6 +9,7 @@ import 'package:robinhood_options_mobile/model/group_performance_analytics_provi
 import 'package:robinhood_options_mobile/model/group_performance_analytics.dart';
 import 'package:robinhood_options_mobile/model/group_watchlist_models.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
+import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/services/group_watchlist_service.dart';
 import 'package:robinhood_options_mobile/widgets/copy_trade_settings_widget.dart';
 import 'package:robinhood_options_mobile/widgets/investor_group_chat_widget.dart';
@@ -21,6 +22,7 @@ import 'package:share_plus/share_plus.dart';
 class InvestorGroupDetailWidget extends StatefulWidget {
   final String groupId;
   final FirestoreService firestoreService;
+  final IBrokerageService? service;
   final BrokerageUser? brokerageUser;
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
@@ -29,6 +31,7 @@ class InvestorGroupDetailWidget extends StatefulWidget {
     super.key,
     required this.groupId,
     required this.firestoreService,
+    this.service,
     required this.brokerageUser,
     required this.analytics,
     required this.observer,
@@ -1345,7 +1348,12 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
         builder: (context) => ChangeNotifierProvider(
           create: (_) =>
               GroupPerformanceAnalyticsProvider(widget.firestoreService),
-          child: GroupPerformanceAnalyticsWidget(group: group),
+          child: GroupPerformanceAnalyticsWidget(
+            group: group,
+            firestoreService: widget.firestoreService,
+            service: widget.service,
+            brokerageUser: widget.brokerageUser,
+          ),
         ),
       ),
     );

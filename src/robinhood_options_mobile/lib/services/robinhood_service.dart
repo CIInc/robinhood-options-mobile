@@ -2136,7 +2136,7 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
         // for (var chunk in chunks) {
         //   await _firestoreService.upsertInstrumentOrders(chunk, userDoc);
         // }
-        _firestoreService.upsertInstrumentOrders(list, userDoc);
+        await _firestoreService.upsertInstrumentOrders(list, userDoc);
       }
 
       var instrumentIds = list.map((e) => e.instrumentId).toSet().toList();
@@ -2744,8 +2744,11 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
       InstrumentOrderStore store, List<String> instrumentUrls) async {
     // https://api.robinhood.com/orders/?instrument=https%3A%2F%2Fapi.robinhood.com%2Finstruments%2F943c5009-a0bb-4665-8cf4-a95dab5874e4%2F
 
-    var results = await RobinhoodService.pagedGet(user,
-        "$endpoint/orders/?instrument=${Uri.encodeComponent(instrumentUrls.join(","))}");
+    final instrumentFilter = instrumentUrls.isEmpty
+        ? ''
+        : '?instrument=${Uri.encodeComponent(instrumentUrls.join(","))}';
+    var results = await RobinhoodService.pagedGet(
+        user, "$endpoint/orders/$instrumentFilter");
     List<InstrumentOrder> list = [];
     for (var i = 0; i < results.length; i++) {
       var result = results[i];

@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:community_charts_flutter/community_charts_flutter.dart'
@@ -7,24 +10,36 @@ import 'package:community_charts_flutter/community_charts_flutter.dart'
 import 'package:robinhood_options_mobile/model/group_performance_analytics.dart';
 import 'package:robinhood_options_mobile/model/group_performance_analytics_provider.dart';
 import 'package:robinhood_options_mobile/model/investor_group.dart';
+import 'package:robinhood_options_mobile/model/brokerage_user.dart';
+import 'package:robinhood_options_mobile/model/instrument_order_store.dart';
+import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
+import 'package:robinhood_options_mobile/services/firestore_service.dart';
+import 'package:robinhood_options_mobile/main.dart';
 
 // Constants
 const int _kMaxChartMembers = 10;
-const double _kBottomSheetHeight = 300.0;
 const double _kAvatarRadius = 24.0;
 const double _kChartHeight = 300.0;
 const int _kGridColumns = 2;
 const Duration _kAnimationDuration = Duration(milliseconds: 300);
+const Duration _kPortfolioSyncFetchTimeout = Duration(minutes: 5);
+const Duration _kPortfolioSyncWriteTimeout = Duration(seconds: 30);
 const double _kTabletBreakpoint = 600.0;
 const int _kTopPerformersCount = 3;
 
 /// Widget for displaying group performance analytics and leaderboards
 class GroupPerformanceAnalyticsWidget extends StatefulWidget {
   final InvestorGroup group;
+  final FirestoreService? firestoreService;
+  final IBrokerageService? service;
+  final BrokerageUser? brokerageUser;
 
   const GroupPerformanceAnalyticsWidget({
     super.key,
     required this.group,
+    this.firestoreService,
+    this.service,
+    this.brokerageUser,
   });
 
   @override
@@ -40,6 +55,7 @@ class _GroupPerformanceAnalyticsWidgetState
   String _searchQuery = '';
   RankingSortOption _sortOption = RankingSortOption.totalReturn;
   bool _sortAscending = false;
+  bool _isSyncing = false;
   final Set<String> _selectedMembersForComparison = {};
 
   @override
@@ -55,6 +71,68 @@ class _GroupPerformanceAnalyticsWidgetState
   void _loadAnalytics() {
     final provider = context.read<GroupPerformanceAnalyticsProvider>();
     provider.loadGroupPerformanceAnalytics(widget.group.id, _selectedPeriod);
+  }
+
+  Future<void> _syncPortfolio() async {
+    final service = widget.service;
+    final brokerageUser = widget.brokerageUser;
+    final currentUser = auth.currentUser;
+    if (service == null || brokerageUser == null || currentUser == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Brokerage account unavailable')),
+        );
+      }
+      return;
+    }
+
+    setState(() => _isSyncing = true);
+    var syncStage = 'fetching brokerage orders';
+    try {
+      final userDoc =
+          FirebaseFirestore.instance.collection('user').doc(currentUser.uid);
+      syncStage = 'fetching brokerage orders';
+      final orders = await service.getInstrumentOrders(
+        brokerageUser,
+        InstrumentOrderStore(),
+        const [],
+      ).timeout(_kPortfolioSyncFetchTimeout);
+      if (orders.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('No brokerage orders found')),
+          );
+        }
+        return;
+      }
+      final firestoreService = widget.firestoreService;
+      if (firestoreService == null) {
+        throw Exception('Firestore service unavailable');
+      }
+      syncStage = 'writing orders to Firestore';
+      await firestoreService
+          .upsertInstrumentOrders(orders, userDoc)
+          .timeout(_kPortfolioSyncWriteTimeout);
+      _loadAnalytics();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Portfolio synchronized (${orders.length} orders)'),
+          ),
+        );
+      }
+    } catch (error) {
+      if (mounted) {
+        final message = error is TimeoutException
+            ? 'Portfolio sync timed out while $syncStage'
+            : 'Portfolio sync failed: $error';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(message)),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSyncing = false);
+    }
   }
 
   @override
@@ -80,9 +158,15 @@ class _GroupPerformanceAnalyticsWidgetState
           ),
           actions: [
             IconButton(
-              icon: const Icon(Icons.refresh),
-              onPressed: _loadAnalytics,
-              tooltip: 'Refresh data',
+              icon: _isSyncing
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.sync),
+              onPressed: _isSyncing ? null : _syncPortfolio,
+              tooltip: 'Sync portfolio',
             ),
             IconButton(
               icon: const Icon(Icons.more_vert),
@@ -1321,9 +1405,9 @@ class _GroupPerformanceAnalyticsWidgetState
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       builder: (context) => SafeArea(
-        child: SizedBox(
-          height: _kBottomSheetHeight,
+        child: SingleChildScrollView(
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
                 leading: const Icon(Icons.download),

@@ -578,6 +578,7 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget> {
                                       InvestorGroupDetailWidget(
                                     groupId: group.id,
                                     firestoreService: widget.firestoreService,
+                                    service: widget.service,
                                     brokerageUser: widget.brokerageUser,
                                     analytics: widget.analytics,
                                     observer: widget.observer,
@@ -879,6 +880,7 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget> {
                                       InvestorGroupDetailWidget(
                                     groupId: group.id,
                                     firestoreService: widget.firestoreService,
+                                    service: widget.service,
                                     brokerageUser: widget.brokerageUser,
                                     analytics: widget.analytics,
                                     observer: widget.observer,
@@ -924,6 +926,7 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget> {
                     builder: (context) => InvestorGroupDetailWidget(
                       groupId: group.id,
                       firestoreService: widget.firestoreService,
+                      service: widget.service,
                       brokerageUser: widget.brokerageUser,
                       analytics: widget.analytics,
                       observer: widget.observer,
@@ -1287,6 +1290,7 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget> {
                                       InvestorGroupDetailWidget(
                                     groupId: group.id,
                                     firestoreService: widget.firestoreService,
+                                    service: widget.service,
                                     brokerageUser: widget.brokerageUser,
                                     analytics: widget.analytics,
                                     observer: widget.observer,

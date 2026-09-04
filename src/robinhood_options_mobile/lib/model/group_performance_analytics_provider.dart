@@ -58,24 +58,14 @@ class GroupPerformanceAnalyticsProvider extends ChangeNotifier {
     try {
       final startDate = period.getStartDate();
       final endDate = DateTime.now();
-
-      // Fetch group metrics
-      final groupMetrics = await _firestoreService.getGroupPerformanceMetrics(
-        groupId,
-        startDate,
-        endDate,
-      );
-
-      // Fetch member metrics
-      final memberMetrics =
-          await _firestoreService.getMembersPerformanceMetrics(
-        groupId,
-        startDate,
-        endDate,
-      );
-
-      _groupMetrics = groupMetrics;
-      _memberMetrics = memberMetrics;
+      final result = await _firestoreService.getGroupPerformanceAnalytics(
+          groupId, startDate, endDate);
+      _groupMetrics = GroupPerformanceMetrics.fromJson(
+          Map<String, dynamic>.from(result['groupMetrics'] as Map));
+      _memberMetrics = (result['memberMetrics'] as List)
+          .map((member) => MemberPerformanceMetrics.fromJson(
+              Map<String, dynamic>.from(member as Map)))
+          .toList();
       _isLoading = false;
       _notifyListeners();
     } catch (e) {

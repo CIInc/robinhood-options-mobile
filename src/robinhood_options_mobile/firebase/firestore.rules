@@ -20,6 +20,12 @@ service cloud.firestore {
       match /notes/{id} {
         allow read, create, update, delete: if request.auth.uid == uid;
       }
+      match /instrumentOrder/{id} {
+        allow read, create, update: if request.auth != null &&
+          request.auth.uid == uid;
+        allow delete: if request.auth != null &&
+          (request.auth.uid == uid || request.auth.token.role == 'admin');
+      }
       match /signal_notifications/{id} {
         allow read: if request.auth.uid == uid;
         allow update: if request.auth.uid == uid; // for marking as read

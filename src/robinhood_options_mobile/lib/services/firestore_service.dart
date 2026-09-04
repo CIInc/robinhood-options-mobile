@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/foundation.dart';
 import 'dart:math' as math;
 import 'package:robinhood_options_mobile/enums.dart';
@@ -579,14 +581,23 @@ class FirestoreService {
   Future<void> upsertInstrumentOrders(
       List<InstrumentOrder> instrumentOrders, DocumentReference userDoc,
       {bool updateIfExists = true}) async {
-    var batch = _db.batch();
-    for (var instrumentOrder in instrumentOrders) {
-      var instrumentOrderDoc = userDoc
-          .collection(instrumentOrderCollectionName)
-          .doc(instrumentOrder.id);
-      batch.set(instrumentOrderDoc, instrumentOrder.toJson());
-    }
-    batch.commit();
+    if (instrumentOrders.isEmpty) return;
+
+    // TODO: Revisit client-side writes after upgrading or isolating the iOS
+    // Firebase/FlutterFire SDK issue that caused client commits to hang.
+    debugPrint(
+        'Firestore order sync: sending ${instrumentOrders.length} orders for ${userDoc.path}');
+    final callable =
+        FirebaseFunctions.instance.httpsCallable('syncInstrumentOrders');
+    final result = await callable.call({
+      'orders': instrumentOrders.map((order) {
+        final payload = order.toJson();
+        payload['created_at'] = order.createdAt?.toIso8601String();
+        payload['updated_at'] = order.updatedAt?.toIso8601String();
+        return payload;
+      }).toList(),
+    }).timeout(const Duration(minutes: 2));
+    debugPrint('Firestore order sync: server acknowledged ${result.data}');
   }
 
   /// OptionOrder Methods
@@ -1154,6 +1165,21 @@ class FirestoreService {
   }
 
   /// Group Performance Analytics Methods
+
+  Future<Map<String, dynamic>> getGroupPerformanceAnalytics(
+    String groupId,
+    DateTime? startDate,
+    DateTime? endDate,
+  ) async {
+    final result = await FirebaseFunctions.instance
+        .httpsCallable('getGroupPerformanceAnalytics')
+        .call({
+      'groupId': groupId,
+      'startDate': startDate?.toIso8601String(),
+      'endDate': endDate?.toIso8601String(),
+    });
+    return Map<String, dynamic>.from(result.data as Map);
+  }
 
   /// Get aggregate performance metrics for a group
   Future<GroupPerformanceMetrics> getGroupPerformanceMetrics(

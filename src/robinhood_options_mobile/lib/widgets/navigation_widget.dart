@@ -1056,6 +1056,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
               builder: (context) => InvestorGroupDetailWidget(
                 groupId: groupId,
                 firestoreService: _firestoreService,
+                service: service,
                 brokerageUser: userStore.currentUser,
                 analytics: widget.analytics,
                 observer: widget.observer,
