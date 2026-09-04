@@ -1,6 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/equity_historical.dart';
+import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
+import 'package:robinhood_options_mobile/model/option_instrument.dart';
+import 'package:robinhood_options_mobile/model/option_marketdata.dart';
 import 'package:robinhood_options_mobile/model/portfolio_analytics_controller.dart';
 import 'package:robinhood_options_mobile/model/portfolio_historicals.dart';
 import 'package:robinhood_options_mobile/utils/analytics_utils.dart';
@@ -93,6 +96,91 @@ void main() {
       });
 
       expect(scenarios.first['portfolioValue'], 1000);
+    });
+  });
+
+  group('Portfolio Greeks', () {
+    test('scales Greeks by contracts and reverses credit exposure', () {
+      final longPosition = OptionAggregatePosition(
+          'long',
+          'chain',
+          'acct',
+          'AAPL',
+          'single',
+          null,
+          [],
+          2,
+          null,
+          null,
+          'debit',
+          'debit',
+          100,
+          null,
+          null,
+          '');
+      longPosition.optionInstrument = _optionInstrument(
+        const OptionMarketData(
+            null,
+            null,
+            0,
+            null,
+            0,
+            null,
+            null,
+            '',
+            '',
+            null,
+            0,
+            null,
+            null,
+            0,
+            null,
+            null,
+            0,
+            'AAPL',
+            '',
+            null,
+            null,
+            0.5,
+            0.02,
+            null,
+            null,
+            -0.1,
+            0.3,
+            null,
+            null,
+            null,
+            null,
+            null),
+      );
+      final shortPosition = OptionAggregatePosition(
+          'short',
+          'chain',
+          'acct',
+          'AAPL',
+          'single',
+          null,
+          [],
+          1,
+          null,
+          null,
+          'credit',
+          'credit',
+          100,
+          null,
+          null,
+          '');
+      shortPosition.optionInstrument =
+          _optionInstrument(longPosition.optionInstrument!.optionMarketData!);
+
+      final totals =
+          AnalyticsUtils.aggregateOptionGreeks([longPosition, shortPosition]);
+
+      expect(totals['delta'], closeTo(50, 0.001));
+      expect(totals['gamma'], closeTo(2, 0.001));
+      expect(totals['theta'], closeTo(-10, 0.001));
+      expect(totals['vega'], closeTo(30, 0.001));
+      expect(totals['pricedContracts'], 3);
     });
   });
 
@@ -422,4 +510,27 @@ void main() {
       expect(controller.hasMetrics, isFalse);
     });
   });
+}
+
+OptionInstrument _optionInstrument(OptionMarketData marketData) {
+  final instrument = OptionInstrument(
+      '',
+      '',
+      null,
+      null,
+      '',
+      null,
+      const MinTicks(null, null, null),
+      '',
+      '',
+      null,
+      '',
+      '',
+      null,
+      '',
+      null,
+      '',
+      '');
+  instrument.optionMarketData = marketData;
+  return instrument;
 }

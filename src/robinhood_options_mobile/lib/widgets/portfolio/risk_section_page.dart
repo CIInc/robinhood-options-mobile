@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
+import 'package:robinhood_options_mobile/model/option_position_store.dart';
 import 'package:robinhood_options_mobile/widgets/analytics_style_card.dart';
 import 'package:robinhood_options_mobile/widgets/correlation_matrix_widget.dart';
 import 'package:robinhood_options_mobile/widgets/portfolio/analytics/analytics_filter_bar.dart';
@@ -9,6 +10,7 @@ import 'package:robinhood_options_mobile/widgets/portfolio/analytics/portfolio_h
 import 'package:robinhood_options_mobile/widgets/portfolio/analytics/risk_analytics_card.dart';
 import 'package:robinhood_options_mobile/widgets/portfolio/analytics/rolling_statistics_dashboard.dart';
 import 'package:robinhood_options_mobile/widgets/portfolio/portfolio_risk_summary_widget.dart';
+import 'package:robinhood_options_mobile/widgets/portfolio/portfolio_greeks_card.dart';
 import 'package:robinhood_options_mobile/widgets/portfolio/portfolio_stress_test_card.dart';
 import 'package:robinhood_options_mobile/widgets/portfolio/portfolio_section_context.dart';
 import 'package:robinhood_options_mobile/widgets/portfolio/portfolio_section_scaffold.dart';
@@ -43,8 +45,8 @@ class _RiskSectionPageState extends State<RiskSectionPage> {
     return ListenableBuilder(
       listenable: controller,
       builder: (context, child) {
-        return Consumer<InstrumentPositionStore>(
-          builder: (context, store, child) {
+        return Consumer2<InstrumentPositionStore, OptionPositionStore>(
+          builder: (context, store, optionStore, child) {
             final metrics = controller.metrics;
             final symbols = store.items
                 .where((position) => position.instrumentObj != null)
@@ -84,6 +86,7 @@ class _RiskSectionPageState extends State<RiskSectionPage> {
                 if (healthScore != null)
                   _healthCard(context, healthScore, metrics),
                 PortfolioRiskSummaryWidget(positions: store.items),
+                PortfolioGreeksCard(positions: optionStore.items),
                 PortfolioStressTestCard(positions: store.items),
                 const AnalyticsStyleCard(
                   padding: EdgeInsets.zero,

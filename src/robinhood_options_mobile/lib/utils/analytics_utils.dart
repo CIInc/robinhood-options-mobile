@@ -1,6 +1,62 @@
 import 'dart:math';
 
+import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
+import 'package:robinhood_options_mobile/model/option_marketdata.dart';
+
 class AnalyticsUtils {
+  /// Aggregates option Greeks using the position direction and contract size.
+  /// Positions without usable market data are excluded from the totals.
+  static Map<String, double> aggregateOptionGreeks(
+    Iterable<OptionAggregatePosition> positions,
+  ) {
+    final totals = <String, double>{
+      'delta': 0,
+      'gamma': 0,
+      'theta': 0,
+      'vega': 0,
+      'pricedContracts': 0,
+    };
+
+    for (final position in positions) {
+      final marketData = position.optionInstrument?.optionMarketData;
+      final quantity = position.quantity;
+      if (marketData == null || quantity == null || !quantity.isFinite) {
+        continue;
+      }
+
+      final multiplier = position.tradeValueMultiplier ?? 100;
+      if (!multiplier.isFinite || multiplier <= 0) continue;
+      final direction = position.direction.toLowerCase() == 'credit' ? -1 : 1;
+      final scale = quantity * multiplier * direction;
+      _addGreek(totals, 'delta', marketData.delta, scale);
+      _addGreek(totals, 'gamma', marketData.gamma, scale);
+      _addGreek(totals, 'theta', marketData.theta, scale);
+      _addGreek(totals, 'vega', marketData.vega, scale);
+      if (_hasAnyGreek(marketData)) {
+        totals['pricedContracts'] = totals['pricedContracts']! + quantity.abs();
+      }
+    }
+    return totals;
+  }
+
+  static void _addGreek(
+    Map<String, double> totals,
+    String name,
+    double? value,
+    double scale,
+  ) {
+    if (value != null && value.isFinite) {
+      totals[name] = totals[name]! + value * scale;
+    }
+  }
+
+  static bool _hasAnyGreek(OptionMarketData marketData) => [
+        marketData.delta,
+        marketData.gamma,
+        marketData.theta,
+        marketData.vega
+      ].any((value) => value != null && value.isFinite);
+
   /// Projects portfolio value under simple proportional market shocks.
   ///
   /// This is deliberately transparent rather than predictive: every holding
