@@ -49,5 +49,21 @@ describe("News Intelligence Analyzer", () => {
     expect(intelligence.sentimentLabel).toMatch(/Bullish/);
     expect(intelligence.bullishCatalysts.length).toBeGreaterThan(0);
     expect(intelligence.articles.length).toBe(2);
+    expect(intelligence.eventImpactPrediction.direction).toBe("Bullish");
+    expect(intelligence.eventImpactPrediction.expectedMovePercent)
+      .toBeGreaterThan(0);
+    expect(intelligence.eventImpactPrediction.drivers).toHaveLength(2);
+  });
+
+  it("returns a low-confidence neutral baseline without news", () => {
+    const intelligence = analyzeNewsArticles([], "AAPL");
+
+    expect(intelligence.eventImpactPrediction).toEqual({
+      direction: "Neutral",
+      expectedMovePercent: 0,
+      confidence: 15,
+      horizon: "1-2 weeks",
+      drivers: [],
+    });
   });
 });

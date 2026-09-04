@@ -702,7 +702,7 @@ Q3 2026 shifts focus from basic execution to **Advanced Intelligence** and **Reg
 - [x] **News Intelligence & Summarization** (v0.38.0):
     - [x] **AI News Summarizer**: Breaking news impact analysis and catalyst extraction for instruments and watchlists
     - [x] **Real-time Sentiment Scoring**: Quantifying news and catalyst impact on specific tickers
-    - [ ] **Event Impact Prediction**: Modeling price responses to news events
+    - [x] **Event Impact Prediction**: Transparent baseline modeling of directional price responses to news events
 - [ ] **Sentiment Analysis 2.0**: Real-time video/audio sentiment analysis (e.g., Fed speeches) - **Large** (4-5 weeks)
 - [x] **Macro-Economic Indicators**: Incorporate interest rates, inflation, and economic calendar events into the "Market Direction" indicator - **Medium** (3-4 weeks)
 - [ ] **Specialized AI Agents**:

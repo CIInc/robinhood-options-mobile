@@ -21,6 +21,14 @@ export interface NewsArticle {
   symbols: string[];
 }
 
+export interface EventImpactPrediction {
+  direction: "Bullish" | "Neutral" | "Bearish";
+  expectedMovePercent: number;
+  confidence: number;
+  horizon: "1-3 trading days" | "1-2 weeks";
+  drivers: string[];
+}
+
 export interface NewsIntelligence {
   symbol: string;
   overallSentiment: number; // 0-100
@@ -37,6 +45,7 @@ export interface NewsIntelligence {
   impactRating: "High" | "Medium" | "Low";
   sentimentScoreChange24h: number;
   articles: NewsArticle[];
+  eventImpactPrediction: EventImpactPrediction;
   updatedAt: string;
 }
 
@@ -111,6 +120,51 @@ export function scoreArticleText(text: string): {
   }
 
   return { score, label, impact };
+}
+
+/**
+ * Estimates the likely short-term price response from the analyzed news mix.
+ * This is a transparent baseline, not a trained price model.
+ * @param {NewsArticle[]} articles - Scored news articles.
+ * @param {number} overallSentiment - Aggregate sentiment score.
+ * @param {"High" | "Medium" | "Low"} impactRating - Aggregate impact.
+ * @return {EventImpactPrediction} Direction, size, confidence, and drivers.
+ */
+export function predictEventImpact(
+  articles: NewsArticle[],
+  overallSentiment: number,
+  impactRating: "High" | "Medium" | "Low"
+): EventImpactPrediction {
+  const deviation = Math.abs(overallSentiment - 50);
+  const direction: EventImpactPrediction["direction"] =
+    overallSentiment >= 55 ? "Bullish" :
+      overallSentiment <= 45 ? "Bearish" : "Neutral";
+  const impactMultiplier = impactRating === "High" ? 0.08 :
+    impactRating === "Medium" ? 0.04 : 0.02;
+  const highImpactCount = articles.filter((a) => a.impact === "High").length;
+  const expectedMovePercent = Number(Math.min(
+    15,
+    (deviation / 50) * impactMultiplier * 100 + highImpactCount,
+  ).toFixed(1));
+  const confidence = Math.round(Math.min(
+    90,
+    articles.length === 0 ? 15 :
+      35 + deviation * 0.8 + Math.min(25, highImpactCount * 10),
+  ));
+  const horizon: EventImpactPrediction["horizon"] =
+    highImpactCount > 0 ? "1-3 trading days" : "1-2 weeks";
+  const drivers = articles
+    .filter((article) => article.impact !== "Low")
+    .slice(0, 3)
+    .map((article) => article.title);
+
+  return {
+    direction,
+    expectedMovePercent,
+    confidence,
+    horizon,
+    drivers,
+  };
 }
 
 /**
@@ -190,6 +244,11 @@ export function analyzeNewsArticles(
   } else if (highImpactCount >= 1 || articles.length >= 3) {
     impactRating = "Medium";
   }
+  const eventImpactPrediction = predictEventImpact(
+    articles,
+    overallSentiment,
+    impactRating,
+  );
 
   // Generate headline summary
   let headlineSummary = "";
@@ -224,6 +283,7 @@ export function analyzeNewsArticles(
     impactRating,
     sentimentScoreChange24h: 0,
     articles,
+    eventImpactPrediction,
     updatedAt: new Date().toISOString(),
   };
 }

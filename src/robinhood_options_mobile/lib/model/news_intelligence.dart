@@ -161,6 +161,36 @@ class NewsArticleItem {
   }
 }
 
+class EventImpactPrediction {
+  final String direction;
+  final double expectedMovePercent;
+  final int confidence;
+  final String horizon;
+  final List<String> drivers;
+
+  const EventImpactPrediction({
+    required this.direction,
+    required this.expectedMovePercent,
+    required this.confidence,
+    required this.horizon,
+    this.drivers = const [],
+  });
+
+  factory EventImpactPrediction.fromMap(Map<String, dynamic>? map) {
+    return EventImpactPrediction(
+      direction: map?['direction']?.toString() ?? 'Neutral',
+      expectedMovePercent:
+          (map?['expectedMovePercent'] as num?)?.toDouble() ?? 0.0,
+      confidence: (map?['confidence'] as num?)?.toInt() ?? 15,
+      horizon: map?['horizon']?.toString() ?? '1-2 weeks',
+      drivers: (map?['drivers'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          [],
+    );
+  }
+}
+
 class NewsIntelligence {
   final String symbol;
   final double overallSentiment; // 0-100
@@ -172,6 +202,7 @@ class NewsIntelligence {
   final NewsImpact impactRating;
   final double sentimentScoreChange24h;
   final List<NewsArticleItem> articles;
+  final EventImpactPrediction eventImpactPrediction;
   final DateTime updatedAt;
 
   const NewsIntelligence({
@@ -185,6 +216,12 @@ class NewsIntelligence {
     required this.impactRating,
     this.sentimentScoreChange24h = 0.0,
     this.articles = const [],
+    this.eventImpactPrediction = const EventImpactPrediction(
+      direction: 'Neutral',
+      expectedMovePercent: 0,
+      confidence: 15,
+      horizon: '1-2 weeks',
+    ),
     required this.updatedAt,
   });
 
@@ -215,6 +252,8 @@ class NewsIntelligence {
           .whereType<Map>()
           .map((a) => NewsArticleItem.fromMap(Map<String, dynamic>.from(a)))
           .toList(),
+      eventImpactPrediction: EventImpactPrediction.fromMap(
+          map['eventImpactPrediction'] as Map<String, dynamic>?),
       updatedAt: map['updatedAt'] != null
           ? DateTime.tryParse(map['updatedAt'].toString()) ?? DateTime.now()
           : DateTime.now(),
@@ -233,6 +272,13 @@ class NewsIntelligence {
       'impactRating': impactRating.name,
       'sentimentScoreChange24h': sentimentScoreChange24h,
       'articles': articles.map((a) => a.toMap()).toList(),
+      'eventImpactPrediction': {
+        'direction': eventImpactPrediction.direction,
+        'expectedMovePercent': eventImpactPrediction.expectedMovePercent,
+        'confidence': eventImpactPrediction.confidence,
+        'horizon': eventImpactPrediction.horizon,
+        'drivers': eventImpactPrediction.drivers,
+      },
       'updatedAt': updatedAt.toIso8601String(),
     };
   }

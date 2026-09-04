@@ -96,6 +96,8 @@ class _NewsIntelligenceWidgetState extends State<NewsIntelligenceWidget> {
               children: [
                 _buildOverviewCard(data),
                 const SizedBox(height: 16),
+                _buildEventImpactCard(data),
+                const SizedBox(height: 16),
                 if (data.bullishCatalysts.isNotEmpty ||
                     data.bearishCatalysts.isNotEmpty) ...[
                   _buildCatalystsSection(data),
@@ -236,6 +238,74 @@ class _NewsIntelligenceWidgetState extends State<NewsIntelligenceWidget> {
                         ),
                       ],
                     ),
+                  )),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEventImpactCard(NewsIntelligence data) {
+    final prediction = data.eventImpactPrediction;
+    final isBullish = prediction.direction == 'Bullish';
+    final isBearish = prediction.direction == 'Bearish';
+    final color = isBullish
+        ? Colors.green
+        : isBearish
+            ? Colors.red
+            : Colors.grey;
+    final move = prediction.expectedMovePercent.toStringAsFixed(1);
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.insights, color: color, size: 20),
+                const SizedBox(width: 8),
+                Text(
+                  'Expected Event Impact',
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleMedium
+                      ?.copyWith(fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Text(
+                  prediction.direction,
+                  style: TextStyle(color: color, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(width: 8),
+                Text('up to +/-$move%'),
+                const Spacer(),
+                Text('${prediction.confidence}% confidence'),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              '${prediction.horizon}. Baseline estimate from sentiment and event impact; actual moves may differ.',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            if (prediction.drivers.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              Text('Drivers',
+                  style: Theme.of(context)
+                      .textTheme
+                      .labelLarge
+                      ?.copyWith(fontWeight: FontWeight.bold)),
+              ...prediction.drivers.map((driver) => Text(
+                    '\u2022 $driver',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodySmall,
                   )),
             ],
           ],
