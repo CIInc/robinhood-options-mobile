@@ -9,6 +9,7 @@ RealizeAlpha has integrated with Charles Schwab to provide users with a broader 
 - **Order Management:**
     - **View Orders:** Access your history of executed and pending orders.
     - **Option Orders:** Place single-leg and multi-leg option orders through the Schwab brokerage integration. **(Updated v0.37.5)**
+- **Multi-Account Position Sync (v0.39.0):** Enhanced Schwab account position mapping, account switching, and multi-account position store synchronization across portfolio and home widgets.
 - **Real-Time Data:** Fetch real-time quotes and market data for your holdings.
 - **Seamless Navigation:** The app's navigation has been updated to support Schwab accounts, providing a consistent experience across different brokerages.
 

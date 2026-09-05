@@ -284,19 +284,23 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ **Sentiment Scoring:** Automated sentiment scoring, impact classification (High/Medium/Low), and bullish/bearish driver analysis.
 - ✅ **Dynamic Alert Thresholds:** AI- and ATR-calculated dynamic volatility bands and threshold breakouts.
 
-### v0.39.0 (Q3 2026 - August)
+### v0.39.0 ✅ (Released September 05, 2026)
+**Custom Benchmarks, Portfolio Stress Testing, Aggregate Option Greeks, and News Signal Multipliers**
+- ✅ **Custom Benchmark Comparisons:** Dynamic custom symbol benchmarking in full-screen and standard performance charts.
+- ✅ **Portfolio Stress Testing:** `PortfolioStressTestCard` simulating macro shocks (Market Crash -20%, Rate Spike +150bps, Tech Selloff -15%, Inflation Shock +200bps, Recession, Volatility Spike +50%).
+- ✅ **Aggregate Option Greeks:** `PortfolioGreeksCard` displaying portfolio-wide Delta, Gamma, Theta, Vega, and Rho sensitivities.
+- ✅ **Tail Risk & Liquidity Scoring:** `TailRiskCard` with VaR (95%/99%), Conditional VaR, Cornish-Fisher VaR, skewness, kurtosis, weighted liquidity scoring, and time-to-liquidate.
+- ✅ **News Sentiment Signal Multiplier:** Real-time news sentiment multipliers automatically scaling trade signal confidence scores.
+- ✅ **Event Impact Prediction:** AI-driven prediction model (`news-intelligence.ts`) and UI card (`NewsIntelligenceWidget`) for upcoming catalysts.
+- ✅ **Schwab Integration Enhancements:** Enhanced Schwab account position mapping, position store syncing, and multi-account navigation.
+- ✅ **Consolidated Group Performance Analytics & Order Sync:** Consolidated group analytics execution and member order synchronization.
+
+### v0.40.0 (Q3 2026 - September)
 **Forex Trading & Advanced Crypto**
 - Forex trading (currency pairs) ([Tracking: #116](https://github.com/CIInc/robinhood-options-mobile/issues/116))
 - Forex charting & analysis
 - Multi-asset portfolio allocation
 - Carry trade optimizer
-
-### v0.40.0 (Q3 2026 - September)
-**Risk Management Suite 2.0 & Futures Ordering**
-- Futures manual order placement and contract management.
-- [x] Portfolio stress testing ([Tracking: #135](https://github.com/CIInc/robinhood-options-mobile/issues/135))
-- Greeks aggregation (Delta/Gamma/Theta/Vega) across entire multi-account portfolio.
-- [x] Tail risk screening, hedge review guidance, and option liquidity assessment.
 
 ### v0.41.0 (Q4 2026 - October)
 **AI Trading Coach & Behavioral Finance**

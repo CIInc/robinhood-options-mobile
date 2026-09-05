@@ -150,6 +150,31 @@ Analysis of your daily trading performance:
 ### 9. Risk Heatmap
 A visual representation of your portfolio's risk distribution. It maps positions based on their day's performance or other risk factors, allowing you to instantly spot outliers and concentration risks.
 
+### 10. Portfolio Stress Testing
+Integrated via `PortfolioStressTestCard` in the Risk section, this feature allows investors to simulate portfolio value impact across six macro stress scenarios:
+- **Market Crash (-20%)**: Standard systemic market shock.
+- **Interest Rate Spike (+150bps)**: Fixed income and valuation contraction shock.
+- **Tech Selloff (-15%)**: Growth and technology sector correction.
+- **Inflation Shock (+200bps)**: Macro inflationary pressure scenario.
+- **Recession**: Macro economic slowdown simulation.
+- **Volatility Spike (+50%)**: Sudden expansion in implied market volatility.
+
+### 11. Aggregate Option Greeks
+Integrated via `PortfolioGreeksCard`, this tool aggregates Greek sensitivities across all active option positions in all linked accounts:
+- **Delta**: Net directional share exposure ($ equivalent directional risk).
+- **Gamma**: Rate of Delta change per $1 move in underlying assets.
+- **Theta**: Daily portfolio time decay ($ loss/gain per day).
+- **Vega**: Portfolio sensitivity per 1% change in implied volatility.
+- **Rho**: Portfolio sensitivity per 1% change in interest rates.
+
+### 12. Tail Risk & Liquidity Scoring
+Integrated via `TailRiskCard`, this component evaluates extreme downside risk and execution liquidity:
+- **Value at Risk (VaR 95% & 99%)**: Maximum expected daily loss at 95% and 99% confidence levels.
+- **Expected Shortfall (Conditional VaR / CVaR)**: Average expected loss in tail-risk events exceeding VaR.
+- **Cornish-Fisher VaR**: Non-normal VaR adjustment incorporating portfolio return skewness and kurtosis.
+- **Skewness & Kurtosis**: Measures return distribution asymmetry and fat-tail event probabilities.
+- **Liquidity Score & Time-to-Liquidate**: Weighted portfolio liquidity metric estimating days required to exit positions without adverse market impact.
+
 ### Rolling Statistics
 
 Rolling Statistics tracks how portfolio risk changes over time relative to the selected benchmark. The dashboard requires enough aligned trading sessions for the selected period and displays:
@@ -160,13 +185,13 @@ Rolling Statistics tracks how portfolio risk changes over time relative to the s
 
 The latest values appear alongside time-series charts. The selected benchmark can be one of the standard indices or a custom ticker supported by Portfolio Analytics.
 
-### 10. Tax Optimization
+### 13. Tax Optimization
 Smart, seasonality-aware tax loss harvesting suggestions:
 - **Smart Visibility**: Shows opportunities based on urgency (e.g., highly visible in Q4).
 - **Estimated Loss**: Potential realized loss available for harvesting.
 - **Offset Analysis**: How losses can offset realized gains.
 
-### 11. ESG Analysis
+### 14. ESG Analysis
 Environmental, Social, and Governance scoring for your portfolio:
 - **Weighted Average**: Portfolio-level scores based on position size.
 - **Breakdown**: Individual scores for Environmental, Social, and Governance factors.

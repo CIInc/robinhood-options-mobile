@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.39.0] - 2026-09-05
+**Custom Benchmarks, Portfolio Stress Testing, Aggregate Option Greeks, and News Signal Multipliers**
+
+### Added
+- **Custom Benchmark Support:** Performance charts now support comparing portfolio performance against any custom ticker or asset (e.g., SPY, QQQ, DIA, IWM, TSLA, AAPL, BTC-USD) with enhanced data alignment, caching, and full-screen visualization.
+- **Portfolio Stress Testing:** Added `PortfolioStressTestCard` under Risk Analytics to simulate portfolio performance under severe macro market scenarios (Market Crash -20%, Rate Spike +150bps, Tech Selloff -15%, Inflation Shock +200bps, Recession, Volatility Spike +50%).
+- **Aggregate Option Greeks:** Added `PortfolioGreeksCard` displaying total portfolio Delta, Gamma, Theta, Vega, and Rho across all option positions with risk sensitivity metrics.
+- **Tail Risk & Liquidity Scoring:** Added `TailRiskCard` incorporating Value at Risk (VaR 95% & 99%), Expected Shortfall (Conditional VaR), Cornish-Fisher VaR, skewness, kurtosis, weighted liquidity scoring, and time-to-liquidate calculations.
+- **News Sentiment Signal Adjustment:** Integrated real-time news sentiment multipliers into trade signal scoring (`alpha-agent.ts`), automatically scaling confidence based on news sentiment and catalyst confidence.
+- **Event Impact Prediction:** Added event impact prediction functionality (`news-intelligence.ts`) with interactive UI components (`NewsIntelligenceWidget`) predicting market price impacts and confidence for upcoming catalysts.
+- **Consolidated Group Analytics & Order Sync:** Consolidated group performance and member metrics into single server-side executions (`group-performance-analytics.ts`, `instrument-order-sync.ts`) with user-triggered portfolio synchronization.
+
+### Changed
+- **Schwab Account Integration:** Enhanced Schwab account position mapping, position store syncing, account selection, and error handling in home view navigation.
+- **GitHub Actions Workflows:** Updated CD, release, and integration test CI/CD workflows to latest GitHub action versions.
+
+### Testing
+- Added unit and integration tests for custom benchmark controller state, tail risk calculations, portfolio stress testing, aggregate option Greeks, Schwab account mapping, group performance analytics, and news intelligence models.
+
 ## [0.38.0] - 2026-08-27
 **News Intelligence & Smart Alerts**
 
