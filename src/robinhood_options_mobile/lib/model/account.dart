@@ -47,7 +47,7 @@ class Account {
 
   Account.fromSchwabJson(dynamic json) //, BrokerageUser user
       : // userId = user.id,
-        url = '',
+        url = json['securitiesAccount']['accountNumber'],
         portfolioCash = json['securitiesAccount']['currentBalances'] != null
             ? parseDouble(
                 json['securitiesAccount']['currentBalances']['cashBalance'])

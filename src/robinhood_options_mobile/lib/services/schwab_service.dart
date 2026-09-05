@@ -388,11 +388,13 @@ class SchwabService implements IBrokerageService {
         var positions = result['securitiesAccount']['positions'];
         if (positions != null) {
           for (var positionJson in positions) {
-            if (positionJson['instrument']['assetType'] ==
-                    "COLLECTIVE_INVESTMENT" &&
+            if ((positionJson['instrument']['assetType'] == "EQUITY" ||
+                    positionJson['instrument']['assetType'] ==
+                        "COLLECTIVE_INVESTMENT") &&
                 instrumentPositionStore != null) {
-              var stockPosition =
-                  InstrumentPosition.fromSchwabJson(positionJson);
+              var stockPosition = InstrumentPosition.fromSchwabJson(
+                  positionJson,
+                  accountNumber: account.accountNumber);
               instrumentPositionStore.addOrUpdate(stockPosition);
             } else if (positionJson['instrument']['assetType'] == "OPTION" &&
                 optionPositionStore != null) {
@@ -412,17 +414,21 @@ class SchwabService implements IBrokerageService {
           }
         }
       }
-      if (userDoc != null) {
-        var userSnapshot = await userDoc.get();
-        var userModel = userSnapshot.data() as User;
-        // Find the brokerage user and update its accounts
-        var bu = userModel.brokerageUsers.firstWhere(
-            (bu) => bu.userName == user.userName && bu.source == user.source);
-        bu.accounts = accounts;
-        await _firestoreService.updateUser(
-            userDoc as DocumentReference<User>, userModel);
-      }
       // TODO: Add PositionStore and OrdersStore
+    }
+
+    // Keep the live user and its persisted copy in sync with the complete
+    // response. The account picker reads from BrokerageUser.accounts, while
+    // the store above is only used for portfolio data.
+    user.accounts = accounts;
+    if (userDoc != null) {
+      var userSnapshot = await userDoc.get();
+      var userModel = userSnapshot.data() as User;
+      var bu = userModel.brokerageUsers.firstWhere(
+          (bu) => bu.userName == user.userName && bu.source == user.source);
+      bu.accounts = accounts;
+      await _firestoreService.updateUser(
+          userDoc as DocumentReference<User>, userModel);
     }
     return accounts;
   }
@@ -933,14 +939,8 @@ https://api.schwabapi.com/trader/v1/accounts/C0182387A893E4CE03E26C081206E282EE3
   Future<OptionPositionStore> getOptionPositionStore(BrokerageUser user,
       OptionPositionStore store, InstrumentStore instrumentStore,
       {bool nonzero = true, DocumentReference? userDoc}) {
-    // var symbols = store.items
-    //     .where((e) =>
-    //         e.instrumentObj !=
-    //         null) // Figure out why in certain conditions, instrumentObj is null
-    //     .map((e) => e.instrumentObj!.symbol)
-    //     .toList();
-    // TODO: implement getOptionPositionStore
-    throw UnimplementedError();
+    // Schwab positions are loaded together with accounts by getAccounts.
+    return Future.value(store);
   }
 
   @override

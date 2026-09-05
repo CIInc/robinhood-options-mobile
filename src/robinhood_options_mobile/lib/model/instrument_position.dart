@@ -130,11 +130,11 @@ class InstrumentPosition {
   //     ? json['instrumentDocRef'] as DocumentReference<Instrument>
   //     : null;
 
-  InstrumentPosition.fromSchwabJson(dynamic json)
+  InstrumentPosition.fromSchwabJson(dynamic json, {String accountNumber = ''})
       : url = '', // json['url'],
         instrument = '/${json['instrument']['cusip']}/', // json['instrument'],
-        account = '', // json['account'],
-        accountNumber = '', // json['account_number'],
+        account = accountNumber,
+        accountNumber = accountNumber,
         averageBuyPrice = json['averagePrice'] as double,
         pendingAverageBuyPrice = json['averagePrice'] as double,
         quantity = json['longQuantity'] as double,
@@ -159,13 +159,13 @@ class InstrumentPosition {
             splits: '',
             state: '',
             market: '',
-            name: json['instrument']['description'],
+            name: json['instrument']['description'] ?? '',
             tradeable: true,
             tradability: '',
             symbol: json['instrument']['symbol'],
             bloombergUnique: '',
             country: '',
-            type: json['instrument']['type'],
+            type: json['instrument']['type'] ?? '',
             rhsTradability: '',
             fractionalTradability: '',
             isSpac: false,

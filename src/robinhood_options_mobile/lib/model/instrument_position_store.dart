@@ -53,7 +53,8 @@ class InstrumentPositionStore extends ChangeNotifier {
     var index = _items.indexWhere((element) =>
         //element.url == item.url);
         //element.instrument == item.instrument);
-        element.instrumentId == item.instrumentId);
+        element.instrumentId == item.instrumentId &&
+        element.accountNumber == item.accountNumber);
     if (index == -1) {
       return false;
     }

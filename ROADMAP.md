@@ -823,7 +823,7 @@ Technical debt accumulation slows velocity. Investing in testing, CI/CD, and sec
 - [x] **Schwab Integration**: Full portfolio and trading support ([#91](https://github.com/CIInc/robinhood-options-mobile/issues/91), [#93](https://github.com/CIInc/robinhood-options-mobile/issues/93), [#122](https://github.com/CIInc/robinhood-options-mobile/issues/122))
     - [x] Schwab Auth & Portfolio Sync (Phase 1)
     - [x] Schwab Options Order Placement (Phase 2, v0.37.5) - [Tracking: #138](https://github.com/CIInc/robinhood-options-mobile/issues/138)
-    - [ ] Schwab Multi-Account Support (Phase 3)
+    - [x] Schwab Multi-Account Support (Phase 3): Preserve Schwab account hash IDs and route orders to the selected account
 - [x] **Yahoo Finance**: Real-time news and charting
 - [ ] **Plaid Integration**: Full account linking and options support ([#15](https://github.com/CIInc/robinhood-options-mobile/issues/15), [#92](https://github.com/CIInc/robinhood-options-mobile/issues/92))
 - [ ] **Multi-Broker**: Unified view across Fidelity, IBKR, and others

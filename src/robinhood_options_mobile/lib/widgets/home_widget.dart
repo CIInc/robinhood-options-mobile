@@ -1203,6 +1203,13 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
           Provider.of<QuoteStore>(context, listen: false),
           nonzero: !hasQuantityFilters[1],
           userDoc: widget.userDoc);
+
+      futureOptionPositions = widget.service!.getOptionPositionStore(
+          widget.brokerageUser!,
+          Provider.of<OptionPositionStore>(context, listen: false),
+          Provider.of<InstrumentStore>(context, listen: false),
+          nonzero: !hasQuantityFilters[1],
+          userDoc: widget.userDoc);
     } else if (widget.brokerageUser!.source == BrokerageSource.fidelity) {
       futureStockPositions = widget.service!.getStockPositionStore(
           widget.brokerageUser!,
@@ -1261,7 +1268,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
         Provider.of<InterestStore>(context, listen: false),
       );
 
-      if (widget.brokerageUser!.source == BrokerageSource.robinhood) {
+      if (widget.brokerageUser!.source == BrokerageSource.robinhood &&
+          widget.service is RobinhoodService) {
         (widget.service! as RobinhoodService)
             .getFuturesAccounts(widget.brokerageUser!, account!)
             .then((accounts) => _updateFuturesPositions(accounts));
@@ -1403,6 +1411,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
         Provider.of<PortfolioStore>(context, listen: false).removeAll();
         Provider.of<DividendStore>(context, listen: false).removeAll();
         Provider.of<InterestStore>(context, listen: false).removeAll();
+        futuresAccountId = null;
         Provider.of<OptionPositionStore>(context, listen: false).removeAll();
         Provider.of<InstrumentPositionStore>(context, listen: false)
             .removeAll();
@@ -1776,17 +1785,21 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
               padding:
                   const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
               child: Consumer<InstrumentPositionStore>(
-                builder: (context, stockStore, child) => PortfolioMoversWidget(
-                  positions: stockStore.items
-                      .where((position) =>
-                          _matchesAccount(position.account, account))
-                      .toList(),
-                  onTap: () => PortfolioNavigator.openSection(
-                    context,
-                    PortfolioSection.positions,
-                    _sectionContext(account),
-                  ),
-                ),
+                builder: (context, stockStore, child) {
+                  final selectedAccount =
+                      Provider.of<AccountStore>(context).selectedAccount;
+                  return PortfolioMoversWidget(
+                    positions: stockStore.items
+                        .where((position) => _matchesAccount(position.account,
+                            isAggregateMode ? null : selectedAccount))
+                        .toList(),
+                    onTap: () => PortfolioNavigator.openSection(
+                      context,
+                      PortfolioSection.positions,
+                      _sectionContext(account),
+                    ),
+                  );
+                },
               ),
             ),
           ),
@@ -1814,41 +1827,50 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                 ),
               ),
             Consumer<OptionPositionStore>(
-              builder: (context, store, child) => OptionPositionsWidget(
-                widget.brokerageUser!,
-                widget.service!,
-                store.items
-                    .where((position) =>
-                        _matchesAccount(position.account, account))
-                    .toList(),
-                showList: false,
-                chartRowLimit: _overviewChartRowLimit,
-                analytics: widget.analytics,
-                observer: widget.observer,
-                generativeService: widget.generativeService,
-                user: widget.user,
-                userDocRef: widget.userDoc,
-                disableNavigation: isAggregateMode,
-              ),
+              builder: (context, store, child) {
+                final selectedAccount =
+                    Provider.of<AccountStore>(context).selectedAccount;
+                return OptionPositionsWidget(
+                  widget.brokerageUser!,
+                  widget.service!,
+                  store.items
+                      .where((position) => _matchesAccount(position.account,
+                          isAggregateMode ? null : selectedAccount))
+                      .toList(),
+                  showList: false,
+                  chartRowLimit: _overviewChartRowLimit,
+                  analytics: widget.analytics,
+                  observer: widget.observer,
+                  generativeService: widget.generativeService,
+                  user: widget.user,
+                  userDocRef: widget.userDoc,
+                  disableNavigation: isAggregateMode,
+                );
+              },
             ),
             Consumer<InstrumentPositionStore>(
-              builder: (context, store, child) => InstrumentPositionsWidget(
-                widget.brokerageUser!,
-                widget.service!,
-                store.items
-                    .where((position) =>
-                        position.instrumentObj != null &&
-                        _matchesAccount(position.account, account))
-                    .toList(),
-                showList: false,
-                chartRowLimit: _overviewChartRowLimit,
-                analytics: widget.analytics,
-                observer: widget.observer,
-                generativeService: widget.generativeService,
-                user: widget.user,
-                userDocRef: widget.userDoc,
-                disableNavigation: isAggregateMode,
-              ),
+              builder: (context, store, child) {
+                final selectedAccount =
+                    Provider.of<AccountStore>(context).selectedAccount;
+                return InstrumentPositionsWidget(
+                  widget.brokerageUser!,
+                  widget.service!,
+                  store.items
+                      .where((position) =>
+                          position.instrumentObj != null &&
+                          _matchesAccount(position.account,
+                              isAggregateMode ? null : selectedAccount))
+                      .toList(),
+                  showList: false,
+                  chartRowLimit: _overviewChartRowLimit,
+                  analytics: widget.analytics,
+                  observer: widget.observer,
+                  generativeService: widget.generativeService,
+                  user: widget.user,
+                  userDocRef: widget.userDoc,
+                  disableNavigation: isAggregateMode,
+                );
+              },
             ),
             Consumer<ForexHoldingStore>(
               builder: (context, store, child) => ForexPositionsWidget(
@@ -1912,7 +1934,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
   /// selected one does.
   bool _matchesAccount(String? positionAccountUrl, Account? account) {
     if (_isAggregateMode() || account == null) return true;
-    return positionAccountUrl == account.url;
+    return positionAccountUrl == account.accountNumber ||
+        positionAccountUrl == account.url;
   }
 
   /// Bundles everything the drill-down sections need into one object.
@@ -2035,6 +2058,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
 
   void _updateFuturesPositions([List<dynamic>? accounts]) async {
     if (accounts != null && accounts.isNotEmpty) {
+      futuresAccountId = null;
       var futuresAccount = accounts.firstWhere(
           (f) => f != null && f['accountType'] == 'FUTURES',
           orElse: () => null);
@@ -2044,9 +2068,18 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
     }
     if (futuresAccountId != null) {
       if (!mounted) return;
+      final robinhoodService = widget.service;
+      if (robinhoodService is! RobinhoodService ||
+          widget.brokerageUser?.source != BrokerageSource.robinhood) {
+        return;
+      }
       var store = Provider.of<FuturesPositionStore>(context, listen: false);
-      await (widget.service! as RobinhoodService)
-          .getFuturesPositions(widget.brokerageUser!, store, futuresAccountId!);
+      if (futuresAccountId == null) {
+        store.removeAll();
+        return;
+      }
+      await robinhoodService.getFuturesPositions(
+          widget.brokerageUser!, store, futuresAccountId!);
     }
   }
 
@@ -2313,7 +2346,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
       if (_isAggregateMode()) {
         return;
       }
-      if (widget.brokerageUser!.source == BrokerageSource.robinhood) {
+      if (widget.brokerageUser!.source == BrokerageSource.robinhood &&
+          widget.service is RobinhoodService) {
         if (account != null) {
           // // Added to attempt to fix a bug where cash balance does not refresh. TODO: Confirm
           // await service.getAccounts(

@@ -55,7 +55,8 @@ class OptionPositionStore extends ChangeNotifier {
   }
 
   bool update(OptionAggregatePosition item) {
-    var index = _items.indexWhere((element) => element.id == item.id);
+    var index = _items.indexWhere(
+        (element) => element.id == item.id && element.account == item.account);
     if (index == -1) {
       return false;
     }
