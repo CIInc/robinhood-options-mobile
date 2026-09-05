@@ -195,12 +195,11 @@ class _PerformanceSectionPageState extends State<PerformanceSectionPage> {
         ctx.futureMarketIndexHistoricalsDow;
     final russell2000Future = controller.benchmarkHistoricals['IWM'] ??
         ctx.futureMarketIndexHistoricalsRussell2000;
-    final portfolioFuture = controller.portfolioHistoricalsFuture ??
-        ctx.portfolioHistoricalsFuture;
+    final portfolioFuture =
+        controller.portfolioHistoricalsFuture ?? ctx.portfolioHistoricalsFuture;
 
-    final isCustomBenchmark =
-        !PortfolioAnalyticsController.builtInBenchmarks
-            .contains(controller.selectedBenchmark);
+    final isCustomBenchmark = !PortfolioAnalyticsController.builtInBenchmarks
+        .contains(controller.selectedBenchmark);
     final customBenchmarkFuture = isCustomBenchmark
         ? controller.getBenchmarkFuture(controller.selectedBenchmark)
         : null;

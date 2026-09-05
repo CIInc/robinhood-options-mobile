@@ -149,8 +149,22 @@ void main() {
 
     test('calculateTailRiskAndLiquidity scores tight quotes higher', () {
       final position = OptionAggregatePosition(
-        'id', '', '', 'SPY', '', null, [], 2, null, null, 'debit', '', 100,
-        null, null, '',
+        'id',
+        '',
+        '',
+        'SPY',
+        '',
+        null,
+        [],
+        2,
+        null,
+        null,
+        'debit',
+        '',
+        100,
+        null,
+        null,
+        '',
       )..optionInstrument = OptionInstrument.fromJson({
           'id': 'option-id',
           'chain_id': 'chain-id',

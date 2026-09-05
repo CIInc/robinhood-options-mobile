@@ -84,11 +84,13 @@ class YahooService {
     ScreenerId('gold', 'Gold'),
     ScreenerId('grocery_stores', 'Grocery Stores'),
     ScreenerId('high_yield_bond', 'High Yield Bond'),
-    ScreenerId('information_technology_services', 'Information Technology Services'),
+    ScreenerId(
+        'information_technology_services', 'Information Technology Services'),
     ScreenerId('insurance_brokers', 'Insurance Brokers'),
     ScreenerId('lodging', 'Lodging'),
     ScreenerId('lumber_wood_production', 'Lumber & Wood Production'),
-    ScreenerId('medical_instruments_supplies', 'Medical Instruments & Supplies'),
+    ScreenerId(
+        'medical_instruments_supplies', 'Medical Instruments & Supplies'),
     ScreenerId('mega_cap_hc', 'Mega Cap HC'),
     ScreenerId('metal_fabrication', 'Metal Fabrication'),
     ScreenerId('most_actives_americas', 'Most Actives (Americas)'),
@@ -125,7 +127,8 @@ class YahooService {
     ScreenerId('packaging_containers', 'Packaging & Containers'),
     ScreenerId('paper_paper_products', 'Paper & Paper Products'),
     ScreenerId('personal_services', 'Personal Services'),
-    ScreenerId('pollution_treatment_controls', 'Pollution Treatment & Controls'),
+    ScreenerId(
+        'pollution_treatment_controls', 'Pollution Treatment & Controls'),
     ScreenerId('portfolio_anchors', 'Portfolio Anchors'),
     ScreenerId('railroads', 'Railroads'),
     ScreenerId('real_estate_development', 'Real Estate Development'),
@@ -141,9 +144,12 @@ class YahooService {
     ScreenerId('residential_construction', 'Residential Construction'),
     ScreenerId('resorts_casinos', 'Resorts & Casinos'),
     ScreenerId('restaurants', 'Restaurants'),
-    ScreenerId('scientific_technical_instruments', 'Scientific & Technical Instruments'),
-    ScreenerId('security_protection_services', 'Security & Protection Services'),
-    ScreenerId('semiconductor_equipment_materials', 'Semiconductor Equipment & Materials'),
+    ScreenerId('scientific_technical_instruments',
+        'Scientific & Technical Instruments'),
+    ScreenerId(
+        'security_protection_services', 'Security & Protection Services'),
+    ScreenerId('semiconductor_equipment_materials',
+        'Semiconductor Equipment & Materials'),
     ScreenerId('silver', 'Silver'),
     ScreenerId('solid_large_growth_funds', 'Solid Large Growth Funds'),
     ScreenerId('solid_midcap_growth_funds', 'Solid Midcap Growth Funds'),
@@ -164,7 +170,8 @@ class YahooService {
     ScreenerId('top_mutual_funds_nz', 'Top Mutual Funds (NZ)'),
     ScreenerId('top_mutual_funds_sg', 'Top Mutual Funds (SG)'),
     ScreenerId('top_mutual_funds_us', 'Top Mutual Funds (US)'),
-    ScreenerId('top_options_implied_volatality', 'Top Options - Implied Volatility'),
+    ScreenerId(
+        'top_options_implied_volatality', 'Top Options - Implied Volatility'),
     ScreenerId('top_options_open_interest', 'Top Options - Open Interest'),
     ScreenerId('trucking', 'Trucking'),
     ScreenerId('waste_management', 'Waste Management'),
@@ -938,7 +945,8 @@ class YahooService {
         _crumb = null;
         debugPrint("Retrying after invalidating crumb for $cacheKey");
         final responseJson = await getJson(url);
-        await _writeCache(docRef, cacheKey, responseJson, suffix: 'after retry');
+        await _writeCache(docRef, cacheKey, responseJson,
+            suffix: 'after retry');
         return responseJson;
       } else if (e.toString().contains('Failed to load data: 404')) {
         // Return empty data for 404 errors
@@ -950,10 +958,8 @@ class YahooService {
     }
   }
 
-  Future<void> _writeCache(
-      DocumentReference<Map<String, dynamic>> docRef,
-      String cacheKey,
-      dynamic responseJson,
+  Future<void> _writeCache(DocumentReference<Map<String, dynamic>> docRef,
+      String cacheKey, dynamic responseJson,
       {String? suffix}) async {
     try {
       await docRef.set({

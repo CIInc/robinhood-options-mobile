@@ -7,12 +7,15 @@ import 'package:flutter/rendering.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:intl/intl.dart';
 //import 'package:charts_flutter/flutter.dart' as charts;
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:community_charts_flutter/community_charts_flutter.dart'
     as charts;
 import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/forex_holding.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
+import 'package:robinhood_options_mobile/model/user.dart';
+import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
 import 'package:robinhood_options_mobile/widgets/chart_bar_widget.dart';
@@ -41,6 +44,9 @@ class ForexPositionsWidget extends StatefulWidget {
     super.key,
     required this.analytics,
     required this.observer,
+    this.generativeService,
+    this.user,
+    this.userDocRef,
   });
 
   final FirebaseAnalytics analytics;
@@ -50,6 +56,9 @@ class ForexPositionsWidget extends StatefulWidget {
   final bool showList;
   //final Account account;
   final List<ForexHolding> filteredHoldings;
+  final GenerativeService? generativeService;
+  final User? user;
+  final DocumentReference<User>? userDocRef;
 
   @override
   State<ForexPositionsWidget> createState() => _ForexPositionsWidgetState();
@@ -236,6 +245,9 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
                     holding,
                     analytics: widget.analytics,
                     observer: widget.observer,
+                    generativeService: widget.generativeService,
+                    user: widget.user,
+                    userDocRef: widget.userDocRef,
                   )));
     });
 
@@ -597,6 +609,9 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
                   widget.filteredHoldings,
                   analytics: widget.analytics,
                   observer: widget.observer,
+                  generativeService: widget.generativeService,
+                  user: widget.user,
+                  userDocRef: widget.userDocRef,
                 )));
   }
 
@@ -673,6 +688,9 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
                             holdings[index],
                             analytics: widget.analytics,
                             observer: widget.observer,
+                            generativeService: widget.generativeService,
+                            user: widget.user,
+                            userDocRef: widget.userDocRef,
                           )));
               /*
           showDialog<String>(
@@ -834,11 +852,13 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
             color: Theme.of(context)
                 .colorScheme
                 .surfaceContainerHighest
-                .withOpacity(0.3),
+                .withValues(alpha: 0.3),
             borderRadius: BorderRadius.circular(24),
             border: Border.all(
-              color:
-                  Theme.of(context).colorScheme.outlineVariant.withOpacity(0.5),
+              color: Theme.of(context)
+                  .colorScheme
+                  .outlineVariant
+                  .withValues(alpha: 0.5),
             ),
           ),
           child: IntrinsicHeight(
@@ -872,7 +892,7 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
                   color: Theme.of(context)
                       .colorScheme
                       .outlineVariant
-                      .withOpacity(0.5),
+                      .withValues(alpha: 0.5),
                 ),
                 _buildToolbarButton(
                   context,
@@ -934,7 +954,7 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
                 color: Theme.of(context)
                     .colorScheme
                     .onSurfaceVariant
-                    .withOpacity(0.7)),
+                    .withValues(alpha: 0.7)),
           ],
         ),
       ),

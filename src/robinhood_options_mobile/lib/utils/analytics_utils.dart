@@ -94,8 +94,8 @@ class AnalyticsUtils {
     final validExposures = exposures.values
         .where((value) => value.isFinite && value != 0)
         .toList();
-    final downsideLoss = validExposures.fold<double>(
-        0, (loss, value) => loss + value * -0.20);
+    final downsideLoss =
+        validExposures.fold<double>(0, (loss, value) => loss + value * -0.20);
 
     double weightedSpread = 0;
     double totalWeight = 0;
@@ -116,7 +116,8 @@ class AnalyticsUtils {
       final midpoint = (bid + ask) / 2;
       if (!midpoint.isFinite || midpoint <= 0) continue;
 
-      final weight = quantity * midpoint * (position.tradeValueMultiplier ?? 100);
+      final weight =
+          quantity * midpoint * (position.tradeValueMultiplier ?? 100);
       final spread = (ask - bid) / midpoint;
       if (!weight.isFinite || !spread.isFinite) continue;
 
@@ -128,10 +129,8 @@ class AnalyticsUtils {
       pricedContracts += quantity;
     }
 
-    final averageSpread =
-      totalWeight == 0 ? 0.0 : weightedSpread / totalWeight;
-    final averageDepthRatio =
-      depthWeight == 0 ? 0.0 : depthRatio / depthWeight;
+    final averageSpread = totalWeight == 0 ? 0.0 : weightedSpread / totalWeight;
+    final averageDepthRatio = depthWeight == 0 ? 0.0 : depthRatio / depthWeight;
     final spreadScore = (1 - averageSpread / 0.20).clamp(0, 1).toDouble();
     final depthScore = (averageDepthRatio / 100).clamp(0, 1).toDouble();
     final liquidityScore = (spreadScore * 0.7 + depthScore * 0.3) * 100;

@@ -96,8 +96,8 @@ class TailRiskCard extends StatelessWidget {
                   ? '${assessment['pricedContracts']!.toStringAsFixed(0)} option contracts assessed from current bid/ask quotes.'
                   : 'No option bid/ask quotes available; liquidity score is provisional.',
               style: theme.textTheme.labelSmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
           ],
         ],
@@ -105,7 +105,8 @@ class TailRiskCard extends StatelessWidget {
     );
   }
 
-  Widget _metric(BuildContext context, String label, String value, Color color) {
+  Widget _metric(
+      BuildContext context, String label, String value, Color color) {
     final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.all(10),
