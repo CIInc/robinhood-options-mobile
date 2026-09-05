@@ -12,6 +12,7 @@ import 'package:robinhood_options_mobile/widgets/portfolio/analytics/rolling_sta
 import 'package:robinhood_options_mobile/widgets/portfolio/portfolio_risk_summary_widget.dart';
 import 'package:robinhood_options_mobile/widgets/portfolio/portfolio_greeks_card.dart';
 import 'package:robinhood_options_mobile/widgets/portfolio/portfolio_stress_test_card.dart';
+import 'package:robinhood_options_mobile/widgets/portfolio/tail_risk_card.dart';
 import 'package:robinhood_options_mobile/widgets/portfolio/portfolio_section_context.dart';
 import 'package:robinhood_options_mobile/widgets/portfolio/portfolio_section_scaffold.dart';
 import 'package:robinhood_options_mobile/widgets/risk_heatmap_widget.dart';
@@ -88,6 +89,10 @@ class _RiskSectionPageState extends State<RiskSectionPage> {
                 PortfolioRiskSummaryWidget(positions: store.items),
                 PortfolioGreeksCard(positions: optionStore.items),
                 PortfolioStressTestCard(positions: store.items),
+                TailRiskCard(
+                  positions: store.items,
+                  optionPositions: optionStore.items,
+                ),
                 const AnalyticsStyleCard(
                   padding: EdgeInsets.zero,
                   child: RiskHeatmapWidget(),

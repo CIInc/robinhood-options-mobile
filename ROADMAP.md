@@ -296,7 +296,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Futures manual order placement and contract management.
 - [x] Portfolio stress testing ([Tracking: #135](https://github.com/CIInc/robinhood-options-mobile/issues/135))
 - Greeks aggregation (Delta/Gamma/Theta/Vega) across entire multi-account portfolio.
-- Tail risk hedging recommendations and liquidity assessment.
+- [x] Tail risk screening, hedge review guidance, and option liquidity assessment.
 
 ### v0.41.0 (Q4 2026 - October)
 **AI Trading Coach & Behavioral Finance**

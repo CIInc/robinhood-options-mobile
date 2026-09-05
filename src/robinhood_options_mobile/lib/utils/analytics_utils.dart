@@ -85,6 +85,66 @@ class AnalyticsUtils {
         .toList();
   }
 
+  /// Summarizes downside exposure and option liquidity using currently
+  /// available quotes. The score is a screening aid, not an execution quote.
+  static Map<String, double> calculateTailRiskAndLiquidity(
+    Map<String, double> exposures,
+    Iterable<OptionAggregatePosition> optionPositions,
+  ) {
+    final validExposures = exposures.values
+        .where((value) => value.isFinite && value != 0)
+        .toList();
+    final downsideLoss = validExposures.fold<double>(
+        0, (loss, value) => loss + value * -0.20);
+
+    double weightedSpread = 0;
+    double totalWeight = 0;
+    double depthRatio = 0;
+    double depthWeight = 0;
+    var pricedContracts = 0.0;
+
+    for (final position in optionPositions) {
+      final marketData = position.optionInstrument?.optionMarketData;
+      final quantity = position.quantity?.abs();
+      if (marketData == null || quantity == null || quantity == 0) continue;
+
+      final bid = marketData.bidPrice;
+      final ask = marketData.askPrice;
+      if (bid == null || ask == null || bid < 0 || ask <= 0 || ask < bid) {
+        continue;
+      }
+      final midpoint = (bid + ask) / 2;
+      if (!midpoint.isFinite || midpoint <= 0) continue;
+
+      final weight = quantity * midpoint * (position.tradeValueMultiplier ?? 100);
+      final spread = (ask - bid) / midpoint;
+      if (!weight.isFinite || !spread.isFinite) continue;
+
+      weightedSpread += spread * weight;
+      totalWeight += weight;
+      final quotedDepth = marketData.bidSize + marketData.askSize;
+      depthRatio += (quotedDepth / quantity).clamp(0, 100).toDouble() * weight;
+      depthWeight += weight;
+      pricedContracts += quantity;
+    }
+
+    final averageSpread =
+      totalWeight == 0 ? 0.0 : weightedSpread / totalWeight;
+    final averageDepthRatio =
+      depthWeight == 0 ? 0.0 : depthRatio / depthWeight;
+    final spreadScore = (1 - averageSpread / 0.20).clamp(0, 1).toDouble();
+    final depthScore = (averageDepthRatio / 100).clamp(0, 1).toDouble();
+    final liquidityScore = (spreadScore * 0.7 + depthScore * 0.3) * 100;
+
+    return {
+      'downsideLoss': downsideLoss,
+      'averageSpread': averageSpread,
+      'averageDepthRatio': averageDepthRatio,
+      'liquidityScore': liquidityScore,
+      'pricedContracts': pricedContracts,
+    };
+  }
+
   static List<double> calculateDailyReturns(List<double> prices) {
     if (prices.length < 2) return [];
     List<double> returns = [];

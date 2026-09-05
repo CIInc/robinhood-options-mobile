@@ -1,4 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
+import 'package:robinhood_options_mobile/model/option_instrument.dart';
 import 'package:robinhood_options_mobile/utils/analytics_utils.dart';
 
 void main() {
@@ -143,6 +145,53 @@ void main() {
       expect(metrics.containsKey('beta'), isTrue);
       expect(metrics.containsKey('healthScore'), isTrue);
       expect(metrics['sharpe'], isA<double>());
+    });
+
+    test('calculateTailRiskAndLiquidity scores tight quotes higher', () {
+      final position = OptionAggregatePosition(
+        'id', '', '', 'SPY', '', null, [], 2, null, null, 'debit', '', 100,
+        null, null, '',
+      )..optionInstrument = OptionInstrument.fromJson({
+          'id': 'option-id',
+          'chain_id': 'chain-id',
+          'symbol': 'SPY',
+          'url': '',
+          'expiration_date': '2026-12-31',
+          'strike_price': '500',
+          'type': 'call',
+          'chain_symbol': 'SPY',
+          'min_ticks': <String, dynamic>{},
+          'rhs_tradability': 'tradable',
+          'state': 'active',
+          'tradability': 'tradable',
+          'long_strategy_code': 'buy',
+          'short_strategy_code': 'sell',
+          'option_market_data': {
+            'instrument': 'option-id',
+            'instrument_id': 'option-id',
+            'break_even_price': '2.50',
+            'high_price': '2.60',
+            'last_trade_price': '2.50',
+            'last_trade_size': 1,
+            'low_price': '2.40',
+            'mark_price': '2.50',
+            'bid_price': '2.49',
+            'ask_price': '2.51',
+            'bid_size': 100,
+            'ask_size': 100,
+            'open_interest': 1000,
+            'volume': 100,
+            'symbol': 'SPY',
+            'occ_symbol': 'SPY261231C00500000',
+          },
+        });
+
+      final result = AnalyticsUtils.calculateTailRiskAndLiquidity(
+          {'SPY': 10000}, [position]);
+
+      expect(result['downsideLoss'], closeTo(-2000, 0.001));
+      expect(result['liquidityScore'], greaterThan(90));
+      expect(result['pricedContracts'], 2);
     });
   });
 }
