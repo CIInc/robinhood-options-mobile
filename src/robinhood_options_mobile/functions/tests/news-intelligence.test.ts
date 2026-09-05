@@ -2,6 +2,7 @@ import { describe, it, expect } from "@jest/globals";
 import {
   scoreArticleText,
   analyzeNewsArticles,
+  adjustSignalConfidence,
 } from "../src/news-intelligence";
 
 describe("News Intelligence Analyzer", () => {
@@ -65,5 +66,38 @@ describe("News Intelligence Analyzer", () => {
       horizon: "1-2 weeks",
       drivers: [],
     });
+  });
+
+  it("boosts a signal confirmed by high-impact news", () => {
+    const intelligence = analyzeNewsArticles([
+      { title: "Company beats earnings and raises guidance" },
+    ], "AAPL");
+
+    const adjustment = adjustSignalConfidence(intelligence, "BUY");
+
+    expect(adjustment.applied).toBe(true);
+    expect(adjustment.signalStrengthDelta).toBeGreaterThan(0);
+    expect(adjustment.reason).toContain("confirms BUY");
+  });
+
+  it("penalizes a technical signal contradicted by news", () => {
+    const intelligence = analyzeNewsArticles([
+      { title: "Company misses earnings amid regulatory probe" },
+    ], "AAPL");
+
+    const adjustment = adjustSignalConfidence(intelligence, "BUY");
+
+    expect(adjustment.signalStrengthDelta).toBeLessThan(0);
+    expect(adjustment.reason).toContain("contradicts BUY");
+  });
+
+  it("does not adjust neutral or hold signals", () => {
+    const intelligence = analyzeNewsArticles([
+      { title: "Company beats earnings" },
+    ], "AAPL");
+
+    expect(adjustSignalConfidence(intelligence, "HOLD").applied).toBe(false);
+    expect(adjustSignalConfidence(analyzeNewsArticles([], "AAPL"), "BUY")
+      .applied).toBe(false);
   });
 });

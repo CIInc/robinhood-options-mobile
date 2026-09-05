@@ -706,8 +706,16 @@ Q3 2026 shifts focus from basic execution to **Advanced Intelligence** and **Reg
 - [ ] **Sentiment Analysis 2.0**: Real-time video/audio sentiment analysis (e.g., Fed speeches) - **Large** (4-5 weeks)
 - [x] **Macro-Economic Indicators**: Incorporate interest rates, inflation, and economic calendar events into the "Market Direction" indicator - **Medium** (3-4 weeks)
 - [ ] **Specialized AI Agents**:
-    - [ ] **Sentiment Agent**: Dedicated agent for analyzing news/social sentiment and adjusting trade confidence - **Medium** (3-4 weeks)
+    - [x] **Sentiment Agent**: Cache-only agent analyzing news sentiment and adjusting trade confidence - **Medium** (3-4 weeks)
     - [x] **Macro Agent**: Agent that monitors economic calendar and adjusts global risk parameters - **Medium** (3-4 weeks)
+    - [ ] **Live & Social Sentiment Agent**: Expand sentiment beyond cached news into low-latency social, audio, and video signals. This agent must remain an advisory confidence input until source quality and financial-safety validation are established - **Large** (8-12 weeks)
+        - [ ] **Source Adapters**: Add authenticated, rate-limited connectors for supported social feeds, earnings-call transcripts, and public Fed speeches
+        - [ ] **Streaming Ingestion**: Normalize events into a durable queue with deduplication, symbol/entity resolution, timestamps, and replay support
+        - [ ] **Multimodal Scoring**: Score text, transcript, and audio/video-derived sentiment with confidence, source quality, bot/spam likelihood, and event impact
+        - [ ] **Cross-Source Fusion**: Combine news, social, options flow, and macro sentiment while preserving per-source attribution and disagreement signals
+        - [ ] **Freshness & Degradation Controls**: Expire stale scores, cap source influence, detect provider outages, and fall back to cached news or technical signals
+        - [ ] **User Experience**: Add live sentiment timelines, source-level explanations, confidence bands, and opt-in alerts for holdings and watchlists
+        - [ ] **Validation & Safety**: Backtest event reactions, measure precision/recall by source and regime, audit false positives, and prevent sentiment alone from authorizing trades
 - [ ] **Congress Trading Tracker**: Automatic monitoring of congressional stock disclosures with alerts - **Medium** (3-4 weeks)
 - [ ] **Institutional Flow Tracker**: Track 13F filings and large institutional position changes - **Large** (4-5 weeks)
 - [ ] **AI-Powered Research Reports**: Auto-generate comprehensive research reports for holdings - **Large** (5-6 weeks)

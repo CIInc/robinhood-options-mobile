@@ -49,6 +49,14 @@ export interface NewsIntelligence {
   updatedAt: string;
 }
 
+export interface SentimentSignalAdjustment {
+  signalStrengthDelta: number;
+  sentiment: number;
+  impact: "High" | "Medium" | "Low";
+  applied: boolean;
+  reason: string;
+}
+
 const BULLISH_KEYWORDS = [
   "beat", "beats", "surpassed", "record", "growth", "upgrade", "upgraded",
   "outperform", "buy", "bullish", "profit", "profitable", "revenue jump",
@@ -164,6 +172,64 @@ export function predictEventImpact(
     confidence,
     horizon,
     drivers,
+  };
+}
+
+/**
+ * Adjusts a technical signal's confidence using cached news intelligence.
+ * The agent never changes the signal direction; it only rewards confirmation
+ * and penalizes high-impact contradiction.
+ * @param {NewsIntelligence | null | undefined} intelligence Cached news data.
+ * @param {"BUY" | "SELL" | "HOLD"} signal Technical signal direction.
+ * @return {SentimentSignalAdjustment} Confidence adjustment and explanation.
+ */
+export function adjustSignalConfidence(
+  intelligence: NewsIntelligence | null | undefined,
+  signal: "BUY" | "SELL" | "HOLD",
+): SentimentSignalAdjustment {
+  if (!intelligence || intelligence.articles.length === 0 ||
+    signal === "HOLD") {
+    return {
+      signalStrengthDelta: 0,
+      sentiment: intelligence?.overallSentiment ?? 50,
+      impact: intelligence?.impactRating ?? "Low",
+      applied: false,
+      reason: "No directional news adjustment applied",
+    };
+  }
+
+  const sentimentDirection = intelligence.overallSentiment >= 55 ? "BUY" :
+    intelligence.overallSentiment <= 45 ? "SELL" : "HOLD";
+  if (sentimentDirection === "HOLD") {
+    return {
+      signalStrengthDelta: 0,
+      sentiment: intelligence.overallSentiment,
+      impact: intelligence.impactRating,
+      applied: false,
+      reason: "News sentiment is neutral",
+    };
+  }
+
+  const agrees = sentimentDirection === signal;
+  const impactMultiplier = intelligence.impactRating === "High" ? 1 :
+    intelligence.impactRating === "Medium" ? 0.6 : 0.3;
+  const magnitude = Math.min(
+    12,
+    Math.max(3, Math.round(Math.abs(intelligence.overallSentiment - 50) / 4)),
+  );
+  const signalStrengthDelta = Math.round(
+    (agrees ? magnitude : -magnitude * 1.5) * impactMultiplier,
+  );
+
+  return {
+    signalStrengthDelta,
+    sentiment: intelligence.overallSentiment,
+    impact: intelligence.impactRating,
+    applied: true,
+    reason: agrees ?
+      `News sentiment confirms ${signal} (+${signalStrengthDelta} confidence)` :
+      `News sentiment contradicts ${signal} ` +
+      `(${signalStrengthDelta} confidence)`,
   };
 }
 

@@ -9,6 +9,7 @@ import { fetchGammaExposure, evaluateGammaExposure } from "./gamma-exposure";
 import { handleAgenticDecision } from "./agentic-agent";
 import { getFirestore } from "firebase-admin/firestore";
 import { formatAgenticProposalRejection } from "./agentic-proposal-message";
+import { adjustSignalConfidence, NewsIntelligence } from "./news-intelligence";
 
 const db = getFirestore();
 const SHARED_CONTEXT_TTL_MS = 5 * 60 * 1000;
@@ -145,6 +146,23 @@ export async function handleAlphaTask(marketData: any,
       return null;
     }) : Promise.resolve(null),
   ]);
+
+  // News intelligence is optional and deliberately cache-only here so signal
+  // generation remains bounded when the news provider is unavailable.
+  let newsIntelligence: NewsIntelligence | null = null;
+  try {
+    const newsDoc = await db.collection("instrument_news")
+      .doc(symbol.toUpperCase()).get();
+    if (newsDoc.exists) {
+      const candidate = newsDoc.data() as NewsIntelligence;
+      const updatedAtMs = new Date(candidate.updatedAt || 0).getTime();
+      if (Date.now() - updatedAtMs < 15 * 60 * 1000) {
+        newsIntelligence = candidate;
+      }
+    }
+  } catch (error) {
+    logger.warn(`News sentiment unavailable for ${symbol}`, error);
+  }
 
   // Log detailed market data for debugging cache consistency
   const lastFewPrices = marketIndexData.closes.slice(-5);
@@ -307,6 +325,19 @@ export async function handleAlphaTask(marketData: any,
     }
   }
 
+  const sentimentAdjustment = adjustSignalConfidence(
+    newsIntelligence,
+    multiIndicatorResult.overallSignal,
+  );
+  if (sentimentAdjustment.applied) {
+    multiIndicatorResult.signalStrength = Math.max(0, Math.min(
+      100,
+      multiIndicatorResult.signalStrength +
+      sentimentAdjustment.signalStrengthDelta,
+    ));
+    multiIndicatorResult.reason += ` (${sentimentAdjustment.reason})`;
+  }
+
   // Check if indicators have changed since last run to avoid expensive ML calls
   const signalDocId = interval === "1d" ?
     `${symbol}` : `${symbol}_${interval}`;
@@ -445,6 +476,7 @@ export async function handleAlphaTask(marketData: any,
       status: multiIndicatorResult.macroAssessment.status,
       score: multiIndicatorResult.macroAssessment.score,
     } : null,
+    sentimentImpact: sentimentAdjustment,
   };
 
   const supportingStr = analysis.supportingIndicators.join(", ");
