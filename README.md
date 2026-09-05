@@ -239,7 +239,7 @@ _You can do this automatically in VS Code by installing the eslint plugin._
 
 - Download Service Account private key from [https://console.firebase.google.com/project/realizealpha/settings/serviceaccounts/adminsdk](https://console.firebase.google.com/project/realizealpha/settings/serviceaccounts/adminsdk)
 - Open `src/firebase-admin.js` Node.js file.
-    - Change the path of the downloaded file at the following line: `var serviceAccount = require("/Users/aymericgrassart/Downloads/realizealpha-firebase-adminsdk-uzw9z-7a694c5249.json");`
+    - Change the path of the downloaded file at the following line: `var serviceAccount = require("/Users/aymericgrassart/Downloads/realizealpha-firebase-adminsdk-uzw9z-8cb065ac38.json");`
     - Change the id of the user that you want to add the role to at the following line.
         ```js
         admin.credential.setCustomUserClaims('exKIqutDIgWmPs6FDXEWMHJYdam1', {

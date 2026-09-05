@@ -5,6 +5,7 @@ import 'package:robinhood_options_mobile/model/dividend_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_order_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
 import 'package:robinhood_options_mobile/model/interest_store.dart';
+import 'package:robinhood_options_mobile/model/portfolio_analytics_controller.dart';
 import 'package:robinhood_options_mobile/widgets/analytics_style_card.dart';
 import 'package:robinhood_options_mobile/widgets/home/full_screen_performance_chart_widget.dart';
 import 'package:robinhood_options_mobile/widgets/home/performance_chart_widget.dart';
@@ -186,6 +187,26 @@ class _PerformanceSectionPageState extends State<PerformanceSectionPage> {
       return const SizedBox.shrink();
     }
 
+    final sp500Future = controller.benchmarkHistoricals['SPY'] ??
+        ctx.futureMarketIndexHistoricalsSp500;
+    final nasdaqFuture = controller.benchmarkHistoricals['QQQ'] ??
+        ctx.futureMarketIndexHistoricalsNasdaq;
+    final dowFuture = controller.benchmarkHistoricals['DIA'] ??
+        ctx.futureMarketIndexHistoricalsDow;
+    final russell2000Future = controller.benchmarkHistoricals['IWM'] ??
+        ctx.futureMarketIndexHistoricalsRussell2000;
+    final portfolioFuture = controller.portfolioHistoricalsFuture ??
+        ctx.portfolioHistoricalsFuture;
+
+    final isCustomBenchmark =
+        !PortfolioAnalyticsController.builtInBenchmarks
+            .contains(controller.selectedBenchmark);
+    final customBenchmarkFuture = isCustomBenchmark
+        ? controller.getBenchmarkFuture(controller.selectedBenchmark)
+        : null;
+    final customBenchmarkSymbol =
+        isCustomBenchmark ? controller.selectedBenchmark : null;
+
     return AnalyticsStyleCard(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Column(
@@ -221,19 +242,17 @@ class _PerformanceSectionPageState extends State<PerformanceSectionPage> {
                         user: ctx.brokerageUser,
                         service: ctx.service,
                         accountNumber: ctx.accountNumber,
-                        futureMarketIndexHistoricalsSp500:
-                            ctx.futureMarketIndexHistoricalsSp500,
-                        futureMarketIndexHistoricalsNasdaq:
-                            ctx.futureMarketIndexHistoricalsNasdaq,
-                        futureMarketIndexHistoricalsDow:
-                            ctx.futureMarketIndexHistoricalsDow,
+                        futureMarketIndexHistoricalsSp500: sp500Future,
+                        futureMarketIndexHistoricalsNasdaq: nasdaqFuture,
+                        futureMarketIndexHistoricalsDow: dowFuture,
                         futureMarketIndexHistoricalsRussell2000:
-                            ctx.futureMarketIndexHistoricalsRussell2000,
-                        futurePortfolioHistoricalsYear:
-                            ctx.portfolioHistoricalsFuture,
+                            russell2000Future,
+                        futurePortfolioHistoricalsYear: portfolioFuture,
                         benchmarkChartDateSpanFilter: span,
                         onFilterChanged: ctx.onBenchmarkFilterChanged!,
                         selectedBenchmark: controller.selectedBenchmark,
+                        futureCustomBenchmark: customBenchmarkFuture,
+                        customBenchmarkSymbol: customBenchmarkSymbol,
                         showAllBenchmarks: _showAllBenchmarks,
                       ),
                     ),
@@ -243,19 +262,17 @@ class _PerformanceSectionPageState extends State<PerformanceSectionPage> {
             ),
           ),
           PerformanceChartWidget(
-            futureMarketIndexHistoricalsSp500:
-                ctx.futureMarketIndexHistoricalsSp500,
-            futureMarketIndexHistoricalsNasdaq:
-                ctx.futureMarketIndexHistoricalsNasdaq,
-            futureMarketIndexHistoricalsDow:
-                ctx.futureMarketIndexHistoricalsDow,
-            futureMarketIndexHistoricalsRussell2000:
-                ctx.futureMarketIndexHistoricalsRussell2000,
-            futurePortfolioHistoricalsYear: ctx.portfolioHistoricalsFuture,
+            futureMarketIndexHistoricalsSp500: sp500Future,
+            futureMarketIndexHistoricalsNasdaq: nasdaqFuture,
+            futureMarketIndexHistoricalsDow: dowFuture,
+            futureMarketIndexHistoricalsRussell2000: russell2000Future,
+            futurePortfolioHistoricalsYear: portfolioFuture,
             benchmarkChartDateSpanFilter: span,
             onFilterChanged: ctx.onBenchmarkFilterChanged!,
             selectedBenchmark:
                 _showAllBenchmarks ? null : controller.selectedBenchmark,
+            futureCustomBenchmark: customBenchmarkFuture,
+            customBenchmarkSymbol: customBenchmarkSymbol,
           ),
         ],
       ),

@@ -88,66 +88,125 @@ class _PerformanceChartWidgetState extends State<PerformanceChartWidget> {
                   .add(dayHistoricals.equityHistoricals.last);
             }
 
-            var regularsp500 = sp500['chart']['result'][0]['meta']
-                ['currentTradingPeriod']['regular'];
-            var sp500PreviousClose =
-                sp500['chart']['result'][0]['meta']['chartPreviousClose'];
-            var nasdaqPreviousClose =
-                nasdaq['chart']['result'][0]['meta']['chartPreviousClose'];
-            var dowPreviousClose =
-                dow['chart']['result'][0]['meta']['chartPreviousClose'];
+            Map<String, dynamic>? chartResult(dynamic data) {
+              final chart = data is Map ? data['chart'] : null;
+              final results = chart is Map ? chart['result'] : null;
+              if (results is List &&
+                results.isNotEmpty &&
+                results.first is Map) {
+              return Map<String, dynamic>.from(results.first as Map);
+              }
+              return null;
+            }
+
+            final sp500Result = chartResult(sp500);
+            final nasdaqResult = chartResult(nasdaq);
+            final dowResult = chartResult(dow);
+            final russellResult = chartResult(russell2000);
+            final customResult = chartResult(customBenchmarkData);
+
+            final regularsp500 =
+              sp500Result?['meta']?['currentTradingPeriod']?['regular'];
+            final sp500PreviousClose =
+              (sp500Result?['meta']?['chartPreviousClose'] as num?)?.toDouble() ??
+                0.0;
+            final nasdaqPreviousClose =
+              (nasdaqResult?['meta']?['chartPreviousClose'] as num?)?.toDouble() ??
+                0.0;
+            final dowPreviousClose =
+              (dowResult?['meta']?['chartPreviousClose'] as num?)?.toDouble() ??
+                0.0;
             var russell2000PreviousClose = russell2000 != null
-                ? russell2000['chart']['result'][0]['meta']
-                    ['chartPreviousClose']
+              ? (russellResult?['meta']?['chartPreviousClose'] as num?)
+                ?.toDouble()
                 : null;
             var customBenchmarkPreviousClose = customBenchmarkData != null
-                ? customBenchmarkData['chart']['result'][0]['meta']
-                    ['chartPreviousClose']
+              ? (customResult?['meta']?['chartPreviousClose'] as num?)
+                ?.toDouble()
                 : null;
 
-            var enddiffsp500 = regularsp500['end'] - regularsp500['start'];
+            final regularStart =
+              (regularsp500?['start'] as num?)?.toInt() ?? 0;
+            final regularEnd =
+              (regularsp500?['end'] as num?)?.toInt() ?? 0;
+            var enddiffsp500 = regularEnd - regularStart;
 
             DateTime? cutoff;
-            if (widget.benchmarkChartDateSpanFilter == ChartDateSpan.year_2) {
-              cutoff = DateTime.now().subtract(const Duration(days: 365 * 2));
-            } else if (widget.benchmarkChartDateSpanFilter ==
-                ChartDateSpan.year_3) {
-              cutoff = DateTime.now().subtract(const Duration(days: 365 * 3));
-            } else if (widget.benchmarkChartDateSpanFilter ==
-                ChartDateSpan.year_5) {
-              cutoff = DateTime.now().subtract(const Duration(days: 365 * 5));
-            } else if (widget.benchmarkChartDateSpanFilter ==
-                ChartDateSpan.ytd) {
-              cutoff = newYearsDay.subtract(const Duration(milliseconds: 1));
+            switch (widget.benchmarkChartDateSpanFilter) {
+              case ChartDateSpan.hour:
+                cutoff = now.subtract(const Duration(hours: 1));
+                break;
+              case ChartDateSpan.day:
+                cutoff = now.subtract(const Duration(days: 1));
+                break;
+              case ChartDateSpan.week:
+                cutoff = now.subtract(const Duration(days: 7));
+                break;
+              case ChartDateSpan.month:
+              case ChartDateSpan.rolling_30:
+                cutoff = now.subtract(const Duration(days: 30));
+                break;
+              case ChartDateSpan.rolling_60:
+                cutoff = now.subtract(const Duration(days: 60));
+                break;
+              case ChartDateSpan.month_3:
+              case ChartDateSpan.rolling_90:
+                cutoff = now.subtract(const Duration(days: 90));
+                break;
+              case ChartDateSpan.ytd:
+                cutoff = newYearsDay.subtract(const Duration(milliseconds: 1));
+                break;
+              case ChartDateSpan.year:
+                cutoff = now.subtract(const Duration(days: 365));
+                break;
+              case ChartDateSpan.year_2:
+                cutoff = now.subtract(const Duration(days: 365 * 2));
+                break;
+              case ChartDateSpan.year_3:
+                cutoff = now.subtract(const Duration(days: 365 * 3));
+                break;
+              case ChartDateSpan.year_5:
+                cutoff = now.subtract(const Duration(days: 365 * 5));
+                break;
+              case ChartDateSpan.all:
+                cutoff = null;
+                break;
             }
 
             List<Map<String, dynamic>> processMarketData(
                 dynamic data, double previousClose) {
-              var timestamps =
-                  (data['chart']['result'][0]['timestamp'] as List);
-              var adjcloses = (data['chart']['result'][0]['indicators']
-                  ['adjclose'][0]['adjclose'] as List);
+              if (data == null ||
+                  data['chart'] == null ||
+                  data['chart']['result'] == null ||
+                  (data['chart']['result'] as List).isEmpty) {
+                return <Map<String, dynamic>>[];
+              }
+              var result0 = data['chart']['result'][0];
+              if (result0['timestamp'] == null ||
+                  result0['indicators']?['adjclose'] == null ||
+                  (result0['indicators']['adjclose'] as List).isEmpty ||
+                  result0['indicators']['adjclose'][0]['adjclose'] == null) {
+                return <Map<String, dynamic>>[];
+              }
+              var timestamps = (result0['timestamp'] as List);
+              var adjcloses =
+                  (result0['indicators']['adjclose'][0]['adjclose'] as List);
 
-              var list = timestamps.mapIndexed((index, e) {
+              var list = <Map<String, dynamic>>[];
+              for (var index = 0;
+                  index < timestamps.length && index < adjcloses.length;
+                  index++) {
                 final numerator = adjcloses[index];
                 final close = (numerator as num?)?.toDouble();
-                return {
-                  'date': DateTime.fromMillisecondsSinceEpoch(
-                      (e + enddiffsp500) * 1000),
-                  'close': close
-                };
-              }).toList();
-
-              // Update the processMarketData function to correctly calculate the base price for YTD performance. It now attempts to find the closing price of the last trading day of the previous year to use as the baseline, ensuring accurate percentage change calculations relative to the start of the year.
-              // Ensure that for YTD charts, the data is filtered to start from the beginning of the year, but the baseline price is preserved (or derived from previous year data) instead of resetting to the first visible data point.
-              // double basePrice = previousClose;
-              // if (widget.benchmarkChartDateSpanFilter == ChartDateSpan.ytd) {
-              //   var lastYearData = list.lastWhereOrNull(
-              //       (e) => (e['date'] as DateTime).isBefore(newYearsDay));
-              //   if (lastYearData != null) {
-              //     basePrice = lastYearData['close'] as double;
-              //   }
-              // }
+                if (close != null) {
+                  list.add({
+                    'date': DateTime.fromMillisecondsSinceEpoch(
+                        (((timestamps[index] as num) + enddiffsp500) * 1000)
+                            .toInt()),
+                    'close': close
+                  });
+                }
+              }
 
               if (cutoff != null) {
                 list = list
@@ -155,10 +214,9 @@ class _PerformanceChartWidgetState extends State<PerformanceChartWidget> {
                     .toList();
               }
 
+              if (list.isEmpty) return <Map<String, dynamic>>[];
+
               double basePrice = previousClose;
-              // if (cutoff != null &&
-              //     list.isNotEmpty &&
-              //     widget.benchmarkChartDateSpanFilter != ChartDateSpan.ytd) {
               if (cutoff != null && list.isNotEmpty) {
                 basePrice = list.first['close'] as double;
               }
@@ -167,11 +225,14 @@ class _PerformanceChartWidgetState extends State<PerformanceChartWidget> {
                 var close = e['close'] as double?;
                 return {
                   'date': e['date'],
-                  'value': close == null ? 0.0 : (close / basePrice) - 1.0,
+                  'value': close == null || basePrice == 0.0
+                      ? 0.0
+                      : (close / basePrice) - 1.0,
                 };
               }).toList();
 
-              if (widget.benchmarkChartDateSpanFilter == ChartDateSpan.ytd) {
+              if (widget.benchmarkChartDateSpanFilter == ChartDateSpan.ytd &&
+                  result.isNotEmpty) {
                 result.insert(0, {'date': newYearsDay, 'value': 0.0});
               }
               return result;
@@ -191,14 +252,48 @@ class _PerformanceChartWidgetState extends State<PerformanceChartWidget> {
                     customBenchmarkData, customBenchmarkPreviousClose)
                 : <Map<String, dynamic>>[];
 
-            var seriesOpenportfolio =
-                portfolioHistoricals.equityHistoricals[0].adjustedOpenEquity;
-            var seriesDataportfolio = portfolioHistoricals.equityHistoricals
-                .mapIndexed((index, e) => {
-                      'date': e.beginsAt,
-                      'value': e.adjustedCloseEquity! / seriesOpenportfolio! - 1
-                    })
+            var equityList = portfolioHistoricals.equityHistoricals
+                .where((e) =>
+                    e.beginsAt != null &&
+                    (e.adjustedCloseEquity != null || e.closeEquity != null))
                 .toList();
+
+            if (cutoff != null) {
+              equityList = equityList
+                  .where((e) => e.beginsAt!.isAfter(cutoff!))
+                  .toList();
+            }
+
+            double seriesOpenportfolio = 0.0;
+            if (equityList.isNotEmpty) {
+              seriesOpenportfolio = equityList.first.adjustedOpenEquity ??
+                  equityList.first.openEquity ??
+                  equityList.first.adjustedCloseEquity ??
+                  equityList.first.closeEquity ??
+                  0.0;
+              if (seriesOpenportfolio == 0.0) {
+                seriesOpenportfolio = equityList.first.adjustedCloseEquity ??
+                    equityList.first.closeEquity ??
+                    1.0;
+              }
+            }
+
+            var seriesDataportfolio = equityList
+                .map((e) {
+                  final close = e.adjustedCloseEquity ?? e.closeEquity ?? 0.0;
+                  return {
+                    'date': e.beginsAt,
+                    'value': seriesOpenportfolio > 0.0
+                        ? (close / seriesOpenportfolio) - 1.0
+                        : 0.0,
+                  };
+                })
+                .toList();
+
+            if (widget.benchmarkChartDateSpanFilter == ChartDateSpan.ytd &&
+                seriesDataportfolio.isNotEmpty) {
+              seriesDataportfolio.insert(0, {'date': newYearsDay, 'value': 0.0});
+            }
 
             final allValues = <double>[
               ...seriesDatasp500
@@ -214,7 +309,9 @@ class _PerformanceChartWidgetState extends State<PerformanceChartWidget> {
               ...seriesDataportfolio
                   .map((e) => (e['value'] as num?)?.toDouble() ?? 0.0),
             ];
-            var extents = charts.NumericExtents.fromValues(allValues);
+            var extents = allValues.isNotEmpty
+                ? charts.NumericExtents.fromValues(allValues)
+                : const charts.NumericExtents(-0.1, 0.1);
             extents = charts.NumericExtents(extents.min - (extents.width * 0.1),
                 extents.max + (extents.width * 0.1));
             var brightness = Theme.of(context).brightness;
@@ -225,11 +322,13 @@ class _PerformanceChartWidgetState extends State<PerformanceChartWidget> {
             var chartSelectionStore =
                 Provider.of<ChartSelectionStore>(context, listen: false);
 
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              chartSelectionStore.selectionChanged(MapEntry(
-                  seriesDataportfolio.last['date'] as DateTime,
-                  seriesDataportfolio.last['value'] as double));
-            });
+            if (seriesDataportfolio.isNotEmpty) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                chartSelectionStore.selectionChanged(MapEntry(
+                    seriesDataportfolio.last['date'] as DateTime,
+                    seriesDataportfolio.last['value'] as double));
+              });
+            }
 
             final benchmarkMap = {
               'SPY': 'S&P 500',
@@ -334,15 +433,19 @@ class _PerformanceChartWidgetState extends State<PerformanceChartWidget> {
                     : null);
               },
               initialSelection: charts.InitialSelection(selectedDataConfig: [
-                charts.SeriesDatumConfig<DateTime>(
-                    'Portfolio', seriesDataportfolio.last['date'] as DateTime),
-                if (selectedSeriesId == null || selectedSeriesId == 'S&P 500')
+                if (seriesDataportfolio.isNotEmpty)
+                  charts.SeriesDatumConfig<DateTime>(
+                      'Portfolio', seriesDataportfolio.last['date'] as DateTime),
+                if ((selectedSeriesId == null || selectedSeriesId == 'S&P 500') &&
+                    seriesDatasp500.isNotEmpty)
                   charts.SeriesDatumConfig<DateTime>(
                       'S&P 500', seriesDatasp500.last['date'] as DateTime),
-                if (selectedSeriesId == null || selectedSeriesId == 'Nasdaq')
+                if ((selectedSeriesId == null || selectedSeriesId == 'Nasdaq') &&
+                    seriesDatanasdaq.isNotEmpty)
                   charts.SeriesDatumConfig<DateTime>(
                       'Nasdaq', seriesDatanasdaq.last['date'] as DateTime),
-                if (selectedSeriesId == null || selectedSeriesId == 'Dow 30')
+                if ((selectedSeriesId == null || selectedSeriesId == 'Dow 30') &&
+                    seriesDatadow.isNotEmpty)
                   charts.SeriesDatumConfig<DateTime>(
                       'Dow 30', seriesDatadow.last['date'] as DateTime),
                 if (seriesDatarussell2000.isNotEmpty &&

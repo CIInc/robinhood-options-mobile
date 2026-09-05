@@ -1291,6 +1291,25 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
     final yahooService = YahooService();
     String range = "ytd";
     switch (benchmarkChartDateSpanFilter) {
+      case ChartDateSpan.hour:
+      case ChartDateSpan.day:
+        range = "1d";
+        break;
+      case ChartDateSpan.week:
+        range = "5d";
+        break;
+      case ChartDateSpan.month:
+      case ChartDateSpan.rolling_30:
+        range = "1mo";
+        break;
+      case ChartDateSpan.rolling_60:
+      case ChartDateSpan.rolling_90:
+      case ChartDateSpan.month_3:
+        range = "3mo";
+        break;
+      case ChartDateSpan.ytd:
+        range = "ytd";
+        break;
       case ChartDateSpan.year:
         range = "1y";
         break;
@@ -1298,13 +1317,12 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
         range = "2y";
         break;
       case ChartDateSpan.year_3:
+      case ChartDateSpan.year_5:
         range = "5y"; // Yahoo doesn't support 3y
         break;
-      case ChartDateSpan.year_5:
-        range = "5y";
+      case ChartDateSpan.all:
+        range = "max";
         break;
-      default:
-        range = "ytd";
     }
     futureMarketIndexHistoricalsSp500 = yahooService.getMarketIndexHistoricals(
         symbol: '^GSPC', range: range); // ^IXIC

@@ -101,7 +101,13 @@ service cloud.firestore {
 
     match /yahoo_data/{doc} {
       allow read: if true;
-      allow create, update: if false;
+      // Shared Yahoo cache documents are written by authenticated clients.
+      // Restrict the shape so callers cannot use this collection as arbitrary
+      // storage or modify fields outside the cache payload and timestamp.
+      allow create, update: if request.auth != null &&
+        request.resource.data.keys().hasOnly(['data', 'lastUpdated']) &&
+        request.resource.data.data is map &&
+        request.resource.data.lastUpdated is timestamp;
     }
 
     match /gamma_exposure/{symbol} {

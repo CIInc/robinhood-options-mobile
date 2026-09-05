@@ -6,6 +6,7 @@ import 'package:robinhood_options_mobile/model/option_instrument.dart';
 import 'package:robinhood_options_mobile/model/option_marketdata.dart';
 import 'package:robinhood_options_mobile/model/portfolio_analytics_controller.dart';
 import 'package:robinhood_options_mobile/model/portfolio_historicals.dart';
+import 'package:robinhood_options_mobile/services/yahoo_service.dart';
 import 'package:robinhood_options_mobile/utils/analytics_utils.dart';
 
 /// Builds portfolio historicals whose closes follow [closes], one trading day
@@ -72,6 +73,16 @@ Map<String, dynamic> buildBenchmarkPayload(
       ],
     },
   };
+}
+
+class FakeYahooService extends YahooService {
+  @override
+  Future<dynamic> getMarketIndexHistoricals(
+      {String symbol = "^GSP",
+      String range = "ytd",
+      String interval = "1d"}) async {
+    return buildBenchmarkPayload([100, 102, 104, 106]);
+  }
 }
 
 void main() {
@@ -368,6 +379,7 @@ void main() {
       final controller = PortfolioAnalyticsController(
         portfolioHistoricalsFuture:
             Future.value(buildHistoricals([100, 105, 110, 120])),
+        yahooService: FakeYahooService(),
       );
 
       await controller.addCustomBenchmark('  btc-usd ');
@@ -378,7 +390,9 @@ void main() {
     });
 
     test('a duplicate or blank custom benchmark is ignored', () async {
-      final controller = PortfolioAnalyticsController();
+      final controller = PortfolioAnalyticsController(
+        yahooService: FakeYahooService(),
+      );
 
       await controller.addCustomBenchmark('SPY');
       await controller.addCustomBenchmark('   ');
@@ -508,6 +522,32 @@ void main() {
       // so rather than spin forever.
       expect(controller.hasComputed, isTrue);
       expect(controller.hasMetrics, isFalse);
+    });
+
+    test(
+        'getBenchmarkFuture returns benchmark future and refreshes on updateInputs',
+        () async {
+      final spyFuture =
+          Future.value(buildBenchmarkPayload([100, 103, 106, 110]));
+      final controller = PortfolioAnalyticsController(
+        benchmarkHistoricals: {
+          'SPY': spyFuture,
+        },
+        yahooService: FakeYahooService(),
+      );
+
+      expect(controller.getBenchmarkFuture('SPY'), same(spyFuture));
+      expect(controller.getBenchmarkFuture('QQQ'), isNull);
+
+      await controller.addCustomBenchmark('AAPL');
+      expect(controller.getBenchmarkFuture('AAPL'), isNotNull);
+
+      controller.updateInputs(
+        benchmarkHistoricals: {'SPY': spyFuture},
+        span: ChartDateSpan.rolling_30,
+      );
+      expect(controller.span, ChartDateSpan.rolling_30);
+      expect(controller.getBenchmarkFuture('AAPL'), isNotNull);
     });
   });
 }

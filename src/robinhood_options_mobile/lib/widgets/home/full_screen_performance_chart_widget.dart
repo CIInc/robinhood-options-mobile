@@ -349,6 +349,9 @@ class _FullScreenPerformanceChartWidgetState
               padding: const EdgeInsets.all(5.0),
               scrollDirection: Axis.horizontal,
               children: [
+                _buildChip('30D', ChartDateSpan.rolling_30),
+                _buildChip('60D', ChartDateSpan.rolling_60),
+                _buildChip('90D', ChartDateSpan.rolling_90),
                 _buildChip('YTD', ChartDateSpan.ytd),
                 _buildChip('1Y', ChartDateSpan.year),
                 _buildChip('2Y', ChartDateSpan.year_2),

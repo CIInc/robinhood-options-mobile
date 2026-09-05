@@ -33,7 +33,6 @@ class YahooService {
     ScreenerId('aggressive_small_caps', 'Aggressive Small Caps'),
     ScreenerId('small_cap_gainers', 'Small Cap Gainers'),
     // ScreenerId('high_dividend_stocks', 'High Dividend Stocks'),
-
     // === Day Performance ===
     ScreenerId('day_gainers', 'Day Gainers'),
     ScreenerId('day_gainers_americas', 'Day Gainers (Americas)'),
@@ -71,7 +70,6 @@ class YahooService {
     ScreenerId('day_losers_ndx', 'Day Losers (NDX)'),
     ScreenerId('day_losers_nz', 'Day Losers (NZ)'),
     ScreenerId('day_losers_sg', 'Day Losers (SG)'),
-
     // === Sector Specific ===
     ScreenerId('biotechnology', 'Biotechnology'),
     ScreenerId('communication_equipment', 'Communication Equipment'),
@@ -81,36 +79,98 @@ class YahooService {
     ScreenerId('asset_management', 'Asset Management'),
     ScreenerId('credit_services', 'Credit Services'),
     ScreenerId('department_stores', 'Department Stores'),
-    // ScreenerId('diagnostic_substances', 'Diagnostic Substances'),
-    // ScreenerId('discount_variety_stores', 'Discount & Variety Stores'),
-    // ScreenerId('diversified_communication_services',
-    //     'Diversified Communication Services'),
-    // ScreenerId('diversified_computer_systems', 'Diversified Computer Systems'),
-    // ScreenerId('diversified_electronics', 'Diversified Electronics'),
-    // ScreenerId('diversified_investments', 'Diversified Investments'),
-    // ScreenerId('diversified_machinery', 'Diversified Machinery'),
-    // ScreenerId('diversified_utilities', 'Diversified Utilities'),
-    // ScreenerId('drug_delivery', 'Drug Delivery'),
-    // ScreenerId('drug_manufacturers_major', 'Drug Manufacturers - Major'),
-    // ScreenerId('drug_manufacturers_other', 'Drug Manufacturers - Other'),
-    // ScreenerId('drug_related_products', 'Drug Related Products'),
-    // ScreenerId('drug_stores', 'Drug Stores'),
-    // ScreenerId('drugs_generic', 'Drugs - Generic'),
-    // ScreenerId('drugs_wholesale', 'Drugs Wholesale'),
     ScreenerId('education_training_services', 'Education & Training Services'),
-    // ScreenerId('electric_utilities', 'Electric Utilities'),
-    // ScreenerId('electronic_equipment', 'Electronic Equipment'),
-    // ScreenerId('electronics_stores', 'Electronics Stores'),
-    // ScreenerId('electronics_wholesale', 'Electronics Wholesale'),
-    // ScreenerId('entertainment_diversified', 'Entertainment - Diversified'),
-    // ScreenerId('fair_value_screener', 'Fair Value Screener'),
-    // ScreenerId('farm_construction_machinery', 'Farm & Construction Machinery'),
     ScreenerId('farm_products', 'Farm Products'),
-    // ScreenerId('financial', 'Financial'),
-    // ScreenerId('food_major_diversified', 'Food - Major Diversified'),
-    // ScreenerId('food_wholesale', 'Food Wholesale'),
-    // ScreenerId('foreign_money_center_banks', 'Foreign Money Center Banks'),
-    // ScreenerId('foreign_regional_banks', 'Foreign Regional Banks'),
+    ScreenerId('gold', 'Gold'),
+    ScreenerId('grocery_stores', 'Grocery Stores'),
+    ScreenerId('high_yield_bond', 'High Yield Bond'),
+    ScreenerId('information_technology_services', 'Information Technology Services'),
+    ScreenerId('insurance_brokers', 'Insurance Brokers'),
+    ScreenerId('lodging', 'Lodging'),
+    ScreenerId('lumber_wood_production', 'Lumber & Wood Production'),
+    ScreenerId('medical_instruments_supplies', 'Medical Instruments & Supplies'),
+    ScreenerId('mega_cap_hc', 'Mega Cap HC'),
+    ScreenerId('metal_fabrication', 'Metal Fabrication'),
+    ScreenerId('most_actives_americas', 'Most Actives (Americas)'),
+    ScreenerId('most_actives_asia', 'Most Actives (Asia)'),
+    ScreenerId('most_actives_au', 'Most Actives (AU)'),
+    ScreenerId('most_actives_br', 'Most Actives (BR)'),
+    ScreenerId('most_actives_ca', 'Most Actives (CA)'),
+    ScreenerId('most_actives_de', 'Most Actives (DE)'),
+    ScreenerId('most_actives_dji', 'Most Actives (DJI)'),
+    ScreenerId('most_actives_es', 'Most Actives (ES)'),
+    ScreenerId('most_actives_europe', 'Most Actives (Europe)'),
+    ScreenerId('most_actives_fr', 'Most Actives (FR)'),
+    ScreenerId('most_actives_gb', 'Most Actives (GB)'),
+    ScreenerId('most_actives_hk', 'Most Actives (HK)'),
+    ScreenerId('most_actives_in', 'Most Actives (IN)'),
+    ScreenerId('most_actives_it', 'Most Actives (IT)'),
+    ScreenerId('most_actives_ndx', 'Most Actives (NDX)'),
+    ScreenerId('most_actives_nz', 'Most Actives (NZ)'),
+    ScreenerId('most_actives_sg', 'Most Actives (SG)'),
+    ScreenerId('most_watched_tickers', 'Most Watched Tickers'),
+    ScreenerId('ms_basic_materials', 'MS Basic Materials'),
+    ScreenerId('ms_communication_services', 'MS Communication Services'),
+    ScreenerId('ms_consumer_cyclical', 'MS Consumer Cyclical'),
+    ScreenerId('ms_consumer_defensive', 'MS Consumer Defensive'),
+    ScreenerId('ms_energy', 'MS Energy'),
+    ScreenerId('ms_financial_services', 'MS Financial Services'),
+    ScreenerId('ms_healthcare', 'MS Healthcare'),
+    ScreenerId('ms_industrials', 'MS Industrials'),
+    ScreenerId('ms_real_estate', 'MS Real Estate'),
+    ScreenerId('ms_technology', 'MS Technology'),
+    ScreenerId('ms_utilities', 'MS Utilities'),
+    ScreenerId('oil_gas_equipment_services', 'Oil & Gas Equipment & Services'),
+    ScreenerId('oil_gas_refining_marketing', 'Oil & Gas Refining & Marketing'),
+    ScreenerId('packaging_containers', 'Packaging & Containers'),
+    ScreenerId('paper_paper_products', 'Paper & Paper Products'),
+    ScreenerId('personal_services', 'Personal Services'),
+    ScreenerId('pollution_treatment_controls', 'Pollution Treatment & Controls'),
+    ScreenerId('portfolio_anchors', 'Portfolio Anchors'),
+    ScreenerId('railroads', 'Railroads'),
+    ScreenerId('real_estate_development', 'Real Estate Development'),
+    ScreenerId('recreational_vehicles', 'Recreational Vehicles'),
+    ScreenerId('reit_diversified', 'REIT - Diversified'),
+    ScreenerId('reit_healthcare_facilities', 'REIT - Healthcare Facilities'),
+    ScreenerId('reit_hotel_motel', 'REIT - Hotel & Motel'),
+    ScreenerId('reit_industrial', 'REIT - Industrial'),
+    ScreenerId('reit_office', 'REIT - Office'),
+    ScreenerId('reit_residential', 'REIT - Residential'),
+    ScreenerId('reit_retail', 'REIT - Retail'),
+    ScreenerId('rental_leasing_services', 'Rental & Leasing Services'),
+    ScreenerId('residential_construction', 'Residential Construction'),
+    ScreenerId('resorts_casinos', 'Resorts & Casinos'),
+    ScreenerId('restaurants', 'Restaurants'),
+    ScreenerId('scientific_technical_instruments', 'Scientific & Technical Instruments'),
+    ScreenerId('security_protection_services', 'Security & Protection Services'),
+    ScreenerId('semiconductor_equipment_materials', 'Semiconductor Equipment & Materials'),
+    ScreenerId('silver', 'Silver'),
+    ScreenerId('solid_large_growth_funds', 'Solid Large Growth Funds'),
+    ScreenerId('solid_midcap_growth_funds', 'Solid Midcap Growth Funds'),
+    ScreenerId('specialty_chemicals', 'Specialty Chemicals'),
+    ScreenerId('top_energy_us', 'Top Energy (US)'),
+    ScreenerId('top_etfs_us', 'Top ETFs (US)'),
+    ScreenerId('top_mutual_funds', 'Top Mutual Funds'),
+    ScreenerId('top_mutual_funds_au', 'Top Mutual Funds (AU)'),
+    ScreenerId('top_mutual_funds_br', 'Top Mutual Funds (BR)'),
+    ScreenerId('top_mutual_funds_ca', 'Top Mutual Funds (CA)'),
+    ScreenerId('top_mutual_funds_de', 'Top Mutual Funds (DE)'),
+    ScreenerId('top_mutual_funds_es', 'Top Mutual Funds (ES)'),
+    ScreenerId('top_mutual_funds_fr', 'Top Mutual Funds (FR)'),
+    ScreenerId('top_mutual_funds_gb', 'Top Mutual Funds (GB)'),
+    ScreenerId('top_mutual_funds_hk', 'Top Mutual Funds (HK)'),
+    ScreenerId('top_mutual_funds_in', 'Top Mutual Funds (IN)'),
+    ScreenerId('top_mutual_funds_it', 'Top Mutual Funds (IT)'),
+    ScreenerId('top_mutual_funds_nz', 'Top Mutual Funds (NZ)'),
+    ScreenerId('top_mutual_funds_sg', 'Top Mutual Funds (SG)'),
+    ScreenerId('top_mutual_funds_us', 'Top Mutual Funds (US)'),
+    ScreenerId('top_options_implied_volatality', 'Top Options - Implied Volatility'),
+    ScreenerId('top_options_open_interest', 'Top Options - Open Interest'),
+    ScreenerId('trucking', 'Trucking'),
+    ScreenerId('waste_management', 'Waste Management'),
+  ];
+
+  /*
     // ScreenerId('foreign_utilities', 'Foreign Utilities'),
     // ScreenerId('gaming_activities', 'Gaming Activities'),
     // ScreenerId('gas_utilities', 'Gas Utilities'),
@@ -336,6 +396,8 @@ class YahooService {
     // ScreenerId('water_utilities', 'Water Utilities'),
     // ScreenerId('wireless_communications', 'Wireless Communications'),
   ];
+
+  */
 
   /*
 {
@@ -673,10 +735,28 @@ class YahooService {
       String interval = "1d"}) async {
     var url =
         "https://query2.finance.yahoo.com/v8/finance/chart/${Uri.encodeFull(symbol)}?events=capitalGain%7Cdiv%7Csplit&formatted=true&includeAdjustedClose=true&interval=$interval&range=$range&symbol=${Uri.encodeFull(symbol)}&userYfid=true&lang=en-US&region=US";
-    var entryJson = await getCachedJson(url,
-        cacheKey: 'marketIndexHistoricals_${symbol}_${range}_$interval',
-        ttl: const Duration(hours: 4));
-    return entryJson;
+    final cacheKey = 'marketIndexHistoricals_${symbol}_${range}_$interval';
+    try {
+      final entryJson = await getCachedJson(
+        url,
+        cacheKey: cacheKey,
+        ttl: const Duration(hours: 4),
+      );
+      final chart = entryJson is Map ? entryJson['chart'] : null;
+      final result = chart is Map ? chart['result'] : null;
+      final hasData = result is List &&
+          result.isNotEmpty &&
+          result.first is Map &&
+          result.first['timestamp'] is List &&
+          (result.first['timestamp'] as List).isNotEmpty;
+      debugPrint(
+          'Yahoo benchmark $symbol $range/$interval: ${hasData ? "received ${(result.first["timestamp"] as List).length} points" : "empty or invalid response"}');
+      return entryJson;
+    } catch (error, stackTrace) {
+      debugPrint('Yahoo benchmark $symbol $range/$interval failed: $error');
+      debugPrintStack(stackTrace: stackTrace);
+      return <String, dynamic>{};
+    }
   }
 
   Future<dynamic> getESGScores(String symbol) async {
@@ -837,7 +917,7 @@ class YahooService {
           final lastUpdated = (data['lastUpdated'] as Timestamp).toDate();
           if (DateTime.now().difference(lastUpdated) < ttl &&
               data['data'] != null) {
-            // debugPrint("Using cached data for $cacheKey");
+            debugPrint('Yahoo cache hit: $cacheKey');
             return data['data'];
           }
         }
@@ -849,17 +929,7 @@ class YahooService {
     try {
       final responseJson = await getJson(url);
       if (responseJson != null) {
-        // Cache the result
-        try {
-          // If the JSON is too large, Firestore might reject it (1MB limit).
-          // But Yahoo Finance responses for these endpoints are usually small.
-          await docRef.set({
-            'data': responseJson,
-            'lastUpdated': FieldValue.serverTimestamp(),
-          });
-        } catch (e) {
-          debugPrint("Error writing cache for $cacheKey: $e");
-        }
+        await _writeCache(docRef, cacheKey, responseJson);
       }
       return responseJson;
     } catch (e) {
@@ -868,31 +938,34 @@ class YahooService {
         _crumb = null;
         debugPrint("Retrying after invalidating crumb for $cacheKey");
         final responseJson = await getJson(url);
-        // Cache the result
-        try {
-          await docRef.set({
-            'data': responseJson,
-            'lastUpdated': FieldValue.serverTimestamp(),
-          });
-        } catch (e) {
-          debugPrint("Error writing cache for $cacheKey: $e");
-        }
+        await _writeCache(docRef, cacheKey, responseJson, suffix: 'after retry');
         return responseJson;
       } else if (e.toString().contains('Failed to load data: 404')) {
         // Return empty data for 404 errors
         debugPrint("Received 404 for $cacheKey, returning empty data.");
-        // Cache the result
-        try {
-          await docRef.set({
-            'data': {},
-            'lastUpdated': FieldValue.serverTimestamp(),
-          });
-        } catch (e) {
-          debugPrint("Error writing cache for $cacheKey: $e");
-        }
+        await _writeCache(docRef, cacheKey, {}, suffix: 'after 404');
         return {};
       }
       rethrow;
+    }
+  }
+
+  Future<void> _writeCache(
+      DocumentReference<Map<String, dynamic>> docRef,
+      String cacheKey,
+      dynamic responseJson,
+      {String? suffix}) async {
+    try {
+      await docRef.set({
+        'data': responseJson,
+        'lastUpdated': Timestamp.now(),
+      });
+      debugPrint(
+          'Yahoo cache written: yahoo_data/$cacheKey${suffix == null ? '' : ' ($suffix)'}');
+    } catch (error, stackTrace) {
+      debugPrint(
+          'Error writing Yahoo cache yahoo_data/$cacheKey${suffix == null ? '' : ' ($suffix)'} as ${auth.currentUser?.uid ?? 'unauthenticated'}: $error');
+      debugPrintStack(stackTrace: stackTrace);
     }
   }
 

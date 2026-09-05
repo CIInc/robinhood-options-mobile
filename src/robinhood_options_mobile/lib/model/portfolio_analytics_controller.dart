@@ -59,6 +59,13 @@ class PortfolioAnalyticsController extends ChangeNotifier {
     this.benchmarkHistoricals = benchmarkHistoricals;
     this.fallbackHistoricals = fallbackHistoricals;
     this.span = span;
+    for (final customSymbol in _customBenchmarks) {
+      _customBenchmarkFutures[customSymbol] =
+          _yahooService.getMarketIndexHistoricals(
+        symbol: customSymbol,
+        range: _yahooRange,
+      );
+    }
     _hasLoaded = false;
     _load();
   }
@@ -90,6 +97,11 @@ class PortfolioAnalyticsController extends ChangeNotifier {
   List<String> get customBenchmarks => List.unmodifiable(_customBenchmarks);
   List<String> get allBenchmarks =>
       [...builtInBenchmarks, ..._customBenchmarks];
+
+  /// Returns the future for a benchmark ticker (either built-in or custom).
+  Future<dynamic>? getBenchmarkFuture(String symbol) {
+    return _customBenchmarkFutures[symbol] ?? benchmarkHistoricals[symbol];
+  }
 
   /// Computes the metrics unless they are already available or in flight.
   Future<void> ensureLoaded() {
@@ -428,6 +440,20 @@ class PortfolioAnalyticsController extends ChangeNotifier {
 
   String get _yahooRange {
     switch (span) {
+      case ChartDateSpan.hour:
+      case ChartDateSpan.day:
+        return '1d';
+      case ChartDateSpan.week:
+        return '5d';
+      case ChartDateSpan.month:
+      case ChartDateSpan.rolling_30:
+        return '1mo';
+      case ChartDateSpan.rolling_60:
+      case ChartDateSpan.rolling_90:
+      case ChartDateSpan.month_3:
+        return '3mo';
+      case ChartDateSpan.ytd:
+        return 'ytd';
       case ChartDateSpan.year:
         return '1y';
       case ChartDateSpan.year_2:
@@ -435,6 +461,8 @@ class PortfolioAnalyticsController extends ChangeNotifier {
       case ChartDateSpan.year_3:
       case ChartDateSpan.year_5:
         return '5y';
+      case ChartDateSpan.all:
+        return 'max';
       default:
         return 'ytd';
     }
