@@ -15,6 +15,12 @@ analyzer:
     # under build/{ios,macos}/SourcePackages; analyzing their internal
     # example/test code floods `flutter analyze` with third-party errors.
     - build/**
+    - android/**
+    - ios/**
+    - web/**
+    - windows/**
+    - macos/**
+    - linux/**
 
 linter:
   # The lint rules applied to this project can be customized in the

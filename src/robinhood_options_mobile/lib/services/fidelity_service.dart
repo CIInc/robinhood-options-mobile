@@ -1408,13 +1408,13 @@ class FidelityService implements IBrokerageService {
 
   Future<void> importFidelityCsv(BuildContext context) async {
     try {
-      FilePickerResult? result = await FilePicker.pickFiles(
+      List<PlatformFile> result = await FilePicker.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['csv'],
       );
 
-      if (result != null) {
-        String? path = result.files.single.path;
+      if (result.isNotEmpty) {
+        String? path = result.single.path;
         if (path == null) return;
 
         File file = File(path);

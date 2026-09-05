@@ -1188,7 +1188,7 @@ PODS:
     - abseil/meta/type_traits
     - abseil/xcprivacy
   - abseil/xcprivacy (1.20240722.0)
-  - app_badge_plus (1.3.2):
+  - app_badge_plus (1.3.4):
     - Flutter
   - app_links (7.0.0):
     - Flutter
@@ -1210,7 +1210,7 @@ PODS:
   - BoringSSL-GRPC/Implementation (0.0.37):
     - BoringSSL-GRPC/Interface (= 0.0.37)
   - BoringSSL-GRPC/Interface (0.0.37)
-  - cloud_firestore (6.7.1):
+  - cloud_firestore (6.9.0):
     - Firebase/Firestore (= 12.18.0)
     - firebase_core
     - Flutter
@@ -1220,7 +1220,7 @@ PODS:
     - Flutter
   - device_info_plus (0.0.1):
     - Flutter
-  - file_picker (0.0.1):
+  - file_picker_darwin (1.0.0):
     - Flutter
     - FlutterMacOS
   - Firebase/Auth (12.18.0):
@@ -1240,7 +1240,7 @@ PODS:
   - Firebase/RemoteConfig (12.18.0):
     - Firebase/CoreOnly
     - FirebaseRemoteConfig (~> 12.18.0)
-  - firebase_ai (3.14.1):
+  - firebase_ai (3.15.0):
     - Flutter
   - firebase_analytics (12.5.0):
     - firebase_core
@@ -1258,7 +1258,7 @@ PODS:
   - firebase_core (4.14.0):
     - Firebase/CoreOnly (= 12.18.0)
     - Flutter
-  - firebase_messaging (16.4.3):
+  - firebase_messaging (16.6.0):
     - Firebase/Messaging (= 12.18.0)
     - firebase_core
     - Flutter
@@ -1369,11 +1369,11 @@ PODS:
     - Flutter
   - flutter_web_auth_2 (5.0.0):
     - Flutter
-  - Google-Mobile-Ads-SDK (13.3.0):
+  - Google-Mobile-Ads-SDK (13.9.0):
     - GoogleUserMessagingPlatform (>= 1.1)
-  - google_mobile_ads (9.0.0):
+  - google_mobile_ads (9.1.0):
     - Flutter
-    - Google-Mobile-Ads-SDK (~> 13.3.0)
+    - Google-Mobile-Ads-SDK (~> 13.7)
     - webview_flutter_wkwebview
   - google_sign_in_ios (0.0.1):
     - Flutter
@@ -1587,7 +1587,7 @@ DEPENDENCIES:
   - cloud_firestore (from `.symlinks/plugins/cloud_firestore/ios`)
   - cloud_functions (from `.symlinks/plugins/cloud_functions/ios`)
   - device_info_plus (from `.symlinks/plugins/device_info_plus/ios`)
-  - file_picker (from `.symlinks/plugins/file_picker/darwin`)
+  - file_picker_darwin (from `.symlinks/plugins/file_picker_darwin/darwin`)
   - firebase_ai (from `.symlinks/plugins/firebase_ai/ios`)
   - firebase_analytics (from `.symlinks/plugins/firebase_analytics/ios`)
   - firebase_app_check (from `.symlinks/plugins/firebase_app_check/ios`)
@@ -1665,8 +1665,8 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/cloud_functions/ios"
   device_info_plus:
     :path: ".symlinks/plugins/device_info_plus/ios"
-  file_picker:
-    :path: ".symlinks/plugins/file_picker/darwin"
+  file_picker_darwin:
+    :path: ".symlinks/plugins/file_picker_darwin/darwin"
   firebase_ai:
     :path: ".symlinks/plugins/firebase_ai/ios"
   firebase_analytics:
@@ -1716,22 +1716,22 @@ EXTERNAL SOURCES:
 
 SPEC CHECKSUMS:
   abseil: a05cc83bf02079535e17169a73c5be5ba47f714b
-  app_badge_plus: ae7da159a1b41a61f86a458af2c20e2c04768f72
+  app_badge_plus: 31984ff4a2e27765f5d78ba4a6d450a8efbe56a9
   app_links: 6d01271b3907b0ee7325c5297c75d697c4226c4d
   AppAuth: ef4da5a3fc2e10b90c09a0a94a9baeaedc0341d5
   AppCheckCore: e215d35177a9cf469927863e69c13e220df32a8b
   BoringSSL-GRPC: dded2a44897e45f28f08ae87a55ee4bcd19bc508
-  cloud_firestore: 2ce76f4264914c98a8bc6bd736811d3c89da29a5
+  cloud_firestore: f3c9a905376c42b2a55b1f88c39656a5cccb2419
   cloud_functions: a9a4bc75eb85b873134847522bdfc21716de293e
   device_info_plus: bf2e3232933866d73fe290f2942f2156cdd10342
-  file_picker: e81e2d2db6261a4e98febeae383bd2173ba8b396
+  file_picker_darwin: 27e043831d68462d54f1c40e724b1f53c9d1e8be
   Firebase: 5523dd53ebe603451b4e1befcd99fa20a5c015cd
-  firebase_ai: 2bffffde1650e32ff5adf0f52d15d45d9d9ce29f
+  firebase_ai: 15ec46ac427a27cbfafe4880941b60d571f96464
   firebase_analytics: 894010794ae817b324e9726024db763607942220
   firebase_app_check: bbfcddd5ce92ce388129fa1820e7ec35605255ca
   firebase_auth: 8c86ebb960d57cd0841ce4dd8e14c2a550406317
   firebase_core: 9bb8d013f9b36a31d32e34629e5348dd51d8e35e
-  firebase_messaging: 599a4ce30c5f80fdf6cd3786fc055db10a13fb3a
+  firebase_messaging: 7fa0f5b499bab6d0e658f3d591f8d45d0d7dd8b1
   firebase_remote_config: dfc806aaa037cce5c60398406c05434706097939
   FirebaseABTesting: 7060ad22592c1ae86cccf9cc0f886f470084cbd5
   FirebaseAnalytics: 651ecdc96c7dd8df0c15d55b6c6b70f78c2987b9
@@ -1751,12 +1751,12 @@ SPEC CHECKSUMS:
   FirebaseRemoteConfig: 263cc3d8306e5ec83727bca18fc245fb7027d3ca
   FirebaseRemoteConfigInterop: 3cbd659033c3129ea81a756a52e4bf1cfc20c3a7
   FirebaseSharedSwift: 9d9404eea60b650d3e549898bfebbb8f665fe601
-  Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
+  Flutter: 71a624a5bc0c04062bf19101d501e466baf2fb47
   flutter_local_notifications: eda81afddbf18f8589f6ec069ce593c4c6378769
   flutter_web_auth_2: 4091f1645696258ddc57849f62bef2a848fc313c
-  Google-Mobile-Ads-SDK: 7692126a35ed859f20635af281c50a2162be8bea
-  google_mobile_ads: e0c300fcd472c3fa5a00d6cca8b0c65bbbb15faf
-  google_sign_in_ios: 7336a3372ea93ea56a21e126a0055ffca3723601
+  Google-Mobile-Ads-SDK: cec761d0da669c462bcc19cd16c747498b9f39f7
+  google_mobile_ads: 8c61669fb8e2ba987b0b7116b5265ba647cdca0c
+  google_sign_in_ios: ee49ee802921a2b31bac453205c4d7ac783f0a86
   GoogleAdsOnDeviceConversion: e3b71da24ff4cf01cf520756ac1c2b93c07b86ff
   GoogleAppMeasurement: d70df385587c4175fc0836c11e413d5cbcaa3c7b
   GoogleDataTransport: a24e58982ab3ba2f64d79613e027fe7f57e88539
@@ -1784,6 +1784,6 @@ SPEC CHECKSUMS:
   url_launcher_ios: bb13df5870e8c4234ca12609d04010a21be43dfa
   webview_flutter_wkwebview: 29eb20d43355b48fe7d07113835b9128f84e3af4
 
-PODFILE CHECKSUM: f6b005916d24d0f4aa27eb9a78a94c89e1d31efc
+PODFILE CHECKSUM: b7e40c844ebd702458a0481383ad979cdce023d8
 
 COCOAPODS: 1.16.2

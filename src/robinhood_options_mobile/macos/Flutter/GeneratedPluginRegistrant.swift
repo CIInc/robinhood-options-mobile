@@ -12,7 +12,7 @@ import cloud_functions
 import desktop_webview_window
 import device_info_plus
 import dynamic_color
-import file_picker
+import file_picker_darwin
 import firebase_ai
 import firebase_analytics
 import firebase_app_check
