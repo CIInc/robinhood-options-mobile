@@ -3,7 +3,7 @@
 All notable changes to this project will be documented in this file.
 
 ## [0.39.0] - 2026-09-05
-**Custom Benchmarks, Portfolio Stress Testing, Aggregate Option Greeks, and News Signal Multipliers**
+**Custom Benchmarks, Portfolio Stress Testing, Aggregate Option Greeks, News Signal Multipliers, and Forex View Modernization**
 
 ### Added
 - **Custom Benchmark Support:** Performance charts now support comparing portfolio performance against any custom ticker or asset (e.g., SPY, QQQ, DIA, IWM, TSLA, AAPL, BTC-USD) with enhanced data alignment, caching, and full-screen visualization.
@@ -13,6 +13,7 @@ All notable changes to this project will be documented in this file.
 - **News Sentiment Signal Adjustment:** Integrated real-time news sentiment multipliers into trade signal scoring (`alpha-agent.ts`), automatically scaling confidence based on news sentiment and catalyst confidence.
 - **Event Impact Prediction:** Added event impact prediction functionality (`news-intelligence.ts`) with interactive UI components (`NewsIntelligenceWidget`) predicting market price impacts and confidence for upcoming catalysts.
 - **Consolidated Group Analytics & Order Sync:** Consolidated group performance and member metrics into single server-side executions (`group-performance-analytics.ts`, `instrument-order-sync.ts`) with user-triggered portfolio synchronization.
+- **Forex & Crypto Instrument View Parity:** Modernized `ForexInstrumentWidget` with a technical analysis summary card (consensus verdict, TTM squeeze, period count, voting progress bar, quick metrics), an interactive modal bottom sheet displaying full indicator breakdowns across momentum, trend strength, moving averages, and volatility/volume with documentation dialogs, candlestick mode, chart controls popup menu with indicator presets (trend, mean reversion, reset) and indicator help, refined date filters with haptic feedback, adaptive volume series/metrics handling when OTC volume is unavailable, and full user context / `SharePlus` integration.
 
 ### Changed
 - **Schwab Account Integration:** Enhanced Schwab account position mapping, position store syncing, account selection, and error handling in home view navigation.

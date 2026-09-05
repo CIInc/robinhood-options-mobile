@@ -285,7 +285,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ **Dynamic Alert Thresholds:** AI- and ATR-calculated dynamic volatility bands and threshold breakouts.
 
 ### v0.39.0 ✅ (Released September 05, 2026)
-**Custom Benchmarks, Portfolio Stress Testing, Aggregate Option Greeks, and News Signal Multipliers**
+**Custom Benchmarks, Portfolio Stress Testing, Aggregate Option Greeks, News Signal Multipliers, and Forex View Modernization**
 - ✅ **Custom Benchmark Comparisons:** Dynamic custom symbol benchmarking in full-screen and standard performance charts.
 - ✅ **Portfolio Stress Testing:** `PortfolioStressTestCard` simulating macro shocks (Market Crash -20%, Rate Spike +150bps, Tech Selloff -15%, Inflation Shock +200bps, Recession, Volatility Spike +50%).
 - ✅ **Aggregate Option Greeks:** `PortfolioGreeksCard` displaying portfolio-wide Delta, Gamma, Theta, Vega, and Rho sensitivities.
@@ -294,11 +294,12 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ **Event Impact Prediction:** AI-driven prediction model (`news-intelligence.ts`) and UI card (`NewsIntelligenceWidget`) for upcoming catalysts.
 - ✅ **Schwab Integration Enhancements:** Enhanced Schwab account position mapping, position store syncing, and multi-account navigation.
 - ✅ **Consolidated Group Performance Analytics & Order Sync:** Consolidated group analytics execution and member order synchronization.
+- ✅ **Forex & Crypto Instrument Modernization:** Redesigned Forex view with technical analysis card and modal sheet, candlestick charts, preset tools menu, and haptic date filters.
 
 ### v0.40.0 (Q3 2026 - September)
 **Forex Trading & Advanced Crypto**
 - Forex trading (currency pairs) ([Tracking: #116](https://github.com/CIInc/robinhood-options-mobile/issues/116))
-- Forex charting & analysis
+- ✅ Forex charting & analysis (Completed in v0.39.0)
 - Multi-asset portfolio allocation
 - Carry trade optimizer
 
@@ -618,6 +619,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - [x] **Crypto Trading** ([#116](https://github.com/CIInc/robinhood-options-mobile/issues/116)):
     - [x] Dedicated widgets for placing and managing crypto orders
     - [x] Integrated into main trading interface
+    - [x] Modernized Forex & Crypto Instrument View (Technical Analysis Card, Bottom Sheet, Candlesticks, and Controls)
 - [x] **Schwab Integration** ([#122](https://github.com/CIInc/robinhood-options-mobile/issues/122)):
     - [x] Native Schwab brokerage support
     - [x] Enhanced option order handling

@@ -40,7 +40,7 @@
 - **[Strategy Builder](option-strategy-builder.md#multi-leg-strategy-builder):** Construct complex multi-leg options strategies (Spreads, Straddles) with visual analysis.
 - **[Advanced Order Types](advanced-order-types.md):** Execute Trailing Stop, Stop-Limit, and Time-in-Force (GTC, IOC, etc.) orders for better risk management.
 - **[Trade Signal Notifications](trade-signal-notifications.md):** Configurable push notifications for trade signals with filtering by type, symbol, and confidence. **New:** Rich notifications with charts and actionable data.
-- **[Crypto Trading](crypto-trading.md):** Dedicated interface for trading cryptocurrencies with advanced order management.
+- **[Crypto Trading](crypto-trading.md):** Dedicated interface for trading cryptocurrencies with advanced order management, modernized technical analysis card and bottom sheet modal, candlestick charts, preset tools, and adaptive volume handling.
 - **[Home Widgets](home-widgets.md):** iOS Home Screen widgets for portfolio, watchlists, and trade signals.
 - **[Custom Alerts](custom-alerts.md):** Configurable price and event-based alerts for instruments and portfolio events.
 - **[Order Templates](order-templates.md):** Save and reuse order configurations for faster execution.
