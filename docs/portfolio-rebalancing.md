@@ -5,8 +5,9 @@ The Portfolio Rebalancing tool helps you maintain your desired asset allocation 
 ## Key Features
 
 ### 1. Dual View Modes
-- **Asset Class Allocation**: View and manage your portfolio split between **Stocks**, **Options**, **Crypto**, **Fixed Income**, and **Cash**.
+- **Asset Class Allocation**: View and manage your portfolio split across 7 asset classes: **Stocks**, **Options**, **Crypto**, **Forex**, **Futures**, **Fixed Income**, and **Cash**.
   - *Note:* Treasury ETFs, bond funds, and fixed income instruments (e.g., SGOV, BIL, AGG, BND, TLT) are automatically classified as **Fixed Income** to provide accurate allocation tracking of your bond and treasury holdings.
+  - *Note:* Currency pairs and futures contracts are natively recognized and categorized under **Forex** and **Futures**.
 - **Sector Allocation**: Analyze your exposure across 11 standard market sectors (Technology, Healthcare, Financial Services, etc.).
 
 ### 2. Visual Analysis
@@ -18,7 +19,7 @@ The Portfolio Rebalancing tool helps you maintain your desired asset allocation 
 - **Edit Mode**: Toggle edit mode to adjust your target allocations.
 - **Precision Controls**: Use sliders for broad adjustments or the **+ / - buttons** for precise 1% increments.
 - **Smart Presets**: Quickly apply standard strategies using the preset chips:
-  - *Asset Class*: Aggressive, Moderate, Conservative, All Equity.
+  - *Asset Class*: Aggressive, Moderate, Conservative, All Equity, All-Weather (balanced across equities, fixed income, commodities/futures, forex, and cash).
   - *Sector*: Tech Heavy, Balanced, Defensive.
   - *Fixed Income*: Presets now include bond and treasury allocations for balanced portfolios.
 - **AI Optimization**: Tap the sparkles icon ✨ to open the [AI Asset Allocation](ai-asset-allocation.md) tool. Get personalized target recommendations based on your risk profile, time horizon, and investment goals.

@@ -89,6 +89,7 @@ class RobinhoodService implements IBrokerageService {
 
   final robinHoodNummusEndpoint = Uri.parse('https://nummus.robinhood.com');
   final robinHoodSearchEndpoint = Uri.parse('https://bonfire.robinhood.com');
+  final robinHoodBonfireEndpoint = Uri.parse('https://bonfire.robinhood.com');
   final robinHoodExploreEndpoint = Uri.parse('https://dora.robinhood.com');
 
   // static final rhChallengeEndpoint = Uri.parse('$robinHoodEndpoint/challenge/');
@@ -267,7 +268,7 @@ class RobinhoodService implements IBrokerageService {
     dynamic results;
     try {
       results = await RobinhoodService.pagedGet(brokerageUser,
-          "$endpoint/accounts/?default_to_all_accounts=true&include_managed=true&include_multiple_individual=true&is_default=false");
+          "$endpoint/accounts/?default_to_all_accounts=true&include_managed=true&include_multiple_individual=true&include_pending_ownership_transition=true&is_default=false");
     } catch (e) {
       debugPrint(
           "Failed to fetch with robust multi-accounts parameters, trying second-tier multi-accounts... Error: $e");
@@ -3104,7 +3105,7 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
   Future<List<dynamic>> getEarnings(
       BrokerageUser user, String instrumentId) async {
     //https://api.robinhood.com/marketdata/earnings/?instrument=%2Finstruments%2F943c5009-a0bb-4665-8cf4-a95dab5874e4%2F
-    var resultJson;
+    dynamic resultJson;
     try {
       resultJson = await getJson(user,
           "$endpoint/marketdata/earnings/?instrument=${Uri.encodeQueryComponent("$endpoint/instruments/$instrumentId/")}");
@@ -4639,6 +4640,526 @@ WATCHLIST
     //   list.add(item);
     // }
     // return list;
+  }
+
+  /*
+  INSTITUTIONAL & INSIDER INTELLIGENCE
+  */
+
+  /// Fetches quarterly institutional hedge fund sentiment summary for an instrument
+  /// https://api.robinhood.com/marketdata/hedgefunds/summary/{instrument_id}/
+  Future<dynamic> getHedgeFundSummary(
+      BrokerageUser user, String instrumentId) async {
+    var url = "$endpoint/marketdata/hedgefunds/summary/$instrumentId/";
+    return await getJson(user, url);
+  }
+
+  /// Fetches detailed quarterly institutional hedge fund transactions and holdings for an instrument
+  /// https://api.robinhood.com/marketdata/hedgefunds/transactions/{instrument_id}/
+  Future<dynamic> getHedgeFundTransactions(
+      BrokerageUser user, String instrumentId) async {
+    var url = "$endpoint/marketdata/hedgefunds/transactions/$instrumentId/";
+    return await getJson(user, url);
+  }
+
+  /// Fetches monthly aggregate insider transactions and net sentiment score for an instrument
+  /// https://api.robinhood.com/marketdata/insiders/summary/{instrument_id}/
+  Future<dynamic> getInsiderSummary(
+      BrokerageUser user, String instrumentId) async {
+    var url = "$endpoint/marketdata/insiders/summary/$instrumentId/";
+    return await getJson(user, url);
+  }
+
+  /// Fetches detailed officer/director Form 4 insider transactions for an instrument
+  /// https://api.robinhood.com/marketdata/insiders/transactions/{instrument_id}/
+  Future<dynamic> getInsiderTransactions(
+      BrokerageUser user, String instrumentId) async {
+    var url = "$endpoint/marketdata/insiders/transactions/$instrumentId/";
+    return await getJson(user, url);
+  }
+
+  /*
+  RETAIL SENTIMENT & ORDER FLOW
+  */
+
+  /// Fetches daily Robinhood retail customer net buy/sell percentages and volume shifts
+  /// https://api.robinhood.com/marketdata/equities/summary/robinhood/{instrument_id}/
+  Future<dynamic> getRetailSentiment(
+      BrokerageUser user, String instrumentId) async {
+    var url = "$endpoint/marketdata/equities/summary/robinhood/$instrumentId/";
+    return await getJson(user, url);
+  }
+
+  /*
+  SHORT INTEREST & SHORTING AVAILABILITY
+  */
+
+  /// Fetches short interest fundamentals (free float short %, shares short, upper/lower bounds)
+  /// https://api.robinhood.com/marketdata/fundamentals/short/v1/?ids={instrument_id}&start_date={startDate}
+  Future<dynamic> getShortInterest(BrokerageUser user, String instrumentId,
+      {String? startDate}) async {
+    var query = "ids=$instrumentId";
+    if (startDate != null) {
+      query += "&start_date=$startDate";
+    }
+    var url = "$endpoint/marketdata/fundamentals/short/v1/?$query";
+    return await getJson(user, url);
+  }
+
+  /// Fetches real-time shorting availability, borrow inventory range, and borrow fee rates
+  /// https://api.robinhood.com/instruments/{instrument_id}/shorting/
+  Future<dynamic> getShortingAvailability(
+      BrokerageUser user, String instrumentId) async {
+    var url = "$endpoint/instruments/$instrumentId/shorting/";
+    return await getJson(user, url);
+  }
+
+  /*
+  UNIFIED RISK, MARGIN HEALTH & LIVE PORTFOLIO
+  */
+
+  /// Fetches unified account balances, buying power breakdown, margin health buffer, and collateral allocations
+  /// https://bonfire.robinhood.com/phoenix/accounts/unified
+  Future<dynamic> getUnifiedAccount(BrokerageUser user) async {
+    var url = "$robinHoodBonfireEndpoint/phoenix/accounts/unified";
+    try {
+      return await getJson(user, url);
+    } catch (e) {
+      debugPrint("Falling back to /accounts/unified/ endpoint: $e");
+      return await getJson(user, "$robinHoodBonfireEndpoint/accounts/unified/");
+    }
+  }
+
+  /// Fetches live deposit-adjusted market value and real-time equity breakdown for an account
+  /// https://bonfire.robinhood.com/portfolio/account/{account}/live
+  Future<dynamic> getLivePortfolio(
+      BrokerageUser user, String accountNumber) async {
+    var url = "$robinHoodBonfireEndpoint/portfolio/account/$accountNumber/live";
+    return await getJson(user, url);
+  }
+
+  /// Fetches margin investing info and risk buffer for a margin account
+  /// https://bonfire.robinhood.com/margin/{account}/investing_info/
+  Future<dynamic> getMarginInvestingInfo(
+      BrokerageUser user, String accountNumber) async {
+    var url = "$robinHoodBonfireEndpoint/margin/$accountNumber/investing_info/";
+    return await getJson(user, url);
+  }
+
+  /// Fetches margin call state and risk alert levels
+  /// https://bonfire.robinhood.com/sms/margin/{account}/margin_call_state
+  Future<dynamic> getMarginCallState(
+      BrokerageUser user, String accountNumber) async {
+    var url =
+        "$robinHoodBonfireEndpoint/sms/margin/$accountNumber/margin_call_state";
+    return await getJson(user, url);
+  }
+
+  /*
+  SECURITIES LENDING (SLIP) & CASH SWEEPS
+  */
+
+  /// Fetches stock loan payments from the Stock Lending Program
+  /// https://api.robinhood.com/accounts/stock_loan_payments/
+  Future<List<dynamic>> getStockLoanPayments(BrokerageUser user,
+      {String? accountNumber}) async {
+    var query = accountNumber != null ? "?account_number=$accountNumber" : "";
+    var url = "$endpoint/accounts/stock_loan_payments/$query";
+    try {
+      var results = await RobinhoodService.pagedGet(user, url);
+      return results;
+    } catch (e) {
+      debugPrint("Falling back to stock_loan/payments/: $e");
+      var results = await RobinhoodService.pagedGet(
+          user, "$endpoint/stock_loan/payments/$query");
+      return results;
+    }
+  }
+
+  /// Fetches Stock Lending Program (SLIP) eligibility and enrollment status
+  /// https://bonfire.robinhood.com/slip/eligibility/
+  Future<dynamic> getSlipEligibility(BrokerageUser user) async {
+    var url = "$robinHoodBonfireEndpoint/slip/eligibility/";
+    return await getJson(user, url);
+  }
+
+  /// Fetches current cash sweep interest rates (Gold, standard, boosted, superboost)
+  /// https://api.robinhood.com/accounts/sweeps/interest/
+  Future<dynamic> getSweepsInterest(BrokerageUser user) async {
+    var url = "$endpoint/accounts/sweeps/interest/";
+    return await getJson(user, url);
+  }
+
+  /*
+  COMBO ORDERS & STRATEGIES
+  */
+
+  /// Fetches multi-leg combo orders (e.g. stock + options packages, collars, straddles)
+  /// https://api.robinhood.com/combo/orders/
+  Future<List<dynamic>> getComboOrders(BrokerageUser user,
+      {String? accountNumber, int? limit}) async {
+    List<String> queryParams = [];
+    if (accountNumber != null) {
+      queryParams.add("account_numbers=$accountNumber");
+    }
+    if (limit != null) {
+      queryParams.add("limit=$limit");
+    }
+    var query = queryParams.isNotEmpty ? "?${queryParams.join('&')}" : "";
+    var url = "$endpoint/combo/orders/$query";
+    var results = await RobinhoodService.pagedGet(user, url);
+    return results;
+  }
+
+  /// Fetches options strategy definitions and requirements by strategy codes
+  /// https://api.robinhood.com/options/strategies/?strategy_codes={codes}
+  Future<dynamic> getOptionStrategies(BrokerageUser user,
+      {List<String>? strategyCodes}) async {
+    var codes = strategyCodes?.join(',') ?? '';
+    var url = "$endpoint/options/strategies/?strategy_codes=$codes";
+    return await getJson(user, url);
+  }
+
+  /*
+  CONNECTED AGENTS & EXTERNAL TOKENS
+  */
+
+  /// Fetches connected external OAuth applications and AI trading agents
+  /// https://api.robinhood.com/oauth2/list_external_tokens/
+  Future<List<dynamic>> getExternalTokens(BrokerageUser user) async {
+    var url = "$endpoint/oauth2/list_external_tokens/";
+    var results = await RobinhoodService.pagedGet(user, url);
+    return results;
+  }
+
+  /// Fetches Agentic trading FTUX eligibility status
+  /// https://bonfire.robinhood.com/equities/agentic_ftux/eligibility
+  Future<dynamic> getAgenticFtuxEligibility(BrokerageUser user) async {
+    var url = "$robinHoodBonfireEndpoint/equities/agentic_ftux/eligibility";
+    return await getJson(user, url);
+  }
+
+  /*
+  DOCUMENTS & TAX STATEMENTS
+  */
+
+  /// Fetches tax forms (1099), monthly account statements, or trade confirmations
+  /// https://api.robinhood.com/documents/?type={type}
+  Future<List<dynamic>> getDocuments(BrokerageUser user, {String? type}) async {
+    var query = type != null ? "?type=$type" : "";
+    var url = "$endpoint/documents/$query";
+    var results = await RobinhoodService.pagedGet(user, url);
+    return results;
+  }
+
+  /*
+  NOTIFICATIONS & INBOX
+  */
+
+  /// Fetches in-app messaging threads and announcement channels
+  /// https://api.robinhood.com/inbox/threads/
+  Future<dynamic> getInboxThreads(BrokerageUser user) async {
+    var url = "$endpoint/inbox/threads/";
+    return await getJson(user, url);
+  }
+
+  /// Fetches unread notification badge count
+  /// https://api.robinhood.com/inbox/notifications/badge?userUuid={userUuid}
+  Future<dynamic> getNotificationBadge(BrokerageUser user,
+      {String? userUuid}) async {
+    var query = userUuid != null ? "?userUuid=$userUuid" : "";
+    var url = "$endpoint/inbox/notifications/badge$query";
+    return await getJson(user, url);
+  }
+
+  /// Fetches notification stack cards (market closure notices, disclosures, educational cards)
+  /// https://api.robinhood.com/midlands/notifications/stack/
+  Future<List<dynamic>> getNotificationStack(BrokerageUser user) async {
+    var url = "$endpoint/midlands/notifications/stack/";
+    var results = await RobinhoodService.pagedGet(user, url);
+    return results;
+  }
+
+  /*
+  STOCK SCREENERS & PRESETS
+  */
+
+  /// Fetches Robinhood-curated screener presets
+  /// https://bonfire.robinhood.com/screeners/presets/
+  Future<dynamic> getScreenerPresets(BrokerageUser user) async {
+    var url = "$robinHoodBonfireEndpoint/screeners/presets/";
+    return await getJson(user, url);
+  }
+
+  /// Fetches available screeners and criteria
+  /// https://bonfire.robinhood.com/screeners?include_filters={includeFilters}
+  Future<dynamic> getScreeners(BrokerageUser user,
+      {bool includeFilters = false}) async {
+    var url =
+        "$robinHoodBonfireEndpoint/screeners?include_filters=$includeFilters";
+    return await getJson(user, url);
+  }
+
+  /*
+  ROBINHOOD LEGEND (LAYOUTS)
+  */
+
+  /// Fetches saved custom desktop and Legend trading workspaces/layouts
+  /// https://api.robinhood.com/hippo/bw/layouts
+  Future<dynamic> getLegendLayouts(BrokerageUser user) async {
+    var url = "$endpoint/hippo/bw/layouts";
+    return await getJson(user, url);
+  }
+
+  /// Fetches layout definition and widget grid configuration for a specific layout
+  /// https://api.robinhood.com/hippo/bw/layouts/{layoutId}
+  Future<dynamic> getLegendLayout(BrokerageUser user, String layoutId) async {
+    var url = "$endpoint/hippo/bw/layouts/$layoutId";
+    return await getJson(user, url);
+  }
+
+  /*
+  MARKET HOURS & TRADING SESSIONS
+  */
+
+  /// Fetches market hours for a specific exchange and date (e.g. XNYS, XNAS)
+  /// https://api.robinhood.com/markets/{market}/hours/{date}/
+  Future<dynamic> getMarketHours(BrokerageUser user,
+      {String market = 'XNYS', String? date}) async {
+    var dateStr = date ??
+        "${DateTime.now().year}-${DateTime.now().month.toString().padLeft(2, '0')}-${DateTime.now().day.toString().padLeft(2, '0')}";
+    var url = "$endpoint/markets/$market/hours/$dateStr/";
+    return await getJson(user, url);
+  }
+
+  /// Fetches list of supported markets and exchanges
+  /// https://api.robinhood.com/markets/
+  Future<List<dynamic>> getMarkets(BrokerageUser user) async {
+    var url = "$endpoint/markets/";
+    var results = await RobinhoodService.pagedGet(user, url);
+    return results;
+  }
+
+  /*
+  INSTRUMENT BUYING POWER, WARNINGS & RECURRING TRADABILITY
+  */
+
+  /// Fetches instrument-specific buying power and short-selling buying power for an account
+  /// https://bonfire.robinhood.com/accounts/{account}/instrument_buying_power/{instrument_id}/
+  Future<dynamic> getInstrumentBuyingPower(
+      BrokerageUser user, String accountNumber, String instrumentId) async {
+    var url =
+        "$robinHoodBonfireEndpoint/accounts/$accountNumber/instrument_buying_power/$instrumentId/";
+    return await getJson(user, url);
+  }
+
+  /// Fetches volatility, illiquidity, and risk warnings for an instrument
+  /// https://bonfire.robinhood.com/instruments/{instrument_id}/v2/warnings/
+  Future<dynamic> getInstrumentWarnings(
+      BrokerageUser user, String instrumentId) async {
+    var url =
+        "$robinHoodBonfireEndpoint/instruments/$instrumentId/v2/warnings/";
+    return await getJson(user, url);
+  }
+
+  /// Checks if an equity instrument is eligible for recurring investments (DCA)
+  /// https://bonfire.robinhood.com/recurring_tradability/equity/{instrument_id}/
+  Future<dynamic> getInstrumentRecurringTradability(
+      BrokerageUser user, String instrumentId) async {
+    var url =
+        "$robinHoodBonfireEndpoint/recurring_tradability/equity/$instrumentId/";
+    return await getJson(user, url);
+  }
+
+  /*
+  OPTIONS CHAIN COLLATERAL & UPGRADE ELIGIBILITY
+  */
+
+  /// Fetches cash and equity collateral locked by an options chain for a given account
+  /// https://api.robinhood.com/options/chains/{chainId}/collateral/?account_number={account}
+  Future<dynamic> getOptionsChainCollateral(
+      BrokerageUser user, String chainId, String accountNumber) async {
+    var url =
+        "$endpoint/options/chains/$chainId/collateral/?account_number=$accountNumber";
+    return await getJson(user, url);
+  }
+
+  /// Checks options tier upgrade eligibility (Level 2 vs Level 3 multi-leg)
+  /// https://api.robinhood.com/options/should_show_options_upgrade_on_sdp/?account_number={account}
+  Future<dynamic> getOptionsUpgradeStatus(
+      BrokerageUser user, String accountNumber) async {
+    var url =
+        "$endpoint/options/should_show_options_upgrade_on_sdp/?account_number=$accountNumber";
+    return await getJson(user, url);
+  }
+
+  /*
+  CRYPTO PORTFOLIO & SPENDING / RETIREMENT ACCOUNTS
+  */
+
+  /// Fetches crypto portfolio summary (equity, 24/7 market value) for a Nummus account
+  /// https://nummus.robinhood.com/portfolios/{nummusAccountId}/
+  Future<dynamic> getCryptoPortfolio(
+      BrokerageUser user, String nummusAccountId) async {
+    var url = "$robinHoodNummusEndpoint/portfolios/$nummusAccountId/";
+    return await getJson(user, url);
+  }
+
+  /// Fetches Robinhood Spending / Cash Management account details
+  /// https://bonfire.robinhood.com/rhy/accounts/
+  Future<dynamic> getSpendingAccount(BrokerageUser user) async {
+    var url = "$robinHoodBonfireEndpoint/rhy/accounts/";
+    return await getJson(user, url);
+  }
+
+  /// Fetches annual IRA contribution history, matches, and limits
+  /// https://bonfire.robinhood.com/retirement/history/
+  Future<dynamic> getRetirementHistory(BrokerageUser user) async {
+    var url = "$robinHoodBonfireEndpoint/retirement/history/";
+    return await getJson(user, url);
+  }
+
+  /*
+  CORPORATE ACTIONS & ADR FEES
+  */
+
+  /// Fetches foreign stock American Depositary Receipt (ADR) pass-through fees
+  /// https://api.robinhood.com/corp_actions/adr_fees/
+  Future<List<dynamic>> getAdrFees(BrokerageUser user) async {
+    var url = "$endpoint/corp_actions/adr_fees/";
+    var results = await RobinhoodService.pagedGet(user, url);
+    return results;
+  }
+
+  /// Fetches corporate action stock split cash/share adjustments
+  /// https://api.robinhood.com/corp_actions/v2/split_payments/
+  Future<List<dynamic>> getSplitPayments(BrokerageUser user,
+      {String? instrumentId}) async {
+    var query = instrumentId != null ? "?instrument_ids=$instrumentId" : "";
+    var url = "$endpoint/corp_actions/v2/split_payments/$query";
+    var results = await RobinhoodService.pagedGet(user, url);
+    return results;
+  }
+
+  /*
+  DAY TRADES & PATTERN DAY TRADER (PDT) MONITORING
+  */
+
+  /// Fetches rolling 5-day equity and option day trade counts to monitor Pattern Day Trader status
+  /// https://api.robinhood.com/accounts/{account}/recent_day_trades/
+  Future<dynamic> getRecentDayTrades(
+      BrokerageUser user, String accountNumber) async {
+    var url = "$endpoint/accounts/$accountNumber/recent_day_trades/";
+    return await getJson(user, url);
+  }
+
+  /*
+  MARGIN CALLS & FINANCING COSTS
+  */
+
+  /// Fetches active margin calls, regulatory calls, and maintenance deficit demands
+  /// https://api.robinhood.com/margin/calls/
+  Future<List<dynamic>> getMarginCalls(BrokerageUser user) async {
+    var url = "$endpoint/margin/calls/";
+    var results = await RobinhoodService.pagedGet(user, url);
+    return results;
+  }
+
+  /// Fetches monthly margin interest debits and financing fee history
+  /// https://api.robinhood.com/cash_journal/margin_interest_charges/
+  Future<List<dynamic>> getMarginInterestCharges(BrokerageUser user) async {
+    var url = "$endpoint/cash_journal/margin_interest_charges/";
+    var results = await RobinhoodService.pagedGet(user, url);
+    return results;
+  }
+
+  /*
+  BANKING, ACH TRANSFERS & LINKED ACCOUNTS
+  */
+
+  /// Fetches deposit and withdrawal transfers with status, clearing dates, and amounts
+  /// https://api.robinhood.com/ach/transfers/
+  Future<List<dynamic>> getAchTransfers(BrokerageUser user) async {
+    var url = "$endpoint/ach/transfers/";
+    var results = await RobinhoodService.pagedGet(user, url);
+    return results;
+  }
+
+  /// Fetches linked bank account relationships and verification state
+  /// https://api.robinhood.com/ach/relationships/
+  Future<List<dynamic>> getAchRelationships(BrokerageUser user) async {
+    var url = "$endpoint/ach/relationships/";
+    var results = await RobinhoodService.pagedGet(user, url);
+    return results;
+  }
+
+  /*
+  ROBINHOOD GOLD & SUBSCRIPTIONS
+  */
+
+  /// Fetches Robinhood Gold subscription fee billing history and credits
+  /// https://api.robinhood.com/subscription/subscription_fees/
+  Future<dynamic> getSubscriptionFees(BrokerageUser user) async {
+    var url = "$endpoint/subscription/subscription_fees/";
+    return await getJson(user, url);
+  }
+
+  /*
+  SHAREHOLDER ENGAGEMENT & SAY TECHNOLOGIES Q&A
+  */
+
+  /// Fetches shareholder question & answer events for earnings calls via Say Technologies
+  /// https://bonfire.robinhood.com/instruments/{instrument_id}/qa/events-section/
+  Future<dynamic> getShareholderQaEvents(
+      BrokerageUser user, String instrumentId) async {
+    var url =
+        "$robinHoodBonfireEndpoint/instruments/$instrumentId/qa/events-section/";
+    return await getJson(user, url);
+  }
+
+  /*
+  TAX & WITHHOLDING STATUS
+  */
+
+  /// Fetches foreign tax withholding classification and status for an instrument
+  /// https://bonfire.robinhood.com/tax_info/instrument/{instrument_id}/withholding_status/
+  Future<dynamic> getTaxWithholdingStatus(
+      BrokerageUser user, String instrumentId) async {
+    var url =
+        "$robinHoodBonfireEndpoint/tax_info/instrument/$instrumentId/withholding_status/";
+    return await getJson(user, url);
+  }
+
+  /*
+  DETAILED USER PROFILES
+  */
+
+  /// Fetches FINRA investment profile (total net worth, income bracket, risk tolerance, source of funds)
+  /// https://api.robinhood.com/user/investment_profile/
+  Future<dynamic> getUserInvestmentProfile(BrokerageUser user) async {
+    var url = "$endpoint/user/investment_profile/";
+    return await getJson(user, url);
+  }
+
+  /// Fetches user physical address, phone, and residential details
+  /// https://api.robinhood.com/user/basic_info/
+  Future<dynamic> getUserBasicInfo(BrokerageUser user) async {
+    var url = "$endpoint/user/basic_info/";
+    return await getJson(user, url);
+  }
+
+  /// Fetches user employment status, employer name, and occupation
+  /// https://api.robinhood.com/user/employment/
+  Future<dynamic> getUserEmployment(BrokerageUser user) async {
+    var url = "$endpoint/user/employment/";
+    return await getJson(user, url);
+  }
+
+  /// Fetches user regulatory disclosures, control person status, and sweep consent
+  /// https://api.robinhood.com/user/additional_info/
+  Future<dynamic> getUserAdditionalInfo(BrokerageUser user) async {
+    var url = "$endpoint/user/additional_info/";
+    return await getJson(user, url);
   }
 
   /* COMMON */

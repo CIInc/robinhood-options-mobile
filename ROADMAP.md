@@ -310,6 +310,24 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Emotion tracking & journaling
 - Trading psychology score
 
+### v0.41.5 (Q4 2026 - October)
+**Robinhood Native API Expansion & Institutional Intelligence**
+- **First-Party Whale Watch (Hedge Funds & Insiders):** Native Robinhood endpoints for hedge fund quarterly sentiment, manager transactions, insider net sentiment, and Form 4 trades (`/marketdata/hedgefunds/`, `/marketdata/insiders/`).
+- **Retail Order Flow & Robinhood Sentiment:** First-party net buy/sell percentage and volume percentage changes over time (`/marketdata/equities/summary/robinhood/`).
+- **Short Float & Live Borrow Availability:** Real-time short interest (`pc_freefloat`, days to cover) and live borrow availability and fee rates (`/marketdata/fundamentals/short/v1/`, `/instruments/{id}/shorting/`).
+- **Pattern Day Trader (PDT) Protection:** Real-time rolling 5-day day-trade counter for equities and options to prevent regulatory PDT restrictions (`/accounts/{account}/recent_day_trades/`).
+- **Unified Risk & Margin Health:** Unified accounts endpoint integration (`/phoenix/accounts/unified`) for `margin_health`, `margin_buffer`, true options/crypto/account buying powers, and collateral holds.
+- **Margin Calls & Financing Costs:** Real-time margin call deficit demands and monthly margin interest debit history (`/margin/calls/`, `/cash_journal/margin_interest_charges/`).
+- **Instrument-Specific Buying Power & Trade Warnings:** Real-time buying power per instrument and risk/volatility warnings (`/accounts/{account}/instrument_buying_power/{id}/`, `/instruments/{id}/v2/warnings/`).
+- **Options Collateral & Tier Upgrades:** Chain-level cash/equity collateral breakdown (`/options/chains/{id}/collateral/`) and upgrade eligibility (`/options/should_show_options_upgrade_on_sdp/`).
+- **Banking, ACH & Cash Movement:** Monitor bank deposits, withdrawals, clearing status, and linked bank accounts (`/ach/transfers/`, `/ach/relationships/`).
+- **Securities Lending (SLIP) & Cash Sweeps:** Fully Paid Stock Loan income tracking (`/accounts/stock_loan_payments/`), SLIP status, and high-yield cash sweeps APY & tier tracking (`/accounts/sweeps/interest/`).
+- **Combo Orders (Stock + Option Packages):** Execution and order history for multi-leg equity and option packages (`/combo/orders/`).
+- **Corporate Action Splits & Shareholder Q&A:** Stock split cash-in-lieu adjustments (`/corp_actions/v2/split_payments/`) and Say Technologies earnings Q&A participation (`/qa/events-section/`).
+- **Multi-Account & Retirement Expansion:** Full multi-account hydration including Traditional/Roth IRAs (`ira_traditional`, `ira_roth`), contribution history (`/retirement/history/`), spending accounts (`/rhy/accounts/`), and connected agent management (`/oauth2/list_external_tokens/`).
+- **Tax Documents & Statements:** Direct access and download for 1099 tax documents, monthly statements, ADR fees, and foreign tax withholding (`/documents/?type=1099`, `/corp_actions/adr_fees/`, `/tax_info/`).
+- **Robinhood Curated Screener Presets & Layouts:** Native server-side screener presets (`/screeners/presets/`, `/screeners`) and Robinhood Legend workspaces (`/hippo/bw/layouts`).
+
 ### v0.42.0 (Q4 2026 - November)
 **Investor Groups 2.0 & Collaborative Analytics**
 - Group chat (real-time messaging) ([Tracking: #113](https://github.com/CIInc/robinhood-options-mobile/issues/113))
@@ -691,6 +709,15 @@ Q3 2026 shifts focus from basic execution to **Advanced Intelligence** and **Reg
 - [x] **Multi-Account Aggregation**: View all accounts together - **Medium** (2-3 weeks)
 - [x] **Import/Export**: Fidelity CSV import, CSV export for portfolio analytics - **Small** (1-2 weeks)
 - [x] **AI Portfolio Architect (Alpha)** (v0.37.1): Natural language portfolio construction - **Large** (4-6 weeks)
+- [ ] **Unified Margin Health & Collateral Tracking**: Monitor margin buffers, warning states, and option/crypto collateral allocations (`/phoenix/accounts/unified`) - **Medium** (2-3 weeks)
+- [ ] **Pattern Day Trader (PDT) Protection & Counter**: Real-time rolling 5-day day-trade counter for equities and options to prevent regulatory PDT restrictions (`/accounts/{account}/recent_day_trades/`) - **Small** (1-2 weeks)
+- [ ] **Margin Calls & Financing Costs**: Real-time margin call deficit notifications and monthly margin interest debit history (`/margin/calls/`, `/cash_journal/margin_interest_charges/`) - **Small** (1-2 weeks)
+- [ ] **Stock Lending Program (SLIP) Dashboard**: Track loaned shares, earned yield payments, and agreement eligibility (`/accounts/stock_loan_payments/`, `/slip/eligibility/`) - **Small** (1-2 weeks)
+- [ ] **Cash Sweeps & APY Rate Monitor**: Track FDIC sweep balances and multi-tier interest rates (`/accounts/sweeps/interest/`) - **Small** (1 week)
+- [ ] **Banking & ACH Transfers**: Monitor bank deposits, withdrawals, clearing status, and linked accounts (`/ach/transfers/`, `/ach/relationships/`) - **Small** (1-2 weeks)
+- [ ] **Tax Documents & Account Statements**: In-app download and review of Form 1099, monthly statements, and withholding status (`/documents/`, `/tax_info/`) - **Small** (1 week)
+- [ ] **Corporate Action Split Adjustments**: Stock split payments, cash-in-lieu tracking, and ratio adjustments (`/corp_actions/v2/split_payments/`) - **Small** (1 week)
+- [ ] **Shareholder Say Q&A Engagement**: Verified shareholder Q&A viewing and submission for upcoming earnings calls (`/qa/events-section/`) - **Small** (1-2 weeks)
 - [ ] **Automated DRIP with Threshold** ([#23](https://github.com/CIInc/robinhood-options-mobile/issues/23)): Dividend reinvestment at price thresholds - **Small** (1 week)
 - [x] **Benchmark Comparison** ([#18](https://github.com/CIInc/robinhood-options-mobile/issues/18)): Compare against market indices - **Small** (1 week)
 
@@ -699,6 +726,11 @@ Q3 2026 shifts focus from basic execution to **Advanced Intelligence** and **Reg
 - [x] **Event Study Analyzer** (v0.37.5): Stock performance around specific event windows
 - [x] **Rolling Statistics Dashboard** (v0.37.5): Dynamic volatility, beta, and correlation tracking
 - [x] **Custom Screener Builder** (v0.37.5): Advanced multi-factor filtering UI - **Medium** (3-4 weeks)
+- [ ] **First-Party Institutional & Hedge Fund Tracking**: Real-time hedge fund sentiment, quarterly manager holdings, and transaction history directly from Robinhood marketdata endpoints (`/marketdata/hedgefunds/`) - **Small** (1-2 weeks)
+- [ ] **First-Party Insider Sentiment & Activity**: Monthly aggregate insider transactions and director/officer Form 4 tracking (`/marketdata/insiders/`) - **Small** (1-2 weeks)
+- [ ] **Robinhood Retail Flow & Sentiment**: Net buy/sell percentage and order volume trends (`/marketdata/equities/summary/robinhood/`) - **Small** (1-2 weeks)
+- [ ] **Short Float & Live Shorting Rates**: Real-time free float short percentage, shares short, borrow inventory levels, and borrow fee rates (`/marketdata/fundamentals/short/v1/`, `/instruments/{id}/shorting/`) - **Small** (1-2 weeks)
+- [ ] **Robinhood Curated Screener Presets**: Backend screener presets integration (`/screeners/presets/`, `/screeners`) - **Small** (1 week)
 - [x] **Income View NAV** ([#20](https://github.com/CIInc/robinhood-options-mobile/issues/20)): Net Asset Value tracking - **Small** (1 week)
 - [x] **Income Chart** ([#17](https://github.com/CIInc/robinhood-options-mobile/issues/17)): Portfolio income visualization - **Small** (1 week)
 - [x] **Dividend History** ([#3](https://github.com/CIInc/robinhood-options-mobile/issues/3)): Historical dividend tracking - **Small** (1 week)
@@ -763,6 +795,7 @@ Execution speed and automation differentiate professional tools from retail apps
 #### Strategy Automation
 - [ ] **Strategy Marketplace**: Platform for users to share, rate, and clone successful Agentic Trading configurations - **Large** (6-8 weeks)
 - [ ] **Multi-Leg Order Templates**: Quick-entry templates for complex spreads - **Small** (1-2 weeks)
+- [ ] **Combo Orders Support**: Stock + Option atomic order execution and history (`/combo/orders/`) - **Medium** (2-3 weeks)
 - [ ] **Smart Order Routing**: Intelligent execution across multiple venues - **Large** (6-8 weeks)
 
 ### Social & Community
@@ -843,6 +876,10 @@ Technical debt accumulation slows velocity. Investing in testing, CI/CD, and sec
     - [x] Schwab Auth & Portfolio Sync (Phase 1)
     - [x] Schwab Options Order Placement (Phase 2, v0.37.5) - [Tracking: #138](https://github.com/CIInc/robinhood-options-mobile/issues/138)
     - [x] Schwab Multi-Account Support (Phase 3): Preserve Schwab account hash IDs and route orders to the selected account
+- [ ] **Robinhood Native Multi-Account & Retirement Support**:
+    - [ ] IRA Traditional & Roth Account support (`ira_traditional`, `ira_roth`) with contribution tracking
+    - [ ] Connected Agents & External Tokens management (`/oauth2/list_external_tokens/`)
+    - [ ] First-Party In-App Notifications & Stack announcements (`/inbox/threads/`, `/midlands/notifications/stack/`)
 - [x] **Yahoo Finance**: Real-time news and charting
 - [ ] **Plaid Integration**: Full account linking and options support ([#15](https://github.com/CIInc/robinhood-options-mobile/issues/15), [#92](https://github.com/CIInc/robinhood-options-mobile/issues/92))
 - [ ] **Multi-Broker**: Unified view across Fidelity, IBKR, and others

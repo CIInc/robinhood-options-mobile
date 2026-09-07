@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.40.0] - 2026-09-07
+**Forex Trading, Carry Trade Optimizer, and Multi-Asset Portfolio Allocation**
+
+### Added
+- **Carry Trade Optimizer:** Introduced `CarryTradeOptimizerWidget` and `CarryTradeModel` evaluating global interest rate differentials, 10 central bank benchmark policy rates, real rates, daily rollover swap income, Carry-to-Risk ratio scoring, and carry trade unwind risk indicators. Integrated directly into the Forex Instrument view, Home Allocation, Rebalancing, Search, and Trading Strategies pages.
+- **Currency Basket Optimization:** Added automated currency basket optimization with three distinct risk profiles: Risk-Adjusted (Sharpe Maximizer), Maximum Yield, and Diversified Multi-Funding (inverse-volatility weighting across JPY, CHF, EUR funding currencies).
+- **Forex Order Routing & Stop Orders:** Enhanced `TradeForexWidget` with support for Stop orders alongside Market and Limit orders, standardized lot sizing presets (Micro 1,000, Mini 10,000, Standard 100,000), dynamic dollar pip value calculation, and simulated Paper/Demo trading execution.
+- **Multi-Asset Portfolio Allocation:** Unified portfolio allocation calculations across `AllocationWidget` and `RebalancingWidget` to span all 7 asset classes: Stocks, Options, Crypto, Forex, Futures, Fixed Income, and Cash. Added an "All-Weather" allocation preset.
+- **Robinhood Native API Expansion:** Extended `RobinhoodService` with endpoints for first-party institutional hedge fund sentiment & transactions (`/marketdata/hedgefunds/`), insider sentiment & transactions (`/marketdata/insiders/`), retail net order flow (`/marketdata/equities/summary/robinhood/`), short interest & borrow fees (`/marketdata/fundamentals/short/v1/`, `/instruments/{id}/shorting/`), unified account margin health & buffer (`/phoenix/accounts/unified`), stock loan payments (SLIP), cash sweep rates, combo orders, market hours, PDT counter, ADR fees, and Say Technologies shareholder Q&A.
+
+### Changed
+- **Forex Instrument View Integration:** Added direct currency exchange action bar shortcut from `ForexInstrumentWidget` into the Carry Trade Optimizer.
+- **Rebalancing Presets:** Updated asset class presets in `RebalancingWidget` to incorporate multi-asset allocation targets including Futures and Forex holdings.
+
+### Testing
+- Added `carry_trade_test.dart` covering central bank rates, daily rollover swap calculations, carry-to-risk ratios, basket optimization, and model serialization.
+- Added `forex_trading_multi_asset_test.dart` testing lot sizing, pip calculations, multi-asset allocation distribution, and stop order routing.
+
 ## [0.39.0] - 2026-09-05
 **Custom Benchmarks, Portfolio Stress Testing, Aggregate Option Greeks, News Signal Multipliers, and Forex View Modernization**
 
