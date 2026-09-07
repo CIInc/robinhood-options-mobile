@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/forex_holding_store.dart';
+import 'package:robinhood_options_mobile/model/futures_position_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
 import 'package:robinhood_options_mobile/model/investment_profile.dart';
 import 'package:robinhood_options_mobile/model/option_position_store.dart';
@@ -40,6 +41,8 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
     'Stocks': 0,
     'Options': 0,
     'Crypto': 0,
+    'Forex': 0,
+    'Futures': 0,
     'Fixed Income': 0,
     'Cash': 0,
   };
@@ -156,30 +159,47 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
         // Asset Class Presets
         switch (name) {
           case 'Aggressive':
-            _assetTargets['Stocks'] = 0.7;
+            _assetTargets['Stocks'] = 0.65;
             _assetTargets['Options'] = 0.1;
             _assetTargets['Crypto'] = 0.1;
-            _assetTargets['Fixed Income'] = 0.1;
+            _assetTargets['Forex'] = 0.05;
+            _assetTargets['Futures'] = 0.05;
+            _assetTargets['Fixed Income'] = 0.05;
             _assetTargets['Cash'] = 0.0;
             break;
           case 'Moderate':
             _assetTargets['Stocks'] = 0.5;
             _assetTargets['Options'] = 0.05;
             _assetTargets['Crypto'] = 0.05;
-            _assetTargets['Fixed Income'] = 0.2;
-            _assetTargets['Cash'] = 0.2;
+            _assetTargets['Forex'] = 0.05;
+            _assetTargets['Futures'] = 0.05;
+            _assetTargets['Fixed Income'] = 0.15;
+            _assetTargets['Cash'] = 0.15;
             break;
           case 'Conservative':
             _assetTargets['Stocks'] = 0.3;
             _assetTargets['Options'] = 0.0;
             _assetTargets['Crypto'] = 0.0;
+            _assetTargets['Forex'] = 0.05;
+            _assetTargets['Futures'] = 0.0;
             _assetTargets['Fixed Income'] = 0.4;
-            _assetTargets['Cash'] = 0.3;
+            _assetTargets['Cash'] = 0.25;
+            break;
+          case 'All-Weather':
+            _assetTargets['Stocks'] = 0.30;
+            _assetTargets['Fixed Income'] = 0.40;
+            _assetTargets['Futures'] = 0.15;
+            _assetTargets['Forex'] = 0.075;
+            _assetTargets['Cash'] = 0.075;
+            _assetTargets['Crypto'] = 0.0;
+            _assetTargets['Options'] = 0.0;
             break;
           case 'All Equity':
             _assetTargets['Stocks'] = 1.0;
             _assetTargets['Options'] = 0.0;
             _assetTargets['Crypto'] = 0.0;
+            _assetTargets['Forex'] = 0.0;
+            _assetTargets['Futures'] = 0.0;
             _assetTargets['Fixed Income'] = 0.0;
             _assetTargets['Cash'] = 0.0;
             break;
@@ -795,10 +815,15 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
                 ),
               )
             : null,
-        body: Consumer4<PortfolioStore, InstrumentPositionStore,
-            OptionPositionStore, ForexHoldingStore>(
-          builder: (context, portfolioStore, stockPositionStore,
-              optionPositionStore, forexHoldingStore, child) {
+        body: Consumer5<PortfolioStore, InstrumentPositionStore,
+            OptionPositionStore, ForexHoldingStore, FuturesPositionStore>(
+          builder: (context,
+              portfolioStore,
+              stockPositionStore,
+              optionPositionStore,
+              forexHoldingStore,
+              futuresPositionStore,
+              child) {
             // Calculate current allocation
             double stockEquity = 0;
             double fixedIncomeEquity = 0;
@@ -851,19 +876,30 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
             }
 
             double cryptoEquity = 0;
+            double forexEquity = 0;
             for (var item in forexHoldingStore.items) {
               if (item.quantity != null &&
                   item.quoteObj != null &&
                   item.quoteObj!.markPrice != null) {
-                cryptoEquity += item.quantity! * item.quoteObj!.markPrice!;
+                final val = item.quantity! * item.quoteObj!.markPrice!;
+                if (item.isFiatForex) {
+                  forexEquity += val;
+                } else {
+                  cryptoEquity += val;
+                }
               }
             }
 
+            double futuresEquity = futuresPositionStore.equity > 0
+                ? futuresPositionStore.equity
+                : 0;
             double cashEquity = widget.account.portfolioCash ?? 0;
 
             final totalEquity = stockEquity +
                 optionEquity +
                 cryptoEquity +
+                forexEquity +
+                futuresEquity +
                 fixedIncomeEquity +
                 cashEquity;
 
@@ -889,6 +925,8 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
               'Stocks': stockEquity / totalEquity,
               'Options': optionEquity / totalEquity,
               'Crypto': cryptoEquity / totalEquity,
+              'Forex': forexEquity / totalEquity,
+              'Futures': futuresEquity / totalEquity,
               'Fixed Income': fixedIncomeEquity / totalEquity,
               'Cash': cashEquity / totalEquity,
             };
@@ -913,7 +951,15 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
             final targets = _viewMode == 0 ? _assetTargets : _sectorTargets;
 
             final allKeys = _viewMode == 0
-                ? ['Stocks', 'Options', 'Crypto', 'Fixed Income', 'Cash']
+                ? [
+                    'Stocks',
+                    'Options',
+                    'Crypto',
+                    'Forex',
+                    'Futures',
+                    'Fixed Income',
+                    'Cash'
+                  ]
                 : {
                     ...currentSectorAllocation.keys,
                     ..._sectorTargets.keys,
@@ -958,6 +1004,8 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
               'Crypto': assetPalette[2],
               'Fixed Income': assetPalette[4],
               'Cash': assetPalette[1],
+              'Futures': Colors.deepOrange,
+              'Forex': Colors.teal,
             };
 
             final sectorPalette = [
@@ -1046,6 +1094,7 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
                                           'Aggressive',
                                           'Moderate',
                                           'Conservative',
+                                          'All-Weather',
                                           'All Equity'
                                         ]
                                       : ['Tech Heavy', 'Balanced', 'Defensive'])

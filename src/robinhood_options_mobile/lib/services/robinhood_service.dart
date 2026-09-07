@@ -26,6 +26,7 @@ import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
+import 'package:robinhood_options_mobile/services/yahoo_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 import 'package:flutter/foundation.dart';
@@ -3870,13 +3871,25 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
 
   @override
   Future<ForexQuote> getForexQuote(BrokerageUser user, String id) async {
-    //id = "3d961844-d360-45fc-989b-f6fca761d511"; // BTC-USD pair
-    //id = "d674efea-e623-4396-9026-39574b92b093"; // BTC currency
-    //id = "1072fc76-1862-41ab-82c2-485837590762"; // USD currency
+    final clean = id.toUpperCase().replaceAll('/', '').replaceAll('-', '');
+    if (ForexHolding.fiatCurrencies
+        .any((c) => clean.startsWith(c) || clean.endsWith(c))) {
+      try {
+        final yahooService = YahooService();
+        return await yahooService.getForexQuote(id);
+      } catch (e) {
+        debugPrint('Yahoo forex quote lookup fallback failed for $id: $e');
+      }
+    }
     String url = "$endpoint/marketdata/forex/quotes/$id/";
-    var resultJson = await getJson(user, url);
-    var quoteObj = ForexQuote.fromJson(resultJson);
-    return quoteObj;
+    try {
+      var resultJson = await getJson(user, url);
+      var quoteObj = ForexQuote.fromJson(resultJson);
+      return quoteObj;
+    } catch (_) {
+      final yahooService = YahooService();
+      return await yahooService.getForexQuote(id);
+    }
   }
 
   @override
@@ -3914,9 +3927,18 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
   Future<ForexHistoricals> getForexHistoricals(BrokerageUser user, String id,
       {Bounds chartBoundsFilter = Bounds.t24_7,
       ChartDateSpan chartDateSpanFilter = ChartDateSpan.day}) async {
-    //https://api.robinhood.com/marketdata/forex/historicals/?bounds=24_7&ids=3d961844-d360-45fc-989b-f6fca761d511%2C1ef78e1b-049b-4f12-90e5-555dcf2fe204%2C76637d50-c702-4ed1-bcb5-5b0732a81f48%2C1ef78e1b-049b-4f12-90e5-555dcf2fe204%2C383280b1-ff53-43fc-9c84-f01afd0989cd%2Ccc2eb8d1-c42d-4f12-8801-1c4bbe43a274%2C3d961844-d360-45fc-989b-f6fca761d511&interval=5minute&span=day
-    //https://api.robinhood.com/marketdata/forex/historicals/3d961844-d360-45fc-989b-f6fca761d511/?bounds=24_7&interval=hour&span=week
-    // var url = "$endpoint/marketdata/forex/historicals/?${bounds != null ? "&bounds=$bounds" : ""}&ids=${Uri.encodeComponent(ids.join(","))}${interval != null ? "&interval=$interval" : ""}${span != null ? "&span=$span" : ""}";
+    final clean = id.toUpperCase().replaceAll('/', '').replaceAll('-', '');
+    if (ForexHolding.fiatCurrencies
+        .any((c) => clean.startsWith(c) || clean.endsWith(c))) {
+      try {
+        final yahooService = YahooService();
+        return await yahooService.getForexHistoricals(id,
+            chartBoundsFilter: chartBoundsFilter,
+            chartDateSpanFilter: chartDateSpanFilter);
+      } catch (e) {
+        debugPrint('Yahoo forex historicals fallback failed for $id: $e');
+      }
+    }
     String bounds = convertChartBoundsFilter(chartBoundsFilter);
     var rtn = convertChartSpanFilterWithInterval(chartDateSpanFilter);
     String span = rtn[0];
@@ -3924,9 +3946,16 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
 
     var url =
         "$endpoint/marketdata/forex/historicals/$id/?bounds=$bounds&interval=$interval&span=$span";
-    var resultJson = await RobinhoodService.getJson(user, url);
-    var item = ForexHistoricals.fromJson(resultJson);
-    return item;
+    try {
+      var resultJson = await RobinhoodService.getJson(user, url);
+      var item = ForexHistoricals.fromJson(resultJson);
+      return item;
+    } catch (_) {
+      final yahooService = YahooService();
+      return await yahooService.getForexHistoricals(id,
+          chartBoundsFilter: chartBoundsFilter,
+          chartDateSpanFilter: chartDateSpanFilter);
+    }
   }
 
 /*

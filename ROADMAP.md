@@ -40,15 +40,15 @@ This document outlines the planned features and enhancements for RealizeAlpha.
 **RealizeAlpha** is a comprehensive mobile trading platform with advanced AI-powered features. This roadmap tracks both completed achievements and planned enhancements across 25+ major categories.
 
 ### Quick Stats
-- **Completed Features**: 15 major categories (95+ items)
-- **Planned Enhancements**: 25+ categories (200+ items)
-- **Open GitHub Issues**: 12 tracked features
+- **Completed Features**: 16 major categories (100+ items)
+- **Planned Enhancements**: 24+ categories (195+ items)
+- **Open GitHub Issues**: 11 tracked features
 - **Focus Areas**: Advanced trading strategies, brokerage integrations, security, social features, AI coaching, quantitative research, behavioral finance, frontier tech
 
 ### Key Highlights
-- ✅ **Recently Completed**: Accurate Whale Watch snapshot ranking, bounded trade-signal schedulers, independent signal freshness diagnostics, event studies, rolling statistics, custom screening, and responsive research/navigation polish.
-- 🔥 **In Progress**: Schwab multi-account support and expanded quantitative research workflows.
-- 🚀 **Next Milestone**: **Quantitative Research Workbench & Schwab API Phase 3** (post-v0.37.5).
+- ✅ **Recently Completed**: Forex currency pairs trading, Carry Trade Optimizer, multi-asset portfolio allocation (Stocks, Options, Crypto, Forex, Futures, Fixed Income, Cash), accurate Whale Watch ranking, event studies, rolling statistics, and custom screener.
+- 🔥 **In Progress**: Schwab multi-account support and AI Trading Coach.
+- 🚀 **Next Milestone**: **AI Trading Coach & Behavioral Finance** (v0.41.0).
 - **Focus Areas**: Institutional-grade options analytics (GEX), AI-powered trade orchestration, and multi-brokerage expansion.
 - 🎯 **2026 Priorities**: 
   - **Q3**: AI Portfolio Architect, Smart Alerts & Market Intelligence, News & Sentiment Intelligence, Social Platform Evolution, Tax Optimization Suite
@@ -296,12 +296,12 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ **Consolidated Group Performance Analytics & Order Sync:** Consolidated group analytics execution and member order synchronization.
 - ✅ **Forex & Crypto Instrument Modernization:** Redesigned Forex view with technical analysis card and modal sheet, candlestick charts, preset tools menu, and haptic date filters.
 
-### v0.40.0 (Q3 2026 - September)
-**Forex Trading & Advanced Crypto**
-- Forex trading (currency pairs) ([Tracking: #116](https://github.com/CIInc/robinhood-options-mobile/issues/116))
-- ✅ Forex charting & analysis (Completed in v0.39.0)
-- Multi-asset portfolio allocation
-- Carry trade optimizer
+### v0.40.0 ✅ (Released September 07, 2026)
+**Forex Trading, Carry Trade Optimizer & Multi-Asset Portfolio Allocation**
+- ✅ **Forex Trading (currency pairs):** Global currency pair order routing (`TradeForexWidget`) with Micro/Mini/Standard lot sizing, live pip calculation, Stop orders, and paper/demo execution ([Tracking: #116](https://github.com/CIInc/robinhood-options-mobile/issues/116)).
+- ✅ **Forex Charting & Analysis:** Candlestick charts, multi-oscillator technical analysis bottom sheets, and haptic date filters.
+- ✅ **Multi-Asset Portfolio Allocation:** Unified multi-asset allocation spanning Stocks, Options, Crypto, Forex, Futures, Fixed Income, and Cash across Home charts and the Rebalancing tool with All-Weather preset.
+- ✅ **Carry Trade Optimizer:** Interest rate differential matrix, Central Bank policy rate monitor, Carry-to-Risk ratio scoring, unwind risk analysis, and automated basket optimizer.
 
 ### v0.41.0 (Q4 2026 - October)
 **AI Trading Coach & Behavioral Finance**
@@ -620,6 +620,11 @@ Mapping features to specific versions helps users anticipate releases and unders
     - [x] Dedicated widgets for placing and managing crypto orders
     - [x] Integrated into main trading interface
     - [x] Modernized Forex & Crypto Instrument View (Technical Analysis Card, Bottom Sheet, Candlesticks, and Controls)
+- [x] **Forex Trading** ([#116](https://github.com/CIInc/robinhood-options-mobile/issues/116)):
+    - [x] Currency pairs trading (EUR/USD, USD/JPY, GBP/USD, etc.) with lot sizing presets
+    - [x] Stop order protection and live pip value calculations
+    - [x] Carry Trade Optimizer with interest rate differential matrix and basket builder
+    - [x] Multi-Asset Portfolio Allocation across Stocks, Options, Crypto, Forex, Futures, Fixed Income, and Cash
 - [x] **Schwab Integration** ([#122](https://github.com/CIInc/robinhood-options-mobile/issues/122)):
     - [x] Native Schwab brokerage support
     - [x] Enhanced option order handling
@@ -864,7 +869,7 @@ Staying ahead of the curve requires exploring frontier technologies. Decentraliz
 #### Advanced Derivatives
 - [ ] **Futures Trading**: Full lifecycle management, SPAN margin, and roll automation ([#67](https://github.com/CIInc/robinhood-options-mobile/issues/67), [#72](https://github.com/CIInc/robinhood-options-mobile/issues/72), [#103](https://github.com/CIInc/robinhood-options-mobile/issues/103), [#104](https://github.com/CIInc/robinhood-options-mobile/issues/104))
 - [ ] **Risk Analytics**: Greeks, volatility surfaces, and VaR adjustments ([#105](https://github.com/CIInc/robinhood-options-mobile/issues/105), [#106](https://github.com/CIInc/robinhood-options-mobile/issues/106))
-- [ ] **Forex Integration**: Multi-currency account support and FX trading ([#116](https://github.com/CIInc/robinhood-options-mobile/issues/116))
+- [x] **Forex Integration**: Multi-currency account support, FX trading, and Carry Trade Optimizer ([#116](https://github.com/CIInc/robinhood-options-mobile/issues/116))
 
 #### Quantitative & Strategy
 - [ ] **Strategy Validator**: Monte Carlo simulations and walk-forward analysis ([#136](https://github.com/CIInc/robinhood-options-mobile/issues/136))

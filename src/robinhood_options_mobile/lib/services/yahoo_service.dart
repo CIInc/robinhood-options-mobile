@@ -2,13 +2,16 @@ import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/main.dart' show auth;
+import 'package:robinhood_options_mobile/model/forex_historicals.dart';
+import 'package:robinhood_options_mobile/model/forex_quote.dart';
+import 'package:robinhood_options_mobile/model/fundamentals.dart';
 import 'package:robinhood_options_mobile/model/insider_transaction.dart';
 import 'package:robinhood_options_mobile/model/institutional_ownership.dart';
-import 'package:robinhood_options_mobile/model/quote.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
-import 'package:robinhood_options_mobile/model/fundamentals.dart';
 import 'package:robinhood_options_mobile/model/instrument_historical.dart';
+import 'package:robinhood_options_mobile/model/quote.dart';
 
 // Yahoo Finance screener ID with display name
 class ScreenerId {
@@ -1605,6 +1608,213 @@ class YahooService {
       debugPrint('Error fetching movers from Yahoo: $e');
     }
     return [];
+  }
+
+  /// Converts any currency pair string or ID into a Yahoo Finance forex symbol.
+  /// e.g. "EUR/USD" -> "EURUSD=X", "forex_eurusd" -> "EURUSD=X", "USDJPY" -> "USDJPY=X".
+  static String toForexYahooSymbol(String symbolOrPairId) {
+    var s = symbolOrPairId.trim().toUpperCase();
+    if (s.startsWith('FOREX_')) {
+      s = s.substring(6);
+    }
+    s = s.replaceAll('/', '').replaceAll('-', '').replaceAll('_', '');
+    if (s.endsWith('=X')) {
+      return s;
+    }
+    if (s.length == 6) {
+      return '$s=X';
+    }
+    return symbolOrPairId;
+  }
+
+  /// Fetches a live or delayed ForexQuote from Yahoo Finance.
+  Future<ForexQuote> getForexQuote(String symbolOrPairId) async {
+    final yahooSymbol = toForexYahooSymbol(symbolOrPairId);
+    final url =
+        'https://query2.finance.yahoo.com/v7/finance/quote?symbols=$yahooSymbol';
+    final json = await getJson(url);
+
+    if (json['quoteResponse'] != null &&
+        json['quoteResponse']['result'] != null &&
+        (json['quoteResponse']['result'] as List).isNotEmpty) {
+      final res = json['quoteResponse']['result'][0];
+      final markPrice = (res['regularMarketPrice'] as num?)?.toDouble() ?? 0.0;
+      final openPrice = (res['regularMarketOpen'] as num?)?.toDouble() ??
+          (res['regularMarketPreviousClose'] as num?)?.toDouble() ??
+          markPrice;
+      final highPrice =
+          (res['regularMarketDayHigh'] as num?)?.toDouble() ?? markPrice;
+      final lowPrice =
+          (res['regularMarketDayLow'] as num?)?.toDouble() ?? markPrice;
+      final bidPrice = (res['bid'] as num?)?.toDouble() ?? markPrice;
+      final askPrice = (res['ask'] as num?)?.toDouble() ?? markPrice;
+      final volume = (res['regularMarketVolume'] as num?)?.toDouble() ?? 0.0;
+      final time = res['regularMarketTime'] != null
+          ? DateTime.fromMillisecondsSinceEpoch(
+              ((res['regularMarketTime'] as num).toInt()) * 1000)
+          : DateTime.now();
+
+      final cleanSymbol = yahooSymbol.endsWith('=X')
+          ? yahooSymbol.substring(0, yahooSymbol.length - 2)
+          : yahooSymbol;
+
+      return ForexQuote(
+        askPrice,
+        bidPrice,
+        markPrice,
+        highPrice,
+        lowPrice,
+        openPrice,
+        cleanSymbol,
+        symbolOrPairId,
+        volume,
+        time,
+      );
+    }
+    throw Exception('Forex quote not found for $symbolOrPairId');
+  }
+
+  /// Fetches multiple live or delayed ForexQuotes from Yahoo Finance in a batch.
+  Future<List<ForexQuote>> getForexQuotesByIds(
+      List<String> symbolsOrPairIds) async {
+    if (symbolsOrPairIds.isEmpty) return [];
+    final yahooMap = <String, String>{};
+    for (final s in symbolsOrPairIds) {
+      yahooMap[toForexYahooSymbol(s)] = s;
+    }
+    final yahooSymbolsStr = yahooMap.keys.join(',');
+    final url =
+        'https://query2.finance.yahoo.com/v7/finance/quote?symbols=$yahooSymbolsStr';
+    final json = await getJson(url);
+
+    final quotes = <ForexQuote>[];
+    if (json['quoteResponse'] != null &&
+        json['quoteResponse']['result'] != null) {
+      for (final res in json['quoteResponse']['result']) {
+        final sym = (res['symbol'] as String?)?.toUpperCase() ?? '';
+        final origId = yahooMap[sym] ?? sym;
+        final markPrice =
+            (res['regularMarketPrice'] as num?)?.toDouble() ?? 0.0;
+        final openPrice = (res['regularMarketOpen'] as num?)?.toDouble() ??
+            (res['regularMarketPreviousClose'] as num?)?.toDouble() ??
+            markPrice;
+        final highPrice =
+            (res['regularMarketDayHigh'] as num?)?.toDouble() ?? markPrice;
+        final lowPrice =
+            (res['regularMarketDayLow'] as num?)?.toDouble() ?? markPrice;
+        final bidPrice = (res['bid'] as num?)?.toDouble() ?? markPrice;
+        final askPrice = (res['ask'] as num?)?.toDouble() ?? markPrice;
+        final volume = (res['regularMarketVolume'] as num?)?.toDouble() ?? 0.0;
+        final time = res['regularMarketTime'] != null
+            ? DateTime.fromMillisecondsSinceEpoch(
+                ((res['regularMarketTime'] as num).toInt()) * 1000)
+            : DateTime.now();
+
+        final cleanSymbol =
+            sym.endsWith('=X') ? sym.substring(0, sym.length - 2) : sym;
+
+        quotes.add(ForexQuote(
+          askPrice,
+          bidPrice,
+          markPrice,
+          highPrice,
+          lowPrice,
+          openPrice,
+          cleanSymbol,
+          origId,
+          volume,
+          time,
+        ));
+      }
+    }
+    return quotes;
+  }
+
+  /// Fetches live or delayed candlestick historicals for Forex pairs from Yahoo Finance.
+  Future<ForexHistoricals> getForexHistoricals(String symbolOrPairId,
+      {Bounds chartBoundsFilter = Bounds.t24_7,
+      ChartDateSpan chartDateSpanFilter = ChartDateSpan.day}) async {
+    final yahooSymbol = toForexYahooSymbol(symbolOrPairId);
+    final bounds = convertChartBoundsFilter(chartBoundsFilter);
+    final span = convertChartSpanFilter(chartDateSpanFilter);
+
+    // Map span to Yahoo parameters
+    String range = '1d';
+    String interval = '5m';
+    switch (chartDateSpanFilter) {
+      case ChartDateSpan.hour:
+        range = '1d';
+        interval = '2m';
+        break;
+      case ChartDateSpan.day:
+        range = '1d';
+        interval = '5m';
+        break;
+      case ChartDateSpan.week:
+        range = '5d';
+        interval = '15m';
+        break;
+      case ChartDateSpan.month:
+        range = '1mo';
+        interval = '1h';
+        break;
+      case ChartDateSpan.month_3:
+      case ChartDateSpan.rolling_60:
+      case ChartDateSpan.rolling_90:
+        range = '3mo';
+        interval = '1d';
+        break;
+      case ChartDateSpan.year:
+      case ChartDateSpan.ytd:
+        range = '1y';
+        interval = '1d';
+        break;
+      case ChartDateSpan.year_2:
+        range = '2y';
+        interval = '1wk';
+        break;
+      case ChartDateSpan.year_3:
+      case ChartDateSpan.year_5:
+      case ChartDateSpan.all:
+        range = '5y';
+        interval = '1wk';
+        break;
+      default:
+        range = '1d';
+        interval = '5m';
+        break;
+    }
+
+    final candles = await getHistoricals(yahooSymbol, range, interval);
+
+    double? prevClose;
+    double? openPrice;
+    DateTime? prevCloseTime;
+    DateTime? openTime;
+
+    if (candles.isNotEmpty) {
+      openPrice = candles.first.openPrice;
+      openTime = candles.first.beginsAt;
+      prevClose = candles.last.closePrice;
+      prevCloseTime = candles.last.beginsAt;
+    }
+
+    final cleanSymbol = yahooSymbol.endsWith('=X')
+        ? yahooSymbol.substring(0, yahooSymbol.length - 2)
+        : yahooSymbol;
+
+    return ForexHistoricals(
+      bounds,
+      interval,
+      span,
+      cleanSymbol,
+      symbolOrPairId,
+      prevClose,
+      prevCloseTime,
+      openPrice,
+      openTime,
+      candles,
+    );
   }
 }
 

@@ -33,6 +33,15 @@ function mapToTwelveDataSymbol(symbol: string): string {
     // Twelve Data has limited Putnam Put/Call data, but let's try standard
     return symUpper.substring(1);
   }
+  // Forex currency pairs mapping:
+  // e.g. EURUSD=X -> EUR/USD, USDJPY=X -> USD/JPY, EURUSD -> EUR/USD
+  let cleanForex = symUpper;
+  if (cleanForex.endsWith("=X")) {
+    cleanForex = cleanForex.substring(0, cleanForex.length - 2);
+  }
+  if (cleanForex.length === 6 && /^[A-Z]{6}$/.test(cleanForex)) {
+    return `${cleanForex.substring(0, 3)}/${cleanForex.substring(3, 6)}`;
+  }
   return symbol;
 }
 

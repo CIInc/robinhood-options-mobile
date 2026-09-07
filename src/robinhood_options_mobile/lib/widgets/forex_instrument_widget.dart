@@ -33,6 +33,7 @@ import 'package:robinhood_options_mobile/model/forex_order.dart';
 import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
 import 'package:robinhood_options_mobile/widgets/forex_orders_widget.dart';
 import 'package:robinhood_options_mobile/widgets/auto_trade_status_badge_widget.dart';
+import 'package:robinhood_options_mobile/widgets/carry_trade_optimizer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/indicator_documentation_widget.dart';
 import 'package:robinhood_options_mobile/widgets/trade_forex_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
@@ -120,10 +121,13 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget>
     super.build(context);
 
     if (widget.holding.quoteObj == null) {
-      var forexPair = RobinhoodService.forexPairs.singleWhere((element) =>
-          element['asset_currency']['id'] == widget.holding.currencyId);
+      final pair = RobinhoodService.forexPairs.firstWhereOrNull((element) =>
+          element['asset_currency']?['id'] == widget.holding.currencyId ||
+          element['id'] == widget.holding.currencyId ||
+          element['symbol'] == widget.holding.currencyCode);
+      final pairId = pair != null ? pair['id'] : widget.holding.currencyCode;
       futureQuote ??=
-          widget.service.getForexQuote(widget.brokerageUser, forexPair['id']);
+          widget.service.getForexQuote(widget.brokerageUser, pairId);
     } else {
       futureQuote ??= Future.value(widget.holding.quoteObj);
     }
@@ -137,8 +141,12 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget>
             if (snapshot.hasData) {
               widget.holding.quoteObj = snapshot.data! as ForexQuote;
 
+              final historicalId =
+                  widget.holding.quoteObj?.id.isNotEmpty == true
+                      ? widget.holding.quoteObj!.id
+                      : widget.holding.currencyCode;
               futureHistoricals ??= widget.service.getForexHistoricals(
-                  widget.brokerageUser, widget.holding.quoteObj!.id,
+                  widget.brokerageUser, historicalId,
                   chartBoundsFilter: chartBoundsFilter,
                   chartDateSpanFilter: chartDateSpanFilter);
 
@@ -283,6 +291,23 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget>
                   ShareParams(
                     text: shareText,
                     sharePositionOrigin: sharePositionOrigin,
+                  ),
+                );
+              },
+            ),
+            IconButton(
+              icon: const Icon(Icons.currency_exchange),
+              tooltip: 'Carry Trade Optimizer',
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => CarryTradeOptimizerWidget(
+                      brokerageUser: widget.brokerageUser,
+                      service: widget.service,
+                      analytics: widget.analytics,
+                      observer: widget.observer,
+                    ),
                   ),
                 );
               },

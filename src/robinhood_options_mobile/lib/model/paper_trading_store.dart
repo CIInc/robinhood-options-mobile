@@ -729,6 +729,11 @@ class PaperTradingStore extends ChangeNotifier {
     };
   }
 
+  void adjustCashBalance(double delta) {
+    _cashBalance += delta;
+    notifyListeners();
+  }
+
   Future<void> updateSettings({double? slippage, double? commission}) async {
     if (slippage != null) _slippage = slippage;
     if (commission != null) _commission = commission;

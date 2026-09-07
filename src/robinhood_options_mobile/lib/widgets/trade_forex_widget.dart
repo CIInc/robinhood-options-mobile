@@ -88,6 +88,8 @@ class _TradeForexWidgetState extends State<TradeForexWidget> {
       double price = 0;
       if (orderType == 'Limit') {
         price = double.tryParse(priceCtl.text) ?? 0;
+      } else if (orderType == 'Stop') {
+        price = double.tryParse(stopPriceCtl.text) ?? 0;
       } else {
         // Market
         price = widget.holding.quoteObj?.markPrice ?? 0;
@@ -107,7 +109,8 @@ class _TradeForexWidgetState extends State<TradeForexWidget> {
           title: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('${widget.holding.currencyCode} Crypto'),
+              Text(
+                  '${widget.holding.currencyCode} ${widget.holding.assetTypeLabel}'),
               AnimatedPriceText(
                   price: currentPrice,
                   format: formatCurrency,
@@ -222,6 +225,7 @@ class _TradeForexWidgetState extends State<TradeForexWidget> {
               items: <String>[
                 'Market',
                 'Limit',
+                'Stop',
               ].map<DropdownMenuItem<String>>((String value) {
                 return DropdownMenuItem<String>(
                   value: value,
@@ -232,6 +236,61 @@ class _TradeForexWidgetState extends State<TradeForexWidget> {
             const SizedBox(height: 16),
 
             // Units
+            if (widget.holding.isFiatForex) ...[
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8.0),
+                child: Wrap(
+                  spacing: 6,
+                  children: [
+                    Text('Lot Presets: ',
+                        style: theme.textTheme.bodySmall
+                            ?.copyWith(fontWeight: FontWeight.w600)),
+                    ActionChip(
+                      label: const Text('Micro (1k)'),
+                      padding: EdgeInsets.zero,
+                      visualDensity: VisualDensity.compact,
+                      onPressed: () {
+                        quantityCtl.text = '1000';
+                        _updateEstimates();
+                      },
+                    ),
+                    ActionChip(
+                      label: const Text('Mini (10k)'),
+                      padding: EdgeInsets.zero,
+                      visualDensity: VisualDensity.compact,
+                      onPressed: () {
+                        quantityCtl.text = '10000';
+                        _updateEstimates();
+                      },
+                    ),
+                    ActionChip(
+                      label: const Text('Std (100k)'),
+                      padding: EdgeInsets.zero,
+                      visualDensity: VisualDensity.compact,
+                      onPressed: () {
+                        quantityCtl.text = '100000';
+                        _updateEstimates();
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              Builder(builder: (context) {
+                final qty = double.tryParse(quantityCtl.text) ?? 0.0;
+                final isJpy = widget.holding.currencyCode.contains('JPY');
+                final pipSize = isJpy ? 0.01 : 0.0001;
+                final pipVal = qty * pipSize;
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 8.0),
+                  child: Text(
+                    'Est. Pip Value: ${formatCurrency.format(pipVal)} | Standard Pip: $pipSize',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.secondary,
+                    ),
+                  ),
+                );
+              }),
+            ],
             TextFormField(
               controller: quantityCtl,
               validator: (value) {
@@ -293,10 +352,42 @@ class _TradeForexWidgetState extends State<TradeForexWidget> {
                 keyboardType:
                     const TextInputType.numberWithOptions(decimal: true),
                 inputFormatters: [
-                  FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}'))
+                  FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,4}'))
                 ],
                 decoration: const InputDecoration(
                   labelText: "Limit Price",
+                  border: OutlineInputBorder(),
+                  filled: true,
+                  prefixText: "\$",
+                ),
+                style: const TextStyle(fontSize: 18),
+              ),
+              const SizedBox(height: 16),
+            ],
+
+            // Stop Price (Conditional)
+            if (orderType == 'Stop') ...[
+              TextFormField(
+                controller: stopPriceCtl,
+                validator: (value) {
+                  if (orderType == 'Stop') {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter stop price';
+                    }
+                    final price = double.tryParse(value);
+                    if (price == null || price <= 0) {
+                      return 'Invalid price';
+                    }
+                  }
+                  return null;
+                },
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,4}'))
+                ],
+                decoration: const InputDecoration(
+                  labelText: "Stop Price",
                   border: OutlineInputBorder(),
                   filled: true,
                   prefixText: "\$",
@@ -499,6 +590,9 @@ class _TradeForexWidgetState extends State<TradeForexWidget> {
                   if (orderType == 'Limit')
                     _buildPreviewRow("Limit Price",
                         formatCurrency.format(double.parse(priceCtl.text))),
+                  if (orderType == 'Stop')
+                    _buildPreviewRow("Stop Price",
+                        formatCurrency.format(double.parse(stopPriceCtl.text))),
                   _buildPreviewRow("Time in Force", timeInForce.toUpperCase()),
                   const Padding(
                     padding: EdgeInsets.symmetric(vertical: 12.0),
@@ -697,10 +791,15 @@ class _TradeForexWidgetState extends State<TradeForexWidget> {
     try {
       String type = 'market';
       double? price;
+      double? stopPrice;
 
       if (orderType == 'Limit') {
         type = 'limit';
         price = double.parse(priceCtl.text);
+      } else if (orderType == 'Stop') {
+        type = 'stop';
+        stopPrice = double.parse(stopPriceCtl.text);
+        price = stopPrice;
       } else {
         // Market
         price = null;
@@ -714,6 +813,7 @@ class _TradeForexWidgetState extends State<TradeForexWidget> {
         double.parse(quantityCtl.text),
         type: type,
         timeInForce: timeInForce,
+        stopPrice: stopPrice,
       );
 
       debugPrint(orderJson.body);

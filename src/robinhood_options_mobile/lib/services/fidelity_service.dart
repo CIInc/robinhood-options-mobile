@@ -281,15 +281,24 @@ class FidelityService implements IBrokerageService {
 
   @override
   Future<ForexQuote> getForexQuote(BrokerageUser user, String id) async {
-    // Basic Stub
-    return ForexQuote(
-        null, null, null, null, null, null, id, id, null, DateTime.now());
+    final yahooService = YahooService();
+    try {
+      return await yahooService.getForexQuote(id);
+    } catch (_) {
+      return ForexQuote(
+          null, null, null, null, null, null, id, id, null, DateTime.now());
+    }
   }
 
   @override
   Future<List<ForexQuote>> getForexQuoteByIds(
       BrokerageUser user, List<String> ids) async {
-    return [];
+    final yahooService = YahooService();
+    try {
+      return await yahooService.getForexQuotesByIds(ids);
+    } catch (_) {
+      return [];
+    }
   }
 
   @override
@@ -887,9 +896,15 @@ class FidelityService implements IBrokerageService {
   Future<ForexHistoricals> getForexHistoricals(BrokerageUser user, String id,
       {Bounds chartBoundsFilter = Bounds.t24_7,
       ChartDateSpan chartDateSpanFilter = ChartDateSpan.day}) async {
-    // Stub
-    return ForexHistoricals(
-        'regular', '5m', 'day', id, id, null, null, null, null, []);
+    final yahooService = YahooService();
+    try {
+      return await yahooService.getForexHistoricals(id,
+          chartBoundsFilter: chartBoundsFilter,
+          chartDateSpanFilter: chartDateSpanFilter);
+    } catch (_) {
+      return ForexHistoricals(
+          'regular', '5m', 'day', id, id, null, null, null, null, []);
+    }
   }
 
   @override

@@ -7,6 +7,7 @@ import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/model/backtesting_provider.dart';
 import 'package:robinhood_options_mobile/model/backtesting_models.dart';
 import 'package:robinhood_options_mobile/model/trade_strategies.dart';
+import 'package:robinhood_options_mobile/widgets/carry_trade_optimizer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/shared/strategy_list_widget.dart';
 import 'package:robinhood_options_mobile/widgets/shared/strategy_details_bottom_sheet.dart';
 import 'package:robinhood_options_mobile/widgets/trade_signals_page.dart';
@@ -96,6 +97,21 @@ class _TradingStrategiesPageState extends State<TradingStrategiesPage>
         elevation: 0,
         scrolledUnderElevation: 2,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.currency_exchange),
+            tooltip: 'Carry Trade Optimizer',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => CarryTradeOptimizerWidget(
+                    brokerageUser: widget.brokerageUser,
+                    service: widget.service,
+                  ),
+                ),
+              );
+            },
+          ),
           PopupMenuButton<String>(
             icon: const Icon(Icons.sort_rounded),
             tooltip: 'Sort Strategies',

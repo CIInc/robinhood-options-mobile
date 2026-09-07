@@ -117,6 +117,43 @@ class ForexHolding {
   double get gainLossPercentToday {
     return quoteObj!.changePercentToday;
   }
+
+  static const Set<String> fiatCurrencies = {
+    'USD',
+    'EUR',
+    'GBP',
+    'JPY',
+    'CHF',
+    'AUD',
+    'CAD',
+    'NZD',
+    'MXN',
+    'BRL',
+    'CNY',
+    'HKD',
+    'SGD',
+    'SEK',
+    'NOK',
+    'ZAR',
+    'TRY',
+    'KRW',
+    'INR',
+  };
+
+  bool get isFiatForex {
+    if (fiatCurrencies.contains(currencyCode.toUpperCase())) return true;
+    final sym = quoteObj?.symbol.toUpperCase() ?? '';
+    if (sym.length == 6) {
+      final base = sym.substring(0, 3);
+      final quote = sym.substring(3, 6);
+      if (fiatCurrencies.contains(base) && fiatCurrencies.contains(quote)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  String get assetTypeLabel => isFiatForex ? 'Forex' : 'Crypto';
   /*
   double get gainLossToday {
     return (instrumentObj!.quoteObj!.lastExtendedHoursTradePrice ?? instrumentObj!.quoteObj!.lastTradePrice!) -

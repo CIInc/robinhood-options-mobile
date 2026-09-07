@@ -52,6 +52,7 @@ import 'package:robinhood_options_mobile/model/watchlist.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/services/resource_owner_password_grant.dart';
+import 'package:robinhood_options_mobile/services/yahoo_service.dart';
 import 'package:robinhood_options_mobile/utils/auth.dart';
 
 class SchwabService implements IBrokerageService {
@@ -1307,9 +1308,13 @@ https://api.schwabapi.com/trader/v1/orders?fromEnteredTime=2024-09-28T23%3A59%3A
 
   @override
   Future<List<ForexQuote>> getForexQuoteByIds(
-      BrokerageUser user, List<String> ids) {
-    // TODO: implement getForexQuoteByIds
-    throw UnimplementedError();
+      BrokerageUser user, List<String> ids) async {
+    final yahooService = YahooService();
+    try {
+      return await yahooService.getForexQuotesByIds(ids);
+    } catch (_) {
+      return [];
+    }
   }
 
   @override
@@ -1877,9 +1882,16 @@ https://api.schwabapi.com/marketdata/v1/instruments?symbol=Google&projection=sea
   @override
   Future<ForexHistoricals> getForexHistoricals(BrokerageUser user, String id,
       {Bounds chartBoundsFilter = Bounds.t24_7,
-      ChartDateSpan chartDateSpanFilter = ChartDateSpan.day}) {
-    // TODO: implement getForexHistoricals
-    throw UnimplementedError();
+      ChartDateSpan chartDateSpanFilter = ChartDateSpan.day}) async {
+    final yahooService = YahooService();
+    try {
+      return await yahooService.getForexHistoricals(id,
+          chartBoundsFilter: chartBoundsFilter,
+          chartDateSpanFilter: chartDateSpanFilter);
+    } catch (_) {
+      return ForexHistoricals(
+          'regular', '5m', 'day', id, id, null, null, null, null, []);
+    }
   }
 
   @override
@@ -1892,9 +1904,14 @@ https://api.schwabapi.com/marketdata/v1/instruments?symbol=Google&projection=sea
   }
 
   @override
-  Future<ForexQuote> getForexQuote(BrokerageUser user, String id) {
-    // TODO: implement getForexQuote
-    throw UnimplementedError();
+  Future<ForexQuote> getForexQuote(BrokerageUser user, String id) async {
+    final yahooService = YahooService();
+    try {
+      return await yahooService.getForexQuote(id);
+    } catch (_) {
+      return ForexQuote(
+          null, null, null, null, null, null, id, id, null, DateTime.now());
+    }
   }
 
   @override

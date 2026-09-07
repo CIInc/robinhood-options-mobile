@@ -348,13 +348,13 @@ class PaperService implements IBrokerageService {
 
   @override
   Future<ForexQuote> getForexQuote(BrokerageUser user, String id) async {
-    throw UnimplementedError();
+    return await yahooService.getForexQuote(id);
   }
 
   @override
   Future<List<ForexQuote>> getForexQuoteByIds(
       BrokerageUser user, List<String> ids) async {
-    return [];
+    return await yahooService.getForexQuotesByIds(ids);
   }
 
   @override
@@ -850,12 +850,9 @@ class PaperService implements IBrokerageService {
   Future<ForexHistoricals> getForexHistoricals(BrokerageUser user, String id,
       {Bounds chartBoundsFilter = Bounds.t24_7,
       ChartDateSpan chartDateSpanFilter = ChartDateSpan.day}) async {
-    final interval = '5minute';
-    final span = convertChartSpanFilter(chartDateSpanFilter);
-    final bounds = convertChartBoundsFilter(chartBoundsFilter);
-
-    return ForexHistoricals(
-        bounds, interval, span, id, id, null, null, null, null, []);
+    return await yahooService.getForexHistoricals(id,
+        chartBoundsFilter: chartBoundsFilter,
+        chartDateSpanFilter: chartDateSpanFilter);
   }
 
   @override
@@ -1429,7 +1426,37 @@ class PaperService implements IBrokerageService {
       {String type = 'market',
       String timeInForce = 'gtc',
       double? stopPrice}) async {
-    throw UnimplementedError();
+    final nowIso = DateTime.now().toIso8601String();
+    final orderId = 'paper_forex_${DateTime.now().millisecondsSinceEpoch}';
+    final execPrice = price ?? 1.0;
+    final totalCost = execPrice * quantity;
+
+    try {
+      final store = await _engine();
+      if (side.toLowerCase() == 'buy') {
+        store.adjustCashBalance(-totalCost);
+      } else {
+        store.adjustCashBalance(totalCost);
+      }
+    } catch (_) {}
+
+    return _orderResponse({
+      'id': orderId,
+      'ref_id': orderId,
+      'currency_pair_id': pairId,
+      'side': side.toLowerCase(),
+      'type': type,
+      'time_in_force': timeInForce,
+      'price': execPrice.toString(),
+      'stop_price': stopPrice?.toString(),
+      'quantity': quantity.toString(),
+      'cumulative_quantity': quantity.toString(),
+      'average_price': execPrice.toString(),
+      'fees': '0.00',
+      'state': 'filled',
+      'created_at': nowIso,
+      'updated_at': nowIso,
+    });
   }
 
   @override

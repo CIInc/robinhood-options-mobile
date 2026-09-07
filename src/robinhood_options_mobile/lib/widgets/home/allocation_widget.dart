@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/forex_holding_store.dart';
+import 'package:robinhood_options_mobile/model/futures_position_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_position.dart';
 import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
 import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
@@ -59,10 +60,15 @@ class _AllocationWidgetState extends State<AllocationWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer4<PortfolioStore, InstrumentPositionStore,
-            OptionPositionStore, ForexHoldingStore>(
-        builder: (context, portfolioStore, stockPositionStore,
-            optionPositionStore, forexHoldingStore, child) {
+    return Consumer5<PortfolioStore, InstrumentPositionStore,
+            OptionPositionStore, ForexHoldingStore, FuturesPositionStore>(
+        builder: (context,
+            portfolioStore,
+            stockPositionStore,
+            optionPositionStore,
+            forexHoldingStore,
+            futuresPositionStore,
+            child) {
       final isAggregate = widget.account?.url == 'aggregate';
       final filteredStockItems = stockPositionStore.items
           .where((e) =>
@@ -90,9 +96,11 @@ class _AllocationWidgetState extends State<AllocationWidget> {
               .reduce((a, b) => a + b);
 
       final portfolioCash = widget.account?.portfolioCash ?? 0.0;
+      final futuresEquity =
+          futuresPositionStore.equity > 0 ? futuresPositionStore.equity : 0.0;
 
-      final totalAssets = _calculateTotalAssets(
-          stockEquity, optionEquity, forexHoldingStore.equity, portfolioCash);
+      final totalAssets = _calculateTotalAssets(stockEquity, optionEquity,
+          forexHoldingStore.equity, futuresEquity, portfolioCash);
 
       // Only show charts when all stores have finished loading
       if (stockPositionStore.isLoading ||
@@ -132,6 +140,7 @@ class _AllocationWidgetState extends State<AllocationWidget> {
           filteredOptionItems,
           optionEquity,
           forexHoldingStore,
+          futuresEquity,
           portfolioCash,
           totalAssets);
 
@@ -196,6 +205,8 @@ class _AllocationWidgetState extends State<AllocationWidget> {
         'Crypto': assetPalette[2],
         'Fixed Income': assetPalette[4],
         'Cash': assetPalette[1],
+        'Futures': charts.ColorUtil.fromDartColor(Colors.deepOrange),
+        'Forex': charts.ColorUtil.fromDartColor(Colors.teal),
       };
 
       var positionPalette = PieChart.makeShades(
@@ -376,11 +387,13 @@ class _AllocationWidgetState extends State<AllocationWidget> {
     double stockEquity,
     double optionEquity,
     double forexEquity,
+    double futuresEquity,
     double portfolioCash,
   ) {
     return (optionEquity > 0 ? optionEquity : 0) +
         (stockEquity > 0 ? stockEquity : 0) +
         (forexEquity > 0 ? forexEquity : 0) +
+        (futuresEquity > 0 ? futuresEquity : 0) +
         (portfolioCash > 0 ? portfolioCash : 0);
   }
 
@@ -390,6 +403,7 @@ class _AllocationWidgetState extends State<AllocationWidget> {
     List<OptionAggregatePosition> optionPositions,
     double optionEquity,
     ForexHoldingStore forexHoldingStore,
+    double futuresEquity,
     double portfolioCash,
     double totalAssets,
   ) {
@@ -432,33 +446,40 @@ class _AllocationWidgetState extends State<AllocationWidget> {
     }
 
     if (optionEquity > 0) {
-      // final percent = optionPositionStore.equity / totalAssets;
-      data.add(PieChartData('Options',
-          optionEquity)); //  ${formatPercentageInteger.format(percent)}
+      data.add(PieChartData('Options', optionEquity));
     }
     if (stockEquity > 0) {
-      // final percent = stockPositionStore.equity / totalAssets;
       double adjustedStockEquity =
           stockEquity - fixedIncomeValue - cashPositionsValue;
       if (adjustedStockEquity > 0) {
-        data.add(PieChartData('Stocks',
-            adjustedStockEquity)); //  ${formatPercentageInteger.format(percent)}
+        data.add(PieChartData('Stocks', adjustedStockEquity));
       }
     }
-    if (forexHoldingStore.equity > 0) {
-      // final percent = forexHoldingStore.equity / totalAssets;
-      data.add(PieChartData(
-          'Crypto',
-          forexHoldingStore
-              .equity)); //  ${formatPercentageInteger.format(percent)}
+
+    double cryptoEquity = 0.0;
+    double fiatForexEquity = 0.0;
+    for (var holding in forexHoldingStore.items) {
+      if (holding.isFiatForex) {
+        fiatForexEquity += holding.marketValue;
+      } else {
+        cryptoEquity += holding.marketValue;
+      }
+    }
+
+    if (cryptoEquity > 0) {
+      data.add(PieChartData('Crypto', cryptoEquity));
+    }
+    if (fiatForexEquity > 0) {
+      data.add(PieChartData('Forex', fiatForexEquity));
+    }
+    if (futuresEquity > 0) {
+      data.add(PieChartData('Futures', futuresEquity));
     }
     if (fixedIncomeValue > 0) {
       data.add(PieChartData('Fixed Income', fixedIncomeValue));
     }
     if (portfolioCash > 0) {
-      // final percent = portfolioCash / totalAssets;
-      data.add(PieChartData('Cash',
-          portfolioCash)); //  ${formatPercentageInteger.format(percent)}
+      data.add(PieChartData('Cash', portfolioCash));
     }
     data.sort((a, b) => b.value.compareTo(a.value));
     return data;
