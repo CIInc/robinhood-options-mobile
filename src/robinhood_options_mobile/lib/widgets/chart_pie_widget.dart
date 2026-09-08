@@ -6,7 +6,8 @@ import 'package:flutter/material.dart';
 class PieChartData {
   final String label;
   final double value;
-  PieChartData(this.label, this.value);
+  final String? shortLabel;
+  PieChartData(this.label, this.value, {this.shortLabel});
 }
 
 class PieChart extends StatefulWidget {
@@ -55,7 +56,8 @@ class PieChart extends StatefulWidget {
 
   static charts.Color _getSteppedColor(charts.Color color, int index, int steps,
       {charts.Color? darker, charts.Color? lighter}) {
-    final fraction = index / steps;
+    // Cap fraction to 0.65 so shades preserve hue saturation and high contrast against text
+    final fraction = (index / steps) * 0.65;
     return charts.Color(
       r: color.r + ((255 - color.r) * fraction).round(),
       g: color.g + ((255 - color.g) * fraction).round(),

@@ -1148,6 +1148,33 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
                                                     charts.ColorUtil
                                                         .fromDartColor(getColor(
                                                             row.label)),
+                                                insideLabelStyleAccessorFn:
+                                                    (PieChartData row, _) {
+                                                  final c = getColor(row.label);
+                                                  return charts.TextStyleSpec(
+                                                    fontSize: 11,
+                                                    fontWeight: 'bold',
+                                                    color: c.computeLuminance() >
+                                                            0.45
+                                                        ? charts.ColorUtil
+                                                            .fromDartColor(
+                                                                const Color(
+                                                                    0xFF1E1E1E))
+                                                        : charts.MaterialPalette
+                                                            .white,
+                                                  );
+                                                },
+                                                outsideLabelStyleAccessorFn:
+                                                    (PieChartData row, _) =>
+                                                        charts.TextStyleSpec(
+                                                  fontSize: 11,
+                                                  fontWeight: 'bold',
+                                                  color: charts.ColorUtil
+                                                      .fromDartColor(
+                                                          Theme.of(context)
+                                                              .colorScheme
+                                                              .onSurface),
+                                                ),
                                                 data: allKeys
                                                     .where((k) =>
                                                         (currentAllocation[k] ??
@@ -1169,8 +1196,28 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
                                               arcWidth: 60,
                                               arcRendererDecorators: [
                                                 charts.ArcLabelDecorator(
-                                                    labelPosition: charts
-                                                        .ArcLabelPosition.auto)
+                                                  labelPosition: charts
+                                                      .ArcLabelPosition.auto,
+                                                  showLeaderLines: false,
+                                                  insideLabelStyleSpec:
+                                                      const charts
+                                                          .TextStyleSpec(
+                                                          fontSize: 11,
+                                                          fontWeight: 'bold',
+                                                          color: charts
+                                                              .MaterialPalette
+                                                              .white),
+                                                  outsideLabelStyleSpec:
+                                                      charts.TextStyleSpec(
+                                                          fontSize: 11,
+                                                          fontWeight: 'bold',
+                                                          color: charts
+                                                                  .ColorUtil
+                                                              .fromDartColor(Theme
+                                                                      .of(context)
+                                                                  .colorScheme
+                                                                  .onSurface)),
+                                                )
                                               ],
                                             ),
                                             onSelected: (p0) {},
@@ -1208,6 +1255,33 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
                                                     charts.ColorUtil
                                                         .fromDartColor(getColor(
                                                             row.label)),
+                                                insideLabelStyleAccessorFn:
+                                                    (PieChartData row, _) {
+                                                  final c = getColor(row.label);
+                                                  return charts.TextStyleSpec(
+                                                    fontSize: 11,
+                                                    fontWeight: 'bold',
+                                                    color: c.computeLuminance() >
+                                                            0.45
+                                                        ? charts.ColorUtil
+                                                            .fromDartColor(
+                                                                const Color(
+                                                                    0xFF1E1E1E))
+                                                        : charts.MaterialPalette
+                                                            .white,
+                                                  );
+                                                },
+                                                outsideLabelStyleAccessorFn:
+                                                    (PieChartData row, _) =>
+                                                        charts.TextStyleSpec(
+                                                  fontSize: 11,
+                                                  fontWeight: 'bold',
+                                                  color: charts.ColorUtil
+                                                      .fromDartColor(
+                                                          Theme.of(context)
+                                                              .colorScheme
+                                                              .onSurface),
+                                                ),
                                                 data: allKeys
                                                     .where((k) =>
                                                         (targets[k] ?? 0) > 0)
@@ -1225,8 +1299,28 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
                                               arcWidth: 60,
                                               arcRendererDecorators: [
                                                 charts.ArcLabelDecorator(
-                                                    labelPosition: charts
-                                                        .ArcLabelPosition.auto)
+                                                  labelPosition: charts
+                                                      .ArcLabelPosition.auto,
+                                                  showLeaderLines: false,
+                                                  insideLabelStyleSpec:
+                                                      const charts
+                                                          .TextStyleSpec(
+                                                          fontSize: 11,
+                                                          fontWeight: 'bold',
+                                                          color: charts
+                                                              .MaterialPalette
+                                                              .white),
+                                                  outsideLabelStyleSpec:
+                                                      charts.TextStyleSpec(
+                                                          fontSize: 11,
+                                                          fontWeight: 'bold',
+                                                          color: charts
+                                                                  .ColorUtil
+                                                              .fromDartColor(Theme
+                                                                      .of(context)
+                                                                  .colorScheme
+                                                                  .onSurface)),
+                                                )
                                               ],
                                             ),
                                             onSelected: (p0) {},

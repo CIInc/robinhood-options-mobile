@@ -24,6 +24,110 @@ class AllocationWidget extends StatefulWidget {
 
   const AllocationWidget({super.key, this.account, this.user, this.userDocRef});
 
+  /// Formats long Sector, Industry, or other category titles into concise,
+  /// aesthetically pleasing labels tailored for the center hole of donut charts.
+  static String formatCenterTitle(String rawLabel, {String? shortLabel}) {
+    final clean = rawLabel.replaceAll(RegExp(r'\s\d+%$'), '').trim();
+    if (clean.isEmpty || clean == 'Total') return 'Total';
+
+    // Sector normalizations for clean center presentation
+    switch (clean) {
+      case 'Information Technology':
+        return 'Information Tech';
+      case 'Communication Services':
+        return 'Comm Services';
+      case 'Consumer Discretionary':
+        return 'Cons Discretionary';
+      case 'Consumer Staples':
+        return 'Cons Staples';
+      case 'Financial Services':
+        return 'Financial Services';
+      case 'Health Care':
+      case 'Healthcare':
+        return 'Health Care';
+      case 'Basic Materials':
+        return 'Materials';
+    }
+
+    // Common long Industry normalizations
+    final lower = clean.toLowerCase();
+    if (lower.contains('semiconductor')) {
+      return 'Semiconductors';
+    }
+    if (lower.contains('biotechnology') && lower.contains('pharmaceutical')) {
+      return 'Pharma & Biotech';
+    }
+    if (lower.contains('pharmaceutical')) {
+      return 'Pharmaceuticals';
+    }
+    if (lower.contains('biotechnology')) {
+      return 'Biotechnology';
+    }
+    if (lower.contains('hardware') &&
+        (lower.contains('technology') || lower.contains('storage'))) {
+      return 'Tech Hardware';
+    }
+    if (lower.contains('interactive media') ||
+        (lower.contains('media') && lower.contains('services'))) {
+      return 'Interactive Media';
+    }
+    if (lower.contains('oil') && lower.contains('gas')) {
+      return 'Oil & Gas';
+    }
+    if (lower.contains('health care') && lower.contains('provider')) {
+      return 'Health Care Services';
+    }
+    if (lower.contains('health care') && lower.contains('equipment')) {
+      return 'Medical Equipment';
+    }
+    if (lower.contains('commercial services')) {
+      return 'Commercial Services';
+    }
+    if (lower.contains('electronic equipment')) {
+      return 'Electronic Equip.';
+    }
+    if (lower.contains('life sciences')) {
+      return 'Life Sciences';
+    }
+    if (lower.contains('aerospace') || lower.contains('defense')) {
+      return 'Aerospace & Defense';
+    }
+    if (lower.contains('real estate investment trust') ||
+        clean.contains('REIT')) {
+      return 'Equity REITs';
+    }
+    if (lower.contains('real estate') && lower.contains('management')) {
+      return 'Real Estate Mgmt';
+    }
+    if (lower.contains('hotel') || lower.contains('leisure')) {
+      return 'Hotels & Leisure';
+    }
+    if (lower.contains('food') && lower.contains('beverage')) {
+      return 'Food & Beverage';
+    }
+
+    // If label is reasonably short, keep it as is
+    if (clean.length <= 18) {
+      return clean;
+    }
+
+    // For any other long compound title (> 18 chars) with '&' or ','
+    final parts = clean.split(RegExp(r'[,&]'));
+    if (parts.isNotEmpty) {
+      final first = parts[0].trim();
+      if (first.length >= 4 && first.length <= 18) {
+        return first;
+      }
+    }
+
+    // Fall back to shortLabel if provided and non-empty
+    if (shortLabel != null && shortLabel.isNotEmpty) {
+      return shortLabel;
+    }
+
+    return clean;
+  }
+
   @override
   State<AllocationWidget> createState() => _AllocationWidgetState();
 }
@@ -150,7 +254,10 @@ class _AllocationWidgetState extends State<AllocationWidget> {
               ? item.instrumentObj!.symbol
               : 'Unknown',
           10,
-          totalAssets);
+          totalAssets,
+          shortLabelSelector: (raw) => raw == 'Others'
+              ? 'Other'
+              : (raw.length > 6 ? raw.split('-')[0].split('.*')[0] : raw));
 
       final sectorData = _buildGroupedData(
           filteredStockItems,
@@ -159,7 +266,8 @@ class _AllocationWidgetState extends State<AllocationWidget> {
               ? item.instrumentObj!.fundamentalsObj!.sector
               : 'Unknown',
           6,
-          totalAssets);
+          totalAssets,
+          shortLabelSelector: _shortenSector);
 
       final industryData = _buildGroupedData(
           filteredStockItems,
@@ -168,7 +276,8 @@ class _AllocationWidgetState extends State<AllocationWidget> {
               ? item.instrumentObj!.fundamentalsObj!.industry
               : 'Unknown',
           7,
-          totalAssets);
+          totalAssets,
+          shortLabelSelector: _shortenIndustry);
 
       // Keep for reference
       // var shades = PieChart.makeShades(
@@ -209,66 +318,57 @@ class _AllocationWidgetState extends State<AllocationWidget> {
         'Forex': charts.ColorUtil.fromDartColor(Colors.teal),
       };
 
-      var positionPalette = PieChart.makeShades(
-          charts.ColorUtil.fromDartColor(
-              getDarkerColorForTheme(colorScheme.primary)),
-          positionData.isNotEmpty ? positionData.length : 1);
-      // var positionPalette = [
-      //   charts.ColorUtil.fromDartColor(
-      //       getDarkerColorForTheme(colorScheme.primary)),
-      //   charts.ColorUtil.fromDartColor(
-      //       getDarkerColorForTheme(colorScheme.secondary)),
-      //   charts.ColorUtil.fromDartColor(
-      //       getDarkerColorForTheme(colorScheme.tertiary)),
-      //   charts.ColorUtil.fromDartColor(
-      //       getDarkerColorForTheme(colorScheme.primaryContainer)),
-      //   charts.ColorUtil.fromDartColor(
-      //       getDarkerColorForTheme(colorScheme.secondaryContainer)),
-      //   charts.ColorUtil.fromDartColor(
-      //       getDarkerColorForTheme(colorScheme.tertiaryContainer)),
-      //   charts.ColorUtil.fromDartColor(
-      //       getDarkerColorForTheme(colorScheme.inversePrimary)),
-      //   charts.ColorUtil.fromDartColor(
-      //       getDarkerColorForTheme(colorScheme.errorContainer)),
-      //   charts.ColorUtil.fromDartColor(
-      //       getDarkerColorForTheme(colorScheme.surfaceTint)),
-      //   charts.ColorUtil.fromDartColor(
-      //       getDarkerColorForTheme(colorScheme.outline)),
-      //   charts.ColorUtil.fromDartColor(
-      //       getDarkerColorForTheme(colorScheme.outlineVariant)),
-      // ];
+      List<charts.Color> generateDistinctPalette(int count,
+          {Color? seedColor}) {
+        final isDark = brightness == Brightness.dark;
+        final baseColors = isDark
+            ? <Color>[
+                seedColor ?? colorScheme.primary,
+                const Color(0xFF26A69A), // Teal
+                const Color(0xFF5C6BC0), // Indigo
+                const Color(0xFFFFA726), // Amber / Orange
+                const Color(0xFFAB47BC), // Purple
+                const Color(0xFF42A5F5), // Blue
+                const Color(0xFFEC407A), // Pink / Rose
+                const Color(0xFF66BB6A), // Green
+                const Color(0xFFFF7043), // Deep Orange
+                const Color(0xFF26C6DA), // Cyan
+                const Color(0xFF8D6E63), // Brown
+                const Color(0xFF78909C), // Blue Grey (Others)
+              ]
+            : <Color>[
+                seedColor ?? colorScheme.primary,
+                const Color(0xFF00796B), // Teal 700
+                const Color(0xFF303F9F), // Indigo 700
+                const Color(0xFFE65100), // Orange 900
+                const Color(0xFF7B1FA2), // Purple 700
+                const Color(0xFF1976D2), // Blue 700
+                const Color(0xFFC2185B), // Pink 700
+                const Color(0xFF2E7D32), // Green 800
+                const Color(0xFFD84315), // Deep Orange 800
+                const Color(0xFF00838F), // Cyan 800
+                const Color(0xFF4E342E), // Brown 800
+                const Color(0xFF455A64), // Blue Grey 700 (Others)
+              ];
 
-      var sectorPalette = PieChart.makeShades(
-          charts.ColorUtil.fromDartColor(
-              getDarkerColorForTheme(colorScheme.secondary)),
-          sectorData.isNotEmpty ? sectorData.length : 1);
-      // var sectorPalette = [
-      //   charts.ColorUtil.fromDartColor(
-      //       getDarkerColorForTheme(colorScheme.primary)),
-      //   charts.ColorUtil.fromDartColor(
-      //       getDarkerColorForTheme(colorScheme.secondary)),
-      //   charts.ColorUtil.fromDartColor(
-      //       getDarkerColorForTheme(colorScheme.tertiary)),
-      //   charts.ColorUtil.fromDartColor(
-      //       getDarkerColorForTheme(colorScheme.primaryContainer)),
-      //   charts.ColorUtil.fromDartColor(
-      //       getDarkerColorForTheme(colorScheme.secondaryContainer)),
-      //   charts.ColorUtil.fromDartColor(
-      //       getDarkerColorForTheme(colorScheme.tertiaryContainer)),
-      //   charts.ColorUtil.fromDartColor(
-      //       getDarkerColorForTheme(colorScheme.inversePrimary)),
-      //   charts.ColorUtil.fromDartColor(
-      //       getDarkerColorForTheme(colorScheme.errorContainer)),
-      // ];
-
-      var industryPalette = PieChart.makeShades(
-          charts.ColorUtil.fromDartColor(
-              getDarkerColorForTheme(colorScheme.tertiary)),
-          industryData.isNotEmpty ? industryData.length : 1);
-      var axisLabelColor = charts.MaterialPalette.gray.shade500;
-      if (brightness == Brightness.light) {
-        axisLabelColor = charts.MaterialPalette.gray.shade700;
+        return List.generate(count, (index) {
+          final c = baseColors[index % baseColors.length];
+          return charts.ColorUtil.fromDartColor(c);
+        });
       }
+
+      var positionPalette = generateDistinctPalette(
+          positionData.isNotEmpty ? positionData.length : 1,
+          seedColor: colorScheme.primary);
+      var sectorPalette = generateDistinctPalette(
+          sectorData.isNotEmpty ? sectorData.length : 1,
+          seedColor: colorScheme.secondary);
+      var industryPalette = generateDistinctPalette(
+          industryData.isNotEmpty ? industryData.length : 1,
+          seedColor: colorScheme.tertiary);
+
+      var axisLabelColor =
+          charts.ColorUtil.fromDartColor(colorScheme.onSurface);
 
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -315,7 +415,7 @@ class _AllocationWidgetState extends State<AllocationWidget> {
             ),
           ),
           ConstrainedBox(
-              constraints: const BoxConstraints(maxHeight: 360),
+              constraints: const BoxConstraints(maxHeight: 370),
               child: CarouselView(
                   enableSplash: false,
                   itemSnapping: true,
@@ -476,7 +576,8 @@ class _AllocationWidgetState extends State<AllocationWidget> {
       data.add(PieChartData('Futures', futuresEquity));
     }
     if (fixedIncomeValue > 0) {
-      data.add(PieChartData('Fixed Income', fixedIncomeValue));
+      data.add(PieChartData('Fixed Income', fixedIncomeValue,
+          shortLabel: 'Fixed Inc'));
     }
     if (portfolioCash > 0) {
       data.add(PieChartData('Cash', portfolioCash));
@@ -485,11 +586,81 @@ class _AllocationWidgetState extends State<AllocationWidget> {
     return data;
   }
 
+  static String _shortenSector(String sector) {
+    switch (sector.trim()) {
+      case 'Information Technology':
+      case 'Technology':
+        return 'Tech';
+      case 'Communication Services':
+      case 'Telecommunications':
+        return 'Comm';
+      case 'Consumer Discretionary':
+      case 'Consumer Cyclical':
+        return 'Cons Disc';
+      case 'Consumer Staples':
+      case 'Consumer Defensive':
+        return 'Staples';
+      case 'Financial Services':
+      case 'Financials':
+        return 'Finance';
+      case 'Health Care':
+      case 'Healthcare':
+        return 'Healthcare';
+      case 'Industrials':
+        return 'Industrials';
+      case 'Real Estate':
+        return 'Real Estate';
+      case 'Energy':
+        return 'Energy';
+      case 'Utilities':
+        return 'Utilities';
+      case 'Basic Materials':
+      case 'Materials':
+        return 'Materials';
+      case 'Others':
+        return 'Other';
+      default:
+        return sector.length > 10 ? '${sector.substring(0, 9)}.' : sector;
+    }
+  }
+
+  static String _shortenIndustry(String industry) {
+    final lower = industry.toLowerCase();
+    if (lower.contains('semiconductor')) return 'Semis';
+    if (lower.contains('hardware') || lower.contains('storage')) {
+      return 'Hardware';
+    }
+    if (lower.contains('software')) return 'Software';
+    if (lower.contains('interactive media') ||
+        lower.contains('entertainment')) {
+      return 'Media';
+    }
+    if (lower.contains('biotechnology')) return 'Biotech';
+    if (lower.contains('pharmaceutical')) return 'Pharma';
+    if (lower.contains('oil') || lower.contains('gas')) return 'Oil & Gas';
+    if (lower.contains('aerospace') || lower.contains('defense')) {
+      return 'Aerospace';
+    }
+    if (lower.contains('bank')) return 'Banks';
+    if (lower.contains('insurance')) return 'Insurance';
+    if (lower.contains('automobile')) return 'Auto';
+    if (lower.contains('retail')) return 'Retail';
+    if (lower.contains('chemical')) return 'Chemicals';
+    if (lower.contains('real estate') || lower.contains('reit')) return 'REITs';
+    if (industry == 'Others') return 'Other';
+    final firstPart = industry.split(RegExp(r'[,&]'))[0].trim();
+    if (firstPart.length > 11) {
+      return '${firstPart.substring(0, 10)}.';
+    }
+    return firstPart;
+  }
+
   List<PieChartData> _buildGroupedData(
       List<InstrumentPosition> stockPositions,
       String Function(InstrumentPosition) keySelector,
       int maxItems,
-      double totalAssets) {
+      double totalAssets,
+      {String Function(String)? shortLabelSelector}) {
     List<PieChartData> data = [];
     var grouped = stockPositions.groupListsBy(keySelector);
 
@@ -502,10 +673,11 @@ class _AllocationWidgetState extends State<AllocationWidget> {
     groupedEntries.sort((a, b) => b.value.compareTo(a.value));
 
     for (var entry in groupedEntries.take(maxItems)) {
-      // final percent = totalAssets > 0 ? entry.value / totalAssets : 0.0;
       data.add(PieChartData(
-          entry.key, //  ${formatPercentageInteger.format(percent)}
-          entry.value));
+        entry.key,
+        entry.value,
+        shortLabel: shortLabelSelector?.call(entry.key),
+      ));
     }
 
     if (groupedEntries.length > maxItems) {
@@ -513,9 +685,11 @@ class _AllocationWidgetState extends State<AllocationWidget> {
           .skip(maxItems)
           .map((e) => e.value)
           .fold(0.0, (a, b) => a + b);
-      // final percent = totalAssets > 0 ? othersValue / totalAssets : 0.0;
-      data.add(PieChartData('Others',
-          othersValue)); //  ${formatPercentageInteger.format(percent)}
+      data.add(PieChartData(
+        'Others',
+        othersValue,
+        shortLabel: 'Other',
+      ));
     }
     return data;
   }
@@ -562,9 +736,25 @@ class _PieChartItemState extends State<_PieChartItem> {
     super.dispose();
   }
 
+  charts.Color _getColor(PieChartData row, int? index) {
+    if (widget.colorMap != null && widget.colorMap!.containsKey(row.label)) {
+      return widget.colorMap![row.label]!;
+    }
+    if (widget.shades != null &&
+        index != null &&
+        index >= 0 &&
+        index < widget.shades!.length) {
+      return widget.shades![index];
+    }
+    final safeIndex = (index != null && index >= 0) ? index : 0;
+    return charts.ColorUtil.fromDartColor(
+        Colors.accents[safeIndex % Colors.accents.length]);
+  }
+
   @override
   Widget build(BuildContext context) {
     final totalValue = widget.data.fold(0.0, (acc, item) => acc + item.value);
+    final colorScheme = Theme.of(context).colorScheme;
 
     var seriesList = [
       charts.Series<PieChartData, String>(
@@ -572,33 +762,45 @@ class _PieChartItemState extends State<_PieChartItem> {
         domainFn: (PieChartData sales, _) => sales.label,
         measureFn: (PieChartData sales, _) => sales.value,
         data: widget.data,
-        labelAccessorFn: (PieChartData row, _) => row.label,
-        colorFn: (PieChartData row, int? index) {
-          if (widget.colorMap != null &&
-              widget.colorMap!.containsKey(row.label)) {
-            return widget.colorMap![row.label]!;
-          }
-          if (widget.shades != null &&
-              index != null &&
-              index < widget.shades!.length) {
-            return widget.shades![index];
-          }
-          return charts.ColorUtil.fromDartColor(
-              Colors.accents[(index ?? 0) % Colors.accents.length]);
+        labelAccessorFn: (PieChartData row, _) => row.shortLabel ?? row.label,
+        insideLabelStyleAccessorFn: (PieChartData row, int? index) {
+          final color = _getColor(row, index);
+          final luminance =
+              (0.299 * color.r + 0.587 * color.g + 0.114 * color.b) / 255.0;
+          return charts.TextStyleSpec(
+            fontSize: 12,
+            fontWeight: 'bold',
+            color: luminance > 0.55
+                ? charts.ColorUtil.fromDartColor(const Color(0xFF1E1E1E))
+                : charts.MaterialPalette.white,
+          );
         },
+        outsideLabelStyleAccessorFn: (PieChartData row, int? index) {
+          return charts.TextStyleSpec(
+            fontSize: 12,
+            fontWeight: 'bold',
+            color: charts.ColorUtil.fromDartColor(colorScheme.onSurface),
+          );
+        },
+        colorFn: (PieChartData row, int? index) => _getColor(row, index),
       )
     ];
 
     var renderer = charts.ArcRendererConfig<String>(
-      arcWidth:
-          55, // widget.title == "Asset" || widget.title == "Position" ? 60 : 50,
+      arcWidth: 48,
       arcRendererDecorators: [
         charts.ArcLabelDecorator(
           labelPosition: charts.ArcLabelPosition.auto,
+          showLeaderLines: false,
+          labelPadding: 2,
           insideLabelStyleSpec: const charts.TextStyleSpec(
-              fontSize: 12, color: charts.MaterialPalette.white),
-          outsideLabelStyleSpec:
-              charts.TextStyleSpec(fontSize: 12, color: widget.axisLabelColor),
+              fontSize: 12,
+              fontWeight: 'bold',
+              color: charts.MaterialPalette.white),
+          outsideLabelStyleSpec: charts.TextStyleSpec(
+              fontSize: 12,
+              fontWeight: 'bold',
+              color: charts.ColorUtil.fromDartColor(colorScheme.onSurface)),
         )
       ],
     );
@@ -620,13 +822,127 @@ class _PieChartItemState extends State<_PieChartItem> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              widget.title,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+            ValueListenableBuilder<PieChartData?>(
+              valueListenable: _selectedDataNotifier,
+              builder: (context, selectedData, child) {
+                final isSelected = selectedData != null;
+                final selectedColor = isSelected
+                    ? charts.ColorUtil.toDartColor(_getColor(
+                        selectedData,
+                        widget.data
+                            .indexWhere((d) => d.label == selectedData.label),
+                      ))
+                    : null;
+
+                return Row(
+                  children: [
+                    Text(
+                      widget.title,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                    ),
+                    const SizedBox(width: 8),
+                    if (isSelected) ...[
+                      Expanded(
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: (selectedColor ??
+                                      Theme.of(context).colorScheme.primary)
+                                  .withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: (selectedColor ??
+                                        Theme.of(context).colorScheme.primary)
+                                    .withValues(alpha: 0.4),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  width: 6,
+                                  height: 6,
+                                  decoration: BoxDecoration(
+                                    color: selectedColor ??
+                                        Theme.of(context).colorScheme.primary,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                                const SizedBox(width: 5),
+                                Flexible(
+                                  child: Text(
+                                    selectedData.label,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .labelSmall
+                                        ?.copyWith(
+                                          fontWeight: FontWeight.w600,
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onSurface,
+                                        ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      InkWell(
+                        borderRadius: BorderRadius.circular(12),
+                        onTap: () => _selectedDataNotifier.value = null,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.close,
+                                size: 14,
+                                color: Theme.of(context).colorScheme.outline,
+                              ),
+                              const SizedBox(width: 2),
+                              Text(
+                                'Reset',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .labelSmall
+                                    ?.copyWith(
+                                      color:
+                                          Theme.of(context).colorScheme.outline,
+                                    ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ] else ...[
+                      const Spacer(),
+                      if (widget.data.isNotEmpty)
+                        Text(
+                          '${widget.data.length} ${widget.data.length == 1 ? 'item' : 'items'}',
+                          style: Theme.of(context)
+                              .textTheme
+                              .labelSmall
+                              ?.copyWith(
+                                color: Theme.of(context).colorScheme.outline,
+                              ),
+                        ),
+                    ],
+                  ],
+                );
+              },
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
             Expanded(
               child: widget.data.isEmpty
                   ? const Center(child: Text("No data"))
@@ -644,52 +960,108 @@ class _PieChartItemState extends State<_PieChartItem> {
                         ValueListenableBuilder<PieChartData?>(
                           valueListenable: _selectedDataNotifier,
                           builder: (context, selectedData, child) {
-                            final label = selectedData?.label
-                                    .replaceAll(RegExp(r'\s\d+%$'), '') ??
-                                'Total';
+                            final isSelected = selectedData != null;
+                            final centerTitle = isSelected
+                                ? AllocationWidget.formatCenterTitle(
+                                    selectedData.label,
+                                    shortLabel: selectedData.shortLabel)
+                                : 'Total';
                             final value = selectedData?.value ?? totalValue;
                             final percentage = totalValue > 0
                                 ? (value / totalValue) * 100
                                 : 0.0;
 
                             return Center(
-                              child: SizedBox(
-                                width: 115,
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      label,
-                                      style:
-                                          Theme.of(context).textTheme.bodySmall,
-                                      textAlign: TextAlign.center,
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    Text(
-                                      formatCompactCurrency.format(value),
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .titleMedium
-                                          ?.copyWith(
-                                              fontWeight: FontWeight.bold),
-                                      textAlign: TextAlign.center,
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      '${percentage.toStringAsFixed(1)}%',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .bodySmall
-                                          ?.copyWith(
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .onSurface
-                                                .withValues(alpha: 0.7),
+                              child: Tooltip(
+                                message: isSelected
+                                    ? '${selectedData.label}: ${formatCompactCurrency.format(value)} (${percentage.toStringAsFixed(1)}%)'
+                                    : 'Total: ${formatCompactCurrency.format(totalValue)}',
+                                child: GestureDetector(
+                                  behavior: HitTestBehavior.opaque,
+                                  onTap: isSelected
+                                      ? () => _selectedDataNotifier.value = null
+                                      : null,
+                                  child: Container(
+                                    constraints:
+                                        const BoxConstraints(maxWidth: 138),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 4.0),
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        FittedBox(
+                                          fit: BoxFit.scaleDown,
+                                          child: Text(
+                                            centerTitle,
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .bodySmall
+                                                ?.copyWith(
+                                                  fontSize: centerTitle.length >
+                                                          20
+                                                      ? 10.5
+                                                      : (centerTitle.length > 14
+                                                          ? 11.0
+                                                          : 12.0),
+                                                  height: 1.15,
+                                                  fontWeight: isSelected
+                                                      ? FontWeight.bold
+                                                      : FontWeight.w500,
+                                                  color: isSelected
+                                                      ? Theme.of(context)
+                                                          .colorScheme
+                                                          .primary
+                                                      : Theme.of(context)
+                                                          .colorScheme
+                                                          .onSurfaceVariant,
+                                                ),
+                                            textAlign: TextAlign.center,
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
                                           ),
-                                      textAlign: TextAlign.center,
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          formatCompactCurrency.format(value),
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .titleMedium
+                                              ?.copyWith(
+                                                  fontWeight: FontWeight.bold),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          '${percentage.toStringAsFixed(1)}%',
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodySmall
+                                              ?.copyWith(
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .secondary,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                        if (isSelected)
+                                          Padding(
+                                            padding:
+                                                const EdgeInsets.only(top: 2.0),
+                                            child: Text(
+                                              'tap to reset',
+                                              style: TextStyle(
+                                                fontSize: 9,
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .outline
+                                                    .withValues(alpha: 0.7),
+                                              ),
+                                            ),
+                                          ),
+                                      ],
                                     ),
-                                  ],
+                                  ),
                                 ),
                               ),
                             );
@@ -698,6 +1070,118 @@ class _PieChartItemState extends State<_PieChartItem> {
                       ],
                     ),
             ),
+            if (widget.data.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              ValueListenableBuilder<PieChartData?>(
+                valueListenable: _selectedDataNotifier,
+                builder: (context, selectedData, child) {
+                  return SizedBox(
+                    height: 28,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: widget.data.length,
+                      separatorBuilder: (_, __) => const SizedBox(width: 6),
+                      itemBuilder: (context, index) {
+                        final item = widget.data[index];
+                        final isSelected = selectedData?.label == item.label;
+                        final sliceColor = charts.ColorUtil.toDartColor(
+                            _getColor(item, index));
+                        final percent = totalValue > 0
+                            ? ((item.value / totalValue) * 100)
+                                .toStringAsFixed(0)
+                            : '0';
+
+                        return Tooltip(
+                          message: item.label,
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(14),
+                            onTap: () {
+                              if (isSelected) {
+                                _selectedDataNotifier.value = null;
+                              } else {
+                                _selectedDataNotifier.value = item;
+                              }
+                            },
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? sliceColor.withValues(alpha: 0.22)
+                                    : Theme.of(context)
+                                        .colorScheme
+                                        .surfaceContainerHighest
+                                        .withValues(alpha: 0.5),
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(
+                                  color: isSelected
+                                      ? sliceColor
+                                      : Theme.of(context)
+                                          .colorScheme
+                                          .outlineVariant
+                                          .withValues(alpha: 0.4),
+                                  width: isSelected ? 1.5 : 1,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    width: 8,
+                                    height: 8,
+                                    decoration: BoxDecoration(
+                                      color: sliceColor,
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 5),
+                                  Text(
+                                    item.shortLabel ?? item.label,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .labelSmall
+                                        ?.copyWith(
+                                          fontWeight: isSelected
+                                              ? FontWeight.bold
+                                              : FontWeight.w500,
+                                          color: isSelected
+                                              ? Theme.of(context)
+                                                  .colorScheme
+                                                  .onSurface
+                                              : Theme.of(context)
+                                                  .colorScheme
+                                                  .onSurfaceVariant,
+                                        ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    '$percent%',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .labelSmall
+                                        ?.copyWith(
+                                          fontWeight: FontWeight.bold,
+                                          color: isSelected
+                                              ? Theme.of(context)
+                                                  .colorScheme
+                                                  .primary
+                                              : Theme.of(context)
+                                                  .colorScheme
+                                                  .outline,
+                                        ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  );
+                },
+              ),
+            ],
           ],
         ),
       ),
