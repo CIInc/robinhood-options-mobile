@@ -19,7 +19,8 @@ void main() {
     );
 
     final storeToSave = BrokerageUserStore([cachedUser], 0);
-    final userJson = jsonEncode(storeToSave.toJson(), toEncodable: Constants.toEncodable);
+    final userJson =
+        jsonEncode(storeToSave.toJson(), toEncodable: Constants.toEncodable);
 
     SharedPreferences.setMockInitialValues({
       Constants.preferencesUserKey: userJson,
@@ -38,7 +39,8 @@ void main() {
     expect(store.currentUser!.source, BrokerageSource.demo);
   });
 
-  test('BrokerageUserStore handles empty cache gracefully without throwing', () async {
+  test('BrokerageUserStore handles empty cache gracefully without throwing',
+      () async {
     SharedPreferences.setMockInitialValues({});
 
     final store = BrokerageUserStore([], 0);
