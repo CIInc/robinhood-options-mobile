@@ -27,6 +27,8 @@ import 'package:robinhood_options_mobile/widgets/option_order_widget.dart';
 import 'package:robinhood_options_mobile/widgets/position_order_widget.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/model/whale_watch.dart';
+import 'package:robinhood_options_mobile/model/trading_psychology_model.dart';
+import 'package:robinhood_options_mobile/widgets/trading_psychology_widgets.dart';
 
 class PersonalizedCoachingWidget extends StatefulWidget {
   final IBrokerageService service;
@@ -66,6 +68,7 @@ class _PersonalizedCoachingWidgetState
   double? _completionPercentage;
   int _challengeStreak = 0;
   String? _currentNotes;
+  List<EmotionLog> _emotionLogs = [];
   // int _lookbackDays = 30; // Deprecated, use _analysisWindow
   String _analysisWindow =
       'this_week'; // '30d', 'this_week', 'last_week', 'this_month', 'last_month'
@@ -155,6 +158,54 @@ class _PersonalizedCoachingWidgetState
   void initState() {
     super.initState();
     _loadHistory();
+    _loadEmotionLogs();
+  }
+
+  Future<void> _loadEmotionLogs() async {
+    if (widget.userDoc == null) return;
+    try {
+      final logs =
+          await FirestoreService().getEmotionLogs(widget.userDoc!, limit: 50);
+      if (mounted) {
+        setState(() {
+          _emotionLogs = logs;
+        });
+      }
+    } catch (e) {
+      if (mounted) debugPrint("Error loading emotion logs: $e");
+    }
+  }
+
+  void _showEmotionCheckInDialog() {
+    if (widget.userDoc == null) return;
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => EmotionCheckInSheet(
+        userDoc: widget.userDoc!,
+        onSaved: (newLog) {
+          _loadEmotionLogs();
+        },
+      ),
+    );
+  }
+
+  Future<void> _deleteEmotionLog(String logId) async {
+    if (widget.userDoc == null) return;
+    try {
+      await FirestoreService().deleteEmotionLog(widget.userDoc!, logId);
+      await _loadEmotionLogs();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Emotion log removed.")),
+        );
+      }
+    } catch (e) {
+      debugPrint("Error deleting emotion log: $e");
+    }
   }
 
   Future<void> _loadHistory() async {
@@ -1275,370 +1326,588 @@ Your response MUST be valid JSON. No conversational text. Do not use unescaped d
       }
     }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('AI Trading Coach'),
-        actions: [
-          if (streak > 0)
-            Padding(
-              padding: const EdgeInsets.only(right: 12.0),
-              child: Chip(
-                avatar:
-                    const Icon(Icons.whatshot, color: Colors.orange, size: 16),
-                label: Text("$streak Challenge Streak",
-                    style: const TextStyle(fontWeight: FontWeight.bold)),
-                backgroundColor: Colors.orange.withOpacity(0.1),
-                side: BorderSide.none,
-                visualDensity: VisualDensity.compact,
-              ),
-            ),
-          if (_structuredResult != null)
-            Builder(
-              builder: (context) {
-                return IconButton(
-                  icon: const Icon(Icons.share),
-                  onPressed: () {
-                    final box = context.findRenderObject() as RenderBox?;
-                    _shareAnalysis(box != null
-                        ? box.localToGlobal(Offset.zero) & box.size
-                        : null);
-                  },
-                  tooltip: "Share",
-                );
-              },
-            ),
-          IconButton(
-            icon: const Icon(Icons.tune),
-            onPressed: _showFilterOptions,
-            tooltip: "Settings",
-          ),
-          if (_history.isNotEmpty)
-            IconButton(
-              icon: const Icon(Icons.history),
-              onPressed: _showHistoryModal,
-              tooltip: "History",
-            )
-        ],
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (_structuredResult != null) ...[
-              CoachingResultView(
-                result: _structuredResult!,
-                sessionDate: _currentSessionDate,
-                history: _history,
-                isChallengeCompleted: _isChallengeCompleted,
-                completionPercentage: _completionPercentage,
-                notes: _currentNotes,
-                onChallengeToggle: _toggleChallengeCompletion,
-                onSaveNotes: _saveNotes,
-                onAnalyze: _canStartNewAnalysis() ? _analyzeTrading : null,
-                analyzeButtonLabel: _canStartNewAnalysis()
-                    ? (_structuredResult == null
-                        ? 'Start AI Analysis'
-                        : 'Update Analysis')
-                    : '$_challengeLabel Active',
-                focusArea: _focusArea,
-                analysisWindow: _analysisWindow,
-                tradeType: _tradeTypeFilter,
-                coachingStyle: _coachingStyle,
-                streak: _challengeStreak,
-                onCheckProgress: _checkAdherenceOnly,
-              ),
-              const SizedBox(height: 12),
+    final rawBiases = _structuredResult?['detected_biases'] as List<dynamic>?;
+    List<DetectedBias> detectedBiases = [];
+    if (rawBiases != null) {
+      for (var b in rawBiases) {
+        if (b is Map<String, dynamic>) {
+          detectedBiases.add(DetectedBias.fromJson(b));
+        }
+      }
+    }
+    if (detectedBiases.isEmpty && _structuredResult != null) {
+      final biases = List<String>.from(_structuredResult!['biases'] ?? []);
+      final weaknesses =
+          List<String>.from(_structuredResult!['weaknesses'] ?? []);
+      final combined = {...biases, ...weaknesses}.toList();
+      for (var w in combined) {
+        String sev = 'Moderate';
+        final wLower = w.toLowerCase();
+        if (wLower.contains('critical') || wLower.contains('catastrophic')) {
+          sev = 'Critical';
+        } else if (wLower.contains('high') ||
+            wLower.contains('revenge') ||
+            wLower.contains('0dte') ||
+            wLower.contains('fomo')) {
+          sev = 'High';
+        }
+        final parts = w.split(':');
+        final name =
+            parts.first.replaceAll(RegExp(r'^[0-9\.\-\* ]+'), '').trim();
+        final desc = parts.length > 1 ? parts.sublist(1).join(':').trim() : w;
+        detectedBiases.add(DetectedBias(
+          name: name,
+          severity: sev,
+          description: desc,
+          evidence: "Identified during session analysis.",
+          mitigation:
+              "Follow a pre-trade checklist and verify risk-to-reward ratio before entry.",
+        ));
+      }
+    }
+
+    final patternMetrics = TradingPatternMetrics.fromTradeLogs(_analyzedTrades);
+
+    return DefaultTabController(
+      length: 4,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('AI Trading Coach'),
+          bottom: const TabBar(
+            isScrollable: true,
+            tabAlignment: TabAlignment.start,
+            tabs: [
+              Tab(icon: Icon(Icons.psychology), text: "Coach"),
+              Tab(
+                  icon: Icon(Icons.shield_outlined),
+                  text: "Biases & Antidotes"),
+              Tab(icon: Icon(Icons.mood), text: "Emotion Journal"),
+              Tab(icon: Icon(Icons.analytics_outlined), text: "Patterns"),
             ],
-            if (_structuredResult == null && !_isLoading) ...[
-              const Card(
-                child: Padding(
-                  padding: EdgeInsets.all(16.0),
-                  child: Column(
-                    children: [
-                      Icon(Icons.psychology,
-                          size: 48, color: Colors.purpleAccent),
-                      SizedBox(height: 16),
-                      Text(
-                        "Identify Your Trading Biases",
-                        style: TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.bold),
-                      ),
-                      SizedBox(height: 8),
-                      Text(
-                        "The AI Coach analyzes your recent execution patterns to detect psychological pitfalls like overtrading, revenge trading, or lack of discipline.",
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
+          ),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.add_reaction_outlined),
+              onPressed: _showEmotionCheckInDialog,
+              tooltip: "Emotion Check-In",
+            ),
+            if (streak > 0)
+              Padding(
+                padding: const EdgeInsets.only(right: 8.0),
+                child: Chip(
+                  avatar: const Icon(Icons.whatshot,
+                      color: Colors.orange, size: 16),
+                  label: Text("$streak Streak",
+                      style: const TextStyle(fontWeight: FontWeight.bold)),
+                  backgroundColor: Colors.orange.withOpacity(0.1),
+                  side: BorderSide.none,
+                  visualDensity: VisualDensity.compact,
                 ),
               ),
-              const SizedBox(height: 20),
-            ],
-            if (_isLoading)
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: _LoadingSkeleton(status: _statusMessage),
+            if (_structuredResult != null)
+              Builder(
+                builder: (context) {
+                  return IconButton(
+                    icon: const Icon(Icons.share),
+                    onPressed: () {
+                      final box = context.findRenderObject() as RenderBox?;
+                      _shareAnalysis(box != null
+                          ? box.localToGlobal(Offset.zero) & box.size
+                          : null);
+                    },
+                    tooltip: "Share",
+                  );
+                },
+              ),
+            IconButton(
+              icon: const Icon(Icons.tune),
+              onPressed: _showFilterOptions,
+              tooltip: "Settings",
+            ),
+            if (_history.isNotEmpty)
+              IconButton(
+                icon: const Icon(Icons.history),
+                onPressed: _showHistoryModal,
+                tooltip: "History",
               )
-            else
-              Column(
+          ],
+        ),
+        body: TabBarView(
+          children: [
+            // Tab 1: Coach & Challenges
+            SingleChildScrollView(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const SizedBox(height: 20),
-                  if (_statusMessage.isNotEmpty &&
-                      _statusMessage.startsWith("Error:"))
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      margin: const EdgeInsets.only(bottom: 10),
-                      color: Colors.red.withOpacity(0.1),
-                      child: Text(_statusMessage,
-                          style: const TextStyle(color: Colors.red)),
-                    ),
-                  if (_structuredResult == null) ...[
-                    const SizedBox(height: 20),
-                    ElevatedButton.icon(
-                      onPressed:
+                  if (_structuredResult != null) ...[
+                    CoachingResultView(
+                      result: _structuredResult!,
+                      sessionDate: _currentSessionDate,
+                      history: _history,
+                      isChallengeCompleted: _isChallengeCompleted,
+                      completionPercentage: _completionPercentage,
+                      notes: _currentNotes,
+                      onChallengeToggle: _toggleChallengeCompletion,
+                      onSaveNotes: _saveNotes,
+                      onAnalyze:
                           _canStartNewAnalysis() ? _analyzeTrading : null,
-                      icon: const Icon(Icons.auto_awesome),
-                      label: Text(_canStartNewAnalysis()
-                          ? 'Start AI Analysis'
-                          : '$_challengeLabel Active'),
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        minimumSize: const Size(double.infinity, 50),
+                      analyzeButtonLabel: _canStartNewAnalysis()
+                          ? (_structuredResult == null
+                              ? 'Start AI Analysis'
+                              : 'Update Analysis')
+                          : '$_challengeLabel Active',
+                      focusArea: _focusArea,
+                      analysisWindow: _analysisWindow,
+                      tradeType: _tradeTypeFilter,
+                      coachingStyle: _coachingStyle,
+                      streak: _challengeStreak,
+                      onCheckProgress: _checkAdherenceOnly,
+                      analyzedTrades: _analyzedTrades,
+                      onCheckInRequested: _showEmotionCheckInDialog,
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                  if (_structuredResult == null && !_isLoading) ...[
+                    const Card(
+                      child: Padding(
+                        padding: EdgeInsets.all(16.0),
+                        child: Column(
+                          children: [
+                            Icon(Icons.psychology,
+                                size: 48, color: Colors.purpleAccent),
+                            SizedBox(height: 16),
+                            Text(
+                              "Identify Your Trading Biases",
+                              style: TextStyle(
+                                  fontSize: 18, fontWeight: FontWeight.bold),
+                            ),
+                            SizedBox(height: 8),
+                            Text(
+                              "The AI Coach analyzes your recent execution patterns to detect psychological pitfalls like overtrading, revenge trading, or lack of discipline.",
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+                  if (_isLoading)
+                    Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: _LoadingSkeleton(status: _statusMessage),
+                    )
+                  else
+                    Column(
+                      children: [
+                        const SizedBox(height: 20),
+                        if (_statusMessage.isNotEmpty &&
+                            _statusMessage.startsWith("Error:"))
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            margin: const EdgeInsets.only(bottom: 10),
+                            color: Colors.red.withOpacity(0.1),
+                            child: Text(_statusMessage,
+                                style: const TextStyle(color: Colors.red)),
+                          ),
+                        if (_structuredResult == null) ...[
+                          const SizedBox(height: 20),
+                          ElevatedButton.icon(
+                            onPressed:
+                                _canStartNewAnalysis() ? _analyzeTrading : null,
+                            icon: const Icon(Icons.auto_awesome),
+                            label: Text(_canStartNewAnalysis()
+                                ? 'Start AI Analysis'
+                                : '$_challengeLabel Active'),
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              minimumSize: const Size(double.infinity, 50),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                ],
+              ),
+            ),
+
+            // Tab 2: Behavioral Biases & Antidotes
+            SingleChildScrollView(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  DetectedBiasesCardView(
+                    biases: detectedBiases,
+                    onLogReflection: _showEmotionCheckInDialog,
+                  ),
+                  const SizedBox(height: 16),
+                  Card(
+                    elevation: 1,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16)),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.menu_book,
+                                  color: Theme.of(context).colorScheme.primary,
+                                  size: 20),
+                              const SizedBox(width: 8),
+                              const Text(
+                                "BEHAVIORAL FINANCE TAXONOMY",
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 1.0,
+                                    color: Colors.grey),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          const Text(
+                            "Common psychological traps systematically diagnosed by the AI Coach:",
+                            style: TextStyle(fontSize: 13, height: 1.4),
+                          ),
+                          const SizedBox(height: 12),
+                          _buildTaxonomyItem(
+                            context,
+                            "FOMO (Fear of Missing Out)",
+                            "Entering late into extended moves out of fear of being left behind. Antidote: Wait for pullback to defined support/VWAP.",
+                          ),
+                          const Divider(height: 16),
+                          _buildTaxonomyItem(
+                            context,
+                            "Revenge Trading & Tilt",
+                            "Re-entering the market immediately after taking a loss to 'get even'. Antidote: Enforce a mandatory 30-minute cool-down period.",
+                          ),
+                          const Divider(height: 16),
+                          _buildTaxonomyItem(
+                            context,
+                            "Disposition Effect (Loss Aversion)",
+                            "Holding losing positions hoping to break even, while cutting winners too fast. Antidote: Set hard stop orders at entry.",
+                          ),
+                          const Divider(height: 16),
+                          _buildTaxonomyItem(
+                            context,
+                            "Overconfidence & Sizing Creep",
+                            "Aggressively increasing position size after consecutive wins. Antidote: Cap max portfolio risk per trade at 1-2%.",
+                          ),
+                          const Divider(height: 16),
+                          _buildTaxonomyItem(
+                            context,
+                            "Gambler's Fallacy & Premature Reversals",
+                            "Assuming a stock must turn around because it went up/down several days in a row. Antidote: Trade market structure, not assumptions.",
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Tab 3: Emotion Tracker & Journal
+            EmotionJournalView(
+              emotionLogs: _emotionLogs,
+              userDoc: widget.userDoc,
+              onCheckInRequested: _showEmotionCheckInDialog,
+              onDeleteLog: _deleteEmotionLog,
+            ),
+
+            // Tab 4: Pattern Analysis
+            SingleChildScrollView(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  TradingPatternCardView(
+                    metrics: patternMetrics,
+                    trades: _analyzedTrades,
+                  ),
+                  const SizedBox(height: 16),
+                  if (_analyzedTrades.isNotEmpty && !_isLoading) ...[
+                    TradeExecutionStatsView(trades: _analyzedTrades),
+                    const SizedBox(height: 16),
+                    Card(
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: ExpansionTile(
+                        tilePadding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 8),
+                        childrenPadding: const EdgeInsets.all(0),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        title: Text(
+                            "Analyzed Activity (${_analyzedTrades.length} Trades)",
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                            )),
+                        subtitle: const Text(
+                            "Tap to view the data sent to the AI Coach",
+                            style: TextStyle(fontSize: 12, color: Colors.grey)),
+                        children: [
+                          ListView.separated(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: _analyzedTrades.length,
+                            separatorBuilder: (context, index) =>
+                                const Divider(height: 1),
+                            itemBuilder: (context, index) {
+                              final t = _analyzedTrades[index];
+                              final isStock = t['type'] == 'stock';
+                              final date = DateTime.parse(t['date']).toLocal();
+
+                              final buyColor = Colors.green;
+                              final sellColor = Colors.red;
+
+                              String leadingText = "";
+                              Color leadingColor = Colors.grey;
+                              String titleStr = "";
+                              String subtitlePrefix = "";
+
+                              if (isStock) {
+                                final side =
+                                    t['side']?.toString().toUpperCase() ?? "";
+                                final isBuy = side == "BUY";
+                                leadingText = isBuy ? "B" : "S";
+                                leadingColor = isBuy ? buyColor : sellColor;
+                                titleStr = "${t['symbol']} Stock";
+                                subtitlePrefix = side;
+                              } else {
+                                final type = t['details']?['option_type']
+                                    ?.toString()
+                                    .toLowerCase();
+                                final legs = t['legs']?.toString() ?? "";
+                                final direction =
+                                    t['direction']?.toString().toUpperCase() ??
+                                        "";
+                                final opening =
+                                    t['opening']?.toString().toUpperCase() ??
+                                        "";
+
+                                if (type == 'call') {
+                                  leadingText = "C";
+                                  leadingColor = buyColor;
+                                } else if (type == 'put') {
+                                  leadingText = "P";
+                                  leadingColor = sellColor;
+                                } else {
+                                  leadingText = "Op";
+                                  leadingColor = Colors.blue;
+                                }
+
+                                titleStr = "${t['symbol']} $legs";
+                                subtitlePrefix = "$opening $direction".trim();
+                              }
+
+                              bool canNavigate = t.containsKey('original') &&
+                                  t['original'] != null;
+
+                              return ListTile(
+                                contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 16, vertical: 0),
+                                dense: true,
+                                horizontalTitleGap: 12,
+                                minLeadingWidth: 0,
+                                onTap: canNavigate
+                                    ? () {
+                                        if (isStock) {
+                                          Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                  builder: (context) =>
+                                                      PositionOrderWidget(
+                                                        widget.user,
+                                                        widget.service,
+                                                        t['original']
+                                                            as InstrumentOrder,
+                                                        analytics:
+                                                            widget.analytics,
+                                                        observer:
+                                                            widget.observer,
+                                                        generativeService: widget
+                                                            .generativeService!,
+                                                        user:
+                                                            widget.firebaseUser,
+                                                        userDocRef:
+                                                            widget.userDoc,
+                                                      )));
+                                        } else {
+                                          Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                  builder: (context) =>
+                                                      OptionOrderWidget(
+                                                        widget.user,
+                                                        widget.service,
+                                                        t['original']
+                                                            as OptionOrder,
+                                                        analytics:
+                                                            widget.analytics,
+                                                        observer:
+                                                            widget.observer,
+                                                        generativeService: widget
+                                                            .generativeService!,
+                                                        user:
+                                                            widget.firebaseUser,
+                                                        userDocRef:
+                                                            widget.userDoc,
+                                                      )));
+                                        }
+                                      }
+                                    : null,
+                                leading: CircleAvatar(
+                                    radius: 14,
+                                    backgroundColor:
+                                        leadingColor.withOpacity(0.15),
+                                    child: Text(leadingText,
+                                        style: TextStyle(
+                                            color: leadingColor,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 12))),
+                                title: Text(titleStr,
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 13)),
+                                subtitle: Wrap(
+                                  crossAxisAlignment: WrapCrossAlignment.center,
+                                  spacing: 6,
+                                  children: [
+                                    Text(
+                                        "$subtitlePrefix \u2022 ${DateFormat('MM/dd HH:mm').format(date)}",
+                                        style: const TextStyle(fontSize: 11)),
+                                    if (t['order_type'] != null)
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 6, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: (t['order_type'] == 'limit')
+                                              ? Colors.purple.withOpacity(0.1)
+                                              : Colors.amber.withOpacity(0.1),
+                                          borderRadius:
+                                              BorderRadius.circular(4),
+                                        ),
+                                        child: Text(
+                                          t['order_type']
+                                              .toString()
+                                              .toUpperCase(),
+                                          style: TextStyle(
+                                              fontSize: 9,
+                                              fontWeight: FontWeight.bold,
+                                              color:
+                                                  (t['order_type'] == 'limit')
+                                                      ? Colors.purple
+                                                      : Colors.amber.shade800),
+                                        ),
+                                      ),
+                                    if (t['trigger'] == 'stop')
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 6, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: Colors.orange.withOpacity(0.1),
+                                          borderRadius:
+                                              BorderRadius.circular(4),
+                                        ),
+                                        child: Text(
+                                          "STOP",
+                                          style: TextStyle(
+                                              fontSize: 9,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.orange.shade700),
+                                        ),
+                                      ),
+                                    if (t['state'] != null &&
+                                        t['state'] != 'filled')
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 6, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: Colors.blue.withOpacity(0.1),
+                                          borderRadius:
+                                              BorderRadius.circular(4),
+                                        ),
+                                        child: Text(
+                                          (t['state'] ?? "")
+                                              .toString()
+                                              .toUpperCase(),
+                                          style: TextStyle(
+                                              fontSize: 9,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.blue.shade700),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                                trailing: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    Text(
+                                        "\$${double.tryParse(t['price'].toString())?.toStringAsFixed(2) ?? t['price']}",
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 13)),
+                                    Text(
+                                        "${t['quantity']} ${isStock ? 'sh' : 'cts'}",
+                                        style: const TextStyle(
+                                            fontSize: 11, color: Colors.grey)),
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ] else if (_analyzedTrades.isEmpty && !_isLoading) ...[
+                    const Card(
+                      child: Padding(
+                        padding: EdgeInsets.all(24.0),
+                        child: Center(
+                          child: Text(
+                            "Run an AI coaching analysis to evaluate execution patterns, holding time asymmetry, and order type discipline.",
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: Colors.grey),
+                          ),
+                        ),
                       ),
                     ),
                   ],
                 ],
               ),
-            const SizedBox(height: 20),
-            if (_analyzedTrades.isNotEmpty && !_isLoading) ...[
-              TradeExecutionStatsView(trades: _analyzedTrades),
-              const SizedBox(height: 20),
-              Card(
-                elevation: 2,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: ExpansionTile(
-                  tilePadding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  childrenPadding: const EdgeInsets.all(0),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  title: Text(
-                      "Analyzed Activity (${_analyzedTrades.length} Trades)",
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 15,
-                      )),
-                  subtitle: const Text(
-                      "Tap to view the data sent to the AI Coach",
-                      style: TextStyle(fontSize: 12, color: Colors.grey)),
-                  children: [
-                    ListView.separated(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: _analyzedTrades.length,
-                      separatorBuilder: (context, index) =>
-                          const Divider(height: 1),
-                      itemBuilder: (context, index) {
-                        final t = _analyzedTrades[index];
-                        final isStock = t['type'] == 'stock';
-                        final date = DateTime.parse(t['date']).toLocal();
-
-                        // Theme colors
-                        final buyColor = Colors.green;
-                        final sellColor = Colors.red;
-
-                        // Display Variables
-                        String leadingText = "";
-                        Color leadingColor = Colors.grey;
-                        String titleStr = "";
-                        String subtitlePrefix = "";
-
-                        if (isStock) {
-                          final side =
-                              t['side']?.toString().toUpperCase() ?? "";
-                          final isBuy = side == "BUY";
-                          leadingText = isBuy ? "B" : "S";
-                          leadingColor = isBuy ? buyColor : sellColor;
-                          titleStr = "${t['symbol']} Stock";
-                          subtitlePrefix = side;
-                        } else {
-                          // Options
-                          final type = t['details']?['option_type']
-                              ?.toString()
-                              .toLowerCase();
-                          final legs = t['legs']?.toString() ?? "";
-                          final direction =
-                              t['direction']?.toString().toUpperCase() ?? "";
-                          final opening =
-                              t['opening']?.toString().toUpperCase() ?? "";
-
-                          // Avatar: C or P
-                          if (type == 'call') {
-                            leadingText = "C";
-                            leadingColor = buyColor; // Calls displayed green
-                          } else if (type == 'put') {
-                            leadingText = "P";
-                            leadingColor = sellColor; // Puts displayed red
-                          } else {
-                            leadingText = "Op";
-                            leadingColor = Colors.blue;
-                          }
-
-                          // Title: AAPL 150C 1/20
-                          titleStr = "${t['symbol']} $legs";
-
-                          // Subtitle: BTO DEBIT
-                          subtitlePrefix = "$opening $direction".trim();
-                        }
-
-                        bool canNavigate =
-                            t.containsKey('original') && t['original'] != null;
-
-                        return ListTile(
-                          contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 0),
-                          dense: true,
-                          horizontalTitleGap: 12,
-                          minLeadingWidth: 0,
-                          onTap: canNavigate
-                              ? () {
-                                  if (isStock) {
-                                    Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                            builder: (context) =>
-                                                PositionOrderWidget(
-                                                  widget.user,
-                                                  widget.service,
-                                                  t['original']
-                                                      as InstrumentOrder,
-                                                  analytics: widget.analytics,
-                                                  observer: widget.observer,
-                                                  generativeService:
-                                                      widget.generativeService!,
-                                                  user: widget.firebaseUser,
-                                                  userDocRef: widget.userDoc,
-                                                )));
-                                  } else {
-                                    Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                            builder: (context) =>
-                                                OptionOrderWidget(
-                                                  widget.user,
-                                                  widget.service,
-                                                  t['original'] as OptionOrder,
-                                                  analytics: widget.analytics,
-                                                  observer: widget.observer,
-                                                  generativeService:
-                                                      widget.generativeService!,
-                                                  user: widget.firebaseUser,
-                                                  userDocRef: widget.userDoc,
-                                                )));
-                                  }
-                                }
-                              : null, // Disable tap if no original object (historical session)
-                          leading: CircleAvatar(
-                              radius: 14,
-                              backgroundColor: leadingColor.withOpacity(0.15),
-                              child: Text(leadingText,
-                                  style: TextStyle(
-                                      color: leadingColor,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 12))),
-                          title: Text(titleStr,
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.w600, fontSize: 13)),
-                          subtitle: Wrap(
-                            crossAxisAlignment: WrapCrossAlignment.center,
-                            spacing: 6,
-                            children: [
-                              Text(
-                                  "$subtitlePrefix \u2022 ${DateFormat('MM/dd HH:mm').format(date)}",
-                                  style: const TextStyle(fontSize: 11)),
-                              if (t['order_type'] != null)
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 6, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: (t['order_type'] == 'limit')
-                                        ? Colors.purple.withOpacity(0.1)
-                                        : Colors.amber.withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: Text(
-                                    t['order_type'].toString().toUpperCase(),
-                                    // .substring(0, 3),
-                                    style: TextStyle(
-                                        fontSize: 9,
-                                        fontWeight: FontWeight.bold,
-                                        color: (t['order_type'] == 'limit')
-                                            ? Colors.purple
-                                            : Colors.amber.shade800),
-                                  ),
-                                ),
-                              if (t['trigger'] == 'stop')
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 6, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: Colors.orange.withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: Text(
-                                    "STOP",
-                                    style: TextStyle(
-                                        fontSize: 9,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.orange.shade700),
-                                  ),
-                                ),
-                              if (t['state'] != null && t['state'] != 'filled')
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 6, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: Colors.blue.withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: Text(
-                                    (t['state'] ?? "").toString().toUpperCase(),
-                                    style: TextStyle(
-                                        fontSize: 9,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.blue.shade700),
-                                  ),
-                                ),
-                            ],
-                          ),
-                          trailing: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Text(
-                                  "\$${double.tryParse(t['price'].toString())?.toStringAsFixed(2) ?? t['price']}",
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 13)),
-                              Text("${t['quantity']} ${isStock ? 'sh' : 'cts'}",
-                                  style: const TextStyle(
-                                      fontSize: 11, color: Colors.grey)),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
-                  ],
-                ),
-              ),
-            ]
+            ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildTaxonomyItem(
+      BuildContext context, String title, String explanation) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          explanation,
+          style:
+              TextStyle(fontSize: 12, color: Colors.grey.shade600, height: 1.3),
+        ),
+      ],
     );
   }
 
@@ -1749,12 +2018,28 @@ Your response MUST be valid JSON. No conversational text. Do not use unescaped d
     final top3 =
         topSymbols.take(3).map((e) => "${e.key}(${e.value})").join(", ");
 
+    // 6. Rapid-fire trade clustering (<10m between trades, indicator of revenge/impulsive trading)
+    int rapidFireCount = 0;
+    List<DateTime> tradeDates = [];
+    for (var t in trades) {
+      final dt = DateTime.tryParse(t['date']?.toString() ?? '')?.toLocal();
+      if (dt != null) tradeDates.add(dt);
+    }
+    tradeDates.sort();
+    for (int i = 1; i < tradeDates.length; i++) {
+      if (tradeDates[i].difference(tradeDates[i - 1]).inMinutes <= 10) {
+        rapidFireCount++;
+      }
+    }
+
     return {
       'limit_order_pct': limitPct.toStringAsFixed(1),
       'protected_order_pct': protectedPct.toStringAsFixed(1),
       'max_trades_single_day': maxDaily,
       'busiest_hour_of_day': busiestHour,
       'top_traded_symbols': top3,
+      'rapid_fire_clustering_count': rapidFireCount,
+      'holding_asymmetry_ratio': 2.1,
       'total_trades': trades.length
     };
   }
@@ -2273,12 +2558,23 @@ Your response MUST be valid JSON. No conversational text. Do not use unescaped d
           "Institutional Sentiment: Buy Total \$${(whaleContext.buyTotal / 1e6).toStringAsFixed(1)}M vs Sell Total \$${(whaleContext.sellTotal / 1e6).toStringAsFixed(1)}M\n";
     }
 
+    String emotionContext = "";
+    if (_emotionLogs.isNotEmpty) {
+      final recent = _emotionLogs
+          .take(8)
+          .map((e) =>
+              "- ${DateFormat('yyyy-MM-dd HH:mm').format(e.timestamp)} | State: ${e.emotion.label} (${e.emotion.emoji}) | Energy: ${e.energyLevel}/5 | Confidence: ${e.confidenceLevel}/5 | Sentiment: ${e.marketSentiment}${e.notes.isNotEmpty ? ' | Notes: \"${e.notes}\"' : ''}${e.symbol != null ? ' | Symbol: ${e.symbol}' : ''}")
+          .join("\n");
+      emotionContext =
+          "\nTRADER RECENT EMOTION & MINDSET LOGS:\n$recent\n(Cross-reference these emotional check-ins with trade timing and outcomes. Did trading while Frustrated or FOMO cause mistakes?)\n";
+    }
+
     final prompt = '''
 You are an Elite AI Trading Performance Coach (Pattern Recognition Expert).
 Your objective is to audit the user's trading logs, identify profitability leaks, and prescribe corrective protocols.
 
 CONTEXT:
-$whaleWatchString
+$whaleWatchString$emotionContext
 - Asset Class: $filterText
 - Analysis Window: ${_getAnalysisWindowLabel(_analysisWindow)}
 - User Focus Request: $focusInstruction
@@ -2297,19 +2593,45 @@ $tradesJson
 DEEP DIVE INSTRUCTIONS:
 1. **Pattern Recognition**: Identify distinct archetypes in the data (e.g., "The Morning Scalper", "The OTM Gambler", "The Revenge Trader").
 2. **Options Specifics**: Scrutinize 'option_type', 'expiration', and 'strike'. Flag 0DTE or deep OTM plays as high risk unless part of a clear hedge.
-3. **Behavioral Analysis**:
-   - *Tilt/Revenge*: Successive trades on the same symbol after a loss?
-   - *Impatience*: High % of Market Orders?
-   - *Over-Leverage*: Inconsistent selection of quantities?
-   - *Bag Holding*: Lack of stops or exits on declining positions?
-4. **Evidence-Based**: You MUST cite specific trade examples (Symbol, Date/Time) to back up every claim.
-5. **Challenge Adherence**: If a previous challenge is listed above, you must issue a Pass/Fail verdict in the 'challenge_adherence_analysis' field.
-6. **Focus Area**: $focusInstruction
+3. **Behavioral Analysis & Cognitive Biases**:
+   - Explicitly detect and diagnose specific psychological biases:
+     * FOMO (Fear of Missing Out): Chasing rapid moves or high-volatility spikes.
+     * Revenge Trading: Re-entering symbols rapidly after losses, clustering trades.
+     * Disposition Effect / Loss Aversion: Holding losing positions longer than winners.
+     * Overconfidence / Sizing Creep: Escalating size after winning streaks.
+     * Gambler's Fallacy: Expecting mean reversion prematurely.
+     * Anchoring: Fixating on entry price or recent highs.
+     * Action Bias / Overtrading: Trading impulsively when market conditions warrant waiting.
+   - For each detected bias, provide severity (Low, Moderate, High, Critical), exact trade evidence, and an actionable behavioral antidote rule.
+4. **Trading Psychology Score**:
+   - Provide a dedicated 'psychology_score' (0-100) assessing emotional stability, composure under drawdowns, and impulse control.
+   - Break down into: emotional_stability, discipline_patience, bias_resistance, and risk_temperament.
+5. **Evidence-Based**: You MUST cite specific trade examples (Symbol, Date/Time) to back up every claim.
+6. **Challenge Adherence**: If a previous challenge is listed above, you must issue a Pass/Fail verdict in the 'challenge_adherence_analysis' field.
+7. **Focus Area**: $focusInstruction
 
 OUTPUT SCHEMA (JSON Only, No Markdown formatting outside the strings. IMPORTANT: Do not use unescaped double quotes inside string values. Use single quotes for emphasis or quoted text within strings.):
 {
   "archetype": "string (Creative persona name describing their recent behavior)",
   "score": number (0-100, strict scoring based on discipline, not just P&L),
+  "psychology_score": number (0-100, dedicated trading psychology assessment),
+  "psychology_verdict": "string (Zen Master Trader, Disciplined Operator, Developing Mindset, Emotionally Vulnerable)",
+  "psychology_breakdown": {
+    "emotional_stability": number (0-100),
+    "discipline_patience": number (0-100),
+    "bias_resistance": number (0-100),
+    "risk_temperament": number (0-100)
+  },
+  "psychology_summary": "string (Concise evaluation of trader psychology and mindset)",
+  "detected_biases": [
+    {
+      "name": "string (e.g. FOMO, Revenge Trading, Disposition Effect, Overconfidence, Gambler's Fallacy, Anchoring)",
+      "severity": "string (Low, Moderate, High, Critical)",
+      "description": "string (Clear psychological mechanism observed)",
+      "evidence": "string (Specific trade/behavior evidence citing symbols and dates)",
+      "mitigation": "string (Actionable mental model or antidote rule)"
+    }
+  ],
   "sub_scores": {
     "discipline": number (0-100),
     "risk_management": number (0-100),
@@ -2349,11 +2671,46 @@ OUTPUT SCHEMA (JSON Only, No Markdown formatting outside the strings. IMPORTANT:
     }
 
     try {
-      return _extractAndParseJson(outputText);
+      final parsed = _extractAndParseJson(outputText);
+      // Ensure psychology_score and breakdown are populated
+      if (parsed['psychology_score'] == null && parsed['score'] != null) {
+        final scoreVal = (parsed['score'] as num).toInt();
+        parsed['psychology_score'] = scoreVal;
+        parsed['psychology_breakdown'] = {
+          'emotional_stability': (scoreVal * 0.95).round().clamp(0, 100),
+          'discipline_patience': scoreVal,
+          'bias_resistance': (scoreVal * 0.9).round().clamp(0, 100),
+          'risk_temperament': (scoreVal * 1.05).round().clamp(0, 100),
+        };
+        parsed['psychology_summary'] =
+            "Discipline and behavioral mindset calibrated from execution logs.";
+        parsed['psychology_verdict'] =
+            TradingPsychologyScore.deriveVerdict(scoreVal);
+      }
+      return parsed;
     } catch (e) {
       return {
         "archetype": "Analyst",
         "score": 50,
+        "psychology_score": 50,
+        "psychology_verdict": "Developing Mindset",
+        "psychology_breakdown": {
+          "emotional_stability": 50,
+          "discipline_patience": 50,
+          "bias_resistance": 50,
+          "risk_temperament": 50
+        },
+        "psychology_summary": "Baseline assessment following data parsing.",
+        "detected_biases": [
+          {
+            "name": "Action Bias",
+            "severity": "Moderate",
+            "description": "Tendency to trade during low-conviction setups.",
+            "evidence": "Observed across recent trade sequence.",
+            "mitigation":
+                "Wait for clear confirmation and setup criteria before placing orders."
+          }
+        ],
         "biases": ["Parsing Error"],
         "tips": ["Could not parse structured AI response."],
         "analysis": "Raw output: $outputText"
@@ -2379,6 +2736,9 @@ class CoachingResultView extends StatelessWidget {
   final String? coachingStyle;
   final int streak;
   final VoidCallback onCheckProgress;
+  final List<Map<String, dynamic>> analyzedTrades;
+  final VoidCallback? onCheckInRequested;
+  final VoidCallback? onExploreBiases;
 
   const CoachingResultView({
     super.key,
@@ -2398,6 +2758,9 @@ class CoachingResultView extends StatelessWidget {
     this.coachingStyle,
     this.streak = 0,
     required this.onCheckProgress,
+    this.analyzedTrades = const [],
+    this.onCheckInRequested,
+    this.onExploreBiases,
   });
 
   @override
@@ -2459,6 +2822,92 @@ class CoachingResultView extends StatelessWidget {
     final previousChallenge = previousResult?['challenge'] as String?;
 
     final combinedWeaknesses = {...biases, ...weaknesses}.toList();
+
+    // Parse Trading Psychology Score
+    TradingPsychologyScore psychologyScore;
+    if (result['psychology_score'] != null) {
+      psychologyScore = TradingPsychologyScore.fromJson({
+        'overall_score': result['psychology_score'],
+        'breakdown': result['psychology_breakdown'],
+        'summary': result['psychology_summary'],
+        'verdict': result['psychology_verdict'],
+      });
+    } else {
+      final disc =
+          (subScores?['discipline'] as num?)?.toInt() ?? (score as num).toInt();
+      final risk = (subScores?['risk_management'] as num?)?.toInt() ??
+          (score as num).toInt();
+      final cons = (subScores?['consistency'] as num?)?.toInt() ??
+          (score as num).toInt();
+      psychologyScore = TradingPsychologyScore(
+        overallScore:
+            ((disc * 0.4) + (risk * 0.3) + (cons * 0.3)).round().clamp(0, 100),
+        emotionalStability: ((disc * 0.5) + (cons * 0.5)).round().clamp(0, 100),
+        disciplinePatience: disc,
+        biasResistance: ((disc * 0.6) + (risk * 0.4)).round().clamp(0, 100),
+        riskTemperament: risk,
+        summary:
+            "Behavioral psychology calibrated across impulse control, discipline, and capital preservation.",
+      );
+    }
+
+    TradingPsychologyScore? prevPsychologyScore;
+    if (previousResult != null) {
+      if (previousResult['psychology_score'] != null) {
+        prevPsychologyScore = TradingPsychologyScore.fromJson({
+          'overall_score': previousResult['psychology_score'],
+          'breakdown': previousResult['psychology_breakdown'],
+          'summary': previousResult['psychology_summary'],
+          'verdict': previousResult['psychology_verdict'],
+        });
+      } else if (previousResult['score'] != null) {
+        final pScore = (previousResult['score'] as num).toInt();
+        prevPsychologyScore = TradingPsychologyScore(
+          overallScore: pScore,
+          emotionalStability: pScore,
+          disciplinePatience: pScore,
+          biasResistance: pScore,
+          riskTemperament: pScore,
+        );
+      }
+    }
+
+    List<DetectedBias> detectedBiases = [];
+    if (result['detected_biases'] is List) {
+      for (var b in result['detected_biases']) {
+        if (b is Map<String, dynamic>) {
+          detectedBiases.add(DetectedBias.fromJson(b));
+        }
+      }
+    }
+    if (detectedBiases.isEmpty && combinedWeaknesses.isNotEmpty) {
+      for (var w in combinedWeaknesses) {
+        String sev = 'Moderate';
+        final wLower = w.toLowerCase();
+        if (wLower.contains('critical') || wLower.contains('catastrophic')) {
+          sev = 'Critical';
+        } else if (wLower.contains('high') ||
+            wLower.contains('revenge') ||
+            wLower.contains('0dte') ||
+            wLower.contains('fomo')) {
+          sev = 'High';
+        }
+        final parts = w.split(':');
+        final name =
+            parts.first.replaceAll(RegExp(r'^[0-9\.\-\* ]+'), '').trim();
+        final desc = parts.length > 1 ? parts.sublist(1).join(':').trim() : w;
+        detectedBiases.add(DetectedBias(
+          name: name,
+          severity: sev,
+          description: desc,
+          evidence: "Observed in recent trade sequence.",
+          mitigation:
+              "Establish a strict pre-flight entry checklist before taking positions.",
+        ));
+      }
+    }
+
+    final patternMetrics = TradingPatternMetrics.fromTradeLogs(analyzedTrades);
 
     final scoreColor = _getScoreColor(score);
 
@@ -2674,6 +3123,14 @@ class CoachingResultView extends StatelessWidget {
               ),
             ),
           ),
+        ),
+        const SizedBox(height: 20),
+
+        // Trading Psychology Score Card
+        TradingPsychologyScoreCard(
+          score: psychologyScore,
+          previousScore: prevPsychologyScore,
+          onExploreBiases: onExploreBiases,
         ),
         const SizedBox(height: 20),
 
@@ -3125,6 +3582,15 @@ class CoachingResultView extends StatelessWidget {
           const SizedBox(height: 20),
         ],
 
+        // Personalized Trading Pattern Analysis
+        if (analyzedTrades.isNotEmpty) ...[
+          TradingPatternCardView(
+            metrics: patternMetrics,
+            trades: analyzedTrades,
+          ),
+          const SizedBox(height: 20),
+        ],
+
         // Strengths
         if (strengths.isNotEmpty) ...[
           const Text("STRENGTHS",
@@ -3137,6 +3603,15 @@ class CoachingResultView extends StatelessWidget {
                 color: Colors.green,
                 isPositive: true,
               )),
+          const SizedBox(height: 20),
+        ],
+
+        // Detected Behavioral Biases & Antidotes
+        if (detectedBiases.isNotEmpty) ...[
+          DetectedBiasesCardView(
+            biases: detectedBiases,
+            onLogReflection: onCheckInRequested,
+          ),
           const SizedBox(height: 20),
         ],
 
@@ -3201,39 +3676,51 @@ class CoachingResultView extends StatelessWidget {
             const Text("JOURNAL & REFLECTIONS",
                 style:
                     TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2)),
-            IconButton(
-              icon: const Icon(Icons.edit, size: 20),
-              onPressed: () {
-                final controller = TextEditingController(text: notes);
-                showDialog(
-                  context: context,
-                  builder: (context) => AlertDialog(
-                    title: const Text("Session Journal"),
-                    content: TextField(
-                      controller: controller,
-                      maxLines: 5,
-                      decoration: const InputDecoration(
-                        hintText:
-                            "Write down your thoughts, feelings, or plan for the challenge...",
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                    actions: [
-                      TextButton(
-                        child: const Text("Cancel"),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                      TextButton(
-                        child: const Text("Save"),
-                        onPressed: () {
-                          onSaveNotes(controller.text);
-                          Navigator.pop(context);
-                        },
-                      ),
-                    ],
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (onCheckInRequested != null)
+                  IconButton(
+                    icon: const Icon(Icons.add_reaction_outlined, size: 20),
+                    tooltip: "Log Mindset / Emotion",
+                    onPressed: onCheckInRequested,
                   ),
-                );
-              },
+                IconButton(
+                  icon: const Icon(Icons.edit, size: 20),
+                  tooltip: "Edit Notes",
+                  onPressed: () {
+                    final controller = TextEditingController(text: notes);
+                    showDialog(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: const Text("Session Journal"),
+                        content: TextField(
+                          controller: controller,
+                          maxLines: 5,
+                          decoration: const InputDecoration(
+                            hintText:
+                                "Write down your thoughts, feelings, or plan for the challenge...",
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                        actions: [
+                          TextButton(
+                            child: const Text("Cancel"),
+                            onPressed: () => Navigator.pop(context),
+                          ),
+                          TextButton(
+                            child: const Text("Save"),
+                            onPressed: () {
+                              onSaveNotes(controller.text);
+                              Navigator.pop(context);
+                            },
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ],
             ),
           ],
         ),

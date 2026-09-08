@@ -22,10 +22,13 @@ import 'package:robinhood_options_mobile/model/investor_group.dart';
 import 'package:robinhood_options_mobile/model/group_message.dart';
 import 'package:robinhood_options_mobile/model/instrument_note.dart';
 import 'package:robinhood_options_mobile/model/whale_watch.dart';
+import 'package:robinhood_options_mobile/model/trading_psychology_model.dart';
 
 class FirestoreService {
-  FirestoreService();
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final FirebaseFirestore _db;
+
+  FirestoreService({FirebaseFirestore? firestore})
+      : _db = firestore ?? FirebaseFirestore.instance;
 
   final String instrumentCollectionName = 'instrument';
   final String userCollectionName = 'user';
@@ -38,6 +41,7 @@ class FirestoreService {
   final String dividendCollectionName = 'dividend';
   final String interestCollectionName = 'interest';
   final String investorGroupCollectionName = 'investor_groups';
+  final String emotionLogCollectionName = 'trading_journal';
   final String optionInstrumentCollectionName = 'option_instruments';
   final String optionMarketDataCollectionName = 'option_market_data';
 
@@ -1685,6 +1689,63 @@ class FirestoreService {
       }
       return [];
     });
+  }
+
+  /// Trading Psychology & Emotion Journal Methods
+
+  Future<void> saveEmotionLog(DocumentReference userDoc, EmotionLog log) async {
+    try {
+      final docRef = log.id.isNotEmpty
+          ? userDoc.collection(emotionLogCollectionName).doc(log.id)
+          : userDoc.collection(emotionLogCollectionName).doc();
+      final data = log.toJson();
+      data['id'] = docRef.id;
+      await docRef.set(data, SetOptions(merge: true));
+      debugPrint("Emotion log saved with ID: ${docRef.id}");
+    } on FirebaseException catch (e) {
+      debugPrint('Failed to save emotion log: ${e.message}');
+      rethrow;
+    }
+  }
+
+  Future<List<EmotionLog>> getEmotionLogs(DocumentReference userDoc,
+      {int limit = 50}) async {
+    try {
+      final querySnapshot = await userDoc
+          .collection(emotionLogCollectionName)
+          .orderBy('timestamp', descending: true)
+          .limit(limit)
+          .get();
+
+      return querySnapshot.docs
+          .map((doc) => EmotionLog.fromJson(doc.data(), doc.id))
+          .toList();
+    } on FirebaseException catch (e) {
+      debugPrint('Failed to get emotion logs: ${e.message}');
+      return [];
+    }
+  }
+
+  Stream<List<EmotionLog>> streamEmotionLogs(DocumentReference userDoc,
+      {int limit = 50}) {
+    return userDoc
+        .collection(emotionLogCollectionName)
+        .orderBy('timestamp', descending: true)
+        .limit(limit)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => EmotionLog.fromJson(doc.data(), doc.id))
+            .toList());
+  }
+
+  Future<void> deleteEmotionLog(DocumentReference userDoc, String logId) async {
+    try {
+      await userDoc.collection(emotionLogCollectionName).doc(logId).delete();
+      debugPrint("Emotion log deleted: $logId");
+    } on FirebaseException catch (e) {
+      debugPrint('Failed to delete emotion log: ${e.message}');
+      rethrow;
+    }
   }
 }
 

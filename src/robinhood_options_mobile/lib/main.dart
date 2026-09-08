@@ -131,11 +131,16 @@ void main() async {
   MobileAds.instance.updateRequestConfiguration(configuration);
   */
 
-  runApp(const MyApp());
+  final brokerageUserStore = BrokerageUserStore([], 0);
+  await brokerageUserStore.load();
+
+  runApp(MyApp(brokerageUserStore: brokerageUserStore));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final BrokerageUserStore? brokerageUserStore;
+
+  const MyApp({super.key, this.brokerageUserStore});
 
   static FirebaseAnalytics analytics = FirebaseAnalytics.instance;
   static FirebaseAnalyticsObserver observer =
@@ -232,9 +237,11 @@ class MyApp extends StatelessWidget {
             ChangeNotifierProvider(
               create: (context) => CopyTradingProvider(),
             ),
-            ChangeNotifierProvider(
-              create: (context) => BrokerageUserStore([], 0),
-            ),
+            brokerageUserStore != null
+                ? ChangeNotifierProvider.value(value: brokerageUserStore!)
+                : ChangeNotifierProvider(
+                    create: (context) => BrokerageUserStore([], 0),
+                  ),
             ChangeNotifierProvider(
               create: (context) => AccountStore(),
             ),

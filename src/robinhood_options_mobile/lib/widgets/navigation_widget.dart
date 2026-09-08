@@ -527,11 +527,15 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
 
     initTabs(userStore);
     if (userStore.items.isEmpty) {
-      userStore.load();
-      // .then((value) => {
-      //       currentUserIndex =
-      //           value.indexWhere((element) => element.defaultUser)
-      //     });
+      userStore.load().then((loaded) {
+        if (mounted && loaded.isNotEmpty) {
+          setState(() {
+            _lastUser = userStore.currentUser;
+            _initFuture = _loadData(userStore);
+            initTabs(userStore);
+          });
+        }
+      });
     }
 
     if (auth.currentUser != null) {
@@ -730,11 +734,19 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
             if (userSnapshot != null) {
               user = userSnapshot.data();
               _syncMacroSubscription();
-              if (user != null &&
-                  userStore.items.length != user!.brokerageUsers.length) {
-                user!.brokerageUsers = userStore.items.toList();
-                if (userDoc != null) {
-                  _firestoreService.updateUser(userDoc!, user!);
+              if (user != null) {
+                if (userStore.items.isEmpty &&
+                    user!.brokerageUsers.isNotEmpty) {
+                  for (var bu in user!.brokerageUsers) {
+                    userStore.addOrUpdate(bu);
+                  }
+                  userStore.save();
+                } else if (userStore.items.isNotEmpty &&
+                    userStore.items.length != user!.brokerageUsers.length) {
+                  user!.brokerageUsers = userStore.items.toList();
+                  if (userDoc != null) {
+                    _firestoreService.updateUser(userDoc!, user!);
+                  }
                 }
               }
               var brokerageUser = userStore.currentUser;

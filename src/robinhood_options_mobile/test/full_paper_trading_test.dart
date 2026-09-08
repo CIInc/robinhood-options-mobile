@@ -117,6 +117,9 @@ class FakePaperTradingStore extends ChangeNotifier
   double get equity => 100000.0;
 
   @override
+  void adjustCashBalance(double delta) {}
+
+  @override
   List<Map<String, dynamic>> get history => [];
 
   @override

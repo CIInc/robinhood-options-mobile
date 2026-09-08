@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.41.0] - 2026-09-07
+**AI Trading Coach & Behavioral Finance**
+
+### Added
+- **Trading Psychology Score:** Introduced dedicated `TradingPsychologyScore` (0-100) and `TradingPsychologyScoreCard` evaluating trader emotional resilience, discipline, and risk temperament across a 4-pillar breakdown: Emotional Stability, Discipline & Patience, Bias Resistance, and Risk Temperament, with psychological health verdict tiers (*Zen Master Trader*, *Disciplined Operator*, *Developing Mindset*, *Emotionally Vulnerable*).
+- **Behavioral Bias Detection & Antidotes:** Added structured detection of cognitive biases (`DetectedBias`, `DetectedBiasesCardView`) including FOMO, Revenge Trading, Disposition Effect (Loss Aversion), Overconfidence & Sizing Creep, Gambler's Fallacy, Anchoring, and Action Bias, complete with severity badges (Critical, High, Moderate, Low), trade evidence citations, and actionable behavioral antidote frameworks.
+- **Emotion Tracking & Mindset Journal:** Created `EmotionLog` model, Firestore persistence (`trading_journal` collection in `FirestoreService`), `EmotionJournalView`, and `EmotionCheckInSheet` modal bottom sheet allowing traders to record 8 distinct emotional states (Calm 🧘, Confident 🎯, Disciplined 🛡️, Anxious 😰, FOMO 🤑, Euphoric 🚀, Frustrated 🤬, Fearful 😨), energy/alertness levels (1-5), confidence ratings (1-5), market sentiment bias, and session reflection notes. Included emotional composure metrics tracking constructive vs reactive states over time.
+- **AI Coach Emotion Context Ingestion:** Integrated recent emotional check-in history directly into the Gemini Flash coaching prompt (`generateContent25`), allowing the AI to cross-reference real-time emotional logs with trade timing, tilt, and execution mistakes.
+- **Personalized Trading Pattern Analysis:** Added `TradingPatternMetrics` and `TradingPatternCardView` analyzing win vs loss holding duration asymmetry (detecting disposition effect when hold time ratio > 1.5x), rapid-fire trade clustering (<10 minutes between trades indicating revenge trading), limit order patience rates, and stop-loss capital protection percentages.
+- **Tabbed Coaching Interface:** Upgraded `PersonalizedCoachingWidget` with a 4-tab layout: **Coach** (Coaching result view, score deltas, challenges, and detailed diagnosis), **Biases & Antidotes** (bias detection cards and behavioral finance taxonomy guide), **Emotion Journal** (mindset check-ins, composure analytics, and reflection history), and **Patterns** (pattern metrics, execution statistics, and trade activity list).
+
+### Testing
+- Added `trading_psychology_test.dart` covering `EmotionLog` serialization, `DetectedBias` severity mappings and icons, `TradingPsychologyScore` calculation and verdict derivation, `TradingPatternMetrics` calculation from mock trade logs, and Firestore `FakeFirebaseFirestore` persistence.
+
 ## [0.40.0] - 2026-09-07
 **Forex Trading, Carry Trade Optimizer, and Multi-Asset Portfolio Allocation**
 

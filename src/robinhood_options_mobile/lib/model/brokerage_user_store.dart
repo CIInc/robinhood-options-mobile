@@ -108,53 +108,18 @@ class BrokerageUserStore extends ChangeNotifier {
       return [];
     }
     try {
-      removeAll();
       var storeData = jsonDecode(contents);
       if (storeData is Map<String, dynamic>) {
         var userStore = BrokerageUserStore.fromJson(storeData);
-        setCurrentUserIndex(userStore.currentUserIndex);
-        setAggregateAllAccounts(userStore.aggregateAllAccounts);
-        for (var element in userStore.items) {
-          add(element);
-        }
-        // if (userStore.currentUser!.oauth2Client!.credentials.canRefresh) {
-        //   final newClient =
-        //       await userStore.currentUser!.oauth2Client!.refreshCredentials();
-        //   userStore.currentUser!.credentials = newClient.credentials.toJson();
-        //   userStore.currentUser!.oauth2Client = newClient;
-        //   userStore.addOrUpdate(userStore.currentUser!);
-        //   userStore.save();
-        // }
+        _items.clear();
+        currentUserIndex = userStore.currentUserIndex;
+        aggregateAllAccounts = userStore.aggregateAllAccounts;
+        _items.addAll(userStore.items);
+        notifyListeners();
       }
-      // if (storeData is Map) {
-      //   if (storeData['currentUserIndex'] != null) {
-      //     setCurrentUserIndex(storeData['currentUserIndex']);
-      //   }
-      //   if (storeData['items'] != null) {
-      //     var users = storeData['items'] as List<dynamic>;
-      //     for (Map<String, dynamic> userMap in users) {
-      //       var user = BrokerageUser.fromJson(userMap);
-      //       if (user.credentials != null) {
-      //         var credentials =
-      //             Credentials.fromJson(user.credentials as String);
-      //         var service = user.source == Source.robinhood
-      //             ? RobinhoodService()
-      //             : user.source == Source.schwab
-      //                 ? SchwabService()
-      //                 : DemoService();
-
-      //         var client = Client(credentials, identifier: service.clientId);
-      //         user.oauth2Client = client;
-      //       }
-      //       debugPrint('Loaded cache.');
-      //       add(user);
-      //     }
-      //   }
-      // }
       return items;
-    } on FormatException catch (e) {
-      debugPrint(
-          'Cache provided is not valid JSON.\nError: $e\nContents: $contents');
+    } catch (e, stackTrace) {
+      debugPrint('Error loading brokerage user store: $e\n$stackTrace');
       return [];
     }
   }

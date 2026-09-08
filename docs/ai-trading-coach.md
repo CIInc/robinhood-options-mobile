@@ -40,7 +40,34 @@ Get a granular view of your performance with three sub-scores:
 - **Risk Management:** Proper sizing, use of stops, and avoiding "lotto" tickets.
 - **Consistency:** Regularity in strategy application.
 
-## How to Use
+### 6. Trading Psychology Score & 4-Pillar Breakdown
+The dedicated **Trading Psychology Score** (0-100) measures your mental resilience and behavioral temperament:
+- **Emotional Stability:** Tilt resistance and composure during market drawdowns.
+- **Discipline & Patience:** Waiting for defined, high-probability setups and using Limit orders rather than market chasing.
+- **Bias Resistance:** Overcoming cognitive pitfalls like FOMO, revenge trading, and loss aversion.
+- **Risk Temperament:** Stop-loss acceptance and rational, non-catastrophic position sizing.
+- **Psychological Health Verdict:** Categorized as *Zen Master Trader* (85-100), *Disciplined Operator* (70-84), *Developing Mindset* (50-69), or *Emotionally Vulnerable* (<50).
+
+### 7. Behavioral Bias Detection & Antidotes
+The system diagnoses specific cognitive biases from execution history and attaches tailored behavioral frameworks:
+- **FOMO (Fear of Missing Out):** Chasing extended momentum without technical setups. *Antidote: Wait for pullback to defined support/VWAP.*
+- **Revenge Trading & Tilt:** Successive trades placed rapidly after losing trades. *Antidote: Mandatory 30-minute cool-down period.*
+- **Disposition Effect (Loss Aversion):** Holding losing trades significantly longer than winning trades. *Antidote: Enforce bracketed Stop Loss orders at entry.*
+- **Overconfidence & Sizing Creep:** Expanding trade size aggressively following win streaks. *Antidote: Cap max risk per position at 1-2% of total portfolio equity.*
+- **Gambler's Fallacy:** Anticipating counter-trend reversals purely due to consecutive green or red bars. *Antidote: Trade market structure and trend confirmation.*
+
+### 8. Emotion Tracking & Mindset Journal
+Log emotional states to uncover psychological correlation with trading outcomes:
+- **8 Emotional States:** Calm & Centered 🧘, Confident 🎯, Disciplined 🛡️, Anxious 😰, FOMO 🤑, Euphoric 🚀, Frustrated 🤬, Fearful 😨.
+- **Multi-Factor Ratings:** 1-5 slider ratings for Energy Level and Confidence Level, plus Market Sentiment (Bullish/Neutral/Bearish) and Session Timing (Pre-Market, Entry, Exit, Post-Market, Review).
+- **Persistent Storage:** Stored in Firestore under `trading_journal` and automatically cross-referenced in subsequent AI coaching sessions.
+- **Emotional Composure Analytics:** Tracks the percentage of trading sessions conducted in constructive vs reactive emotional states.
+
+### 9. Personalized Pattern Analysis
+- **Holding Time Asymmetry Ratio:** Calculates the ratio of average holding time for losing trades vs winning trades. Ratios > 1.5x flag loss aversion and disposition risk.
+- **Trade Clustering / Rapid-Fire Bursts:** Identifies trades placed within 10 minutes of each other as potential revenge trading or impatience episodes.
+- **Limit vs. Market:** Execution quality indicator showing patience vs impulsiveness.
+- **Protection Rate:** Percentage of trades executed with attached stop triggers.
 
 1.  **Navigate** to the "Coach" tab in the app.
 2.  **Configure** your analysis:

@@ -46,9 +46,9 @@ This document outlines the planned features and enhancements for RealizeAlpha.
 - **Focus Areas**: Advanced trading strategies, brokerage integrations, security, social features, AI coaching, quantitative research, behavioral finance, frontier tech
 
 ### Key Highlights
-- ✅ **Recently Completed**: Forex currency pairs trading, Carry Trade Optimizer, multi-asset portfolio allocation (Stocks, Options, Crypto, Forex, Futures, Fixed Income, Cash), accurate Whale Watch ranking, event studies, rolling statistics, and custom screener.
-- 🔥 **In Progress**: Schwab multi-account support and AI Trading Coach.
-- 🚀 **Next Milestone**: **AI Trading Coach & Behavioral Finance** (v0.41.0).
+- ✅ **Recently Completed**: AI Trading Coach & Behavioral Finance (Trading Psychology Score, Cognitive Bias Detection & Antidotes, Emotion Tracking & Journaling, Personalized Pattern Analysis), Forex currency pairs trading, Carry Trade Optimizer, multi-asset portfolio allocation (Stocks, Options, Crypto, Forex, Futures, Fixed Income, Cash).
+- 🔥 **In Progress**: Schwab multi-account support and Robinhood Native API Expansion.
+- 🚀 **Next Milestone**: **Robinhood Native API Expansion & Institutional Intelligence** (v0.41.5).
 - **Focus Areas**: Institutional-grade options analytics (GEX), AI-powered trade orchestration, and multi-brokerage expansion.
 - 🎯 **2026 Priorities**: 
   - **Q3**: AI Portfolio Architect, Smart Alerts & Market Intelligence, News & Sentiment Intelligence, Social Platform Evolution, Tax Optimization Suite
@@ -303,12 +303,12 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ **Multi-Asset Portfolio Allocation:** Unified multi-asset allocation spanning Stocks, Options, Crypto, Forex, Futures, Fixed Income, and Cash across Home charts and the Rebalancing tool with All-Weather preset.
 - ✅ **Carry Trade Optimizer:** Interest rate differential matrix, Central Bank policy rate monitor, Carry-to-Risk ratio scoring, unwind risk analysis, and automated basket optimizer.
 
-### v0.41.0 (Q4 2026 - October)
+### v0.41.0 ✅ (Released October 2026)
 **AI Trading Coach & Behavioral Finance**
-- Personalized trading pattern analysis ([Tracking: #118](https://github.com/CIInc/robinhood-options-mobile/issues/118))
-- Behavioral coaching (detect biases)
-- Emotion tracking & journaling
-- Trading psychology score
+- ✅ **Personalized Trading Pattern Analysis:** Win/loss duration asymmetry, time-of-day tilt detection, trade clustering, and sizing variance tracking ([Tracking: #118](https://github.com/CIInc/robinhood-options-mobile/issues/118)).
+- ✅ **Behavioral Coaching & Bias Detection:** Dedicated cognitive bias identification (FOMO, Revenge Trading, Disposition Effect, Overconfidence, Gambler's Fallacy, Anchoring) with severity ratings and actionable antidotes.
+- ✅ **Emotion Tracking & Journaling:** Pre/post-trade emotion check-ins, confidence & energy levels, emotion journal persistence in Firestore, and emotional performance correlation.
+- ✅ **Trading Psychology Score:** Comprehensive psychology score (0-100) with four-pillar breakdown (Emotional Stability, Discipline & Patience, Bias Resistance, Risk Temperament) and psychological profile assessment.
 
 ### v0.41.5 (Q4 2026 - October)
 **Robinhood Native API Expansion & Institutional Intelligence**
