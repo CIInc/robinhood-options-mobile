@@ -1184,6 +1184,12 @@ class FidelityService implements IBrokerageService {
   }
 
   @override
+  Future<dynamic> getRecentDayTrades(
+      BrokerageUser user, String accountNumber) async {
+    return null;
+  }
+
+  @override
   Future<List<dynamic>> getFuturesOrders(
       BrokerageUser user, String account) async {
     return [];

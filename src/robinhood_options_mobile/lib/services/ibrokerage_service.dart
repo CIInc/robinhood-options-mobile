@@ -312,4 +312,10 @@ abstract class IBrokerageService {
     return Future.error(
         'cancelOrder is not implemented for this brokerage service');
   }
+
+  /// Fetches rolling 5-day equity and option day trade counts to monitor Pattern Day Trader status
+  Future<dynamic> getRecentDayTrades(
+      BrokerageUser user, String accountNumber) async {
+    return null;
+  }
 }

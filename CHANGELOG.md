@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.42.0] - 2026-09-08
+**Pattern Day Trader (PDT) Protection & Counter, Margin Health & Risk Monitoring**
+
+### Added
+- **Pattern Day Trader (PDT) Protection & Counter:** Implemented real-time rolling 5-business-day counter for equity and option day trades to safeguard margin accounts from regulatory restrictions under FINRA Rule 4210.
+- **Day Trade & Day Trade Summary Models:** Introduced `DayTrade` and `DayTradeSummary` models in `lib/model/day_trade.dart` with automatic 5-business-day roll-off calculation (`computeDropOffDate`, `remainingTradingDays`, `isExpired`), dynamic risk level categorization (`safe`, `warning`, `danger`, `flagged`, `exempt`), $25,000 equity exemption evaluation, and compact badge labels (`statusBadge`).
+- **Account Margin & PDT Fields:** Enhanced `Account` model to parse and serialize `dayTradesProtection`, `dayTradeBuyingPower`, `dayTradeRatio`, `markedPatternDayTraderDate`, `patternDayTraderExpiryDate`, and `isPdtForever` from `margin_balances`.
+- **Brokerage Service Day Trade Support:** Added `getRecentDayTrades(BrokerageUser user, String accountNumber)` to `IBrokerageService` and implemented realistic dynamic mock day trades relative to calendar business days in `DemoService` for offline and demo environments, with graceful fallbacks across Paper, Plaid, Fidelity, and Schwab services.
+- **Action Center PDT Risk Alerts:** Integrated `_pdtAlerts` in `PortfolioAlertService` to surface critical alerts when 0 day trades remain (`pdt-limit-reached`) or when an account is flagged with equity under $25,000 (`pdt-flagged`), and warning alerts when 1 day trade remains (`pdt-warning`), with automatic suppression for accounts with $\ge \$25,000$ equity or cash accounts.
+- **Day Trade & PDT Monitor Dashboard:** Created `DayTradeMonitorWidget` (`lib/widgets/day_trade_monitor_widget.dart`) featuring:
+  - Responsive 4-segment visual progress meter tracking used vs allowable day trades.
+  - FINRA $25,000 equity threshold progress bar with live deficit calculation.
+  - Protection & Day Trade Buying Power card with Robinhood Day Trade Protection status chips and PDT restriction expiry dates.
+  - Filterable day trade history (`All`, `Stocks`, `Options`) with per-trade roll-off countdown chips.
+  - Interactive FINRA Rule 4210 FAQ accordion and guidance dialog.
+- **User Settings & Account Integration:** Added direct entry to "Day Trade & PDT Monitor" under Features in `UserWidget`, and integrated interactive "PDT Protected", "PDT Flagged", or "Day Trades" action chips on account cards in `UserInfoWidget`.
+
+### Changed
+- **Responsive Layout Hardening:** Hardened `DayTradeMonitorWidget` with `Wrap`, flex constraints, and text truncation to prevent `RenderFlex` overflows across all mobile viewport widths (including 320px–360px small screens).
+
+### Testing
+- Added `day_trade_test.dart` (15 unit tests) covering `DayTrade` JSON parsing, 5-business-day drop-off calculations across calendar boundaries, risk level transitions, $25,000 equity exemption rules, `Account` margin balance extraction, `DemoService` day trades fetching, and `PortfolioAlertService` PDT alert generation.
+- Added `day_trade_widget_test.dart` testing UI rendering of the counter, threshold progress, protection status, and trade filters.
+- Added `day_trade_overflow_test.dart` validating zero layout overflows across multiple device sizes (`320x600`, `360x640`, `390x844`) for both margin and exempt accounts.
+
 ## [0.41.0] - 2026-09-07
 **AI Trading Coach & Behavioral Finance**
 

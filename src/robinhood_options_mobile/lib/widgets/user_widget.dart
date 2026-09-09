@@ -33,6 +33,7 @@ import 'package:robinhood_options_mobile/widgets/more_menu_widget.dart';
 import 'package:robinhood_options_mobile/widgets/trade_signal_notification_settings_widget.dart';
 import 'package:robinhood_options_mobile/widgets/custom_alerts_widget.dart';
 import 'package:robinhood_options_mobile/widgets/backtesting_widget.dart';
+import 'package:robinhood_options_mobile/widgets/day_trade_monitor_widget.dart';
 
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
@@ -736,6 +737,7 @@ class _UserWidgetState extends State<UserWidget> {
                                                   brokerageUser: brokerageUser,
                                                   firestoreService:
                                                       _firestoreService,
+                                                  service: widget.service,
                                                 ),
                                               )
                                             ] else if (isCurrentUserProfileView &&
@@ -744,11 +746,12 @@ class _UserWidgetState extends State<UserWidget> {
                                                 padding:
                                                     const EdgeInsets.all(8.0),
                                                 child: UserInfoWidget(
-                                                    user: widget.userInfo!,
-                                                    brokerageUser:
-                                                        brokerageUser,
-                                                    firestoreService:
-                                                        _firestoreService),
+                                                  user: widget.userInfo!,
+                                                  brokerageUser: brokerageUser,
+                                                  firestoreService:
+                                                      _firestoreService,
+                                                  service: widget.service,
+                                                ),
                                               )
                                             ] else ...[
                                               Padding(
@@ -943,6 +946,46 @@ class _UserWidgetState extends State<UserWidget> {
                                             ),
                                           ),
                                         );
+                                      },
+                                    ),
+                                    // Day Trade & PDT Monitor
+                                    ListTile(
+                                      leading: CircleAvatar(
+                                        backgroundColor: Theme.of(context)
+                                            .colorScheme
+                                            .secondaryContainer,
+                                        foregroundColor: Theme.of(context)
+                                            .colorScheme
+                                            .onSecondaryContainer,
+                                        child:
+                                            const Icon(Icons.shield_outlined),
+                                      ),
+                                      title:
+                                          const Text('Day Trade & PDT Monitor'),
+                                      subtitle: const Text(
+                                          'Rolling 5-day counter & FINRA Rule 4210 protection'),
+                                      trailing: const Icon(Icons.chevron_right),
+                                      onTap: () async {
+                                        if (widget.brokerageUser != null &&
+                                            widget.service != null) {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) =>
+                                                  DayTradeMonitorWidget(
+                                                brokerageUser:
+                                                    widget.brokerageUser!,
+                                                service: widget.service!,
+                                              ),
+                                            ),
+                                          );
+                                        } else {
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(const SnackBar(
+                                            content: Text(
+                                                'Please link a brokerage account to monitor day trades.'),
+                                          ));
+                                        }
                                       },
                                     ),
                                     // Agentic Trading Settings entry moved here from the app Drawer

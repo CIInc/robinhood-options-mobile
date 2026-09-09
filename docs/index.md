@@ -51,6 +51,7 @@
 - **[Mobile CI/CD](mobile-ci-setup.md):** Standardized build and deployment workflows for iOS and Android.
 - **[TestFlight Deployment](TESTFLIGHT_DEPLOYMENT.md):** App Store Connect setup and validated iOS deployment workflow.
 - **[Testing Standards](testing-standards.md):** Required UI, state, data-integrity, and regression testing patterns.
+- **[Pattern Day Trader (PDT) Protection & Counter](pdt-protection.md):** Real-time rolling 5-business-day counter for equities and options, visual meters, FINRA Rule 4210 $25,000 equity tracking, and automated Action Center risk alerts.
 - **[RiskGuard](risk-guard.md):** Advanced risk validation for manual and automated trading, including **Dynamic Position Sizing**.
 - **[Schwab Integration](schwab-integration.md):** Schwab account linking, portfolio and order history, single-leg option orders, and multi-leg option order placement.
 - **[Fidelity Integration](fidelity-integration.md):** Manual import of positions and history via CSV files.

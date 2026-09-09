@@ -1849,4 +1849,58 @@ class DemoService implements IBrokerageService {
       'Futures orders are not supported in DemoService',
     );
   }
+
+  @override
+  Future<dynamic> getRecentDayTrades(
+      BrokerageUser user, String accountNumber) async {
+    final now = DateTime.now();
+    // 1 business day ago
+    DateTime day1 = now.subtract(const Duration(days: 1));
+    while (
+        day1.weekday == DateTime.saturday || day1.weekday == DateTime.sunday) {
+      day1 = day1.subtract(const Duration(days: 1));
+    }
+    // 2 business days ago
+    DateTime day2 = day1.subtract(const Duration(days: 1));
+    while (
+        day2.weekday == DateTime.saturday || day2.weekday == DateTime.sunday) {
+      day2 = day2.subtract(const Duration(days: 1));
+    }
+
+    final dateStr1 =
+        "${day1.year.toString().padLeft(4, '0')}-${day1.month.toString().padLeft(2, '0')}-${day1.day.toString().padLeft(2, '0')}";
+    final dateStr2 =
+        "${day2.year.toString().padLeft(4, '0')}-${day2.month.toString().padLeft(2, '0')}-${day2.day.toString().padLeft(2, '0')}";
+
+    return {
+      'account': 'https://api.robinhood.com/accounts/$accountNumber/',
+      'day_trades_protection': true,
+      'is_pattern_day_trader': false,
+      'equity_day_trades': [
+        {
+          'id': 'dt_eq_1',
+          'symbol': 'AAPL',
+          'trade_execution_date': dateStr1,
+          'created_at': '${dateStr1}T14:32:10Z',
+          'direction': 'buy_then_sell',
+          'quantity': 25,
+          'price': 185.50,
+          'type': 'equity',
+        }
+      ],
+      'option_day_trades': [
+        {
+          'id': 'dt_opt_1',
+          'symbol': 'TSLA 260327C00220000',
+          'trade_execution_date': dateStr2,
+          'created_at': '${dateStr2}T15:10:44Z',
+          'direction': 'buy_then_sell',
+          'quantity': 2,
+          'price': 4.25,
+          'type': 'option',
+        }
+      ],
+      'day_trades': [],
+    };
+  }
 }

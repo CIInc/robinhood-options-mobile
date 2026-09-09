@@ -11,8 +11,13 @@ import 'package:robinhood_options_mobile/model/account_store.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user_store.dart';
 import 'package:robinhood_options_mobile/model/user_info.dart';
+import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
+import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
+import 'package:robinhood_options_mobile/services/robinhood_service.dart';
+import 'package:robinhood_options_mobile/services/demo_service.dart';
 import 'package:robinhood_options_mobile/utils/auth.dart';
+import 'package:robinhood_options_mobile/widgets/day_trade_monitor_widget.dart';
 
 final formatDate = DateFormat("yMMMd");
 final formatCompactDate = DateFormat("MMMd");
@@ -25,12 +30,14 @@ class UserInfoWidget extends StatelessWidget {
   final UserInfo user;
   final BrokerageUser brokerageUser;
   final FirestoreService firestoreService;
+  final IBrokerageService? service;
 
   const UserInfoWidget({
     super.key,
     required this.user,
     required this.brokerageUser,
     required this.firestoreService,
+    this.service,
   });
 
   String _selectionStorageKey() {
@@ -175,9 +182,92 @@ class UserInfoWidget extends StatelessWidget {
                 ],
               ],
             ),
-            subtitle: Text(
-                "${account.type}${account.portfolioCash != null ? " • Cash: ${formatCurrency.format(account.portfolioCash)}" : ""}",
-                style: const TextStyle(fontSize: 12, color: Colors.grey)),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "${account.type}${account.portfolioCash != null ? " • Cash: ${formatCurrency.format(account.portfolioCash)}" : ""}",
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+                const SizedBox(height: 4),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 4,
+                  children: [
+                    InkWell(
+                      borderRadius: BorderRadius.circular(4),
+                      onTap: () {
+                        final effectiveService = service ??
+                            (brokerageUser.source == BrokerageSource.robinhood
+                                ? RobinhoodService()
+                                : DemoService());
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => DayTradeMonitorWidget(
+                              brokerageUser: brokerageUser,
+                              service: effectiveService,
+                              account: account,
+                            ),
+                          ),
+                        );
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: account.markedPatternDayTraderDate != null
+                              ? Colors.purple.withValues(alpha: 0.15)
+                              : Theme.of(context)
+                                  .colorScheme
+                                  .surfaceContainerHighest,
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(
+                            color: account.markedPatternDayTraderDate != null
+                                ? Colors.purple
+                                : Theme.of(context).colorScheme.outlineVariant,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              account.markedPatternDayTraderDate != null
+                                  ? Icons.warning_rounded
+                                  : Icons.shield_outlined,
+                              size: 11,
+                              color: account.markedPatternDayTraderDate != null
+                                  ? Colors.purple
+                                  : Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant,
+                            ),
+                            const SizedBox(width: 3),
+                            Text(
+                              account.markedPatternDayTraderDate != null
+                                  ? "PDT Flagged"
+                                  : (account.dayTradesProtection
+                                      ? "PDT Protected"
+                                      : "Day Trades"),
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                                color:
+                                    account.markedPatternDayTraderDate != null
+                                        ? Colors.purple
+                                        : Theme.of(context)
+                                            .colorScheme
+                                            .onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [

@@ -12,6 +12,12 @@ class Account {
   final double? unsettledDebit;
   final double? settledAmountBorrowed;
   final bool isAgentic;
+  final bool dayTradesProtection;
+  final double? dayTradeBuyingPower;
+  final double? dayTradeRatio;
+  final DateTime? markedPatternDayTraderDate;
+  final DateTime? patternDayTraderExpiryDate;
+  final bool isPdtForever;
 
   Account(
       // this.userId,
@@ -24,7 +30,13 @@ class Account {
       this.cashHeldForOptionsCollateral,
       this.unsettledDebit,
       this.settledAmountBorrowed,
-      {this.isAgentic = false});
+      {this.isAgentic = false,
+      this.dayTradesProtection = true,
+      this.dayTradeBuyingPower,
+      this.dayTradeRatio,
+      this.markedPatternDayTraderDate,
+      this.patternDayTraderExpiryDate,
+      this.isPdtForever = false});
 
   Account.fromJson(dynamic json) //, BrokerageUser user
       : // userId = user.id,
@@ -43,7 +55,41 @@ class Account {
         isAgentic = json['is_agentic'] ??
             json['agentic_allowed'] ??
             (json['type'] == 'agentic') ??
-            false;
+            false,
+        dayTradesProtection = json['margin_balances'] != null &&
+                json['margin_balances']['day_trades_protection'] != null
+            ? json['margin_balances']['day_trades_protection'] == true
+            : (json['day_trades_protection'] ?? true),
+        dayTradeBuyingPower = json['margin_balances'] != null
+            ? parseDouble(json['margin_balances']['day_trade_buying_power'])
+            : parseDouble(json['day_trade_buying_power']),
+        dayTradeRatio = json['margin_balances'] != null
+            ? parseDouble(json['margin_balances']['day_trade_ratio'])
+            : parseDouble(json['day_trade_ratio']),
+        markedPatternDayTraderDate = json['margin_balances'] != null &&
+                json['margin_balances']['marked_pattern_day_trader_date'] !=
+                    null
+            ? DateTime.tryParse(json['margin_balances']
+                    ['marked_pattern_day_trader_date']
+                .toString())
+            : (json['marked_pattern_day_trader_date'] != null
+                ? DateTime.tryParse(
+                    json['marked_pattern_day_trader_date'].toString())
+                : null),
+        patternDayTraderExpiryDate = json['margin_balances'] != null &&
+                json['margin_balances']['pattern_day_trader_expiry_date'] !=
+                    null
+            ? DateTime.tryParse(json['margin_balances']
+                    ['pattern_day_trader_expiry_date']
+                .toString())
+            : (json['pattern_day_trader_expiry_date'] != null
+                ? DateTime.tryParse(
+                    json['pattern_day_trader_expiry_date'].toString())
+                : null),
+        isPdtForever = json['margin_balances'] != null &&
+                json['margin_balances']['is_pdt_forever'] != null
+            ? json['margin_balances']['is_pdt_forever'] == true
+            : (json['is_pdt_forever'] ?? false);
 
   Account.fromSchwabJson(dynamic json) //, BrokerageUser user
       : // userId = user.id,
@@ -63,7 +109,13 @@ class Account {
         cashHeldForOptionsCollateral = 0.0,
         unsettledDebit = 0.0,
         settledAmountBorrowed = 0.0,
-        isAgentic = false; // TODO
+        isAgentic = false,
+        dayTradesProtection = true,
+        dayTradeBuyingPower = null,
+        dayTradeRatio = null,
+        markedPatternDayTraderDate = null,
+        patternDayTraderExpiryDate = null,
+        isPdtForever = false; // TODO
 
   Account.fromPlaidJson(dynamic json) //, BrokerageUser user
       : // userId = user.id,
@@ -77,7 +129,13 @@ class Account {
         cashHeldForOptionsCollateral = 0.0,
         unsettledDebit = 0.0,
         settledAmountBorrowed = 0.0,
-        isAgentic = false; // TODO
+        isAgentic = false,
+        dayTradesProtection = true,
+        dayTradeBuyingPower = null,
+        dayTradeRatio = null,
+        markedPatternDayTraderDate = null,
+        patternDayTraderExpiryDate = null,
+        isPdtForever = false; // TODO
 
   Map<String, Object?> toJson() {
     return {
@@ -91,7 +149,15 @@ class Account {
       'cash_held_for_options_collateral': cashHeldForOptionsCollateral,
       'unsettled_debit': unsettledDebit,
       'settled_amount_borrowed': settledAmountBorrowed,
-      'is_agentic': isAgentic
+      'is_agentic': isAgentic,
+      'day_trades_protection': dayTradesProtection,
+      'day_trade_buying_power': dayTradeBuyingPower,
+      'day_trade_ratio': dayTradeRatio,
+      'marked_pattern_day_trader_date':
+          markedPatternDayTraderDate?.toIso8601String(),
+      'pattern_day_trader_expiry_date':
+          patternDayTraderExpiryDate?.toIso8601String(),
+      'is_pdt_forever': isPdtForever,
     };
   }
 

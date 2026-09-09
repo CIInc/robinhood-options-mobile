@@ -46,9 +46,9 @@ This document outlines the planned features and enhancements for RealizeAlpha.
 - **Focus Areas**: Advanced trading strategies, brokerage integrations, security, social features, AI coaching, quantitative research, behavioral finance, frontier tech
 
 ### Key Highlights
-- ✅ **Recently Completed**: AI Trading Coach & Behavioral Finance (Trading Psychology Score, Cognitive Bias Detection & Antidotes, Emotion Tracking & Journaling, Personalized Pattern Analysis), Forex currency pairs trading, Carry Trade Optimizer, multi-asset portfolio allocation (Stocks, Options, Crypto, Forex, Futures, Fixed Income, Cash).
+- ✅ **Recently Completed**: AI Trading Coach & Behavioral Finance (Trading Psychology Score, Cognitive Bias Detection & Antidotes, Emotion Tracking & Journaling, Personalized Pattern Analysis), Forex currency pairs trading, Carry Trade Optimizer, multi-asset portfolio allocation (Stocks, Options, Crypto, Forex, Futures, Fixed Income, Cash), Pattern Day Trader (PDT) Protection & Counter (FINRA Rule 4210 rolling 5-day counter & Action Center alerts).
 - 🔥 **In Progress**: Schwab multi-account support and Robinhood Native API Expansion.
-- 🚀 **Next Milestone**: **Robinhood Native API Expansion & Institutional Intelligence** (v0.41.5).
+- 🚀 **Next Milestone**: **Robinhood Market Data & Institutional Intelligence** (v0.43.0).
 - **Focus Areas**: Institutional-grade options analytics (GEX), AI-powered trade orchestration, and multi-brokerage expansion.
 - 🎯 **2026 Priorities**: 
   - **Q3**: AI Portfolio Architect, Smart Alerts & Market Intelligence, News & Sentiment Intelligence, Social Platform Evolution, Tax Optimization Suite
@@ -310,70 +310,83 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ **Emotion Tracking & Journaling:** Pre/post-trade emotion check-ins, confidence & energy levels, emotion journal persistence in Firestore, and emotional performance correlation.
 - ✅ **Trading Psychology Score:** Comprehensive psychology score (0-100) with four-pillar breakdown (Emotional Stability, Discipline & Patience, Bias Resistance, Risk Temperament) and psychological profile assessment.
 
-### v0.41.5 (Q4 2026 - October)
-**Robinhood Native API Expansion & Institutional Intelligence**
+### v0.42.0 ✅ (Released September 08, 2026)
+**Pattern Day Trader (PDT) Protection & Counter**
+- ✅ **Pattern Day Trader (PDT) Protection & Counter:** Real-time rolling 5-day day-trade counter for equities and options to prevent regulatory PDT restrictions (`/accounts/{account}/recent_day_trades/`).
+- ✅ **Day Trade & Summary Models:** 5-business-day roll-off calculation, FINRA Rule 4210 risk levels, and $25,000 equity exemption logic.
+- ✅ **Action Center PDT Alerts:** Critical and warning risk alerts in `PortfolioAlertService` with automatic $25k equity suppression.
+- ✅ **Day Trade & PDT Monitor:** Visual 4-segment gauge, FINRA threshold progress, buying power & protection panel, filterable trade ledger, and FINRA 4210 FAQ.
+- ✅ **Responsive & Overflow Hardening:** Clean responsive layout supporting narrow viewports (320px–360px) and full-width trade filtering.
+
+### v0.43.0 (Q4 2026 - Late September)
+**Robinhood Market Data & Institutional Intelligence**
 - **First-Party Whale Watch (Hedge Funds & Insiders):** Native Robinhood endpoints for hedge fund quarterly sentiment, manager transactions, insider net sentiment, and Form 4 trades (`/marketdata/hedgefunds/`, `/marketdata/insiders/`).
 - **Retail Order Flow & Robinhood Sentiment:** First-party net buy/sell percentage and volume percentage changes over time (`/marketdata/equities/summary/robinhood/`).
 - **Short Float & Live Borrow Availability:** Real-time short interest (`pc_freefloat`, days to cover) and live borrow availability and fee rates (`/marketdata/fundamentals/short/v1/`, `/instruments/{id}/shorting/`).
-- **Pattern Day Trader (PDT) Protection:** Real-time rolling 5-day day-trade counter for equities and options to prevent regulatory PDT restrictions (`/accounts/{account}/recent_day_trades/`).
+- **Robinhood Curated Screener Presets & Layouts:** Native server-side screener presets (`/screeners/presets/`, `/screeners`) and Robinhood Legend workspaces (`/hippo/bw/layouts`).
+
+### v0.44.0 (Q4 2026 - Early October)
+**Unified Margin Health, Collateral & Advanced Order Execution**
 - **Unified Risk & Margin Health:** Unified accounts endpoint integration (`/phoenix/accounts/unified`) for `margin_health`, `margin_buffer`, true options/crypto/account buying powers, and collateral holds.
 - **Margin Calls & Financing Costs:** Real-time margin call deficit demands and monthly margin interest debit history (`/margin/calls/`, `/cash_journal/margin_interest_charges/`).
 - **Instrument-Specific Buying Power & Trade Warnings:** Real-time buying power per instrument and risk/volatility warnings (`/accounts/{account}/instrument_buying_power/{id}/`, `/instruments/{id}/v2/warnings/`).
 - **Options Collateral & Tier Upgrades:** Chain-level cash/equity collateral breakdown (`/options/chains/{id}/collateral/`) and upgrade eligibility (`/options/should_show_options_upgrade_on_sdp/`).
-- **Banking, ACH & Cash Movement:** Monitor bank deposits, withdrawals, clearing status, and linked bank accounts (`/ach/transfers/`, `/ach/relationships/`).
-- **Securities Lending (SLIP) & Cash Sweeps:** Fully Paid Stock Loan income tracking (`/accounts/stock_loan_payments/`), SLIP status, and high-yield cash sweeps APY & tier tracking (`/accounts/sweeps/interest/`).
 - **Combo Orders (Stock + Option Packages):** Execution and order history for multi-leg equity and option packages (`/combo/orders/`).
+
+### v0.45.0 (Q4 2026 - Mid October)
+**Cash Management, Banking, Retirement & Tax Documents**
+- **Securities Lending (SLIP) & Cash Sweeps:** Fully Paid Stock Loan income tracking (`/accounts/stock_loan_payments/`), SLIP status, and high-yield cash sweeps APY & tier tracking (`/accounts/sweeps/interest/`).
+- **Banking, ACH & Cash Movement:** Monitor bank deposits, withdrawals, clearing status, and linked bank accounts (`/ach/transfers/`, `/ach/relationships/`).
 - **Corporate Action Splits & Shareholder Q&A:** Stock split cash-in-lieu adjustments (`/corp_actions/v2/split_payments/`) and Say Technologies earnings Q&A participation (`/qa/events-section/`).
 - **Multi-Account & Retirement Expansion:** Full multi-account hydration including Traditional/Roth IRAs (`ira_traditional`, `ira_roth`), contribution history (`/retirement/history/`), spending accounts (`/rhy/accounts/`), and connected agent management (`/oauth2/list_external_tokens/`).
 - **Tax Documents & Statements:** Direct access and download for 1099 tax documents, monthly statements, ADR fees, and foreign tax withholding (`/documents/?type=1099`, `/corp_actions/adr_fees/`, `/tax_info/`).
-- **Robinhood Curated Screener Presets & Layouts:** Native server-side screener presets (`/screeners/presets/`, `/screeners`) and Robinhood Legend workspaces (`/hippo/bw/layouts`).
 
-### v0.42.0 (Q4 2026 - November)
+### v0.46.0 (Q4 2026 - November)
 **Investor Groups 2.0 & Collaborative Analytics**
 - Group chat (real-time messaging) ([Tracking: #113](https://github.com/CIInc/robinhood-options-mobile/issues/113))
 - Performance leaderboards & shared analysis boards.
 - Verified track records for public group leaders.
 
-### v0.43.0 (Q4 2026 - December)
+### v0.47.0 (Q4 2026 - December)
 **Social Platform & Performance Following**
 - Follow portfolios ([Tracking: #27](https://github.com/CIInc/robinhood-options-mobile/issues/27))
 - Top portfolios leaderboard and user reputation system.
 - Social feed for shared trade ideas and strategy cloning.
 
-### v0.44.0 (Q4 2026 - Late Dec)
+### v0.48.0 (Q4 2026 - Late Dec)
 **Security, Compliance & Tax Reporting**
 - Two-factor authentication (2FA) and biometric hardening.
 - Capital gains optimizer and wash sale detector ([Tracking: #114](https://github.com/CIInc/robinhood-options-mobile/issues/114)).
 - IRS Form 8949 reporting support.
 
-### v0.45.0 (2027 Q1 - Jan)
+### v0.49.0 (2027 Q1 - Jan)
 **Mobile Excellence & Platform Polish**
 - Offline mode with intelligent data caching.
 - Landscape mode support for advanced charting.
 - Apple Watch & Wear OS companion app.
 
-### v0.47.0 (2027 Q1 - Jan)
+### v0.50.0 (2027 Q1 - Jan)
 **Advanced Social & Community**
 - Group analytics & insights
 - Community trade ideas voting
 - NFT-based portfolio achievements
 - Decentralized portfolio verification
 
-### v0.48.0 (2027 Q1 - Feb)
+### v0.51.0 (2027 Q1 - Feb)
 **Options Analytics Pro**
 - Implied volatility surface 3D visualizer
 - Options flow anomaly detector
 - Earnings volatility analyzer
 - Delta-neutral portfolio builder
 
-### v0.49.0 (2027 Q1 - March)
+### v0.52.0 (2027 Q1 - March)
 **Algorithmic Strategy Marketplace ([Tracking: #141](https://github.com/CIInc/robinhood-options-mobile/issues/141))**
 - Community strategy sharing with performance proofs
 - Strategy rental/subscription model
 - Algorithmic strategy backtesting as a service
 - Automated royalty distribution
 
-### v0.50.0+ (2027 Q2+)
+### v0.53.0+ (2027 Q2+)
 **Future Vision**
 - Retirement Planning ([Tracking: #139](https://github.com/CIInc/robinhood-options-mobile/issues/139))
 - Credit & Lending Integration
@@ -632,6 +645,11 @@ Mapping features to specific versions helps users anticipate releases and unders
     - [x] Place stock orders directly from the app
 - [x] **Dynamic Position Sizing**:
     - [x] Automatically calculate trade size based on risk parameters
+- [x] **Pattern Day Trader (PDT) Protection & Counter** (v0.42.0):
+    - [x] Real-time rolling 5-day counter for equities and options (`/accounts/{account}/recent_day_trades/`)
+    - [x] FINRA Rule 4210 $25,000 equity threshold tracking and live deficit calculations
+    - [x] Action Center critical and warning risk alerts in `PortfolioAlertService` with $25k equity exemption suppression
+    - [x] `DayTradeMonitorWidget` dashboard with 4-segment visual counter and segmented filters
 
 ### Brokerage & Asset Expansion
 - [x] **Crypto Trading** ([#116](https://github.com/CIInc/robinhood-options-mobile/issues/116)):
@@ -710,7 +728,7 @@ Q3 2026 shifts focus from basic execution to **Advanced Intelligence** and **Reg
 - [x] **Import/Export**: Fidelity CSV import, CSV export for portfolio analytics - **Small** (1-2 weeks)
 - [x] **AI Portfolio Architect (Alpha)** (v0.37.1): Natural language portfolio construction - **Large** (4-6 weeks)
 - [ ] **Unified Margin Health & Collateral Tracking**: Monitor margin buffers, warning states, and option/crypto collateral allocations (`/phoenix/accounts/unified`) - **Medium** (2-3 weeks)
-- [ ] **Pattern Day Trader (PDT) Protection & Counter**: Real-time rolling 5-day day-trade counter for equities and options to prevent regulatory PDT restrictions (`/accounts/{account}/recent_day_trades/`) - **Small** (1-2 weeks)
+- [x] **Pattern Day Trader (PDT) Protection & Counter** (v0.42.0): Real-time rolling 5-day day-trade counter for equities and options to prevent regulatory PDT restrictions (`/accounts/{account}/recent_day_trades/`) - **Small** (1-2 weeks)
 - [ ] **Margin Calls & Financing Costs**: Real-time margin call deficit notifications and monthly margin interest debit history (`/margin/calls/`, `/cash_journal/margin_interest_charges/`) - **Small** (1-2 weeks)
 - [ ] **Stock Lending Program (SLIP) Dashboard**: Track loaned shares, earned yield payments, and agreement eligibility (`/accounts/stock_loan_payments/`, `/slip/eligibility/`) - **Small** (1-2 weeks)
 - [ ] **Cash Sweeps & APY Rate Monitor**: Track FDIC sweep balances and multi-tier interest rates (`/accounts/sweeps/interest/`) - **Small** (1 week)

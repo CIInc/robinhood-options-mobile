@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
+import 'package:robinhood_options_mobile/model/day_trade.dart';
 import 'package:robinhood_options_mobile/model/instrument_position.dart';
 import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/portfolio_alert.dart';
@@ -34,9 +35,11 @@ class PortfolioAlertService {
     double? totalEquity,
     Map<String, dynamic>? analytics,
     String benchmarkSymbol = 'SPY',
+    DayTradeSummary? dayTradeSummary,
   }) {
     final alerts = <PortfolioAlert>[];
 
+    alerts.addAll(_pdtAlerts(account, totalEquity, dayTradeSummary));
     alerts.addAll(_taxAlerts(instrumentPositions, optionPositions));
     alerts.addAll(_concentrationAlerts(instrumentPositions, optionPositions));
     alerts.addAll(_cashAlerts(account, totalEquity));
@@ -47,6 +50,68 @@ class PortfolioAlertService {
 
     alerts.sort((a, b) => a.severity.index.compareTo(b.severity.index));
     return alerts;
+  }
+
+  static List<PortfolioAlert> _pdtAlerts(
+    Account? account,
+    double? totalEquity,
+    DayTradeSummary? dayTradeSummary,
+  ) {
+    if (account == null) return const [];
+    final isCash = account.type.toLowerCase().contains('cash');
+    if (isCash) return const [];
+
+    final equity = totalEquity ?? account.portfolioCash ?? 0.0;
+    if (equity >= 25000.0) return const [];
+
+    if (account.markedPatternDayTraderDate != null ||
+        (dayTradeSummary != null &&
+            dayTradeSummary.riskLevel == PdtRiskLevel.flagged)) {
+      return [
+        PortfolioAlert(
+          id: 'pdt-flagged',
+          severity: PortfolioAlertSeverity.critical,
+          icon: Icons.gavel_outlined,
+          title: 'Pattern Day Trader restriction active',
+          detail:
+              'Account is flagged as PDT with equity under \$25,000. Day trading is restricted.',
+          metric: _currency.format(equity),
+          target: PortfolioAlertTarget.risk,
+        ),
+      ];
+    }
+
+    if (dayTradeSummary != null) {
+      if (dayTradeSummary.riskLevel == PdtRiskLevel.danger) {
+        return [
+          PortfolioAlert(
+            id: 'pdt-limit-reached',
+            severity: PortfolioAlertSeverity.critical,
+            icon: Icons.warning_amber_rounded,
+            title: 'PDT limit reached (0 remaining)',
+            detail:
+                'Executing another day trade will designate your account as a Pattern Day Trader under FINRA Rule 4210.',
+            metric: '${dayTradeSummary.activeDayTradeCount} / 3 used',
+            target: PortfolioAlertTarget.risk,
+          ),
+        ];
+      } else if (dayTradeSummary.riskLevel == PdtRiskLevel.warning) {
+        return [
+          PortfolioAlert(
+            id: 'pdt-warning',
+            severity: PortfolioAlertSeverity.warning,
+            icon: Icons.shield_outlined,
+            title: '1 day trade remaining',
+            detail:
+                'You have 1 day trade available before reaching the FINRA PDT threshold.',
+            metric: '${dayTradeSummary.activeDayTradeCount} / 3 used',
+            target: PortfolioAlertTarget.risk,
+          ),
+        ];
+      }
+    }
+
+    return const [];
   }
 
   static List<PortfolioAlert> _taxAlerts(
