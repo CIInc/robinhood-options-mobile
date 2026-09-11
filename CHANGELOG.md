@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.43.0] - 2026-09-08
+**Robinhood Market Data & Institutional Intelligence: Short Float & Live Borrow Availability**
+
+### Added
+- **Short Float & Live Borrow Availability:** Integrated first-party Robinhood market data endpoints (`/marketdata/fundamentals/short/v1/`, `/instruments/{id}/shorting/`) into the mobile trading experience to provide real-time short float percentage, days to cover, borrow inventory tiers, borrow fee rates, and short squeeze risk modeling.
+- **Short Interest & Shorting Models:** Added `ShortInterest`, `ShortingAvailability`, and `ShortInterestSummary` in `lib/model/short_interest.dart` with robust JSON parsing, automatic scale normalization (`freeFloatPercentage`, `borrowFeeRatePercentage`), settlement date parsing, change calculations, and `ShortSqueezeRisk` (`low`, `moderate`, `elevated`, `high`, `extreme`) and `BorrowCostLevel` (`easyToBorrow`, `moderate`, `elevated`, `high`) categorizations.
+- **Brokerage Service Short Data Support:** Added `getShortInterest` and `getShortingAvailability` to `IBrokerageService` and implemented realistic mock short fundamentals and borrow availability in `DemoService` (including high-congestion short squeeze scenarios for GME and easy-to-borrow profiles for AAPL/TSLA), with graceful fallbacks across Paper, Plaid, Fidelity, and Schwab services.
+- **Short Float & Borrow Rates UI Widget:** Created `ShortInterestWidget` (`lib/widgets/short_interest_widget.dart`) featuring:
+  - Header with dynamic squeeze risk status badge and borrow cost / inventory chip.
+  - Primary metric cards: Short % of Free Float (with progress indicator), Days to Cover (Short Ratio), Borrow Fee Rate (Annual Cost), and Borrow Inventory (`HIGH`, `MEDIUM`, `LOW`, `NONE`).
+  - Squeeze description banner explaining market dynamics for the current risk tier.
+  - Expandable detailed table with current vs. prior shares short (+/- change & % change), total free float, average daily volume, FINRA settlement date, margin requirements, locate requirements, and borrow warning callouts.
+  - Educational guidance card detailing short interest, days to cover, and borrow fee mechanics.
+- **Instrument Detail Page Integration:** Integrated `ShortInterestWidget` directly into `InstrumentWidget` slivers for equity instruments.
+- **Documentation:** Added comprehensive technical and user guide in `docs/short-interest.md` and linked in `docs/index.md`.
+
+### Testing
+- Added `short_interest_test.dart` (13 tests) covering `ShortInterest` JSON deserialization, free float scaling, share change computation, `ShortingAvailability` borrow fee rates, hard-to-borrow inference, `ShortSqueezeRisk` multi-factor scoring, `BorrowCostLevel` categorization, and `DemoService` response contracts.
+- Added `short_interest_widget_test.dart` (3 tests) covering UI rendering of short metrics, header badges, primary metric cards, expand/collapse interaction, borrow restriction callouts, and responsive layout across standard and compact (320px) mobile screens.
+
 ## [0.42.0] - 2026-09-08
 **Pattern Day Trader (PDT) Protection & Counter, Margin Health & Risk Monitoring**
 

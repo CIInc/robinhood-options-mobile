@@ -2254,6 +2254,18 @@ https://api.schwabapi.com/marketdata/v1/instruments?symbol=Google&projection=sea
   }
 
   @override
+  Future<dynamic> getShortInterest(BrokerageUser user, String instrumentId,
+      {String? startDate}) async {
+    return null;
+  }
+
+  @override
+  Future<dynamic> getShortingAvailability(
+      BrokerageUser user, String instrumentId) async {
+    return null;
+  }
+
+  @override
   Future<List<ForexOrder>> getForexOrders(BrokerageUser user) {
     throw UnimplementedError();
   }

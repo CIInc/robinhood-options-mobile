@@ -322,7 +322,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 **Robinhood Market Data & Institutional Intelligence**
 - **First-Party Whale Watch (Hedge Funds & Insiders):** Native Robinhood endpoints for hedge fund quarterly sentiment, manager transactions, insider net sentiment, and Form 4 trades (`/marketdata/hedgefunds/`, `/marketdata/insiders/`).
 - **Retail Order Flow & Robinhood Sentiment:** First-party net buy/sell percentage and volume percentage changes over time (`/marketdata/equities/summary/robinhood/`).
-- **Short Float & Live Borrow Availability:** Real-time short interest (`pc_freefloat`, days to cover) and live borrow availability and fee rates (`/marketdata/fundamentals/short/v1/`, `/instruments/{id}/shorting/`).
+- ✅ **Short Float & Live Borrow Availability:** Real-time short interest (`pc_freefloat`, days to cover) and live borrow availability and fee rates (`/marketdata/fundamentals/short/v1/`, `/instruments/{id}/shorting/`).
 - **Robinhood Curated Screener Presets & Layouts:** Native server-side screener presets (`/screeners/presets/`, `/screeners`) and Robinhood Legend workspaces (`/hippo/bw/layouts`).
 
 ### v0.44.0 (Q4 2026 - Early October)
@@ -747,7 +747,7 @@ Q3 2026 shifts focus from basic execution to **Advanced Intelligence** and **Reg
 - [ ] **First-Party Institutional & Hedge Fund Tracking**: Real-time hedge fund sentiment, quarterly manager holdings, and transaction history directly from Robinhood marketdata endpoints (`/marketdata/hedgefunds/`) - **Small** (1-2 weeks)
 - [ ] **First-Party Insider Sentiment & Activity**: Monthly aggregate insider transactions and director/officer Form 4 tracking (`/marketdata/insiders/`) - **Small** (1-2 weeks)
 - [ ] **Robinhood Retail Flow & Sentiment**: Net buy/sell percentage and order volume trends (`/marketdata/equities/summary/robinhood/`) - **Small** (1-2 weeks)
-- [ ] **Short Float & Live Shorting Rates**: Real-time free float short percentage, shares short, borrow inventory levels, and borrow fee rates (`/marketdata/fundamentals/short/v1/`, `/instruments/{id}/shorting/`) - **Small** (1-2 weeks)
+- [x] **Short Float & Live Shorting Rates**: Real-time free float short percentage, shares short, borrow inventory levels, and borrow fee rates (`/marketdata/fundamentals/short/v1/`, `/instruments/{id}/shorting/`) - **Small** (1-2 weeks)
 - [ ] **Robinhood Curated Screener Presets**: Backend screener presets integration (`/screeners/presets/`, `/screeners`) - **Small** (1 week)
 - [x] **Income View NAV** ([#20](https://github.com/CIInc/robinhood-options-mobile/issues/20)): Net Asset Value tracking - **Small** (1 week)
 - [x] **Income Chart** ([#17](https://github.com/CIInc/robinhood-options-mobile/issues/17)): Portfolio income visualization - **Small** (1 week)

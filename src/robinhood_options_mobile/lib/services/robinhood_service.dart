@@ -4696,6 +4696,9 @@ WATCHLIST
 
   /// Fetches short interest fundamentals (free float short %, shares short, upper/lower bounds)
   /// https://api.robinhood.com/marketdata/fundamentals/short/v1/?ids={instrument_id}&start_date={startDate}
+  /// Example response:
+  /// {"status":"SUCCESS","data":[{"status":"SUCCESS","data":{"symbol":"PCG","instrument_id":"f87d7cd7-a842-47cc-9b32-c607d96e7dfb","exchange_symbol":"NYSE","daily_data":[{"shares_short":"37485031.0485","shares_upper_bound":"45062286.3985","shares_lower_bound":"28715885.2164","pc_freefloat":"1.8","pc_freefloat_upper_bound":"2.1639","pc_freefloat_lower_bound":"1.3789","date":"2026-09-07"},{"shares_short":"41010570.7579","shares_upper_bound":"59965035.1079","shares_lower_bound":"18356397.7737","pc_freefloat":"1.9693","pc_freefloat_upper_bound":"2.8795","pc_freefloat_lower_bound":"0.8815","date":"2026-09-08"},{"shares_short":"38745955.5719","shares_upper_bound":"50392318.9219","shares_lower_bound":"25010769.7326","pc_freefloat":"1.8606","pc_freefloat_upper_bound":"2.4199","pc_freefloat_lower_bound":"1.201","date":"2026-09-09"}]}}]}
+  @override
   Future<dynamic> getShortInterest(BrokerageUser user, String instrumentId,
       {String? startDate}) async {
     var query = "ids=$instrumentId";
@@ -4708,6 +4711,9 @@ WATCHLIST
 
   /// Fetches real-time shorting availability, borrow inventory range, and borrow fee rates
   /// https://api.robinhood.com/instruments/{instrument_id}/shorting/
+  /// Example response:
+  /// {"instrument":"https:\/\/api.robinhood.com\/instruments\/f87d7cd7-a842-47cc-9b32-c607d96e7dfb\/","instrument_id":"f87d7cd7-a842-47cc-9b32-c607d96e7dfb","fee":"0.0000","fee_timestamp":"2026-09-10T23:45:00Z","inventory_range":">1M","inventory_timestamp":"2026-09-10T22:01:00.050936Z","daily_fee":"0.0000","created_at":"2025-08-06T23:11:01.583130Z","updated_at":"2026-09-10T22:01:57.223877Z"}
+  @override
   Future<dynamic> getShortingAvailability(
       BrokerageUser user, String instrumentId) async {
     var url = "$endpoint/instruments/$instrumentId/shorting/";
@@ -5047,6 +5053,7 @@ WATCHLIST
 
   /// Fetches rolling 5-day equity and option day trade counts to monitor Pattern Day Trader status
   /// https://api.robinhood.com/accounts/{account}/recent_day_trades/
+  @override
   Future<dynamic> getRecentDayTrades(
       BrokerageUser user, String accountNumber) async {
     var url = "$endpoint/accounts/$accountNumber/recent_day_trades/";

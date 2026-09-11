@@ -1190,6 +1190,18 @@ class FidelityService implements IBrokerageService {
   }
 
   @override
+  Future<dynamic> getShortInterest(BrokerageUser user, String instrumentId,
+      {String? startDate}) async {
+    return null;
+  }
+
+  @override
+  Future<dynamic> getShortingAvailability(
+      BrokerageUser user, String instrumentId) async {
+    return null;
+  }
+
+  @override
   Future<List<dynamic>> getFuturesOrders(
       BrokerageUser user, String account) async {
     return [];

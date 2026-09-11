@@ -1903,4 +1903,114 @@ class DemoService implements IBrokerageService {
       'day_trades': [],
     };
   }
+
+  @override
+  Future<dynamic> getShortInterest(BrokerageUser user, String instrumentId,
+      {String? startDate}) async {
+    final lowerId = instrumentId.toLowerCase();
+    if (lowerId.contains('gme')) {
+      return {
+        'results': [
+          {
+            'instrument_id': instrumentId,
+            'symbol': 'GME',
+            'pc_freefloat': 0.245,
+            'shares_short': 64500000,
+            'shares_short_prior': 58200000,
+            'short_interest_change': 6300000,
+            'short_interest_change_pct': 0.1082,
+            'days_to_cover': 6.4,
+            'settlement_date': '2026-08-15',
+            'free_float': 263000000,
+            'average_daily_volume': 10080000,
+            'updated_at': '2026-08-28T00:00:00Z',
+          }
+        ]
+      };
+    } else if (lowerId.contains('tsla')) {
+      return {
+        'results': [
+          {
+            'instrument_id': instrumentId,
+            'symbol': 'TSLA',
+            'pc_freefloat': 0.082,
+            'shares_short': 85400000,
+            'shares_short_prior': 89100000,
+            'short_interest_change': -3700000,
+            'short_interest_change_pct': -0.0415,
+            'days_to_cover': 2.8,
+            'settlement_date': '2026-08-15',
+            'free_float': 1041000000,
+            'average_daily_volume': 30500000,
+            'updated_at': '2026-08-28T00:00:00Z',
+          }
+        ]
+      };
+    }
+
+    // Default (AAPL / general equity)
+    return {
+      'results': [
+        {
+          'instrument_id': instrumentId,
+          'symbol': 'AAPL',
+          'pc_freefloat': 0.0285,
+          'shares_short': 121400000,
+          'shares_short_prior': 119800000,
+          'short_interest_change': 1600000,
+          'short_interest_change_pct': 0.0133,
+          'days_to_cover': 1.9,
+          'settlement_date': '2026-08-15',
+          'free_float': 4260000000,
+          'average_daily_volume': 63900000,
+          'updated_at': '2026-08-28T00:00:00Z',
+        }
+      ]
+    };
+  }
+
+  @override
+  Future<dynamic> getShortingAvailability(
+      BrokerageUser user, String instrumentId) async {
+    final lowerId = instrumentId.toLowerCase();
+    if (lowerId.contains('gme')) {
+      return {
+        'instrument_id': instrumentId,
+        'can_short': true,
+        'inventory': 'LOW',
+        'borrow_fee_rate': 0.185,
+        'is_hard_to_borrow': true,
+        'hard_to_borrow_reason':
+            'High borrow demand and tight loan availability',
+        'margin_requirement': 2.0,
+        'locate_required': true,
+        'updated_at': '2026-09-08T14:30:00Z',
+      };
+    } else if (lowerId.contains('tsla')) {
+      return {
+        'instrument_id': instrumentId,
+        'can_short': true,
+        'inventory': 'MEDIUM',
+        'borrow_fee_rate': 0.0125,
+        'is_hard_to_borrow': false,
+        'hard_to_borrow_reason': null,
+        'margin_requirement': 1.5,
+        'locate_required': false,
+        'updated_at': '2026-09-08T14:30:00Z',
+      };
+    }
+
+    // Default (AAPL / general equity)
+    return {
+      'instrument_id': instrumentId,
+      'can_short': true,
+      'inventory': 'HIGH',
+      'borrow_fee_rate': 0.0035,
+      'is_hard_to_borrow': false,
+      'hard_to_borrow_reason': null,
+      'margin_requirement': 1.5,
+      'locate_required': false,
+      'updated_at': '2026-09-08T14:30:00Z',
+    };
+  }
 }

@@ -52,6 +52,7 @@ import 'package:robinhood_options_mobile/widgets/gamma_exposure_widget.dart';
 import 'package:robinhood_options_mobile/widgets/pnl_badge.dart';
 import 'package:robinhood_options_mobile/widgets/position_order_widget.dart';
 import 'package:robinhood_options_mobile/widgets/price_targets_widget.dart';
+import 'package:robinhood_options_mobile/widgets/short_interest_widget.dart';
 import 'package:robinhood_options_mobile/widgets/trade_signal_notification_settings_widget.dart';
 import 'package:robinhood_options_mobile/widgets/strategy_builder_widget.dart';
 import 'package:robinhood_options_mobile/widgets/trade_instrument_widget.dart';
@@ -1713,6 +1714,15 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                   generativeService: widget.generativeService,
                 ),
               )),
+              if (instrument.type == 'stock' || instrument.type.isEmpty) ...[
+                SliverToBoxAdapter(
+                  child: ShortInterestWidget(
+                    brokerageUser: widget.brokerageUser,
+                    service: widget.service,
+                    instrument: instrument,
+                  ),
+                ),
+              ],
               // Not working, show progress indicator indefinitely
               // SliverToBoxAdapter(
               //   child: Padding(

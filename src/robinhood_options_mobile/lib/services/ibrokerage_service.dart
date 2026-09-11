@@ -318,4 +318,16 @@ abstract class IBrokerageService {
       BrokerageUser user, String accountNumber) async {
     return null;
   }
+
+  /// Fetches short interest fundamentals (free float short %, shares short, days to cover)
+  Future<dynamic> getShortInterest(BrokerageUser user, String instrumentId,
+      {String? startDate}) async {
+    return null;
+  }
+
+  /// Fetches real-time shorting availability, borrow inventory range, and borrow fee rates
+  Future<dynamic> getShortingAvailability(
+      BrokerageUser user, String instrumentId) async {
+    return null;
+  }
 }
