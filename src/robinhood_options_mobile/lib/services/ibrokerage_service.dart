@@ -330,4 +330,10 @@ abstract class IBrokerageService {
       BrokerageUser user, String instrumentId) async {
     return null;
   }
+
+  /// Fetches daily Robinhood retail customer net buy/sell percentages and volume shifts
+  Future<dynamic> getRetailSentiment(
+      BrokerageUser user, String instrumentId) async {
+    return null;
+  }
 }

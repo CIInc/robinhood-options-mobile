@@ -2013,4 +2013,182 @@ class DemoService implements IBrokerageService {
       'updated_at': '2026-09-08T14:30:00Z',
     };
   }
+
+  @override
+  Future<dynamic> getRetailSentiment(
+      BrokerageUser user, String instrumentId) async {
+    final lowerId = instrumentId.toLowerCase();
+    if (lowerId.contains('gme')) {
+      return {
+        'status': 'SUCCESS',
+        'data': {
+          'instrument_id': instrumentId,
+          'symbol': 'GME',
+          'daily_transactions': [
+            {
+              'date': '2026-09-06',
+              'net_buy_percentage': 44.2,
+              'net_sell_percentage': -44.2,
+              'buy_volume_percentage_change': 18.4,
+              'sell_volume_percentage_change': -5.2,
+            },
+            {
+              'date': '2026-09-07',
+              'net_buy_percentage': 53.0,
+              'net_sell_percentage': -53.0,
+              'buy_volume_percentage_change': 25.1,
+              'sell_volume_percentage_change': -8.0,
+            },
+            {
+              'date': '2026-09-08',
+              'net_buy_percentage': 60.8,
+              'net_sell_percentage': -60.8,
+              'buy_volume_percentage_change': 41.3,
+              'sell_volume_percentage_change': -12.4,
+            },
+            {
+              'date': '2026-09-09',
+              'net_buy_percentage': 65.6,
+              'net_sell_percentage': -65.6,
+              'buy_volume_percentage_change': 55.0,
+              'sell_volume_percentage_change': -15.1,
+            },
+            {
+              'date': '2026-09-10',
+              'net_buy_percentage': 68.4,
+              'net_sell_percentage': -68.4,
+              'buy_volume_percentage_change': 62.1,
+              'sell_volume_percentage_change': -18.5,
+            },
+          ],
+        }
+      };
+    } else if (lowerId.contains('tsla')) {
+      return {
+        'status': 'SUCCESS',
+        'data': {
+          'instrument_id': instrumentId,
+          'symbol': 'TSLA',
+          'daily_transactions': [
+            {
+              'date': '2026-09-06',
+              'net_buy_percentage': 40.4,
+              'net_sell_percentage': -40.4,
+              'buy_volume_percentage_change': 8.5,
+              'sell_volume_percentage_change': 2.1,
+            },
+            {
+              'date': '2026-09-07',
+              'net_buy_percentage': 45.6,
+              'net_sell_percentage': -45.6,
+              'buy_volume_percentage_change': 12.0,
+              'sell_volume_percentage_change': -1.5,
+            },
+            {
+              'date': '2026-09-08',
+              'net_buy_percentage': 50.2,
+              'net_sell_percentage': -50.2,
+              'buy_volume_percentage_change': 18.2,
+              'sell_volume_percentage_change': -3.2,
+            },
+            {
+              'date': '2026-09-09',
+              'net_buy_percentage': 53.8,
+              'net_sell_percentage': -53.8,
+              'buy_volume_percentage_change': 21.4,
+              'sell_volume_percentage_change': -4.0,
+            },
+            {
+              'date': '2026-09-10',
+              'net_buy_percentage': 57.0,
+              'net_sell_percentage': -57.0,
+              'buy_volume_percentage_change': 24.8,
+              'sell_volume_percentage_change': -6.5,
+            },
+          ],
+        }
+      };
+    } else if (lowerId.contains('bear')) {
+      return {
+        'status': 'SUCCESS',
+        'data': {
+          'instrument_id': instrumentId,
+          'symbol': 'BEAR',
+          'daily_transactions': [
+            {
+              'date': '2026-09-08',
+              'net_buy_percentage': -16.0,
+              'net_sell_percentage': 16.0,
+              'buy_volume_percentage_change': -4.5,
+              'sell_volume_percentage_change': 10.2,
+            },
+            {
+              'date': '2026-09-09',
+              'net_buy_percentage': -24.0,
+              'net_sell_percentage': 24.0,
+              'buy_volume_percentage_change': -8.0,
+              'sell_volume_percentage_change': 18.5,
+            },
+            {
+              'date': '2026-09-10',
+              'net_buy_percentage': -32.0,
+              'net_sell_percentage': 32.0,
+              'buy_volume_percentage_change': -12.0,
+              'sell_volume_percentage_change': 25.4,
+            },
+          ],
+        }
+      };
+    }
+
+    // Default (AAPL / general equity) matches exact Robinhood marketdata response structure
+    return {
+      "instrument_id": instrumentId,
+      "symbol": "AAPL",
+      "daily_transactions": [
+        {
+          "date": "2026-08-12",
+          "net_buy_percentage": 6.733010406913009,
+          "net_sell_percentage": -6.733010406913009,
+          "buy_volume_percentage_change": null,
+          "sell_volume_percentage_change": null
+        },
+        {
+          "date": "2026-08-13",
+          "net_buy_percentage": 2.2814620083776327,
+          "net_sell_percentage": -2.2814620083776327,
+          "buy_volume_percentage_change": -34.70567348204625,
+          "sell_volume_percentage_change": -28.611824946031497
+        },
+        {
+          "date": "2026-08-14",
+          "net_buy_percentage": -5.055151777329453,
+          "net_sell_percentage": 5.055151777329453,
+          "buy_volume_percentage_change": -13.866593391011422,
+          "sell_volume_percentage_change": -0.24434133127768348
+        },
+        {
+          "date": "2026-08-17",
+          "net_buy_percentage": 19.189000228545446,
+          "net_sell_percentage": -19.189000228545446,
+          "buy_volume_percentage_change": 29.120929708272094,
+          "sell_volume_percentage_change": -20.880233413744534
+        },
+        {
+          "date": "2026-09-08",
+          "net_buy_percentage": 16.631773895830328,
+          "net_sell_percentage": -16.631773895830328,
+          "buy_volume_percentage_change": -2.3809395349908087,
+          "sell_volume_percentage_change": 14.806796950636732
+        },
+        {
+          "date": "2026-09-09",
+          "net_buy_percentage": 31.58138057168694,
+          "net_sell_percentage": -31.58138057168694,
+          "buy_volume_percentage_change": 112.82247169835675,
+          "sell_volume_percentage_change": 54.81522591529
+        }
+      ]
+    };
+  }
 }

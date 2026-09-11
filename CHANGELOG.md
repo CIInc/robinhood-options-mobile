@@ -2,10 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.43.0] - 2026-09-08
-**Robinhood Market Data & Institutional Intelligence: Short Float & Live Borrow Availability**
+## [0.43.0] - 2026-09-10
+**Robinhood Market Data & Institutional Intelligence: Retail Order Flow, Robinhood Sentiment & Short Float Analytics**
 
 ### Added
+- **Retail Order Flow & Robinhood Sentiment:** Integrated first-party Robinhood market data endpoint (`/marketdata/equities/summary/robinhood/{instrument_id}/`) to surface retail customer buy and sell ratios, net accumulation/distribution bias, trading volume percentage changes, and historical sentiment shifts.
+- **Retail Order Flow Data Models:** Added `RetailOrderFlow` and `RetailOrderFlowPoint` in `lib/model/retail_order_flow.dart` with robust JSON parsing, automatic scale normalization (supporting both decimal and percentage ratios), net flow calculation, and 5-tier sentiment classification (`Strong Bullish`, `Bullish`, `Neutral`, `Bearish`, `Strong Bearish`).
+- **Brokerage Service Retail Sentiment Support:** Added `getRetailSentiment` to `IBrokerageService` and implemented realistic mock retail order flow in `DemoService` (featuring retail squeeze fervor for GME, strong accumulation for TSLA, moderate bullish flows for AAPL, and net distribution for inverse/bearish equities), with graceful fallbacks across Paper, Plaid, Fidelity, and Schwab services.
+- **Retail Order Flow UI Widget:** Created `RetailOrderFlowWidget` (`lib/widgets/retail_order_flow_widget.dart`) featuring:
+  - Header with color-coded sentiment regime badge and net order flow chip.
+  - Visual two-tone split bar contrasting retail buyers % and sellers %.
+  - Primary metric cards: Net Retail Bias (Accumulation / Distribution), Buy Orders count, and Volume Shift trend.
+  - Contextual summary banner interpreting retail momentum and trader conviction.
+  - Expandable historical table displaying daily retail flow snapshots (Date, Buy %, Sell %, Net Flow, and Volume Shift).
+  - Educational guidance card explaining Robinhood retail order flow dynamics and sentiment divergence.
+- **Instrument Detail Integration:** Embedded `RetailOrderFlowWidget` directly in `InstrumentWidget` slivers alongside short interest data for equity instruments.
 - **Short Float & Live Borrow Availability:** Integrated first-party Robinhood market data endpoints (`/marketdata/fundamentals/short/v1/`, `/instruments/{id}/shorting/`) into the mobile trading experience to provide real-time short float percentage, days to cover, borrow inventory tiers, borrow fee rates, and short squeeze risk modeling.
 - **Short Interest & Shorting Models:** Added `ShortInterest`, `ShortingAvailability`, and `ShortInterestSummary` in `lib/model/short_interest.dart` with robust JSON parsing, automatic scale normalization (`freeFloatPercentage`, `borrowFeeRatePercentage`), settlement date parsing, change calculations, and `ShortSqueezeRisk` (`low`, `moderate`, `elevated`, `high`, `extreme`) and `BorrowCostLevel` (`easyToBorrow`, `moderate`, `elevated`, `high`) categorizations.
 - **Brokerage Service Short Data Support:** Added `getShortInterest` and `getShortingAvailability` to `IBrokerageService` and implemented realistic mock short fundamentals and borrow availability in `DemoService` (including high-congestion short squeeze scenarios for GME and easy-to-borrow profiles for AAPL/TSLA), with graceful fallbacks across Paper, Plaid, Fidelity, and Schwab services.
@@ -16,9 +27,11 @@ All notable changes to this project will be documented in this file.
   - Expandable detailed table with current vs. prior shares short (+/- change & % change), total free float, average daily volume, FINRA settlement date, margin requirements, locate requirements, and borrow warning callouts.
   - Educational guidance card detailing short interest, days to cover, and borrow fee mechanics.
 - **Instrument Detail Page Integration:** Integrated `ShortInterestWidget` directly into `InstrumentWidget` slivers for equity instruments.
-- **Documentation:** Added comprehensive technical and user guide in `docs/short-interest.md` and linked in `docs/index.md`.
+- **Documentation:** Added comprehensive technical and user guide in `docs/short-interest.md` and `docs/retail-order-flow.md`, and linked in `docs/index.md`.
 
 ### Testing
+- Added `retail_order_flow_test.dart` (10 tests) covering `RetailOrderFlow` and `RetailOrderFlowPoint` JSON deserialization, decimal and percentage normalization, net flow derivation, 5-tier sentiment regime classification, and `DemoService` retail flow response contracts for GME, TSLA, BEAR, and AAPL.
+- Added `retail_order_flow_widget_test.dart` (2 tests) covering UI rendering of retail flow title, sentiment badges, split bar, primary metric tiles, summary callouts, expand/collapse daily history table, and bearish sentiment styling.
 - Added `short_interest_test.dart` (13 tests) covering `ShortInterest` JSON deserialization, free float scaling, share change computation, `ShortingAvailability` borrow fee rates, hard-to-borrow inference, `ShortSqueezeRisk` multi-factor scoring, `BorrowCostLevel` categorization, and `DemoService` response contracts.
 - Added `short_interest_widget_test.dart` (3 tests) covering UI rendering of short metrics, header badges, primary metric cards, expand/collapse interaction, borrow restriction callouts, and responsive layout across standard and compact (320px) mobile screens.
 
