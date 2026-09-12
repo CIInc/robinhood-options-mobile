@@ -162,8 +162,7 @@ class InstrumentCategory {
       badgeTextColor.hashCode;
 }
 
-class InstrumentCategoryHeaderDelegate
-    extends SliverPersistentHeaderDelegate {
+class InstrumentCategoryHeaderDelegate extends SliverPersistentHeaderDelegate {
   final String selectedCategory;
   final ValueChanged<String> onCategorySelected;
   final List<InstrumentCategory> categories;
@@ -393,20 +392,17 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     int orderCount = 0;
 
     if (isPaper) {
-      final paperStore =
-          Provider.of<PaperTradingStore>(context, listen: false);
+      final paperStore = Provider.of<PaperTradingStore>(context, listen: false);
       hasPosition = paperStore.positions
               .any((e) => e.instrument == instrument.url) ||
-          paperStore.optionPositions
-              .any((e) => e.symbol == instrument.symbol);
+          paperStore.optionPositions.any((e) => e.symbol == instrument.symbol);
       orderCount = paperStore.history
           .where((h) => h['symbol'] == instrument.symbol)
           .length;
     } else {
       final stockStore =
           Provider.of<InstrumentPositionStore>(context, listen: false);
-      final optStore =
-          Provider.of<OptionPositionStore>(context, listen: false);
+      final optStore = Provider.of<OptionPositionStore>(context, listen: false);
       hasPosition =
           stockStore.items.any((e) => e.instrument == instrument.url) ||
               optStore.items.any((e) => e.symbol == instrument.symbol);
@@ -813,9 +809,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   void initState() {
     super.initState();
 
-    _selectedCategory = widget.scrollToTradeSignal
-        ? 'Signals'
-        : widget.initialCategory;
+    _selectedCategory =
+        widget.scrollToTradeSignal ? 'Signals' : widget.initialCategory;
 
     if (widget.scrollToTradeSignal) {
       _showTechnicalDetailsNotifier.value = true;
@@ -1989,8 +1984,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                                     sec.$2,
                                     style: TextStyle(
                                       fontSize: 11.5,
-                                      color:
-                                          theme.textTheme.bodySmall?.color,
+                                      color: theme.textTheme.bodySmall?.color,
                                     ),
                                   ),
                                 ],
@@ -2029,8 +2023,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       if (widget.brokerageUser.source == BrokerageSource.paper) {
         final paperStore =
             Provider.of<PaperTradingStore>(context, listen: false);
-        position = paperStore.positions.firstWhereOrNull(
-            (e) => e.instrument == widget.instrument.url);
+        position = paperStore.positions
+            .firstWhereOrNull((e) => e.instrument == widget.instrument.url);
       } else {
         position = stockPositionStore.items
             .firstWhereOrNull((e) => e.instrument == instrument.url);
@@ -2045,8 +2039,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             const SizedBox(height: 8.0),
             _buildSectionHeader(
               title: "Position",
-              subtitle:
-                  '${formatNumber.format(position.quantity!)} shares',
+              subtitle: '${formatNumber.format(position.quantity!)} shares',
               icon: Icons.pie_chart_outline,
               trailing: Text(
                 formatCurrency.format(position.marketValue),
@@ -2057,8 +2050,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               ),
             ),
             Card(
-              margin: const EdgeInsets.symmetric(
-                  horizontal: 16, vertical: 8),
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               elevation: 0,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
@@ -2069,8 +2061,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                       .withValues(alpha: 0.4),
                 ),
               ),
-              color:
-                  Theme.of(context).colorScheme.surfaceContainerLow,
+              color: Theme.of(context).colorScheme.surfaceContainerLow,
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
@@ -2112,8 +2103,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         int comp = a.legs.first.expirationDate!
             .compareTo(b.legs.first.expirationDate!);
         if (comp != 0) return comp;
-        return a.legs.first.strikePrice!
-            .compareTo(b.legs.first.strikePrice!);
+        return a.legs.first.strikePrice!.compareTo(b.legs.first.strikePrice!);
       });
 
       var filteredOptionPositions = optionPositions
@@ -2126,8 +2116,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         int comp = a.legs.first.expirationDate!
             .compareTo(b.legs.first.expirationDate!);
         if (comp != 0) return comp;
-        return a.legs.first.strikePrice!
-            .compareTo(b.legs.first.strikePrice!);
+        return a.legs.first.strikePrice!.compareTo(b.legs.first.strikePrice!);
       });
 
       if (filteredOptionPositions.isEmpty) {
@@ -2135,19 +2124,18 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       }
 
       return SliverToBoxAdapter(
-          child: ShrinkWrappingViewport(
-              offset: ViewportOffset.zero(),
-              slivers: [
-            OptionPositionsWidget(widget.brokerageUser,
-                widget.service, filteredOptionPositions,
-                showFooter: false,
-                showGroupHeader: false,
-                analytics: widget.analytics,
-                observer: widget.observer,
-                generativeService: widget.generativeService,
-                user: widget.user,
-                userDocRef: widget.userDocRef)
-          ]));
+          child:
+              ShrinkWrappingViewport(offset: ViewportOffset.zero(), slivers: [
+        OptionPositionsWidget(
+            widget.brokerageUser, widget.service, filteredOptionPositions,
+            showFooter: false,
+            showGroupHeader: false,
+            analytics: widget.analytics,
+            observer: widget.observer,
+            generativeService: widget.generativeService,
+            user: widget.user,
+            userDocRef: widget.userDocRef)
+      ]));
     });
   }
 
@@ -2159,13 +2147,11 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         final paperStore =
             Provider.of<PaperTradingStore>(context, listen: false);
         var history = paperStore.history
-            .where((h) =>
-                h['symbol'] == instrument.symbol &&
-                h['type'] == 'STOCK')
+            .where(
+                (h) => h['symbol'] == instrument.symbol && h['type'] == 'STOCK')
             .toList();
-        positionOrders = history
-            .map((h) => InstrumentOrder.fromPaperJson(h))
-            .toList();
+        positionOrders =
+            history.map((h) => InstrumentOrder.fromPaperJson(h)).toList();
       } else {
         positionOrders = instrument.positionOrders;
       }
@@ -2186,8 +2172,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             Provider.of<PaperTradingStore>(context, listen: false);
         var history = paperStore.history
             .where((h) =>
-                h['symbol'] == instrument.symbol &&
-                h['type'] == 'OPTION')
+                h['symbol'] == instrument.symbol && h['type'] == 'OPTION')
             .toList();
         optionOrders = history.map((h) {
           return OptionOrder(
@@ -2259,10 +2244,10 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               .any((e) => e.instrument == widget.instrument.url);
           hasOptPos = paperStore.optionPositions
               .any((e) => e.symbol == widget.instrument.symbol);
-          hasStockOrders = paperStore.history.any((h) =>
-              h['symbol'] == instrument.symbol && h['type'] == 'STOCK');
-          hasOptOrders = paperStore.history.any((h) =>
-              h['symbol'] == instrument.symbol && h['type'] == 'OPTION');
+          hasStockOrders = paperStore.history.any(
+              (h) => h['symbol'] == instrument.symbol && h['type'] == 'STOCK');
+          hasOptOrders = paperStore.history.any(
+              (h) => h['symbol'] == instrument.symbol && h['type'] == 'OPTION');
         } else {
           hasStockPos =
               stockStore.items.any((e) => e.instrument == instrument.url);
@@ -2500,7 +2485,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                                 Container(
                                   padding: const EdgeInsets.all(8.0),
                                   decoration: BoxDecoration(
-                                    color: Colors.purple.withValues(alpha: 0.12),
+                                    color:
+                                        Colors.purple.withValues(alpha: 0.12),
                                     borderRadius: BorderRadius.circular(10.0),
                                   ),
                                   child: const Icon(Icons.adjust,
@@ -2593,8 +2579,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                                     decoration: BoxDecoration(
                                       color:
                                           Colors.teal.withValues(alpha: 0.12),
-                                      borderRadius:
-                                          BorderRadius.circular(10.0),
+                                      borderRadius: BorderRadius.circular(10.0),
                                     ),
                                     child: const Icon(Icons.science_outlined,
                                         color: Colors.teal, size: 20),
@@ -2675,10 +2660,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                                   Container(
                                     padding: const EdgeInsets.all(8.0),
                                     decoration: BoxDecoration(
-                                      color: Colors.indigo
-                                          .withValues(alpha: 0.12),
-                                      borderRadius:
-                                          BorderRadius.circular(10.0),
+                                      color:
+                                          Colors.indigo.withValues(alpha: 0.12),
+                                      borderRadius: BorderRadius.circular(10.0),
                                     ),
                                     child: const Icon(Icons.analytics_outlined,
                                         color: Colors.indigo, size: 20),
@@ -2729,7 +2713,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
   List<Widget> _buildFinancialsSlivers(Instrument instrument) {
     final hasFinancialData = instrument.fundamentalsObj != null ||
-        (instrument.earningsObj != null && instrument.earningsObj!.isNotEmpty) ||
+        (instrument.earningsObj != null &&
+            instrument.earningsObj!.isNotEmpty) ||
         (instrument.dividendsObj != null &&
             instrument.dividendsObj!.isNotEmpty) ||
         (instrument.splitsObj != null && instrument.splitsObj!.isNotEmpty);
@@ -2753,8 +2738,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         const SliverToBoxAdapter(child: SizedBox(height: 8.0)),
         _buildDividendsWidget(instrument),
       ],
-      if (instrument.splitsObj != null &&
-          instrument.splitsObj!.isNotEmpty) ...[
+      if (instrument.splitsObj != null && instrument.splitsObj!.isNotEmpty) ...[
         const SliverToBoxAdapter(child: SizedBox(height: 8.0)),
         _buildSplitsWidget(instrument),
       ],
@@ -2884,8 +2868,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         const SliverToBoxAdapter(child: SizedBox(height: 8.0)),
         _buildNewsWidget(instrument),
       ],
-      if (instrument.listsObj != null &&
-          instrument.listsObj!.isNotEmpty) ...[
+      if (instrument.listsObj != null && instrument.listsObj!.isNotEmpty) ...[
         const SliverToBoxAdapter(child: SizedBox(height: 8.0)),
         _buildListsWidget(instrument),
       ],

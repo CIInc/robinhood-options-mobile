@@ -34,7 +34,8 @@ class _InsiderActivityWidgetState extends State<InsiderActivityWidget> {
   Future<InsiderSentimentSummary?>? _future;
 
   final NumberFormat _compactNumberFormat = NumberFormat.compact();
-  final NumberFormat _currencyFormat = NumberFormat.simpleCurrency(decimalDigits: 2);
+  final NumberFormat _currencyFormat =
+      NumberFormat.simpleCurrency(decimalDigits: 2);
   final DateFormat _dateFormat = DateFormat('MMM d, yyyy');
 
   @override
@@ -360,10 +361,8 @@ class _InsiderActivityWidgetState extends State<InsiderActivityWidget> {
                 .withValues(alpha: 0.5),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: Theme.of(context)
-                  .colorScheme
-                  .outline
-                  .withValues(alpha: 0.2),
+              color:
+                  Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
             ),
           ),
           child: Text(
@@ -383,8 +382,7 @@ class _InsiderActivityWidgetState extends State<InsiderActivityWidget> {
     );
   }
 
-  Widget _buildSplitBar(
-      BuildContext context, InsiderSentimentSummary summary) {
+  Widget _buildSplitBar(BuildContext context, InsiderSentimentSummary summary) {
     final buyPct = summary.buyPercentage.clamp(0.0, 100.0);
     final sellPct = summary.sellPercentage.clamp(0.0, 100.0);
 
@@ -469,7 +467,8 @@ class _InsiderActivityWidgetState extends State<InsiderActivityWidget> {
             title: 'Purchases',
             value: summary.formattedTotalBuyValue,
             valueColor: Colors.green.shade700,
-            subtitle: '${summary.buyCount} buys (${_compactNumberFormat.format(summary.totalBuyShares)} sh)',
+            subtitle:
+                '${summary.buyCount} buys (${_compactNumberFormat.format(summary.totalBuyShares)} sh)',
           ),
         ),
         const SizedBox(width: 8),
@@ -479,7 +478,8 @@ class _InsiderActivityWidgetState extends State<InsiderActivityWidget> {
             title: 'Sales',
             value: summary.formattedTotalSellValue,
             valueColor: Colors.red.shade700,
-            subtitle: '${summary.sellCount} sells (${_compactNumberFormat.format(summary.totalSellShares)} sh)',
+            subtitle:
+                '${summary.sellCount} sells (${_compactNumberFormat.format(summary.totalSellShares)} sh)',
           ),
         ),
       ],
@@ -496,7 +496,10 @@ class _InsiderActivityWidgetState extends State<InsiderActivityWidget> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
+        color: Theme.of(context)
+            .colorScheme
+            .surfaceContainerHighest
+            .withValues(alpha: 0.35),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Column(
@@ -570,11 +573,13 @@ class _InsiderActivityWidgetState extends State<InsiderActivityWidget> {
                   ? Colors.green.shade800
                   : (isNegative ? Colors.red.shade800 : Colors.grey.shade800);
 
-              final fmtVal = NumberFormat.compactSimpleCurrency().format(m.netValue.abs());
+              final fmtVal =
+                  NumberFormat.compactSimpleCurrency().format(m.netValue.abs());
               final sign = m.netValue > 0 ? '+' : (m.netValue < 0 ? '-' : '');
 
               return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
                   color: chipColor,
                   borderRadius: BorderRadius.circular(8),
@@ -707,10 +712,11 @@ class _InsiderActivityWidgetState extends State<InsiderActivityWidget> {
                       Expanded(
                         child: Text(
                           '• ${t.relationship}',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                fontSize: 11,
-                                color: Colors.grey,
-                              ),
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    fontSize: 11,
+                                    color: Colors.grey,
+                                  ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -773,10 +779,16 @@ class _InsiderActivityWidgetState extends State<InsiderActivityWidget> {
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+        color: Theme.of(context)
+            .colorScheme
+            .surfaceContainerHighest
+            .withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.4),
+          color: Theme.of(context)
+              .colorScheme
+              .outlineVariant
+              .withValues(alpha: 0.4),
         ),
       ),
       child: Row(
@@ -818,7 +830,8 @@ class _AllInsiderTransactionsSheetState
     extends State<_AllInsiderTransactionsSheet> {
   String _selectedFilter = 'All';
   final NumberFormat _compactNumberFormat = NumberFormat.compact();
-  final NumberFormat _currencyFormat = NumberFormat.simpleCurrency(decimalDigits: 2);
+  final NumberFormat _currencyFormat =
+      NumberFormat.simpleCurrency(decimalDigits: 2);
   final DateFormat _dateFormat = DateFormat('MMM d, yyyy');
 
   @override
@@ -867,13 +880,26 @@ class _AllInsiderTransactionsSheetState
                 children: [
                   _filterChip('All', widget.summary.transactions.length),
                   const SizedBox(width: 8),
-                  _filterChip('Purchases', widget.summary.transactions.where((t) => t.isBuy).length),
+                  _filterChip('Purchases',
+                      widget.summary.transactions.where((t) => t.isBuy).length),
                   const SizedBox(width: 8),
-                  _filterChip('Sales', widget.summary.transactions.where((t) => t.isSale).length),
+                  _filterChip(
+                      'Sales',
+                      widget.summary.transactions
+                          .where((t) => t.isSale)
+                          .length),
                   const SizedBox(width: 8),
-                  _filterChip('Options', widget.summary.transactions.where((t) => t.isOption).length),
+                  _filterChip(
+                      'Options',
+                      widget.summary.transactions
+                          .where((t) => t.isOption)
+                          .length),
                   const SizedBox(width: 8),
-                  _filterChip('Grants', widget.summary.transactions.where((t) => t.isGrant).length),
+                  _filterChip(
+                      'Grants',
+                      widget.summary.transactions
+                          .where((t) => t.isGrant)
+                          .length),
                 ],
               ),
             ),
@@ -895,8 +921,10 @@ class _AllInsiderTransactionsSheetState
                         final t = filtered[index];
                         return ListTile(
                           leading: CircleAvatar(
-                            backgroundColor: t.typeColor.withValues(alpha: 0.12),
-                            child: Icon(t.typeIcon, color: t.typeColor, size: 20),
+                            backgroundColor:
+                                t.typeColor.withValues(alpha: 0.12),
+                            child:
+                                Icon(t.typeIcon, color: t.typeColor, size: 20),
                           ),
                           title: Text(
                             t.filerName,
@@ -915,12 +943,20 @@ class _AllInsiderTransactionsSheetState
                               if (t.transactionDate != null)
                                 Text(
                                   'Date: ${_dateFormat.format(t.transactionDate!)}${t.filingDate != null ? ' (Filed ${_dateFormat.format(t.filingDate!)})' : ''}',
-                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 11, color: Colors.grey),
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
+                                      ?.copyWith(
+                                          fontSize: 11, color: Colors.grey),
                                 ),
                               if (t.sharesHeldAfter != null)
                                 Text(
                                   'Post-trade: ${_compactNumberFormat.format(t.sharesHeldAfter)} shares (${t.isDirect ? 'Direct' : 'Indirect'})',
-                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 11, color: Colors.grey),
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
+                                      ?.copyWith(
+                                          fontSize: 11, color: Colors.grey),
                                 ),
                             ],
                           ),
@@ -938,13 +974,19 @@ class _AllInsiderTransactionsSheetState
                               ),
                               if (t.value != null)
                                 Text(
-                                  NumberFormat.compactSimpleCurrency().format(t.value),
-                                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+                                  NumberFormat.compactSimpleCurrency()
+                                      .format(t.value),
+                                  style: const TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500),
                                 ),
                               if (t.price != null)
                                 Text(
                                   '@ ${_currencyFormat.format(t.price)}',
-                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 10),
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
+                                      ?.copyWith(fontSize: 10),
                                 ),
                             ],
                           ),
@@ -973,4 +1015,3 @@ class _AllInsiderTransactionsSheetState
     );
   }
 }
-

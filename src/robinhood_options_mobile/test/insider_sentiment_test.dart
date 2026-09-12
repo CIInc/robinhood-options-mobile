@@ -8,7 +8,8 @@ import 'package:robinhood_options_mobile/services/demo_service.dart';
 
 void main() {
   group('InsiderSentimentSummary & Models', () {
-    test('parses full insider summary with monthly breakdown and transactions', () {
+    test('parses full insider summary with monthly breakdown and transactions',
+        () {
       final summaryJson = {
         'status': 'SUCCESS',
         'data': {
@@ -68,7 +69,8 @@ void main() {
               'value': 11275000.0,
               'shares_held_after': 3280000,
               'is_direct': true,
-              'sec_form4_url': 'https://www.sec.gov/edgar/data/320193/sample.xml',
+              'sec_form4_url':
+                  'https://www.sec.gov/edgar/data/320193/sample.xml',
             },
             {
               'filer_name': 'Luca Maestri',
@@ -173,7 +175,9 @@ void main() {
       expect(obrien.typeColor, Colors.blue);
     });
 
-    test('derives summary statistics and monthly breakdown from transactions only', () {
+    test(
+        'derives summary statistics and monthly breakdown from transactions only',
+        () {
       final txList = [
         {
           'filer_name': 'Director Alice',
@@ -286,8 +290,10 @@ void main() {
     final user = BrokerageUser(BrokerageSource.demo, 'demo_user', null, null);
 
     test('returns realistic insider data for AAPL', () async {
-      final summaryRes = await demoService.getInsiderSummary(user, 'inst_aapl_01');
-      final txRes = await demoService.getInsiderTransactions(user, 'inst_aapl_01');
+      final summaryRes =
+          await demoService.getInsiderSummary(user, 'inst_aapl_01');
+      final txRes =
+          await demoService.getInsiderTransactions(user, 'inst_aapl_01');
 
       expect(summaryRes, isNotNull);
       expect(txRes, isNotNull);
@@ -299,13 +305,16 @@ void main() {
 
       expect(summary.symbol, 'AAPL');
       expect(summary.isBullish, isTrue);
-      expect(summary.transactions.any((t) => t.filerName == 'Tim Cook'), isTrue);
+      expect(
+          summary.transactions.any((t) => t.filerName == 'Tim Cook'), isTrue);
       expect(summary.monthlySummary.length, greaterThanOrEqualTo(2));
     });
 
     test('returns realistic insider data for GME (executive buying)', () async {
-      final summaryRes = await demoService.getInsiderSummary(user, 'inst_gme_01');
-      final txRes = await demoService.getInsiderTransactions(user, 'inst_gme_01');
+      final summaryRes =
+          await demoService.getInsiderSummary(user, 'inst_gme_01');
+      final txRes =
+          await demoService.getInsiderTransactions(user, 'inst_gme_01');
 
       expect(summaryRes, isNotNull);
       expect(txRes, isNotNull);
@@ -317,13 +326,18 @@ void main() {
 
       expect(summary.symbol, 'GME');
       expect(summary.isBullish, isTrue);
-      expect(summary.transactions.any((t) => t.filerName.contains('Ryan Cohen')), isTrue);
+      expect(
+          summary.transactions.any((t) => t.filerName.contains('Ryan Cohen')),
+          isTrue);
       expect(summary.sellCount, 0);
     });
 
-    test('returns realistic insider data for TSLA (executive selling)', () async {
-      final summaryRes = await demoService.getInsiderSummary(user, 'inst_tsla_01');
-      final txRes = await demoService.getInsiderTransactions(user, 'inst_tsla_01');
+    test('returns realistic insider data for TSLA (executive selling)',
+        () async {
+      final summaryRes =
+          await demoService.getInsiderSummary(user, 'inst_tsla_01');
+      final txRes =
+          await demoService.getInsiderTransactions(user, 'inst_tsla_01');
 
       expect(summaryRes, isNotNull);
       expect(txRes, isNotNull);
@@ -336,7 +350,10 @@ void main() {
       expect(summary.symbol, 'TSLA');
       expect(summary.isBearish, isTrue);
       expect(summary.sentimentBadge, 'Net Selling');
-      expect(summary.transactions.any((t) => t.filerName.contains('Robyn Denholm')), isTrue);
+      expect(
+          summary.transactions
+              .any((t) => t.filerName.contains('Robyn Denholm')),
+          isTrue);
     });
   });
 }

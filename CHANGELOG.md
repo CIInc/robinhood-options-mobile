@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.43.0] - 2026-09-10
+## [0.43.0] - 2026-09-12
 **Robinhood Market Data & Institutional Intelligence: Retail Order Flow, Robinhood Sentiment, Short Float & Curated Presets**
 
 ### Added
