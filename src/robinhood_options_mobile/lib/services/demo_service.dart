@@ -2517,4 +2517,358 @@ class DemoService implements IBrokerageService {
       }
     };
   }
+
+  @override
+  Future<dynamic> getHedgeFundSummary(
+      BrokerageUser user, String instrumentId) async {
+    final lowerId = instrumentId.toLowerCase();
+    if (lowerId.contains('gme')) {
+      return {
+        'status': 'SUCCESS',
+        'data': {
+          'instrument_id': instrumentId,
+          'symbol': 'GME',
+          'net_sentiment': 'positive',
+          'sentiment_score': 54.0,
+          'total_shares_held': 28500000,
+          'total_value_held': 641250000.0,
+          'institutional_ownership_percentage': 29.8,
+          'total_managers_count': 64,
+          'buying_managers_count': 38,
+          'selling_managers_count': 14,
+          'holding_managers_count': 12,
+          'new_positions_count': 9,
+          'sold_out_count': 3,
+          'net_shares_changed': 4200000,
+          'net_value_changed': 94500000.0,
+          'quarterly_summary': [
+            {
+              'quarter': 'Q2 2026',
+              'buy_shares': 6200000,
+              'sell_shares': 2000000,
+              'buy_value': 139500000.0,
+              'sell_value': 45000000.0,
+              'buying_managers_count': 38,
+              'selling_managers_count': 14,
+              'holding_managers_count': 12,
+              'new_positions_count': 9,
+              'sold_out_positions_count': 3,
+              'net_sentiment': 'positive',
+            },
+            {
+              'quarter': 'Q1 2026',
+              'buy_shares': 4100000,
+              'sell_shares': 2800000,
+              'buy_value': 86100000.0,
+              'sell_value': 58800000.0,
+              'buying_managers_count': 28,
+              'selling_managers_count': 22,
+              'holding_managers_count': 14,
+              'new_positions_count': 5,
+              'sold_out_positions_count': 6,
+              'net_sentiment': 'positive',
+            },
+          ],
+          'updated_at': '2026-08-15T16:00:00Z',
+        }
+      };
+    } else if (lowerId.contains('tsla')) {
+      return {
+        'status': 'SUCCESS',
+        'data': {
+          'instrument_id': instrumentId,
+          'symbol': 'TSLA',
+          'net_sentiment': 'negative',
+          'sentiment_score': -36.0,
+          'total_shares_held': 142000000,
+          'total_value_held': 32660000000.0,
+          'institutional_ownership_percentage': 44.5,
+          'total_managers_count': 185,
+          'buying_managers_count': 42,
+          'selling_managers_count': 118,
+          'holding_managers_count': 25,
+          'new_positions_count': 4,
+          'sold_out_count': 22,
+          'net_shares_changed': -18500000,
+          'net_value_changed': -4255000000.0,
+          'quarterly_summary': [
+            {
+              'quarter': 'Q2 2026',
+              'buy_shares': 12500000,
+              'sell_shares': 31000000,
+              'buy_value': 2875000000.0,
+              'sell_value': 7130000000.0,
+              'buying_managers_count': 42,
+              'selling_managers_count': 118,
+              'holding_managers_count': 25,
+              'new_positions_count': 4,
+              'sold_out_positions_count': 22,
+              'net_sentiment': 'negative',
+            },
+            {
+              'quarter': 'Q1 2026',
+              'buy_shares': 16000000,
+              'sell_shares': 22000000,
+              'buy_value': 3520000000.0,
+              'sell_value': 4840000000.0,
+              'buying_managers_count': 55,
+              'selling_managers_count': 92,
+              'holding_managers_count': 38,
+              'new_positions_count': 7,
+              'sold_out_positions_count': 15,
+              'net_sentiment': 'negative',
+            },
+          ],
+          'updated_at': '2026-08-15T16:00:00Z',
+        }
+      };
+    }
+
+    // Default (AAPL / general equity)
+    return {
+      'status': 'SUCCESS',
+      'data': {
+        'instrument_id': instrumentId,
+        'symbol': 'AAPL',
+        'net_sentiment': 'positive',
+        'sentiment_score': 32.0,
+        'total_shares_held': 840000000,
+        'total_value_held': 189000000000.0,
+        'institutional_ownership_percentage': 58.2,
+        'total_managers_count': 312,
+        'buying_managers_count': 184,
+        'selling_managers_count': 86,
+        'holding_managers_count': 42,
+        'new_positions_count': 16,
+        'sold_out_count': 8,
+        'net_shares_changed': 24500000,
+        'net_value_changed': 5512500000.0,
+        'quarterly_summary': [
+          {
+            'quarter': 'Q2 2026',
+            'buy_shares': 58000000,
+            'sell_shares': 33500000,
+            'buy_value': 13050000000.0,
+            'sell_value': 7537500000.0,
+            'buying_managers_count': 184,
+            'selling_managers_count': 86,
+            'holding_managers_count': 42,
+            'new_positions_count': 16,
+            'sold_out_positions_count': 8,
+            'net_sentiment': 'positive',
+          },
+          {
+            'quarter': 'Q1 2026',
+            'buy_shares': 49000000,
+            'sell_shares': 38000000,
+            'buy_value': 10780000000.0,
+            'sell_value': 8360000000.0,
+            'buying_managers_count': 162,
+            'selling_managers_count': 105,
+            'holding_managers_count': 45,
+            'new_positions_count': 12,
+            'sold_out_positions_count': 11,
+            'net_sentiment': 'positive',
+          },
+        ],
+        'updated_at': '2026-08-15T16:00:00Z',
+      }
+    };
+  }
+
+  @override
+  Future<dynamic> getHedgeFundTransactions(
+      BrokerageUser user, String instrumentId) async {
+    final lowerId = instrumentId.toLowerCase();
+    if (lowerId.contains('gme')) {
+      return {
+        'status': 'SUCCESS',
+        'data': {
+          'instrument_id': instrumentId,
+          'symbol': 'GME',
+          'results': [
+            {
+              'manager_name': 'RC Ventures LLC',
+              'fund_name': 'RC Ventures',
+              'quarter': 'Q2 2026',
+              'report_date': '2026-06-30',
+              'transaction_type': 'Addition',
+              'shares_held': 36840000,
+              'share_change': 500000,
+              'percent_change': 1.37,
+              'value': 828900000.0,
+              'portfolio_percent': 85.4,
+              'source_url': 'https://www.sec.gov/edgar/data/1822844/sample-13f.xml',
+            },
+            {
+              'manager_name': 'Citadel Advisors LLC',
+              'fund_name': 'Citadel Multi-Strategy',
+              'quarter': 'Q2 2026',
+              'report_date': '2026-06-30',
+              'transaction_type': 'New Position',
+              'shares_held': 1250000,
+              'share_change': 1250000,
+              'percent_change': 100.0,
+              'value': 28125000.0,
+              'portfolio_percent': 0.12,
+            },
+            {
+              'manager_name': 'Susquehanna International Group',
+              'fund_name': 'SIG Investment Fund',
+              'quarter': 'Q2 2026',
+              'report_date': '2026-06-30',
+              'transaction_type': 'Reduction',
+              'shares_held': 840000,
+              'share_change': -320000,
+              'percent_change': -27.59,
+              'value': 18900000.0,
+              'portfolio_percent': 0.08,
+            },
+            {
+              'manager_name': 'Point72 Asset Management',
+              'fund_name': 'Point72 Associates',
+              'quarter': 'Q2 2026',
+              'report_date': '2026-06-30',
+              'transaction_type': 'Addition',
+              'shares_held': 950000,
+              'share_change': 420000,
+              'percent_change': 79.25,
+              'value': 21375000.0,
+              'portfolio_percent': 0.15,
+            },
+          ]
+        }
+      };
+    } else if (lowerId.contains('tsla')) {
+      return {
+        'status': 'SUCCESS',
+        'data': {
+          'instrument_id': instrumentId,
+          'symbol': 'TSLA',
+          'results': [
+            {
+              'manager_name': 'ARK Investment Management LLC',
+              'fund_name': 'ARK Innovation ETF',
+              'quarter': 'Q2 2026',
+              'report_date': '2026-06-30',
+              'transaction_type': 'Reduction',
+              'shares_held': 4850000,
+              'share_change': -1100000,
+              'percent_change': -18.49,
+              'value': 1115500000.0,
+              'portfolio_percent': 9.8,
+            },
+            {
+              'manager_name': 'Tiger Global Management LLC',
+              'fund_name': 'Tiger Global LP',
+              'quarter': 'Q2 2026',
+              'report_date': '2026-06-30',
+              'transaction_type': 'Sold Out',
+              'shares_held': 0,
+              'share_change': -1850000,
+              'percent_change': -100.0,
+              'value': 0.0,
+              'portfolio_percent': 0.0,
+            },
+            {
+              'manager_name': 'Renaissance Technologies LLC',
+              'fund_name': 'Jim Simons RIEF',
+              'quarter': 'Q2 2026',
+              'report_date': '2026-06-30',
+              'transaction_type': 'Reduction',
+              'shares_held': 2400000,
+              'share_change': -950000,
+              'percent_change': -28.36,
+              'value': 552000000.0,
+              'portfolio_percent': 0.62,
+            },
+            {
+              'manager_name': 'Millennium Management LLC',
+              'fund_name': 'Millennium Partners',
+              'quarter': 'Q2 2026',
+              'report_date': '2026-06-30',
+              'transaction_type': 'Addition',
+              'shares_held': 3100000,
+              'share_change': 650000,
+              'percent_change': 26.53,
+              'value': 713000000.0,
+              'portfolio_percent': 0.85,
+            },
+          ]
+        }
+      };
+    }
+
+    // Default (AAPL / general equity)
+    return {
+      'status': 'SUCCESS',
+      'data': {
+        'instrument_id': instrumentId,
+        'symbol': 'AAPL',
+        'results': [
+          {
+            'manager_name': 'Berkshire Hathaway Inc.',
+            'fund_name': 'Warren Buffett Portfolio',
+            'quarter': 'Q2 2026',
+            'report_date': '2026-06-30',
+            'transaction_type': 'Hold',
+            'shares_held': 400000000,
+            'share_change': 0,
+            'percent_change': 0.0,
+            'value': 90000000000.0,
+            'portfolio_percent': 28.5,
+            'source_url': 'https://www.sec.gov/edgar/data/1067983/sample-13f.xml',
+          },
+          {
+            'manager_name': 'Bridgewater Associates LP',
+            'fund_name': 'Pure Alpha Fund',
+            'quarter': 'Q2 2026',
+            'report_date': '2026-06-30',
+            'transaction_type': 'Addition',
+            'shares_held': 8500000,
+            'share_change': 1800000,
+            'percent_change': 26.87,
+            'value': 1912500000.0,
+            'portfolio_percent': 2.1,
+          },
+          {
+            'manager_name': 'Coatue Management LLC',
+            'fund_name': 'Coatue Qualified Partners',
+            'quarter': 'Q2 2026',
+            'report_date': '2026-06-30',
+            'transaction_type': 'Addition',
+            'shares_held': 6200000,
+            'share_change': 950000,
+            'percent_change': 18.1,
+            'value': 1395000000.0,
+            'portfolio_percent': 3.4,
+          },
+          {
+            'manager_name': 'D. E. Shaw & Co., Inc.',
+            'fund_name': 'D. E. Shaw Valence',
+            'quarter': 'Q2 2026',
+            'report_date': '2026-06-30',
+            'transaction_type': 'Reduction',
+            'shares_held': 4100000,
+            'share_change': -620000,
+            'percent_change': -13.14,
+            'value': 922500000.0,
+            'portfolio_percent': 1.05,
+          },
+          {
+            'manager_name': 'Two Sigma Investments, LP',
+            'fund_name': 'Two Sigma Horizon',
+            'quarter': 'Q2 2026',
+            'report_date': '2026-06-30',
+            'transaction_type': 'New Position',
+            'shares_held': 1500000,
+            'share_change': 1500000,
+            'percent_change': 100.0,
+            'value': 337500000.0,
+            'portfolio_percent': 0.45,
+          },
+        ]
+      }
+    };
+  }
 }

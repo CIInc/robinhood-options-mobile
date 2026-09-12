@@ -350,4 +350,18 @@ abstract class IBrokerageService {
       BrokerageUser user, String instrumentId) async {
     return null;
   }
+
+  /// Fetches quarterly institutional hedge fund sentiment summary for an instrument
+  /// https://api.robinhood.com/marketdata/hedgefunds/summary/{instrument_id}/
+  Future<dynamic> getHedgeFundSummary(
+      BrokerageUser user, String instrumentId) async {
+    return null;
+  }
+
+  /// Fetches detailed quarterly institutional hedge fund transactions and holdings for an instrument
+  /// https://api.robinhood.com/marketdata/hedgefunds/transactions/{instrument_id}/
+  Future<dynamic> getHedgeFundTransactions(
+      BrokerageUser user, String instrumentId) async {
+    return null;
+  }
 }

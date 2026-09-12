@@ -320,7 +320,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 
 ### v0.43.0 (Q4 2026 - Late September)
 **Robinhood Market Data & Institutional Intelligence**
-- **First-Party Institutional & Hedge Fund Tracking:** Real-time hedge fund sentiment, quarterly manager holdings, and transaction history directly from Robinhood marketdata endpoints (`/marketdata/hedgefunds/`).
+- ✅ **First-Party Institutional & Hedge Fund Tracking:** Real-time hedge fund sentiment, quarterly manager holdings, and transaction history directly from Robinhood marketdata endpoints (`/marketdata/hedgefunds/`).
 - ✅ **First-Party Insider Sentiment & Activity:** Monthly aggregate insider transactions, net sentiment scoring, and director/officer Form 4 tracking (`/marketdata/insiders/`).
 - ✅ **Retail Order Flow & Robinhood Sentiment:** First-party net buy/sell percentage and volume percentage changes over time (`/marketdata/equities/summary/robinhood/`).
 - ✅ **Short Float & Live Borrow Availability:** Real-time short interest (`pc_freefloat`, days to cover) and live borrow availability and fee rates (`/marketdata/fundamentals/short/v1/`, `/instruments/{id}/shorting/`).
@@ -746,7 +746,7 @@ Q3 2026 shifts focus from basic execution to **Advanced Intelligence** and **Reg
 - [x] **Event Study Analyzer** (v0.37.5): Stock performance around specific event windows
 - [x] **Rolling Statistics Dashboard** (v0.37.5): Dynamic volatility, beta, and correlation tracking
 - [x] **Custom Screener Builder** (v0.37.5): Advanced multi-factor filtering UI - **Medium** (3-4 weeks)
-- [ ] **First-Party Institutional & Hedge Fund Tracking**: Real-time hedge fund sentiment, quarterly manager holdings, and transaction history directly from Robinhood marketdata endpoints (`/marketdata/hedgefunds/`) - **Small** (1-2 weeks)
+- [x] **First-Party Institutional & Hedge Fund Tracking**: Real-time hedge fund sentiment, quarterly manager holdings, and transaction history directly from Robinhood marketdata endpoints (`/marketdata/hedgefunds/`) - **Small** (1-2 weeks)
 - [x] **First-Party Insider Sentiment & Activity**: Monthly aggregate insider transactions and director/officer Form 4 tracking (`/marketdata/insiders/`) - **Small** (1-2 weeks)
 - [x] **Robinhood Retail Flow & Sentiment**: Net buy/sell percentage and order volume trends (`/marketdata/equities/summary/robinhood/`) - **Small** (1-2 weeks)
 - [x] **Short Float & Live Shorting Rates**: Real-time free float short percentage, shares short, borrow inventory levels, and borrow fee rates (`/marketdata/fundamentals/short/v1/`, `/instruments/{id}/shorting/`) - **Small** (1-2 weeks)

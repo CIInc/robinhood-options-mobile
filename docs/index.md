@@ -54,6 +54,7 @@
 - **[Pattern Day Trader (PDT) Protection & Counter](pdt-protection.md):** Real-time rolling 5-business-day counter for equities and options, visual meters, FINRA Rule 4210 $25,000 equity tracking, and automated Action Center risk alerts.
 - **[Short Float & Live Borrow Availability](short-interest.md):** Real-time short interest (`pc_freefloat`, days to cover, shares short), borrow availability, borrow fee rates, and short squeeze risk modeling.
 - **[Retail Order Flow & Robinhood Sentiment](retail-order-flow.md):** First-party Robinhood customer order flow dynamics, net buy/sell ratios, volume trends, and historical daily sentiment tracking.
+- **[Institutional & Hedge Fund Tracking](hedge-fund-tracking.md):** Real-time hedge fund sentiment, quarterly manager holdings, and transaction history directly from Robinhood marketdata endpoints.
 - **[RiskGuard](risk-guard.md):** Advanced risk validation for manual and automated trading, including **Dynamic Position Sizing**.
 - **[Schwab Integration](schwab-integration.md):** Schwab account linking, portfolio and order history, single-leg option orders, and multi-leg option order placement.
 - **[Fidelity Integration](fidelity-integration.md):** Manual import of positions and history via CSV files.

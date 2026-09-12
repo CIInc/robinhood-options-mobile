@@ -38,7 +38,6 @@ import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
 import 'package:robinhood_options_mobile/widgets/chat_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/income_transactions_widget.dart';
-import 'package:robinhood_options_mobile/widgets/insider_activity_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_chart_widget.dart';
 /* import 'package:robinhood_options_mobile/model/institutional_ownership.dart';
 import 'package:robinhood_options_mobile/widgets/institutional_ownership_widget.dart';
@@ -55,6 +54,8 @@ import 'package:robinhood_options_mobile/widgets/position_order_widget.dart';
 import 'package:robinhood_options_mobile/widgets/price_targets_widget.dart';
 import 'package:robinhood_options_mobile/widgets/short_interest_widget.dart';
 import 'package:robinhood_options_mobile/widgets/retail_order_flow_widget.dart';
+import 'package:robinhood_options_mobile/widgets/insider_activity_widget.dart';
+import 'package:robinhood_options_mobile/widgets/hedge_fund_activity_widget.dart';
 import 'package:robinhood_options_mobile/widgets/trade_signal_notification_settings_widget.dart';
 import 'package:robinhood_options_mobile/widgets/strategy_builder_widget.dart';
 import 'package:robinhood_options_mobile/widgets/trade_instrument_widget.dart';
@@ -1818,6 +1819,14 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                 ),
                 SliverToBoxAdapter(
                   child: InsiderActivityWidget(
+                    brokerageUser: widget.brokerageUser,
+                    service: widget.service,
+                    instrument: instrument,
+                    symbol: instrument.symbol,
+                  ),
+                ),
+                SliverToBoxAdapter(
+                  child: HedgeFundActivityWidget(
                     brokerageUser: widget.brokerageUser,
                     service: widget.service,
                     instrument: instrument,
