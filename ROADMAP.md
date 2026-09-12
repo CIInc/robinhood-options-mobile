@@ -320,7 +320,8 @@ Mapping features to specific versions helps users anticipate releases and unders
 
 ### v0.43.0 (Q4 2026 - Late September)
 **Robinhood Market Data & Institutional Intelligence**
-- **First-Party Whale Watch (Hedge Funds & Insiders):** Native Robinhood endpoints for hedge fund quarterly sentiment, manager transactions, insider net sentiment, and Form 4 trades (`/marketdata/hedgefunds/`, `/marketdata/insiders/`).
+- **First-Party Institutional & Hedge Fund Tracking:** Real-time hedge fund sentiment, quarterly manager holdings, and transaction history directly from Robinhood marketdata endpoints (`/marketdata/hedgefunds/`).
+- ✅ **First-Party Insider Sentiment & Activity:** Monthly aggregate insider transactions, net sentiment scoring, and director/officer Form 4 tracking (`/marketdata/insiders/`).
 - ✅ **Retail Order Flow & Robinhood Sentiment:** First-party net buy/sell percentage and volume percentage changes over time (`/marketdata/equities/summary/robinhood/`).
 - ✅ **Short Float & Live Borrow Availability:** Real-time short interest (`pc_freefloat`, days to cover) and live borrow availability and fee rates (`/marketdata/fundamentals/short/v1/`, `/instruments/{id}/shorting/`).
 - **Robinhood Curated Screener Presets & Layouts:** Native server-side screener presets (`/screeners/presets/`, `/screeners`) and Robinhood Legend workspaces (`/hippo/bw/layouts`).
@@ -332,6 +333,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - **Instrument-Specific Buying Power & Trade Warnings:** Real-time buying power per instrument and risk/volatility warnings (`/accounts/{account}/instrument_buying_power/{id}/`, `/instruments/{id}/v2/warnings/`).
 - **Options Collateral & Tier Upgrades:** Chain-level cash/equity collateral breakdown (`/options/chains/{id}/collateral/`) and upgrade eligibility (`/options/should_show_options_upgrade_on_sdp/`).
 - **Combo Orders (Stock + Option Packages):** Execution and order history for multi-leg equity and option packages (`/combo/orders/`).
+- **Instrument Previous Positions & Cost Basis Lookback:** Ability to look back on previous closed and historical positions within an instrument, displaying historical average buy and sell prices, realized P&L, hold duration, and round-trip execution metrics.
 
 ### v0.45.0 (Q4 2026 - Mid October)
 **Cash Management, Banking, Retirement & Tax Documents**
@@ -745,7 +747,7 @@ Q3 2026 shifts focus from basic execution to **Advanced Intelligence** and **Reg
 - [x] **Rolling Statistics Dashboard** (v0.37.5): Dynamic volatility, beta, and correlation tracking
 - [x] **Custom Screener Builder** (v0.37.5): Advanced multi-factor filtering UI - **Medium** (3-4 weeks)
 - [ ] **First-Party Institutional & Hedge Fund Tracking**: Real-time hedge fund sentiment, quarterly manager holdings, and transaction history directly from Robinhood marketdata endpoints (`/marketdata/hedgefunds/`) - **Small** (1-2 weeks)
-- [ ] **First-Party Insider Sentiment & Activity**: Monthly aggregate insider transactions and director/officer Form 4 tracking (`/marketdata/insiders/`) - **Small** (1-2 weeks)
+- [x] **First-Party Insider Sentiment & Activity**: Monthly aggregate insider transactions and director/officer Form 4 tracking (`/marketdata/insiders/`) - **Small** (1-2 weeks)
 - [x] **Robinhood Retail Flow & Sentiment**: Net buy/sell percentage and order volume trends (`/marketdata/equities/summary/robinhood/`) - **Small** (1-2 weeks)
 - [x] **Short Float & Live Shorting Rates**: Real-time free float short percentage, shares short, borrow inventory levels, and borrow fee rates (`/marketdata/fundamentals/short/v1/`, `/instruments/{id}/shorting/`) - **Small** (1-2 weeks)
 - [ ] **Robinhood Curated Screener Presets**: Backend screener presets integration (`/screeners/presets/`, `/screeners`) - **Small** (1 week)

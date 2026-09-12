@@ -67,8 +67,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // Verify Title & Groups Icon
-    expect(
-        find.text('Retail Order Flow & Robinhood Sentiment'), findsOneWidget);
+    expect(find.text('Retail Order Flow'), findsOneWidget);
     expect(find.byIcon(Icons.groups_outlined), findsOneWidget);
 
     // Verify Sentiment Badge & Net Flow Chip
@@ -169,8 +168,7 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    expect(
-        find.text('Retail Order Flow & Robinhood Sentiment'), findsOneWidget);
+    expect(find.text('Retail Order Flow'), findsOneWidget);
     expect(find.text('Bearish (32.0% Buy)'), findsOneWidget);
     expect(find.text('Net Flow: -36.0%'), findsOneWidget);
     expect(find.text('Sellers 68.0%'), findsOneWidget);

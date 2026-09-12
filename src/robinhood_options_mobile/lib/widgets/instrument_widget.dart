@@ -38,7 +38,7 @@ import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
 import 'package:robinhood_options_mobile/widgets/chat_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/income_transactions_widget.dart';
-// import 'package:robinhood_options_mobile/widgets/insider_activity_widget.dart';
+import 'package:robinhood_options_mobile/widgets/insider_activity_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_chart_widget.dart';
 /* import 'package:robinhood_options_mobile/model/institutional_ownership.dart';
 import 'package:robinhood_options_mobile/widgets/institutional_ownership_widget.dart';
@@ -1267,8 +1267,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                           final opacity =
                               1.0 - Interval(fadeStart, fadeEnd).transform(t);
                           return FlexibleSpaceBar(
-                              //titlePadding:
-                              //    const EdgeInsets.only(top: kToolbarHeight * 2, bottom: 15),
+                              centerTitle: false,
+                              titlePadding: const EdgeInsetsDirectional.only(
+                                  start: 16.0, end: 16.0, bottom: 16.0),
                               //background: const FlutterLogo(),
                               background: Hero(
                                   tag: widget.heroTag != null
@@ -1467,7 +1468,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                     children: [
                       const SizedBox(height: 8.0),
                       _buildSectionHeader(
-                        title: "Your Position",
+                        title: "Position",
                         subtitle:
                             '${formatNumber.format(position.quantity!)} shares',
                         icon: Icons.pie_chart_outline,
@@ -1815,6 +1816,14 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                     instrument: instrument,
                   ),
                 ),
+                SliverToBoxAdapter(
+                  child: InsiderActivityWidget(
+                    brokerageUser: widget.brokerageUser,
+                    service: widget.service,
+                    instrument: instrument,
+                    symbol: instrument.symbol,
+                  ),
+                ),
               ],
               // Not working, show progress indicator indefinitely
               // SliverToBoxAdapter(
@@ -1841,11 +1850,6 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               //     ),
               //   ),
               // ),
-              // SliverToBoxAdapter(
-              //     child: Padding(
-              //   padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              //   child: InsiderActivityWidget(symbol: instrument.symbol),
-              // )),
               if (instrument.ratingsObj != null &&
                   instrument.ratingsObj["summary"] != null) ...[
                 const SliverToBoxAdapter(
@@ -7255,23 +7259,26 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         .firstWhereOrNull((element) => element.symbol == instrument.symbol);
     quoteObj ??= instrument.quoteObj;
 
-    yield Padding(
-      padding: const EdgeInsets.only(left: 10.0, right: 10.0),
+    yield Align(
+      alignment: Alignment.centerLeft,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             instrument.symbol,
-            style: TextStyle(
-                fontSize: 14.0,
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+                fontSize: 14, // 19
+                // style: TextStyle(
+                //     fontSize: 14.0,
                 color: Theme.of(context).appBarTheme.foregroundColor),
             textAlign: TextAlign.left,
           ),
           const SizedBox(height: 4),
           Text(
             '${instrument.name != "" ? instrument.name : instrument.simpleName}',
-            style: TextStyle(
-                fontSize: 16.0,
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontSize: 13.0,
                 color: Theme.of(context).appBarTheme.foregroundColor),
             textAlign: TextAlign.left,
             maxLines: 2,

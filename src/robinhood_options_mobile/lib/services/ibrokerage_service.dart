@@ -336,4 +336,18 @@ abstract class IBrokerageService {
       BrokerageUser user, String instrumentId) async {
     return null;
   }
+
+  /// Fetches monthly aggregate insider transactions and net sentiment score for an instrument
+  /// https://api.robinhood.com/marketdata/insiders/summary/{instrument_id}/
+  Future<dynamic> getInsiderSummary(
+      BrokerageUser user, String instrumentId) async {
+    return null;
+  }
+
+  /// Fetches detailed officer/director Form 4 insider transactions for an instrument
+  /// https://api.robinhood.com/marketdata/insiders/transactions/{instrument_id}/
+  Future<dynamic> getInsiderTransactions(
+      BrokerageUser user, String instrumentId) async {
+    return null;
+  }
 }

@@ -1493,6 +1493,18 @@ class PaperService implements IBrokerageService {
   }
 
   @override
+  Future<dynamic> getInsiderSummary(
+      BrokerageUser user, String instrumentId) async {
+    return null;
+  }
+
+  @override
+  Future<dynamic> getInsiderTransactions(
+      BrokerageUser user, String instrumentId) async {
+    return null;
+  }
+
+  @override
   Future<List<dynamic>> getFuturesOrders(
       BrokerageUser user, String account) async {
     return [];

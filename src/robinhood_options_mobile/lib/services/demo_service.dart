@@ -2191,4 +2191,330 @@ class DemoService implements IBrokerageService {
       ]
     };
   }
+
+  @override
+  Future<dynamic> getInsiderSummary(
+      BrokerageUser user, String instrumentId) async {
+    final lowerId = instrumentId.toLowerCase();
+    if (lowerId.contains('gme')) {
+      return {
+        'status': 'SUCCESS',
+        'data': {
+          'instrument_id': instrumentId,
+          'symbol': 'GME',
+          'net_sentiment': 'positive',
+          'sentiment_score': 68.0,
+          'total_buy_shares': 450000,
+          'total_sell_shares': 0,
+          'total_buy_value': 10125000.0,
+          'total_sell_value': 0.0,
+          'buy_count': 5,
+          'sell_count': 0,
+          'net_shares': 450000,
+          'net_value': 10125000.0,
+          'monthly_summary': [
+            {
+              'month': '2026-08',
+              'buy_shares': 250000,
+              'sell_shares': 0,
+              'buy_value': 5625000.0,
+              'sell_value': 0.0,
+              'net_sentiment': 'positive',
+              'buy_count': 3,
+              'sell_count': 0,
+            },
+            {
+              'month': '2026-07',
+              'buy_shares': 200000,
+              'sell_shares': 0,
+              'buy_value': 4500000.0,
+              'sell_value': 0.0,
+              'net_sentiment': 'positive',
+              'buy_count': 2,
+              'sell_count': 0,
+            },
+          ],
+          'updated_at': '2026-09-08T18:00:00Z',
+        }
+      };
+    } else if (lowerId.contains('tsla')) {
+      return {
+        'status': 'SUCCESS',
+        'data': {
+          'instrument_id': instrumentId,
+          'symbol': 'TSLA',
+          'net_sentiment': 'negative',
+          'sentiment_score': -42.0,
+          'total_buy_shares': 12000,
+          'total_sell_shares': 285000,
+          'total_buy_value': 2760000.0,
+          'total_sell_value': 65550000.0,
+          'buy_count': 1,
+          'sell_count': 7,
+          'net_shares': -273000,
+          'net_value': -62790000.0,
+          'monthly_summary': [
+            {
+              'month': '2026-08',
+              'buy_shares': 0,
+              'sell_shares': 180000,
+              'buy_value': 0.0,
+              'sell_value': 41400000.0,
+              'net_sentiment': 'negative',
+              'buy_count': 0,
+              'sell_count': 4,
+            },
+            {
+              'month': '2026-07',
+              'buy_shares': 12000,
+              'sell_shares': 105000,
+              'buy_value': 2760000.0,
+              'sell_value': 24150000.0,
+              'net_sentiment': 'negative',
+              'buy_count': 1,
+              'sell_count': 3,
+            },
+          ],
+          'updated_at': '2026-09-08T18:00:00Z',
+        }
+      };
+    }
+
+    // Default (AAPL / general equity)
+    return {
+      'status': 'SUCCESS',
+      'data': {
+        'instrument_id': instrumentId,
+        'symbol': 'AAPL',
+        'net_sentiment': 'positive',
+        'sentiment_score': 28.5,
+        'total_buy_shares': 145000,
+        'total_sell_shares': 82000,
+        'total_buy_value': 32625000.0,
+        'total_sell_value': 18450000.0,
+        'buy_count': 8,
+        'sell_count': 3,
+        'net_shares': 63000,
+        'net_value': 14175000.0,
+        'monthly_summary': [
+          {
+            'month': '2026-08',
+            'buy_shares': 65000,
+            'sell_shares': 22000,
+            'buy_value': 14625000.0,
+            'sell_value': 4950000.0,
+            'net_sentiment': 'positive',
+            'buy_count': 4,
+            'sell_count': 1,
+          },
+          {
+            'month': '2026-07',
+            'buy_shares': 48000,
+            'sell_shares': 30000,
+            'buy_value': 10800000.0,
+            'sell_value': 6750000.0,
+            'net_sentiment': 'positive',
+            'buy_count': 2,
+            'sell_count': 1,
+          },
+          {
+            'month': '2026-06',
+            'buy_shares': 32000,
+            'sell_shares': 30000,
+            'buy_value': 7200000.0,
+            'sell_value': 6750000.0,
+            'net_sentiment': 'neutral',
+            'buy_count': 2,
+            'sell_count': 1,
+          },
+        ],
+        'updated_at': '2026-09-08T18:00:00Z',
+      }
+    };
+  }
+
+  @override
+  Future<dynamic> getInsiderTransactions(
+      BrokerageUser user, String instrumentId) async {
+    final lowerId = instrumentId.toLowerCase();
+    if (lowerId.contains('gme')) {
+      return {
+        'status': 'SUCCESS',
+        'data': {
+          'instrument_id': instrumentId,
+          'symbol': 'GME',
+          'results': [
+            {
+              'filer_name': 'Ryan Cohen',
+              'relationship': 'Chairman of the Board & CEO',
+              'transaction_date': '2026-08-28',
+              'filing_date': '2026-08-30',
+              'transaction_type': 'Open Market Purchase',
+              'transaction_code': 'P',
+              'shares': 150000,
+              'price': 22.50,
+              'value': 3375000.0,
+              'shares_held_after': 36840000,
+              'is_direct': true,
+              'sec_form4_url':
+                  'https://www.sec.gov/edgar/data/1326380/000132638026000045/wf-form4_rc.xml',
+            },
+            {
+              'filer_name': 'Larry Cheng',
+              'relationship': 'Director',
+              'transaction_date': '2026-08-15',
+              'filing_date': '2026-08-17',
+              'transaction_type': 'Open Market Purchase',
+              'transaction_code': 'P',
+              'shares': 50000,
+              'price': 22.00,
+              'value': 1100000.0,
+              'shares_held_after': 142000,
+              'is_direct': true,
+            },
+            {
+              'filer_name': 'Alain Attal',
+              'relationship': 'Director',
+              'transaction_date': '2026-07-22',
+              'filing_date': '2026-07-24',
+              'transaction_type': 'Open Market Purchase',
+              'transaction_code': 'P',
+              'shares': 40000,
+              'price': 21.80,
+              'value': 872000.0,
+              'shares_held_after': 565000,
+              'is_direct': true,
+            },
+          ]
+        }
+      };
+    } else if (lowerId.contains('tsla')) {
+      return {
+        'status': 'SUCCESS',
+        'data': {
+          'instrument_id': instrumentId,
+          'symbol': 'TSLA',
+          'results': [
+            {
+              'filer_name': 'Robyn Denholm',
+              'relationship': 'Chair of the Board',
+              'transaction_date': '2026-08-25',
+              'filing_date': '2026-08-27',
+              'transaction_type': 'Open Market Sale',
+              'transaction_code': 'S',
+              'shares': 110000,
+              'price': 230.00,
+              'value': 25300000.0,
+              'shares_held_after': 85000,
+              'is_direct': true,
+            },
+            {
+              'filer_name': 'Kimbal Musk',
+              'relationship': 'Director',
+              'transaction_date': '2026-08-12',
+              'filing_date': '2026-08-14',
+              'transaction_type': 'Open Market Sale',
+              'transaction_code': 'S',
+              'shares': 70000,
+              'price': 228.50,
+              'value': 15995000.0,
+              'shares_held_after': 1480000,
+              'is_direct': true,
+            },
+            {
+              'filer_name': 'Vaibhav Taneja',
+              'relationship': 'Chief Financial Officer',
+              'transaction_date': '2026-07-20',
+              'filing_date': '2026-07-22',
+              'transaction_type': 'Option Exercise',
+              'transaction_code': 'M',
+              'shares': 12000,
+              'price': 230.00,
+              'value': 2760000.0,
+              'shares_held_after': 105000,
+              'is_direct': true,
+            },
+          ]
+        }
+      };
+    }
+
+    // Default (AAPL / general equity)
+    return {
+      'status': 'SUCCESS',
+      'data': {
+        'instrument_id': instrumentId,
+        'symbol': 'AAPL',
+        'results': [
+          {
+            'filer_name': 'Tim Cook',
+            'relationship': 'Chief Executive Officer',
+            'transaction_date': '2026-08-22',
+            'filing_date': '2026-08-24',
+            'transaction_type': 'Option Exercise',
+            'transaction_code': 'M',
+            'shares': 50000,
+            'price': 225.50,
+            'value': 11275000.0,
+            'shares_held_after': 3280000,
+            'is_direct': true,
+            'sec_form4_url':
+                'https://www.sec.gov/edgar/data/320193/000032019326000101/wf-form4_172445012345678.xml',
+          },
+          {
+            'filer_name': 'Luca Maestri',
+            'relationship': 'Chief Financial Officer',
+            'transaction_date': '2026-08-18',
+            'filing_date': '2026-08-20',
+            'transaction_type': 'Open Market Sale',
+            'transaction_code': 'S',
+            'shares': 20000,
+            'price': 224.80,
+            'value': 4496000.0,
+            'shares_held_after': 112000,
+            'is_direct': true,
+          },
+          {
+            'filer_name': 'Arthur Levinson',
+            'relationship': 'Chairman of the Board',
+            'transaction_date': '2026-08-10',
+            'filing_date': '2026-08-12',
+            'transaction_type': 'Open Market Purchase',
+            'transaction_code': 'P',
+            'shares': 15000,
+            'price': 221.00,
+            'value': 3315000.0,
+            'shares_held_after': 4520000,
+            'is_direct': true,
+          },
+          {
+            'filer_name': 'Deirdre O\'Brien',
+            'relationship': 'Senior Vice President',
+            'transaction_date': '2026-07-28',
+            'filing_date': '2026-07-30',
+            'transaction_type': 'Grant/Award',
+            'transaction_code': 'A',
+            'shares': 12000,
+            'price': 218.40,
+            'value': 2620800.0,
+            'shares_held_after': 135000,
+            'is_direct': true,
+          },
+          {
+            'filer_name': 'Katherine Adams',
+            'relationship': 'Senior VP & General Counsel',
+            'transaction_date': '2026-07-15',
+            'filing_date': '2026-07-17',
+            'transaction_type': 'Open Market Sale',
+            'transaction_code': 'S',
+            'shares': 10000,
+            'price': 216.50,
+            'value': 2165000.0,
+            'shares_held_after': 98000,
+            'is_direct': true,
+          },
+        ]
+      }
+    };
+  }
 }

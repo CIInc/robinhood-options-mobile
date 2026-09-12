@@ -27,9 +27,23 @@ All notable changes to this project will be documented in this file.
   - Expandable detailed table with current vs. prior shares short (+/- change & % change), total free float, average daily volume, FINRA settlement date, margin requirements, locate requirements, and borrow warning callouts.
   - Educational guidance card detailing short interest, days to cover, and borrow fee mechanics.
 - **Instrument Detail Page Integration:** Integrated `ShortInterestWidget` directly into `InstrumentWidget` slivers for equity instruments.
-- **Documentation:** Added comprehensive technical and user guide in `docs/short-interest.md` and `docs/retail-order-flow.md`, and linked in `docs/index.md`.
+- **First-Party Insider Sentiment & Activity:** Integrated first-party Robinhood market data endpoints (`/marketdata/insiders/summary/{instrument_id}/`, `/marketdata/insiders/transactions/{instrument_id}/`) to surface monthly aggregate insider transactions, net sentiment scoring, executive purchase/sale ratios, and SEC Form 4 filings.
+- **Insider Sentiment Data Models:** Added `InsiderSentimentSummary`, `MonthlyInsiderActivity`, and `InsiderTransactionRecord` in `lib/model/insider_sentiment.dart` with robust JSON parsing, automatic scale normalization, net flow derivation, 3-tier sentiment classification (`Net Buying`, `Net Selling`, `Neutral`), and transaction code mappings (`P` Purchase, `S` Sale, `M` Option Exercise, `A` Grant/Award).
+- **Brokerage Service Insider Data Support:** Added `getInsiderSummary` and `getInsiderTransactions` to `IBrokerageService` with overrides in `RobinhoodService` and realistic mock implementations in `DemoService` (AAPL positive net sentiment with Tim Cook transactions, GME executive purchases by Ryan Cohen, and TSLA executive sales), with graceful fallbacks across Paper, Plaid, Fidelity, and Schwab services.
+- **Modernized Insider Activity UI Widget:** Upgraded `InsiderActivityWidget` (`lib/widgets/insider_activity_widget.dart`) featuring:
+  - Header with dynamic color-coded sentiment regime badge (`Net Buying`, `Net Selling`, `Neutral`) and badge icon.
+  - Visual two-tone split bar contrasting insider purchases value vs sales value with percentages.
+  - Primary metric cards: Net Bias (+/- value and net shares), Purchases (total value, count, shares), and Sales (total value, count, shares).
+  - Monthly Aggregate Trend chips visualizing month-by-month capital flow deltas.
+  - Itemized recent Form 4 transactions list showing filer name, executive role/relationship, transaction type chip with icon, transacted shares, execution price, total transaction value, and date.
+  - Full history modal bottom sheet with category filter chips (`All`, `Purchases`, `Sales`, `Options`, `Grants`), direct/indirect ownership notes, and post-trade share balance.
+  - Educational guidance card clarifying SEC Form 4 disclosure timelines and Rule 10b5-1 pre-scheduled sales vs open-market purchases.
+- **Instrument Detail Page Integration:** Activated `InsiderActivityWidget` in `InstrumentWidget` slivers alongside Short Interest and Retail Order Flow for equity instruments.
+- **Documentation:** Added comprehensive technical and user guide in `docs/short-interest.md`, `docs/retail-order-flow.md`, and updated `docs/insider-activity.md`, and linked in `docs/index.md`.
 
 ### Testing
+- Added `insider_sentiment_test.dart` (7 tests) covering `InsiderSentimentSummary`, `MonthlyInsiderActivity`, and `InsiderTransactionRecord` JSON deserialization, summary computation from raw transactions, sentiment classification, legacy bridge conversion, and `DemoService` response contracts for AAPL, GME, and TSLA.
+- Added `insider_activity_widget_test.dart` (3 tests) covering UI rendering of insider sentiment badges, split bar, primary metric tiles, recent Form 4 transaction rows, "View All" modal bottom sheet with category filters, bearish sentiment styling, and responsive layout across standard and compact (320px) screens.
 - Added `retail_order_flow_test.dart` (10 tests) covering `RetailOrderFlow` and `RetailOrderFlowPoint` JSON deserialization, decimal and percentage normalization, net flow derivation, 5-tier sentiment regime classification, and `DemoService` retail flow response contracts for GME, TSLA, BEAR, and AAPL.
 - Added `retail_order_flow_widget_test.dart` (2 tests) covering UI rendering of retail flow title, sentiment badges, split bar, primary metric tiles, summary callouts, expand/collapse daily history table, and bearish sentiment styling.
 - Added `short_interest_test.dart` (13 tests) covering `ShortInterest` JSON deserialization, free float scaling, share change computation, `ShortingAvailability` borrow fee rates, hard-to-borrow inference, `ShortSqueezeRisk` multi-factor scoring, `BorrowCostLevel` categorization, and `DemoService` response contracts.

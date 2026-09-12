@@ -1,4 +1,5 @@
 import 'package:intl/intl.dart';
+import 'package:robinhood_options_mobile/model/insider_sentiment.dart';
 
 class InsiderTransaction {
   final String filerName;
@@ -59,6 +60,19 @@ class InsiderTransaction {
       startDate: startDate,
       transactionText: json['transactionText'] ?? '',
       value: value,
+    );
+  }
+
+  InsiderTransactionRecord toRecord() {
+    return InsiderTransactionRecord(
+      filerName: filerName,
+      relationship: filerRelation,
+      transactionDate: startDate,
+      transactionType: transactionText,
+      transactionCode: '',
+      shares: sharesValue ?? 0,
+      value: value,
+      secForm4Url: filerUrl.isNotEmpty ? filerUrl : null,
     );
   }
 }

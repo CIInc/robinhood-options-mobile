@@ -4664,6 +4664,7 @@ WATCHLIST
 
   /// Fetches monthly aggregate insider transactions and net sentiment score for an instrument
   /// https://api.robinhood.com/marketdata/insiders/summary/{instrument_id}/
+  @override
   Future<dynamic> getInsiderSummary(
       BrokerageUser user, String instrumentId) async {
     var url = "$endpoint/marketdata/insiders/summary/$instrumentId/";
@@ -4672,6 +4673,7 @@ WATCHLIST
 
   /// Fetches detailed officer/director Form 4 insider transactions for an instrument
   /// https://api.robinhood.com/marketdata/insiders/transactions/{instrument_id}/
+  @override
   Future<dynamic> getInsiderTransactions(
       BrokerageUser user, String instrumentId) async {
     var url = "$endpoint/marketdata/insiders/transactions/$instrumentId/";

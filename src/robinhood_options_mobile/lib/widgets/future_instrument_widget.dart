@@ -240,7 +240,7 @@ class _FutureInstrumentWidgetState extends State<FutureInstrumentWidget> {
             const Divider(),
             // Position Details
             ListTile(
-              title: const Text('Your Position'),
+              title: const Text('Position'),
               subtitle: Column(
                 children: [
                   _buildRow('Quantity', quantity.toString()),

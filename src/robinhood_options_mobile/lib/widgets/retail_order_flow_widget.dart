@@ -127,63 +127,146 @@ class _RetailOrderFlowWidgetState extends State<RetailOrderFlowWidget> {
           return const SizedBox.shrink();
         }
 
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-          child: Card(
-            elevation: 1,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildHeader(context, flow),
-                  const SizedBox(height: 16),
-                  _buildSplitBar(context, flow),
-                  const SizedBox(height: 16),
-                  _buildPrimaryMetricsGrid(context, flow),
-                  const SizedBox(height: 12),
-                  _buildSummaryBanner(context, flow),
-                  if (_isExpanded) ...[
-                    const SizedBox(height: 16),
-                    const Divider(),
-                    const SizedBox(height: 8),
-                    _buildHistoryTable(context, flow),
-                    const SizedBox(height: 12),
-                    _buildEducationalNotes(context),
-                  ],
-                  const SizedBox(height: 8),
-                  Center(
-                    child: TextButton.icon(
-                      onPressed: () {
-                        setState(() {
-                          _isExpanded = !_isExpanded;
-                        });
-                      },
-                      icon: Icon(
-                        _isExpanded ? Icons.expand_less : Icons.expand_more,
-                        size: 20,
-                      ),
-                      label: Text(
-                        _isExpanded
-                            ? 'Hide Retail Trend'
-                            : 'View Historical Retail Trend',
-                        style: const TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                  ),
-                ],
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildSectionHeader(
+              context: context,
+              title: 'Retail Order Flow',
+              icon: Icons.groups_outlined,
+              trailing: IconButton(
+                icon: const Icon(Icons.refresh, size: 20),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                visualDensity: VisualDensity.compact,
+                tooltip: 'Refresh retail sentiment',
+                onPressed: _loadData,
               ),
             ),
-          ),
+            Card(
+              margin: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+              elevation: 0,
+              color: Theme.of(context)
+                  .colorScheme
+                  .surfaceContainerHighest
+                  .withValues(alpha: 0.25),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+                side: BorderSide(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .outlineVariant
+                      .withValues(alpha: 0.4),
+                ),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16.0, 12.0, 16.0, 16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildBadges(context, flow),
+                    const SizedBox(height: 16),
+                    _buildSplitBar(context, flow),
+                    const SizedBox(height: 16),
+                    _buildPrimaryMetricsGrid(context, flow),
+                    const SizedBox(height: 12),
+                    _buildSummaryBanner(context, flow),
+                    if (_isExpanded) ...[
+                      const SizedBox(height: 16),
+                      const Divider(),
+                      const SizedBox(height: 8),
+                      _buildHistoryTable(context, flow),
+                      const SizedBox(height: 12),
+                      _buildEducationalNotes(context),
+                    ],
+                    const SizedBox(height: 8),
+                    Center(
+                      child: TextButton.icon(
+                        onPressed: () {
+                          setState(() {
+                            _isExpanded = !_isExpanded;
+                          });
+                        },
+                        icon: Icon(
+                          _isExpanded ? Icons.expand_less : Icons.expand_more,
+                          size: 20,
+                        ),
+                        label: Text(
+                          _isExpanded
+                              ? 'Hide Retail Trend'
+                              : 'View Historical Retail Trend',
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         );
       },
     );
   }
 
-  Widget _buildHeader(BuildContext context, RetailOrderFlow flow) {
+  Widget _buildSectionHeader({
+    required BuildContext context,
+    required String title,
+    Widget? trailing,
+    String? subtitle,
+    IconData? icon,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 2.0),
+      child: Row(
+        children: [
+          if (icon != null) ...[
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: Theme.of(context)
+                    .colorScheme
+                    .primary
+                    .withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                icon,
+                size: 18,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            ),
+            const SizedBox(width: 10),
+          ],
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 19,
+                      ),
+                ),
+                if (subtitle != null) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ],
+            ),
+          ),
+          if (trailing != null) trailing,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBadges(BuildContext context, RetailOrderFlow flow) {
     Color badgeColor;
     if (flow.isBullish) {
       badgeColor = Colors.green;
@@ -193,103 +276,64 @@ class _RetailOrderFlowWidgetState extends State<RetailOrderFlowWidget> {
       badgeColor = Colors.grey;
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Wrap(
+      spacing: 8,
+      runSpacing: 6,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Expanded(
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.groups_outlined,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                  const SizedBox(width: 8),
-                  Flexible(
-                    child: Text(
-                      'Retail Order Flow & Robinhood Sentiment',
-                      style: Theme.of(context)
-                          .textTheme
-                          .titleMedium
-                          ?.copyWith(fontWeight: FontWeight.bold),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          decoration: BoxDecoration(
+            color: badgeColor.withAlpha((255 * 0.12).round()),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: badgeColor.withAlpha((255 * 0.35).round()),
             ),
-            IconButton(
-              icon: const Icon(Icons.refresh, size: 20),
-              tooltip: 'Refresh retail sentiment',
-              onPressed: _loadData,
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 6,
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: badgeColor.withAlpha((255 * 0.12).round()),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: badgeColor.withAlpha((255 * 0.35).round()),
-                ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                flow.isBullish
+                    ? Icons.arrow_upward
+                    : (flow.isBearish ? Icons.arrow_downward : Icons.remove),
+                size: 14,
+                color: badgeColor,
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    flow.isBullish
-                        ? Icons.arrow_upward
-                        : (flow.isBearish
-                            ? Icons.arrow_downward
-                            : Icons.remove),
-                    size: 14,
-                    color: badgeColor,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    '${flow.sentimentLabel} (${flow.buyRatioFormatted} Buy)',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: badgeColor,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: Theme.of(context)
-                    .colorScheme
-                    .surfaceContainerHighest
-                    .withAlpha((255 * 0.5).round()),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: Theme.of(context)
-                      .colorScheme
-                      .outline
-                      .withAlpha((255 * 0.2).round()),
-                ),
-              ),
-              child: Text(
-                'Net Flow: ${flow.netBuyFormatted}',
+              const SizedBox(width: 4),
+              Text(
+                '${flow.sentimentLabel} (${flow.buyRatioFormatted} Buy)',
                 style: TextStyle(
                   fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.bold,
+                  color: badgeColor,
                 ),
               ),
+            ],
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          decoration: BoxDecoration(
+            color: Theme.of(context)
+                .colorScheme
+                .surfaceContainerHighest
+                .withAlpha((255 * 0.5).round()),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: Theme.of(context)
+                  .colorScheme
+                  .outline
+                  .withAlpha((255 * 0.2).round()),
             ),
-          ],
+          ),
+          child: Text(
+            'Net Flow: ${flow.netBuyFormatted}',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
         ),
       ],
     );
