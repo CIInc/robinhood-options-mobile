@@ -324,7 +324,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ **First-Party Insider Sentiment & Activity:** Monthly aggregate insider transactions, net sentiment scoring, and director/officer Form 4 tracking (`/marketdata/insiders/`).
 - ✅ **Retail Order Flow & Robinhood Sentiment:** First-party net buy/sell percentage and volume percentage changes over time (`/marketdata/equities/summary/robinhood/`).
 - ✅ **Short Float & Live Borrow Availability:** Real-time short interest (`pc_freefloat`, days to cover) and live borrow availability and fee rates (`/marketdata/fundamentals/short/v1/`, `/instruments/{id}/shorting/`).
-- **Robinhood Curated Screener Presets & Layouts:** Native server-side screener presets (`/screeners/presets/`, `/screeners`) and Robinhood Legend workspaces (`/hippo/bw/layouts`).
+- ✅ **Robinhood Curated Screener Presets & Layouts:** Native server-side screener presets (`/screeners/presets/`, `/screeners`) and Robinhood Legend workspaces (`/hippo/bw/layouts`).
 
 ### v0.44.0 (Q4 2026 - Early October)
 **Unified Margin Health, Collateral & Advanced Order Execution**
@@ -750,7 +750,7 @@ Q3 2026 shifts focus from basic execution to **Advanced Intelligence** and **Reg
 - [x] **First-Party Insider Sentiment & Activity**: Monthly aggregate insider transactions and director/officer Form 4 tracking (`/marketdata/insiders/`) - **Small** (1-2 weeks)
 - [x] **Robinhood Retail Flow & Sentiment**: Net buy/sell percentage and order volume trends (`/marketdata/equities/summary/robinhood/`) - **Small** (1-2 weeks)
 - [x] **Short Float & Live Shorting Rates**: Real-time free float short percentage, shares short, borrow inventory levels, and borrow fee rates (`/marketdata/fundamentals/short/v1/`, `/instruments/{id}/shorting/`) - **Small** (1-2 weeks)
-- [ ] **Robinhood Curated Screener Presets**: Backend screener presets integration (`/screeners/presets/`, `/screeners`) - **Small** (1 week)
+- [x] **Robinhood Curated Screener Presets**: Backend screener presets integration (`/screeners/presets/`, `/screeners`) - **Small** (1 week)
 - [x] **Income View NAV** ([#20](https://github.com/CIInc/robinhood-options-mobile/issues/20)): Net Asset Value tracking - **Small** (1 week)
 - [x] **Income Chart** ([#17](https://github.com/CIInc/robinhood-options-mobile/issues/17)): Portfolio income visualization - **Small** (1 week)
 - [x] **Dividend History** ([#3](https://github.com/CIInc/robinhood-options-mobile/issues/3)): Historical dividend tracking - **Small** (1 week)

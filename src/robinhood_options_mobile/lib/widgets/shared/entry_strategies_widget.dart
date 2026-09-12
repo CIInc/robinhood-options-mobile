@@ -762,13 +762,13 @@ class EntryStrategiesWidget extends StatelessWidget {
     bool isSecondary = false,
   }) {
     final colorScheme = Theme.of(context).colorScheme;
-    return Container(
-      decoration: BoxDecoration(
-        color: value
-            ? colorScheme.primaryContainer.withValues(alpha: 0.15)
-            : colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+    return Material(
+      color: value
+          ? colorScheme.primaryContainer.withValues(alpha: 0.15)
+          : colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
+        side: BorderSide(
           color: value
               ? colorScheme.primary.withValues(alpha: 0.5)
               : Colors.transparent,

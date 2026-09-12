@@ -2296,6 +2296,27 @@ https://api.schwabapi.com/marketdata/v1/instruments?symbol=Google&projection=sea
   }
 
   @override
+  Future<dynamic> getScreenerPresets(BrokerageUser user) async {
+    return null;
+  }
+
+  @override
+  Future<dynamic> getScreeners(BrokerageUser user,
+      {bool includeFilters = false}) async {
+    return null;
+  }
+
+  @override
+  Future<dynamic> getLegendLayouts(BrokerageUser user) async {
+    return null;
+  }
+
+  @override
+  Future<dynamic> getLegendLayout(BrokerageUser user, String layoutId) async {
+    return null;
+  }
+
+  @override
   Future<List<ForexOrder>> getForexOrders(BrokerageUser user) {
     throw UnimplementedError();
   }

@@ -364,4 +364,29 @@ abstract class IBrokerageService {
       BrokerageUser user, String instrumentId) async {
     return null;
   }
+
+  /// Fetches Robinhood-curated screener presets
+  /// https://bonfire.robinhood.com/screeners/presets/
+  Future<dynamic> getScreenerPresets(BrokerageUser user) async {
+    return null;
+  }
+
+  /// Fetches available screeners and criteria
+  /// https://bonfire.robinhood.com/screeners?include_filters={includeFilters}
+  Future<dynamic> getScreeners(BrokerageUser user,
+      {bool includeFilters = false}) async {
+    return null;
+  }
+
+  /// Fetches saved custom desktop and Legend trading workspaces/layouts
+  /// https://api.robinhood.com/hippo/bw/layouts
+  Future<dynamic> getLegendLayouts(BrokerageUser user) async {
+    return null;
+  }
+
+  /// Fetches layout definition and widget grid configuration for a specific layout
+  /// https://api.robinhood.com/hippo/bw/layouts/{layoutId}
+  Future<dynamic> getLegendLayout(BrokerageUser user, String layoutId) async {
+    return null;
+  }
 }

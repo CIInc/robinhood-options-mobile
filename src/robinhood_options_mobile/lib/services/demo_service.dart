@@ -2698,7 +2698,8 @@ class DemoService implements IBrokerageService {
               'percent_change': 1.37,
               'value': 828900000.0,
               'portfolio_percent': 85.4,
-              'source_url': 'https://www.sec.gov/edgar/data/1822844/sample-13f.xml',
+              'source_url':
+                  'https://www.sec.gov/edgar/data/1822844/sample-13f.xml',
             },
             {
               'manager_name': 'Citadel Advisors LLC',
@@ -2817,7 +2818,8 @@ class DemoService implements IBrokerageService {
             'percent_change': 0.0,
             'value': 90000000000.0,
             'portfolio_percent': 28.5,
-            'source_url': 'https://www.sec.gov/edgar/data/1067983/sample-13f.xml',
+            'source_url':
+                'https://www.sec.gov/edgar/data/1067983/sample-13f.xml',
           },
           {
             'manager_name': 'Bridgewater Associates LP',
@@ -2870,5 +2872,763 @@ class DemoService implements IBrokerageService {
         ]
       }
     };
+  }
+
+  @override
+  Future<dynamic> getScreenerPresets(BrokerageUser user) async {
+    return {
+      'results': [
+        {
+          'id': '94ee72a4-5b0b-4164-9f02-7e119a1e68c0',
+          'display_name': 'Daily price jumps',
+          'name': 'Daily price jumps',
+          'display_description':
+              'Stocks with the biggest price increases today',
+          'description': 'Stocks with the biggest price increases today',
+          'hide_from_search': null,
+          'icon_emoji': '💡',
+          'icon_url': '',
+          'sort_by': '1d_price_change',
+          'sort_direction': 'DESC',
+          'filters': [],
+          'is_preset': true,
+          'item_count': 50,
+          'sample_symbols': ['NVDA', 'TSLA', 'PLTR', 'AMD', 'COIN'],
+          'asset_urls': {
+            '180x100': {
+              '1x':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/daily-price-jumps/180x100/1x.png',
+              '2x':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/daily-price-jumps/180x100/2x.png',
+              'svg':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/daily-price-jumps/180x100/svg.svg'
+            },
+            '255x160': {
+              '1x':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/daily-price-jumps/255x160/1x.png',
+              '2x':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/daily-price-jumps/255x160/2x.png',
+              'svg':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/daily-price-jumps/255x160/svg.svg'
+            }
+          },
+          'columns': [
+            'sparkline',
+            '1d_price_change',
+            'price',
+            'todays_volume',
+            'market_cap'
+          ]
+        },
+        {
+          'id': '834ca4dc-7d82-4cfc-b95b-ccd9d85db5c0',
+          'display_name': 'Highest dividend yield',
+          'name': 'Highest dividend yield',
+          'display_description': 'Stocks with dividend yield above 5%',
+          'description': 'Stocks with dividend yield above 5%',
+          'hide_from_search': null,
+          'icon_emoji': '💡',
+          'icon_url': '',
+          'sort_by': 'dividend_yield',
+          'sort_direction': 'DESC',
+          'filters': [],
+          'is_preset': true,
+          'item_count': 42,
+          'sample_symbols': ['JNJ', 'PG', 'KO', 'ABBV', 'XOM', 'MO'],
+          'asset_urls': {
+            '180x100': {
+              '1x':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/high-dividend-yield/180x100/1x.png',
+              '2x':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/high-dividend-yield/180x100/2x.png',
+              'svg':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/high-dividend-yield/180x100/svg.svg'
+            },
+            '255x160': {
+              '1x':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/high-dividend-yield/255x160/1x.png',
+              '2x':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/high-dividend-yield/255x160/2x.png',
+              'svg':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/high-dividend-yield/255x160/svg.svg'
+            }
+          },
+          'columns': [
+            'sparkline',
+            'dividend_yield',
+            'price',
+            '1d_price_change',
+            'todays_volume',
+            'market_cap'
+          ]
+        },
+        {
+          'id': '3490aa54-5b17-48bd-aa8a-557dd554b7d8',
+          'display_name': 'Highest implied volatility',
+          'name': 'Highest implied volatility',
+          'display_description':
+              'Stocks that are likely to have large price swings',
+          'description': 'Stocks that are likely to have large price swings',
+          'hide_from_search': null,
+          'icon_emoji': '💡',
+          'icon_url': '',
+          'sort_by': 'implied_volatility',
+          'sort_direction': 'DESC',
+          'filters': [],
+          'is_preset': true,
+          'item_count': 30,
+          'sample_symbols': ['TSLA', 'MSTR', 'GME', 'SMCI', 'MARA'],
+          'asset_urls': {
+            '180x100': {
+              '1x':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/high-iv/180x100/1x.png',
+              '2x':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/high-iv/180x100/2x.png',
+              'svg':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/high-iv/180x100/svg.svg'
+            },
+            '255x160': {
+              '1x':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/high-iv/255x160/1x.png',
+              '2x':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/high-iv/255x160/2x.png',
+              'svg':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/high-iv/255x160/svg.svg'
+            }
+          },
+          'columns': [
+            'sparkline',
+            'implied_volatility',
+            'price',
+            '1d_price_change',
+            'todays_volume',
+            'market_cap'
+          ]
+        },
+        {
+          'id': '52f76924-2a06-4f00-8d7c-e01d314ca809',
+          'display_name': 'Highest options volume',
+          'name': 'Highest options volume',
+          'display_description':
+              'Stocks with the most traded options contracts',
+          'description': 'Stocks with the most traded options contracts',
+          'hide_from_search': null,
+          'icon_emoji': '💡',
+          'icon_url': '',
+          'sort_by': 'options_volume',
+          'sort_direction': 'DESC',
+          'filters': [],
+          'is_preset': true,
+          'item_count': 40,
+          'sample_symbols': ['SPY', 'QQQ', 'NVDA', 'TSLA', 'AAPL', 'AMD'],
+          'asset_urls': {
+            '180x100': {
+              '1x':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/high-options-volume/180x100/1x.png',
+              '2x':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/high-options-volume/180x100/2x.png',
+              'svg':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/high-options-volume/180x100/svg.svg'
+            },
+            '255x160': {
+              '1x':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/high-options-volume/255x160/1x.png',
+              '2x':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/high-options-volume/255x160/2x.png',
+              'svg':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/high-options-volume/255x160/svg.svg'
+            }
+          },
+          'columns': [
+            'sparkline',
+            'options_volume',
+            'price',
+            '1d_price_change',
+            'todays_volume',
+            'market_cap'
+          ]
+        },
+        {
+          'id': '944e4729-6663-420d-8656-064201d0ef5a',
+          'display_name': 'Analyst picks',
+          'name': 'Analyst picks',
+          'display_description':
+              'Stocks with "buy" rating from third-party analysts',
+          'description': 'Stocks with "buy" rating from third-party analysts',
+          'hide_from_search': null,
+          'icon_emoji': '💡',
+          'icon_url': '',
+          'sort_by': 'market_cap',
+          'sort_direction': 'DESC',
+          'filters': [],
+          'is_preset': true,
+          'item_count': 35,
+          'sample_symbols': ['MSFT', 'NVDA', 'AMZN', 'V', 'LLY'],
+          'asset_urls': {
+            '180x100': {
+              '1x':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/analyst-picks/180x100/1x.png',
+              '2x':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/analyst-picks/180x100/2x.png',
+              'svg':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/analyst-picks/180x100/svg.svg'
+            },
+            '255x160': {
+              '1x':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/analyst-picks/255x160/1x.png',
+              '2x':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/analyst-picks/255x160/2x.png',
+              'svg':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/analyst-picks/255x160/svg.svg'
+            }
+          },
+          'columns': [
+            'sparkline',
+            'analyst_ratings.rating',
+            'price',
+            '1d_price_change',
+            'todays_volume',
+            'market_cap'
+          ]
+        },
+        {
+          'id': 'cfab3ede-ab3b-44f2-bc90-b1f110e97e7f',
+          'display_name': 'New 52-week highs',
+          'name': 'New 52-week highs',
+          'display_description': 'Stocks that broke their 52-week high today',
+          'description': 'Stocks that broke their 52-week high today',
+          'hide_from_search': null,
+          'icon_emoji': '💡',
+          'icon_url': '',
+          'sort_by': 'market_cap',
+          'sort_direction': 'DESC',
+          'filters': [],
+          'is_preset': true,
+          'item_count': 25,
+          'sample_symbols': ['NVDA', 'META', 'LLY', 'COST', 'AVGO'],
+          'asset_urls': {
+            '180x100': {
+              '1x':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/52-week-highs/180x100/1x.png',
+              '2x':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/52-week-highs/180x100/2x.png',
+              'svg':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/52-week-highs/180x100/svg.svg'
+            },
+            '255x160': {
+              '1x':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/52-week-highs/255x160/1x.png',
+              '2x':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/52-week-highs/255x160/2x.png',
+              'svg':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/52-week-highs/255x160/svg.svg'
+            }
+          },
+          'columns': [
+            'sparkline',
+            '52_week_high_price',
+            'price',
+            '1d_price_change',
+            'todays_volume',
+            'market_cap'
+          ]
+        },
+        {
+          'id': '472db015-1046-4ce1-a837-0b8c865b7243',
+          'display_name': 'Daily price dips',
+          'name': 'Daily price dips',
+          'display_description':
+              'Stocks with the biggest price decreases today',
+          'description': 'Stocks with the biggest price decreases today',
+          'hide_from_search': null,
+          'icon_emoji': '💡',
+          'icon_url': '',
+          'sort_by': '1d_price_change',
+          'sort_direction': 'ASC',
+          'filters': [],
+          'is_preset': true,
+          'item_count': 50,
+          'sample_symbols': ['INTC', 'BABA', 'DIS', 'NKE', 'PYPL'],
+          'asset_urls': {
+            '180x100': {
+              '1x':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/daily-price-dips/180x100/1x.png',
+              '2x':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/daily-price-dips/180x100/2x.png',
+              'svg':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/daily-price-dips/180x100/svg.svg'
+            },
+            '255x160': {
+              '1x':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/daily-price-dips/255x160/1x.png',
+              '2x':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/daily-price-dips/255x160/2x.png',
+              'svg':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/daily-price-dips/255x160/svg.svg'
+            }
+          },
+          'columns': [
+            'sparkline',
+            '1d_price_change',
+            'price',
+            'todays_volume',
+            'market_cap'
+          ]
+        },
+        {
+          'id': '68bd6448-c5d8-428e-b778-bbc9e9093d49',
+          'display_name': 'Upcoming earnings',
+          'name': 'Upcoming earnings',
+          'display_description':
+              'Companies reporting earnings in the next 2 weeks',
+          'description': 'Companies reporting earnings in the next 2 weeks',
+          'hide_from_search': null,
+          'icon_emoji': '💡',
+          'icon_url': '',
+          'sort_by': 'upcoming_earnings',
+          'sort_direction': 'ASC',
+          'filters': [],
+          'is_preset': true,
+          'item_count': 32,
+          'sample_symbols': ['AAPL', 'MSFT', 'AMZN', 'GOOGL', 'META'],
+          'asset_urls': {
+            '180x100': {
+              '1x':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/upcoming-earnings/180x100/1x.png',
+              '2x':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/upcoming-earnings/180x100/2x.png',
+              'svg':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/upcoming-earnings/180x100/svg.svg'
+            },
+            '255x160': {
+              '1x':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/upcoming-earnings/255x160/1x.png',
+              '2x':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/upcoming-earnings/255x160/2x.png',
+              'svg':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/upcoming-earnings/255x160/svg.svg'
+            }
+          },
+          'columns': [
+            'sparkline',
+            'upcoming_earnings',
+            'price',
+            '1d_price_change',
+            'todays_volume',
+            'market_cap'
+          ]
+        },
+        {
+          'id': 'a3bbcbbe-0a74-40fb-b91b-3cc0dc8a7dca',
+          'display_name': 'New 52-week lows',
+          'name': 'New 52-week lows',
+          'display_description':
+              'Stocks that fell below their 52-week low today',
+          'description': 'Stocks that fell below their 52-week low today',
+          'hide_from_search': null,
+          'icon_emoji': '💡',
+          'icon_url': '',
+          'sort_by': 'market_cap',
+          'sort_direction': 'DESC',
+          'filters': [],
+          'is_preset': true,
+          'item_count': 18,
+          'sample_symbols': ['WBA', 'BA', 'PFE', 'SNOW', 'LULU'],
+          'asset_urls': {
+            '180x100': {
+              '1x':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/52-week-lows/180x100/1x.png',
+              '2x':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/52-week-lows/180x100/2x.png',
+              'svg':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/52-week-lows/180x100/svg.svg'
+            },
+            '255x160': {
+              '1x':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/52-week-lows/255x160/1x.png',
+              '2x':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/52-week-lows/255x160/2x.png',
+              'svg':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/52-week-lows/255x160/svg.svg'
+            }
+          },
+          'columns': [
+            'sparkline',
+            '52_week_low_price',
+            'price',
+            '1d_price_change',
+            'todays_volume',
+            'market_cap'
+          ]
+        },
+        {
+          'id': '6cdf2ee6-4e81-4b5d-b146-f4ec90bd6319',
+          'display_name': 'Custom screener',
+          'name': 'Custom screener',
+          'display_description':
+              'Choose your own filters to help you find stocks',
+          'description': 'Choose your own filters to help you find stocks',
+          'hide_from_search': true,
+          'icon_emoji': '💡',
+          'icon_url': '',
+          'sort_by': 'market_cap',
+          'sort_direction': 'DESC',
+          'filters': [],
+          'is_preset': true,
+          'item_count': 0,
+          'sample_symbols': ['AAPL', 'MSFT', 'GOOGL'],
+          'asset_urls': {
+            '180x100': {
+              '1x':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/custom/180x100/1x.png',
+              '2x':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/custom/180x100/2x.png',
+              'svg':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/custom/180x100/svg.svg'
+            },
+            '255x160': {
+              '1x':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/custom/255x160/1x.png',
+              '2x':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/custom/255x160/2x.png',
+              'svg':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/custom/255x160/svg.svg'
+            }
+          },
+          'columns': [
+            'sparkline',
+            'price',
+            '1d_price_change',
+            'todays_volume',
+            'market_cap'
+          ]
+        },
+        {
+          'id': 'mega-cap-tech',
+          'display_name': 'Mega-Cap Tech Leaders',
+          'name': 'Mega-Cap Tech Leaders',
+          'display_description':
+              'Dominant technology titans with market capitalization exceeding \$500B driving AI and cloud infrastructure.',
+          'description':
+              'Dominant technology titans with market capitalization exceeding \$500B driving AI and cloud infrastructure.',
+          'category': 'Growth',
+          'is_curated': true,
+          'is_featured': true,
+          'item_count': 12,
+          'sort_by': 'market_cap',
+          'sort_direction': 'DESC',
+          'sample_symbols': ['AAPL', 'MSFT', 'NVDA', 'GOOGL', 'AMZN', 'META'],
+          'criteria': [
+            {
+              'field': 'market_cap',
+              'operator': 'gte',
+              'min_value': 500000000000.0,
+            },
+            {
+              'field': 'sector',
+              'operator': 'eq',
+              'text_value': 'Technology',
+            },
+          ],
+        },
+        {
+          'id': 'high-short-squeeze',
+          'display_name': 'High Short Interest & Squeeze Candidates',
+          'name': 'High Short Interest & Squeeze Candidates',
+          'display_description':
+              'Equities with high short float percentage (≥15%) and elevated days to cover ripe for volatility surges.',
+          'description':
+              'Equities with high short float percentage (≥15%) and elevated days to cover ripe for volatility surges.',
+          'category': 'Short Squeeze',
+          'is_curated': true,
+          'is_featured': false,
+          'item_count': 19,
+          'sort_by': 'short_float',
+          'sort_direction': 'DESC',
+          'sample_symbols': ['GME', 'UPST', 'CVNA', 'RIVN'],
+          'criteria': [
+            {
+              'field': 'short_float',
+              'operator': 'gte',
+              'min_value': 15.0,
+            },
+            {
+              'field': 'volume',
+              'operator': 'gte',
+              'min_value': 3000000.0,
+            },
+          ],
+        },
+      ]
+    };
+  }
+
+  @override
+  Future<dynamic> getScreeners(BrokerageUser user,
+      {bool includeFilters = false}) async {
+    return {
+      'results': [
+        {
+          'id': 'screener_equities_core',
+          'name': 'US Equities Core Screener',
+          'description':
+              'Primary screener filtering US equities by fundamental and technical criteria.',
+          'filter_count': 12,
+          'available_filters': [
+            'market_cap',
+            'pe_ratio',
+            'dividend_yield',
+            'price',
+            'volume',
+            'sector',
+            'industry',
+            'short_float',
+            'days_to_cover',
+            '52_week_high',
+            '52_week_low',
+            'beta',
+          ],
+        },
+        {
+          'id': 'screener_options_underlying',
+          'name': 'Options Underlyings Screener',
+          'description':
+              'Screens equities with active options chains, high open interest, and implied volatility levels.',
+          'filter_count': 8,
+          'available_filters': [
+            'implied_volatility',
+            'options_volume',
+            'put_call_ratio',
+            'gamma_exposure',
+            'market_cap',
+            'price',
+            'volume',
+          ],
+        },
+      ]
+    };
+  }
+
+  @override
+  Future<dynamic> getLegendLayouts(BrokerageUser user) async {
+    return {
+      'results': [
+        {
+          'id': 'layout_options_pro',
+          'name': 'Options Pro Desk',
+          'description':
+              'Multi-panel workstation featuring Candlestick Chart, Option Chain with Greeks, Order Book, and Live Options Flow.',
+          'is_default': true,
+          'layout_type': 'LEGEND',
+          'created_at': '2026-06-15T10:00:00Z',
+          'updated_at': '2026-08-20T14:30:00Z',
+          'widgets': [
+            {
+              'id': 'w_chart_01',
+              'widget_type': 'CHART',
+              'title': 'NVDA 5-Min Candlestick',
+              'col': 0,
+              'row': 0,
+              'width': 2,
+              'height': 2,
+              'symbol': 'NVDA',
+              'interval': '5m',
+              'settings': {
+                'indicators': ['RSI', 'VWAP', 'MACD']
+              },
+            },
+            {
+              'id': 'w_chain_02',
+              'widget_type': 'OPTION_CHAIN',
+              'title': 'NVDA Options Chain (Greeks)',
+              'col': 2,
+              'row': 0,
+              'width': 2,
+              'height': 2,
+              'symbol': 'NVDA',
+              'settings': {'display': 'calls_and_puts', 'greeks': true},
+            },
+            {
+              'id': 'w_depth_03',
+              'widget_type': 'ORDER_BOOK',
+              'title': 'Level 2 Depth of Market',
+              'col': 0,
+              'row': 2,
+              'width': 2,
+              'height': 1,
+              'symbol': 'NVDA',
+            },
+            {
+              'id': 'w_flow_04',
+              'widget_type': 'OPTIONS_FLOW',
+              'title': 'Unusual Options Flow Feed',
+              'col': 2,
+              'row': 2,
+              'width': 2,
+              'height': 1,
+              'settings': {'min_premium': 100000},
+            },
+          ],
+        },
+        {
+          'id': 'layout_multi_chart',
+          'name': 'Multi-Chart Momentum Grid',
+          'description':
+              '4-way synchronized multi-timeframe chart grid (1m, 5m, 1h, 1D) with technical momentum indicators.',
+          'is_default': false,
+          'layout_type': 'LEGEND',
+          'created_at': '2026-07-01T12:00:00Z',
+          'updated_at': '2026-08-18T09:15:00Z',
+          'widgets': [
+            {
+              'id': 'w_chart_1m',
+              'widget_type': 'CHART',
+              'title': 'TSLA 1-Min Scalp Chart',
+              'col': 0,
+              'row': 0,
+              'width': 2,
+              'height': 1,
+              'symbol': 'TSLA',
+              'interval': '1m',
+            },
+            {
+              'id': 'w_chart_5m',
+              'widget_type': 'CHART',
+              'title': 'TSLA 5-Min Intraday Chart',
+              'col': 2,
+              'row': 0,
+              'width': 2,
+              'height': 1,
+              'symbol': 'TSLA',
+              'interval': '5m',
+            },
+            {
+              'id': 'w_chart_1h',
+              'widget_type': 'CHART',
+              'title': 'TSLA 1-Hour Trend Chart',
+              'col': 0,
+              'row': 1,
+              'width': 2,
+              'height': 1,
+              'symbol': 'TSLA',
+              'interval': '1h',
+            },
+            {
+              'id': 'w_chart_1d',
+              'widget_type': 'CHART',
+              'title': 'TSLA Daily Macro Chart',
+              'col': 2,
+              'row': 1,
+              'width': 2,
+              'height': 1,
+              'symbol': 'TSLA',
+              'interval': '1d',
+            },
+          ],
+        },
+        {
+          'id': 'layout_day_trader',
+          'name': 'Day Trader Command Center',
+          'description':
+              'Fast execution hub with Level 2 order book, Time & Sales, Trade Ticket, and Open Positions tracker.',
+          'is_default': false,
+          'layout_type': 'LEGEND',
+          'created_at': '2026-07-10T15:20:00Z',
+          'updated_at': '2026-08-25T11:45:00Z',
+          'widgets': [
+            {
+              'id': 'w_l2_01',
+              'widget_type': 'ORDER_BOOK',
+              'title': 'Level 2 Book',
+              'col': 0,
+              'row': 0,
+              'width': 2,
+              'height': 2,
+              'symbol': 'AAPL',
+            },
+            {
+              'id': 'w_ts_02',
+              'widget_type': 'TIME_AND_SALES',
+              'title': 'Time & Sales Tape',
+              'col': 2,
+              'row': 0,
+              'width': 1,
+              'height': 2,
+              'symbol': 'AAPL',
+            },
+            {
+              'id': 'w_ticket_03',
+              'widget_type': 'TRADE_TICKET',
+              'title': 'Quick Trade Ticket',
+              'col': 3,
+              'row': 0,
+              'width': 1,
+              'height': 2,
+              'symbol': 'AAPL',
+            },
+            {
+              'id': 'w_pos_04',
+              'widget_type': 'POSITIONS',
+              'title': 'Active Positions & Orders',
+              'col': 0,
+              'row': 2,
+              'width': 4,
+              'height': 1,
+            },
+          ],
+        },
+        {
+          'id': 'layout_fundamentals_desk',
+          'name': 'Fundamentals & Screener Station',
+          'description':
+              'Research layout combining the Stock Screener, News Catalysts, Macro Sentiment, and Watchlists.',
+          'is_default': false,
+          'layout_type': 'CUSTOM',
+          'created_at': '2026-07-22T08:00:00Z',
+          'updated_at': '2026-08-27T16:00:00Z',
+          'widgets': [
+            {
+              'id': 'w_screener_01',
+              'widget_type': 'SCREENER',
+              'title': 'Curated Stock Screener',
+              'col': 0,
+              'row': 0,
+              'width': 2,
+              'height': 2,
+            },
+            {
+              'id': 'w_news_02',
+              'widget_type': 'NEWS',
+              'title': 'Live Market News & Catalysts',
+              'col': 2,
+              'row': 0,
+              'width': 2,
+              'height': 1,
+            },
+            {
+              'id': 'w_watch_03',
+              'widget_type': 'WATCHLIST',
+              'title': 'Tech & AI Watchlist',
+              'col': 2,
+              'row': 1,
+              'width': 2,
+              'height': 1,
+            },
+          ],
+        },
+      ]
+    };
+  }
+
+  @override
+  Future<dynamic> getLegendLayout(BrokerageUser user, String layoutId) async {
+    final allLayouts = await getLegendLayouts(user);
+    final results = (allLayouts['results'] as List<dynamic>?) ?? [];
+    for (final item in results) {
+      if (item is Map<String, dynamic> && item['id'] == layoutId) {
+        return item;
+      }
+    }
+    return results.isNotEmpty ? results.first : null;
   }
 }

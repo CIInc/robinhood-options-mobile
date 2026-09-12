@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
@@ -6,6 +7,7 @@ import 'package:intl/intl.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/model/screener_criterion.dart';
+import 'package:robinhood_options_mobile/model/screener_preset.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
@@ -14,6 +16,7 @@ import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
 
 final formatCurrency = NumberFormat.simpleCurrency();
 final formatPercentage = NumberFormat.decimalPercentPattern(decimalDigits: 2);
+final formatCompactNumber = NumberFormat.compact();
 
 class ScreenerWidget extends StatefulWidget {
   final User? user;
@@ -23,6 +26,8 @@ class ScreenerWidget extends StatefulWidget {
   final DocumentReference<User>? userDocRef;
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
+  final RobinhoodScreenerPreset? initialPreset;
+  final bool embedded;
 
   const ScreenerWidget(
     this.brokerageUser,
@@ -33,6 +38,8 @@ class ScreenerWidget extends StatefulWidget {
     required this.generativeService,
     required this.user,
     required this.userDocRef,
+    this.initialPreset,
+    this.embedded = false,
   });
 
   @override
@@ -44,7 +51,13 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
   final ScrollController _scrollController = ScrollController();
 
   // Advanced Stock Screener UI state
+  RobinhoodScreenerPreset? activePreset;
+  bool filtersExpanded = true;
+  bool isGridView = true;
+  bool _showAllResults = false;
+  int _displayedCount = 60;
   List<Instrument>? screenerResults;
+  List<Instrument>? sortedResults;
   String? screenerSector;
   int? screenerMarketCapMin;
   int? screenerMarketCapMax;
@@ -84,10 +97,32 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
     priceMaxCtl = TextEditingController();
     volumeMinCtl = TextEditingController();
     widget.analytics.logScreenView(screenName: 'Screener');
+    _scrollController.addListener(_onScroll);
+
+    if (widget.initialPreset != null) {
+      applyRobinhoodPreset(widget.initialPreset!);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _runScreener(scrollToResults: true);
+      });
+    }
+  }
+
+  void _onScroll() {
+    if (_scrollController.hasClients &&
+        _scrollController.position.pixels >=
+            _scrollController.position.maxScrollExtent - 350 &&
+        sortedResults != null &&
+        _displayedCount < sortedResults!.length &&
+        !_showAllResults) {
+      setState(() {
+        _displayedCount = math.min(_displayedCount + 60, sortedResults!.length);
+      });
+    }
   }
 
   @override
   void dispose() {
+    _scrollController.removeListener(_onScroll);
     marketCapMinCtl.dispose();
     marketCapMaxCtl.dispose();
     peMinCtl.dispose();
@@ -103,254 +138,703 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
 
   @override
   Widget build(BuildContext context) {
+    final hasResults = screenerResults != null && screenerResults!.isNotEmpty;
+    final displayResults = sortedResults ?? [];
+    final visibleCount = _showAllResults
+        ? displayResults.length
+        : math.min(_displayedCount, displayResults.length);
+
+    final body = CustomScrollView(
+      controller: _scrollController,
+      slivers: [
+        // 1. Active Preset Hero Card (if a curated preset is active)
+        if (activePreset != null)
+          SliverToBoxAdapter(
+            child: _buildActivePresetHeroCard(),
+          ),
+
+        // 2. Filter Controls (collapsible when active preset is present)
+        if (activePreset == null || filtersExpanded)
+          SliverToBoxAdapter(
+            child: _buildScreenerPanel(),
+          )
+        else
+          SliverToBoxAdapter(
+            child: _buildCollapsedFiltersBar(),
+          ),
+
+        // 3. Loading State Indicator
+        if (screenerLoading)
+          SliverToBoxAdapter(
+            child: _buildLoadingState(),
+          ),
+
+        // 4. Error State
+        if (errorText != null)
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Text('Error: $errorText',
+                  style: const TextStyle(color: Colors.red)),
+            ),
+          ),
+
+        // 5. Results Section (Sticky Header + Virtualized SliverGrid / SliverList)
+        if (hasResults)
+          SliverStickyHeader(
+            header: _buildStickyResultsHeader(displayResults.length),
+            sliver: isGridView
+                ? _buildResultsSliverGrid(displayResults, visibleCount)
+                : _buildResultsSliverList(displayResults, visibleCount),
+          ),
+
+        // 6. Pagination / Load More Controls
+        if (hasResults && visibleCount < displayResults.length)
+          SliverToBoxAdapter(
+            child: _buildLoadMoreControls(visibleCount, displayResults.length),
+          ),
+
+        // 7. Empty State
+        if (screenerResults != null && screenerResults!.isEmpty)
+          SliverToBoxAdapter(
+            child: _buildEmptyState(),
+          ),
+      ],
+    );
+
+    if (widget.embedded) {
+      return body;
+    }
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Stock Screener'),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(activePreset != null ? activePreset!.name : 'Stock Screener'),
+            if (activePreset != null)
+              Text(
+                'Curated Screener • ${activePreset!.category}',
+                style: const TextStyle(
+                    fontSize: 12, fontWeight: FontWeight.normal),
+              ),
+          ],
+        ),
+        actions: [
+          IconButton(
+            tooltip: 'Curated Presets',
+            icon: const Icon(Icons.auto_awesome),
+            onPressed: _showRobinhoodPresetsModal,
+          ),
+          if (activePreset != null || _activeFilterCount > 0)
+            IconButton(
+              tooltip: 'Clear all filters',
+              icon: const Icon(Icons.clear_all),
+              onPressed: screenerLoading ? null : () => _applyPreset('clear'),
+            ),
+        ],
       ),
-      body: CustomScrollView(
-        controller: _scrollController,
-        slivers: [
-          _buildScreenerSliver(),
+      body: body,
+    );
+  }
+
+  Widget _buildActivePresetHeroCard() {
+    final preset = activePreset!;
+    final colorScheme = Theme.of(context).colorScheme;
+    final illustrationUrl = preset.illustrationUrl;
+
+    Color categoryColor;
+    IconData categoryIcon;
+    switch (preset.category.toLowerCase()) {
+      case 'dividends':
+        categoryColor = Colors.green;
+        categoryIcon = Icons.payments_outlined;
+        break;
+      case 'growth':
+        categoryColor = Colors.indigo;
+        categoryIcon = Icons.trending_up;
+        break;
+      case 'value':
+        categoryColor = Colors.blue;
+        categoryIcon = Icons.savings_outlined;
+        break;
+      case 'movers':
+      case 'momentum':
+        categoryColor = Colors.orange;
+        categoryIcon = Icons.speed;
+        break;
+      case 'volatility':
+        categoryColor = Colors.deepOrange;
+        categoryIcon = Icons.show_chart;
+        break;
+      case 'options':
+        categoryColor = Colors.purple;
+        categoryIcon = Icons.stream;
+        break;
+      case 'earnings':
+        categoryColor = Colors.amber.shade800;
+        categoryIcon = Icons.event_note;
+        break;
+      case 'analyst':
+      case 'analyst picks':
+        categoryColor = Colors.teal;
+        categoryIcon = Icons.thumb_up_alt_outlined;
+        break;
+      default:
+        categoryColor = colorScheme.primary;
+        categoryIcon = Icons.filter_list;
+    }
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(12, 10, 12, 6),
+      decoration: BoxDecoration(
+        color: categoryColor.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: categoryColor.withValues(alpha: 0.35),
+          width: 1.5,
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(14.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Top Badge Row
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: categoryColor.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(categoryIcon, size: 13, color: categoryColor),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            'ACTIVE CURATED SCREENER: ${preset.category.toUpperCase()}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                              color: categoryColor,
+                              letterSpacing: 0.2,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                if (preset.iconEmoji != null && preset.iconEmoji!.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 5),
+                    child: Text(preset.iconEmoji!,
+                        style: const TextStyle(fontSize: 14)),
+                  ),
+                if (screenerResults != null)
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: colorScheme.surface,
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
+                        color:
+                            colorScheme.outlineVariant.withValues(alpha: 0.5),
+                        width: 0.8,
+                      ),
+                    ),
+                    child: Text(
+                      '${screenerResults!.length} Matches',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: colorScheme.onSurface,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 10),
+
+            // Title & Illustration
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        preset.name,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      if (preset.description.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          preset.description,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                if (illustrationUrl != null && illustrationUrl.isNotEmpty) ...[
+                  const SizedBox(width: 10),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      color: colorScheme.surfaceContainerHighest
+                          .withValues(alpha: 0.4),
+                      padding: const EdgeInsets.all(2),
+                      child: Image.network(
+                        illustrationUrl,
+                        width: 64,
+                        height: 40,
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stackTrace) =>
+                            const SizedBox.shrink(),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+            const SizedBox(height: 10),
+
+            // Criteria Tags
+            if (preset.criteria.isNotEmpty) ...[
+              Wrap(
+                spacing: 6,
+                runSpacing: 5,
+                children: preset.criteria.map((c) {
+                  return Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 8, vertical: 3.5),
+                    decoration: BoxDecoration(
+                      color: colorScheme.surface,
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
+                        color:
+                            colorScheme.outlineVariant.withValues(alpha: 0.7),
+                        width: 0.8,
+                      ),
+                    ),
+                    child: Text(
+                      c.displayLabel,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 12),
+            ],
+
+            // Action Buttons Bar
+            Row(
+              children: [
+                FilledButton.tonalIcon(
+                  style: FilledButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  ),
+                  icon: Icon(
+                    filtersExpanded ? Icons.tune : Icons.tune_outlined,
+                    size: 15,
+                  ),
+                  label: Text(
+                    filtersExpanded
+                        ? 'Hide Filter Settings'
+                        : 'Filter Settings ($_activeFilterCount)',
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                  onPressed: () {
+                    setState(() => filtersExpanded = !filtersExpanded);
+                    if (filtersExpanded) _scrollToFilters();
+                  },
+                ),
+                const SizedBox(width: 8),
+                OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  ),
+                  icon: const Icon(Icons.swap_horiz, size: 15),
+                  label: const Text('Switch', style: TextStyle(fontSize: 12)),
+                  onPressed: _showRobinhoodPresetsModal,
+                ),
+                const Spacer(),
+                TextButton(
+                  style: TextButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                  ),
+                  onPressed: () => _applyPreset('clear'),
+                  child: const Text('Reset', style: TextStyle(fontSize: 12)),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCollapsedFiltersBar() {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHighest.withValues(alpha: 0.3),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: scheme.outlineVariant.withValues(alpha: 0.4),
+        ),
+      ),
+      child: ListTile(
+        dense: true,
+        leading: Icon(Icons.tune, size: 18, color: scheme.primary),
+        title: Text(
+          'Filter Criteria ($_activeFilterCount active)',
+          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+        ),
+        subtitle: _activeFilterLabels.isNotEmpty
+            ? Text(
+                _activeFilterLabels.take(3).join(' • '),
+                style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              )
+            : null,
+        trailing: TextButton.icon(
+          icon: const Icon(Icons.expand_more, size: 16),
+          label: const Text('Edit', style: TextStyle(fontSize: 12)),
+          onPressed: () {
+            setState(() => filtersExpanded = true);
+            _scrollToFilters();
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLoadingState() {
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 24),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const CircularProgressIndicator(),
+            const SizedBox(height: 16),
+            Text(
+              activePreset != null
+                  ? 'Screening stocks for "${activePreset!.name}"...'
+                  : 'Screening stocks...',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+                color: scheme.onSurface,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Filtering universe and ranking matches...',
+              style: TextStyle(
+                fontSize: 12,
+                color: scheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStickyResultsHeader(int totalCount) {
+    return Material(
+      elevation: 2,
+      child: Container(
+        color: Theme.of(context).colorScheme.surface,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Row(
+                    children: [
+                      Text(
+                        'Results ($totalCount)',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      if (activePreset != null) ...[
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .primaryContainer
+                                  .withValues(alpha: 0.7),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.check,
+                                    size: 12,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onPrimaryContainer),
+                                const SizedBox(width: 4),
+                                Flexible(
+                                  child: Text(
+                                    activePreset!.name,
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onPrimaryContainer,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                // Grid / List View Toggle
+                IconButton(
+                  tooltip: isGridView
+                      ? 'Switch to List view'
+                      : 'Switch to Grid view',
+                  icon: Icon(
+                    isGridView ? Icons.view_list : Icons.grid_view,
+                    size: 20,
+                  ),
+                  visualDensity: VisualDensity.compact,
+                  onPressed: () => setState(() => isGridView = !isGridView),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Sort by',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withValues(alpha: 0.6),
+                  ),
+                ),
+                SizedBox(
+                  width: 140,
+                  height: 36,
+                  child: DropdownButton<String>(
+                    isExpanded: true,
+                    value: screenerSortBy,
+                    underline: Container(
+                      height: 1,
+                      color: Theme.of(context)
+                          .colorScheme
+                          .outlineVariant
+                          .withValues(alpha: 0.3),
+                    ),
+                    items: const [
+                      DropdownMenuItem(
+                          value: 'symbol',
+                          child:
+                              Text('Symbol', style: TextStyle(fontSize: 13))),
+                      DropdownMenuItem(
+                          value: 'marketCap',
+                          child: Text('Market Cap',
+                              style: TextStyle(fontSize: 13))),
+                      DropdownMenuItem(
+                          value: 'pe',
+                          child: Text('P/E Ratio',
+                              style: TextStyle(fontSize: 13))),
+                      DropdownMenuItem(
+                          value: 'dividend',
+                          child:
+                              Text('Dividend', style: TextStyle(fontSize: 13))),
+                      DropdownMenuItem(
+                          value: 'price',
+                          child: Text('Price', style: TextStyle(fontSize: 13))),
+                      DropdownMenuItem(
+                          value: 'volume',
+                          child:
+                              Text('Volume', style: TextStyle(fontSize: 13))),
+                    ],
+                    onChanged: (value) {
+                      if (value != null) {
+                        setState(() {
+                          screenerSortBy = value;
+                          if (screenerResults != null) {
+                            sortedResults =
+                                _sortScreenerResults(screenerResults!);
+                          }
+                        });
+                      }
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildResultsSliverGrid(List<Instrument> results, int count) {
+    return SliverPadding(
+      padding: const EdgeInsets.fromLTRB(8, 4, 8, 12),
+      sliver: SliverGrid(
+        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+          maxCrossAxisExtent: 155.0,
+          mainAxisSpacing: 6.0,
+          crossAxisSpacing: 4.0,
+          mainAxisExtent: 144.0,
+        ),
+        delegate: SliverChildBuilderDelegate(
+          (BuildContext context, int gridIndex) {
+            return _buildListGridItem(results, gridIndex, widget.brokerageUser);
+          },
+          childCount: count,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildResultsSliverList(List<Instrument> results, int count) {
+    return SliverPadding(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      sliver: SliverList(
+        delegate: SliverChildBuilderDelegate(
+          (BuildContext context, int index) {
+            return _buildListRowItem(results, index, widget.brokerageUser);
+          },
+          childCount: count,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLoadMoreControls(int visibleCount, int totalCount) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 16.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          OutlinedButton.icon(
+            icon: const Icon(Icons.expand_more, size: 16),
+            label: Text('Load 60 more ($visibleCount of $totalCount)'),
+            onPressed: () {
+              setState(() {
+                _displayedCount = math.min(_displayedCount + 60, totalCount);
+              });
+            },
+          ),
+          const SizedBox(width: 8),
+          TextButton(
+            child: Text('Show all ($totalCount)'),
+            onPressed: () {
+              setState(() {
+                _showAllResults = true;
+              });
+            },
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildScreenerSliver() {
-    return SliverStickyHeader(
-      header: Material(
-        elevation: 2,
-        child: Container(
-          color: Theme.of(context).colorScheme.surface,
-          alignment: Alignment.centerLeft,
-          child: Column(
-            children: [
-              ListTile(
-                leading: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .primaryContainer
-                        .withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: IconButton(
-                    tooltip: 'Show filters',
-                    onPressed: _scrollToFilters,
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                    icon: Icon(Icons.filter_alt,
-                        color: Theme.of(context).colorScheme.primary, size: 22),
-                  ),
-                ),
-                title: Text(
-                  screenerLoading
-                      ? 'Finding matches...'
-                      : screenerResults != null
-                          ? 'Results (${screenerResults!.length})'
-                          : 'Stock screener',
-                  style: TextStyle(
-                    fontSize: 20.0,
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).colorScheme.onSurface,
-                  ),
-                ),
-                subtitle: _activeFilterCount == 0
-                    ? Text(
-                        'Start with a preset or build your own screen',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurface
-                              .withValues(alpha: 0.65),
-                        ),
-                      )
-                    : InkWell(
-                        onTap: _scrollToFilters,
-                        borderRadius: BorderRadius.circular(4),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 2,
-                            horizontal: 4,
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                '$_activeFilterCount active ${_activeFilterCount == 1 ? 'filter' : 'filters'}',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Theme.of(context).colorScheme.primary,
-                                ),
-                              ),
-                              const SizedBox(width: 2),
-                              Icon(
-                                Icons.keyboard_arrow_up,
-                                size: 16,
-                                color: Theme.of(context).colorScheme.primary,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                trailing: _activeFilterCount == 0
-                    ? null
-                    : IconButton(
-                        tooltip: 'Clear all filters',
-                        onPressed: screenerLoading
-                            ? null
-                            : () => _applyPreset('clear'),
-                        icon: const Icon(Icons.clear_all),
-                      ),
+  Widget _buildEmptyState() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 40),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.search_off,
+                size: 48,
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSurface
+                    .withValues(alpha: 0.3)),
+            const SizedBox(height: 16),
+            Text(
+              activePreset != null
+                  ? 'No stocks matched "${activePreset!.name}"'
+                  : 'No results found.',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSurface
+                    .withValues(alpha: 0.6),
               ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Try adjusting your filter criteria or relax restrictions',
+              style: TextStyle(
+                fontSize: 12,
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSurface
+                    .withValues(alpha: 0.4),
+              ),
+            ),
+            const SizedBox(height: 16),
+            OutlinedButton.icon(
+              icon: const Icon(Icons.refresh, size: 16),
+              label: const Text('Reset Filters'),
+              onPressed: () => _applyPreset('clear'),
+            ),
+          ],
         ),
-      ),
-      sliver: SliverList(
-        delegate: SliverChildListDelegate([
-          _buildScreenerPanel(),
-          if (screenerResults != null && screenerResults!.isNotEmpty) ...[
-            Container(
-              padding: EdgeInsets.fromLTRB(12, 12, 12, 4),
-              color: Theme.of(context).colorScheme.surface,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Sort Results',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 0.5,
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurface
-                              .withValues(alpha: 0.6),
-                        ),
-                      ),
-                      SizedBox(
-                        width: 140,
-                        child: DropdownButton<String>(
-                          isExpanded: true,
-                          value: screenerSortBy,
-                          underline: Container(
-                            height: 1,
-                            color: Theme.of(context)
-                                .colorScheme
-                                .outlineVariant
-                                .withValues(alpha: 0.3),
-                          ),
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                            color: Theme.of(context).colorScheme.onSurface,
-                          ),
-                          items: [
-                            DropdownMenuItem(
-                                value: 'symbol',
-                                child: Text('Symbol',
-                                    style: TextStyle(fontSize: 13))),
-                            DropdownMenuItem(
-                                value: 'marketCap',
-                                child: Text('Market Cap',
-                                    style: TextStyle(fontSize: 13))),
-                            DropdownMenuItem(
-                                value: 'pe',
-                                child: Text('P/E Ratio',
-                                    style: TextStyle(fontSize: 13))),
-                            DropdownMenuItem(
-                                value: 'dividend',
-                                child: Text('Dividend',
-                                    style: TextStyle(fontSize: 13))),
-                            DropdownMenuItem(
-                                value: 'price',
-                                child: Text('Price',
-                                    style: TextStyle(fontSize: 13))),
-                            DropdownMenuItem(
-                                value: 'volume',
-                                child: Text('Volume',
-                                    style: TextStyle(fontSize: 13))),
-                          ],
-                          onChanged: (value) {
-                            if (value != null) {
-                              setState(() => screenerSortBy = value);
-                            }
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 8),
-                  Divider(
-                    height: 1,
-                    color: Theme.of(context)
-                        .colorScheme
-                        .outlineVariant
-                        .withValues(alpha: 0.3),
-                  ),
-                ],
-              ),
-            ),
-            GridView.builder(
-              shrinkWrap: true,
-              padding: EdgeInsets.fromLTRB(8, 4, 8, 12),
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                maxCrossAxisExtent: 150.0,
-                mainAxisSpacing: 6.0,
-                crossAxisSpacing: 2.0,
-                childAspectRatio: 1.168,
-              ),
-              itemCount: screenerResults!.length,
-              itemBuilder: (BuildContext context, int gridIndex) {
-                final sortedResults = _sortScreenerResults(screenerResults!);
-                return _buildListGridItem(
-                    sortedResults, gridIndex, widget.brokerageUser);
-              },
-            ),
-          ] else if (screenerResults != null && screenerResults!.isEmpty)
-            Padding(
-              padding: EdgeInsets.symmetric(vertical: 32),
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.search_off,
-                        size: 48,
-                        color: Theme.of(context)
-                            .colorScheme
-                            .onSurface
-                            .withValues(alpha: 0.3)),
-                    SizedBox(height: 16),
-                    Text('No results found.',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurface
-                              .withValues(alpha: 0.6),
-                        )),
-                    SizedBox(height: 8),
-                    Text('Try adjusting your filter criteria',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurface
-                              .withValues(alpha: 0.4),
-                        )),
-                  ],
-                ),
-              ),
-            ),
-        ]),
       ),
     );
   }
@@ -406,6 +890,17 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
                   _applyPreset('largecap');
                   await _runScreener(scrollToResults: true);
                 }),
+                SizedBox(width: 8),
+                FilledButton.tonalIcon(
+                  onPressed: _showRobinhoodPresetsModal,
+                  icon: const Icon(Icons.auto_awesome, size: 16),
+                  label: const Text('Curated Presets',
+                      style: TextStyle(fontSize: 13)),
+                  style: FilledButton.styleFrom(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  ),
+                ),
                 SizedBox(width: 8),
                 OutlinedButton.icon(
                   onPressed: () => _applyPreset('clear'),
@@ -1113,9 +1608,14 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
 
       results = results.where(_matchesScreenerFilters).toList();
 
+      final sorted = _sortScreenerResults(results);
+
       if (!mounted) return;
       setState(() {
         screenerResults = results;
+        sortedResults = sorted;
+        _displayedCount = 60;
+        _showAllResults = false;
         screenerLoading = false;
       });
       if (scrollToResults) _scrollToResults();
@@ -1162,9 +1662,13 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
   void _scrollToResults() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && _scrollController.hasClients) {
+        final targetOffset = (activePreset != null && !filtersExpanded)
+            ? 0.0
+            : (filtersExpanded ? 380.0 : 0.0);
+        final maxOffset = _scrollController.position.maxScrollExtent;
         _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 450),
+          targetOffset > maxOffset ? maxOffset : targetOffset,
+          duration: const Duration(milliseconds: 300),
           curve: Curves.easeOutCubic,
         );
       }
@@ -1411,7 +1915,10 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
       volumeMinCtl.clear();
       if (preset == 'clear') {
         screenerResults = null;
+        sortedResults = null;
         errorText = null;
+        activePreset = null;
+        filtersExpanded = true;
       }
 
       // Apply preset filters
@@ -1449,6 +1956,316 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
           break;
       }
     });
+  }
+
+  void applyRobinhoodPreset(RobinhoodScreenerPreset preset) {
+    setState(() {
+      _applyPreset('clear');
+      activePreset = preset;
+      filtersExpanded = false;
+
+      // Set sort order based on preset.sortBy
+      if (preset.sortBy != null) {
+        switch (preset.sortBy!.toLowerCase()) {
+          case 'market_cap':
+            screenerSortBy = 'marketCap';
+            break;
+          case 'pe_ratio':
+          case 'pe':
+            screenerSortBy = 'pe';
+            break;
+          case 'dividend_yield':
+            screenerSortBy = 'dividend';
+            break;
+          case 'price':
+          case '1d_price_change':
+            screenerSortBy = 'price';
+            break;
+          case 'volume':
+          case 'todays_volume':
+          case 'options_volume':
+            screenerSortBy = 'volume';
+            break;
+          default:
+            screenerSortBy = 'symbol';
+        }
+      }
+
+      // Infer preset rules if specific theme
+      final lowerName = preset.name.toLowerCase();
+      if (lowerName.contains('dividend')) {
+        screenerDividendYieldMin = 5;
+        dividendYieldMinCtl.text = '5';
+      } else if (lowerName.contains('jump')) {
+        screenerVolumeMin = 1000000;
+        volumeMinCtl.text = '1000000';
+      } else if (lowerName.contains('dip')) {
+        screenerVolumeMin = 1000000;
+        volumeMinCtl.text = '1000000';
+      } else if (lowerName.contains('52-week high')) {
+        customCriteria.add(const ScreenerCriterion(
+          field: ScreenerField.fiftyTwoWeekPosition,
+          minimum: 97,
+        ));
+      } else if (lowerName.contains('52-week low')) {
+        customCriteria.add(const ScreenerCriterion(
+          field: ScreenerField.fiftyTwoWeekPosition,
+          maximum: 5,
+        ));
+      }
+
+      for (final crit in preset.criteria) {
+        final fieldLower = crit.field.toLowerCase();
+        if (fieldLower.contains('cap')) {
+          if (crit.minValue != null) {
+            screenerMarketCapMin = crit.minValue!.toInt();
+            marketCapMinCtl.text = crit.minValue!.toInt().toString();
+          }
+          if (crit.maxValue != null) {
+            screenerMarketCapMax = crit.maxValue!.toInt();
+            marketCapMaxCtl.text = crit.maxValue!.toInt().toString();
+          }
+        } else if (fieldLower.contains('pe')) {
+          if (crit.minValue != null) {
+            screenerPeMin = crit.minValue!.toInt();
+            peMinCtl.text = crit.minValue!.toInt().toString();
+          }
+          if (crit.maxValue != null) {
+            screenerPeMax = crit.maxValue!.toInt();
+            peMaxCtl.text = crit.maxValue!.toInt().toString();
+          }
+        } else if (fieldLower.contains('dividend')) {
+          if (crit.minValue != null) {
+            screenerDividendYieldMin = crit.minValue!.toInt();
+            dividendYieldMinCtl.text = crit.minValue!.toInt().toString();
+          }
+          if (crit.maxValue != null) {
+            screenerDividendYieldMax = crit.maxValue!.toInt();
+            dividendYieldMaxCtl.text = crit.maxValue!.toInt().toString();
+          }
+        } else if (fieldLower == 'price') {
+          if (crit.minValue != null) {
+            screenerPriceMin = crit.minValue;
+            priceMinCtl.text = crit.minValue!.toString();
+          }
+          if (crit.maxValue != null) {
+            screenerPriceMax = crit.maxValue;
+            priceMaxCtl.text = crit.maxValue!.toString();
+          }
+        } else if (fieldLower.contains('volume')) {
+          if (crit.minValue != null) {
+            screenerVolumeMin = crit.minValue!.toInt();
+            volumeMinCtl.text = crit.minValue!.toInt().toString();
+          }
+        } else if (fieldLower.contains('sector')) {
+          screenerSector = crit.textValue;
+        } else {
+          final mapped = crit.toScreenerCriterion();
+          if (mapped != null) {
+            customCriteria.add(mapped);
+          }
+        }
+      }
+    });
+  }
+
+  Future<void> _showRobinhoodPresetsModal() async {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.7,
+          minChildSize: 0.4,
+          maxChildSize: 0.9,
+          expand: false,
+          builder: (context, scrollController) {
+            return FutureBuilder<dynamic>(
+              future: widget.service.getScreenerPresets(widget.brokerageUser),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                final raw = snapshot.data;
+                List<RobinhoodScreenerPreset> presets = [];
+                if (raw is Map<String, dynamic> && raw['results'] is List) {
+                  presets = (raw['results'] as List)
+                      .map((p) => RobinhoodScreenerPreset.fromJson(
+                          p as Map<String, dynamic>))
+                      .toList();
+                }
+
+                if (presets.isEmpty) {
+                  return const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(24.0),
+                      child: Text('No curated screener presets found.'),
+                    ),
+                  );
+                }
+
+                return ListView(
+                  controller: scrollController,
+                  padding: const EdgeInsets.all(16.0),
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Curated Screener Presets',
+                          style:
+                              Theme.of(context).textTheme.titleLarge?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () => Navigator.pop(ctx),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Select a Robinhood curated preset to automatically load its filtering criteria into the screener.',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                    ),
+                    const SizedBox(height: 16),
+                    ...presets.map((preset) {
+                      return Card(
+                        elevation: 0,
+                        margin: const EdgeInsets.only(bottom: 12),
+                        color: Theme.of(context)
+                            .colorScheme
+                            .surfaceContainerHighest
+                            .withValues(alpha: 0.35),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          side: BorderSide(
+                            color: Theme.of(context).colorScheme.outlineVariant,
+                            width: 1,
+                          ),
+                        ),
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(12),
+                          onTap: () {
+                            Navigator.pop(ctx);
+                            applyRobinhoodPreset(preset);
+                            _runScreener(scrollToResults: true);
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .primaryContainer
+                                            .withValues(alpha: 0.7),
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Text(
+                                        preset.category.toUpperCase(),
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold,
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onPrimaryContainer,
+                                        ),
+                                      ),
+                                    ),
+                                    if (preset.isFeatured) ...[
+                                      const SizedBox(width: 8),
+                                      const Icon(Icons.star,
+                                          size: 16, color: Colors.amber),
+                                    ],
+                                    const Spacer(),
+                                    Icon(Icons.arrow_forward,
+                                        size: 18,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .primary),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  preset.name,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .titleMedium
+                                      ?.copyWith(fontWeight: FontWeight.bold),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  preset.description,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
+                                      ?.copyWith(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurfaceVariant,
+                                      ),
+                                ),
+                                if (preset.criteria.isNotEmpty) ...[
+                                  const SizedBox(height: 10),
+                                  Wrap(
+                                    spacing: 6,
+                                    runSpacing: 4,
+                                    children: preset.criteria.map((c) {
+                                      return Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 8, vertical: 3),
+                                        decoration: BoxDecoration(
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .surface,
+                                          borderRadius:
+                                              BorderRadius.circular(6),
+                                          border: Border.all(
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .outlineVariant,
+                                            width: 0.8,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          c.displayLabel,
+                                          style: const TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      );
+                                    }).toList(),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    }),
+                  ],
+                );
+              },
+            );
+          },
+        );
+      },
+    );
   }
 
   List<Instrument> _sortScreenerResults(List<Instrument> results) {
@@ -1501,137 +2318,338 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
 
   Widget _buildListGridItem(
       List<Instrument> instruments, int index, BrokerageUser user) {
-    var instrumentObj = instruments[index];
+    final instrumentObj = instruments[index];
     final hasQuote = instrumentObj.quoteObj != null;
     final lastTradePrice =
         hasQuote ? instrumentObj.quoteObj!.lastTradePrice : null;
     final changeToday = hasQuote ? instrumentObj.quoteObj!.changeToday : 0.0;
     final changePercentToday =
         hasQuote ? instrumentObj.quoteObj!.changePercentToday : 0.0;
+    final fundamentals = instrumentObj.fundamentalsObj;
+
+    String? keyMetricLabel;
+    if (screenerSortBy == 'dividend' ||
+        (activePreset?.category == 'Dividends')) {
+      if (fundamentals?.dividendYield != null &&
+          fundamentals!.dividendYield! > 0) {
+        keyMetricLabel =
+            'Yield: ${fundamentals.dividendYield!.toStringAsFixed(1)}%';
+      }
+    } else if (screenerSortBy == 'pe' || (activePreset?.category == 'Value')) {
+      if (fundamentals?.peRatio != null) {
+        keyMetricLabel = 'P/E: ${fundamentals!.peRatio!.toStringAsFixed(1)}';
+      }
+    } else if (screenerSortBy == 'volume') {
+      if (fundamentals?.averageVolume != null) {
+        keyMetricLabel =
+            'Vol: ${formatCompactNumber.format(fundamentals!.averageVolume!)}';
+      }
+    } else if (screenerSortBy == 'marketCap') {
+      if (fundamentals?.marketCap != null) {
+        keyMetricLabel =
+            'Cap: \$${formatCompactNumber.format(fundamentals!.marketCap!)}';
+      }
+    }
+
+    keyMetricLabel ??= fundamentals?.marketCap != null
+        ? 'Cap: \$${formatCompactNumber.format(fundamentals!.marketCap!)}'
+        : null;
 
     return Card(
-        elevation: 2,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12.0),
-          side: BorderSide(
-            color: changeToday > 0
-                ? Colors.green.withValues(alpha: 0.3)
-                : (changeToday < 0
-                    ? Colors.red.withValues(alpha: 0.3)
-                    : Colors.grey.withValues(
-                        alpha:
-                            0.2)), // Theme.of(context).colorScheme.outlineVariant)
-            width: 1.5,
-          ),
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12.0),
+        side: BorderSide(
+          color: changeToday > 0
+              ? Colors.green.withValues(alpha: 0.3)
+              : (changeToday < 0
+                  ? Colors.red.withValues(alpha: 0.3)
+                  : Colors.grey.withValues(alpha: 0.2)),
+          width: 1.5,
         ),
-        child: InkWell(
-            borderRadius: BorderRadius.circular(12.0),
-            child: Padding(
-                padding: const EdgeInsets.all(10),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    // Symbol - always shown
-                    Text(
-                      instrumentObj.symbol,
-                      style: TextStyle(
-                        fontSize: 16.0,
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).colorScheme.onSurface,
-                      ),
-                      overflow: TextOverflow.ellipsis,
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12.0),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => InstrumentWidget(
+                user,
+                widget.service,
+                instrumentObj,
+                analytics: widget.analytics,
+                observer: widget.observer,
+                generativeService: widget.generativeService,
+                user: widget.user,
+                userDocRef: widget.userDocRef,
+              ),
+            ),
+          );
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(10),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              // Symbol & Key Metric Pill
+              Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                alignment: WrapAlignment.spaceBetween,
+                children: [
+                  Text(
+                    instrumentObj.symbol,
+                    style: TextStyle(
+                      fontSize: 16.0,
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
-                    const SizedBox(height: 6),
-
-                    // Current Price
-                    if (lastTradePrice != null) ...[
-                      Text(
-                        formatCurrency.format(lastTradePrice),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if (keyMetricLabel != null)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 5, vertical: 1.5),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .surfaceContainerHighest,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        keyMetricLabel,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          fontSize: 15.0,
-                          fontWeight: FontWeight.w500,
-                          color: Theme.of(context).colorScheme.onSurface,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 6),
+
+              // Current Price
+              if (lastTradePrice != null) ...[
+                Text(
+                  formatCurrency.format(lastTradePrice),
+                  style: TextStyle(
+                    fontSize: 15.0,
+                    fontWeight: FontWeight.w500,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+              ],
+
+              // Change indicator with percentage
+              if (hasQuote) ...[
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      changeToday > 0
+                          ? Icons.trending_up
+                          : (changeToday < 0
+                              ? Icons.trending_down
+                              : Icons.trending_flat),
+                      color: changeToday > 0
+                          ? Colors.green
+                          : (changeToday < 0 ? Colors.red : Colors.grey),
+                      size: 15,
+                    ),
+                    const SizedBox(width: 4),
+                    Flexible(
+                      child: Text(
+                        formatPercentage.format(changePercentToday.abs()),
+                        style: TextStyle(
+                          fontSize: 13.0,
+                          fontWeight: FontWeight.w600,
+                          color: changeToday > 0
+                              ? Colors.green
+                              : (changeToday < 0 ? Colors.red : Colors.grey),
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 4),
-                    ],
-
-                    // Change indicator with percentage
-                    if (hasQuote) ...[
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            changeToday > 0
-                                ? Icons.trending_up
-                                : (changeToday < 0
-                                    ? Icons.trending_down
-                                    : Icons.trending_flat),
-                            color: changeToday > 0
-                                ? Colors.green
-                                : (changeToday < 0 ? Colors.red : Colors.grey),
-                            size: 15,
-                          ),
-                          const SizedBox(width: 4),
-                          Flexible(
-                            child: Text(
-                              formatPercentage.format(changePercentToday.abs()),
-                              style: TextStyle(
-                                fontSize: 13.0,
-                                fontWeight: FontWeight.w600,
-                                color: changeToday > 0
-                                    ? Colors.green
-                                    : (changeToday < 0
-                                        ? Colors.red
-                                        : Colors.grey),
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ] else ...[
-                      Text(
-                        'No quote data',
-                        style: TextStyle(
-                            fontSize: 12.0,
-                            color:
-                                Theme.of(context).colorScheme.onSurfaceVariant),
-                      ),
-                    ],
-                    const SizedBox(height: 8),
-                    Expanded(
-                      child:
-                          Text(instrumentObj.fundamentalsObj?.description ?? '',
-                              style: TextStyle(
-                                fontSize: 12.0,
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurface
-                                    .withValues(alpha: 0.6),
-                              ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis),
                     ),
                   ],
-                )),
-            onTap: () {
-              Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => InstrumentWidget(
-                            user,
-                            widget.service,
-                            instrumentObj,
-                            analytics: widget.analytics,
-                            observer: widget.observer,
-                            generativeService: widget.generativeService,
-                            user: widget.user,
-                            userDocRef: widget.userDocRef,
-                          )));
-            }));
+                ),
+              ] else ...[
+                Text(
+                  'No quote data',
+                  style: TextStyle(
+                      fontSize: 12.0,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant),
+                ),
+              ],
+              const SizedBox(height: 6),
+              Expanded(
+                child: Text(
+                  instrumentObj.fundamentalsObj?.description ?? '',
+                  style: TextStyle(
+                    fontSize: 11.0,
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withValues(alpha: 0.6),
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildListRowItem(
+      List<Instrument> instruments, int index, BrokerageUser user) {
+    final instrumentObj = instruments[index];
+    final hasQuote = instrumentObj.quoteObj != null;
+    final lastTradePrice =
+        hasQuote ? instrumentObj.quoteObj!.lastTradePrice : null;
+    final changeToday = hasQuote ? instrumentObj.quoteObj!.changeToday : 0.0;
+    final changePercentToday =
+        hasQuote ? instrumentObj.quoteObj!.changePercentToday : 0.0;
+    final fundamentals = instrumentObj.fundamentalsObj;
+    final sector = fundamentals?.sector;
+
+    return Card(
+      elevation: 1,
+      margin: const EdgeInsets.symmetric(vertical: 3),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10.0),
+        side: BorderSide(
+          color: Theme.of(context)
+              .colorScheme
+              .outlineVariant
+              .withValues(alpha: 0.4),
+          width: 0.8,
+        ),
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+        title: Row(
+          children: [
+            Text(
+              instrumentObj.symbol,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+            const SizedBox(width: 8),
+            if (sector != null && sector.isNotEmpty)
+              Flexible(
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color:
+                        Theme.of(context).colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    sector,
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ),
+          ],
+        ),
+        subtitle: _buildKeyMetricsSubtitle(instrumentObj),
+        trailing: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            if (lastTradePrice != null)
+              Text(
+                formatCurrency.format(lastTradePrice),
+                style:
+                    const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+              ),
+            if (hasQuote)
+              Text(
+                '${changeToday >= 0 ? '+' : ''}${formatPercentage.format(changePercentToday.abs())}',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: changeToday >= 0 ? Colors.green : Colors.red,
+                ),
+              ),
+          ],
+        ),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => InstrumentWidget(
+                user,
+                widget.service,
+                instrumentObj,
+                analytics: widget.analytics,
+                observer: widget.observer,
+                generativeService: widget.generativeService,
+                user: widget.user,
+                userDocRef: widget.userDocRef,
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildKeyMetricsSubtitle(Instrument instrumentObj) {
+    final fundamentals = instrumentObj.fundamentalsObj;
+    final List<String> metrics = [];
+
+    if (fundamentals?.marketCap != null) {
+      metrics.add(
+          'Cap: \$${formatCompactNumber.format(fundamentals!.marketCap!)}');
+    }
+    if (fundamentals?.dividendYield != null &&
+        fundamentals!.dividendYield! > 0) {
+      metrics.add('Div: ${fundamentals.dividendYield!.toStringAsFixed(1)}%');
+    }
+    if (fundamentals?.peRatio != null) {
+      metrics.add('P/E: ${fundamentals!.peRatio!.toStringAsFixed(1)}');
+    }
+    if (fundamentals?.averageVolume != null) {
+      metrics.add(
+          'Vol: ${formatCompactNumber.format(fundamentals!.averageVolume!)}');
+    }
+
+    if (metrics.isEmpty) {
+      return Text(
+        fundamentals?.description ?? 'No fundamental data',
+        style: TextStyle(
+          fontSize: 12.0,
+          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+        ),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      );
+    }
+
+    return Text(
+      metrics.join(' • '),
+      style: TextStyle(
+        fontSize: 12.0,
+        fontWeight: FontWeight.w500,
+        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+      ),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+    );
   }
 }
 

@@ -52,6 +52,7 @@
 - **[TestFlight Deployment](TESTFLIGHT_DEPLOYMENT.md):** App Store Connect setup and validated iOS deployment workflow.
 - **[Testing Standards](testing-standards.md):** Required UI, state, data-integrity, and regression testing patterns.
 - **[Pattern Day Trader (PDT) Protection & Counter](pdt-protection.md):** Real-time rolling 5-business-day counter for equities and options, visual meters, FINRA Rule 4210 $25,000 equity tracking, and automated Action Center risk alerts.
+- **[Robinhood Curated Screener Presets and Legend Service Support](screener-presets-and-legend-layouts.md):** Server-side screener presets (`/screeners/presets/`, `/screeners`) and retained desktop Robinhood Legend workspace service support (`/hippo/bw/layouts`); Legend UI is deferred.
 - **[Short Float & Live Borrow Availability](short-interest.md):** Real-time short interest (`pc_freefloat`, days to cover, shares short), borrow availability, borrow fee rates, and short squeeze risk modeling.
 - **[Retail Order Flow & Robinhood Sentiment](retail-order-flow.md):** First-party Robinhood customer order flow dynamics, net buy/sell ratios, volume trends, and historical daily sentiment tracking.
 - **[Institutional & Hedge Fund Tracking](hedge-fund-tracking.md):** Real-time hedge fund sentiment, quarterly manager holdings, and transaction history directly from Robinhood marketdata endpoints.
