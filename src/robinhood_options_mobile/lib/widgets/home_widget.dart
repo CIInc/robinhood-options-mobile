@@ -1727,15 +1727,18 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
           ],
           if (_supportsRobinhoodFeatures() && !isAggregateMode) ...[
             SliverToBoxAdapter(
-              child: PortfolioChartWidget(
-                key: ValueKey(
-                    'portfolio-chart-${_isAggregateMode() ? 'all' : "${widget.brokerageUser?.userName ?? ""}-${Provider.of<AccountStore>(context, listen: false).selectedAccountNumber ?? ""}"}'),
-                brokerageUser: widget.brokerageUser!,
-                chartDateSpanFilter: chartDateSpanFilter,
-                chartBoundsFilter: chartBoundsFilter,
-                onFilterChanged: (span, bounds) {
-                  resetChart(span, bounds);
-                },
+              child: Padding(
+                padding: const EdgeInsets.only(top: 8.0),
+                child: PortfolioChartWidget(
+                  key: ValueKey(
+                      'portfolio-chart-${_isAggregateMode() ? 'all' : "${widget.brokerageUser?.userName ?? ""}-${Provider.of<AccountStore>(context, listen: false).selectedAccountNumber ?? ""}"}'),
+                  brokerageUser: widget.brokerageUser!,
+                  chartDateSpanFilter: chartDateSpanFilter,
+                  chartBoundsFilter: chartBoundsFilter,
+                  onFilterChanged: (span, bounds) {
+                    resetChart(span, bounds);
+                  },
+                ),
               ),
             ),
           ],

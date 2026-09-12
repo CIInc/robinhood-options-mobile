@@ -404,70 +404,87 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
         child: ShrinkWrappingViewport(offset: ViewportOffset.zero(), slivers: [
       SliverToBoxAdapter(
           child: Column(children: [
-        ListTile(
-          // leading: Icon(Icons.payment),
-          title: Wrap(children: [
-            const Text(
-              "Stocks & ETFs",
-              style: TextStyle(fontSize: 20.0),
-            ),
-            if (!widget.showList) ...[
-              SizedBox(
-                height: 28,
-                child: IconButton(
-                  // iconSize: 16,
-                  padding: EdgeInsets.zero,
-                  icon: Icon(Icons.chevron_right),
-                  onPressed: () => navigateToFullPage(context),
-                ),
-              )
-            ]
-          ]),
-          subtitle: Text(
-              "${formatCompactNumber.format(sortedFilteredPositions.length)} positions"
-              // Say so rather than letting the missing bars read as missing
-              // positions; the full page below the chevron has all of them.
-              "${isChartCapped ? ", charting top ${chartPositions.length}" : ""}"), // , ${formatCurrency.format(positionEquity)} market value // of ${formatCompactNumber.format(positions.length)}
-          trailing: InkWell(
-            onTap: () {
-              setState(() {
-                widget.brokerageUser.displayValue = DisplayValue.marketValue;
-              });
-            },
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(8.0, 8.0, 0.0, 8.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  AnimatedPriceText(
-                    price: marketValue ?? 0,
-                    format: formatCurrency,
-                    style: const TextStyle(fontSize: assetValueFontSize),
-                    textAlign: TextAlign.right,
-                  ),
-                  // if (sortedFilteredPositions.isNotEmpty) ...[
-                  //   const SizedBox(height: 6),
-                  //   Row(
-                  //     mainAxisSize: MainAxisSize.min,
-                  //     children: [
-                  //       _pnlBadge(context, todayReturnPercentText,
-                  //           todayReturnPercent),
-                  //       const SizedBox(width: 8),
-                  //       _pnlBadge(context, totalReturnPercentText,
-                  //           totalReturnPercent),
-                  //     ],
-                  //   ),
-                  // ]
-                ],
-              ),
-            ),
-          ),
+        InkWell(
           onTap: widget.showList
               ? null
               : () {
                   navigateToFullPage(context);
                 },
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 6.0),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .primary
+                        .withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    Icons.bar_chart_outlined,
+                    size: 18,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            "Stocks & ETFs",
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleLarge
+                                ?.copyWith(
+                                    fontSize: 19, fontWeight: FontWeight.bold),
+                          ),
+                          if (!widget.showList)
+                            SizedBox(
+                              height: 28,
+                              child: IconButton(
+                                padding: EdgeInsets.zero,
+                                icon: const Icon(Icons.chevron_right),
+                                onPressed: () => navigateToFullPage(context),
+                              ),
+                            ),
+                        ],
+                      ),
+                      Text(
+                        "${formatCompactNumber.format(sortedFilteredPositions.length)} positions"
+                        "${isChartCapped ? ", charting top ${chartPositions.length}" : ""}",
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
+                ),
+                InkWell(
+                  onTap: () {
+                    setState(() {
+                      widget.brokerageUser.displayValue =
+                          DisplayValue.marketValue;
+                    });
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(8.0, 8.0, 0.0, 8.0),
+                    child: AnimatedPriceText(
+                      price: marketValue ?? 0,
+                      format: formatCurrency,
+                      style: const TextStyle(fontSize: assetValueFontSize),
+                      textAlign: TextAlign.right,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
         /*
         if (user.displayValue != DisplayValue.lastPrice) ...[
@@ -482,15 +499,35 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
               )),
         ],
         */
-        _buildDetailScrollRow(
-            todayReturnText,
-            todayReturnPercentText,
-            totalReturnText,
-            totalReturnPercentText,
-            todayReturn,
-            todayReturnPercent,
-            totalReturn,
-            totalReturnPercent)
+        Card(
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          elevation: 0,
+          color: Theme.of(context)
+              .colorScheme
+              .surfaceContainerHighest
+              .withValues(alpha: 0.25),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(
+              color: Theme.of(context)
+                  .colorScheme
+                  .outlineVariant
+                  .withValues(alpha: 0.4),
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12.0),
+            child: _buildDetailScrollRow(
+                todayReturnText,
+                todayReturnPercentText,
+                totalReturnText,
+                totalReturnPercentText,
+                todayReturn,
+                todayReturnPercent,
+                totalReturn,
+                totalReturnPercent),
+          ),
+        )
       ])),
       if (barChartSeriesList.isNotEmpty &&
           barChartSeriesList.first.data.isNotEmpty) ...[

@@ -58,20 +58,30 @@ class _ForexPositionsPageWidgetState extends State<ForexPositionsPageWidget> {
               user: widget.user,
               userDocRef: widget.userDocRef,
               service: widget.service,
-            ),
-          IconButton(
-              icon: auth.currentUser != null
-                  ? (auth.currentUser!.photoURL == null
-                      ? const Icon(Icons.account_circle)
-                      : CircleAvatar(
-                          maxRadius: 12,
-                          backgroundImage: CachedNetworkImageProvider(
-                              auth.currentUser!.photoURL!)))
-                  : const Icon(Icons.account_circle_outlined),
-              onPressed: () {
+              userAvatar: auth.currentUser!.photoURL == null
+                  ? const Icon(Icons.account_circle)
+                  : CircleAvatar(
+                      maxRadius: 11,
+                      backgroundImage: CachedNetworkImageProvider(
+                          auth.currentUser!.photoURL!)),
+              onProfileTap: () {
                 showProfile(context, auth, _firestoreService, widget.analytics,
                     widget.observer, widget.brokerageUser, widget.service);
-              }),
+              },
+            )
+          else
+            IconButton(
+                icon: const Icon(Icons.account_circle_outlined),
+                onPressed: () {
+                  showProfile(
+                      context,
+                      auth,
+                      _firestoreService,
+                      widget.analytics,
+                      widget.observer,
+                      widget.brokerageUser,
+                      widget.service);
+                }),
         ],
       ),
       ForexPositionsWidget(

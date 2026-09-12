@@ -293,19 +293,13 @@ class _ListsWidgetState extends State<ListsWidget>
               user: widget.user,
               userDocRef: widget.userDocRef,
               service: widget.service,
-            ),
-          IconButton(
-              icon: auth.currentUser != null
-                  ? (auth.currentUser!.photoURL == null
-                      ? const Icon(Icons.account_circle)
-                      : CircleAvatar(
-                          maxRadius: 12,
-                          backgroundImage: CachedNetworkImageProvider(
-                              auth.currentUser!.photoURL!
-                              //  ?? Constants .placeholderImage, // No longer used
-                              )))
-                  : const Icon(Icons.login),
-              onPressed: () async {
+              userAvatar: auth.currentUser!.photoURL == null
+                  ? const Icon(Icons.account_circle)
+                  : CircleAvatar(
+                      maxRadius: 11,
+                      backgroundImage: CachedNetworkImageProvider(
+                          auth.currentUser!.photoURL!)),
+              onProfileTap: () async {
                 var response = await showProfile(
                     context,
                     auth,
@@ -317,7 +311,24 @@ class _ListsWidgetState extends State<ListsWidget>
                 if (response != null) {
                   setState(() {});
                 }
-              }),
+              },
+            )
+          else
+            IconButton(
+                icon: const Icon(Icons.login),
+                onPressed: () async {
+                  var response = await showProfile(
+                      context,
+                      auth,
+                      _firestoreService,
+                      widget.analytics,
+                      widget.observer,
+                      widget.brokerageUser,
+                      widget.service);
+                  if (response != null) {
+                    setState(() {});
+                  }
+                }),
           // IconButton(
           //     icon: const Icon(Icons.sort),
           //     onPressed: () {

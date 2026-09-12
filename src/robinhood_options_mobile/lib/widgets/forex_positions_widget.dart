@@ -259,60 +259,108 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
         child: ShrinkWrappingViewport(offset: ViewportOffset.zero(), slivers: [
       SliverToBoxAdapter(
           child: Column(children: [
-        ListTile(
-          // leading: Icon(Icons.currency_bitcoin),
-          title: Wrap(children: [
-            const Text(
-              "Crypto",
-              style: TextStyle(fontSize: 20.0),
-            ),
-            if (!widget.showList) ...[
-              SizedBox(
-                height: 28,
-                child: IconButton(
-                  // iconSize: 16,
-                  padding: EdgeInsets.zero,
-                  icon: Icon(Icons.chevron_right),
-                  onPressed: () {
-                    navigateToFullPage(context);
-                  },
-                ),
-              )
-            ]
-          ]),
-          subtitle: Text(
-              "${formatCompactNumber.format(sortedFilteredHoldings.length)} cryptos"), // , ${formatCurrency.format(nummusEquity)} market value // of ${formatCompactNumber.format(nummusHoldings.length)}
-          trailing: InkWell(
-            onTap:
-                // widget.user.displayValue == DisplayValue.marketValue ? null :
-                () {
-              setState(() {
-                widget.brokerageUser.displayValue = DisplayValue.marketValue;
-              });
-              // var userStore =
-              //     Provider.of<BrokerageUserStore>(context, listen: false);
-              // userStore.addOrUpdate(widget.user);
-              // userStore.save();
-            },
-            child: Wrap(spacing: 8, children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(8.0, 8.0, 0.0, 8.0),
-                child: AnimatedPriceText(
-                  price: marketValue ?? 0,
-                  format: formatCurrency,
-                  style: const TextStyle(fontSize: assetValueFontSize),
-                  textAlign: TextAlign.right,
-                ),
-              )
-            ]),
-          ),
+        InkWell(
           onTap: widget.showList
               ? null
               : () {
                   navigateToFullPage(context);
                 },
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 6.0),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .primary
+                        .withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    Icons.currency_bitcoin,
+                    size: 18,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            "Crypto",
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleLarge
+                                ?.copyWith(
+                                    fontSize: 19, fontWeight: FontWeight.bold),
+                          ),
+                          if (!widget.showList)
+                            SizedBox(
+                              height: 28,
+                              child: IconButton(
+                                padding: EdgeInsets.zero,
+                                icon: const Icon(Icons.chevron_right),
+                                onPressed: () => navigateToFullPage(context),
+                              ),
+                            ),
+                        ],
+                      ),
+                      Text(
+                        "${formatCompactNumber.format(sortedFilteredHoldings.length)} cryptos",
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
+                ),
+                InkWell(
+                  onTap: () {
+                    setState(() {
+                      widget.brokerageUser.displayValue =
+                          DisplayValue.marketValue;
+                    });
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(8.0, 8.0, 0.0, 8.0),
+                    child: AnimatedPriceText(
+                      price: marketValue ?? 0,
+                      format: formatCurrency,
+                      style: const TextStyle(fontSize: assetValueFontSize),
+                      textAlign: TextAlign.right,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
-        _buildDetailScrollRow(sortedFilteredHoldings)
+        Card(
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          elevation: 0,
+          color: Theme.of(context)
+              .colorScheme
+              .surfaceContainerHighest
+              .withValues(alpha: 0.25),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(
+              color: Theme.of(context)
+                  .colorScheme
+                  .outlineVariant
+                  .withValues(alpha: 0.4),
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12.0),
+            child: _buildDetailScrollRow(sortedFilteredHoldings),
+          ),
+        )
       ])),
       if (
           // user.displayValue != DisplayValue.lastPrice &&

@@ -460,25 +460,31 @@ class ExpandedSliverAppBar extends StatelessWidget {
                   user: firestoreUser,
                   userDocRef: userDocRef,
                   service: service,
-                ),
-              IconButton(
-                  icon: auth.currentUser != null
-                      ? (auth.currentUser!.photoURL == null
-                          ? const Icon(Icons.account_circle)
-                          : CircleAvatar(
-                              maxRadius: 12,
-                              backgroundImage: CachedNetworkImageProvider(
-                                  auth.currentUser!.photoURL!
-                                  //  ?? Constants .placeholderImage, // No longer used
-                                  )))
-                      : const Icon(Icons.account_circle_outlined),
-                  onPressed: () async {
+                  userAvatar: auth.currentUser!.photoURL == null
+                      ? const Icon(Icons.account_circle)
+                      : CircleAvatar(
+                          maxRadius: 11,
+                          backgroundImage: CachedNetworkImageProvider(
+                              auth.currentUser!.photoURL!),
+                        ),
+                  onProfileTap: () async {
                     var response = await showProfile(context, auth,
                         firestoreService, analytics, observer, user, service);
                     if (response != null && onChange != null) {
                       onChange!();
                     }
-                  }),
+                  },
+                )
+              else
+                IconButton(
+                    icon: const Icon(Icons.account_circle_outlined),
+                    onPressed: () async {
+                      var response = await showProfile(context, auth,
+                          firestoreService, analytics, observer, user, service);
+                      if (response != null && onChange != null) {
+                        onChange!();
+                      }
+                    }),
               // if (auth.currentUser == null)
               //   IconButton(
               //       icon: Icon(Icons.more_vert),

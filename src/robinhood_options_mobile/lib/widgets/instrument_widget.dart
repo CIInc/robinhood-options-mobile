@@ -6,6 +6,7 @@ import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:provider/provider.dart';
@@ -825,6 +826,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     }
   }
 
+  // The prompts are now exposed through the floating Market Assistant.
+  // ignore: unused_element
   Widget _buildAIInsights(BuildContext context) {
     return Consumer<GenerativeProvider>(
         builder: (context, generativeProvider, child) {
@@ -868,11 +871,30 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                 .colorScheme
                 .surfaceContainerHighest
                 .withValues(alpha: 0.3),
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: BorderSide(
+                color: Theme.of(context)
+                    .colorScheme
+                    .outlineVariant
+                    .withValues(alpha: 0.4),
+              ),
+            ),
             child: ExpansionTile(
-              leading: Icon(Icons.auto_awesome,
-                  color: Theme.of(context).colorScheme.primary),
+              shape: const Border(),
+              collapsedShape: const Border(),
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .primary
+                      .withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(Icons.auto_awesome,
+                    color: Theme.of(context).colorScheme.primary, size: 20),
+              ),
               title: const Text('AI Market Insights',
                   style: TextStyle(fontWeight: FontWeight.bold)),
               subtitle: const Text('Analysis & Trade Ideas'),
@@ -990,7 +1012,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                             },
                           ),
                           ActionChip(
-                            avatar: const Icon(Icons.chat, size: 16),
+                            avatar:
+                                const Icon(Icons.chat_bubble_outline, size: 16),
                             label: const Text('Ask Assistant'),
                             onPressed: () =>
                                 _openAIChat(context, widget.instrument),
@@ -999,52 +1022,52 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                       ),
                       if (generativeProvider.promptResponses[summaryKey] !=
                           null) ...[
-                        const Divider(),
-                        const Text("Summary",
-                            style: TextStyle(fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 8),
-                        MarkdownBody(
-                            data: generativeProvider
-                                .promptResponses[summaryKey]!),
+                        const SizedBox(height: 12),
+                        _buildAIResponseBox(
+                          icon: Icons.summarize_outlined,
+                          title: "Executive Summary",
+                          content:
+                              generativeProvider.promptResponses[summaryKey]!,
+                        ),
                       ],
                       if (generativeProvider.promptResponses[sentimentKey] !=
                           null) ...[
-                        const Divider(),
-                        const Text("Sentiment",
-                            style: TextStyle(fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 8),
-                        MarkdownBody(
-                            data: generativeProvider
-                                .promptResponses[sentimentKey]!),
+                        const SizedBox(height: 12),
+                        _buildAIResponseBox(
+                          icon: Icons.trending_up,
+                          title: "Market Sentiment",
+                          content:
+                              generativeProvider.promptResponses[sentimentKey]!,
+                        ),
                       ],
                       if (generativeProvider.promptResponses[keyLevelsKey] !=
                           null) ...[
-                        const Divider(),
-                        const Text("Key Levels",
-                            style: TextStyle(fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 8),
-                        MarkdownBody(
-                            data: generativeProvider
-                                .promptResponses[keyLevelsKey]!),
+                        const SizedBox(height: 12),
+                        _buildAIResponseBox(
+                          icon: Icons.layers_outlined,
+                          title: "Key Support & Resistance",
+                          content:
+                              generativeProvider.promptResponses[keyLevelsKey]!,
+                        ),
                       ],
                       if (generativeProvider.promptResponses[strategyKey] !=
                           null) ...[
-                        const Divider(),
-                        const Text("Strategy Suggestion",
-                            style: TextStyle(fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 8),
-                        MarkdownBody(
-                            data: generativeProvider
-                                .promptResponses[strategyKey]!),
+                        const SizedBox(height: 12),
+                        _buildAIResponseBox(
+                          icon: Icons.lightbulb_outline,
+                          title: "Strategy Suggestion",
+                          content:
+                              generativeProvider.promptResponses[strategyKey]!,
+                        ),
                       ],
                       if (generativeProvider.promptResponses[newsKey] !=
                           null) ...[
-                        const Divider(),
-                        const Text("News Analysis",
-                            style: TextStyle(fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 8),
-                        MarkdownBody(
-                            data: generativeProvider.promptResponses[newsKey]!),
+                        const SizedBox(height: 12),
+                        _buildAIResponseBox(
+                          icon: Icons.newspaper_outlined,
+                          title: "News Catalyst Analysis",
+                          content: generativeProvider.promptResponses[newsKey]!,
+                        ),
                       ],
                     ],
                   ),
@@ -1055,6 +1078,48 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         ),
       );
     });
+  }
+
+  Widget _buildAIResponseBox({
+    required IconData icon,
+    required String title,
+    required String content,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14.0),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Theme.of(context)
+              .colorScheme
+              .outlineVariant
+              .withValues(alpha: 0.35),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon,
+                  size: 16, color: Theme.of(context).colorScheme.primary),
+              const SizedBox(width: 8),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          MarkdownBody(data: content),
+        ],
+      ),
+    );
   }
 
   @override
@@ -1288,9 +1353,11 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                             );
                           }
 
-                          Share.share(
-                            shareText,
-                            sharePositionOrigin: sharePositionOrigin,
+                          SharePlus.instance.share(
+                            ShareParams(
+                              text: shareText,
+                              sharePositionOrigin: sharePositionOrigin,
+                            ),
                           );
                         },
                       ),
@@ -1299,19 +1366,13 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                           user: widget.user,
                           userDocRef: widget.userDocRef,
                           service: widget.service,
-                        ),
-                      IconButton(
-                          icon: auth.currentUser != null
-                              ? (auth.currentUser!.photoURL == null
-                                  ? const Icon(Icons.account_circle)
-                                  : CircleAvatar(
-                                      maxRadius: 12,
-                                      backgroundImage: CachedNetworkImageProvider(
-                                          auth.currentUser!.photoURL!
-                                          //  ?? Constants .placeholderImage, // No longer used
-                                          )))
-                              : const Icon(Icons.account_circle_outlined),
-                          onPressed: () async {
+                          userAvatar: auth.currentUser!.photoURL == null
+                              ? const Icon(Icons.account_circle)
+                              : CircleAvatar(
+                                  maxRadius: 11,
+                                  backgroundImage: CachedNetworkImageProvider(
+                                      auth.currentUser!.photoURL!)),
+                          onProfileTap: () async {
                             var response = await showProfile(
                                 context,
                                 auth,
@@ -1323,7 +1384,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                             if (response != null) {
                               setState(() {});
                             }
-                          }),
+                          },
+                        ),
                     ],
                     // actions: <Widget>[
                     //   IconButton(
@@ -1349,7 +1411,6 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                   );
                 },
               ),
-              if (auth.currentUser != null) _buildAIInsights(context),
               SliverToBoxAdapter(
                   child: Stack(children: [
                 if (done == false) ...[
@@ -1398,50 +1459,60 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                       .firstWhereOrNull((e) => e.instrument == instrument.url);
                 }
                 if (position == null) {
-                  return SliverToBoxAdapter(child: Container());
+                  return const SliverToBoxAdapter(child: SizedBox.shrink());
                 }
                 return SliverToBoxAdapter(
-                    child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: <Widget>[
-                      ListTile(
-                          title:
-                              Text("Position", style: TextStyle(fontSize: 20)),
-                          subtitle: Text(
-                              '${formatNumber.format(position.quantity!)} shares'),
-                          trailing: Text(
-                              formatCurrency.format(position.marketValue),
-                              style: const TextStyle(fontSize: 21))),
-                      _buildDetailScrollRow(
-                          position, badgeValueFontSize, badgeLabelFontSize,
-                          iconSize: 27.0),
-                      // ListTile(
-                      //   minTileHeight: 10,
-                      //   title: const Text("Cost"),
-                      //   trailing: Text(formatCurrency.format(position.totalCost),
-                      //       style: const TextStyle(fontSize: 18)),
-                      // ),
-                      // ListTile(
-                      //   minTileHeight: 10,
-                      //   contentPadding: const EdgeInsets.fromLTRB(0, 0, 24, 8),
-                      //   // title: const Text("Average Cost"),
-                      //   trailing: Text(
-                      //       formatCurrency.format(position.averageBuyPrice),
-                      //       style: const TextStyle(fontSize: 18)),
-                      // ),
-                      // ListTile(
-                      //   minTileHeight: 10,
-                      //   title: const Text("Created"),
-                      //   trailing: Text(formatDate.format(position.createdAt!),
-                      //       style: const TextStyle(fontSize: 15)),
-                      // ),
-                      // ListTile(
-                      //   minTileHeight: 10,
-                      //   title: const Text("Updated"),
-                      //   trailing: Text(formatDate.format(position.updatedAt!),
-                      //       style: const TextStyle(fontSize: 15)),
-                      // ),
-                    ]));
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 8.0),
+                      _buildSectionHeader(
+                        title: "Your Position",
+                        subtitle:
+                            '${formatNumber.format(position.quantity!)} shares',
+                        icon: Icons.pie_chart_outline,
+                        trailing: Text(
+                          formatCurrency.format(position.marketValue),
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleLarge
+                              ?.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      Card(
+                        margin: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 8),
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          side: BorderSide(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .outlineVariant
+                                .withValues(alpha: 0.4),
+                          ),
+                        ),
+                        color:
+                            Theme.of(context).colorScheme.surfaceContainerLow,
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: <Widget>[
+                              _buildDetailScrollRow(
+                                position,
+                                badgeValueFontSize,
+                                badgeLabelFontSize,
+                                iconSize: 27.0,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
               }),
               Consumer<OptionPositionStore>(
                   builder: (context, optionPositionStore, child) {
@@ -1484,10 +1555,6 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                         offset: ViewportOffset.zero(),
                         slivers: [
                       if (filteredOptionPositions.isNotEmpty) ...[
-                        const SliverToBoxAdapter(
-                            child: SizedBox(
-                          height: 8.0,
-                        )),
                         OptionPositionsWidget(widget.brokerageUser,
                             widget.service, filteredOptionPositions,
                             showFooter: false,
@@ -1516,178 +1583,199 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               ],
               if (instrument.tradeable) ...[
                 const SliverToBoxAdapter(
-                    child: SizedBox(
-                  height: 8.0,
-                )),
+                  child: SizedBox(height: 8.0),
+                ),
                 SliverToBoxAdapter(
-                  child: Card(
-                    margin: const EdgeInsets.symmetric(horizontal: 16.0),
-                    elevation: 0,
-                    color: Theme.of(context)
-                        .colorScheme
-                        .surfaceContainerHighest
-                        .withOpacity(0.3),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      side: BorderSide(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .outlineVariant
-                            .withValues(alpha: 0.5),
-                      ),
-                    ),
-                    child: InkWell(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => OptionsFlowWidget(
-                              initialSymbol: instrument.symbol,
-                              brokerageUser: widget.brokerageUser,
-                              service: widget.service,
-                              analytics: widget.analytics,
-                              observer: widget.observer,
-                              generativeService: widget.generativeService,
-                              user: widget.user,
-                              userDocRef: widget.userDocRef,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Card(
+                            elevation: 0,
+                            margin: EdgeInsets.zero,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .surfaceContainerHighest
+                                .withValues(alpha: 0.25),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              side: BorderSide(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .outlineVariant
+                                    .withValues(alpha: 0.4),
+                              ),
+                            ),
+                            child: InkWell(
+                              onTap: () {
+                                HapticFeedback.lightImpact();
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => OptionsFlowWidget(
+                                      initialSymbol: instrument.symbol,
+                                      brokerageUser: widget.brokerageUser,
+                                      service: widget.service,
+                                      analytics: widget.analytics,
+                                      observer: widget.observer,
+                                      generativeService:
+                                          widget.generativeService,
+                                      user: widget.user,
+                                      userDocRef: widget.userDocRef,
+                                    ),
+                                  ),
+                                );
+                              },
+                              borderRadius: BorderRadius.circular(16.0),
+                              child: Padding(
+                                padding: const EdgeInsets.all(14.0),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.all(8.0),
+                                          decoration: BoxDecoration(
+                                            color: Colors.blue
+                                                .withValues(alpha: 0.12),
+                                            borderRadius:
+                                                BorderRadius.circular(10.0),
+                                          ),
+                                          child: const Icon(Icons.water,
+                                              color: Colors.blue, size: 20),
+                                        ),
+                                        const Spacer(),
+                                        Icon(Icons.arrow_forward_ios,
+                                            size: 12,
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onSurfaceVariant),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 12.0),
+                                    const Text(
+                                      'Options Flow',
+                                      style: TextStyle(
+                                        fontSize: 15.0,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2.0),
+                                    Text(
+                                      'Whale & smart money',
+                                      style: TextStyle(
+                                        fontSize: 12.0,
+                                        color: Theme.of(context)
+                                            .textTheme
+                                            .bodySmall
+                                            ?.color,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ),
                           ),
-                        );
-                      },
-                      borderRadius: BorderRadius.circular(12.0),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(10.0),
-                              decoration: BoxDecoration(
-                                color: Colors.blue.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(8.0),
-                              ),
-                              child:
-                                  const Icon(Icons.water, color: Colors.blue),
-                            ),
-                            const SizedBox(width: 16.0),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text(
-                                    'Options Flow',
-                                    style: TextStyle(
-                                      fontSize: 16.0,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4.0),
-                                  Text(
-                                    'View real-time institutional activity for ${instrument.symbol}',
-                                    style: TextStyle(
-                                      fontSize: 14.0,
-                                      color: Theme.of(context)
-                                          .textTheme
-                                          .bodySmall
-                                          ?.color,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const Icon(Icons.chevron_right),
-                          ],
                         ),
-                      ),
+                        const SizedBox(width: 12.0),
+                        Expanded(
+                          child: Card(
+                            elevation: 0,
+                            margin: EdgeInsets.zero,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .surfaceContainerHighest
+                                .withValues(alpha: 0.25),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              side: BorderSide(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .outlineVariant
+                                    .withValues(alpha: 0.4),
+                              ),
+                            ),
+                            child: InkWell(
+                              onTap: () {
+                                HapticFeedback.lightImpact();
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => GammaExposurePage(
+                                      symbol: instrument.symbol,
+                                      spotPrice:
+                                          instrument.quoteObj?.lastTradePrice,
+                                      generativeService:
+                                          widget.generativeService,
+                                    ),
+                                  ),
+                                );
+                              },
+                              borderRadius: BorderRadius.circular(16.0),
+                              child: Padding(
+                                padding: const EdgeInsets.all(14.0),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.all(8.0),
+                                          decoration: BoxDecoration(
+                                            color: Colors.purple
+                                                .withValues(alpha: 0.12),
+                                            borderRadius:
+                                                BorderRadius.circular(10.0),
+                                          ),
+                                          child: const Icon(Icons.adjust,
+                                              color: Colors.purple, size: 20),
+                                        ),
+                                        const Spacer(),
+                                        Icon(Icons.arrow_forward_ios,
+                                            size: 12,
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onSurfaceVariant),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 12.0),
+                                    const Text(
+                                      'Gamma Exposure',
+                                      style: TextStyle(
+                                        fontSize: 15.0,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2.0),
+                                    Text(
+                                      'GEX levels & pinning',
+                                      style: TextStyle(
+                                        fontSize: 12.0,
+                                        color: Theme.of(context)
+                                            .textTheme
+                                            .bodySmall
+                                            ?.color,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
                 const SliverToBoxAdapter(
-                    child: SizedBox(
-                  height: 8.0,
-                )),
-              ],
-              if (instrument.tradeable) ...[
-                SliverToBoxAdapter(
-                  child: Card(
-                    margin: const EdgeInsets.symmetric(horizontal: 16.0),
-                    elevation: 0,
-                    color: Theme.of(context)
-                        .colorScheme
-                        .surfaceContainerHighest
-                        .withOpacity(0.3),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      side: BorderSide(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .outlineVariant
-                            .withValues(alpha: 0.5),
-                      ),
-                    ),
-                    child: InkWell(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => GammaExposurePage(
-                              symbol: instrument.symbol,
-                              spotPrice: instrument.quoteObj?.lastTradePrice,
-                              generativeService: widget.generativeService,
-                            ),
-                          ),
-                        );
-                      },
-                      borderRadius: BorderRadius.circular(12.0),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(10.0),
-                              decoration: BoxDecoration(
-                                color: Colors.purple.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(8.0),
-                              ),
-                              child: const Icon(Icons.adjust,
-                                  color: Colors.purple),
-                            ),
-                            const SizedBox(width: 16.0),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text(
-                                    'Gamma Exposure (GEX)',
-                                    style: TextStyle(
-                                      fontSize: 16.0,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4.0),
-                                  Text(
-                                    'Dealer gamma positioning & key levels for ${instrument.symbol}',
-                                    style: TextStyle(
-                                      fontSize: 14.0,
-                                      color: Theme.of(context)
-                                          .textTheme
-                                          .bodySmall
-                                          ?.color,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const Icon(Icons.chevron_right),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
+                  child: SizedBox(height: 8.0),
                 ),
-                const SliverToBoxAdapter(
-                    child: SizedBox(
-                  height: 8.0,
-                )),
               ],
               _buildAgenticTradeSignals(instrument),
               if (instrument.dividendsObj != null &&
@@ -1707,14 +1795,11 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               ],
               // SliverToBoxAdapter(child: _buildESGCard()),
               SliverToBoxAdapter(
-                  child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                 child: PriceTargetsWidget(
                   symbol: instrument.symbol,
                   generativeService: widget.generativeService,
                 ),
-              )),
+              ),
               if (instrument.type == 'stock' || instrument.type.isEmpty) ...[
                 SliverToBoxAdapter(
                   child: ShortInterestWidget(
@@ -1942,18 +2027,27 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       return const SizedBox.shrink();
     }
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
       child: Row(
         children: <Widget>[
           if (instrument.tradeableChainId != null) ...[
             Expanded(
               child: FilledButton.tonalIcon(
                 style: FilledButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 8)),
-                icon: const Icon(Icons.list_alt, size: 20),
+                  elevation: 0,
+                  minimumSize: const Size(0, 44),
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                icon: const Icon(Icons.table_chart_outlined, size: 18),
                 label: const FittedBox(
-                    fit: BoxFit.scaleDown, child: Text('Chain')),
+                    fit: BoxFit.scaleDown,
+                    child: Text('Option Chain',
+                        style: TextStyle(fontWeight: FontWeight.w600))),
                 onPressed: () {
+                  HapticFeedback.lightImpact();
                   Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -1974,11 +2068,20 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             Expanded(
               child: FilledButton.tonalIcon(
                 style: FilledButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 8)),
-                icon: const Icon(Icons.build, size: 20),
+                  elevation: 0,
+                  minimumSize: const Size(0, 44),
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                icon: const Icon(Icons.tune, size: 18),
                 label: const FittedBox(
-                    fit: BoxFit.scaleDown, child: Text('Strategy')),
+                    fit: BoxFit.scaleDown,
+                    child: Text('Strategy',
+                        style: TextStyle(fontWeight: FontWeight.w600))),
                 onPressed: () {
+                  HapticFeedback.lightImpact();
                   Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -2001,22 +2104,33 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             Expanded(
               child: FilledButton.icon(
                 style: FilledButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 8)),
-                icon: const Icon(Icons.attach_money, size: 20),
+                  elevation: 0,
+                  minimumSize: const Size(0, 44),
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                icon: const Icon(Icons.swap_horiz, size: 20),
                 label: const FittedBox(
-                    fit: BoxFit.scaleDown, child: Text('Trade')),
-                onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => TradeInstrumentWidget(
-                              widget.brokerageUser,
-                              widget.service,
-                              instrument: instrument,
-                              positionType: "Buy",
-                              analytics: widget.analytics,
-                              observer: widget.observer,
-                              initialIsPaperTrade: widget.initialIsPaperTrade,
-                            ))),
+                    fit: BoxFit.scaleDown,
+                    child: Text('Trade',
+                        style: TextStyle(fontWeight: FontWeight.bold))),
+                onPressed: () {
+                  HapticFeedback.lightImpact();
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => TradeInstrumentWidget(
+                                widget.brokerageUser,
+                                widget.service,
+                                instrument: instrument,
+                                positionType: "Buy",
+                                analytics: widget.analytics,
+                                observer: widget.observer,
+                                initialIsPaperTrade: widget.initialIsPaperTrade,
+                              )));
+                },
               ),
             ),
           ],
@@ -2237,26 +2351,88 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   }
 
   Widget quoteWidget(Instrument instrument) {
+    if (instrument.quoteObj == null) {
+      return const SliverToBoxAdapter(child: SizedBox.shrink());
+    }
+    final quote = instrument.quoteObj!;
+    final displayPrice =
+        quote.lastExtendedHoursTradePrice ?? quote.lastTradePrice ?? 0.0;
+    final isExtendedHours = quote.lastExtendedHoursTradePrice != null;
+
     return SliverToBoxAdapter(
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ListTile(
-            title: const Text(
-              "Quote",
-              style: TextStyle(fontSize: 20),
+          _buildSectionHeader(
+            title: "Market Quote",
+            subtitle: isExtendedHours
+                ? 'Extended hours trading'
+                : 'Real-time market quote',
+            icon: Icons.show_chart_outlined,
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (isExtendedHours) ...[
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.purple.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: const Text(
+                      'EXTENDED',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.purple,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                ],
+                Text(
+                  formatCurrency.format(displayPrice),
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleLarge
+                      ?.copyWith(fontWeight: FontWeight.bold),
+                ),
+              ],
             ),
-            subtitle: instrument.quoteObj!.lastExtendedHoursTradePrice != null
-                ? const Text('Extended hours')
-                : null,
-            trailing: Text(
-                formatCurrency.format(
-                    instrument.quoteObj!.lastExtendedHoursTradePrice ??
-                        instrument.quoteObj!.lastTradePrice),
-                style: const TextStyle(fontSize: 21)),
           ),
-          _buildQuoteScrollRow(
-              instrument, badgeValueFontSize, badgeLabelFontSize,
-              iconSize: 27.0),
+          Card(
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: BorderSide(
+                color: Theme.of(context)
+                    .colorScheme
+                    .outlineVariant
+                    .withValues(alpha: 0.4),
+              ),
+            ),
+            color: Theme.of(context)
+                .colorScheme
+                .surfaceContainerHighest
+                .withValues(alpha: 0.25),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildQuoteScrollRow(
+                    instrument,
+                    badgeValueFontSize,
+                    badgeLabelFontSize,
+                    iconSize: 27.0,
+                  ),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -2343,11 +2519,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const ListTile(
-            title: Text(
-              "Fundamentals",
-              style: TextStyle(fontSize: 20),
-            ),
+          _buildSectionHeader(
+            title: "Fundamentals",
+            icon: Icons.analytics_outlined,
           ),
           Card(
             margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -2355,9 +2529,16 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             color: Theme.of(context)
                 .colorScheme
                 .surfaceContainerHighest
-                .withAlpha(77),
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                .withValues(alpha: 0.25),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: BorderSide(
+                color: Theme.of(context)
+                    .colorScheme
+                    .outlineVariant
+                    .withValues(alpha: 0.4),
+              ),
+            ),
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 12.0),
               child: Column(
@@ -2612,6 +2793,62 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     );
   }
 
+  Widget _buildSectionHeader({
+    required String title,
+    Widget? trailing,
+    String? subtitle,
+    IconData? icon,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 6.0),
+      child: Row(
+        children: [
+          if (icon != null) ...[
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: Theme.of(context)
+                    .colorScheme
+                    .primary
+                    .withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                icon,
+                size: 18,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            ),
+            const SizedBox(width: 10),
+          ],
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 19,
+                      ),
+                ),
+                if (subtitle != null) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ],
+            ),
+          ),
+          if (trailing != null) trailing,
+        ],
+      ),
+    );
+  }
+
   Widget _buildFundamentalRow(String title, String value) {
     return ListTile(
       dense: true,
@@ -2633,14 +2870,15 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(label,
-              style: const TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey,
-                  fontWeight: FontWeight.w500)),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  fontWeight: FontWeight.w500,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant)),
           const SizedBox(height: 2),
           Text(value,
-              style:
-                  const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+              style: Theme.of(context)
+                  .textTheme
+                  .titleSmall
+                  ?.copyWith(fontWeight: FontWeight.w700)),
         ],
       ),
     );
@@ -2695,11 +2933,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const ListTile(
-            title: Text(
-              "Analyst Ratings",
-              style: TextStyle(fontSize: 20),
-            ),
+          _buildSectionHeader(
+            title: "Analyst Ratings",
+            icon: Icons.rate_review_outlined,
           ),
           GridView.count(
             crossAxisCount: 3,
@@ -2707,8 +2943,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            mainAxisSpacing: 8,
-            crossAxisSpacing: 8,
+            mainAxisSpacing: 10,
+            crossAxisSpacing: 10,
             children: [
               _buildRatingCard(
                 context,
@@ -2722,7 +2958,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                 context,
                 "Hold",
                 instrument.ratingsObj["summary"]["num_hold_ratings"],
-                Colors.grey,
+                Colors.amber.shade700,
                 instrument.ratingsObj["ratings"],
                 "hold",
               ),
@@ -2743,12 +2979,28 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
   Widget _buildRatingCard(BuildContext context, String title, int? count,
       Color color, List<dynamic> ratings, String type) {
+    IconData icon;
+    switch (type) {
+      case 'buy':
+        icon = Icons.trending_up;
+        break;
+      case 'sell':
+        icon = Icons.trending_down;
+        break;
+      default:
+        icon = Icons.trending_flat;
+    }
+
     return Card(
       elevation: 0,
       color: color.withValues(alpha: 0.1),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: color.withValues(alpha: 0.3)),
+      ),
       child: InkWell(
         onTap: () {
+          HapticFeedback.lightImpact();
           showDialog<String>(
             context: context,
             builder: (BuildContext context) => AlertDialog(
@@ -2775,20 +3027,22 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             ),
           );
         },
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            Icon(icon, color: color, size: 20),
+            const SizedBox(height: 4),
             Text(
               count != null ? formatCompactNumber.format(count) : "-",
               style: TextStyle(
-                  fontSize: 24, fontWeight: FontWeight.bold, color: color),
+                  fontSize: 22, fontWeight: FontWeight.bold, color: color),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 2),
             Text(
               title,
               style: TextStyle(
-                  fontSize: 16, fontWeight: FontWeight.bold, color: color),
+                  fontSize: 14, fontWeight: FontWeight.bold, color: color),
             ),
           ],
         ),
@@ -2843,11 +3097,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const ListTile(
-            title: Text(
-              "Research",
-              style: TextStyle(fontSize: 20),
-            ),
+          _buildSectionHeader(
+            title: "Research & Valuation",
+            icon: Icons.menu_book_outlined,
           ),
           Card(
             margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -2855,9 +3107,16 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             color: Theme.of(context)
                 .colorScheme
                 .surfaceContainerHighest
-                .withValues(alpha: 0.3),
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                .withValues(alpha: 0.25),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: BorderSide(
+                color: Theme.of(context)
+                    .colorScheme
+                    .outlineVariant
+                    .withValues(alpha: 0.4),
+              ),
+            ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
@@ -2972,213 +3231,235 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             final displayEarnings = earnings.take(displayCount).toList();
 
             return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const ListTile(
-                  title: Text(
-                    "Earnings",
-                    style: TextStyle(fontSize: 20),
-                  ),
+                _buildSectionHeader(
+                  title: "Earnings Reports",
+                  icon: Icons.event_note_outlined,
                 ),
-                ListView.separated(
-                  padding: EdgeInsets.zero,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: displayEarnings.length,
-                  separatorBuilder: (context, index) => const Divider(
-                    height: 1,
-                    indent: 16,
-                    endIndent: 16,
+                Card(
+                  margin:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  elevation: 0,
+                  color: Theme.of(context)
+                      .colorScheme
+                      .surfaceContainerHighest
+                      .withValues(alpha: 0.25),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    side: BorderSide(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .outlineVariant
+                          .withValues(alpha: 0.4),
+                    ),
                   ),
-                  itemBuilder: (context, index) {
-                    var earning = displayEarnings[index];
-                    final reportDate = earning["report"]?["date"];
-                    final eventDate = reportDate is String
-                        ? DateTime.tryParse(reportDate)
-                        : null;
-                    final isFutureEvent =
-                        eventDate != null && eventDate.isAfter(DateTime.now());
-                    return Column(
-                      children: [
-                        ListTile(
-                          onTap: eventDate == null || isFutureEvent
-                              ? null
-                              : () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => EventStudyWidget(
-                                        initialSymbol: instrument.symbol,
-                                        initialEventDate: eventDate,
+                  child: ListView.separated(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: displayEarnings.length,
+                    separatorBuilder: (context, index) => const Divider(
+                      height: 1,
+                      indent: 16,
+                      endIndent: 16,
+                    ),
+                    itemBuilder: (context, index) {
+                      var earning = displayEarnings[index];
+                      final reportDate = earning["report"]?["date"];
+                      final eventDate = reportDate is String
+                          ? DateTime.tryParse(reportDate)
+                          : null;
+                      final isFutureEvent = eventDate != null &&
+                          eventDate.isAfter(DateTime.now());
+                      return Column(
+                        children: [
+                          ListTile(
+                            onTap: eventDate == null || isFutureEvent
+                                ? null
+                                : () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => EventStudyWidget(
+                                          initialSymbol: instrument.symbol,
+                                          initialEventDate: eventDate,
+                                        ),
                                       ),
-                                    ),
-                                  );
-                                },
-                          leading: eventDate == null
-                              ? null
-                              : Icon(Icons.event_available,
-                                  color: isFutureEvent
-                                      ? Colors.grey
-                                      : Colors.teal),
-                          title: Text(
-                            "${earning!["year"] ?? ''} Q${earning!["quarter"] ?? ''}"
-                                .trim(),
-                            style: const TextStyle(
-                                fontSize: 16.0, fontWeight: FontWeight.w500),
-                          ),
-                          subtitle: earning!["report"] != null
-                              ? Text(
-                                  "Report${earning!["report"]["verified"] == true ? "ed" : "ing"}${earning!["report"]["date"] != null ? " ${formatDate.format(DateTime.tryParse(earning!["report"]["date"].toString()) ?? DateTime.now())}" : ""}${earning!["report"]["timing"] != null ? " ${earning!["report"]["timing"]}" : ""}",
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: Theme.of(context)
-                                        .textTheme
-                                        .bodySmall
-                                        ?.color,
-                                  ))
-                              : null,
-                          trailing: (earning!["eps"] != null &&
-                                  (earning!["eps"]["estimate"] != null ||
-                                      earning!["eps"]["actual"] != null))
-                              ? Wrap(spacing: 16.0, children: [
-                                  if (earning!["eps"]["estimate"] != null &&
-                                      double.tryParse(earning!["eps"]
-                                                  ["estimate"]
-                                              .toString()) !=
-                                          null) ...[
-                                    Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.end,
-                                      children: [
-                                        Text("Estimate",
-                                            style: TextStyle(
-                                                fontSize: 11,
-                                                color: Theme.of(context)
-                                                    .textTheme
-                                                    .bodySmall
-                                                    ?.color)),
-                                        Text(
-                                            formatCurrency.format(
-                                                double.tryParse(earning!["eps"]
-                                                        ["estimate"]
-                                                    .toString())!),
-                                            style: const TextStyle(
-                                                fontSize: 16,
-                                                fontWeight: FontWeight.w500)),
-                                      ],
-                                    )
-                                  ],
-                                  if (earning!["eps"]["actual"] != null &&
-                                      double.tryParse(earning!["eps"]["actual"]
-                                              .toString()) !=
-                                          null) ...[
-                                    Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.end,
-                                      children: [
-                                        Text("Actual",
-                                            style: TextStyle(
-                                                fontSize: 11,
-                                                color: Theme.of(context)
-                                                    .textTheme
-                                                    .bodySmall
-                                                    ?.color)),
-                                        Text(
-                                            formatCurrency.format(
-                                                double.tryParse(earning!["eps"]
-                                                        ["actual"]
-                                                    .toString())!),
-                                            style: const TextStyle(
-                                                fontSize: 16,
-                                                fontWeight: FontWeight.bold))
-                                      ],
-                                    )
-                                  ]
-                                ])
-                              : (eventDate == null
-                                  ? null
-                                  : const Icon(Icons.chevron_right)),
-                        ),
-                        if (earning!["call"] != null &&
-                            ((pastEarning != null &&
-                                    pastEarning["year"] == earning!["year"] &&
-                                    pastEarning["quarter"] ==
-                                        earning!["quarter"]) ||
-                                (futureEarning != null &&
-                                    futureEarning["year"] == earning!["year"] &&
-                                    futureEarning["quarter"] ==
-                                        earning!["quarter"]))) ...[
-                          Padding(
-                            padding:
-                                const EdgeInsets.symmetric(horizontal: 16.0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                if (earning!["report"] != null &&
-                                    earning!["report"]["verified"] != true) ...[
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    "Report${earning!["report"]["verified"] == true ? "ed" : "ing"}${earning!["report"]["date"] != null ? " ${formatDate.format(DateTime.tryParse(earning!["report"]["date"].toString()) ?? DateTime.now())}" : ""}${earning!["report"]["timing"] != null ? " ${earning!["report"]["timing"]}" : ""}",
-                                    style: const TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w500),
-                                  ),
-                                  if (earning!["call"]["datetime"] != null)
-                                    Text(
-                                      formatLongDate.format(DateTime.tryParse(
-                                              earning!["call"]["datetime"]
-                                                  .toString()) ??
-                                          DateTime.now()),
-                                      style: TextStyle(
-                                          fontSize: 14,
-                                          color: Theme.of(context)
-                                              .textTheme
-                                              .bodySmall
-                                              ?.color),
-                                    ),
-                                ],
-                                Row(
-                                    mainAxisAlignment: MainAxisAlignment.end,
-                                    children: <Widget>[
-                                      if (earning!["call"]["replay_url"] !=
-                                          null) ...[
-                                        TextButton(
-                                          child: const Text('LISTEN TO REPLAY'),
-                                          onPressed: () async {
-                                            var url =
-                                                earning!["call"]["replay_url"];
-                                            var uri = Uri.parse(url);
-                                            await canLaunchUrl(uri)
-                                                ? await launchUrl(uri)
-                                                : throw 'Could not launch $url';
-                                          },
-                                        ),
-                                      ],
-                                      if (earning!["call"]["broadcast_url"] !=
-                                          null) ...[
-                                        const SizedBox(width: 8),
-                                        TextButton(
-                                          child:
-                                              const Text('LISTEN TO BROADCAST'),
-                                          onPressed: () async {
-                                            var url = earning!["call"]
-                                                ["broadcast_url"];
-                                            var uri = Uri.parse(url);
-                                            await canLaunchUrl(uri)
-                                                ? await launchUrl(uri)
-                                                : throw 'Could not launch $url';
-                                          },
-                                        ),
-                                      ],
-                                    ])
-                              ],
+                                    );
+                                  },
+                            leading: eventDate == null
+                                ? null
+                                : Icon(Icons.event_available,
+                                    color: isFutureEvent
+                                        ? Colors.grey
+                                        : Colors.teal),
+                            title: Text(
+                              "${earning!["year"] ?? ''} Q${earning!["quarter"] ?? ''}"
+                                  .trim(),
+                              style: const TextStyle(
+                                  fontSize: 16.0, fontWeight: FontWeight.w500),
                             ),
+                            subtitle: earning!["report"] != null
+                                ? Text(
+                                    "Report${earning!["report"]["verified"] == true ? "ed" : "ing"}${earning!["report"]["date"] != null ? " ${formatDate.format(DateTime.tryParse(earning!["report"]["date"].toString()) ?? DateTime.now())}" : ""}${earning!["report"]["timing"] != null ? " ${earning!["report"]["timing"]}" : ""}",
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Theme.of(context)
+                                          .textTheme
+                                          .bodySmall
+                                          ?.color,
+                                    ))
+                                : null,
+                            trailing: (earning!["eps"] != null &&
+                                    (earning!["eps"]["estimate"] != null ||
+                                        earning!["eps"]["actual"] != null))
+                                ? Wrap(spacing: 16.0, children: [
+                                    if (earning!["eps"]["estimate"] != null &&
+                                        double.tryParse(earning!["eps"]
+                                                    ["estimate"]
+                                                .toString()) !=
+                                            null) ...[
+                                      Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.end,
+                                        children: [
+                                          Text("Estimate",
+                                              style: TextStyle(
+                                                  fontSize: 11,
+                                                  color: Theme.of(context)
+                                                      .textTheme
+                                                      .bodySmall
+                                                      ?.color)),
+                                          Text(
+                                              formatCurrency.format(
+                                                  double.tryParse(
+                                                      earning!["eps"]
+                                                              ["estimate"]
+                                                          .toString())!),
+                                              style: const TextStyle(
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.w500)),
+                                        ],
+                                      )
+                                    ],
+                                    if (earning!["eps"]["actual"] != null &&
+                                        double.tryParse(earning!["eps"]
+                                                    ["actual"]
+                                                .toString()) !=
+                                            null) ...[
+                                      Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.end,
+                                        children: [
+                                          Text("Actual",
+                                              style: TextStyle(
+                                                  fontSize: 11,
+                                                  color: Theme.of(context)
+                                                      .textTheme
+                                                      .bodySmall
+                                                      ?.color)),
+                                          Text(
+                                              formatCurrency.format(
+                                                  double.tryParse(
+                                                      earning!["eps"]["actual"]
+                                                          .toString())!),
+                                              style: const TextStyle(
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.bold))
+                                        ],
+                                      )
+                                    ]
+                                  ])
+                                : (eventDate == null
+                                    ? null
+                                    : const Icon(Icons.chevron_right)),
                           ),
+                          if (earning!["call"] != null &&
+                              ((pastEarning != null &&
+                                      pastEarning["year"] == earning!["year"] &&
+                                      pastEarning["quarter"] ==
+                                          earning!["quarter"]) ||
+                                  (futureEarning != null &&
+                                      futureEarning["year"] ==
+                                          earning!["year"] &&
+                                      futureEarning["quarter"] ==
+                                          earning!["quarter"]))) ...[
+                            Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 16.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  if (earning!["report"] != null &&
+                                      earning!["report"]["verified"] !=
+                                          true) ...[
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      "Report${earning!["report"]["verified"] == true ? "ed" : "ing"}${earning!["report"]["date"] != null ? " ${formatDate.format(DateTime.tryParse(earning!["report"]["date"].toString()) ?? DateTime.now())}" : ""}${earning!["report"]["timing"] != null ? " ${earning!["report"]["timing"]}" : ""}",
+                                      style: const TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w500),
+                                    ),
+                                    if (earning!["call"]["datetime"] != null)
+                                      Text(
+                                        formatLongDate.format(DateTime.tryParse(
+                                                earning!["call"]["datetime"]
+                                                    .toString()) ??
+                                            DateTime.now()),
+                                        style: TextStyle(
+                                            fontSize: 14,
+                                            color: Theme.of(context)
+                                                .textTheme
+                                                .bodySmall
+                                                ?.color),
+                                      ),
+                                  ],
+                                  Row(
+                                      mainAxisAlignment: MainAxisAlignment.end,
+                                      children: <Widget>[
+                                        if (earning!["call"]["replay_url"] !=
+                                            null) ...[
+                                          TextButton(
+                                            child:
+                                                const Text('LISTEN TO REPLAY'),
+                                            onPressed: () async {
+                                              var url = earning!["call"]
+                                                  ["replay_url"];
+                                              var uri = Uri.parse(url);
+                                              await canLaunchUrl(uri)
+                                                  ? await launchUrl(uri)
+                                                  : throw 'Could not launch $url';
+                                            },
+                                          ),
+                                        ],
+                                        if (earning!["call"]["broadcast_url"] !=
+                                            null) ...[
+                                          const SizedBox(width: 8),
+                                          TextButton(
+                                            child: const Text(
+                                                'LISTEN TO BROADCAST'),
+                                            onPressed: () async {
+                                              var url = earning!["call"]
+                                                  ["broadcast_url"];
+                                              var uri = Uri.parse(url);
+                                              await canLaunchUrl(uri)
+                                                  ? await launchUrl(uri)
+                                                  : throw 'Could not launch $url';
+                                            },
+                                          ),
+                                        ],
+                                      ])
+                                ],
+                              ),
+                            ),
+                          ],
                         ],
-                      ],
-                    );
-                  },
+                      );
+                    },
+                  ),
                 ),
                 if (earnings.length > 3)
                   Align(
@@ -3204,6 +3485,12 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   Widget _buildDividendsWidget(Instrument instrument) {
     return SliverToBoxAdapter(
         child: ShrinkWrappingViewport(offset: ViewportOffset.zero(), slivers: [
+      SliverToBoxAdapter(
+        child: _buildSectionHeader(
+          title: "Income",
+          icon: Icons.payments_outlined,
+        ),
+      ),
       IncomeTransactionsWidget(
           widget.brokerageUser,
           widget.service,
@@ -3216,6 +3503,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           showList: true,
           showFooter: false,
           showYield: true,
+          showHeader: false,
           analytics: widget.analytics,
           observer: widget.observer),
       const SliverToBoxAdapter(child: SizedBox(height: 16)),
@@ -3226,58 +3514,74 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     var splits = instrument.splitsObj ?? [];
     return SliverToBoxAdapter(
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const ListTile(
-            title: Text(
-              "Splits",
-              style: TextStyle(fontSize: 20),
-            ),
+          _buildSectionHeader(
+            title: "Stock Splits",
+            icon: Icons.call_split_outlined,
           ),
-          ListView.separated(
-            padding: EdgeInsets.zero,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: splits.length,
-            separatorBuilder: (context, index) => const Divider(
-              height: 1,
-              indent: 16,
-              endIndent: 16,
+          Card(
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            elevation: 0,
+            color: Theme.of(context)
+                .colorScheme
+                .surfaceContainerHighest
+                .withValues(alpha: 0.25),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: BorderSide(
+                color: Theme.of(context)
+                    .colorScheme
+                    .outlineVariant
+                    .withValues(alpha: 0.4),
+              ),
             ),
-            itemBuilder: (BuildContext context, int index) {
-              var split = splits[index]; // Note: Assumes splitsObj existence
-              var splitText = "${split["multiplier"]} Split";
-              try {
-                var multiplier = double.parse(split["multiplier"]);
-                if (multiplier > 1) {
-                  if (multiplier % 1 == 0) {
-                    splitText = "${multiplier.toInt()} for 1 Split";
-                  } else {
-                    splitText = "$multiplier for 1 Split";
+            child: ListView.separated(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: splits.length,
+              separatorBuilder: (context, index) => const Divider(
+                height: 1,
+                indent: 16,
+                endIndent: 16,
+              ),
+              itemBuilder: (BuildContext context, int index) {
+                var split = splits[index]; // Note: Assumes splitsObj existence
+                var splitText = "${split["multiplier"]} Split";
+                try {
+                  var multiplier = double.parse(split["multiplier"]);
+                  if (multiplier > 1) {
+                    if (multiplier % 1 == 0) {
+                      splitText = "${multiplier.toInt()} for 1 Split";
+                    } else {
+                      splitText = "$multiplier for 1 Split";
+                    }
+                  } else if (multiplier > 0 && multiplier < 1) {
+                    var reverse = 1 / multiplier;
+                    if ((reverse - reverse.round()).abs() < 0.001) {
+                      splitText = "1 for ${reverse.round()} Reverse Split";
+                    } else {
+                      splitText = "1 for $reverse Reverse Split";
+                    }
                   }
-                } else if (multiplier > 0 && multiplier < 1) {
-                  var reverse = 1 / multiplier;
-                  if ((reverse - reverse.round()).abs() < 0.001) {
-                    splitText = "1 for ${reverse.round()} Reverse Split";
-                  } else {
-                    splitText = "1 for $reverse Reverse Split";
-                  }
+                } catch (e) {
+                  // ignore
                 }
-              } catch (e) {
-                // ignore
-              }
-              return ListTile(
-                title: Text(
-                  splitText,
-                  style: const TextStyle(
-                      fontSize: 16.0, fontWeight: FontWeight.w500),
-                ),
-                subtitle: Text(
-                    "Ex-Date: ${formatDate.format(DateTime.parse(split["execution_date"]))}",
-                    style: TextStyle(
-                        fontSize: 14,
-                        color: Theme.of(context).textTheme.bodySmall?.color)),
-              );
-            },
+                return ListTile(
+                  title: Text(
+                    splitText,
+                    style: const TextStyle(
+                        fontSize: 16.0, fontWeight: FontWeight.w500),
+                  ),
+                  subtitle: Text(
+                      "Ex-Date: ${formatDate.format(DateTime.parse(split["execution_date"]))}",
+                      style: TextStyle(
+                          fontSize: 14,
+                          color: Theme.of(context).textTheme.bodySmall?.color)),
+                );
+              },
+            ),
           ),
           const SizedBox(height: 16),
         ],
@@ -3296,141 +3600,166 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                   ? similar.length
                   : (similar.length > 3 ? 3 : similar.length);
 
-              return Column(children: [
-                const ListTile(
-                  title: Text(
-                    "Similar",
-                    style: TextStyle(fontSize: 20),
-                  ),
-                ),
-                ListView.separated(
-                    padding: EdgeInsets.zero,
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: displayCount,
-                    separatorBuilder: (context, index) => const Divider(
-                          height: 1,
-                          indent: 72,
-                          endIndent: 16,
+              return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildSectionHeader(
+                      title: "People Also Own",
+                      icon: Icons.interests_outlined,
+                    ),
+                    Card(
+                      margin: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 8),
+                      elevation: 0,
+                      color: Theme.of(context)
+                          .colorScheme
+                          .surfaceContainerHighest
+                          .withValues(alpha: 0.25),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        side: BorderSide(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .outlineVariant
+                              .withValues(alpha: 0.4),
                         ),
-                    itemBuilder: (BuildContext context, int index) {
-                      var logoUrl = similar[index]["logo_url"]
-                          ?.toString()
-                          .replaceAll("https:////", "https://");
-                      return InkWell(
-                        onTap: () async {
-                          var similarInstruments = await widget.service
-                              .getInstrumentsByIds(
-                                  widget.brokerageUser,
-                                  Provider.of<InstrumentStore>(context,
-                                      listen: false),
-                                  [similar[index]["instrument_id"]]);
-                          if (logoUrl != null &&
-                              logoUrl != similarInstruments[0].logoUrl &&
-                              auth.currentUser != null) {
-                            similarInstruments[0].logoUrl = logoUrl;
-                            await _firestoreService
-                                .upsertInstrument(similarInstruments[0]);
-                          }
-                          if (context.mounted) {
-                            Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (context) => InstrumentWidget(
-                                          widget.brokerageUser,
-                                          widget.service,
-                                          similarInstruments[0],
-                                          analytics: widget.analytics,
-                                          observer: widget.observer,
-                                          generativeService:
-                                              widget.generativeService,
-                                          user: widget.user,
-                                          userDocRef: widget.userDocRef,
-                                        )));
-                          }
-                        },
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16.0, vertical: 12.0),
-                          child: Row(
-                            children: [
-                              Hero(
-                                tag: 'logo_${similar[index]["symbol"]}',
-                                child: logoUrl != null
-                                    ? ClipOval(
-                                        child: CachedNetworkImage(
-                                          imageUrl: logoUrl,
-                                          width: 40,
-                                          height: 40,
-                                          fit: BoxFit.cover,
-                                          errorWidget: (context, url, error) =>
-                                              CircleAvatar(
-                                                  radius: 20,
-                                                  child: Text(
-                                                      similar[index]["symbol"]
-                                                          .substring(0, 1),
-                                                      style: const TextStyle(
-                                                          fontSize: 16))),
-                                        ),
-                                      )
-                                    : CircleAvatar(
-                                        radius: 20,
-                                        child: Text(
-                                            similar[index]["symbol"]
-                                                .substring(0, 1),
-                                            style:
-                                                const TextStyle(fontSize: 16))),
+                      ),
+                      child: ListView.separated(
+                          padding: const EdgeInsets.symmetric(vertical: 4),
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: displayCount,
+                          separatorBuilder: (context, index) => const Divider(
+                                height: 1,
+                                indent: 72,
+                                endIndent: 16,
                               ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+                          itemBuilder: (BuildContext context, int index) {
+                            var logoUrl = similar[index]["logo_url"]
+                                ?.toString()
+                                .replaceAll("https:////", "https://");
+                            return InkWell(
+                              onTap: () async {
+                                var similarInstruments = await widget.service
+                                    .getInstrumentsByIds(
+                                        widget.brokerageUser,
+                                        Provider.of<InstrumentStore>(context,
+                                            listen: false),
+                                        [similar[index]["instrument_id"]]);
+                                if (logoUrl != null &&
+                                    logoUrl != similarInstruments[0].logoUrl &&
+                                    auth.currentUser != null) {
+                                  similarInstruments[0].logoUrl = logoUrl;
+                                  await _firestoreService
+                                      .upsertInstrument(similarInstruments[0]);
+                                }
+                                if (context.mounted) {
+                                  Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                          builder: (context) =>
+                                              InstrumentWidget(
+                                                widget.brokerageUser,
+                                                widget.service,
+                                                similarInstruments[0],
+                                                analytics: widget.analytics,
+                                                observer: widget.observer,
+                                                generativeService:
+                                                    widget.generativeService,
+                                                user: widget.user,
+                                                userDocRef: widget.userDocRef,
+                                              )));
+                                }
+                              },
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 16.0, vertical: 12.0),
+                                child: Row(
                                   children: [
-                                    Text(
-                                      "${similar[index]["symbol"]}",
-                                      style: const TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w500),
+                                    Hero(
+                                      tag: 'logo_${similar[index]["symbol"]}',
+                                      child: logoUrl != null
+                                          ? ClipOval(
+                                              child: CachedNetworkImage(
+                                                imageUrl: logoUrl,
+                                                width: 40,
+                                                height: 40,
+                                                fit: BoxFit.cover,
+                                                errorWidget: (context, url,
+                                                        error) =>
+                                                    CircleAvatar(
+                                                        radius: 20,
+                                                        child: Text(
+                                                            similar[index]
+                                                                    ["symbol"]
+                                                                .substring(
+                                                                    0, 1),
+                                                            style:
+                                                                const TextStyle(
+                                                                    fontSize:
+                                                                        16))),
+                                              ),
+                                            )
+                                          : CircleAvatar(
+                                              radius: 20,
+                                              child: Text(
+                                                  similar[index]["symbol"]
+                                                      .substring(0, 1),
+                                                  style: const TextStyle(
+                                                      fontSize: 16))),
                                     ),
-                                    Text(
-                                      "${similar[index]["name"]}",
-                                      style: TextStyle(
-                                          fontSize: 14,
-                                          color: Theme.of(context)
-                                              .textTheme
-                                              .bodySmall
-                                              ?.color),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
+                                    const SizedBox(width: 16),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            "${similar[index]["symbol"]}",
+                                            style: const TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.w500),
+                                          ),
+                                          Text(
+                                            "${similar[index]["name"]}",
+                                            style: TextStyle(
+                                                fontSize: 14,
+                                                color: Theme.of(context)
+                                                    .textTheme
+                                                    .bodySmall
+                                                    ?.color),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ],
+                                      ),
                                     ),
+                                    const Icon(
+                                      Icons.chevron_right,
+                                      color: Colors.grey,
+                                    )
                                   ],
                                 ),
                               ),
-                              const Icon(
-                                Icons.chevron_right,
-                                color: Colors.grey,
-                              )
-                            ],
-                          ),
-                        ),
-                      );
-                    }),
-                if (similar.length > 5)
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: TextButton.icon(
-                        onPressed: () {
-                          _showAllSimilarNotifier.value = !showAllSimilar;
-                        },
-                        icon: Icon(showAllSimilar
-                            ? Icons.expand_less
-                            : Icons.expand_more),
-                        label: Text(showAllSimilar
-                            ? 'Show Less'
-                            : 'Show All (${similar.length})')),
-                  ),
-                const SizedBox(height: 16),
-              ]);
+                            );
+                          }),
+                    ),
+                    if (similar.length > 5)
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: TextButton.icon(
+                            onPressed: () {
+                              _showAllSimilarNotifier.value = !showAllSimilar;
+                            },
+                            icon: Icon(showAllSimilar
+                                ? Icons.expand_less
+                                : Icons.expand_more),
+                            label: Text(showAllSimilar
+                                ? 'Show Less'
+                                : 'Show All (${similar.length})')),
+                      ),
+                    const SizedBox(height: 16),
+                  ]);
             }));
   }
 
@@ -3636,18 +3965,16 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             List<Widget> slivers = [];
 
             slivers.add(SliverToBoxAdapter(
-                child: Column(children: [
-              ListTile(
-                title: const Text(
-                  "Lists",
-                  style: TextStyle(fontSize: 20),
-                ),
+              child: _buildSectionHeader(
+                title: "Watchlists & Lists",
+                icon: Icons.format_list_bulleted_outlined,
                 trailing: IconButton(
                   icon: const Icon(Icons.playlist_add),
+                  tooltip: 'Add to List',
                   onPressed: _showAddToListDialog,
                 ),
-              )
-            ])));
+              ),
+            ));
 
             if (userLists.isNotEmpty) {
               if (rhLists.isNotEmpty) {
@@ -3777,12 +4104,11 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             final displayCount =
                 showAllNews ? news.length : (news.length > 3 ? 3 : news.length);
             return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                ListTile(
-                  title: const Text(
-                    "News",
-                    style: TextStyle(fontSize: 20),
-                  ),
+                _buildSectionHeader(
+                  title: "News & Catalysts",
+                  icon: Icons.newspaper_outlined,
                   trailing: TextButton.icon(
                     icon: const Icon(Icons.auto_awesome,
                         size: 16, color: Colors.amber),
@@ -3800,87 +4126,106 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                     },
                   ),
                 ),
-                ListView.separated(
-                  padding: EdgeInsets.zero,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: displayCount,
-                  separatorBuilder: (context, index) => const Divider(
-                    height: 1,
+                Card(
+                  margin:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  elevation: 0,
+                  color: Theme.of(context)
+                      .colorScheme
+                      .surfaceContainerHighest
+                      .withValues(alpha: 0.25),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    side: BorderSide(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .outlineVariant
+                          .withValues(alpha: 0.4),
+                    ),
                   ),
-                  itemBuilder: (BuildContext context, int index) {
-                    var item = news[index];
-                    return InkWell(
-                      onTap: () async {
-                        var url = item["url"];
-                        var uri = Uri.parse(url);
-                        await canLaunchUrl(uri)
-                            ? await launchUrl(uri)
-                            : throw 'Could not launch $url';
-                      },
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16.0, vertical: 12.0),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Text(
-                                        "${item["source"]}",
-                                        style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 12),
-                                      ),
-                                      const SizedBox(width: 5),
-                                      Text(
-                                        "• ${formatDate.format(DateTime.parse(item["published_at"]!))}",
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .bodySmall,
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    "${item["title"]}",
-                                    style: const TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w500),
-                                    maxLines: 4,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ],
-                              ),
-                            ),
-                            if (item["preview_image_url"] != null &&
-                                item["preview_image_url"]
-                                    .toString()
-                                    .isNotEmpty) ...[
-                              const SizedBox(width: 16),
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(8.0),
-                                child: CachedNetworkImage(
-                                  imageUrl: item["preview_image_url"],
-                                  width: 80,
-                                  height: 80,
-                                  fit: BoxFit.cover,
-                                  placeholder: (context, url) => Container(
-                                      color: Colors.grey.withOpacity(0.1)),
-                                  errorWidget: (context, url, error) =>
-                                      const Icon(Icons.error),
+                  child: ListView.separated(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: displayCount,
+                    separatorBuilder: (context, index) => const Divider(
+                      height: 1,
+                    ),
+                    itemBuilder: (BuildContext context, int index) {
+                      var item = news[index];
+                      return InkWell(
+                        onTap: () async {
+                          var url = item["url"];
+                          var uri = Uri.parse(url);
+                          await canLaunchUrl(uri)
+                              ? await launchUrl(uri)
+                              : throw 'Could not launch $url';
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16.0, vertical: 12.0),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Text(
+                                          "${item["source"]}",
+                                          style: const TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 12),
+                                        ),
+                                        const SizedBox(width: 5),
+                                        Text(
+                                          "• ${formatDate.format(DateTime.parse(item["published_at"]!))}",
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodySmall,
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      "${item["title"]}",
+                                      style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w500),
+                                      maxLines: 4,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
                                 ),
                               ),
-                            ]
-                          ],
+                              if (item["preview_image_url"] != null &&
+                                  item["preview_image_url"]
+                                      .toString()
+                                      .isNotEmpty) ...[
+                                const SizedBox(width: 16),
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(8.0),
+                                  child: CachedNetworkImage(
+                                    imageUrl: item["preview_image_url"],
+                                    width: 80,
+                                    height: 80,
+                                    fit: BoxFit.cover,
+                                    placeholder: (context, url) => Container(
+                                        color:
+                                            Colors.grey.withValues(alpha: 0.1)),
+                                    errorWidget: (context, url, error) =>
+                                        const Icon(Icons.error),
+                                  ),
+                                ),
+                              ]
+                            ],
+                          ),
                         ),
-                      ),
-                    );
-                  },
+                      );
+                    },
+                  ),
                 ),
                 if (news.length > 3)
                   Align(
@@ -3923,103 +4268,117 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                       : filteredPositionOrders.length);
 
               return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  ListTile(
-                      title: const Text(
-                        "Position Orders",
-                        style: TextStyle(fontSize: 20.0),
-                      ),
-                      subtitle: Text(
-                          "${formatCompactNumber.format(positionOrders.length)} orders - balance: ${positionOrdersBalance > 0 ? "+" : positionOrdersBalance < 0 ? "-" : ""}${formatCurrency.format(positionOrdersBalance.abs())}"),
-                      trailing: IconButton(
-                          icon: const Icon(Icons.filter_list),
-                          onPressed: () {
-                            showModalBottomSheet<void>(
-                              context: context,
-                              showDragHandle: true,
-                              constraints: const BoxConstraints(maxHeight: 260),
-                              builder: (BuildContext context) {
-                                return Column(
-                                  mainAxisAlignment: MainAxisAlignment.start,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const ListTile(
-                                      // tileColor: Theme.of(context).colorScheme.primary,
-                                      leading: Icon(Icons.filter_list),
-                                      title: Text(
-                                        "Filter Position Orders",
-                                        style: TextStyle(fontSize: 20.0),
-                                      ),
-                                      /*
-                                  trailing: TextButton(
-                                      child: const Text("APPLY"),
-                                      onPressed: () => Navigator.pop(context))*/
+                  _buildSectionHeader(
+                    title: "Stock Orders",
+                    subtitle:
+                        "${formatCompactNumber.format(positionOrders.length)} orders • balance: ${positionOrdersBalance > 0 ? "+" : positionOrdersBalance < 0 ? "-" : ""}${formatCurrency.format(positionOrdersBalance.abs())}",
+                    icon: Icons.receipt_long_outlined,
+                    trailing: IconButton(
+                        icon: const Icon(Icons.filter_list),
+                        tooltip: 'Filter Orders',
+                        onPressed: () {
+                          showModalBottomSheet<void>(
+                            context: context,
+                            showDragHandle: true,
+                            constraints: const BoxConstraints(maxHeight: 260),
+                            builder: (BuildContext context) {
+                              return Column(
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const ListTile(
+                                    leading: Icon(Icons.filter_list),
+                                    title: Text(
+                                      "Filter Stock Orders",
+                                      style: TextStyle(fontSize: 20.0),
                                     ),
-                                    orderFilterWidget,
-                                  ],
-                                );
-                              },
-                            );
-                          })),
-                  ListView.separated(
-                      padding: EdgeInsets.zero,
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: displayCount,
-                      separatorBuilder: (context, index) => const Divider(
-                            height: 1,
-                            indent: 72,
-                            endIndent: 16,
-                          ),
-                      itemBuilder: (BuildContext context, int index) {
-                        var order = filteredPositionOrders[index];
-                        return ListTile(
-                          leading: CircleAvatar(
-                              //backgroundImage: AssetImage(user.profilePicture),
-                              child: Text('${order.quantity!.round()}',
-                                  style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold))),
-                          title: Text(
-                              "${order.side == "buy" ? "Buy" : order.side == "sell" ? "Sell" : order.side} ${order.quantity} at ${order.averagePrice != null ? formatCurrency.format(order.averagePrice) : (order.price != null ? formatCurrency.format(order.price) : "")}",
+                                  ),
+                                  orderFilterWidget,
+                                ],
+                              );
+                            },
+                          );
+                        }),
+                  ),
+                  Card(
+                    margin:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    elevation: 0,
+                    color: Theme.of(context)
+                        .colorScheme
+                        .surfaceContainerHighest
+                        .withValues(alpha: 0.25),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      side: BorderSide(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .outlineVariant
+                            .withValues(alpha: 0.4),
+                      ),
+                    ),
+                    child: ListView.separated(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: displayCount,
+                        separatorBuilder: (context, index) => const Divider(
+                              height: 1,
+                              indent: 72,
+                              endIndent: 16,
+                            ),
+                        itemBuilder: (BuildContext context, int index) {
+                          var order = filteredPositionOrders[index];
+                          return ListTile(
+                            leading: CircleAvatar(
+                                child: Text('${order.quantity!.round()}',
+                                    style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold))),
+                            title: Text(
+                                "${order.side == "buy" ? "Buy" : order.side == "sell" ? "Sell" : order.side} ${order.quantity} at ${order.averagePrice != null ? formatCurrency.format(order.averagePrice) : (order.price != null ? formatCurrency.format(order.price) : "")}",
+                                style: const TextStyle(
+                                    fontSize: 16.0,
+                                    fontWeight: FontWeight.w500)),
+                            subtitle: Text(
+                                "${order.state} ${formatDate.format(order.updatedAt!)}${order.trailingPeg != null ? "\nTrailing: ${order.trailingPeg!['percentage'] != null ? "${order.trailingPeg!['percentage']}%" : (order.trailingPeg!['price'] != null ? formatCompactNumber.format(double.tryParse(order.trailingPeg!['price']['amount'] ?? "0")) : "")}" : ""}",
+                                style: TextStyle(
+                                    fontSize: 14,
+                                    color: Theme.of(context)
+                                        .textTheme
+                                        .bodySmall
+                                        ?.color)),
+                            trailing: Text(
+                              (order.side == "sell" ? "+" : "-") +
+                                  (order.averagePrice != null
+                                      ? formatCurrency.format(
+                                          order.averagePrice! * order.quantity!)
+                                      : ""),
                               style: const TextStyle(
-                                  fontSize: 16.0, fontWeight: FontWeight.w500)),
-                          subtitle: Text(
-                              "${order.state} ${formatDate.format(order.updatedAt!)}${order.trailingPeg != null ? "\nTrailing: ${order.trailingPeg!['percentage'] != null ? "${order.trailingPeg!['percentage']}%" : (order.trailingPeg!['price'] != null ? formatCompactNumber.format(double.tryParse(order.trailingPeg!['price']['amount'] ?? "0")) : "")}" : ""}",
-                              style: TextStyle(
-                                  fontSize: 14,
-                                  color: Theme.of(context)
-                                      .textTheme
-                                      .bodySmall
-                                      ?.color)),
-                          trailing: Text(
-                            (order.side == "sell" ? "+" : "-") +
-                                (order.averagePrice != null
-                                    ? formatCurrency.format(
-                                        order.averagePrice! * order.quantity!)
-                                    : ""),
-                            style: const TextStyle(
-                                fontSize: 16.0, fontWeight: FontWeight.bold),
-                            textAlign: TextAlign.right,
-                          ),
-                          onTap: () {
-                            Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (context) => PositionOrderWidget(
-                                          widget.brokerageUser,
-                                          widget.service,
-                                          order,
-                                          generativeService:
-                                              widget.generativeService,
-                                          user: widget.user,
-                                          userDocRef: widget.userDocRef,
-                                          analytics: widget.analytics,
-                                          observer: widget.observer,
-                                        )));
-                          },
-                        );
-                      }),
+                                  fontSize: 16.0, fontWeight: FontWeight.bold),
+                              textAlign: TextAlign.right,
+                            ),
+                            onTap: () {
+                              Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (context) => PositionOrderWidget(
+                                            widget.brokerageUser,
+                                            widget.service,
+                                            order,
+                                            generativeService:
+                                                widget.generativeService,
+                                            user: widget.user,
+                                            userDocRef: widget.userDocRef,
+                                            analytics: widget.analytics,
+                                            observer: widget.observer,
+                                          )));
+                            },
+                          );
+                        }),
+                  ),
                   if (filteredPositionOrders.length > 3)
                     Align(
                       alignment: Alignment.centerLeft,
@@ -4061,116 +4420,136 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                       : filteredOptionOrders.length);
 
               return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  ListTile(
-                      title: const Text(
-                        "Option Orders",
-                        style: TextStyle(fontSize: 20.0),
-                      ),
-                      subtitle: Text(
-                          "${formatCompactNumber.format(optionOrders.length)} orders - balance: ${optionOrdersPremiumBalance > 0 ? "+" : optionOrdersPremiumBalance < 0 ? "-" : ""}${formatCurrency.format(optionOrdersPremiumBalance.abs())}"),
-                      trailing: IconButton(
-                          icon: const Icon(Icons.filter_list),
-                          onPressed: () {
-                            showModalBottomSheet<void>(
-                              context: context,
-                              showDragHandle: true,
-                              constraints: const BoxConstraints(maxHeight: 260),
-                              builder: (BuildContext context) {
-                                return Column(
-                                  mainAxisAlignment: MainAxisAlignment.start,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const ListTile(
-                                      leading: Icon(Icons.filter_list),
-                                      title: Text(
-                                        "Filter Option Orders",
-                                        style: TextStyle(fontSize: 20.0),
-                                      ),
+                  _buildSectionHeader(
+                    title: "Option Orders",
+                    subtitle:
+                        "${formatCompactNumber.format(optionOrders.length)} orders • balance: ${optionOrdersPremiumBalance > 0 ? "+" : optionOrdersPremiumBalance < 0 ? "-" : ""}${formatCurrency.format(optionOrdersPremiumBalance.abs())}",
+                    icon: Icons.receipt_outlined,
+                    trailing: IconButton(
+                        icon: const Icon(Icons.filter_list),
+                        tooltip: 'Filter Orders',
+                        onPressed: () {
+                          showModalBottomSheet<void>(
+                            context: context,
+                            showDragHandle: true,
+                            constraints: const BoxConstraints(maxHeight: 260),
+                            builder: (BuildContext context) {
+                              return Column(
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const ListTile(
+                                    leading: Icon(Icons.filter_list),
+                                    title: Text(
+                                      "Filter Option Orders",
+                                      style: TextStyle(fontSize: 20.0),
                                     ),
-                                    orderFilterWidget,
-                                  ],
-                                );
-                              },
-                            );
-                          })),
-                  ListView.separated(
-                      padding: EdgeInsets.zero,
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: displayCount,
-                      separatorBuilder: (context, index) => const Divider(
-                            height: 1,
-                            indent: 72,
-                            endIndent: 16,
-                          ),
-                      itemBuilder: (BuildContext context, int index) {
-                        var optionOrder = filteredOptionOrders[index];
+                                  ),
+                                  orderFilterWidget,
+                                ],
+                              );
+                            },
+                          );
+                        }),
+                  ),
+                  Card(
+                    margin:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    elevation: 0,
+                    color: Theme.of(context)
+                        .colorScheme
+                        .surfaceContainerHighest
+                        .withValues(alpha: 0.25),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      side: BorderSide(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .outlineVariant
+                            .withValues(alpha: 0.4),
+                      ),
+                    ),
+                    child: ListView.separated(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: displayCount,
+                        separatorBuilder: (context, index) => const Divider(
+                              height: 1,
+                              indent: 72,
+                              endIndent: 16,
+                            ),
+                        itemBuilder: (BuildContext context, int index) {
+                          var optionOrder = filteredOptionOrders[index];
 
-                        var subtitle = Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                  "${optionOrder.state.capitalize()} ${formatDate.format(optionOrder.updatedAt!)}",
-                                  style: TextStyle(
-                                      fontSize: 14,
-                                      color: Theme.of(context)
-                                          .textTheme
-                                          .bodySmall
-                                          ?.color)),
-                              if (optionOrder.optionEvents != null) ...[
+                          var subtitle = Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
                                 Text(
-                                    "${optionOrder.optionEvents!.first.type == "expiration" ? "Expired" : (optionOrder.optionEvents!.first.type == "assignment" ? "Assigned" : (optionOrder.optionEvents!.first.type == "exercise" ? "Exercised" : optionOrder.optionEvents!.first.type))} ${formatCompactDate.format(optionOrder.optionEvents!.first.eventDate!)} at ${optionOrder.optionEvents!.first.underlyingPrice != null ? formatCurrency.format(optionOrder.optionEvents!.first.underlyingPrice) : ""}",
+                                    "${optionOrder.state.capitalize()} ${formatDate.format(optionOrder.updatedAt!)}",
                                     style: TextStyle(
                                         fontSize: 14,
                                         color: Theme.of(context)
                                             .textTheme
                                             .bodySmall
-                                            ?.color))
-                              ]
-                            ]);
+                                            ?.color)),
+                                if (optionOrder.optionEvents != null) ...[
+                                  Text(
+                                      "${optionOrder.optionEvents!.first.type == "expiration" ? "Expired" : (optionOrder.optionEvents!.first.type == "assignment" ? "Assigned" : (optionOrder.optionEvents!.first.type == "exercise" ? "Exercised" : optionOrder.optionEvents!.first.type))} ${formatCompactDate.format(optionOrder.optionEvents!.first.eventDate!)} at ${optionOrder.optionEvents!.first.underlyingPrice != null ? formatCurrency.format(optionOrder.optionEvents!.first.underlyingPrice) : ""}",
+                                      style: TextStyle(
+                                          fontSize: 14,
+                                          color: Theme.of(context)
+                                              .textTheme
+                                              .bodySmall
+                                              ?.color))
+                                ]
+                              ]);
 
-                        return ListTile(
-                          leading: CircleAvatar(
-                              child: optionOrder.optionEvents != null
-                                  ? const Icon(Icons.check)
-                                  : Text('${optionOrder.quantity!.round()}',
-                                      style: const TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold))),
-                          title: Text(
-                              "${optionOrder.chainSymbol} \$${formatCompactNumber.format(optionOrder.legs.first.strikePrice)} ${optionOrder.strategy} ${formatCompactDate.format(optionOrder.legs.first.expirationDate!)}",
+                          return ListTile(
+                            leading: CircleAvatar(
+                                child: optionOrder.optionEvents != null
+                                    ? const Icon(Icons.check)
+                                    : Text('${optionOrder.quantity!.round()}',
+                                        style: const TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold))),
+                            title: Text(
+                                "${optionOrder.chainSymbol} \$${formatCompactNumber.format(optionOrder.legs.first.strikePrice)} ${optionOrder.strategy} ${formatCompactDate.format(optionOrder.legs.first.expirationDate!)}",
+                                style: const TextStyle(
+                                    fontSize: 16.0,
+                                    fontWeight: FontWeight.w500)),
+                            subtitle: subtitle,
+                            trailing: Text(
+                              (optionOrder.direction == "credit" ? "+" : "-") +
+                                  (optionOrder.processedPremium != null
+                                      ? formatCurrency
+                                          .format(optionOrder.processedPremium)
+                                      : ""),
                               style: const TextStyle(
-                                  fontSize: 16.0, fontWeight: FontWeight.w500)),
-                          subtitle: subtitle,
-                          trailing: Text(
-                            (optionOrder.direction == "credit" ? "+" : "-") +
-                                (optionOrder.processedPremium != null
-                                    ? formatCurrency
-                                        .format(optionOrder.processedPremium)
-                                    : ""),
-                            style: const TextStyle(
-                                fontSize: 16.0, fontWeight: FontWeight.bold),
-                            textAlign: TextAlign.right,
-                          ),
-                          onTap: () {
-                            Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (context) => OptionOrderWidget(
-                                          widget.brokerageUser,
-                                          widget.service,
-                                          optionOrder,
-                                          generativeService:
-                                              widget.generativeService,
-                                          user: widget.user,
-                                          userDocRef: widget.userDocRef,
-                                          analytics: widget.analytics,
-                                          observer: widget.observer,
-                                        )));
-                          },
-                        );
-                      }),
+                                  fontSize: 16.0, fontWeight: FontWeight.bold),
+                              textAlign: TextAlign.right,
+                            ),
+                            onTap: () {
+                              Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (context) => OptionOrderWidget(
+                                            widget.brokerageUser,
+                                            widget.service,
+                                            optionOrder,
+                                            generativeService:
+                                                widget.generativeService,
+                                            user: widget.user,
+                                            userDocRef: widget.userDocRef,
+                                            analytics: widget.analytics,
+                                            observer: widget.observer,
+                                          )));
+                            },
+                          );
+                        }),
+                  ),
                   if (filteredOptionOrders.length > 3)
                     Align(
                       alignment: Alignment.centerLeft,
@@ -5335,7 +5714,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                                                 .textTheme
                                                 .bodySmall
                                                 ?.color
-                                                ?.withOpacity(0.5),
+                                                ?.withValues(alpha: 0.5),
                                           ),
                                         ),
                                       ],
@@ -5353,7 +5732,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                                               .textTheme
                                               .bodySmall
                                               ?.color
-                                              ?.withOpacity(0.8),
+                                              ?.withValues(alpha: 0.8),
                                           height: 1.3,
                                         ),
                                       ),
@@ -6098,12 +6477,11 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               final hasBarDetails = selectorMultiIndicator is Map &&
                   selectorMultiIndicator['bars'] != null;
               return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  ListTile(
-                    title: const Text(
-                      "Trade Signal",
-                      style: TextStyle(fontSize: 20),
-                    ),
+                  _buildSectionHeader(
+                    title: "Trade Signal",
+                    icon: Icons.hub_outlined,
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -6112,9 +6490,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                             Icons.notifications_outlined,
                             size: 20,
                             color:
-                                Theme.of(context).brightness == Brightness.dark
-                                    ? Colors.grey.shade400
-                                    : Colors.grey.shade700,
+                                Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),
@@ -6140,9 +6516,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                             Icons.science_outlined,
                             size: 20,
                             color:
-                                Theme.of(context).brightness == Brightness.dark
-                                    ? Colors.grey.shade400
-                                    : Colors.grey.shade700,
+                                Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),
@@ -7008,7 +7382,7 @@ class _SparklinePainter extends CustomPainter {
       ..shader = LinearGradient(
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
-        colors: [color.withOpacity(0.3), color.withOpacity(0.0)],
+        colors: [color.withValues(alpha: 0.3), color.withValues(alpha: 0.0)],
       ).createShader(Rect.fromLTWH(0, 0, size.width, size.height))
       ..style = PaintingStyle.fill;
 

@@ -361,69 +361,7 @@ class _FuturesPositionsWidgetState extends State<FuturesPositionsWidget> {
             child: Column(
               children: [
                 if (widget.showGroupHeader)
-                  ListTile(
-                    title: Wrap(children: [
-                      Text(
-                        'Futures',
-                        style: Theme.of(context).textTheme.titleLarge,
-                      ),
-                      if (!widget.showList) ...[
-                        SizedBox(
-                          height: 28,
-                          child: IconButton(
-                            padding: EdgeInsets.zero,
-                            icon: const Icon(Icons.chevron_right),
-                            onPressed: () {
-                              _handleNavigation(context, () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        FuturesPositionsPageWidget(
-                                      widget.brokerageUser,
-                                      widget.service,
-                                      widget.futuresPositions,
-                                      analytics: widget.analytics,
-                                      observer: widget.observer,
-                                      generativeService:
-                                          widget.generativeService,
-                                      user: widget.user,
-                                      userDocRef: widget.userDocRef,
-                                    ),
-                                  ),
-                                );
-                              });
-                            },
-                          ),
-                        )
-                      ]
-                    ]),
-                    subtitle: Text(
-                        '${formatCompactNumber.format(items.length)} positions, ${formatCompactNumber.format(contracts)} contracts${chartRowsOmitted > 0 ? ', charting top ${chartEntries.length}' : ''}'),
-                    trailing: InkWell(
-                      onTap: () {
-                        setState(() {
-                          _chartMeasure = _FuturesChartMeasure.openPnl;
-                        });
-                      },
-                      child: Wrap(spacing: 8, children: [
-                        Padding(
-                          padding:
-                              const EdgeInsets.fromLTRB(8.0, 8.0, 0.0, 8.0),
-                          child: AnimatedPriceText(
-                            price: localStore.totalOpenPnl,
-                            format: formatCurrency,
-                            style: TextStyle(
-                              fontSize: assetValueFontSize,
-                              // color: localStore.totalOpenPnl >= 0
-                              //     ? Colors.green
-                              //     : Colors.red
-                            ),
-                            textAlign: TextAlign.right,
-                          ),
-                        )
-                      ]),
-                    ),
+                  InkWell(
                     onTap: !widget.showList
                         ? () {
                             _handleNavigation(context, () {
@@ -446,41 +384,122 @@ class _FuturesPositionsWidgetState extends State<FuturesPositionsWidget> {
                             });
                           }
                         : null,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 6.0),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .primary
+                                  .withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(
+                              Icons.account_balance_wallet_outlined,
+                              size: 18,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  'Futures',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .titleLarge
+                                      ?.copyWith(
+                                          fontSize: 19,
+                                          fontWeight: FontWeight.bold),
+                                ),
+                                Text(
+                                  '${formatCompactNumber.format(items.length)} positions, ${formatCompactNumber.format(contracts)} contracts${chartRowsOmitted > 0 ? ', charting top ${chartEntries.length}' : ''}',
+                                  style: Theme.of(context).textTheme.bodySmall,
+                                ),
+                              ],
+                            ),
+                          ),
+                          InkWell(
+                            onTap: () {
+                              setState(() {
+                                _chartMeasure = _FuturesChartMeasure.openPnl;
+                              });
+                            },
+                            child: Padding(
+                              padding:
+                                  const EdgeInsets.fromLTRB(8.0, 8.0, 0.0, 8.0),
+                              child: AnimatedPriceText(
+                                price: localStore.totalOpenPnl,
+                                format: formatCurrency,
+                                style: const TextStyle(
+                                    fontSize: assetValueFontSize),
+                                textAlign: TextAlign.right,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 5),
-                    child: Row(
-                      children: [
-                        _buildSummaryMetric(
-                          'Day P&L',
-                          localStore.totalDayPnl,
-                          measure: _FuturesChartMeasure.dayPnl,
-                        ),
-                        _buildSummaryMetric(
-                          'Open P&L',
-                          localStore.totalOpenPnl,
-                          measure: _FuturesChartMeasure.openPnl,
-                        ),
-                        _buildSummaryMetric(
-                          'Realized',
-                          localStore.totalRealizedPnl,
-                          measure: _FuturesChartMeasure.realizedPnl,
-                        ),
-                        _buildSummaryMetric(
-                          'Notional',
-                          grossNotional,
-                          measure: _FuturesChartMeasure.notional,
-                          neutral: true,
-                        ),
-                        _buildSummaryMetric(
-                          'Margin',
-                          localStore.totalMarginRequirement,
-                          measure: _FuturesChartMeasure.marginRequirement,
-                          neutral: true,
-                        ),
-                      ],
+                Card(
+                  margin:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  elevation: 0,
+                  color: Theme.of(context)
+                      .colorScheme
+                      .surfaceContainerHighest
+                      .withValues(alpha: 0.25),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    side: BorderSide(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .outlineVariant
+                          .withValues(alpha: 0.4),
+                    ),
+                  ),
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 5, vertical: 12.0),
+                      child: Row(
+                        children: [
+                          _buildSummaryMetric(
+                            'Day P&L',
+                            localStore.totalDayPnl,
+                            measure: _FuturesChartMeasure.dayPnl,
+                          ),
+                          _buildSummaryMetric(
+                            'Open P&L',
+                            localStore.totalOpenPnl,
+                            measure: _FuturesChartMeasure.openPnl,
+                          ),
+                          _buildSummaryMetric(
+                            'Realized',
+                            localStore.totalRealizedPnl,
+                            measure: _FuturesChartMeasure.realizedPnl,
+                          ),
+                          _buildSummaryMetric(
+                            'Notional',
+                            grossNotional,
+                            measure: _FuturesChartMeasure.notional,
+                            neutral: true,
+                          ),
+                          _buildSummaryMetric(
+                            'Margin',
+                            localStore.totalMarginRequirement,
+                            measure: _FuturesChartMeasure.marginRequirement,
+                            neutral: true,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),

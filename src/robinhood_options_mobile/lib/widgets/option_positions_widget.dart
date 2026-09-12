@@ -477,63 +477,119 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
                 //padding: EdgeInsets.symmetric(horizontal: 16.0),
                 //alignment: Alignment.centerLeft,
                 children: [
-              ListTile(
-                title: Wrap(children: [
-                  Text(
-                    "Options",
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
-                  if (!widget.showList) ...[
-                    SizedBox(
-                      height: 28,
-                      child: IconButton(
-                        // iconSize: 16,
-                        padding: EdgeInsets.zero,
-                        icon: Icon(Icons.chevron_right),
-                        onPressed: () => navigateToFullPage(context),
-                      ),
-                    )
-                  ]
-                ]),
-                subtitle: Text(
-                    "${formatCompactNumber.format(widget.filteredOptionPositions.length)} positions, ${formatCompactNumber.format(contracts)} contracts${groupedOptionAggregatePositions.length > 1 ? ", ${formatCompactNumber.format(groupedOptionAggregatePositions.length)} underlying" : ""}"
-                    // Say so rather than letting the missing bars read as
-                    // missing positions; the full page has all of them.
-                    "${chartRowsOmitted > 0 ? ", charting top ${widget.chartRowLimit}" : ""}"),
-                trailing: InkWell(
-                  onTap:
-                      // widget.user.displayValue == DisplayValue.marketValue ? null :
-                      () {
-                    setState(() {
-                      widget.brokerageUser.displayValue =
-                          DisplayValue.marketValue;
-                    });
-                    // var userStore =
-                    //     Provider.of<BrokerageUserStore>(context, listen: false);
-                    // userStore.addOrUpdate(widget.user);
-                    // userStore.save();
-                  },
-                  child: Wrap(spacing: 8, children: [
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(8.0, 8.0, 0.0, 8.0),
-                      child: AnimatedPriceText(
-                        price: marketValue ?? 0,
-                        format: formatCurrency,
-                        style: const TextStyle(fontSize: assetValueFontSize),
-                        textAlign: TextAlign.right,
-                      ),
-                    )
-                  ]),
-                ),
+              InkWell(
                 onTap: widget.showList
                     ? null
                     : () {
                         navigateToFullPage(context);
                       },
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 6.0),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .primary
+                              .withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(
+                          Icons.account_balance_wallet_outlined,
+                          size: 18,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Wrap(children: [
+                              Text(
+                                "Options",
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleLarge
+                                    ?.copyWith(
+                                        fontSize: 19,
+                                        fontWeight: FontWeight.bold),
+                              ),
+                              if (!widget.showList) ...[
+                                SizedBox(
+                                  height: 28,
+                                  child: IconButton(
+                                    padding: EdgeInsets.zero,
+                                    icon: const Icon(Icons.chevron_right),
+                                    onPressed: () =>
+                                        navigateToFullPage(context),
+                                  ),
+                                )
+                              ]
+                            ]),
+                            Text(
+                              "${formatCompactNumber.format(widget.filteredOptionPositions.length)} positions, ${formatCompactNumber.format(contracts)} contracts${groupedOptionAggregatePositions.length > 1 ? ", ${formatCompactNumber.format(groupedOptionAggregatePositions.length)} underlying" : ""}"
+                              // Say so rather than letting the missing bars read as
+                              // missing positions; the full page has all of them.
+                              "${chartRowsOmitted > 0 ? ", charting top ${widget.chartRowLimit}" : ""}",
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                          ],
+                        ),
+                      ),
+                      InkWell(
+                        onTap: () {
+                          setState(() {
+                            widget.brokerageUser.displayValue =
+                                DisplayValue.marketValue;
+                          });
+                        },
+                        child: Padding(
+                          padding:
+                              const EdgeInsets.fromLTRB(8.0, 8.0, 0.0, 8.0),
+                          child: AnimatedPriceText(
+                            price: marketValue ?? 0,
+                            format: formatCurrency,
+                            style:
+                                const TextStyle(fontSize: assetValueFontSize),
+                            textAlign: TextAlign.right,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
-              _buildDetailScrollRow(widget.filteredOptionPositions, greeks,
-                  summaryValueFontSize, summaryLabelFontSize,
-                  iconSize: 27.0),
+              Card(
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                elevation: 0,
+                color: Theme.of(context)
+                    .colorScheme
+                    .surfaceContainerHighest
+                    .withValues(alpha: 0.25),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: BorderSide(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .outlineVariant
+                        .withValues(alpha: 0.4),
+                  ),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12.0),
+                  child: _buildDetailScrollRow(
+                    widget.filteredOptionPositions,
+                    greeks,
+                    summaryValueFontSize,
+                    summaryLabelFontSize,
+                    iconSize: 27.0,
+                  ),
+                ),
+              ),
             ]
                 //)
                 )),
@@ -712,10 +768,11 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
 
     return Card(
         elevation: 0,
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         shape: RoundedRectangleBorder(
           side: BorderSide(
               color: Theme.of(context).colorScheme.outlineVariant, width: 1),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -1262,10 +1319,11 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
     }
     return Card(
         elevation: 0,
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         shape: RoundedRectangleBorder(
           side: BorderSide(
               color: Theme.of(context).colorScheme.outlineVariant, width: 1),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
         ),
         child: Column(
           children: cards,

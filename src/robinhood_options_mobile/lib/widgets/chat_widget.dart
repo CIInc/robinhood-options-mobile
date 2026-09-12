@@ -1197,6 +1197,23 @@ class _ChatWidgetState extends State<ChatWidget> {
               displayTitle = 'Market Outlook';
             } else if (promptObj.key == 'construct-portfolio') {
               displayTitle = 'Portfolio Builder';
+            } else if (promptObj.key.endsWith('-summary') &&
+                promptObj.key.startsWith('insight-')) {
+              displayTitle = 'Overview';
+            } else if (promptObj.key.endsWith('-sentiment') &&
+                promptObj.key.startsWith('insight-')) {
+              displayTitle = 'Sentiment';
+            } else if (promptObj.key.endsWith('-key-levels') &&
+                promptObj.key.startsWith('insight-')) {
+              displayTitle = 'Key Levels';
+            } else if (promptObj.key.endsWith('-strategy') &&
+                promptObj.key.startsWith('insight-')) {
+              displayTitle = 'Options Plan';
+            } else if (promptObj.key.endsWith('-news') &&
+                promptObj.key.startsWith('insight-')) {
+              displayTitle = 'News';
+            } else if (promptObj.key.startsWith('chart-')) {
+              displayTitle = 'Chart';
             }
 
             return ActionChip(
@@ -1226,6 +1243,24 @@ class _ChatWidgetState extends State<ChatWidget> {
   }
 
   IconData _getIconForPrompt(Prompt prompt) {
+    if (prompt.key.startsWith('insight-') && prompt.key.endsWith('-summary')) {
+      return Icons.summarize_outlined;
+    }
+    if (prompt.key.startsWith('insight-') &&
+        prompt.key.endsWith('-sentiment')) {
+      return Icons.sentiment_satisfied_alt_outlined;
+    }
+    if (prompt.key.startsWith('insight-') &&
+        prompt.key.endsWith('-key-levels')) {
+      return Icons.stacked_line_chart;
+    }
+    if (prompt.key.startsWith('insight-') && prompt.key.endsWith('-strategy')) {
+      return Icons.alt_route;
+    }
+    if (prompt.key.startsWith('insight-') && prompt.key.endsWith('-news')) {
+      return Icons.newspaper_outlined;
+    }
+    if (prompt.key.startsWith('chart-')) return Icons.candlestick_chart;
     if (prompt.key == 'construct-portfolio') return Icons.pie_chart_outline;
     if (prompt.key == 'portfolio-recommendations') {
       return Icons.recommend_outlined;

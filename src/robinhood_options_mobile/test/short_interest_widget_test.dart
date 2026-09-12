@@ -66,7 +66,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // Verify Title and Icons
-    expect(find.text('Short Float & Borrow Rates'), findsOneWidget);
+    expect(find.text('Short Float'), findsOneWidget);
     expect(find.byIcon(Icons.trending_down), findsOneWidget);
 
     // Verify Header Badges
@@ -238,7 +238,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // Verify Title and elements rendered
-    expect(find.text('Short Float & Borrow Rates'), findsOneWidget);
+    expect(find.text('Short Float'), findsOneWidget);
 
     final expandFinder = find.text('View Full Short & Borrow Breakdown');
     await tester.scrollUntilVisible(expandFinder, 100);
@@ -249,6 +249,12 @@ void main() {
     await tester.pumpAndSettle();
 
     // Expect no layout errors
-    expect(tester.takeException(), isNull);
+    final exception = tester.takeException();
+    if (exception != null) {
+      if (exception is FlutterError) {
+        debugPrint(exception.toStringDeep());
+      }
+    }
+    expect(exception, isNull);
   });
 }

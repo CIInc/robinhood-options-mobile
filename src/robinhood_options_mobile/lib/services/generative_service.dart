@@ -311,35 +311,17 @@ Follow the table with a strategic breakdown:
   static List<Prompt> buildInstrumentPrompts(Instrument instrument) {
     final symbol = instrument.symbol;
     List<Prompt> prompts = [
-      Prompt(
-        key: 'overview-$symbol',
-        title: 'Tell me about $symbol',
-        prompt: 'Tell me about $symbol and its recent performance.',
-      ),
+      buildInstrumentAnalysisPrompt(symbol: symbol, type: 'summary'),
+      buildInstrumentAnalysisPrompt(symbol: symbol, type: 'sentiment'),
+      buildInstrumentAnalysisPrompt(symbol: symbol, type: 'keyLevels'),
+      buildInstrumentAnalysisPrompt(symbol: symbol, type: 'strategy'),
+      buildInstrumentAnalysisPrompt(symbol: symbol, type: 'news'),
       Prompt(
         key: 'chart-$symbol',
         title: 'Analyze Chart',
         prompt: 'Analyze the technical chart for $symbol.',
       ),
-      Prompt(
-        key: 'news-$symbol',
-        title: 'Why is it moving?',
-        prompt: 'Why is $symbol moving today? Summarize recent news.',
-      ),
     ];
-
-    if (instrument.tradeableChainId != null) {
-      prompts.add(Prompt(
-          key: 'option-strategy-$symbol',
-          title: 'Option Strategy',
-          prompt:
-              'Suggest an option trading strategy for $symbol based on current market conditions.'));
-    }
-
-    prompts.add(Prompt(
-        key: 'sentiment-$symbol',
-        title: 'Sentiment Analysis',
-        prompt: 'What is the market sentiment for $symbol?'));
 
     return prompts;
   }

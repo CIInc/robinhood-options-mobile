@@ -317,17 +317,14 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget>
                 user: widget.user,
                 userDocRef: widget.userDocRef,
                 service: widget.service,
-              ),
-            IconButton(
-                icon: auth.FirebaseAuth.instance.currentUser != null
-                    ? (auth.FirebaseAuth.instance.currentUser!.photoURL == null
-                        ? const Icon(Icons.account_circle)
-                        : CircleAvatar(
-                            maxRadius: 12,
-                            backgroundImage: CachedNetworkImageProvider(auth
-                                .FirebaseAuth.instance.currentUser!.photoURL!)))
-                    : const Icon(Icons.account_circle_outlined),
-                onPressed: () async {
+                userAvatar: auth.FirebaseAuth.instance.currentUser!.photoURL ==
+                        null
+                    ? const Icon(Icons.account_circle)
+                    : CircleAvatar(
+                        maxRadius: 11,
+                        backgroundImage: CachedNetworkImageProvider(
+                            auth.FirebaseAuth.instance.currentUser!.photoURL!)),
+                onProfileTap: () async {
                   var response = await showProfile(
                       context,
                       auth.FirebaseAuth.instance,
@@ -339,7 +336,24 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget>
                   if (response != null) {
                     setState(() {});
                   }
-                }),
+                },
+              )
+            else
+              IconButton(
+                  icon: const Icon(Icons.account_circle_outlined),
+                  onPressed: () async {
+                    var response = await showProfile(
+                        context,
+                        auth.FirebaseAuth.instance,
+                        _firestoreService,
+                        widget.analytics,
+                        widget.observer,
+                        widget.brokerageUser,
+                        widget.service);
+                    if (response != null) {
+                      setState(() {});
+                    }
+                  }),
           ],
         );
       },

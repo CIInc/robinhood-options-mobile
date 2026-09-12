@@ -62,6 +62,7 @@ class IncomeTransactionsWidget extends StatefulWidget {
     this.showFooter = true,
     this.showChips = true,
     this.showYield = true,
+    this.showHeader = true,
     this.isFullScreen = false,
     super.key,
     required this.analytics,
@@ -83,6 +84,7 @@ class IncomeTransactionsWidget extends StatefulWidget {
   final bool showFooter;
   final bool showChips;
   final bool showYield;
+  final bool showHeader;
   final bool isFullScreen;
 
   @override
@@ -1823,7 +1825,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
       return SliverFillRemaining(
           child: Column(children: [
         if (dividendYieldsChips != null) dividendYieldsChips,
-        header,
+        if (widget.showHeader) header,
         Expanded(child: chartCard),
         if (filterChips1 != null) filterChips1,
         if (filterChips2 != null) filterChips2,
@@ -1836,7 +1838,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
         SliverToBoxAdapter(child: dividendYieldsChips),
       SliverToBoxAdapter(
           child: Column(children: [
-        header,
+        if (widget.showHeader) header,
         SizedBox(height: 340, child: chartCard),
       ])),
       if (filterChips1 != null) SliverToBoxAdapter(child: filterChips1),

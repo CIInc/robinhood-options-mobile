@@ -170,4 +170,115 @@ void main() {
     expect(find.text('5/5'), findsOneWidget);
     expect(find.byIcon(Icons.check_circle), findsOneWidget);
   });
+
+  group('Combined user icon and auto trading badge', () {
+    bool profileTapped = false;
+    const testAvatarKey = Key('test_avatar');
+
+    Widget createCombinedWidgetUnderTest() {
+      return MaterialApp(
+        home: Scaffold(
+          body: ChangeNotifierProvider<AgenticTradingProvider>.value(
+            value: mockProvider,
+            child: AutoTradeStatusBadgeWidget(
+              user: mockUser,
+              userDocRef: mockUserDocRef,
+              service: mockService,
+              userAvatar: const CircleAvatar(
+                key: testAvatarKey,
+                maxRadius: 11,
+                child: Icon(Icons.person, size: 14),
+              ),
+              onProfileTap: () {
+                profileTapped = true;
+              },
+            ),
+          ),
+        ),
+      );
+    }
+
+    setUp(() {
+      profileTapped = false;
+    });
+
+    testWidgets('renders user avatar button when autoTradeEnabled is false',
+        (tester) async {
+      mockProvider.config.autoTradeEnabled = false;
+      await tester.pumpWidget(createCombinedWidgetUnderTest());
+
+      expect(find.byKey(testAvatarKey), findsOneWidget);
+      expect(find.byType(IconButton), findsOneWidget);
+
+      await tester.tap(find.byType(IconButton));
+      expect(profileTapped, isTrue);
+    });
+
+    testWidgets('renders combined avatar and countdown when Auto On',
+        (tester) async {
+      mockProvider.config.autoTradeEnabled = true;
+      mockProvider.showAutoTradingVisual = false;
+      mockProvider.emergencyStopActivated = false;
+      mockProvider.autoTradeCountdownSeconds = 125; // 2:05
+
+      await tester.pumpWidget(createCombinedWidgetUnderTest());
+      await tester.pump();
+
+      // Avatar should be visible inside combined widget
+      expect(find.byKey(testAvatarKey), findsOneWidget);
+      // Countdown text should be visible
+      expect(find.text('2:05'), findsOneWidget);
+      // Circular progress indicator around avatar
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+
+      // Tapping avatar invokes profile callback
+      await tester.tap(find.byKey(testAvatarKey));
+      expect(profileTapped, isTrue);
+    });
+
+    testWidgets('renders combined avatar and trade count when Trading',
+        (tester) async {
+      mockProvider.config.autoTradeEnabled = true;
+      mockProvider.config.strategyConfig =
+          TradeStrategyConfig(dailyTradeLimit: 5);
+      mockProvider.showAutoTradingVisual = true;
+      mockProvider.emergencyStopActivated = false;
+      mockProvider.dailyTradeCount = 3;
+
+      await tester.pumpWidget(createCombinedWidgetUnderTest());
+      await tester.pump();
+
+      expect(find.byKey(testAvatarKey), findsOneWidget);
+      expect(find.text('3/5'), findsOneWidget);
+      expect(find.byIcon(Icons.play_arrow), findsOneWidget);
+    });
+
+    testWidgets('renders combined avatar and STOP when Stopped',
+        (tester) async {
+      mockProvider.config.autoTradeEnabled = true;
+      mockProvider.emergencyStopActivated = true;
+
+      await tester.pumpWidget(createCombinedWidgetUnderTest());
+      await tester.pump();
+
+      expect(find.byKey(testAvatarKey), findsOneWidget);
+      expect(find.text('STOP'), findsOneWidget);
+      expect(find.byIcon(Icons.stop_circle), findsOneWidget);
+    });
+
+    testWidgets('long press on combined badge shows emergency stop dialog',
+        (tester) async {
+      mockProvider.config.autoTradeEnabled = true;
+      mockProvider.emergencyStopActivated = false;
+
+      await tester.pumpWidget(createCombinedWidgetUnderTest());
+      await tester.pump();
+
+      await tester.longPress(find.text('5:00'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Emergency Stop?'), findsOneWidget);
+      expect(find.text('STOP TRADING'), findsOneWidget);
+    });
+  });
 }
