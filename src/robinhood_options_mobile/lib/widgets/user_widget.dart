@@ -34,6 +34,7 @@ import 'package:robinhood_options_mobile/widgets/trade_signal_notification_setti
 import 'package:robinhood_options_mobile/widgets/custom_alerts_widget.dart';
 import 'package:robinhood_options_mobile/widgets/backtesting_widget.dart';
 import 'package:robinhood_options_mobile/widgets/day_trade_monitor_widget.dart';
+import 'package:robinhood_options_mobile/widgets/margin_health_widget.dart';
 
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
@@ -738,6 +739,8 @@ class _UserWidgetState extends State<UserWidget> {
                                                   firestoreService:
                                                       _firestoreService,
                                                   service: widget.service,
+                                                  analytics: widget.analytics,
+                                                  observer: widget.observer,
                                                 ),
                                               )
                                             ] else if (isCurrentUserProfileView &&
@@ -751,6 +754,8 @@ class _UserWidgetState extends State<UserWidget> {
                                                   firestoreService:
                                                       _firestoreService,
                                                   service: widget.service,
+                                                  analytics: widget.analytics,
+                                                  observer: widget.observer,
                                                 ),
                                               )
                                             ] else ...[
@@ -913,7 +918,7 @@ class _UserWidgetState extends State<UserWidget> {
                                               ?.copyWith(
                                                   fontWeight: FontWeight.bold),
                                         )),
-                                    // Paper Trading Simulator
+                                    // Agentic Trading Settings entry moved here from the app Drawer
                                     ListTile(
                                       leading: CircleAvatar(
                                         backgroundColor: Theme.of(context)
@@ -922,30 +927,132 @@ class _UserWidgetState extends State<UserWidget> {
                                         foregroundColor: Theme.of(context)
                                             .colorScheme
                                             .onSecondaryContainer,
-                                        child:
-                                            const Icon(Icons.school_outlined),
+                                        child: const Icon(Icons.auto_graph),
                                       ),
-                                      title:
-                                          const Text('Paper Trading Simulator'),
+                                      title: const Text('Automated Trading'),
                                       subtitle: const Text(
-                                          'Practice trading with virtual money'),
+                                          'Configure automated trading settings'),
+                                      trailing: const Icon(Icons.chevron_right),
+                                      onTap: () async {
+                                        if (user != null) {
+                                          // if (widget.service == null) {
+                                          //   ScaffoldMessenger.of(context)
+                                          //       .showSnackBar(const SnackBar(
+                                          //           content: Text(
+                                          //               "Please link a brokerage account to use this feature.")));
+                                          //   return;
+                                          // }
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) =>
+                                                  AgenticTradingSettingsWidget(
+                                                user: user!,
+                                                userDocRef:
+                                                    userDocumentReference!,
+                                                service: widget.service,
+                                              ),
+                                            ),
+                                          );
+                                        }
+                                      },
+                                    ),
+                                    // Trade Signal Notification Settings
+                                    ListTile(
+                                      leading: CircleAvatar(
+                                        backgroundColor: Theme.of(context)
+                                            .colorScheme
+                                            .secondaryContainer,
+                                        foregroundColor: Theme.of(context)
+                                            .colorScheme
+                                            .onSecondaryContainer,
+                                        child: const Icon(
+                                            Icons.notifications_outlined),
+                                      ),
+                                      title: const Text(
+                                          'Trade Signal Notifications'),
+                                      subtitle: const Text(
+                                          'Configure push notifications for trade signals'),
+                                      trailing: const Icon(Icons.chevron_right),
+                                      onTap: () async {
+                                        if (user != null) {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) =>
+                                                  TradeSignalNotificationSettingsWidget(
+                                                user: user!,
+                                                userDocRef:
+                                                    userDocumentReference!,
+                                              ),
+                                            ),
+                                          );
+                                        }
+                                      },
+                                    ),
+                                    // Custom Alerts
+                                    ListTile(
+                                      leading: CircleAvatar(
+                                        backgroundColor: Theme.of(context)
+                                            .colorScheme
+                                            .secondaryContainer,
+                                        foregroundColor: Theme.of(context)
+                                            .colorScheme
+                                            .onSecondaryContainer,
+                                        child: const Icon(
+                                            Icons.add_alert_outlined),
+                                      ),
+                                      title: const Text('Custom Alerts'),
+                                      subtitle: const Text(
+                                          'Manage price, volume, and volatility alerts'),
                                       trailing: const Icon(Icons.chevron_right),
                                       onTap: () async {
                                         Navigator.push(
                                           context,
                                           MaterialPageRoute(
                                             builder: (context) =>
-                                                PaperTradingDashboardWidget(
-                                              analytics: widget.analytics,
-                                              observer: widget.observer,
-                                              brokerageUser:
-                                                  widget.brokerageUser,
-                                              service: widget.service!,
-                                              user: user,
-                                              userDocRef: userDocumentReference,
-                                            ),
+                                                const CustomAlertsWidget(),
                                           ),
                                         );
+                                      },
+                                    ),
+                                    // Margin Health & Collateral
+                                    ListTile(
+                                      leading: CircleAvatar(
+                                        backgroundColor: Theme.of(context)
+                                            .colorScheme
+                                            .secondaryContainer,
+                                        foregroundColor: Theme.of(context)
+                                            .colorScheme
+                                            .onSecondaryContainer,
+                                        child: const Icon(Icons.speed),
+                                      ),
+                                      title: const Text(
+                                          'Margin Health & Collateral'),
+                                      subtitle: const Text(
+                                          'Margin buffer, buying power & collateral holds'),
+                                      trailing: const Icon(Icons.chevron_right),
+                                      onTap: () async {
+                                        if (widget.brokerageUser != null &&
+                                            widget.service != null) {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) =>
+                                                  MarginHealthWidget(
+                                                brokerageUser:
+                                                    widget.brokerageUser!,
+                                                service: widget.service!,
+                                              ),
+                                            ),
+                                          );
+                                        } else {
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(const SnackBar(
+                                            content: Text(
+                                                'Please link a brokerage account to view margin health.'),
+                                          ));
+                                        }
                                       },
                                     ),
                                     // Day Trade & PDT Monitor
@@ -985,45 +1092,6 @@ class _UserWidgetState extends State<UserWidget> {
                                             content: Text(
                                                 'Please link a brokerage account to monitor day trades.'),
                                           ));
-                                        }
-                                      },
-                                    ),
-                                    // Agentic Trading Settings entry moved here from the app Drawer
-                                    ListTile(
-                                      leading: CircleAvatar(
-                                        backgroundColor: Theme.of(context)
-                                            .colorScheme
-                                            .secondaryContainer,
-                                        foregroundColor: Theme.of(context)
-                                            .colorScheme
-                                            .onSecondaryContainer,
-                                        child: const Icon(Icons.auto_graph),
-                                      ),
-                                      title: const Text('Automated Trading'),
-                                      subtitle: const Text(
-                                          'Configure automated trading settings'),
-                                      trailing: const Icon(Icons.chevron_right),
-                                      onTap: () async {
-                                        if (user != null) {
-                                          // if (widget.service == null) {
-                                          //   ScaffoldMessenger.of(context)
-                                          //       .showSnackBar(const SnackBar(
-                                          //           content: Text(
-                                          //               "Please link a brokerage account to use this feature.")));
-                                          //   return;
-                                          // }
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (context) =>
-                                                  AgenticTradingSettingsWidget(
-                                                user: user!,
-                                                userDocRef:
-                                                    userDocumentReference!,
-                                                service: widget.service,
-                                              ),
-                                            ),
-                                          );
                                         }
                                       },
                                     ),
@@ -1086,7 +1154,7 @@ class _UserWidgetState extends State<UserWidget> {
                                     //     );
                                     //   },
                                     // ),
-                                    // Trade Signal Notification Settings
+                                    // Paper Trading Simulator
                                     ListTile(
                                       leading: CircleAvatar(
                                         backgroundColor: Theme.of(context)
@@ -1095,56 +1163,33 @@ class _UserWidgetState extends State<UserWidget> {
                                         foregroundColor: Theme.of(context)
                                             .colorScheme
                                             .onSecondaryContainer,
-                                        child: const Icon(
-                                            Icons.notifications_outlined),
+                                        child:
+                                            const Icon(Icons.school_outlined),
                                       ),
-                                      title: const Text(
-                                          'Trade Signal Notifications'),
+                                      title:
+                                          const Text('Paper Trading Simulator'),
                                       subtitle: const Text(
-                                          'Configure push notifications for trade signals'),
-                                      trailing: const Icon(Icons.chevron_right),
-                                      onTap: () async {
-                                        if (user != null) {
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (context) =>
-                                                  TradeSignalNotificationSettingsWidget(
-                                                user: user!,
-                                                userDocRef:
-                                                    userDocumentReference!,
-                                              ),
-                                            ),
-                                          );
-                                        }
-                                      },
-                                    ),
-                                    // Custom Alerts
-                                    ListTile(
-                                      leading: CircleAvatar(
-                                        backgroundColor: Theme.of(context)
-                                            .colorScheme
-                                            .secondaryContainer,
-                                        foregroundColor: Theme.of(context)
-                                            .colorScheme
-                                            .onSecondaryContainer,
-                                        child: const Icon(
-                                            Icons.add_alert_outlined),
-                                      ),
-                                      title: const Text('Custom Alerts'),
-                                      subtitle: const Text(
-                                          'Manage price, volume, and volatility alerts'),
+                                          'Practice trading with virtual money'),
                                       trailing: const Icon(Icons.chevron_right),
                                       onTap: () async {
                                         Navigator.push(
                                           context,
                                           MaterialPageRoute(
                                             builder: (context) =>
-                                                const CustomAlertsWidget(),
+                                                PaperTradingDashboardWidget(
+                                              analytics: widget.analytics,
+                                              observer: widget.observer,
+                                              brokerageUser:
+                                                  widget.brokerageUser,
+                                              service: widget.service!,
+                                              user: user,
+                                              userDocRef: userDocumentReference,
+                                            ),
                                           ),
                                         );
                                       },
                                     ),
+                                    // Investment Profile
                                     ListTile(
                                       leading: CircleAvatar(
                                         backgroundColor: Theme.of(context)
@@ -1176,6 +1221,7 @@ class _UserWidgetState extends State<UserWidget> {
                                         }
                                       },
                                     ),
+                                    // Share & Referrals
                                     ListTile(
                                       key: _referralShareKey,
                                       leading: CircleAvatar(

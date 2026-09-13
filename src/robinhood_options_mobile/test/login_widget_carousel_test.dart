@@ -2,13 +2,14 @@ import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
+import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user_store.dart';
 import 'package:robinhood_options_mobile/widgets/login_widget.dart';
 
 import 'firebase_mocks.dart';
 
 void main() {
-  setUp(() async {
+  setUpAll(() async {
     await setupFirebaseMocks();
   });
 
@@ -34,5 +35,29 @@ void main() {
     final carousel = tester.widget<CarouselView>(find.byType(CarouselView));
     expect(carousel.children, hasLength(6));
     expect(find.text('Fidelity'), findsOneWidget);
+  });
+
+  testWidgets('login auto-selects initialSource and pre-fills initialUserName',
+      (tester) async {
+    final analytics = FirebaseAnalytics.instance;
+
+    await tester.pumpWidget(
+      ChangeNotifierProvider(
+        create: (_) => BrokerageUserStore([], 0),
+        child: MaterialApp(
+          home: LoginWidget(
+            analytics: analytics,
+            observer: FirebaseAnalyticsObserver(analytics: analytics),
+            initialSource: BrokerageSource.robinhood,
+            initialUserName: 'test_trader',
+          ),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    expect(find.text('Robinhood Login'), findsOneWidget);
+    expect(find.text('test_trader'), findsOneWidget);
   });
 }

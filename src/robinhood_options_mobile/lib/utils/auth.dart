@@ -39,13 +39,16 @@ class AuthUtil {
   }
 
   void openLogin(BuildContext context, FirestoreService firestoreService,
-      FirebaseAnalytics analytics, FirebaseAnalyticsObserver observer) async {
+      FirebaseAnalytics analytics, FirebaseAnalyticsObserver observer,
+      {BrokerageSource? initialSource, String? initialUserName}) async {
     final BrokerageUser? result = await Navigator.push(
         context,
         MaterialPageRoute(
             builder: (BuildContext context) => LoginWidget(
                   analytics: analytics,
                   observer: observer,
+                  initialSource: initialSource,
+                  initialUserName: initialUserName,
                 )));
 
     if (result != null) {

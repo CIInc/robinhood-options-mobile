@@ -389,4 +389,10 @@ abstract class IBrokerageService {
   Future<dynamic> getLegendLayout(BrokerageUser user, String layoutId) async {
     return null;
   }
+
+  /// Fetches unified account balances, buying power breakdown, margin health buffer, and collateral allocations
+  /// https://bonfire.robinhood.com/phoenix/accounts/unified
+  Future<dynamic> getUnifiedAccount(BrokerageUser user) async {
+    return null;
+  }
 }

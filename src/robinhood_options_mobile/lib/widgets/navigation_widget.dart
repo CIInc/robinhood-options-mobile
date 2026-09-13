@@ -750,12 +750,18 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
                 }
               }
               var brokerageUser = userStore.currentUser;
-              if (brokerageUser != null) {
-                if (brokerageUser.userInfo == null && userInfo != null) {
-                  brokerageUser.userInfo = userInfo;
-                  // authUtil.setUser(_firestoreService,
-                  //     brokerageUserStore: userStore);
-                  _firestoreService.updateUser(userDoc!, user!);
+              if (brokerageUser != null && userInfo != null) {
+                brokerageUser.userInfo = userInfo;
+                if (user != null) {
+                  var matchingBu = user!.brokerageUsers.firstWhereOrNull((bu) =>
+                      bu.userName == brokerageUser.userName &&
+                      bu.source == brokerageUser.source);
+                  if (matchingBu != null) {
+                    matchingBu.userInfo = userInfo;
+                  }
+                  if (userDoc != null) {
+                    _firestoreService.updateUser(userDoc!, user!);
+                  }
                 }
               }
             }

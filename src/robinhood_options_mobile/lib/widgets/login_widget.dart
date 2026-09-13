@@ -24,10 +24,14 @@ class LoginWidget extends StatefulWidget {
     super.key,
     required this.analytics,
     required this.observer,
+    this.initialSource,
+    this.initialUserName,
   });
 
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
+  final BrokerageSource? initialSource;
+  final String? initialUserName;
 
   @override
   State<LoginWidget> createState() => _LoginWidgetState();
@@ -135,12 +139,26 @@ class _LoginWidgetState extends State<LoginWidget> {
   void initState() {
     super.initState();
 
+    if (widget.initialSource != null) {
+      source = widget.initialSource!;
+    }
+    if (widget.initialUserName != null && widget.initialUserName!.isNotEmpty) {
+      userCtl.text = widget.initialUserName!;
+    }
+
+    final initialIndex = widget.initialSource != null
+        ? _brokerageOptions
+            .indexWhere((option) => option['source'] == widget.initialSource)
+        : 0;
+    final validIndex = initialIndex >= 0 ? initialIndex : 0;
+    _currentCarouselPageNotifier.value = validIndex;
+
     deviceToken = generateDeviceToken();
     requestId = const Uuid().v4(); // generateDeviceToken();
 
     myFocusNode = FocusNode();
 
-    _carouselController = CarouselController();
+    _carouselController = CarouselController(initialItem: validIndex);
     _carouselController.addListener(_onCarouselScroll);
 
     clipboardContentStream.stream.listen((value) {
@@ -201,12 +219,6 @@ class _LoginWidgetState extends State<LoginWidget> {
 
     final page = (_carouselController.offset / _brokerageItemExtent).round();
     if (page >= 0 && page < _brokerageOptions.length) {
-      final nextSource = _brokerageOptions[page]['source'] as BrokerageSource;
-      if (source != nextSource) {
-        setState(() {
-          source = nextSource;
-        });
-      }
       if (page != _currentCarouselPageNotifier.value) {
         _currentCarouselPageNotifier.value = page;
       }
@@ -218,6 +230,15 @@ class _LoginWidgetState extends State<LoginWidget> {
         _brokerageOptions.indexWhere((option) => option['source'] == selected);
     if (nextIndex >= 0) {
       _currentCarouselPageNotifier.value = nextIndex;
+      if (_carouselController.hasClients && _brokerageItemExtent > 0) {
+        final targetOffset = (nextIndex * _brokerageItemExtent)
+            .clamp(0.0, _carouselController.position.maxScrollExtent);
+        _carouselController.animateTo(
+          targetOffset,
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOutCubic,
+        );
+      }
     }
     if (source != selected) {
       setState(() {

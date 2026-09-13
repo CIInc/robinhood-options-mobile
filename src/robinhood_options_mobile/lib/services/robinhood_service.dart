@@ -243,17 +243,62 @@ class RobinhoodService implements IBrokerageService {
 
   @override
   Future<UserInfo?> getUser(BrokerageUser user) async {
-    var url = '$endpoint/user/';
-    // debugPrint(result);
-    /*
-    debugPrint('$endpoint/user/basic_info/');
-    debugPrint('$endpoint/user/investment_profile/');
-    debugPrint('$endpoint/user/additional_info/');
-        */
+    UserInfo? usr;
+    try {
+      var url = '$endpoint/user/';
+      var resultJson = await getJson(user, url);
+      if (resultJson != null && resultJson is Map) {
+        usr = UserInfo.fromJson(resultJson);
+      }
+    } catch (e) {
+      debugPrint('Error fetching /user/: $e');
+    }
 
-    var resultJson = await getJson(user, url);
-
-    var usr = UserInfo.fromJson(resultJson);
+    // If /user/ didn't return first/last name or failed entirely, enrich/fallback from /user/basic_info/
+    if (usr == null ||
+        (usr.firstName == null || usr.firstName!.isEmpty) ||
+        (usr.lastName == null || usr.lastName!.isEmpty)) {
+      try {
+        var basicInfo = await getUserBasicInfo(user);
+        if (basicInfo != null && basicInfo is Map) {
+          if (usr == null) {
+            usr = UserInfo(
+              url: '$endpoint/user/',
+              id: (basicInfo['id'] as String?) ?? user.userName ?? '',
+              idInfo: '',
+              username: user.userName ?? '',
+              email: basicInfo['email'] as String?,
+              firstName: basicInfo['first_name'] as String?,
+              lastName: basicInfo['last_name'] as String?,
+              locality: (basicInfo['locality'] as String?) ??
+                  (basicInfo['city'] as String?),
+              profileName: user.userName,
+              createdAt: null,
+            );
+          } else {
+            usr = UserInfo(
+              url: usr.url,
+              id: usr.id,
+              idInfo: usr.idInfo,
+              username: usr.username.isNotEmpty
+                  ? usr.username
+                  : (user.userName ?? ''),
+              email: usr.email ?? basicInfo['email'] as String?,
+              firstName: usr.firstName ?? basicInfo['first_name'] as String?,
+              lastName: usr.lastName ?? basicInfo['last_name'] as String?,
+              locality: usr.locality ??
+                  (basicInfo['locality'] as String?) ??
+                  (basicInfo['city'] as String?),
+              profileName: usr.profileName ?? user.userName,
+              createdAt: usr.createdAt,
+              lastLoginTime: usr.lastLoginTime,
+            );
+          }
+        }
+      } catch (e) {
+        debugPrint('Error fetching /user/basic_info/: $e');
+      }
+    }
     return usr;
   }
 
@@ -4737,6 +4782,9 @@ WATCHLIST
 
   /// Fetches unified account balances, buying power breakdown, margin health buffer, and collateral allocations
   /// https://bonfire.robinhood.com/phoenix/accounts/unified
+  /// Example output:
+  /// {"account_buying_power":{"amount":"53408.5104","currency_code":"USD","currency_id":"1072fc76-1862-41ab-82c2-485837590762"},"cash_available_from_instant_deposits":{"amount":"0","currency_code":"USD","currency_id":"1072fc76-1862-41ab-82c2-485837590762"},"cash_held_for_currency_orders":{"amount":"0","currency_code":"USD","currency_id":"1072fc76-1862-41ab-82c2-485837590762"},"cash_held_for_dividends":{"amount":"0","currency_code":"USD","currency_id":"1072fc76-1862-41ab-82c2-485837590762"},"cash_held_for_equity_orders":{"amount":"0","currency_code":"USD","currency_id":"1072fc76-1862-41ab-82c2-485837590762"},"cash_held_for_options_collateral":{"amount":"0","currency_code":"USD","currency_id":"1072fc76-1862-41ab-82c2-485837590762"},"cash_held_for_orders":{"amount":"0","currency_code":"USD","currency_id":"1072fc76-1862-41ab-82c2-485837590762"},"cash_held_for_restrictions":{"amount":"0","currency_code":"USD","currency_id":"1072fc76-1862-41ab-82c2-485837590762"},"crypto":{"equity":{"amount":"4739.78","currency_code":"USD","currency_id":"1072fc76-1862-41ab-82c2-485837590762"},"market_value":{"amount":"4739.78","currency_code":"USD","currency_id":"1072fc76-1862-41ab-82c2-485837590762"},"opened_at":"2018-12-07T01:25:13.512301Z"},"crypto_buying_power":{"amount":"26704.2552","currency_code":"USD","currency_id":"1072fc76-1862-41ab-82c2-485837590762"},"equities":{"active_subscription_id":"ed9af327-ff97-56af-8172-0731f1afc505","apex_account_number":"5QR24141","available_margin":null,"equity":{"amount":"50945.027189","currency_code":"USD","currency_id":"1072fc76-1862-41ab-82c2-485837590762"},"margin_maintenance":{"amount":"17617.024289","currency_code":"USD","currency_id":"1072fc76-1862-41ab-82c2-485837590762"},"market_value":{"amount":"43870.977189","currency_code":"USD","currency_id":"1072fc76-1862-41ab-82c2-485837590762"},"opened_at":"2015-02-12T22:41:50.744964Z","rhs_account_number":"101241412","total_margin":{"amount":"49807.6204","currency_code":"USD","currency_id":"1072fc76-1862-41ab-82c2-485837590762"}},"extended_hours_portfolio_equity":{"amount":"55684.807189","currency_code":"USD","currency_id":"1072fc76-1862-41ab-82c2-485837590762"},"instant_allocated":{"amount":"0","currency_code":"USD","currency_id":"1072fc76-1862-41ab-82c2-485837590762"},"levered_amount":{"amount":"0","currency_code":"USD","currency_id":"1072fc76-1862-41ab-82c2-485837590762"},"near_margin_call":false,"options_buying_power":{"amount":"26704.2552","currency_code":"USD","currency_id":"1072fc76-1862-41ab-82c2-485837590762"},"portfolio_equity":{"amount":"55684.807189","currency_code":"USD","currency_id":"1072fc76-1862-41ab-82c2-485837590762"},"portfolio_previous_close":{"amount":"55151.864035","currency_code":"USD","currency_id":"1072fc76-1862-41ab-82c2-485837590762"},"previous_close":{"amount":"55151.864035","currency_code":"USD","currency_id":"1072fc76-1862-41ab-82c2-485837590762"},"regular_hours_portfolio_equity":{"amount":"55570.113449","currency_code":"USD","currency_id":"1072fc76-1862-41ab-82c2-485837590762"},"total_equity":{"amount":"55684.807189","currency_code":"USD","currency_id":"1072fc76-1862-41ab-82c2-485837590762"},"total_extended_hours_equity":{"amount":"55684.807189","currency_code":"USD","currency_id":"1072fc76-1862-41ab-82c2-485837590762"},"total_extended_hours_market_value":{"amount":"48610.757189","currency_code":"USD","currency_id":"1072fc76-1862-41ab-82c2-485837590762"},"total_market_value":{"amount":"48610.757189","currency_code":"USD","currency_id":"1072fc76-1862-41ab-82c2-485837590762"},"total_regular_hours_equity":{"amount":"55570.113449","currency_code":"USD","currency_id":"1072fc76-1862-41ab-82c2-485837590762"},"total_regular_hours_market_value":{"amount":"48638.313449","currency_code":"USD","currency_id":"1072fc76-1862-41ab-82c2-485837590762"},"uninvested_cash":{"amount":"7074.05","currency_code":"USD","currency_id":"1072fc76-1862-41ab-82c2-485837590762"},"withdrawable_cash":{"amount":"5336.7128","currency_code":"USD","currency_id":"1072fc76-1862-41ab-82c2-485837590762"},"margin_health":{"margin_health_state":"healthy","margin_buffer":"1.0000","margin_buffer_amount":{"amount":"51915.157189","currency_code":"USD","currency_id":"1072fc76-1862-41ab-82c2-485837590762"}},"buying_power_display_currency":null}
+  @override
   Future<dynamic> getUnifiedAccount(BrokerageUser user) async {
     var url = "$robinHoodBonfireEndpoint/phoenix/accounts/unified";
     try {
@@ -5192,6 +5240,11 @@ WATCHLIST
     // debugPrint(url);
     Stopwatch stopwatch = Stopwatch();
     stopwatch.start();
+    user.ensureOAuth2Client();
+    if (user.oauth2Client == null) {
+      throw Exception(
+          'No active session or client credentials for user ${user.userName}');
+    }
     if (user.oauth2Client!.credentials.isExpired) {
       try {
         user.oauth2Client = await user.oauth2Client!.refreshCredentials();

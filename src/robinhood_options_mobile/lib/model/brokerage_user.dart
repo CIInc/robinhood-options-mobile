@@ -55,7 +55,9 @@ class BrokerageUser {
             : null,
         accounts = json['accounts'] != null
             ? Account.fromJsonArray(json['accounts'])
-            : [];
+            : [] {
+    ensureOAuth2Client();
+  }
 
   static BrokerageSource _parseSource(dynamic raw) {
     if (raw is BrokerageSource) {
@@ -104,6 +106,34 @@ class BrokerageUser {
         'accounts': accounts.map((e) => e.toJson()).toList(),
       };
 
+  void ensureOAuth2Client() {
+    if (oauth2Client != null || credentials == null) {
+      return;
+    }
+    try {
+      var creds = Credentials.fromJson(credentials as String);
+      var service = source == BrokerageSource.robinhood
+          ? RobinhoodService()
+          : source == BrokerageSource.schwab
+              ? SchwabService()
+              : source == BrokerageSource.plaid
+                  ? PlaidService()
+                  : DemoService();
+
+      String? secret;
+      if (source == BrokerageSource.schwab) {
+        secret = SchwabService.sc;
+      }
+
+      oauth2Client = Client(creds, identifier: service.clientId, secret: secret,
+          onCredentialsRefreshed: (c) {
+        credentials = c.toJson();
+      });
+    } catch (e) {
+      debugPrint('Error creating oauth2 client for $userName: $e');
+    }
+  }
+
   static List<BrokerageUser> fromJsonArray(dynamic json) {
     List<BrokerageUser> list = [];
     if (json == null) {
@@ -111,28 +141,7 @@ class BrokerageUser {
     }
     for (int i = 0; i < json.length; i++) {
       var user = BrokerageUser.fromJson(json[i]);
-      if (user.credentials != null) {
-        var credentials = Credentials.fromJson(user.credentials as String);
-        var service = user.source == BrokerageSource.robinhood
-            ? RobinhoodService()
-            : user.source == BrokerageSource.schwab
-                ? SchwabService()
-                : user.source == BrokerageSource.plaid
-                    ? PlaidService()
-                    : DemoService();
-
-        String? secret;
-        if (user.source == BrokerageSource.schwab) {
-          secret = SchwabService.sc;
-        }
-
-        var client = Client(credentials,
-            identifier: service.clientId,
-            secret: secret, onCredentialsRefreshed: (creds) {
-          user.credentials = creds.toJson();
-        });
-        user.oauth2Client = client;
-      }
+      user.ensureOAuth2Client();
       list.add(user);
     }
     return list;

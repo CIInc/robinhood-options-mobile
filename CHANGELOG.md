@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.44.0] - 2026-09-13
+**Unified Risk & Margin Health, Collateral Tracking, Segregated Buying Powers, and Action Center Margin Alerts**
+
+### Added
+- **Unified Accounts Endpoint Integration:** Integrated Robinhood unified accounts endpoint (`/phoenix/accounts/unified` with fallback to `/accounts/unified/`) into the core service layer.
+- **Unified Account & Margin Health Data Models:** Created `UnifiedAccount`, `MarginHealth`, `MarginHealthStatus` (`healthy`, `warning`, `critical`, `marginCall`, `unleveraged`), and `CollateralAllocations` in `lib/model/unified_account.dart` with comprehensive JSON serialization, buffer ratio normalization, and graceful fallback constructor `fromAccountAndPortfolio(Account, Portfolio)`.
+- **Brokerage Service Unified Account Support:** Added `getUnifiedAccount(BrokerageUser user)` to `IBrokerageService` with live authenticated endpoint handling in `RobinhoodService`, realistic multi-asset mock payloads in `DemoService`, and safe stub implementations across `PaperService`, `PlaidService`, `SchwabService`, and `FidelityService`.
+- **Automated Margin Risk Alerts in Action Center:** Extended `PortfolioAlertService` to evaluate margin health states and generate high-priority notifications for critical margin call deficits, low maintenance buffer cushions (<10%), and advisory warning cushions (<25%), with clean suppression for cash and unleveraged accounts.
+- **Dedicated Margin Health Dashboard:** Built `MarginHealthWidget` (`lib/widgets/margin_health_widget.dart`) offering:
+  - Hero maintenance buffer status card with color-coded gauge and liquidation distance meter.
+  - Segmented True Buying Power grid breaking down standard, options, crypto, day trading, and withdrawable cash capacities.
+  - Collateral & Holds breakdown detailing locked options and crypto collateral.
+  - Margin leverage and requirements inspector showing total equity, maintenance requirement, initial requirement, and outstanding margin loan.
+  - Educational FINRA Rule 4210 guidance accordion explaining margin mechanics, buffer formulas, and broker liquidation policy.
+- **Account & Navigation Entry Points:**
+  - Embedded an interactive "Margin Health" badge on account cards in `UserInfoWidget` displaying real-time buffer percentages and routing directly to `MarginHealthWidget`.
+  - Added "Margin Health & Collateral" item under the *Features* list in `UserWidget`.
+- **Test Suite & Verification:** Added 30+ tests across `test/unified_account_test.dart`, `test/margin_health_widget_test.dart`, and `test/margin_health_overflow_test.dart` verifying data modeling, buffer normalization, alert thresholds, widget rendering, and responsive zero-overflow stability across compact and standard mobile form factors.
+- **Documentation:** Added `docs/margin-health-and-collateral.md` and updated `docs/index.md`.
+
 ## [0.43.0] - 2026-09-12
 **Robinhood Market Data & Institutional Intelligence: Retail Order Flow, Robinhood Sentiment, Short Float & Curated Presets**
 

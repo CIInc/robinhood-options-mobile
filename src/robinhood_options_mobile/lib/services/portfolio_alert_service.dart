@@ -5,6 +5,7 @@ import 'package:robinhood_options_mobile/model/day_trade.dart';
 import 'package:robinhood_options_mobile/model/instrument_position.dart';
 import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/portfolio_alert.dart';
+import 'package:robinhood_options_mobile/model/unified_account.dart';
 import 'package:robinhood_options_mobile/services/tax_optimization_service.dart';
 
 /// Builds the Action Center feed: the ranked list of things worth acting on
@@ -36,9 +37,11 @@ class PortfolioAlertService {
     Map<String, dynamic>? analytics,
     String benchmarkSymbol = 'SPY',
     DayTradeSummary? dayTradeSummary,
+    UnifiedAccount? unifiedAccount,
   }) {
     final alerts = <PortfolioAlert>[];
 
+    alerts.addAll(_marginHealthAlerts(account, unifiedAccount, totalEquity));
     alerts.addAll(_pdtAlerts(account, totalEquity, dayTradeSummary));
     alerts.addAll(_taxAlerts(instrumentPositions, optionPositions));
     alerts.addAll(_concentrationAlerts(instrumentPositions, optionPositions));
@@ -49,6 +52,74 @@ class PortfolioAlertService {
     }
 
     alerts.sort((a, b) => a.severity.index.compareTo(b.severity.index));
+    return alerts;
+  }
+
+  static List<PortfolioAlert> _marginHealthAlerts(
+    Account? account,
+    UnifiedAccount? unifiedAccount,
+    double? totalEquity,
+  ) {
+    if (unifiedAccount == null && account == null) return const [];
+
+    final alerts = <PortfolioAlert>[];
+    final marginHealth = unifiedAccount?.marginHealth;
+    final borrowed =
+        marginHealth?.borrowedAmount ?? account?.settledAmountBorrowed ?? 0.0;
+
+    // Only accounts utilizing borrowed margin require margin health alerts
+    if (borrowed <= 0.001) return const [];
+
+    if (marginHealth != null) {
+      if (marginHealth.status == MarginHealthStatus.marginCall ||
+          marginHealth.marginCallAmount > 0) {
+        final deficitAmt = marginHealth.marginCallAmount > 0
+            ? marginHealth.marginCallAmount
+            : borrowed;
+        alerts.add(
+          PortfolioAlert(
+            id: 'margin-call-deficit',
+            severity: PortfolioAlertSeverity.critical,
+            icon: Icons.error_rounded,
+            title: 'Margin call active (${_currency.format(deficitAmt)})',
+            detail:
+                'Immediate deposit or position liquidation is required to meet margin maintenance.',
+            metric: _currency.format(deficitAmt),
+            target: PortfolioAlertTarget.risk,
+          ),
+        );
+      } else if (marginHealth.status == MarginHealthStatus.critical ||
+          marginHealth.marginBufferPercentage < 0.10) {
+        alerts.add(
+          PortfolioAlert(
+            id: 'margin-buffer-critical',
+            severity: PortfolioAlertSeverity.critical,
+            icon: Icons.warning_amber_rounded,
+            title:
+                'Critical margin buffer (${_percent.format(marginHealth.marginBufferPercentage)})',
+            detail:
+                'Only ${_currency.format(marginHealth.marginBuffer)} buffer remains before maintenance liquidation triggers.',
+            metric: _percent.format(marginHealth.marginBufferPercentage),
+            target: PortfolioAlertTarget.risk,
+          ),
+        );
+      } else if (marginHealth.status == MarginHealthStatus.warning ||
+          marginHealth.marginBufferPercentage < 0.25) {
+        alerts.add(
+          PortfolioAlert(
+            id: 'margin-buffer-warning',
+            severity: PortfolioAlertSeverity.warning,
+            icon: Icons.info_outline_rounded,
+            title:
+                'Low margin buffer (${_percent.format(marginHealth.marginBufferPercentage)})',
+            detail:
+                'Margin buffer is ${_currency.format(marginHealth.marginBuffer)}. Market pullbacks could trigger a margin call.',
+            metric: _percent.format(marginHealth.marginBufferPercentage),
+            target: PortfolioAlertTarget.risk,
+          ),
+        );
+      }
+    }
     return alerts;
   }
 
@@ -196,8 +267,9 @@ class PortfolioAlertService {
   static List<PortfolioAlert> _cashAlerts(
       Account? account, double? totalEquity) {
     final cash = account?.portfolioCash;
-    if (cash == null || totalEquity == null || totalEquity <= 0)
+    if (cash == null || totalEquity == null || totalEquity <= 0) {
       return const [];
+    }
 
     final weight = cash / totalEquity;
     if (weight < _highCashWeight) return const [];

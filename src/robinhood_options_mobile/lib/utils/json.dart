@@ -27,5 +27,13 @@ double? parseDouble(dynamic value) {
   if (value == null) return null;
   if (value is num) return value.toDouble();
   if (value is String) return double.tryParse(value);
+  if (value is Map) {
+    if (value.containsKey('amount')) {
+      return parseDouble(value['amount']);
+    }
+    if (value.containsKey('value')) {
+      return parseDouble(value['value']);
+    }
+  }
   return null;
 }

@@ -3631,4 +3631,38 @@ class DemoService implements IBrokerageService {
     }
     return results.isNotEmpty ? results.first : null;
   }
+
+  @override
+  Future<dynamic> getUnifiedAccount(BrokerageUser user) async {
+    return {
+      'account_number': '5QR12345',
+      'account_type': 'margin',
+      'buying_power': 25000.00,
+      'options_buying_power': 18500.00,
+      'crypto_buying_power': 12000.00,
+      'cash_available_for_withdrawal': 4500.00,
+      'unsettled_funds': 250.00,
+      'margin_health': {
+        'status': 'healthy',
+        'margin_buffer': 14250.75,
+        'margin_buffer_percentage': 0.42,
+        'borrowed_amount': 5000.00,
+        'margin_limit': 25000.00,
+        'maintenance_requirement': 10500.00,
+        'portfolio_equity': 24750.75,
+        'leverage_ratio': 1.20,
+        'margin_call_amount': 0.0,
+      },
+      'collateral': {
+        'total_collateral_held': 4000.00,
+        'cash_held_for_options': 2500.00,
+        'equity_held_for_options': 1500.00,
+        'crypto_held_for_orders': 0.00,
+        'pending_order_holds': 0.00,
+      },
+      'day_trade_ratio': 0.25,
+      'day_trade_buying_power': 35000.00,
+      'updated_at': DateTime.now().toIso8601String(),
+    };
+  }
 }

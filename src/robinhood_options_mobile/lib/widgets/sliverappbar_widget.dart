@@ -581,6 +581,7 @@ Future<String?> showProfile(
                     observer: observer,
                     brokerageUser: brokerageUser,
                     service: service,
+                    userInfo: brokerageUser?.userInfo,
                     scrollController: scrollController,
                   )
                 : AuthGate(
