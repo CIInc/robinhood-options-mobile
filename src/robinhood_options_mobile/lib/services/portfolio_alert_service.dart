@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/day_trade.dart';
 import 'package:robinhood_options_mobile/model/instrument_position.dart';
+import 'package:robinhood_options_mobile/model/margin_call.dart';
 import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/portfolio_alert.dart';
 import 'package:robinhood_options_mobile/model/unified_account.dart';
@@ -38,10 +39,12 @@ class PortfolioAlertService {
     String benchmarkSymbol = 'SPY',
     DayTradeSummary? dayTradeSummary,
     UnifiedAccount? unifiedAccount,
+    List<MarginCall>? marginCalls,
   }) {
     final alerts = <PortfolioAlert>[];
 
-    alerts.addAll(_marginHealthAlerts(account, unifiedAccount, totalEquity));
+    alerts.addAll(_marginHealthAlerts(
+        account, unifiedAccount, totalEquity, marginCalls));
     alerts.addAll(_pdtAlerts(account, totalEquity, dayTradeSummary));
     alerts.addAll(_taxAlerts(instrumentPositions, optionPositions));
     alerts.addAll(_concentrationAlerts(instrumentPositions, optionPositions));
@@ -58,21 +61,45 @@ class PortfolioAlertService {
   static List<PortfolioAlert> _marginHealthAlerts(
     Account? account,
     UnifiedAccount? unifiedAccount,
-    double? totalEquity,
-  ) {
-    if (unifiedAccount == null && account == null) return const [];
-
+    double? totalEquity, [
+    List<MarginCall>? marginCalls,
+  ]) {
     final alerts = <PortfolioAlert>[];
+
+    // Surface discrete margin call demands first if present
+    if (marginCalls != null && marginCalls.any((c) => c.isOpen)) {
+      for (final call in marginCalls.where((c) => c.isOpen)) {
+        final dueStr = call.formattedDueDate != null
+            ? ' due ${call.formattedDueDate}'
+            : '';
+        alerts.add(
+          PortfolioAlert(
+            id: 'margin-call-${call.id}',
+            severity: PortfolioAlertSeverity.critical,
+            icon: Icons.error_rounded,
+            title: '${call.displayType} active (${call.formattedAmount})',
+            detail:
+                'Immediate deposit or liquidation required$dueStr. ${call.reason ?? call.description ?? "Deposit cash or sell marginable positions to meet margin requirement."}',
+            metric: call.formattedAmount,
+            target: PortfolioAlertTarget.risk,
+          ),
+        );
+      }
+    }
+
+    if (unifiedAccount == null && account == null) return alerts;
+
     final marginHealth = unifiedAccount?.marginHealth;
     final borrowed =
         marginHealth?.borrowedAmount ?? account?.settledAmountBorrowed ?? 0.0;
 
-    // Only accounts utilizing borrowed margin require margin health alerts
-    if (borrowed <= 0.001) return const [];
+    // Only accounts utilizing borrowed margin require margin health buffer alerts
+    if (borrowed <= 0.001) return alerts;
 
     if (marginHealth != null) {
-      if (marginHealth.status == MarginHealthStatus.marginCall ||
-          marginHealth.marginCallAmount > 0) {
+      if ((marginHealth.status == MarginHealthStatus.marginCall ||
+              marginHealth.marginCallAmount > 0) &&
+          alerts.isEmpty) {
         final deficitAmt = marginHealth.marginCallAmount > 0
             ? marginHealth.marginCallAmount
             : borrowed;

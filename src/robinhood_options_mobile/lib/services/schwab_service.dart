@@ -2322,6 +2322,17 @@ https://api.schwabapi.com/marketdata/v1/instruments?symbol=Google&projection=sea
   }
 
   @override
+  Future<List<dynamic>> getMarginCalls(BrokerageUser user) async {
+    return const [];
+  }
+
+  @override
+  Future<List<dynamic>> getMarginInterestCharges(BrokerageUser user) async {
+    return const [];
+  }
+
+
+  @override
   Future<List<ForexOrder>> getForexOrders(BrokerageUser user) {
     throw UnimplementedError();
   }

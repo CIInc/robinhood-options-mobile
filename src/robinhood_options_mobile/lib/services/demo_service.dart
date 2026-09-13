@@ -3665,4 +3665,99 @@ class DemoService implements IBrokerageService {
       'updated_at': DateTime.now().toIso8601String(),
     };
   }
+
+  @override
+  Future<List<dynamic>> getMarginCalls(BrokerageUser user) async {
+    final now = DateTime.now();
+    final satisfiedDate = now.subtract(const Duration(days: 45));
+    final dueDate = satisfiedDate.add(const Duration(days: 3));
+
+    return [
+      {
+        'id': 'mc_demo_sat_1',
+        'account': 'https://api.robinhood.com/accounts/5QR12345/',
+        'account_number': '5QR12345',
+        'type': 'maintenance',
+        'state': 'satisfied',
+        'amount': 450.00,
+        'cash_deficit': 450.00,
+        'equity_deficit': 900.00,
+        'created_at': satisfiedDate.toIso8601String(),
+        'updated_at': satisfiedDate.add(const Duration(days: 1)).toIso8601String(),
+        'due_date': dueDate.toIso8601String(),
+        'satisfied_at': satisfiedDate.add(const Duration(days: 1)).toIso8601String(),
+        'reason': 'Portfolio equity fell below 30% FINRA maintenance threshold.',
+        'description': 'Maintenance call satisfied via cash deposit.',
+      }
+    ];
+  }
+
+  @override
+  Future<List<dynamic>> getMarginInterestCharges(BrokerageUser user) async {
+    final now = DateTime.now();
+    final m1 = DateTime(now.year, now.month - 1, 31);
+    final m2 = DateTime(now.year, now.month - 2, 30);
+    final m3 = DateTime(now.year, now.month - 3, 31);
+    final m4 = DateTime(now.year, now.month - 4, 30);
+
+    return [
+      {
+        'id': 'mic_demo_1',
+        'account': 'https://api.robinhood.com/accounts/5QR12345/',
+        'account_number': '5QR12345',
+        'amount': 41.25,
+        'state': 'posted',
+        'effective_date': m1.toIso8601String(),
+        'created_at': m1.toIso8601String(),
+        'interest_rate': 0.065,
+        'settled_amount_borrowed': 7615.38,
+        'description': 'Margin Interest Charge - Prior Month',
+        'period_start': DateTime(now.year, now.month - 1, 1).toIso8601String(),
+        'period_end': m1.toIso8601String(),
+      },
+      {
+        'id': 'mic_demo_2',
+        'account': 'https://api.robinhood.com/accounts/5QR12345/',
+        'account_number': '5QR12345',
+        'amount': 38.50,
+        'state': 'posted',
+        'effective_date': m2.toIso8601String(),
+        'created_at': m2.toIso8601String(),
+        'interest_rate': 0.065,
+        'settled_amount_borrowed': 7107.69,
+        'description': 'Margin Interest Charge - 2 Months Ago',
+        'period_start': DateTime(now.year, now.month - 2, 1).toIso8601String(),
+        'period_end': m2.toIso8601String(),
+      },
+      {
+        'id': 'mic_demo_3',
+        'account': 'https://api.robinhood.com/accounts/5QR12345/',
+        'account_number': '5QR12345',
+        'amount': 45.10,
+        'state': 'posted',
+        'effective_date': m3.toIso8601String(),
+        'created_at': m3.toIso8601String(),
+        'interest_rate': 0.065,
+        'settled_amount_borrowed': 8326.15,
+        'description': 'Margin Interest Charge - 3 Months Ago',
+        'period_start': DateTime(now.year, now.month - 3, 1).toIso8601String(),
+        'period_end': m3.toIso8601String(),
+      },
+      {
+        'id': 'mic_demo_4',
+        'account': 'https://api.robinhood.com/accounts/5QR12345/',
+        'account_number': '5QR12345',
+        'amount': 36.80,
+        'state': 'posted',
+        'effective_date': m4.toIso8601String(),
+        'created_at': m4.toIso8601String(),
+        'interest_rate': 0.065,
+        'settled_amount_borrowed': 6793.85,
+        'description': 'Margin Interest Charge - 4 Months Ago',
+        'period_start': DateTime(now.year, now.month - 4, 1).toIso8601String(),
+        'period_end': m4.toIso8601String(),
+      },
+    ];
+  }
 }
+

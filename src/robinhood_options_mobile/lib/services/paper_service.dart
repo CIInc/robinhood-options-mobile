@@ -1543,6 +1543,17 @@ class PaperService implements IBrokerageService {
   }
 
   @override
+  Future<List<dynamic>> getMarginCalls(BrokerageUser user) async {
+    return const [];
+  }
+
+  @override
+  Future<List<dynamic>> getMarginInterestCharges(BrokerageUser user) async {
+    return const [];
+  }
+
+
+  @override
   Future<List<dynamic>> getFuturesOrders(
       BrokerageUser user, String account) async {
     return [];

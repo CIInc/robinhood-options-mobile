@@ -21,6 +21,7 @@ import 'package:robinhood_options_mobile/services/demo_service.dart';
 import 'package:robinhood_options_mobile/utils/auth.dart';
 import 'package:robinhood_options_mobile/widgets/day_trade_monitor_widget.dart';
 import 'package:robinhood_options_mobile/widgets/margin_health_widget.dart';
+import 'package:robinhood_options_mobile/widgets/margin_financing_widget.dart';
 
 final formatDate = DateFormat("yMMMd");
 final formatCompactDate = DateFormat("MMMd");
@@ -674,8 +675,10 @@ class _UserInfoWidgetState extends State<UserInfoWidget> {
                   _buildPdtChip(context, account, isPdtFlagged),
                   _buildMarginChip(
                       context, account, isMarginBorrowed, showBalances),
+                  _buildMarginFinancingChip(context, account),
                 ],
               ),
+
             ],
           ),
         ),
@@ -838,7 +841,67 @@ class _UserInfoWidgetState extends State<UserInfoWidget> {
     );
   }
 
+  Widget _buildMarginFinancingChip(BuildContext context, Account account) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final Color badgeColor = colorScheme.primary;
+    final Color badgeBg = colorScheme.primary.withValues(alpha: 0.1);
+    final Color badgeBorder = colorScheme.primary.withValues(alpha: 0.3);
+
+    return Material(
+      color: badgeBg,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(6),
+        side: BorderSide(color: badgeBorder),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(6),
+        onTap: () {
+          final effectiveService = widget.service ??
+              (widget.brokerageUser.source == BrokerageSource.robinhood
+                  ? RobinhoodService()
+                  : DemoService());
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => MarginFinancingWidget(
+                brokerageUser: widget.brokerageUser,
+                service: effectiveService,
+                account: account,
+              ),
+            ),
+          );
+        },
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.gavel_outlined, size: 12, color: badgeColor),
+              const SizedBox(width: 4),
+              Text(
+                "Margin Calls",
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: badgeColor,
+                ),
+              ),
+              const SizedBox(width: 2),
+              Icon(
+                Icons.chevron_right,
+                size: 12,
+                color: badgeColor.withValues(alpha: 0.7),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   String _formatOptionLevel(String optionLevel) {
+
     if (optionLevel.isEmpty) return '';
     var cleaned = optionLevel.trim();
     cleaned = cleaned.replaceAll(

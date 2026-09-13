@@ -395,4 +395,17 @@ abstract class IBrokerageService {
   Future<dynamic> getUnifiedAccount(BrokerageUser user) async {
     return null;
   }
+
+  /// Fetches active margin calls, regulatory calls, and maintenance deficit demands
+  /// https://api.robinhood.com/margin/calls/
+  Future<List<dynamic>> getMarginCalls(BrokerageUser user) async {
+    return const [];
+  }
+
+  /// Fetches monthly margin interest debits and financing fee history
+  /// https://api.robinhood.com/cash_journal/margin_interest_charges/
+  Future<List<dynamic>> getMarginInterestCharges(BrokerageUser user) async {
+    return const [];
+  }
 }
+

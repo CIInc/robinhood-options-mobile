@@ -329,7 +329,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 ### v0.44.0 (Q4 2026 - Early October)
 **Unified Margin Health, Collateral & Advanced Order Execution**
 - ✅ **Unified Risk & Margin Health:** Unified accounts endpoint integration (`/phoenix/accounts/unified`) for `margin_health`, `margin_buffer`, true options/crypto/account buying powers, and collateral holds.
-- **Margin Calls & Financing Costs:** Real-time margin call deficit demands and monthly margin interest debit history (`/margin/calls/`, `/cash_journal/margin_interest_charges/`).
+- ✅ **Margin Calls & Financing Costs:** Real-time margin call deficit demands and monthly margin interest debit history (`/margin/calls/`, `/cash_journal/margin_interest_charges/`).
 - **Instrument-Specific Buying Power & Trade Warnings:** Real-time buying power per instrument and risk/volatility warnings (`/accounts/{account}/instrument_buying_power/{id}/`, `/instruments/{id}/v2/warnings/`).
 - **Options Collateral & Tier Upgrades:** Chain-level cash/equity collateral breakdown (`/options/chains/{id}/collateral/`) and upgrade eligibility (`/options/should_show_options_upgrade_on_sdp/`).
 - **Combo Orders (Stock + Option Packages):** Execution and order history for multi-leg equity and option packages (`/combo/orders/`).
@@ -731,7 +731,7 @@ Q3 2026 shifts focus from basic execution to **Advanced Intelligence** and **Reg
 - [x] **AI Portfolio Architect (Alpha)** (v0.37.1): Natural language portfolio construction - **Large** (4-6 weeks)
 - [x] **Unified Margin Health & Collateral Tracking** (v0.44.0): Monitor margin buffers, warning states, and option/crypto collateral allocations (`/phoenix/accounts/unified`) - **Medium** (2-3 weeks)
 - [x] **Pattern Day Trader (PDT) Protection & Counter** (v0.42.0): Real-time rolling 5-day day-trade counter for equities and options to prevent regulatory PDT restrictions (`/accounts/{account}/recent_day_trades/`) - **Small** (1-2 weeks)
-- [ ] **Margin Calls & Financing Costs**: Real-time margin call deficit notifications and monthly margin interest debit history (`/margin/calls/`, `/cash_journal/margin_interest_charges/`) - **Small** (1-2 weeks)
+- [x] **Margin Calls & Financing Costs** (v0.44.0): Real-time margin call deficit notifications and monthly margin interest debit history (`/margin/calls/`, `/cash_journal/margin_interest_charges/`) - **Small** (1-2 weeks)
 - [ ] **Stock Lending Program (SLIP) Dashboard**: Track loaned shares, earned yield payments, and agreement eligibility (`/accounts/stock_loan_payments/`, `/slip/eligibility/`) - **Small** (1-2 weeks)
 - [ ] **Cash Sweeps & APY Rate Monitor**: Track FDIC sweep balances and multi-tier interest rates (`/accounts/sweeps/interest/`) - **Small** (1 week)
 - [ ] **Banking & ACH Transfers**: Monitor bank deposits, withdrawals, clearing status, and linked accounts (`/ach/transfers/`, `/ach/relationships/`) - **Small** (1-2 weeks)

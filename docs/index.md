@@ -53,7 +53,9 @@
 - **[Testing Standards](testing-standards.md):** Required UI, state, data-integrity, and regression testing patterns.
 - **[Pattern Day Trader (PDT) Protection & Counter](pdt-protection.md):** Real-time rolling 5-business-day counter for equities and options, visual meters, FINRA Rule 4210 $25,000 equity tracking, and automated Action Center risk alerts.
 - **[Unified Risk & Margin Health and Collateral Tracking](margin-health-and-collateral.md):** Real-time margin maintenance buffer tracking, true segregated buying powers (equities, options, crypto), collateral holds breakdown, and Action Center deficit warnings.
+- **[Margin Calls & Financing Costs](margin-calls-and-financing.md):** Real-time margin call deficit demands and resolution tracking (`/margin/calls/`) with monthly margin interest debit history and borrowing APR transparency (`/cash_journal/margin_interest_charges/`).
 - **[Robinhood Curated Screener Presets and Legend Service Support](screener-presets-and-legend-layouts.md):** Server-side screener presets (`/screeners/presets/`, `/screeners`) and retained desktop Robinhood Legend workspace service support (`/hippo/bw/layouts`); Legend UI is deferred.
+
 - **[Short Float & Live Borrow Availability](short-interest.md):** Real-time short interest (`pc_freefloat`, days to cover, shares short), borrow availability, borrow fee rates, and short squeeze risk modeling.
 - **[Retail Order Flow & Robinhood Sentiment](retail-order-flow.md):** First-party Robinhood customer order flow dynamics, net buy/sell ratios, volume trends, and historical daily sentiment tracking.
 - **[Institutional & Hedge Fund Tracking](hedge-fund-tracking.md):** Real-time hedge fund sentiment, quarterly manager holdings, and transaction history directly from Robinhood marketdata endpoints.

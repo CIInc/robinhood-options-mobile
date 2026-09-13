@@ -9,6 +9,8 @@ import 'package:robinhood_options_mobile/model/portfolio_store.dart';
 import 'package:robinhood_options_mobile/model/unified_account.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 
+import 'package:robinhood_options_mobile/widgets/margin_financing_widget.dart';
+
 final _currencyFormat = NumberFormat.simpleCurrency();
 final _percentFormat = NumberFormat.percentPattern()..maximumFractionDigits = 1;
 
@@ -156,6 +158,8 @@ class _MarginHealthWidgetState extends State<MarginHealthWidget> {
                 const SizedBox(height: 14),
                 _buildMarginRiskCard(context, unified),
                 const SizedBox(height: 14),
+                _buildMarginCallsActionCard(context, unified),
+                const SizedBox(height: 14),
                 _buildEducationalCard(context),
                 const SizedBox(height: 32),
               ],
@@ -165,6 +169,7 @@ class _MarginHealthWidgetState extends State<MarginHealthWidget> {
       ),
     );
   }
+
 
   Widget _buildHealthHeroCard(BuildContext context, UnifiedAccount unified) {
     final health = unified.marginHealth;
@@ -744,7 +749,70 @@ class _MarginHealthWidgetState extends State<MarginHealthWidget> {
     );
   }
 
+  Widget _buildMarginCallsActionCard(
+      BuildContext context, UnifiedAccount unified) {
+    final health = unified.marginHealth;
+    final hasCall = health.isMarginCall || health.marginCallAmount > 0;
+    final theme = Theme.of(context);
+    final color = hasCall ? Colors.redAccent : theme.colorScheme.primary;
+
+    return Card(
+      elevation: 1.5,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: hasCall
+            ? BorderSide(color: Colors.redAccent.withValues(alpha: 0.5))
+            : BorderSide.none,
+      ),
+      child: ListTile(
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.15),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            hasCall ? Icons.error_rounded : Icons.gavel_outlined,
+            color: color,
+            size: 22,
+          ),
+        ),
+        title: const Text(
+          'Margin Calls & Financing Costs',
+          style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+        ),
+        subtitle: Text(
+          hasCall
+              ? 'Active Deficit: ${_currencyFormat.format(health.marginCallAmount)} — Tap to view demands & resolution'
+              : 'Review deficit demands, resolution options, and monthly interest debits',
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: hasCall
+                ? Colors.redAccent
+                : theme.colorScheme.onSurfaceVariant,
+            fontWeight: hasCall ? FontWeight.w600 : FontWeight.normal,
+          ),
+        ),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => MarginFinancingWidget(
+                brokerageUser: widget.brokerageUser,
+                service: widget.service,
+                account: _resolveAccount(context),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   Widget _buildEducationalCard(BuildContext context) {
+
     return Card(
       elevation: 1,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),

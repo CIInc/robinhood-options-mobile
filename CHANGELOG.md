@@ -3,9 +3,19 @@
 All notable changes to this project will be documented in this file.
 
 ## [0.44.0] - 2026-09-13
-**Unified Risk & Margin Health, Collateral Tracking, Segregated Buying Powers, and Action Center Margin Alerts**
+**Unified Risk & Margin Health, Collateral Tracking, Margin Calls & Financing Costs, Segregated Buying Powers, and Action Center Margin Alerts**
 
 ### Added
+- **Margin Calls & Financing Costs:**
+  - Integrated real-time margin call demands endpoint (`/margin/calls/`) and monthly margin interest debits (`/cash_journal/margin_interest_charges/`).
+  - Created `MarginCall`, `MarginCallType` (maintenance, federal/Reg T, day trade, house, exchange), `MarginCallState` (open, satisfied, closed, waived, canceled), `MarginInterestCharge`, and `MarginFinancingSummary` domain models in `lib/model/margin_call.dart` with JSON serialization, deadline tracking, and resolution guidance.
+  - Added `getMarginCalls` and `getMarginInterestCharges` to `IBrokerageService` with robust endpoint calls in `RobinhoodService`, realistic multi-month mock data in `DemoService`, and stub implementations in `SchwabService`, `FidelityService`, `PaperService`, and `PlaidService`.
+  - Added dedicated Action Center critical alerts in `PortfolioAlertService` for active margin call deficits, indicating exact dollar demands and deadlines.
+  - Built `MarginFinancingWidget` (`lib/widgets/margin_financing_widget.dart`) featuring account status hero card, metric tiles, filterable margin call cards with resolution options (cash deposit vs. marginable stock liquidation), and monthly financing debit ledger with borrowing APR and FINRA interest formula explainer.
+  - Linked `MarginFinancingWidget` via direct navigation chips in `UserInfoWidget` and action cards in `MarginHealthWidget`.
+  - Added comprehensive test suite across `test/margin_call_test.dart` and `test/margin_financing_widget_test.dart`.
+  - Added documentation in `docs/margin-calls-and-financing.md` and indexed in `docs/index.md`.
+
 - **Modernized Splash & Welcome Page Experience:**
   - Redesigned `WelcomeWidget` (`lib/widgets/welcome_widget.dart`) with smooth entrance animations (`FadeTransition` & `SlideTransition`), glowing hero logo card, and tagline pill.
   - Added rich interactive feature showcase cards highlighting Quantitative Auto-Trading, Real-Time Options Flow, Gamma Exposure (GEX) & Walls, Collaborative Investor Groups, and Paper Trading & Backtesting.

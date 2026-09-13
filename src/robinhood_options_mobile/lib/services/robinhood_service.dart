@@ -5131,19 +5131,32 @@ WATCHLIST
 
   /// Fetches active margin calls, regulatory calls, and maintenance deficit demands
   /// https://api.robinhood.com/margin/calls/
+  @override
   Future<List<dynamic>> getMarginCalls(BrokerageUser user) async {
-    var url = "$endpoint/margin/calls/";
-    var results = await RobinhoodService.pagedGet(user, url);
-    return results;
+    try {
+      var url = "$endpoint/margin/calls/";
+      var results = await RobinhoodService.pagedGet(user, url);
+      return results is List ? results : const [];
+    } catch (e) {
+      debugPrint("Error fetching margin calls: $e");
+      return const [];
+    }
   }
 
   /// Fetches monthly margin interest debits and financing fee history
   /// https://api.robinhood.com/cash_journal/margin_interest_charges/
+  @override
   Future<List<dynamic>> getMarginInterestCharges(BrokerageUser user) async {
-    var url = "$endpoint/cash_journal/margin_interest_charges/";
-    var results = await RobinhoodService.pagedGet(user, url);
-    return results;
+    try {
+      var url = "$endpoint/cash_journal/margin_interest_charges/";
+      var results = await RobinhoodService.pagedGet(user, url);
+      return results is List ? results : const [];
+    } catch (e) {
+      debugPrint("Error fetching margin interest charges: $e");
+      return const [];
+    }
   }
+
 
   /*
   BANKING, ACH TRANSFERS & LINKED ACCOUNTS
