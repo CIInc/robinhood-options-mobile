@@ -60,6 +60,8 @@ import 'package:robinhood_options_mobile/widgets/trade_signal_notification_setti
 import 'package:robinhood_options_mobile/widgets/strategy_builder_widget.dart';
 import 'package:robinhood_options_mobile/widgets/trade_instrument_widget.dart';
 import 'package:robinhood_options_mobile/widgets/news_intelligence_widget.dart';
+import 'package:robinhood_options_mobile/model/instrument_buying_power.dart';
+import 'package:robinhood_options_mobile/widgets/instrument_buying_power_widget.dart';
 import 'package:url_launcher/url_launcher.dart';
 //import 'package:charts_flutter/flutter.dart' as charts;
 
@@ -348,6 +350,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   final ValueNotifier<bool> _showAllListsNotifier = ValueNotifier(false);
   final ValueNotifier<bool> _isGeneratingSignalNotifier = ValueNotifier(false);
   final ValueNotifier<bool> _isAssessingRiskNotifier = ValueNotifier(false);
+  InstrumentBuyingPower? _instrumentBuyingPower;
+  InstrumentTradeWarnings? _instrumentWarnings;
 
   Timer? refreshTriggerTime;
   final GlobalKey tradeSignalKey = GlobalKey();
@@ -552,6 +556,38 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   void _loadData() {
     var instrument = widget.instrument;
     var user = widget.brokerageUser;
+
+    final accountStore = Provider.of<AccountStore>(context, listen: false);
+    final accountNumber = accountStore.items.isNotEmpty
+        ? accountStore.items[0].accountNumber
+        : 'default_account';
+
+    widget.service
+        .getInstrumentBuyingPower(user, accountNumber, instrument.id)
+        .then((bp) {
+      if (mounted && bp != null) {
+        setState(() {
+          _instrumentBuyingPower = InstrumentBuyingPower.fromJson(
+              instrument.id, bp,
+              defaultAccount: accountNumber);
+        });
+      }
+    }).catchError((e) {
+      debugPrint('Error fetching instrument buying power: $e');
+    });
+
+    widget.service
+        .getInstrumentWarnings(user, instrument.id)
+        .then((warn) {
+      if (mounted && warn != null) {
+        setState(() {
+          _instrumentWarnings =
+              InstrumentTradeWarnings.fromJson(instrument.id, warn);
+        });
+      }
+    }).catchError((e) {
+      debugPrint('Error fetching instrument warnings: $e');
+    });
 
     // _esgFuture = _esgService.getESGScore(instrument.symbol);
     // _institutionalOwnershipFuture =
@@ -1769,6 +1805,13 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                   },
                 ),
               ),
+              if (_instrumentWarnings != null && _instrumentWarnings!.hasWarnings)
+                SliverToBoxAdapter(
+                  child: InstrumentTradeWarningsBanner(
+                    warnings: _instrumentWarnings!,
+                    onTapDetails: _showInstrumentBuyingPowerSheet,
+                  ),
+                ),
               Consumer<TradeSignalsProvider>(
                 builder: (context, tradeSignalsProvider, child) {
                   final categories = _buildCategories(
@@ -1818,6 +1861,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           ],
           // 2. Market Overview
           _buildMarketQuoteSliver(instrument),
+          _buildBuyingPowerSliver(instrument),
           // 3. Technical Signals & AI
           _buildAgenticTradeSignals(instrument, summaryOnly: false),
           // 4. Intelligence & Quantitative Tools
@@ -1837,6 +1881,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           _buildOptionPositionsSliver(instrument),
           // Market Quote
           _buildMarketQuoteSliver(instrument),
+          _buildBuyingPowerSliver(instrument),
           // Trade signals & recommendations summary
           _buildAgenticTradeSignals(instrument, summaryOnly: true),
           // Quick shortcuts (Options Flow & GEX)
@@ -2014,6 +2059,31 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       return const SliverToBoxAdapter(child: SizedBox.shrink());
     }
     return quoteWidget(instrument);
+  }
+
+  Widget _buildBuyingPowerSliver(Instrument instrument) {
+    if (_instrumentBuyingPower == null) {
+      return const SliverToBoxAdapter(child: SizedBox.shrink());
+    }
+    return SliverToBoxAdapter(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+        child: InstrumentBuyingPowerSummaryTile(
+          buyingPower: _instrumentBuyingPower!,
+          onTap: _showInstrumentBuyingPowerSheet,
+        ),
+      ),
+    );
+  }
+
+  void _showInstrumentBuyingPowerSheet() {
+    InstrumentBuyingPowerSheet.show(
+      context,
+      symbol: widget.instrument.symbol,
+      name: widget.instrument.simpleName ?? widget.instrument.name,
+      buyingPower: _instrumentBuyingPower,
+      warnings: _instrumentWarnings,
+    );
   }
 
   Widget _buildPositionSliver(Instrument instrument) {

@@ -3,9 +3,18 @@
 All notable changes to this project will be documented in this file.
 
 ## [0.44.0] - 2026-09-13
-**Unified Risk & Margin Health, Collateral Tracking, Margin Calls & Financing Costs, Segregated Buying Powers, and Action Center Margin Alerts**
+**Unified Risk & Margin Health, Collateral Tracking, Margin Calls & Financing Costs, Instrument-Specific Buying Power & Trade Warnings, Segregated Buying Powers, and Action Center Margin Alerts**
 
 ### Added
+- **Instrument-Specific Buying Power & Trade Warnings:**
+  - Integrated Robinhood's instrument buying power endpoint (`/accounts/{account}/instrument_buying_power/{instrument_id}/`) and trade risk warnings endpoint (`/instruments/{instrument_id}/v2/warnings/`).
+  - Created `InstrumentBuyingPower`, `InstrumentTradeWarning`, and `InstrumentTradeWarnings` domain models in `lib/model/instrument_buying_power.dart` with JSON serialization, margin requirement formatting (e.g. `50% Initial Margin`, `100% Cash Required`), shorting capacity tracking, and severity categorization (critical, warning, notice).
+  - Extended `IBrokerageService` with `getInstrumentBuyingPower` and `getInstrumentWarnings`, with live authenticated implementations in `RobinhoodService`, realistic mock data in `DemoService` (differentiating standard marginable equities like AAPL from 100% cash-only volatile/meme stocks like GME/TSLA), and fallbacks in `SchwabService`, `FidelityService`, `PaperService`, and `PlaidService`.
+  - Built `InstrumentTradeWarningsBanner`, `InstrumentBuyingPowerSummaryTile`, and `InstrumentBuyingPowerSheet` in `lib/widgets/instrument_buying_power_widget.dart`.
+  - Integrated real-time instrument buying power and trade warnings banner into `TradeInstrumentWidget` (order entry and preview screens) and `InstrumentWidget` (instrument details and market quote slivers).
+  - Added comprehensive test suite in `test/instrument_buying_power_test.dart` and `test/instrument_buying_power_widget_test.dart` (18 unit & widget tests).
+  - Added documentation in `docs/instrument-buying-power-and-warnings.md` and indexed in `docs/index.md`.
+
 - **Margin Calls & Financing Costs:**
   - Integrated real-time margin call demands endpoint (`/margin/calls/`) and monthly margin interest debits (`/cash_journal/margin_interest_charges/`).
   - Created `MarginCall`, `MarginCallType` (maintenance, federal/Reg T, day trade, house, exchange), `MarginCallState` (open, satisfied, closed, waived, canceled), `MarginInterestCharge`, and `MarginFinancingSummary` domain models in `lib/model/margin_call.dart` with JSON serialization, deadline tracking, and resolution guidance.

@@ -53,6 +53,7 @@ import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/user_info.dart';
 import 'package:robinhood_options_mobile/model/watchlist.dart';
 import 'package:robinhood_options_mobile/model/watchlist_item.dart';
+import 'package:robinhood_options_mobile/model/instrument_buying_power.dart';
 
 class _FuturesMarginCacheEntry {
   const _FuturesMarginCacheEntry(this.value, this.expiresAt);
@@ -5017,6 +5018,7 @@ WATCHLIST
 
   /// Fetches instrument-specific buying power and short-selling buying power for an account
   /// https://bonfire.robinhood.com/accounts/{account}/instrument_buying_power/{instrument_id}/
+  @override
   Future<dynamic> getInstrumentBuyingPower(
       BrokerageUser user, String accountNumber, String instrumentId) async {
     var url =
@@ -5024,13 +5026,43 @@ WATCHLIST
     return await getJson(user, url);
   }
 
+  /// Typed helper for InstrumentBuyingPower
+  Future<InstrumentBuyingPower?> getInstrumentBuyingPowerModel(
+      BrokerageUser user, String accountNumber, String instrumentId) async {
+    try {
+      final json = await getInstrumentBuyingPower(user, accountNumber, instrumentId);
+      if (json != null) {
+        return InstrumentBuyingPower.fromJson(instrumentId, json,
+            defaultAccount: accountNumber);
+      }
+    } catch (e) {
+      debugPrint('Error fetching instrument buying power: $e');
+    }
+    return null;
+  }
+
   /// Fetches volatility, illiquidity, and risk warnings for an instrument
   /// https://bonfire.robinhood.com/instruments/{instrument_id}/v2/warnings/
+  @override
   Future<dynamic> getInstrumentWarnings(
       BrokerageUser user, String instrumentId) async {
     var url =
         "$robinHoodBonfireEndpoint/instruments/$instrumentId/v2/warnings/";
     return await getJson(user, url);
+  }
+
+  /// Typed helper for InstrumentTradeWarnings
+  Future<InstrumentTradeWarnings?> getInstrumentWarningsModel(
+      BrokerageUser user, String instrumentId) async {
+    try {
+      final json = await getInstrumentWarnings(user, instrumentId);
+      if (json != null) {
+        return InstrumentTradeWarnings.fromJson(instrumentId, json);
+      }
+    } catch (e) {
+      debugPrint('Error fetching instrument warnings: $e');
+    }
+    return null;
   }
 
   /// Checks if an equity instrument is eligible for recurring investments (DCA)

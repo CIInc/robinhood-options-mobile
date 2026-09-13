@@ -3759,5 +3759,80 @@ class DemoService implements IBrokerageService {
       },
     ];
   }
+
+  @override
+  Future<dynamic> getInstrumentBuyingPower(
+      BrokerageUser user, String accountNumber, String instrumentId) async {
+    final lowerId = instrumentId.toLowerCase();
+    final isHighVol = lowerId.contains('gme') ||
+        lowerId.contains('meme') ||
+        lowerId.contains('penny') ||
+        lowerId.contains('tsla') ||
+        lowerId.contains('vol');
+
+    return {
+      'account_number': accountNumber,
+      'instrument_id': instrumentId,
+      'buying_power': isHighVol ? 17546.87 : 41505.26,
+      'short_buying_power': isHighVol ? 0.0 : 20752.63,
+      'cash_only': isHighVol,
+      'margin_rate': isHighVol ? 1.0 : 0.50,
+      'maintenance_margin_rate': isHighVol ? 0.75 : 0.30,
+      'max_shares': isHighVol ? 120.0 : 350.0,
+      'max_short_shares': isHighVol ? 0.0 : 175.0,
+      'is_marginable': !isHighVol,
+      'leverage_ratio': isHighVol ? 1.0 : 2.0,
+      'updated_at': DateTime.now().toIso8601String(),
+    };
+  }
+
+  @override
+  Future<dynamic> getInstrumentWarnings(
+      BrokerageUser user, String instrumentId) async {
+    final lowerId = instrumentId.toLowerCase();
+    final isHighVol = lowerId.contains('gme') ||
+        lowerId.contains('meme') ||
+        lowerId.contains('penny') ||
+        lowerId.contains('tsla') ||
+        lowerId.contains('warn') ||
+        lowerId.contains('vol');
+
+    if (isHighVol) {
+      return {
+        'instrument_id': instrumentId,
+        'halted': false,
+        'trade_restricted': false,
+        'warnings': [
+          {
+            'id': 'warn_vol_1',
+            'type': 'volatility',
+            'title': 'High Volatility Warning',
+            'message':
+                'This security has experienced rapid price fluctuations and elevated trading volume. Margin requirements may be increased up to 100%.',
+            'severity': 'warning',
+            'requires_acknowledgement': false,
+          },
+          {
+            'id': 'warn_margin_1',
+            'type': 'regulatory',
+            'title': 'Elevated Maintenance Margin',
+            'message':
+                '100% initial cash requirement and 75% maintenance margin requirement are currently in effect for this symbol.',
+            'severity': 'info',
+            'requires_acknowledgement': false,
+          }
+        ],
+        'updated_at': DateTime.now().toIso8601String(),
+      };
+    }
+
+    return {
+      'instrument_id': instrumentId,
+      'halted': false,
+      'trade_restricted': false,
+      'warnings': [],
+      'updated_at': DateTime.now().toIso8601String(),
+    };
+  }
 }
 

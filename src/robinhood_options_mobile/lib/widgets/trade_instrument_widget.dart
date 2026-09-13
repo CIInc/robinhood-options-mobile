@@ -17,6 +17,8 @@ import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/constants.dart';
+import 'package:robinhood_options_mobile/model/instrument_buying_power.dart';
+import 'package:robinhood_options_mobile/widgets/instrument_buying_power_widget.dart';
 import 'package:robinhood_options_mobile/widgets/slide_to_confirm_widget.dart';
 
 class TradeInstrumentWidget extends StatefulWidget {
@@ -60,6 +62,8 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
   bool _isPreviewing = false;
   double estimatedTotal = 0.0;
   String? _riskGuardWarning;
+  InstrumentBuyingPower? _instrumentBuyingPower;
+  InstrumentTradeWarnings? _instrumentWarnings;
 
   @override
   void initState() {
@@ -87,7 +91,51 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
       if (user != null) {
         context.read<OrderTemplateStore>().loadTemplates(user.uid);
       }
+      _loadInstrumentBuyingPowerAndWarnings();
     });
+  }
+
+  void _loadInstrumentBuyingPowerAndWarnings() async {
+    final instrumentId = widget.instrument?.id;
+    if (instrumentId == null || instrumentId.isEmpty) return;
+
+    final accountStore = Provider.of<AccountStore>(context, listen: false);
+    final accountNumber = accountStore.items.isNotEmpty
+        ? accountStore.items[0].accountNumber
+        : 'default_account';
+
+    try {
+      final bpJson = await widget.service.getInstrumentBuyingPower(
+          widget.brokerageUser, accountNumber, instrumentId);
+      final warnJson = await widget.service.getInstrumentWarnings(
+          widget.brokerageUser, instrumentId);
+
+      if (mounted) {
+        setState(() {
+          if (bpJson != null) {
+            _instrumentBuyingPower = InstrumentBuyingPower.fromJson(
+                instrumentId, bpJson,
+                defaultAccount: accountNumber);
+          }
+          if (warnJson != null) {
+            _instrumentWarnings =
+                InstrumentTradeWarnings.fromJson(instrumentId, warnJson);
+          }
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching instrument buying power & warnings: $e');
+    }
+  }
+
+  void _showInstrumentBuyingPowerSheet() {
+    InstrumentBuyingPowerSheet.show(
+      context,
+      symbol: widget.instrument?.symbol ?? 'Instrument',
+      name: widget.instrument?.simpleName ?? widget.instrument?.name,
+      buyingPower: _instrumentBuyingPower,
+      warnings: _instrumentWarnings,
+    );
   }
 
   @override
@@ -158,6 +206,15 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // Instrument Trade Warnings Banner (if any)
+          if (_instrumentWarnings != null && _instrumentWarnings!.hasWarnings) ...[
+            InstrumentTradeWarningsBanner(
+              warnings: _instrumentWarnings!,
+              onTapDetails: _showInstrumentBuyingPowerSheet,
+            ),
+            const SizedBox(height: 8),
+          ],
+
           // Order Side (Buy/Sell)
           SegmentedButton<String>(
             segments: const [
@@ -424,6 +481,12 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
                         );
                       },
                     )
+                  else if (_instrumentBuyingPower != null)
+                    InstrumentBuyingPowerSummaryTile(
+                      buyingPower: _instrumentBuyingPower!,
+                      showShort: positionType == "Sell" && widget.stockPosition == null,
+                      onTap: _showInstrumentBuyingPowerSheet,
+                    )
                   else
                     Consumer<AccountStore>(
                       builder: (context, accountStore, child) {
@@ -490,6 +553,13 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
                 ?.copyWith(fontWeight: FontWeight.bold),
             textAlign: TextAlign.center,
           ),
+          if (_instrumentWarnings != null && _instrumentWarnings!.hasWarnings) ...[
+            const SizedBox(height: 12),
+            InstrumentTradeWarningsBanner(
+              warnings: _instrumentWarnings!,
+              onTapDetails: _showInstrumentBuyingPowerSheet,
+            ),
+          ],
           if (_riskGuardWarning != null) ...[
             const SizedBox(height: 16),
             Container(
@@ -611,6 +681,12 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
                           ],
                         );
                       },
+                    )
+                  else if (_instrumentBuyingPower != null)
+                    InstrumentBuyingPowerSummaryTile(
+                      buyingPower: _instrumentBuyingPower!,
+                      showShort: positionType == "Sell" && widget.stockPosition == null,
+                      onTap: _showInstrumentBuyingPowerSheet,
                     )
                   else
                     Consumer<AccountStore>(

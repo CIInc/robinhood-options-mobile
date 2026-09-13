@@ -2398,4 +2398,16 @@ https://api.schwabapi.com/marketdata/v1/instruments?symbol=Google&projection=sea
       'Futures orders are not supported in SchwabService',
     );
   }
+
+  @override
+  Future<dynamic> getInstrumentBuyingPower(
+      BrokerageUser user, String accountNumber, String instrumentId) async {
+    return null;
+  }
+
+  @override
+  Future<dynamic> getInstrumentWarnings(
+      BrokerageUser user, String instrumentId) async {
+    return null;
+  }
 }

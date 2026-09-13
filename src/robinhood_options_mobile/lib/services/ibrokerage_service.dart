@@ -407,5 +407,19 @@ abstract class IBrokerageService {
   Future<List<dynamic>> getMarginInterestCharges(BrokerageUser user) async {
     return const [];
   }
+
+  /// Fetches instrument-specific buying power and short-selling buying power for an account
+  /// https://bonfire.robinhood.com/accounts/{account}/instrument_buying_power/{instrument_id}/
+  Future<dynamic> getInstrumentBuyingPower(
+      BrokerageUser user, String accountNumber, String instrumentId) async {
+    return null;
+  }
+
+  /// Fetches volatility, illiquidity, and risk warnings for an instrument
+  /// https://bonfire.robinhood.com/instruments/{instrument_id}/v2/warnings/
+  Future<dynamic> getInstrumentWarnings(
+      BrokerageUser user, String instrumentId) async {
+    return null;
+  }
 }
 

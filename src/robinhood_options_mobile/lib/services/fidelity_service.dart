@@ -1267,6 +1267,18 @@ class FidelityService implements IBrokerageService {
     return const [];
   }
 
+  @override
+  Future<dynamic> getInstrumentBuyingPower(
+      BrokerageUser user, String accountNumber, String instrumentId) async {
+    return null;
+  }
+
+  @override
+  Future<dynamic> getInstrumentWarnings(
+      BrokerageUser user, String instrumentId) async {
+    return null;
+  }
+
 
   @override
   Future<List<dynamic>> getFuturesOrders(
