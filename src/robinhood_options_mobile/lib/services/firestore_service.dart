@@ -202,16 +202,26 @@ class FirestoreService {
 
   /// Instrument Methods
 
-  Future<DocumentReference<Map<String, dynamic>>> addInstrument(
-      Instrument instrument) {
-    return _db.collection(instrumentCollectionName).add(instrument.toJson());
+  Future<DocumentReference<Map<String, dynamic>>?> addInstrument(
+      Instrument instrument) async {
+    try {
+      return await _db
+          .collection(instrumentCollectionName)
+          .add(instrument.toJson());
+    } on FirebaseException catch (e) {
+      debugPrint("Failed to add instrument: $e");
+      return null;
+    } catch (e) {
+      debugPrint("Failed to add instrument: $e");
+      return null;
+    }
   }
 
   Future<void> updateInstrument(
       Instrument instrument, DocumentReference<Instrument> doc) async {
     instrument.dateUpdated = DateTime.now();
     try {
-      doc.set(instrument, SetOptions(merge: true));
+      await doc.set(instrument, SetOptions(merge: true));
     } on FirebaseException catch (e) {
       debugPrint("Failed to update instrument: $e");
     } on Exception catch (e) {
@@ -219,19 +229,34 @@ class FirestoreService {
     }
   }
 
-  Future<void> deleteInstrument(String id) {
-    return instrumentCollection.doc(id).delete();
+  Future<void> deleteInstrument(String id) async {
+    try {
+      await instrumentCollection.doc(id).delete();
+    } on FirebaseException catch (e) {
+      debugPrint("Failed to delete instrument: $e");
+    } catch (e) {
+      debugPrint("Failed to delete instrument: $e");
+    }
   }
 
-  Future<DocumentReference> upsertInstrument(Instrument instrument) async {
-    var existingDocs =
-        await instrumentCollection.where('id', isEqualTo: instrument.id).get();
-    if (existingDocs.docs.isNotEmpty) {
-      var doc = existingDocs.docs.first.reference;
-      await updateInstrument(instrument, doc);
-      return doc;
-    } else {
-      return addInstrument(instrument);
+  Future<DocumentReference?> upsertInstrument(Instrument instrument) async {
+    try {
+      var existingDocs = await instrumentCollection
+          .where('id', isEqualTo: instrument.id)
+          .get();
+      if (existingDocs.docs.isNotEmpty) {
+        var doc = existingDocs.docs.first.reference;
+        await updateInstrument(instrument, doc);
+        return doc;
+      } else {
+        return await addInstrument(instrument);
+      }
+    } on FirebaseException catch (e) {
+      debugPrint("Failed to upsert instrument: $e");
+      return null;
+    } catch (e) {
+      debugPrint("Failed to upsert instrument: $e");
+      return null;
     }
   }
 
@@ -679,7 +704,7 @@ class FirestoreService {
           userDoc.collection(optionOrderCollectionName).doc(optionOrder.id);
       batch.set(optionOrderDoc, optionOrder.toJson());
     }
-    batch.commit();
+    await batch.commit();
   }
 
   /// OptionEvent Methods
@@ -757,7 +782,7 @@ class FirestoreService {
           userDoc.collection(optionEventCollectionName).doc(optionEvent.id);
       batch.set(optionEventDoc, optionEvent.toJson());
     }
-    batch.commit();
+    await batch.commit();
   }
 
   /// Dividend Methods
@@ -803,7 +828,7 @@ class FirestoreService {
           userDoc.collection(dividendCollectionName).doc(dividend['id']);
       batch.set(dividendDoc, dividend);
     }
-    batch.commit();
+    await batch.commit();
   }
 
   /// Interest Methods
@@ -875,7 +900,7 @@ class FirestoreService {
           userDoc.collection(interestCollectionName).doc(interest['id']);
       batch.set(interestDoc, interest);
     }
-    batch.commit();
+    await batch.commit();
   }
 
   /// Investor Group Methods

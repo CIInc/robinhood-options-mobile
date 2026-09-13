@@ -56,7 +56,7 @@ service cloud.firestore {
     }
     match /instrument/{instrumentid} {
       allow read: if true;
-      allow create, update: if false;
+      allow create, update: if request.auth != null;
       allow delete: if request.auth.token.role == 'admin';
     }
     
