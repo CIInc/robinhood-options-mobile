@@ -112,6 +112,7 @@ dependencies:
   mcp_dart: ^2.2.2
   webview_flutter: ^4.10.0
   firebase_app_check: ^0.4.7
+  flutter_native_splash: ^2.4.4
 
 dev_dependencies:
   integration_test:
@@ -127,7 +128,6 @@ dev_dependencies:
   flutter_lints: ^6.0.0
 
   flutter_launcher_icons: ^0.14.3
-  flutter_native_splash: ^2.4.4
   fake_cloud_firestore: ^4.2.0
   mockito: ^5.6.3
   # Was added by AI agent but seems unused.
@@ -145,8 +145,7 @@ flutter:
 
   # To add assets to your application, add an assets section, like this:
   assets:
-    - assets/images/icon.png
-    - assets/images/iconold.png
+    - assets/images/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware.
@@ -174,17 +173,37 @@ flutter:
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/custom-fonts/#from-packages
 
-flutter_icons:
-  # Generated from https://icon.kitchen/i/H4sIAAAAAAAAAz2PQQvCMAyF%2F8vzuougIL36BwS9iUi2pl2xW0bXKiL%2Bd5spXpLHS8j38sKdYuEZ5gVL6XbqeWAYR3HmBs7vY5goZR3PXBssOyoxo0HoZKxGTjzaMPprmfBu0PrTc6oX0EmUVNdav1%2BUwWqz2ZFz1ctKsTA5lYVyIKsnlJJlgllvG6Tg%2BwpU2UrOMnx1ZLe4FeX%2BqF9IhR17%2BnohdZE10SC2RP3wDBptkmA1vMy1PrjF5f0BVnZtHwQBAAA%3D
-  # Used AppIcon~ios-marketing.png
-  image_path: "icon.png"
-  android: true
+flutter_launcher_icons:
+  android: "launcher_icon"
   ios: true
-  # optionally, as transparency is not allowed on app store
+  image_path: "assets/images/icon.png"
+  min_sdk_android: 21
+  adaptive_icon_background: "#002147"
+  adaptive_icon_foreground: "assets/images/icon_adaptive_foreground.png"
   remove_alpha_ios: true
+  web:
+    generate: true
+    image_path: "assets/images/icon.png"
+    background_color: "#002147"
+    theme_color: "#002147"
+  macos:
+    generate: true
+    image_path: "assets/images/icon.png"
 flutter_native_splash:
   color: "#ffffff"
-  image: assets/images/icon.png
+  color_dark: "#002147"
+  image: assets/images/splash_light.png
+  image_dark: assets/images/splash_dark.png
+  android_gravity: center
+  ios_content_mode: scaleAspectFit
+  web_image_mode: center
+  android: true
+  ios: true
+  web: true
   android_12:
-    image: assets/images/icon.png
+    image: assets/images/splash_android12_light.png
+    image_dark: assets/images/splash_android12_dark.png
     color: "#ffffff"
+    color_dark: "#002147"
+    icon_background_color: "#ffffff"
+    icon_background_color_dark: "#002147"

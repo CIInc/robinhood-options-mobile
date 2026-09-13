@@ -6,6 +6,13 @@ All notable changes to this project will be documented in this file.
 **Unified Risk & Margin Health, Collateral Tracking, Segregated Buying Powers, and Action Center Margin Alerts**
 
 ### Added
+- **Modernized Splash & Welcome Page Experience:**
+  - Redesigned `WelcomeWidget` (`lib/widgets/welcome_widget.dart`) with smooth entrance animations (`FadeTransition` & `SlideTransition`), glowing hero logo card, and tagline pill.
+  - Added rich interactive feature showcase cards highlighting Quantitative Auto-Trading, Real-Time Options Flow, Gamma Exposure (GEX) & Walls, Collaborative Investor Groups, and Paper Trading & Backtesting.
+  - Added Multi-Brokerage Ecosystem compatibility badges (Robinhood, Schwab, Fidelity, Paper Trading, Demo Mode).
+  - Enhanced contextual banner alerts for expired sessions or connection notices, non-custodial security badge, and configurable callbacks (`onLogin`, `onExploreDemo`).
+  - Added dark mode support and smooth theme transition in web splash screen (`web/index.html`).
+  - Added comprehensive widget test suite `test/welcome_widget_test.dart` covering animations, responsive scrolling, callbacks, and custom header configurations.
 - **Unified Accounts Endpoint Integration:** Integrated Robinhood unified accounts endpoint (`/phoenix/accounts/unified` with fallback to `/accounts/unified/`) into the core service layer.
 - **Unified Account & Margin Health Data Models:** Created `UnifiedAccount`, `MarginHealth`, `MarginHealthStatus` (`healthy`, `warning`, `critical`, `marginCall`, `unleveraged`), and `CollateralAllocations` in `lib/model/unified_account.dart` with comprehensive JSON serialization, buffer ratio normalization, and graceful fallback constructor `fromAccountAndPortfolio(Account, Portfolio)`.
 - **Brokerage Service Unified Account Support:** Added `getUnifiedAccount(BrokerageUser user)` to `IBrokerageService` with live authenticated endpoint handling in `RobinhoodService`, realistic multi-asset mock payloads in `DemoService`, and safe stub implementations across `PaperService`, `PlaidService`, `SchwabService`, and `FidelityService`.
