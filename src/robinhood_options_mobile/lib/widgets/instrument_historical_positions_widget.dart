@@ -684,8 +684,7 @@ class _InstrumentHistoricalPositionsWidgetState
                                   Text(
                                     'Ex-Date: ${DateFormat.yMMMd().format(split.executionDate)} • Factor: ${split.effectiveMultiplier}x',
                                     style: theme.textTheme.bodySmall?.copyWith(
-                                      color:
-                                          theme.colorScheme.onSurfaceVariant,
+                                      color: theme.colorScheme.onSurfaceVariant,
                                     ),
                                     overflow: TextOverflow.ellipsis,
                                   ),

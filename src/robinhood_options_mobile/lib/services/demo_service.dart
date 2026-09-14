@@ -7,6 +7,8 @@ import 'package:collection/collection.dart';
 import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/account_store.dart';
+import 'package:robinhood_options_mobile/model/combo_order.dart';
+import 'package:robinhood_options_mobile/model/combo_order_store.dart';
 import 'package:robinhood_options_mobile/model/dividend_store.dart';
 import 'package:robinhood_options_mobile/model/forex_historicals.dart';
 import 'package:robinhood_options_mobile/model/forex_holding.dart';
@@ -1239,6 +1241,298 @@ class DemoService implements IBrokerageService {
       String timeInForce = 'gtc'}) {
     // TODO: implement placeMultiLegOptionsOrder
     throw UnimplementedError();
+  }
+
+  static final List<ComboOrder> _defaultDemoComboOrders = [
+    ComboOrder(
+      id: 'demo-combo-order-1',
+      account: '1AB23456',
+      cancelUrl: null,
+      direction: 'credit',
+      legs: [
+        ComboLeg(
+          id: 'leg-1-stock',
+          legType: ComboLegType.equity,
+          symbol: 'AAPL',
+          side: 'buy',
+          ratioQuantity: 100,
+          positionEffect: 'open',
+          executions: [
+            ComboLegExecution(
+              id: 'exec-1-stock',
+              price: 224.50,
+              quantity: 100,
+              settlementDate: '2026-09-10',
+              timestamp: DateTime(2026, 9, 8, 14, 30),
+            )
+          ],
+        ),
+        ComboLeg(
+          id: 'leg-1-call',
+          legType: ComboLegType.option,
+          symbol: 'AAPL',
+          side: 'sell',
+          ratioQuantity: 1,
+          positionEffect: 'open',
+          optionType: 'call',
+          strikePrice: 235.0,
+          expirationDate: DateTime(2026, 10, 16),
+          executions: [
+            ComboLegExecution(
+              id: 'exec-1-call',
+              price: 2.15,
+              quantity: 1,
+              settlementDate: '2026-09-09',
+              timestamp: DateTime(2026, 9, 8, 14, 30),
+            )
+          ],
+        ),
+      ],
+      quantity: 1.0,
+      price: 2.15,
+      processedQuantity: 1.0,
+      premium: 215.0,
+      processedPremium: 215.0,
+      refId: 'demo-ref-combo-1',
+      state: 'filled',
+      timeInForce: 'gtc',
+      trigger: 'immediate',
+      type: 'limit',
+      openingStrategy: 'covered_call',
+      chainSymbol: 'AAPL',
+      createdAt: DateTime(2026, 9, 8, 14, 30),
+      updatedAt: DateTime(2026, 9, 8, 14, 30),
+    ),
+    ComboOrder(
+      id: 'demo-combo-order-2',
+      account: '1AB23456',
+      cancelUrl: null,
+      direction: 'debit',
+      legs: [
+        ComboLeg(
+          id: 'leg-2-stock',
+          legType: ComboLegType.equity,
+          symbol: 'TSLA',
+          side: 'buy',
+          ratioQuantity: 100,
+          positionEffect: 'open',
+          executions: [
+            ComboLegExecution(
+              id: 'exec-2-stock',
+              price: 218.00,
+              quantity: 100,
+              settlementDate: '2026-09-08',
+              timestamp: DateTime(2026, 9, 5, 15, 15),
+            )
+          ],
+        ),
+        ComboLeg(
+          id: 'leg-2-put',
+          legType: ComboLegType.option,
+          symbol: 'TSLA',
+          side: 'buy',
+          ratioQuantity: 1,
+          positionEffect: 'open',
+          optionType: 'put',
+          strikePrice: 205.0,
+          expirationDate: DateTime(2026, 10, 16),
+          executions: [
+            ComboLegExecution(
+              id: 'exec-2-put',
+              price: 3.50,
+              quantity: 1,
+              settlementDate: '2026-09-08',
+              timestamp: DateTime(2026, 9, 5, 15, 15),
+            )
+          ],
+        ),
+        ComboLeg(
+          id: 'leg-2-call',
+          legType: ComboLegType.option,
+          symbol: 'TSLA',
+          side: 'sell',
+          ratioQuantity: 1,
+          positionEffect: 'open',
+          optionType: 'call',
+          strikePrice: 240.0,
+          expirationDate: DateTime(2026, 10, 16),
+          executions: [
+            ComboLegExecution(
+              id: 'exec-2-call',
+              price: 2.65,
+              quantity: 1,
+              settlementDate: '2026-09-08',
+              timestamp: DateTime(2026, 9, 5, 15, 15),
+            )
+          ],
+        ),
+      ],
+      quantity: 1.0,
+      price: 0.85,
+      processedQuantity: 1.0,
+      premium: 85.0,
+      processedPremium: 85.0,
+      refId: 'demo-ref-combo-2',
+      state: 'filled',
+      timeInForce: 'gtc',
+      trigger: 'immediate',
+      type: 'limit',
+      openingStrategy: 'collar',
+      chainSymbol: 'TSLA',
+      createdAt: DateTime(2026, 9, 5, 15, 15),
+      updatedAt: DateTime(2026, 9, 5, 15, 15),
+    ),
+    ComboOrder(
+      id: 'demo-combo-order-3',
+      account: '1AB23456',
+      cancelUrl:
+          'https://api.robinhood.com/combo/orders/demo-combo-order-3/cancel/',
+      direction: 'debit',
+      legs: [
+        ComboLeg(
+          id: 'leg-3-stock',
+          legType: ComboLegType.equity,
+          symbol: 'NVDA',
+          side: 'buy',
+          ratioQuantity: 100,
+          positionEffect: 'open',
+        ),
+        ComboLeg(
+          id: 'leg-3-put',
+          legType: ComboLegType.option,
+          symbol: 'NVDA',
+          side: 'buy',
+          ratioQuantity: 1,
+          positionEffect: 'open',
+          optionType: 'put',
+          strikePrice: 115.0,
+          expirationDate: DateTime(2026, 10, 16),
+        ),
+      ],
+      quantity: 1.0,
+      price: 124.50,
+      processedQuantity: 0.0,
+      pendingQuantity: 1.0,
+      premium: 12450.0,
+      refId: 'demo-ref-combo-3',
+      state: 'queued',
+      timeInForce: 'gtc',
+      trigger: 'immediate',
+      type: 'limit',
+      openingStrategy: 'married_put',
+      chainSymbol: 'NVDA',
+      createdAt: DateTime(2026, 9, 12, 16, 45),
+      updatedAt: DateTime(2026, 9, 12, 16, 45),
+    ),
+  ];
+
+  final List<ComboOrder> _demoComboOrders = List.from(_defaultDemoComboOrders);
+
+  @override
+  Future<List<ComboOrder>> getComboOrders(BrokerageUser user,
+      {String? accountNumber, int? limit}) async {
+    return List.from(_demoComboOrders);
+  }
+
+  @override
+  Stream<List<ComboOrder>> streamComboOrders(
+    BrokerageUser user,
+    ComboOrderStore store, {
+    DocumentReference? userDoc,
+    String? symbol,
+    String? accountNumber,
+  }) async* {
+    var filtered = _demoComboOrders.where((order) {
+      if (symbol != null &&
+          order.primarySymbol.toUpperCase() != symbol.toUpperCase()) {
+        return false;
+      }
+      return true;
+    }).toList();
+    for (var order in filtered) {
+      store.addOrUpdate(order);
+    }
+    yield filtered;
+  }
+
+  @override
+  Future<dynamic> placeComboOrder(
+      BrokerageUser user,
+      Account account,
+      List<Map<String, dynamic>> legs,
+      String creditOrDebit,
+      double price,
+      int quantity,
+      {String type = 'limit',
+      String trigger = 'immediate',
+      String timeInForce = 'gtc',
+      String? openingStrategy}) async {
+    final now = DateTime.now();
+    final newId = 'demo-combo-order-${now.millisecondsSinceEpoch}';
+    final parsedLegs = legs.map((l) => ComboLeg.fromJson(l)).toList();
+    final newOrder = ComboOrder(
+      id: newId,
+      account: account.accountNumber,
+      cancelUrl: 'https://api.robinhood.com/combo/orders/$newId/cancel/',
+      direction: creditOrDebit,
+      legs: parsedLegs,
+      quantity: quantity.toDouble(),
+      price: price,
+      pendingQuantity: quantity.toDouble(),
+      processedQuantity: 0.0,
+      premium: price * quantity * 100,
+      refId: 'demo-ref-$newId',
+      state: 'confirmed',
+      timeInForce: timeInForce,
+      trigger: trigger,
+      type: type,
+      openingStrategy: openingStrategy ?? 'custom',
+      chainSymbol: parsedLegs.firstOrNull?.symbol,
+      createdAt: now,
+      updatedAt: now,
+    );
+    _demoComboOrders.insert(0, newOrder);
+    return {'id': newId, 'state': 'confirmed'};
+  }
+
+  @override
+  Future<dynamic> cancelComboOrder(BrokerageUser user, String cancelUrl) async {
+    final order =
+        _demoComboOrders.firstWhereOrNull((o) => o.cancelUrl == cancelUrl);
+    if (order != null) {
+      final updated = ComboOrder(
+        id: order.id,
+        account: order.account,
+        cancelUrl: null,
+        direction: order.direction,
+        legs: order.legs,
+        quantity: order.quantity,
+        price: order.price,
+        stopPrice: order.stopPrice,
+        processedQuantity: order.processedQuantity,
+        pendingQuantity: 0.0,
+        canceledQuantity: order.quantity,
+        premium: order.premium,
+        processedPremium: order.processedPremium,
+        refId: order.refId,
+        state: 'cancelled',
+        timeInForce: order.timeInForce,
+        trigger: order.trigger,
+        type: order.type,
+        responseCategory: order.responseCategory,
+        openingStrategy: order.openingStrategy,
+        closingStrategy: order.closingStrategy,
+        chainSymbol: order.chainSymbol,
+        chainId: order.chainId,
+        createdAt: order.createdAt,
+        updatedAt: DateTime.now(),
+      );
+      final idx = _demoComboOrders.indexWhere((o) => o.id == order.id);
+      if (idx != -1) {
+        _demoComboOrders[idx] = updated;
+      }
+    }
+    return {'state': 'cancelled'};
   }
 
   @override
@@ -3683,10 +3977,13 @@ class DemoService implements IBrokerageService {
         'cash_deficit': 450.00,
         'equity_deficit': 900.00,
         'created_at': satisfiedDate.toIso8601String(),
-        'updated_at': satisfiedDate.add(const Duration(days: 1)).toIso8601String(),
+        'updated_at':
+            satisfiedDate.add(const Duration(days: 1)).toIso8601String(),
         'due_date': dueDate.toIso8601String(),
-        'satisfied_at': satisfiedDate.add(const Duration(days: 1)).toIso8601String(),
-        'reason': 'Portfolio equity fell below 30% FINRA maintenance threshold.',
+        'satisfied_at':
+            satisfiedDate.add(const Duration(days: 1)).toIso8601String(),
+        'reason':
+            'Portfolio equity fell below 30% FINRA maintenance threshold.',
         'description': 'Maintenance call satisfied via cash deposit.',
       }
     ];
@@ -3928,4 +4225,3 @@ class DemoService implements IBrokerageService {
     };
   }
 }
-

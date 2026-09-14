@@ -535,7 +535,8 @@ class MarginFinancingSummary {
 
   bool get hasActiveMarginCall => openCallsCount > 0 && totalDeficitDemand > 0;
 
-  String get formattedTotalDeficit => _currencyFormat.format(totalDeficitDemand);
+  String get formattedTotalDeficit =>
+      _currencyFormat.format(totalDeficitDemand);
   String get formattedTotalInterestYtd =>
       _currencyFormat.format(totalInterestYtd);
   String get formattedLatestMonthlyCharge =>

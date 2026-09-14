@@ -17,6 +17,8 @@ import 'package:robinhood_options_mobile/model/option_historicals.dart';
 import 'package:robinhood_options_mobile/model/option_historicals_store.dart';
 import 'package:robinhood_options_mobile/model/option_instrument_store.dart';
 import 'package:robinhood_options_mobile/model/option_order_store.dart';
+import 'package:robinhood_options_mobile/model/combo_order.dart';
+import 'package:robinhood_options_mobile/model/combo_order_store.dart';
 import 'package:robinhood_options_mobile/model/option_position_store.dart';
 import 'package:robinhood_options_mobile/model/portfolio_historicals_store.dart';
 import 'package:robinhood_options_mobile/model/portfolio_store.dart';
@@ -1925,7 +1927,9 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
   /// https://api.robinhood.com/positions/?nonzero=false
   Future<List<dynamic>> getClosedPositions(BrokerageUser user,
       {String? accountNumber}) async {
-    final query = accountNumber != null ? '?nonzero=false&account_number=$accountNumber' : '?nonzero=false';
+    final query = accountNumber != null
+        ? '?nonzero=false&account_number=$accountNumber'
+        : '?nonzero=false';
     final url = '$endpoint/positions/$query';
     final results = await RobinhoodService.pagedGet(user, url);
     return results;
@@ -4873,7 +4877,8 @@ WATCHLIST
 
   /// Fetches multi-leg combo orders (e.g. stock + options packages, collars, straddles)
   /// https://api.robinhood.com/combo/orders/
-  Future<List<dynamic>> getComboOrders(BrokerageUser user,
+  @override
+  Future<List<ComboOrder>> getComboOrders(BrokerageUser user,
       {String? accountNumber, int? limit}) async {
     List<String> queryParams = [];
     if (accountNumber != null) {
@@ -4885,7 +4890,98 @@ WATCHLIST
     var query = queryParams.isNotEmpty ? "?${queryParams.join('&')}" : "";
     var url = "$endpoint/combo/orders/$query";
     var results = await RobinhoodService.pagedGet(user, url);
-    return results;
+    List<ComboOrder> orders = [];
+    for (var item in results) {
+      orders.add(ComboOrder.fromJson(item));
+    }
+    return orders;
+  }
+
+  @override
+  Stream<List<ComboOrder>> streamComboOrders(
+    BrokerageUser user,
+    ComboOrderStore store, {
+    DocumentReference? userDoc,
+    String? symbol,
+    String? accountNumber,
+  }) async* {
+    List<String> queryParams = [];
+    if (accountNumber != null) {
+      queryParams.add("account_numbers=$accountNumber");
+    }
+    var query = queryParams.isNotEmpty ? "?${queryParams.join('&')}" : "";
+    var pageStream = streamedGet(user, "$endpoint/combo/orders/$query");
+    List<ComboOrder> list = [];
+    await for (final results in pageStream) {
+      for (var i = 0; i < results.length; i++) {
+        var result = results[i];
+        var order = ComboOrder.fromJson(result);
+        if (symbol != null &&
+            order.primarySymbol.toUpperCase() != symbol.toUpperCase()) {
+          continue;
+        }
+        if (!list.any((element) => element.id == order.id)) {
+          list.add(order);
+          store.add(order);
+          yield list;
+        }
+      }
+      list.sort((a, b) {
+        if (a.createdAt == null && b.createdAt == null) return 0;
+        if (a.createdAt == null) return 1;
+        if (b.createdAt == null) return -1;
+        return b.createdAt!.compareTo(a.createdAt!);
+      });
+      yield list;
+    }
+    if (userDoc != null) {
+      _firestoreService.upsertComboOrders(list, userDoc);
+    }
+  }
+
+  @override
+  Future<dynamic> placeComboOrder(
+      BrokerageUser user,
+      Account account,
+      List<Map<String, dynamic>> legs,
+      String creditOrDebit,
+      double price,
+      int quantity,
+      {String type = 'limit',
+      String trigger = 'immediate',
+      String timeInForce = 'gtc',
+      String? openingStrategy}) async {
+    var uuid = const Uuid();
+    var payload = {
+      'account': account.url,
+      'direction': creditOrDebit,
+      'time_in_force': timeInForce,
+      'legs': legs,
+      'type': type,
+      'trigger': trigger,
+      'price': price,
+      'quantity': quantity,
+      'override_day_trade_checks': false,
+      'override_dtbp_checks': false,
+      'ref_id': uuid.v4(),
+    };
+    if (openingStrategy != null) {
+      payload['opening_strategy'] = openingStrategy;
+    }
+    var url = "$endpoint/combo/orders/";
+    debugPrint(url);
+    var result = await user.oauth2Client!.post(Uri.parse(url),
+        body: jsonEncode(payload),
+        headers: {
+          "content-type": "application/json",
+          "accept": "application/json"
+        });
+    return result;
+  }
+
+  @override
+  Future<dynamic> cancelComboOrder(BrokerageUser user, String cancelUrl) async {
+    return cancelOrder(user, cancelUrl);
   }
 
   /// Fetches options strategy definitions and requirements by strategy codes
@@ -5041,7 +5137,8 @@ WATCHLIST
   Future<InstrumentBuyingPower?> getInstrumentBuyingPowerModel(
       BrokerageUser user, String accountNumber, String instrumentId) async {
     try {
-      final json = await getInstrumentBuyingPower(user, accountNumber, instrumentId);
+      final json =
+          await getInstrumentBuyingPower(user, accountNumber, instrumentId);
       if (json != null) {
         return InstrumentBuyingPower.fromJson(instrumentId, json,
             defaultAccount: accountNumber);
@@ -5101,7 +5198,7 @@ WATCHLIST
 
   /// Alias for getOptionChainCollateral
   Future<dynamic> getOptionsChainCollateral(
-      BrokerageUser user, String chainId, String accountNumber) =>
+          BrokerageUser user, String chainId, String accountNumber) =>
       getOptionChainCollateral(user, chainId, accountNumber);
 
   /// Typed helper for OptionChainCollateral
@@ -5130,7 +5227,8 @@ WATCHLIST
 
   /// Typed helper for OptionUpgradeStatus
   Future<OptionUpgradeStatus?> getOptionsUpgradeStatusModel(
-      BrokerageUser user, String accountNumber, {String? defaultAccountLevel}) async {
+      BrokerageUser user, String accountNumber,
+      {String? defaultAccountLevel}) async {
     try {
       final json = await getOptionsUpgradeStatus(user, accountNumber);
       if (json != null) {
@@ -5235,7 +5333,6 @@ WATCHLIST
       return const [];
     }
   }
-
 
   /*
   BANKING, ACH TRANSFERS & LINKED ACCOUNTS

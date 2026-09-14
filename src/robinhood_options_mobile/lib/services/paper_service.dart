@@ -38,6 +38,8 @@ import 'package:robinhood_options_mobile/model/option_instrument_store.dart';
 import 'package:robinhood_options_mobile/model/option_marketdata.dart';
 import 'package:robinhood_options_mobile/model/option_order.dart';
 import 'package:robinhood_options_mobile/model/option_order_store.dart';
+import 'package:robinhood_options_mobile/model/combo_order.dart';
+import 'package:robinhood_options_mobile/model/combo_order_store.dart';
 import 'package:robinhood_options_mobile/model/option_position_store.dart';
 import 'package:robinhood_options_mobile/model/paper_trading_store.dart';
 import 'package:robinhood_options_mobile/model/portfolio.dart';
@@ -1163,6 +1165,119 @@ class PaperService implements IBrokerageService {
     return Stream.value([]);
   }
 
+  final List<ComboOrder> _paperComboOrders = [];
+
+  @override
+  Future<List<ComboOrder>> getComboOrders(BrokerageUser user,
+      {String? accountNumber, int? limit}) async {
+    return List.from(_paperComboOrders);
+  }
+
+  @override
+  Stream<List<ComboOrder>> streamComboOrders(
+    BrokerageUser user,
+    ComboOrderStore store, {
+    DocumentReference? userDoc,
+    String? symbol,
+    String? accountNumber,
+  }) async* {
+    var filtered = _paperComboOrders.where((order) {
+      if (symbol != null &&
+          order.primarySymbol.toUpperCase() != symbol.toUpperCase()) {
+        return false;
+      }
+      return true;
+    }).toList();
+    for (var order in filtered) {
+      store.addOrUpdate(order);
+    }
+    yield filtered;
+  }
+
+  @override
+  Future<dynamic> placeComboOrder(
+      BrokerageUser user,
+      Account account,
+      List<Map<String, dynamic>> legs,
+      String creditOrDebit,
+      double price,
+      int quantity,
+      {String type = 'limit',
+      String trigger = 'immediate',
+      String timeInForce = 'gtc',
+      String? openingStrategy}) async {
+    final now = DateTime.now();
+    final newId = 'paper-combo-order-${now.millisecondsSinceEpoch}';
+    final parsedLegs = legs.map((l) => ComboLeg.fromJson(l)).toList();
+    final newOrder = ComboOrder(
+      id: newId,
+      account: account.accountNumber,
+      cancelUrl: 'https://api.robinhood.com/combo/orders/$newId/cancel/',
+      direction: creditOrDebit,
+      legs: parsedLegs,
+      quantity: quantity.toDouble(),
+      price: price,
+      pendingQuantity: 0.0,
+      processedQuantity: quantity.toDouble(),
+      premium: price * quantity * 100,
+      processedPremium: price * quantity * 100,
+      refId: 'paper-ref-$newId',
+      state: 'filled',
+      timeInForce: timeInForce,
+      trigger: trigger,
+      type: type,
+      openingStrategy: openingStrategy ?? 'custom',
+      chainSymbol: parsedLegs.firstOrNull?.symbol,
+      createdAt: now,
+      updatedAt: now,
+    );
+    _paperComboOrders.insert(0, newOrder);
+    return http.Response(
+      jsonEncode({'id': newId, 'state': 'filled'}),
+      201,
+    );
+  }
+
+  @override
+  Future<dynamic> cancelComboOrder(BrokerageUser user, String cancelUrl) async {
+    final order =
+        _paperComboOrders.firstWhereOrNull((o) => o.cancelUrl == cancelUrl);
+    if (order != null) {
+      final updated = ComboOrder(
+        id: order.id,
+        account: order.account,
+        cancelUrl: null,
+        direction: order.direction,
+        legs: order.legs,
+        quantity: order.quantity,
+        price: order.price,
+        stopPrice: order.stopPrice,
+        processedQuantity: order.processedQuantity,
+        pendingQuantity: 0.0,
+        canceledQuantity: order.quantity,
+        premium: order.premium,
+        processedPremium: order.processedPremium,
+        refId: order.refId,
+        state: 'cancelled',
+        timeInForce: order.timeInForce,
+        trigger: order.trigger,
+        type: order.type,
+        responseCategory: order.responseCategory,
+        openingStrategy: order.openingStrategy,
+        closingStrategy: order.closingStrategy,
+        chainSymbol: order.chainSymbol,
+        chainId: order.chainId,
+        createdAt: order.createdAt,
+        updatedAt: DateTime.now(),
+      );
+      final idx = _paperComboOrders.indexWhere((o) => o.id == order.id);
+      if (idx != -1) {
+        _paperComboOrders[idx] = updated;
+      }
+    }
+    return http.Response(jsonEncode({'state': 'cancelled'}), 200);
+  }
+
   @override
   Future<List<OptionOrder>> getOptionOrders(
           BrokerageUser user, OptionOrderStore store, String chainId) async =>
@@ -1608,7 +1723,6 @@ class PaperService implements IBrokerageService {
       ],
     };
   }
-
 
   @override
   Future<List<dynamic>> getFuturesOrders(

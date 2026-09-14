@@ -6,7 +6,6 @@ import 'package:robinhood_options_mobile/model/portfolio_alert.dart';
 import 'package:robinhood_options_mobile/services/demo_service.dart';
 import 'package:robinhood_options_mobile/services/portfolio_alert_service.dart';
 
-
 void main() {
   group('MarginCall Model Tests', () {
     test('parses active maintenance call correctly', () {
@@ -236,7 +235,6 @@ void main() {
 
       final calls = await service.getMarginCalls(mockUser);
       final interest = await service.getMarginInterestCharges(mockUser);
-
 
       expect(calls, isNotEmpty);
       expect(interest, isNotEmpty);

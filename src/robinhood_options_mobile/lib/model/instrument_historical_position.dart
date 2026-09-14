@@ -49,9 +49,8 @@ class InstrumentHistoricalPosition {
       ? Icons.trending_up
       : (isLoss ? Icons.trending_down : Icons.trending_flat);
 
-  Color get statusColor => isProfitable
-      ? Colors.green
-      : (isLoss ? Colors.red : Colors.grey);
+  Color get statusColor =>
+      isProfitable ? Colors.green : (isLoss ? Colors.red : Colors.grey);
 
   String get formattedHoldDuration {
     if (holdDuration.inDays > 365) {
@@ -156,8 +155,7 @@ class StockSplit {
       date = DateTime.tryParse(json['execution_date'].toString()) ??
           DateTime.now();
     } else if (json['date'] != null) {
-      date =
-          DateTime.tryParse(json['date'].toString()) ?? DateTime.now();
+      date = DateTime.tryParse(json['date'].toString()) ?? DateTime.now();
     } else {
       date = DateTime.now();
     }
@@ -271,8 +269,10 @@ class InstrumentCostBasisLookbackSummary {
 
     // Sort chronologically ascending
     validOrders.sort((a, b) {
-      final aDate = a.createdAt ?? a.updatedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
-      final bDate = b.createdAt ?? b.updatedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+      final aDate =
+          a.createdAt ?? a.updatedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+      final bDate =
+          b.createdAt ?? b.updatedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
       return aDate.compareTo(bDate);
     });
 
@@ -416,14 +416,22 @@ class InstrumentCostBasisLookbackSummary {
         totalRealizedPnl += (sellProceeds - costOfSharesSoldInOrder);
 
         // Check if cycle is completely closed
-        final remainingInLots = openLots.fold<double>(0.0, (acc, lot) => acc + lot.remainingShares);
+        final remainingInLots =
+            openLots.fold<double>(0.0, (acc, lot) => acc + lot.remainingShares);
         if (remainingInLots <= 0.000001) {
           openLots.clear();
-          final cycleHoldDuration = orderDate.difference(currentCycleOpenedAt ?? orderDate);
-          final cycleAvgBuy = currentCycleSharesBought > 0 ? (currentCycleCostBasis / currentCycleSharesBought) : 0.0;
-          final cycleAvgSell = currentCycleSharesSold > 0 ? (currentCycleProceeds / currentCycleSharesSold) : 0.0;
+          final cycleHoldDuration =
+              orderDate.difference(currentCycleOpenedAt ?? orderDate);
+          final cycleAvgBuy = currentCycleSharesBought > 0
+              ? (currentCycleCostBasis / currentCycleSharesBought)
+              : 0.0;
+          final cycleAvgSell = currentCycleSharesSold > 0
+              ? (currentCycleProceeds / currentCycleSharesSold)
+              : 0.0;
           final cycleRealizedPnl = currentCycleProceeds - currentCycleCostBasis;
-          final cyclePnlPercent = currentCycleCostBasis > 0 ? (cycleRealizedPnl / currentCycleCostBasis) : 0.0;
+          final cyclePnlPercent = currentCycleCostBasis > 0
+              ? (cycleRealizedPnl / currentCycleCostBasis)
+              : 0.0;
 
           cycles.add(InstrumentHistoricalPosition(
             cycleId: 'cycle_${cycleCounter++}',
@@ -478,13 +486,20 @@ class InstrumentCostBasisLookbackSummary {
 
     // If there's an ongoing active unclosed cycle:
     if (openLots.isNotEmpty && currentCycleOpenedAt != null) {
-      final remainingShares = openLots.fold<double>(0.0, (acc, lot) => acc + lot.remainingShares);
-      final activeHoldDuration = DateTime.now().difference(currentCycleOpenedAt);
-      final activeAvgBuy = currentCycleSharesBought > 0 ? (currentCycleCostBasis / currentCycleSharesBought) : 0.0;
-      final activeAvgSell = currentCycleSharesSold > 0 ? (currentCycleProceeds / currentCycleSharesSold) : 0.0;
+      final remainingShares =
+          openLots.fold<double>(0.0, (acc, lot) => acc + lot.remainingShares);
+      final activeHoldDuration =
+          DateTime.now().difference(currentCycleOpenedAt);
+      final activeAvgBuy = currentCycleSharesBought > 0
+          ? (currentCycleCostBasis / currentCycleSharesBought)
+          : 0.0;
+      final activeAvgSell = currentCycleSharesSold > 0
+          ? (currentCycleProceeds / currentCycleSharesSold)
+          : 0.0;
       final costOfSold = currentCycleSharesSold * activeAvgBuy;
       final activeRealizedPnl = currentCycleProceeds - costOfSold;
-      final activePnlPercent = costOfSold > 0 ? (activeRealizedPnl / costOfSold) : 0.0;
+      final activePnlPercent =
+          costOfSold > 0 ? (activeRealizedPnl / costOfSold) : 0.0;
 
       cycles.add(InstrumentHistoricalPosition(
         cycleId: 'cycle_${cycleCounter++}_active',
@@ -509,18 +524,24 @@ class InstrumentCostBasisLookbackSummary {
     final closedCycles = cycles.where((c) => c.isClosed).toList();
     final winningTrades = closedCycles.where((c) => c.isProfitable).length;
     final losingTrades = closedCycles.where((c) => c.isLoss).length;
-    final winRate = closedCycles.isNotEmpty ? (winningTrades / closedCycles.length) : 0.0;
+    final winRate =
+        closedCycles.isNotEmpty ? (winningTrades / closedCycles.length) : 0.0;
 
     final totalClosedHoldSeconds = closedCycles.fold<int>(
       0,
       (acc, c) => acc + c.holdDuration.inSeconds,
     );
     final avgHoldDuration = closedCycles.isNotEmpty
-        ? Duration(seconds: (totalClosedHoldSeconds / closedCycles.length).round())
+        ? Duration(
+            seconds: (totalClosedHoldSeconds / closedCycles.length).round())
         : Duration.zero;
 
-    final overallAvgBuy = cumulativeBuyShares > 0 ? (cumulativeBuyCost / cumulativeBuyShares) : 0.0;
-    final overallAvgSell = cumulativeSellShares > 0 ? (cumulativeSellProceeds / cumulativeSellShares) : 0.0;
+    final overallAvgBuy = cumulativeBuyShares > 0
+        ? (cumulativeBuyCost / cumulativeBuyShares)
+        : 0.0;
+    final overallAvgSell = cumulativeSellShares > 0
+        ? (cumulativeSellProceeds / cumulativeSellShares)
+        : 0.0;
     final totalRealizedPercent = totalCostBasisOfClosedShares > 0
         ? (totalRealizedPnl / totalCostBasisOfClosedShares)
         : 0.0;

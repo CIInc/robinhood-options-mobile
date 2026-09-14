@@ -68,8 +68,8 @@ class _OptionCollateralWidgetState extends State<OptionCollateralWidget>
   Future<OptionChainCollateral?> _fetchCollateral(
       String chainId, String accountNumber) async {
     try {
-      final json = await widget.service
-          .getOptionChainCollateral(widget.brokerageUser, chainId, accountNumber);
+      final json = await widget.service.getOptionChainCollateral(
+          widget.brokerageUser, chainId, accountNumber);
       if (json != null) {
         return OptionChainCollateral.fromJson(chainId, accountNumber, json);
       }
@@ -113,7 +113,8 @@ class _OptionCollateralWidgetState extends State<OptionCollateralWidget>
               titleSymbol != null
                   ? '$titleSymbol Options Chain • Acct ${widget.account.accountNumber}'
                   : 'Account ${widget.account.accountNumber}',
-              style: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant),
+              style:
+                  TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant),
             ),
           ],
         ),
@@ -264,7 +265,8 @@ class _OptionCollateralWidgetState extends State<OptionCollateralWidget>
                 Expanded(
                   child: _buildMetricTile(
                     label: 'Orders Cash',
-                    value: collateral.collateralHeldForOrders.cash.formattedAmount,
+                    value:
+                        collateral.collateralHeldForOrders.cash.formattedAmount,
                     icon: Icons.hourglass_top_outlined,
                   ),
                 ),
@@ -620,11 +622,14 @@ class _OptionCollateralWidgetState extends State<OptionCollateralWidget>
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
-                              isL3 ? 'Active L3' : 'Level ${status.currentTier}',
+                              isL3
+                                  ? 'Active L3'
+                                  : 'Level ${status.currentTier}',
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.bold,
-                                color: isL3 ? Colors.green : colorScheme.primary,
+                                color:
+                                    isL3 ? Colors.green : colorScheme.primary,
                               ),
                             ),
                           ),
@@ -647,7 +652,8 @@ class _OptionCollateralWidgetState extends State<OptionCollateralWidget>
             const SizedBox(height: 12),
             Text(
               status.subtitle,
-              style: TextStyle(fontSize: 13, color: colorScheme.onSurfaceVariant),
+              style:
+                  TextStyle(fontSize: 13, color: colorScheme.onSurfaceVariant),
             ),
           ],
         ),
@@ -674,7 +680,8 @@ class _OptionCollateralWidgetState extends State<OptionCollateralWidget>
             const SizedBox(height: 12),
             _buildFeatureRow(
               title: 'Level 2: Basic Options',
-              description: 'Long calls, long puts, covered calls, cash-secured puts',
+              description:
+                  'Long calls, long puts, covered calls, cash-secured puts',
               isAvailable: true,
               color: Colors.green,
             ),
@@ -684,7 +691,8 @@ class _OptionCollateralWidgetState extends State<OptionCollateralWidget>
               description:
                   'Debit & credit spreads, iron condors, straddles, strangles, calendars',
               isAvailable: status.currentTier >= 3,
-              color: status.currentTier >= 3 ? Colors.green : colorScheme.primary,
+              color:
+                  status.currentTier >= 3 ? Colors.green : colorScheme.primary,
             ),
             if (status.tierFeatures.isNotEmpty) ...[
               const SizedBox(height: 12),

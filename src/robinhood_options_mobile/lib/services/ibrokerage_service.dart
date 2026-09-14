@@ -2,6 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/account_store.dart';
+import 'package:robinhood_options_mobile/model/combo_order.dart';
+import 'package:robinhood_options_mobile/model/combo_order_store.dart';
 import 'package:robinhood_options_mobile/model/dividend_store.dart';
 import 'package:robinhood_options_mobile/model/forex_historicals.dart';
 import 'package:robinhood_options_mobile/model/forex_holding.dart';
@@ -273,6 +275,39 @@ abstract class IBrokerageService {
       String trigger = 'immediate',
       String timeInForce = 'gtc'});
 
+  // Combo Orders (Stock + Option Packages)
+  Future<List<ComboOrder>> getComboOrders(BrokerageUser user,
+      {String? accountNumber, int? limit}) {
+    throw UnimplementedError(
+        'getComboOrders is not implemented for this brokerage service');
+  }
+
+  Stream<List<ComboOrder>> streamComboOrders(
+      BrokerageUser user, ComboOrderStore store,
+      {DocumentReference? userDoc, String? symbol, String? accountNumber}) {
+    throw UnimplementedError(
+        'streamComboOrders is not implemented for this brokerage service');
+  }
+
+  Future<dynamic> placeComboOrder(
+      BrokerageUser user,
+      Account account,
+      List<Map<String, dynamic>> legs,
+      String creditOrDebit,
+      double price,
+      int quantity,
+      {String type = 'limit',
+      String trigger = 'immediate',
+      String timeInForce = 'gtc',
+      String? openingStrategy}) {
+    throw UnimplementedError(
+        'placeComboOrder is not implemented for this brokerage service');
+  }
+
+  Future<dynamic> cancelComboOrder(BrokerageUser user, String cancelUrl) {
+    return cancelOrder(user, cancelUrl);
+  }
+
   // Futures
   Future<List<dynamic>> getFuturesOrders(BrokerageUser user, String account);
   Future<List<dynamic>> getFuturesContractsByIds(
@@ -436,4 +471,3 @@ abstract class IBrokerageService {
     return null;
   }
 }
-

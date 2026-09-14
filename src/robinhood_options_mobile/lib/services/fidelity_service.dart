@@ -56,6 +56,8 @@ import 'package:robinhood_options_mobile/model/forex_order.dart';
 import 'package:robinhood_options_mobile/model/interest_store.dart';
 import 'package:robinhood_options_mobile/model/forex_historicals.dart';
 import 'package:robinhood_options_mobile/model/future_historicals.dart';
+import 'package:robinhood_options_mobile/model/combo_order.dart';
+import 'package:robinhood_options_mobile/model/combo_order_store.dart';
 
 class FidelityService implements IBrokerageService {
   @override
@@ -1184,6 +1186,48 @@ class FidelityService implements IBrokerageService {
   }
 
   @override
+  Future<List<ComboOrder>> getComboOrders(BrokerageUser user,
+      {String? accountNumber, int? limit}) async {
+    return [];
+  }
+
+  @override
+  Stream<List<ComboOrder>> streamComboOrders(
+      BrokerageUser user, ComboOrderStore store,
+      {DocumentReference? userDoc,
+      String? symbol,
+      String? accountNumber}) async* {
+    yield [];
+  }
+
+  @override
+  Future<dynamic> placeComboOrder(
+      BrokerageUser user,
+      Account account,
+      List<Map<String, dynamic>> legs,
+      String creditOrDebit,
+      double price,
+      int quantity,
+      {String type = 'limit',
+      String trigger = 'immediate',
+      String timeInForce = 'gtc',
+      String? openingStrategy}) async {
+    return {
+      'status': 'not_supported',
+      'message': 'Combo orders not supported for Fidelity manual imports.',
+    };
+  }
+
+  @override
+  Future<dynamic> cancelComboOrder(BrokerageUser user, String cancelUrl) async {
+    return {
+      'status': 'not_supported',
+      'message':
+          'Combo order cancellation not supported for Fidelity manual imports.',
+    };
+  }
+
+  @override
   Future<dynamic> getRecentDayTrades(
       BrokerageUser user, String accountNumber) async {
     return null;
@@ -1290,7 +1334,6 @@ class FidelityService implements IBrokerageService {
       BrokerageUser user, String accountNumber) async {
     return null;
   }
-
 
   @override
   Future<List<dynamic>> getFuturesOrders(

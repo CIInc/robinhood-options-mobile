@@ -46,6 +46,7 @@ import 'package:robinhood_options_mobile/model/option_event_store.dart';
 import 'package:robinhood_options_mobile/model/option_historicals_store.dart';
 import 'package:robinhood_options_mobile/model/option_instrument_store.dart';
 import 'package:robinhood_options_mobile/model/option_order_store.dart';
+import 'package:robinhood_options_mobile/model/combo_order_store.dart';
 import 'package:robinhood_options_mobile/model/option_position_store.dart';
 import 'package:robinhood_options_mobile/model/portfolio_historicals_selection_store.dart';
 import 'package:robinhood_options_mobile/model/portfolio_historicals_store.dart';
@@ -273,6 +274,9 @@ class MyApp extends StatelessWidget {
             ),
             ChangeNotifierProvider(
               create: (context) => OptionOrderStore(),
+            ),
+            ChangeNotifierProvider(
+              create: (context) => ComboOrderStore(),
             ),
             ChangeNotifierProvider(
               create: (context) => OptionEventStore(),

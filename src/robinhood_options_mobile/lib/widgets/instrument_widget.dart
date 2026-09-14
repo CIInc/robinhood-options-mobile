@@ -22,6 +22,9 @@ import 'package:robinhood_options_mobile/model/instrument_position.dart';
 import 'package:robinhood_options_mobile/model/instrument_store.dart';
 import 'package:robinhood_options_mobile/model/option_event.dart';
 import 'package:robinhood_options_mobile/model/option_order_store.dart';
+import 'package:robinhood_options_mobile/model/combo_order.dart';
+import 'package:robinhood_options_mobile/model/combo_order_store.dart';
+import 'package:robinhood_options_mobile/widgets/combo_orders_widget.dart';
 import 'package:robinhood_options_mobile/model/option_position_store.dart';
 import 'package:robinhood_options_mobile/model/quote_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_order_store.dart';
@@ -578,9 +581,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       debugPrint('Error fetching instrument buying power: $e');
     });
 
-    widget.service
-        .getInstrumentWarnings(user, instrument.id)
-        .then((warn) {
+    widget.service.getInstrumentWarnings(user, instrument.id).then((warn) {
       if (mounted && warn != null) {
         setState(() {
           _instrumentWarnings =
@@ -1807,7 +1808,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                   },
                 ),
               ),
-              if (_instrumentWarnings != null && _instrumentWarnings!.hasWarnings)
+              if (_instrumentWarnings != null &&
+                  _instrumentWarnings!.hasWarnings)
                 SliverToBoxAdapter(
                   child: InstrumentTradeWarningsBanner(
                     warnings: _instrumentWarnings!,
@@ -2323,6 +2325,37 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     });
   }
 
+  Widget _buildComboOrdersSliver(Instrument instrument) {
+    return Consumer<ComboOrderStore>(
+      builder: (context, comboOrderStore, child) {
+        final matching = comboOrderStore.items.where((order) {
+          if (order.primarySymbol.toUpperCase() ==
+              instrument.symbol.toUpperCase()) {
+            return true;
+          }
+          return order.legs.any((l) =>
+              l.symbol != null &&
+              l.symbol!.toUpperCase() == instrument.symbol.toUpperCase());
+        }).toList();
+
+        if (matching.isNotEmpty) {
+          return ComboOrdersWidget(
+            widget.brokerageUser,
+            widget.service,
+            matching,
+            orderFilters,
+            analytics: widget.analytics,
+            observer: widget.observer,
+            generativeService: widget.generativeService,
+            authUser: widget.user,
+            userDocRef: widget.userDocRef,
+          );
+        }
+        return const SliverToBoxAdapter(child: SizedBox.shrink());
+      },
+    );
+  }
+
   List<Widget> _buildActivitySlivers(Instrument instrument) {
     return [
       _buildPositionSliver(instrument),
@@ -2330,6 +2363,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       _buildHistoricalPositionsSliver(instrument),
       _buildStockOrdersSliver(instrument),
       _buildOptionOrdersSliver(instrument),
+      _buildComboOrdersSliver(instrument),
       if (instrument.dividendsObj != null &&
           instrument.dividendsObj!.isNotEmpty) ...[
         const SliverToBoxAdapter(child: SizedBox(height: 8.0)),

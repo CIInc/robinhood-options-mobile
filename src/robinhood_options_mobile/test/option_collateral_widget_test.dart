@@ -127,7 +127,8 @@ void main() {
     await tester.pumpAndSettle();
   });
 
-  testWidgets('OptionCollateralWidget renders approved state for Level 3 account',
+  testWidgets(
+      'OptionCollateralWidget renders approved state for Level 3 account',
       (WidgetTester tester) async {
     tester.view.physicalSize = const Size(800, 1200);
     tester.view.devicePixelRatio = 1.0;

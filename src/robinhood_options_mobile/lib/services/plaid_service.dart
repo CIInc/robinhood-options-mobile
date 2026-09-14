@@ -49,6 +49,8 @@ import 'package:robinhood_options_mobile/model/user_info.dart';
 import 'package:robinhood_options_mobile/model/watchlist.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/services/resource_owner_password_grant.dart';
+import 'package:robinhood_options_mobile/model/combo_order.dart';
+import 'package:robinhood_options_mobile/model/combo_order_store.dart';
 
 class PlaidService implements IBrokerageService {
   @override
@@ -796,6 +798,48 @@ class PlaidService implements IBrokerageService {
   }
 
   @override
+  Future<List<ComboOrder>> getComboOrders(BrokerageUser user,
+      {String? accountNumber, int? limit}) async {
+    return [];
+  }
+
+  @override
+  Stream<List<ComboOrder>> streamComboOrders(
+      BrokerageUser user, ComboOrderStore store,
+      {DocumentReference? userDoc,
+      String? symbol,
+      String? accountNumber}) async* {
+    yield [];
+  }
+
+  @override
+  Future<dynamic> placeComboOrder(
+      BrokerageUser user,
+      Account account,
+      List<Map<String, dynamic>> legs,
+      String creditOrDebit,
+      double price,
+      int quantity,
+      {String type = 'limit',
+      String trigger = 'immediate',
+      String timeInForce = 'gtc',
+      String? openingStrategy}) async {
+    return {
+      'status': 'not_supported',
+      'message': 'Combo orders not supported for Plaid manual accounts.',
+    };
+  }
+
+  @override
+  Future<dynamic> cancelComboOrder(BrokerageUser user, String cancelUrl) async {
+    return {
+      'status': 'not_supported',
+      'message':
+          'Combo order cancellation not supported for Plaid manual accounts.',
+    };
+  }
+
+  @override
   Future<dynamic> getRecentDayTrades(
       BrokerageUser user, String accountNumber) async {
     return null;
@@ -902,7 +946,6 @@ class PlaidService implements IBrokerageService {
       BrokerageUser user, String accountNumber) async {
     return null;
   }
-
 
   @override
   Future<List<ForexOrder>> getForexOrders(BrokerageUser user) {

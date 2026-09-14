@@ -43,8 +43,8 @@ class PortfolioAlertService {
   }) {
     final alerts = <PortfolioAlert>[];
 
-    alerts.addAll(_marginHealthAlerts(
-        account, unifiedAccount, totalEquity, marginCalls));
+    alerts.addAll(
+        _marginHealthAlerts(account, unifiedAccount, totalEquity, marginCalls));
     alerts.addAll(_pdtAlerts(account, totalEquity, dayTradeSummary));
     alerts.addAll(_taxAlerts(instrumentPositions, optionPositions));
     alerts.addAll(_concentrationAlerts(instrumentPositions, optionPositions));

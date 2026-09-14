@@ -46,7 +46,8 @@ class InstrumentTradeWarningsBanner extends StatelessWidget {
             ? Colors.amber.shade200
             : Colors.amber.shade900);
 
-    final iconColor = isCritical ? theme.colorScheme.error : Colors.amber.shade700;
+    final iconColor =
+        isCritical ? theme.colorScheme.error : Colors.amber.shade700;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
@@ -61,7 +62,8 @@ class InstrumentTradeWarningsBanner extends StatelessWidget {
           borderRadius: BorderRadius.circular(12.0),
           onTap: onTapDetails,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 10.0),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 14.0, vertical: 10.0),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -116,7 +118,9 @@ class InstrumentTradeWarningsBanner extends StatelessWidget {
                             ),
                         ],
                       ),
-                      if (!compact && primary != null && primary.message.isNotEmpty) ...[
+                      if (!compact &&
+                          primary != null &&
+                          primary.message.isNotEmpty) ...[
                         const SizedBox(height: 3.0),
                         Text(
                           primary.message,
@@ -170,66 +174,91 @@ class InstrumentBuyingPowerSummaryTile extends StatelessWidget {
 
     final label = showShort ? 'Short Buying Power' : 'Instrument Buying Power';
 
+    final badgeWidget = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 2.0),
+      decoration: BoxDecoration(
+        color: buyingPower.cashOnly
+            ? theme.colorScheme.errorContainer.withAlpha(120)
+            : theme.colorScheme.primaryContainer.withAlpha(120),
+        borderRadius: BorderRadius.circular(4.0),
+      ),
+      child: Text(
+        buyingPower.marginStatusLabel,
+        style: theme.textTheme.labelSmall?.copyWith(
+          color: buyingPower.cashOnly
+              ? theme.colorScheme.onErrorContainer
+              : theme.colorScheme.onPrimaryContainer,
+          fontWeight: FontWeight.w600,
+          fontSize: 10.0,
+        ),
+      ),
+    );
+
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(8.0),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 4.0),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final isCompact =
+                constraints.hasBoundedWidth && constraints.maxWidth < 380;
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  label,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-                const SizedBox(width: 6.0),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 6.0, vertical: 2.0),
-                  decoration: BoxDecoration(
-                    color: buyingPower.cashOnly
-                        ? theme.colorScheme.errorContainer.withAlpha(120)
-                        : theme.colorScheme.primaryContainer.withAlpha(120),
-                    borderRadius: BorderRadius.circular(4.0),
-                  ),
-                  child: Text(
-                    buyingPower.marginStatusLabel,
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: buyingPower.cashOnly
-                          ? theme.colorScheme.onErrorContainer
-                          : theme.colorScheme.onPrimaryContainer,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 10.0,
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Flexible(
+                            child: Text(
+                              label,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ),
+                          if (!isCompact) ...[
+                            const SizedBox(width: 6.0),
+                            badgeWidget,
+                          ],
+                        ],
+                      ),
                     ),
-                  ),
+                    const SizedBox(width: 8.0),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          _currencyFormat.format(displayBp),
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        if (onTap != null) ...[
+                          const SizedBox(width: 4.0),
+                          Icon(
+                            Icons.info_outline_rounded,
+                            size: 16.0,
+                            color: theme.colorScheme.primary,
+                          ),
+                        ],
+                      ],
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  _currencyFormat.format(displayBp),
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                if (onTap != null) ...[
-                  const SizedBox(width: 4.0),
-                  Icon(
-                    Icons.info_outline_rounded,
-                    size: 16.0,
-                    color: theme.colorScheme.primary,
-                  ),
+                if (isCompact) ...[
+                  const SizedBox(height: 3.0),
+                  badgeWidget,
                 ],
               ],
-            ),
-          ],
+            );
+          },
         ),
       ),
     );
@@ -320,7 +349,8 @@ class InstrumentBuyingPowerSheet extends StatelessWidget {
               if (buyingPower != null) ...[
                 Card(
                   elevation: 0,
-                  color: theme.colorScheme.surfaceContainerHighest.withAlpha(120),
+                  color:
+                      theme.colorScheme.surfaceContainerHighest.withAlpha(120),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12.0),
                     side: BorderSide(
@@ -495,7 +525,8 @@ class InstrumentBuyingPowerSheet extends StatelessWidget {
     );
   }
 
-  Widget _buildWarningItem(BuildContext context, InstrumentTradeWarning warning) {
+  Widget _buildWarningItem(
+      BuildContext context, InstrumentTradeWarning warning) {
     final theme = Theme.of(context);
 
     return Container(

@@ -34,7 +34,8 @@ class OptionCollateralCash {
         'infinite': infinite,
       };
 
-  String get formattedAmount => infinite ? 'Unlimited' : _currencyFormat.format(amount);
+  String get formattedAmount =>
+      infinite ? 'Unlimited' : _currencyFormat.format(amount);
   bool get hasCollateral => amount > 0.0001 || infinite;
 }
 
@@ -79,8 +80,9 @@ class OptionCollateralEquity {
         if (instrumentUrl != null) 'instrument': instrumentUrl,
       };
 
-  String get formattedQuantity =>
-      quantity % 1 == 0 ? quantity.toInt().toString() : quantity.toStringAsFixed(2);
+  String get formattedQuantity => quantity % 1 == 0
+      ? quantity.toInt().toString()
+      : quantity.toStringAsFixed(2);
   String get formattedUncoveredShares => uncoveredShares % 1 == 0
       ? uncoveredShares.toInt().toString()
       : uncoveredShares.toStringAsFixed(2);
@@ -185,8 +187,8 @@ class OptionChainCollateral {
       chainId: chainId,
       accountNumber: resolvedAccountNumber,
       collateral: OptionCollateralBreakdown.fromJson(json['collateral']),
-      collateralHeldForOrders:
-          OptionCollateralBreakdown.fromJson(json['collateral_held_for_orders']),
+      collateralHeldForOrders: OptionCollateralBreakdown.fromJson(
+          json['collateral_held_for_orders']),
       updatedAt: DateTime.now(),
     );
   }
@@ -217,7 +219,8 @@ class OptionChainCollateral {
 /// Options tier upgrade status and eligibility.
 class OptionUpgradeStatus {
   final bool shouldShowUpgrade;
-  final String optionLevel; // 'option_level_1', 'option_level_2', 'option_level_3'
+  final String
+      optionLevel; // 'option_level_1', 'option_level_2', 'option_level_3'
   final int currentTier;
   final int targetTier;
   final String title;
@@ -240,7 +243,8 @@ class OptionUpgradeStatus {
     required this.tierFeatures,
   });
 
-  factory OptionUpgradeStatus.fromJson(dynamic json, {String? defaultAccountLevel}) {
+  factory OptionUpgradeStatus.fromJson(dynamic json,
+      {String? defaultAccountLevel}) {
     if (json is! Map) {
       final level = defaultAccountLevel ?? 'option_level_2';
       final tier = _parseTier(level);
@@ -249,7 +253,8 @@ class OptionUpgradeStatus {
         optionLevel: level,
         currentTier: tier,
         targetTier: tier < 3 ? 3 : 3,
-        title: tier < 3 ? 'Upgrade to Options Level 3' : 'Level 3 Options Active',
+        title:
+            tier < 3 ? 'Upgrade to Options Level 3' : 'Level 3 Options Active',
         subtitle: tier < 3
             ? 'Access multi-leg spreads, straddles, and iron condors.'
             : 'Multi-leg spread and complex options trading enabled.',

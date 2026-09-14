@@ -55,7 +55,8 @@ void main() {
       );
 
       expect(find.text('High Volatility Warning'), findsOneWidget);
-      expect(find.text('Extreme swings detected in this symbol.'), findsOneWidget);
+      expect(
+          find.text('Extreme swings detected in this symbol.'), findsOneWidget);
       expect(find.byIcon(Icons.warning_amber_rounded), findsOneWidget);
 
       await tester.tap(find.byType(InstrumentTradeWarningsBanner));
@@ -171,10 +172,45 @@ void main() {
       expect(find.text('100% Cash Required'), findsOneWidget);
       expect(find.text('\$5,000.00'), findsOneWidget);
     });
+
+    testWidgets('renders cleanly on compact width (322px) without overflow',
+        (WidgetTester tester) async {
+      const bp = InstrumentBuyingPower(
+        instrumentId: 'inst_compact',
+        buyingPower: 125430.50,
+        marginRate: 0.50,
+        maintenanceMarginRate: 0.30,
+        isMarginable: true,
+      );
+
+      tester.view.physicalSize = const Size(322, 600);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 322,
+              child: InstrumentBuyingPowerSummaryTile(buyingPower: bp),
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Instrument Buying Power'), findsOneWidget);
+      expect(find.text('50% Initial Margin'), findsOneWidget);
+      expect(find.text('\$125,430.50'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
   });
 
   group('InstrumentBuyingPowerSheet Modal Tests', () {
-    testWidgets('renders full breakdown of purchasing capacity, margin terms and disclosures',
+    testWidgets(
+        'renders full breakdown of purchasing capacity, margin terms and disclosures',
         (WidgetTester tester) async {
       const bp = InstrumentBuyingPower(
         instrumentId: 'inst_sheet',

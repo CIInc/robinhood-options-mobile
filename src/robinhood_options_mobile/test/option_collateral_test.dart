@@ -134,7 +134,9 @@ void main() {
   });
 
   group('OptionChainCollateral Model Tests', () {
-    test('parses real Robinhood API zero-collateral response with scientific notation and account_number', () {
+    test(
+        'parses real Robinhood API zero-collateral response with scientific notation and account_number',
+        () {
       final json = {
         "account_number": "5QR24141",
         "collateral": {
@@ -338,7 +340,8 @@ void main() {
         null,
       );
 
-      final result = await demoService.getOptionsUpgradeStatus(user, 'demo_acct');
+      final result =
+          await demoService.getOptionsUpgradeStatus(user, 'demo_acct');
       expect(result, isNotNull);
 
       final status = OptionUpgradeStatus.fromJson(result);

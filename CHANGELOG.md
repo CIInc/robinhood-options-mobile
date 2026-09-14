@@ -3,9 +3,28 @@
 All notable changes to this project will be documented in this file.
 
 ## [0.44.0] - 2026-09-13
-**Unified Risk & Margin Health, Collateral Tracking, Margin Calls & Financing Costs, Instrument-Specific Buying Power & Trade Warnings, Options Collateral & Tier Upgrades, and Action Center Margin Alerts**
+**Unified Risk & Margin Health, Collateral Tracking, Margin Calls & Financing Costs, Instrument-Specific Buying Power & Trade Warnings, Options Collateral & Tier Upgrades, Combo Orders (Stock + Option Packages), and Historical Cost Basis Lookback**
 
 ### Added
+- **Combo Orders (Stock + Option Packages):**
+  - Integrated Robinhood's multi-leg combo order execution and history endpoints (`/combo/orders/`, `/combo/orders/{id}/`, `/combo/orders/{id}/cancel/`).
+  - Created `ComboOrder`, `ComboLeg`, `ComboLegExecution`, and `ComboLegType` (`equity`, `option`) domain models in `lib/model/combo_order.dart` with package strategy identification (Covered Call, Buy-Write, Collar, Married Put, Vertical Spread, Straddle, Iron Condor, Custom), direction/pricing calculations, leg execution matching, and CSV reporting (`toCsvRow()`).
+  - Built `ComboOrderStore` (`lib/model/combo_order_store.dart`) and registered it in top-level state management in `main.dart` with live reactive filters (`bySymbol()`, `openOrders`, `completedOrders`).
+  - Extended `IBrokerageService` with `getComboOrders`, `streamComboOrders`, `placeComboOrder`, and `cancelComboOrder`. Implemented live network calls in `RobinhoodService`, multi-leg package simulation in `DemoService` and `PaperService`, and Firestore caching in `FirestoreService` (`combo_orders`).
+  - Implemented `ComboOrdersWidget` (`lib/widgets/combo_orders_widget.dart`) with sticky header, interactive status filter chips (`All`, `Filled`, `Queued / Open`, `Cancelled`), net premium balance calculations, and expandable package order cards.
+  - Implemented `ComboOrderWidget` (`lib/widgets/combo_order_widget.dart`) providing detailed package order breakdown, state badges, underlying quote integration, individual equity & option leg cards (side, position effect, ratio quantity, strike, expiration), execution settlement details, cancellation dialog, and share sheet export.
+  - Integrated Combo Orders into `HistoryWidget` (`lib/widgets/history_widget.dart`) with a dedicated "Combos" tab and into `InstrumentWidget` (`lib/widgets/instrument_widget.dart`) via `_buildComboOrdersSliver` for underlying-specific package tracking.
+  - Added full test coverage in `test/combo_order_test.dart`, `test/combo_order_store_test.dart`, and `test/combo_order_widget_test.dart` (14 unit & widget tests).
+  - Added comprehensive architecture and reference documentation in `docs/combo-orders.md` and indexed in `docs/index.md`.
+
+- **Instrument Historical Positions & Cost Basis Lookback:**
+  - Implemented automated trading cycle (round trip) reconstruction directly from chronological filled equity orders (`/orders/`, `/positions/?nonzero=false`, and Paper Trading stores) applying First-In, First-Out (FIFO) tax lot matching.
+  - Created `InstrumentHistoricalPosition`, `InstrumentHistoricalOrder`, and `InstrumentHistoricalPositionsSummary` in `lib/model/instrument_historical_position.dart` with holding period duration calculations, volume-weighted average buy/sell prices, realized P&L, return percentage, and win rate metrics.
+  - Built `InstrumentHistoricalPositionsWidget` (`lib/widgets/instrument_historical_positions_widget.dart`) featuring summary metrics grid (Win Rate, Average Hold, Buy vs. Sell execution spread bar), chronologically sorted historical cycle cards, and interactive round-trip detail modal bottom sheet with itemized ledger of constituent orders.
+  - Integrated `InstrumentHistoricalPositionsWidget` into `InstrumentWidget` (`instrument_widget.dart`) across Overview, Activity, and All tabs.
+  - Added comprehensive test suite in `test/instrument_historical_position_test.dart` and `test/instrument_historical_positions_widget_test.dart` (20 unit & widget tests).
+  - Added full documentation in `docs/instrument-cost-basis-lookback.md` and indexed in `docs/index.md`.
+
 - **Options Collateral & Tier Upgrades:**
   - Integrated Robinhood's chain-level options collateral endpoint (`/options/chains/{chainId}/collateral/?account_number={account}`) and upgrade eligibility endpoint (`/options/should_show_options_upgrade_on_sdp/?account_number={account}`).
   - Created `OptionChainCollateral`, `OptionCollateralCash`, `OptionCollateralEquity`, `OptionCollateralBreakdown`, and `OptionUpgradeStatus` domain models in `lib/model/option_collateral.dart` with cash/equity collateral segregation, infinite liability support, and tier-based capability mapping (Level 1, Level 2, Level 3).
@@ -57,6 +76,10 @@ All notable changes to this project will be documented in this file.
   - Added "Margin Health & Collateral" item under the *Features* list in `UserWidget`.
 - **Test Suite & Verification:** Added 30+ tests across `test/unified_account_test.dart`, `test/margin_health_widget_test.dart`, and `test/margin_health_overflow_test.dart` verifying data modeling, buffer normalization, alert thresholds, widget rendering, and responsive zero-overflow stability across compact and standard mobile form factors.
 - **Documentation:** Added `docs/margin-health-and-collateral.md` and updated `docs/index.md`.
+
+### Fixed
+- **Trade Instrument Buying Power Overflow:**
+  - Resolved `RenderFlex` horizontal overflow on compact mobile displays (width < 380px) in `InstrumentBuyingPowerSummaryTile` (`lib/widgets/instrument_buying_power_widget.dart`) by adapting to a responsive two-tier layout using `LayoutBuilder`, placing the margin status chip beneath the label while preserving inline presentation on wider viewports.
 
 ## [0.43.0] - 2026-09-12
 **Robinhood Market Data & Institutional Intelligence: Retail Order Flow, Robinhood Sentiment, Short Float & Curated Presets**

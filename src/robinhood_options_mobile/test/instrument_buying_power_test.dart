@@ -105,8 +105,7 @@ void main() {
       );
 
       final json = original.toJson();
-      final reconstituted =
-          InstrumentBuyingPower.fromJson('inst_rt', json);
+      final reconstituted = InstrumentBuyingPower.fromJson('inst_rt', json);
 
       expect(reconstituted.instrumentId, original.instrumentId);
       expect(reconstituted.accountNumber, original.accountNumber);
@@ -114,8 +113,8 @@ void main() {
       expect(reconstituted.shortBuyingPower, original.shortBuyingPower);
       expect(reconstituted.cashOnly, original.cashOnly);
       expect(reconstituted.marginRate, original.marginRate);
-      expect(reconstituted.maintenanceMarginRate,
-          original.maintenanceMarginRate);
+      expect(
+          reconstituted.maintenanceMarginRate, original.maintenanceMarginRate);
       expect(reconstituted.maxShares, original.maxShares);
       expect(reconstituted.maxShortShares, original.maxShortShares);
     });
@@ -238,8 +237,7 @@ void main() {
           await demoService.getInstrumentWarnings(user, 'inst_aapl');
       expect(warnJson, isNotNull);
 
-      final warnings =
-          InstrumentTradeWarnings.fromJson('inst_aapl', warnJson);
+      final warnings = InstrumentTradeWarnings.fromJson('inst_aapl', warnJson);
       expect(warnings.hasWarnings, isFalse);
     });
 

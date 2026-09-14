@@ -17,6 +17,9 @@ import 'package:robinhood_options_mobile/model/brokerage_user_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_store.dart';
 import 'package:robinhood_options_mobile/model/option_event_store.dart';
 import 'package:robinhood_options_mobile/model/option_order_store.dart';
+import 'package:robinhood_options_mobile/model/combo_order.dart';
+import 'package:robinhood_options_mobile/model/combo_order_store.dart';
+import 'package:robinhood_options_mobile/widgets/combo_orders_widget.dart';
 import 'package:robinhood_options_mobile/model/instrument_order_store.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/services/demo_service.dart';
@@ -427,8 +430,21 @@ class _HistoryPageState extends State<HistoryPage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
     widget.analytics.logScreenView(screenName: 'History');
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (widget.brokerageUser != null) {
+        final comboStore = Provider.of<ComboOrderStore>(context, listen: false);
+        final svc = widget.service ?? _serviceForUser(widget.brokerageUser!);
+        svc
+            .streamComboOrders(
+              widget.brokerageUser!,
+              comboStore,
+              userDoc: widget.userDoc,
+            )
+            .listen((_) {});
+      }
+    });
   }
 
   @override
@@ -972,7 +988,8 @@ class _HistoryPageState extends State<HistoryPage>
                       ),
                       child: TabBar(
                         controller: _tabController,
-                        isScrollable: false,
+                        isScrollable: true,
+                        tabAlignment: TabAlignment.start,
                         dividerColor: Colors.transparent,
                         indicator: BoxDecoration(
                           borderRadius: BorderRadius.circular(25),
@@ -989,6 +1006,7 @@ class _HistoryPageState extends State<HistoryPage>
                         tabs: const <Widget>[
                           Tab(text: 'Stocks'),
                           Tab(text: 'Options'),
+                          Tab(text: 'Combos'),
                           Tab(text: 'Dividends'),
                           Tab(text: 'Interests'),
                         ],
@@ -1671,6 +1689,46 @@ class _HistoryPageState extends State<HistoryPage>
                     height: 25.0,
                   ))
                 ],
+              ),
+              Consumer<ComboOrderStore>(
+                builder: (context, comboStore, child) {
+                  if (widget.brokerageUser == null || widget.service == null) {
+                    return CustomScrollView(slivers: [_buildLoadingSkeleton()]);
+                  }
+                  return CustomScrollView(
+                    slivers: [
+                      ComboOrdersWidget(
+                        widget.brokerageUser!,
+                        widget.service!,
+                        comboStore.items,
+                        const [],
+                        analytics: widget.analytics,
+                        observer: widget.observer,
+                        generativeService: widget.generativeService,
+                        authUser: widget.user,
+                        userDocRef: widget.userDoc,
+                      ),
+                      if (!kIsWeb) ...[
+                        const SliverToBoxAdapter(
+                            child: SizedBox(
+                          height: 25.0,
+                        )),
+                        SliverToBoxAdapter(
+                            child:
+                                AdBannerWidget(size: AdSize.mediumRectangle)),
+                      ],
+                      const SliverToBoxAdapter(
+                          child: SizedBox(
+                        height: 25.0,
+                      )),
+                      const SliverToBoxAdapter(child: DisclaimerWidget()),
+                      const SliverToBoxAdapter(
+                          child: SizedBox(
+                        height: 25.0,
+                      )),
+                    ],
+                  );
+                },
               ),
               CustomScrollView(
                 slivers: [

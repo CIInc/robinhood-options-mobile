@@ -16,6 +16,7 @@ import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/option_event.dart';
 import 'package:robinhood_options_mobile/model/option_instrument.dart';
 import 'package:robinhood_options_mobile/model/option_marketdata.dart';
+import 'package:robinhood_options_mobile/model/combo_order.dart';
 import 'package:robinhood_options_mobile/model/option_order.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/model/investor_group.dart';
@@ -37,6 +38,7 @@ class FirestoreService {
   final String forexPositionCollectionName = 'forexPosition';
   final String instrumentOrderCollectionName = 'instrumentOrder';
   final String optionOrderCollectionName = 'optionOrder';
+  final String comboOrderCollectionName = 'comboOrder';
   final String optionEventCollectionName = 'optionEvent';
   final String dividendCollectionName = 'dividend';
   final String interestCollectionName = 'interest';
@@ -703,6 +705,18 @@ class FirestoreService {
       var optionOrderDoc =
           userDoc.collection(optionOrderCollectionName).doc(optionOrder.id);
       batch.set(optionOrderDoc, optionOrder.toJson());
+    }
+    await batch.commit();
+  }
+
+  Future<void> upsertComboOrders(
+      List<ComboOrder> comboOrders, DocumentReference userDoc,
+      {bool updateIfExists = true}) async {
+    var batch = _db.batch();
+    for (var comboOrder in comboOrders) {
+      var comboOrderDoc =
+          userDoc.collection(comboOrderCollectionName).doc(comboOrder.id);
+      batch.set(comboOrderDoc, comboOrder.toJson());
     }
     await batch.commit();
   }

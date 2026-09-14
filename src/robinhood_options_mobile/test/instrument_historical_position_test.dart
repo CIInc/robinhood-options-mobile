@@ -55,7 +55,8 @@ void main() {
 
     test('reconstructs single profitable round-trip correctly', () {
       final buyDate = DateTime(2025, 1, 10, 10, 0);
-      final sellDate = DateTime(2025, 1, 25, 14, 30); // 15 days, 4.5 hours later
+      final sellDate =
+          DateTime(2025, 1, 25, 14, 30); // 15 days, 4.5 hours later
 
       final orders = [
         _createOrder(
@@ -119,13 +120,18 @@ void main() {
       final d6 = DateTime(2025, 3, 15);
 
       final orders = [
-        _createOrder(id: 'o1', side: 'buy', quantity: 10, price: 100, createdAt: d1),
-        _createOrder(id: 'o2', side: 'buy', quantity: 10, price: 120, createdAt: d2),
-        _createOrder(id: 'o3', side: 'sell', quantity: 20, price: 130, createdAt: d3),
-
-        _createOrder(id: 'o4', side: 'buy', quantity: 50, price: 200, createdAt: d4),
-        _createOrder(id: 'o5', side: 'sell', quantity: 25, price: 190, createdAt: d5),
-        _createOrder(id: 'o6', side: 'sell', quantity: 25, price: 170, createdAt: d6),
+        _createOrder(
+            id: 'o1', side: 'buy', quantity: 10, price: 100, createdAt: d1),
+        _createOrder(
+            id: 'o2', side: 'buy', quantity: 10, price: 120, createdAt: d2),
+        _createOrder(
+            id: 'o3', side: 'sell', quantity: 20, price: 130, createdAt: d3),
+        _createOrder(
+            id: 'o4', side: 'buy', quantity: 50, price: 200, createdAt: d4),
+        _createOrder(
+            id: 'o5', side: 'sell', quantity: 25, price: 190, createdAt: d5),
+        _createOrder(
+            id: 'o6', side: 'sell', quantity: 25, price: 170, createdAt: d6),
       ];
 
       final summary = InstrumentCostBasisLookbackSummary.fromOrders(orders);
@@ -154,7 +160,8 @@ void main() {
       expect(summary.winningTradesCount, 1);
       expect(summary.losingTradesCount, 1);
       expect(summary.winRate, 0.5);
-      expect(summary.totalSharesTraded, 140.0); // (20 buy + 20 sell) + (50 buy + 50 sell)
+      expect(summary.totalSharesTraded,
+          140.0); // (20 buy + 20 sell) + (50 buy + 50 sell)
     });
 
     test('handles fractional shares with precision', () {
@@ -163,9 +170,12 @@ void main() {
       final t3 = DateTime(2025, 4, 10);
 
       final orders = [
-        _createOrder(id: 'f1', side: 'buy', quantity: 1.5, price: 200, createdAt: t1),
-        _createOrder(id: 'f2', side: 'sell', quantity: 0.5, price: 250, createdAt: t2),
-        _createOrder(id: 'f3', side: 'sell', quantity: 1.0, price: 220, createdAt: t3),
+        _createOrder(
+            id: 'f1', side: 'buy', quantity: 1.5, price: 200, createdAt: t1),
+        _createOrder(
+            id: 'f2', side: 'sell', quantity: 0.5, price: 250, createdAt: t2),
+        _createOrder(
+            id: 'f3', side: 'sell', quantity: 1.0, price: 220, createdAt: t3),
       ];
 
       final summary = InstrumentCostBasisLookbackSummary.fromOrders(orders);
@@ -174,7 +184,8 @@ void main() {
       final cycle = summary.closedCycles.first;
       expect(cycle.totalShares, 1.5);
       expect(cycle.totalCostBasis, 300.0);
-      expect(cycle.totalProceeds, 345.0); // (0.5 * 250 = 125) + (1.0 * 220 = 220) = 345
+      expect(cycle.totalProceeds,
+          345.0); // (0.5 * 250 = 125) + (1.0 * 220 = 220) = 345
       expect(cycle.realizedGainLoss, 45.0);
       expect(cycle.realizedGainLossPercent, closeTo(0.15, 0.001));
     });
@@ -186,10 +197,13 @@ void main() {
 
       final orders = [
         // Completed round trip
-        _createOrder(id: 'c1', side: 'buy', quantity: 10, price: 50, createdAt: t1),
-        _createOrder(id: 'c2', side: 'sell', quantity: 10, price: 60, createdAt: t2),
+        _createOrder(
+            id: 'c1', side: 'buy', quantity: 10, price: 50, createdAt: t1),
+        _createOrder(
+            id: 'c2', side: 'sell', quantity: 10, price: 60, createdAt: t2),
         // Active position still open
-        _createOrder(id: 'a1', side: 'buy', quantity: 25, price: 65, createdAt: t3),
+        _createOrder(
+            id: 'a1', side: 'buy', quantity: 25, price: 65, createdAt: t3),
       ];
 
       final summary = InstrumentCostBasisLookbackSummary.fromOrders(orders);
@@ -380,11 +394,31 @@ void main() {
 
       final orders = [
         // Cycle 1: Completed in 2023 before the 2024 split
-        _createOrder(id: 'c1_b', side: 'buy', quantity: 10, price: 100, createdAt: preSplitBuy),
-        _createOrder(id: 'c1_s', side: 'sell', quantity: 10, price: 150, createdAt: preSplitSell),
+        _createOrder(
+            id: 'c1_b',
+            side: 'buy',
+            quantity: 10,
+            price: 100,
+            createdAt: preSplitBuy),
+        _createOrder(
+            id: 'c1_s',
+            side: 'sell',
+            quantity: 10,
+            price: 150,
+            createdAt: preSplitSell),
         // Cycle 2: Executed post-split in 2024
-        _createOrder(id: 'c2_b', side: 'buy', quantity: 40, price: 30, createdAt: postSplitBuy),
-        _createOrder(id: 'c2_s', side: 'sell', quantity: 40, price: 35, createdAt: postSplitSell),
+        _createOrder(
+            id: 'c2_b',
+            side: 'buy',
+            quantity: 40,
+            price: 30,
+            createdAt: postSplitBuy),
+        _createOrder(
+            id: 'c2_s',
+            side: 'sell',
+            quantity: 40,
+            price: 35,
+            createdAt: postSplitSell),
       ];
 
       final splits = [

@@ -178,8 +178,7 @@ class InstrumentTradeWarnings {
     this.updatedAt,
   });
 
-  factory InstrumentTradeWarnings.fromJson(
-      String instrumentId, dynamic json) {
+  factory InstrumentTradeWarnings.fromJson(String instrumentId, dynamic json) {
     if (json is! Map) {
       return InstrumentTradeWarnings(instrumentId: instrumentId);
     }
@@ -218,8 +217,8 @@ class InstrumentTradeWarnings {
       );
     }
 
-    final updatedStr = json['updated_at']?.toString() ??
-        json['timestamp']?.toString();
+    final updatedStr =
+        json['updated_at']?.toString() ?? json['timestamp']?.toString();
     final updatedAt =
         updatedStr != null ? DateTime.tryParse(updatedStr) : DateTime.now();
 
@@ -270,7 +269,8 @@ class InstrumentBuyingPower {
   final double? shortBuyingPower;
   final bool cashOnly;
   final double? marginRate; // Initial margin requirement (e.g., 0.50 = 50%)
-  final double? maintenanceMarginRate; // Maintenance margin requirement (e.g., 0.30 = 30%)
+  final double?
+      maintenanceMarginRate; // Maintenance margin requirement (e.g., 0.30 = 30%)
   final double? maxShares;
   final double? maxShortShares;
   final bool isMarginable;
@@ -292,8 +292,8 @@ class InstrumentBuyingPower {
     this.updatedAt,
   });
 
-  factory InstrumentBuyingPower.fromJson(
-      String instrumentId, dynamic json, {String? defaultAccount}) {
+  factory InstrumentBuyingPower.fromJson(String instrumentId, dynamic json,
+      {String? defaultAccount}) {
     if (json is! Map) {
       return InstrumentBuyingPower(
         instrumentId: instrumentId,
@@ -334,8 +334,8 @@ class InstrumentBuyingPower {
       mmRate = mmRate / 100.0;
     }
 
-    final maxShares = parseDouble(json['max_shares']) ??
-        parseDouble(json['maximum_shares']);
+    final maxShares =
+        parseDouble(json['max_shares']) ?? parseDouble(json['maximum_shares']);
     final maxShortShares = parseDouble(json['max_short_shares']) ??
         parseDouble(json['maximum_short_shares']);
 
@@ -347,8 +347,8 @@ class InstrumentBuyingPower {
         parseDouble(json['leverage']) ??
         (mRate != null && mRate > 0 ? (1.0 / mRate) : null);
 
-    final updatedStr = json['updated_at']?.toString() ??
-        json['timestamp']?.toString();
+    final updatedStr =
+        json['updated_at']?.toString() ?? json['timestamp']?.toString();
     final updatedAt =
         updatedStr != null ? DateTime.tryParse(updatedStr) : DateTime.now();
 
@@ -400,7 +400,9 @@ class InstrumentBuyingPower {
       : '30%';
 
   String get marginStatusLabel {
-    if (cashOnly || !isMarginable || (marginRate != null && marginRate! >= 1.0)) {
+    if (cashOnly ||
+        !isMarginable ||
+        (marginRate != null && marginRate! >= 1.0)) {
       return '100% Cash Required';
     }
     if (marginRate != null) {

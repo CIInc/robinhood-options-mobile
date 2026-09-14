@@ -326,13 +326,13 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ **Short Float & Live Borrow Availability:** Real-time short interest (`pc_freefloat`, days to cover) and live borrow availability and fee rates (`/marketdata/fundamentals/short/v1/`, `/instruments/{id}/shorting/`).
 - ✅ **Robinhood Curated Screener Presets & Layouts:** Native server-side screener presets (`/screeners/presets/`, `/screeners`) and Robinhood Legend workspaces (`/hippo/bw/layouts`).
 
-### v0.44.0 (Q4 2026 - Early October)
+### v0.44.0 ✅ (Released September 13, 2026)
 **Unified Margin Health, Collateral & Advanced Order Execution**
 - ✅ **Unified Risk & Margin Health:** Unified accounts endpoint integration (`/phoenix/accounts/unified`) for `margin_health`, `margin_buffer`, true options/crypto/account buying powers, and collateral holds.
 - ✅ **Margin Calls & Financing Costs:** Real-time margin call deficit demands and monthly margin interest debit history (`/margin/calls/`, `/cash_journal/margin_interest_charges/`).
 - ✅ **Instrument-Specific Buying Power & Trade Warnings:** Real-time buying power per instrument and risk/volatility warnings (`/accounts/{account}/instrument_buying_power/{id}/`, `/instruments/{id}/v2/warnings/`).
 - ✅ **Options Collateral & Tier Upgrades:** Chain-level cash/equity collateral breakdown (`/options/chains/{id}/collateral/`) and upgrade eligibility (`/options/should_show_options_upgrade_on_sdp/`).
-- **Combo Orders (Stock + Option Packages):** Execution and order history for multi-leg equity and option packages (`/combo/orders/`).
+- ✅ **Combo Orders (Stock + Option Packages):** Execution and order history for multi-leg equity and option packages (`/combo/orders/`).
 - ✅ **Instrument Previous Positions & Cost Basis Lookback:** Ability to look back on previous closed and historical positions within an instrument, displaying historical average buy and sell prices, realized P&L, hold duration, and round-trip execution metrics.
 
 ### v0.45.0 (Q4 2026 - Mid October)
@@ -818,7 +818,7 @@ Execution speed and automation differentiate professional tools from retail apps
 #### Strategy Automation
 - [ ] **Strategy Marketplace**: Platform for users to share, rate, and clone successful Agentic Trading configurations - **Large** (6-8 weeks)
 - [ ] **Multi-Leg Order Templates**: Quick-entry templates for complex spreads - **Small** (1-2 weeks)
-- [ ] **Combo Orders Support**: Stock + Option atomic order execution and history (`/combo/orders/`) - **Medium** (2-3 weeks)
+- [x] **Combo Orders Support**: Stock + Option atomic order execution and history (`/combo/orders/`) - **Medium** (2-3 weeks)
 - [ ] **Smart Order Routing**: Intelligent execution across multiple venues - **Large** (6-8 weeks)
 
 ### Social & Community

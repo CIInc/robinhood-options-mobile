@@ -9,7 +9,6 @@ import 'package:robinhood_options_mobile/model/portfolio_store.dart';
 import 'package:robinhood_options_mobile/services/demo_service.dart';
 import 'package:robinhood_options_mobile/widgets/margin_financing_widget.dart';
 
-
 class MockActiveMarginCallService extends DemoService {
   @override
   Future<List<dynamic>> getMarginCalls(BrokerageUser user) async {
@@ -99,8 +98,7 @@ void main() {
     expect(find.text('Margin Calls & Financing'), findsOneWidget);
 
     // Verify Hero card in good standing
-    expect(
-        find.text('Good Standing - No Active Margin Calls'), findsOneWidget);
+    expect(find.text('Good Standing - No Active Margin Calls'), findsOneWidget);
 
     // Verify Metrics
     expect(find.text('Active Calls'), findsOneWidget);
@@ -117,8 +115,7 @@ void main() {
     expect(find.text('Total Interest YTD'), findsOneWidget);
 
     // Verify Monthly Interest Debits row shows full subtitle and details
-    expect(
-        find.text('Margin Interest Charge - Prior Month'), findsOneWidget);
+    expect(find.text('Margin Interest Charge - Prior Month'), findsOneWidget);
     expect(find.textContaining('6.5%'), findsWidgets);
     expect(find.textContaining('Avg Borrowed:'), findsWidgets);
   });
@@ -173,7 +170,6 @@ void main() {
     expect(find.text('Active Deficit'), findsOneWidget);
     expect(find.text('Deficit Demand'), findsWidgets);
     expect(find.text('How to Resolve Margin Calls'), findsOneWidget);
-
 
     // Filter by resolved calls
     await tester.tap(find.text('Resolved'));
@@ -237,10 +233,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Monthly Interest Debits'), findsOneWidget);
-    expect(
-        find.text('Margin Interest Charge - Prior Month'), findsOneWidget);
+    expect(find.text('Margin Interest Charge - Prior Month'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
-
 }
-

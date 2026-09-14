@@ -107,8 +107,8 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
     try {
       final bpJson = await widget.service.getInstrumentBuyingPower(
           widget.brokerageUser, accountNumber, instrumentId);
-      final warnJson = await widget.service.getInstrumentWarnings(
-          widget.brokerageUser, instrumentId);
+      final warnJson = await widget.service
+          .getInstrumentWarnings(widget.brokerageUser, instrumentId);
 
       if (mounted) {
         setState(() {
@@ -207,7 +207,8 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // Instrument Trade Warnings Banner (if any)
-          if (_instrumentWarnings != null && _instrumentWarnings!.hasWarnings) ...[
+          if (_instrumentWarnings != null &&
+              _instrumentWarnings!.hasWarnings) ...[
             InstrumentTradeWarningsBanner(
               warnings: _instrumentWarnings!,
               onTapDetails: _showInstrumentBuyingPowerSheet,
@@ -484,7 +485,8 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
                   else if (_instrumentBuyingPower != null)
                     InstrumentBuyingPowerSummaryTile(
                       buyingPower: _instrumentBuyingPower!,
-                      showShort: positionType == "Sell" && widget.stockPosition == null,
+                      showShort: positionType == "Sell" &&
+                          widget.stockPosition == null,
                       onTap: _showInstrumentBuyingPowerSheet,
                     )
                   else
@@ -553,7 +555,8 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
                 ?.copyWith(fontWeight: FontWeight.bold),
             textAlign: TextAlign.center,
           ),
-          if (_instrumentWarnings != null && _instrumentWarnings!.hasWarnings) ...[
+          if (_instrumentWarnings != null &&
+              _instrumentWarnings!.hasWarnings) ...[
             const SizedBox(height: 12),
             InstrumentTradeWarningsBanner(
               warnings: _instrumentWarnings!,
@@ -685,7 +688,8 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
                   else if (_instrumentBuyingPower != null)
                     InstrumentBuyingPowerSummaryTile(
                       buyingPower: _instrumentBuyingPower!,
-                      showShort: positionType == "Sell" && widget.stockPosition == null,
+                      showShort: positionType == "Sell" &&
+                          widget.stockPosition == null,
                       onTap: _showInstrumentBuyingPowerSheet,
                     )
                   else

@@ -170,7 +170,6 @@ class _MarginHealthWidgetState extends State<MarginHealthWidget> {
     );
   }
 
-
   Widget _buildHealthHeroCard(BuildContext context, UnifiedAccount unified) {
     final health = unified.marginHealth;
     final color = health.statusColor;
@@ -765,8 +764,7 @@ class _MarginHealthWidgetState extends State<MarginHealthWidget> {
             : BorderSide.none,
       ),
       child: ListTile(
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         leading: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
@@ -788,9 +786,8 @@ class _MarginHealthWidgetState extends State<MarginHealthWidget> {
               ? 'Active Deficit: ${_currencyFormat.format(health.marginCallAmount)} — Tap to view demands & resolution'
               : 'Review deficit demands, resolution options, and monthly interest debits',
           style: theme.textTheme.bodySmall?.copyWith(
-            color: hasCall
-                ? Colors.redAccent
-                : theme.colorScheme.onSurfaceVariant,
+            color:
+                hasCall ? Colors.redAccent : theme.colorScheme.onSurfaceVariant,
             fontWeight: hasCall ? FontWeight.w600 : FontWeight.normal,
           ),
         ),
@@ -812,7 +809,6 @@ class _MarginHealthWidgetState extends State<MarginHealthWidget> {
   }
 
   Widget _buildEducationalCard(BuildContext context) {
-
     return Card(
       elevation: 1,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),

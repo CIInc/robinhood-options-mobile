@@ -46,6 +46,12 @@ See our [docs](https://ciinc.github.io/robinhood-options-mobile/) for use cases 
 *   **[Robinhood Market Intelligence](docs/index.md#robinhood-market-intelligence):** First-party instrument research covering short float and live borrow availability, retail order flow, insider activity, and institutional hedge fund sentiment.
 *   **[Curated Screener Presets & Legend Layouts](docs/screener-presets-and-legend-layouts.md):** Browse Robinhood's server-side screener presets and retrieve saved Legend layouts; the full Legend workspace UI remains planned.
 *   **[Trading Psychology & Emotion Journal](docs/ai-trading-coach.md#8-emotion-tracking--mindset-journal):** Track emotional check-ins, behavioral biases, trading patterns, and psychology scores alongside AI coaching.
+*   **[Unified Risk & Margin Health](docs/margin-health-and-collateral.md):** Real-time maintenance buffer tracking, segregated buying powers (equities, options, crypto), locked collateral breakdown, FINRA Rule 4210 guidance, and Action Center margin alerts.
+*   **[Margin Calls & Financing Costs](docs/margin-calls-and-financing.md):** Real-time margin call deficit tracking and resolution workflows (`/margin/calls/`) with monthly margin interest debit history and borrowing APR transparency (`/cash_journal/margin_interest_charges/`).
+*   **[Instrument-Specific Buying Power & Trade Warnings](docs/instrument-buying-power-and-warnings.md):** Real-time buying power per instrument (`/accounts/{account}/instrument_buying_power/{id}/`) with margin requirement tags (50% Marginable, 100% Cash Required), short-selling limits, and regulatory trade warnings (`/instruments/{id}/v2/warnings/`).
+*   **[Options Collateral & Tier Upgrades](docs/options-collateral-and-tier-upgrades.md):** Chain-level cash and equity collateral breakdown (`/options/chains/{id}/collateral/`) and upgrade eligibility (`/options/should_show_options_upgrade_on_sdp/`) with interactive metrics and Level 3 upgrade application.
+*   **[Combo Orders (Stock + Option Packages)](docs/combo-orders.md):** Execution, tracking, and cancellation for multi-leg equity and option packages (Covered Calls, Collars, Married Puts, Straddles, Spreads) via `/combo/orders/`.
+*   **[Instrument Previous Positions & Cost Basis Lookback](docs/instrument-cost-basis-lookback.md):** Historical trading cycles and round-trip performance analysis reconstructed via FIFO lot matching directly from filled orders, with win rates, holding period metrics, and execution spread bars.
 *   **[Schwab Integration](docs/schwab-integration.md):** OAuth account linking, portfolio and order history, stock and option order placement, and multi-leg option order support.
 *   **[Option Chain Screener](docs/option-strategy-builder.md#option-chain-screener):** Advanced filtering capabilities for option chains including Delta, Theta, Gamma, Vega, Implied Volatility, and more. Features AI-powered "Find Best Contract" suggestions based on risk tolerance and strategy.
 *   **[Options Flow Analysis](docs/options-flow-analysis.md):** Track institutional sentiment with real-time monitoring of large option orders (sweeps, blocks), unusual volume detection, and dark pool activity analysis. Includes 30+ smart flags, 0DTE/1DTE expiration filters, alerts, and structured guidance that explains each flag, why the trade triggered it, and what to verify before acting.
@@ -392,12 +398,13 @@ flutter test integration_test/app_test.dart
 
 ### Automated Documentation Updates
 
-RealizeAlpha uses a custom GitHub Copilot Chat prompt to automate the process of incrementing the app version and updating the `CHANGELOG.md`, `ROADMAP.md`, and other documentation files based on recent commit history.
+RealizeAlpha provides automated documentation update workflows to increment the app version and update `CHANGELOG.md`, `ROADMAP.md`, and other documentation files based on recent commit history:
 
-To use this tool, open GitHub Copilot Chat in VS Code and run the command:
+- **Antigravity / Agent Skill:** Use the [update-docs](.agents/skills/update-docs/SKILL.md) skill:
+  > /update-docs [nextversion]
 
-**Command Example:**
-> /updateDocs [nextversion]
+- **GitHub Copilot Chat Prompt:** In VS Code with GitHub Copilot:
+  > /updateDocs [nextversion]
 
 This will trigger the agent to:
 - Determine the next version (e.g., `0.37.2`) based on commit impact (Features vs. Bug Fixes).

@@ -116,7 +116,9 @@ class _MarginFinancingWidgetState extends State<MarginFinancingWidget>
           controller: _tabController,
           tabs: const [
             Tab(icon: Icon(Icons.gavel_outlined), text: 'Margin Calls'),
-            Tab(icon: Icon(Icons.receipt_long_outlined), text: 'Financing Costs'),
+            Tab(
+                icon: Icon(Icons.receipt_long_outlined),
+                text: 'Financing Costs'),
           ],
         ),
       ),
@@ -134,7 +136,8 @@ class _MarginFinancingWidgetState extends State<MarginFinancingWidget>
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                    const Icon(Icons.error_outline,
+                        size: 48, color: Colors.red),
                     const SizedBox(height: 12),
                     Text(
                       'Failed to load margin financing details: ${snapshot.error}',
@@ -193,7 +196,6 @@ class _MarginFinancingWidgetState extends State<MarginFinancingWidget>
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 10),
-
         SizedBox(
           width: double.infinity,
           child: SegmentedButton<int>(
@@ -215,7 +217,6 @@ class _MarginFinancingWidgetState extends State<MarginFinancingWidget>
             ),
           ),
         ),
-
         const SizedBox(height: 10),
         if (filteredCalls.isEmpty)
           _buildEmptyCallsCard(context)
@@ -282,8 +283,8 @@ class _MarginFinancingWidgetState extends State<MarginFinancingWidget>
                   if (hasActive && summary.nearestDueDate != null) ...[
                     const SizedBox(height: 8),
                     Container(
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
                         color: Colors.red.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(6),
@@ -451,7 +452,8 @@ class _MarginFinancingWidgetState extends State<MarginFinancingWidget>
                   decoration: BoxDecoration(
                     color: stateColor.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: stateColor.withValues(alpha: 0.5)),
+                    border:
+                        Border.all(color: stateColor.withValues(alpha: 0.5)),
                   ),
                   child: Text(
                     call.displayState,
@@ -539,7 +541,6 @@ class _MarginFinancingWidgetState extends State<MarginFinancingWidget>
                   ),
               ],
             ),
-
             if (call.description != null && call.description!.isNotEmpty) ...[
               const SizedBox(height: 8),
               Text(
@@ -784,8 +785,7 @@ class _MarginFinancingWidgetState extends State<MarginFinancingWidget>
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       child: ListTile(
         isThreeLine: true,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
         leading: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(

@@ -150,8 +150,10 @@ void main() {
       final d1 = DateTime(2025, 1, 10);
       final d2 = DateTime(2025, 1, 25);
       final orders = [
-        _makeOrder(id: 'o1', side: 'buy', quantity: 15, price: 165.50, date: d1),
-        _makeOrder(id: 'o2', side: 'sell', quantity: 15, price: 188.50, date: d2),
+        _makeOrder(
+            id: 'o1', side: 'buy', quantity: 15, price: 165.50, date: d1),
+        _makeOrder(
+            id: 'o2', side: 'sell', quantity: 15, price: 188.50, date: d2),
       ];
 
       final summary = InstrumentCostBasisLookbackSummary.fromOrders(
@@ -173,8 +175,7 @@ void main() {
       expect(find.text('Previous Positions'), findsOneWidget);
     });
 
-    testWidgets(
-        'opens bottom sheet on narrow 320px viewport without overflow',
+    testWidgets('opens bottom sheet on narrow 320px viewport without overflow',
         (WidgetTester tester) async {
       tester.view.physicalSize = const Size(320, 800);
       tester.view.devicePixelRatio = 1.0;
@@ -273,8 +274,10 @@ void main() {
       final sellDate = DateTime(2024, 7, 1);
 
       final orders = [
-        _makeOrder(id: 'b1', side: 'buy', quantity: 10, price: 1000, date: buyDate),
-        _makeOrder(id: 's1', side: 'sell', quantity: 100, price: 120, date: sellDate),
+        _makeOrder(
+            id: 'b1', side: 'buy', quantity: 10, price: 1000, date: buyDate),
+        _makeOrder(
+            id: 's1', side: 'sell', quantity: 100, price: 120, date: sellDate),
       ];
 
       final splits = [
@@ -316,4 +319,3 @@ void main() {
     });
   });
 }
-
