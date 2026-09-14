@@ -35,6 +35,7 @@ import 'package:robinhood_options_mobile/widgets/custom_alerts_widget.dart';
 import 'package:robinhood_options_mobile/widgets/backtesting_widget.dart';
 import 'package:robinhood_options_mobile/widgets/day_trade_monitor_widget.dart';
 import 'package:robinhood_options_mobile/widgets/margin_health_widget.dart';
+import 'package:robinhood_options_mobile/widgets/stock_loan_widget.dart';
 
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
@@ -1091,6 +1092,47 @@ class _UserWidgetState extends State<UserWidget> {
                                               .showSnackBar(const SnackBar(
                                             content: Text(
                                                 'Please link a brokerage account to monitor day trades.'),
+                                          ));
+                                        }
+                                      },
+                                    ),
+                                    // Stock Lending & Cash Sweeps
+                                    ListTile(
+                                      leading: CircleAvatar(
+                                        backgroundColor: Theme.of(context)
+                                            .colorScheme
+                                            .secondaryContainer,
+                                        foregroundColor: Theme.of(context)
+                                            .colorScheme
+                                            .onSecondaryContainer,
+                                        child:
+                                            const Icon(Icons.currency_exchange),
+                                      ),
+                                      title: const Text(
+                                          'Stock Lending & Cash Sweeps'),
+                                      subtitle: const Text(
+                                          'Earn yield on loaned shares & FDIC cash sweeps'),
+                                      trailing:
+                                          const Icon(Icons.chevron_right),
+                                      onTap: () async {
+                                        if (widget.brokerageUser != null &&
+                                            widget.service != null) {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) =>
+                                                  StockLoanWidget(
+                                                brokerageUser:
+                                                    widget.brokerageUser!,
+                                                service: widget.service!,
+                                              ),
+                                            ),
+                                          );
+                                        } else {
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(const SnackBar(
+                                            content: Text(
+                                                'Please link a brokerage account to view stock lending & sweeps.'),
                                           ));
                                         }
                                       },

@@ -948,6 +948,22 @@ class PlaidService implements IBrokerageService {
   }
 
   @override
+  Future<List<dynamic>> getStockLoanPayments(BrokerageUser user,
+      {String? accountNumber}) async {
+    return [];
+  }
+
+  @override
+  Future<dynamic> getSlipEligibility(BrokerageUser user) async {
+    return null;
+  }
+
+  @override
+  Future<dynamic> getSweepsInterest(BrokerageUser user) async {
+    return null;
+  }
+
+  @override
   Future<List<ForexOrder>> getForexOrders(BrokerageUser user) {
     throw UnimplementedError();
   }

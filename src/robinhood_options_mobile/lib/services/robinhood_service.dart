@@ -57,6 +57,7 @@ import 'package:robinhood_options_mobile/model/watchlist.dart';
 import 'package:robinhood_options_mobile/model/watchlist_item.dart';
 import 'package:robinhood_options_mobile/model/instrument_buying_power.dart';
 import 'package:robinhood_options_mobile/model/option_collateral.dart';
+import 'package:robinhood_options_mobile/model/stock_loan.dart';
 
 class _FuturesMarginCacheEntry {
   const _FuturesMarginCacheEntry(this.value, this.expiresAt);
@@ -4842,6 +4843,7 @@ WATCHLIST
 
   /// Fetches stock loan payments from the Stock Lending Program
   /// https://api.robinhood.com/accounts/stock_loan_payments/
+  @override
   Future<List<dynamic>> getStockLoanPayments(BrokerageUser user,
       {String? accountNumber}) async {
     var query = accountNumber != null ? "?account_number=$accountNumber" : "";
@@ -4857,18 +4859,50 @@ WATCHLIST
     }
   }
 
+  /// Fetches typed StockLoanPayment models
+  Future<List<StockLoanPayment>> getStockLoanPaymentsModel(BrokerageUser user,
+      {String? accountNumber}) async {
+    final rawList = await getStockLoanPayments(user, accountNumber: accountNumber);
+    return rawList.map((item) => StockLoanPayment.fromJson(item)).toList();
+  }
+
   /// Fetches Stock Lending Program (SLIP) eligibility and enrollment status
   /// https://bonfire.robinhood.com/slip/eligibility/
+  @override
   Future<dynamic> getSlipEligibility(BrokerageUser user) async {
     var url = "$robinHoodBonfireEndpoint/slip/eligibility/";
     return await getJson(user, url);
   }
 
+  /// Fetches typed SlipEligibility model
+  Future<SlipEligibility> getSlipEligibilityModel(BrokerageUser user) async {
+    try {
+      final json = await getSlipEligibility(user);
+      return SlipEligibility.fromJson(json);
+    } catch (e) {
+      debugPrint("Error fetching SLIP eligibility: $e");
+      return const SlipEligibility();
+    }
+  }
+
   /// Fetches current cash sweep interest rates (Gold, standard, boosted, superboost)
   /// https://api.robinhood.com/accounts/sweeps/interest/
+  @override
   Future<dynamic> getSweepsInterest(BrokerageUser user) async {
     var url = "$endpoint/accounts/sweeps/interest/";
     return await getJson(user, url);
+  }
+
+  /// Fetches typed SweepsInterest model
+  Future<SweepsInterest> getSweepsInterestModel(BrokerageUser user,
+      {double uninvestedCash = 0.0}) async {
+    try {
+      final json = await getSweepsInterest(user);
+      return SweepsInterest.fromJson(json, uninvestedCash: uninvestedCash);
+    } catch (e) {
+      debugPrint("Error fetching sweeps interest: $e");
+      return SweepsInterest(sweepBalance: uninvestedCash);
+    }
   }
 
   /*

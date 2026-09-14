@@ -470,4 +470,23 @@ abstract class IBrokerageService {
       BrokerageUser user, String accountNumber) async {
     return null;
   }
+
+  /// Fetches stock loan payments from the Stock Lending Program
+  /// https://api.robinhood.com/accounts/stock_loan_payments/
+  Future<List<dynamic>> getStockLoanPayments(BrokerageUser user,
+      {String? accountNumber}) async {
+    return [];
+  }
+
+  /// Fetches Stock Lending Program (SLIP) eligibility and enrollment status
+  /// https://bonfire.robinhood.com/slip/eligibility/
+  Future<dynamic> getSlipEligibility(BrokerageUser user) async {
+    return null;
+  }
+
+  /// Fetches current cash sweep interest rates (Gold, standard, boosted)
+  /// https://api.robinhood.com/accounts/sweeps/interest/
+  Future<dynamic> getSweepsInterest(BrokerageUser user) async {
+    return null;
+  }
 }

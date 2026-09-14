@@ -1336,6 +1336,22 @@ class FidelityService implements IBrokerageService {
   }
 
   @override
+  Future<List<dynamic>> getStockLoanPayments(BrokerageUser user,
+      {String? accountNumber}) async {
+    return [];
+  }
+
+  @override
+  Future<dynamic> getSlipEligibility(BrokerageUser user) async {
+    return null;
+  }
+
+  @override
+  Future<dynamic> getSweepsInterest(BrokerageUser user) async {
+    return null;
+  }
+
+  @override
   Future<List<dynamic>> getFuturesOrders(
       BrokerageUser user, String account) async {
     return [];

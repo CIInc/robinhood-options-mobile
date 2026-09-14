@@ -4224,4 +4224,156 @@ class DemoService implements IBrokerageService {
       ],
     };
   }
+
+  @override
+  Future<List<dynamic>> getStockLoanPayments(BrokerageUser user,
+      {String? accountNumber}) async {
+    final now = DateTime.now();
+    return [
+      {
+        'id': 'slp_demo_001',
+        'account_number': accountNumber ?? 'DEMO12345',
+        'payment_date': now.subtract(const Duration(days: 12)).toIso8601String(),
+        'amount': '18.45',
+        'net_amount': '18.45',
+        'currency_code': 'USD',
+        'status': 'paid',
+        'description': 'Securities Lending Income - Monthly Settlement',
+        'gross_rate': 0.075,
+        'net_rate': 0.0375,
+        'positions': [
+          {
+            'symbol': 'TSLA',
+            'quantity': 50.0,
+            'rate': 0.065,
+            'collateral_amount': 12500.0,
+            'interest_earned': 10.25,
+          },
+          {
+            'symbol': 'GME',
+            'quantity': 100.0,
+            'rate': 0.125,
+            'collateral_amount': 2600.0,
+            'interest_earned': 6.10,
+          },
+          {
+            'symbol': 'NVDA',
+            'quantity': 20.0,
+            'rate': 0.035,
+            'collateral_amount': 2500.0,
+            'interest_earned': 2.10,
+          },
+        ],
+      },
+      {
+        'id': 'slp_demo_002',
+        'account_number': accountNumber ?? 'DEMO12345',
+        'payment_date': now.subtract(const Duration(days: 42)).toIso8601String(),
+        'amount': '24.12',
+        'net_amount': '24.12',
+        'currency_code': 'USD',
+        'status': 'paid',
+        'description': 'Securities Lending Income - Monthly Settlement',
+        'gross_rate': 0.082,
+        'net_rate': 0.041,
+        'positions': [
+          {
+            'symbol': 'TSLA',
+            'quantity': 50.0,
+            'rate': 0.070,
+            'collateral_amount': 12000.0,
+            'interest_earned': 12.80,
+          },
+          {
+            'symbol': 'GME',
+            'quantity': 120.0,
+            'rate': 0.140,
+            'collateral_amount': 3000.0,
+            'interest_earned': 8.50,
+          },
+          {
+            'symbol': 'AMC',
+            'quantity': 200.0,
+            'rate': 0.110,
+            'collateral_amount': 1100.0,
+            'interest_earned': 2.82,
+          },
+        ],
+      },
+      {
+        'id': 'slp_demo_003',
+        'account_number': accountNumber ?? 'DEMO12345',
+        'payment_date': now.subtract(const Duration(days: 72)).toIso8601String(),
+        'amount': '16.80',
+        'net_amount': '16.80',
+        'currency_code': 'USD',
+        'status': 'paid',
+        'description': 'Securities Lending Income - Monthly Settlement',
+        'gross_rate': 0.068,
+        'net_rate': 0.034,
+        'positions': [
+          {
+            'symbol': 'TSLA',
+            'quantity': 40.0,
+            'rate': 0.060,
+            'collateral_amount': 9800.0,
+            'interest_earned': 9.20,
+          },
+          {
+            'symbol': 'NVDA',
+            'quantity': 25.0,
+            'rate': 0.038,
+            'collateral_amount': 3100.0,
+            'interest_earned': 7.60,
+          },
+        ],
+      },
+    ];
+  }
+
+  @override
+  Future<dynamic> getSlipEligibility(BrokerageUser user) async {
+    return {
+      'enrolled': true,
+      'is_enrolled': true,
+      'eligible': true,
+      'is_eligible': true,
+      'status': 'enrolled',
+      'agreement_signed': true,
+      'agreement_signed_date': '2026-01-15T10:30:00Z',
+      'enabled_at': '2026-01-15T10:30:00Z',
+      'ineligibility_reasons': [],
+      'total_interest_earned_ytd': 142.85,
+      'total_interest_earned_all_time': 318.40,
+      'estimated_annualized_yield': 0.052,
+      'loaned_securities_count': 3,
+      'total_loaned_value': 17600.00,
+    };
+  }
+
+  @override
+  Future<dynamic> getSweepsInterest(BrokerageUser user) async {
+    return {
+      'account_number': 'DEMO12345',
+      'is_enrolled': true,
+      'status': 'enrolled',
+      'gold_rate': 0.050,
+      'standard_rate': 0.015,
+      'boosted_rate': 0.055,
+      'rate': 0.050,
+      'fdic_insurance_limit': 2250000.0,
+      'sweep_balance': 12500.00,
+      'partner_banks': [
+        'Citibank, N.A.',
+        'Goldman Sachs Bank USA',
+        'Wells Fargo Bank, N.A.',
+        'JPMorgan Chase Bank, N.A.',
+        'Bank of Baroda',
+        'HSBC Bank USA, N.A.',
+        'First National Bank of Omaha',
+        'M&T Bank',
+      ],
+      'updated_at': DateTime.now().toIso8601String(),
+    };
+  }
 }

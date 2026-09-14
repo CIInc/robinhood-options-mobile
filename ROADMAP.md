@@ -337,7 +337,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 
 ### v0.45.0 (Q4 2026 - Mid October)
 **Cash Management, Banking, Retirement & Tax Documents**
-- **Securities Lending (SLIP) & Cash Sweeps:** Fully Paid Stock Loan income tracking (`/accounts/stock_loan_payments/`), SLIP status, and high-yield cash sweeps APY & tier tracking (`/accounts/sweeps/interest/`).
+- ✅ **Securities Lending (SLIP) & Cash Sweeps:** Fully Paid Stock Loan income tracking (`/accounts/stock_loan_payments/`), SLIP status, and high-yield cash sweeps APY & tier tracking (`/accounts/sweeps/interest/`).
 - **Banking, ACH & Cash Movement:** Monitor bank deposits, withdrawals, clearing status, and linked bank accounts (`/ach/transfers/`, `/ach/relationships/`).
 - **Corporate Action Splits & Shareholder Q&A:** Stock split cash-in-lieu adjustments (`/corp_actions/v2/split_payments/`) and Say Technologies earnings Q&A participation (`/qa/events-section/`).
 - **Multi-Account & Retirement Expansion:** Full multi-account hydration including Traditional/Roth IRAs (`ira_traditional`, `ira_roth`), contribution history (`/retirement/history/`), spending accounts (`/rhy/accounts/`), and connected agent management (`/oauth2/list_external_tokens/`).
@@ -735,8 +735,8 @@ Q3 2026 shifts focus from basic execution to **Advanced Intelligence** and **Reg
 - [x] **Instrument-Specific Buying Power & Trade Warnings** (v0.44.0): Real-time buying power per instrument and risk/volatility warnings (`/accounts/{account}/instrument_buying_power/{id}/`, `/instruments/{id}/v2/warnings/`) - **Small** (1-2 weeks)
 - [x] **Options Collateral & Tier Upgrades** (v0.44.0): Chain-level cash/equity collateral breakdown (`/options/chains/{id}/collateral/`) and upgrade eligibility (`/options/should_show_options_upgrade_on_sdp/`) - **Small** (1-2 weeks)
 - [x] **Instrument Previous Positions & Cost Basis Lookback** (v0.44.0): Historical round-trip position reconstruction, FIFO cost basis lookback, realized P&L, hold duration, and order audit trail - **Small** (1-2 weeks)
-- [ ] **Stock Lending Program (SLIP) Dashboard**: Track loaned shares, earned yield payments, and agreement eligibility (`/accounts/stock_loan_payments/`, `/slip/eligibility/`) - **Small** (1-2 weeks)
-- [ ] **Cash Sweeps & APY Rate Monitor**: Track FDIC sweep balances and multi-tier interest rates (`/accounts/sweeps/interest/`) - **Small** (1 week)
+- [x] **Stock Lending Program (SLIP) Dashboard** (v0.45.0): Track loaned shares, earned yield payments, and agreement eligibility (`/accounts/stock_loan_payments/`, `/slip/eligibility/`) - **Small** (1-2 weeks)
+- [x] **Cash Sweeps & APY Rate Monitor** (v0.45.0): Track FDIC sweep balances and multi-tier interest rates (`/accounts/sweeps/interest/`) - **Small** (1 week)
 - [ ] **Banking & ACH Transfers**: Monitor bank deposits, withdrawals, clearing status, and linked accounts (`/ach/transfers/`, `/ach/relationships/`) - **Small** (1-2 weeks)
 - [ ] **Tax Documents & Account Statements**: In-app download and review of Form 1099, monthly statements, and withholding status (`/documents/`, `/tax_info/`) - **Small** (1 week)
 - [ ] **Corporate Action Split Adjustments**: Stock split payments, cash-in-lieu tracking, and ratio adjustments (`/corp_actions/v2/split_payments/`) - **Small** (1 week)

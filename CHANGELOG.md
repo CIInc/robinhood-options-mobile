@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.45.0] - 2026-09-14
+**Securities Lending (SLIP) Dashboard & High-Yield FDIC Cash Sweeps APY Monitor**
+
+### Added
+- **Stock Lending Program (SLIP) Dashboard:**
+  - Integrated Robinhood's Fully Paid Securities Lending Program endpoints (`/accounts/stock_loan_payments/`, `/stock_loan/payments/`, and `/slip/eligibility/`).
+  - Created `StockLoanPosition`, `StockLoanPayment`, and `SlipEligibility` domain models in `lib/model/stock_loan.dart` with JSON serialization, 102% cash collateral backing tracking, borrow rate formatting, and enrollment status management (`enrolled`, `eligible`, `ineligible`, `pending`, `paused`).
+  - Extended `IBrokerageService` with `getStockLoanPayments`, `getSlipEligibility`, and `getSweepsInterest`, with typed model helpers in `RobinhoodService`, realistic multi-month simulation fixtures in `DemoService`, and concrete overrides in `PaperService`, `FidelityService`, `SchwabService`, and `PlaidService`.
+  - Built `StockLoanWidget` (`lib/widgets/stock_loan_widget.dart`) offering a 2-tab interface featuring an enrollment hero card, active securities on loan cards with 102% cash collateral verification, an expandable payment ledger with ticker filtering, and an investor protections guide (SIPC vs. FDIC cash collateral, full freedom to sell, and manufactured dividend payments).
+  - Integrated "Stock Lending & Sweeps" actionable badge chip in `UserInfoWidget` (`user_info_widget.dart`) and added "Stock Lending & Cash Sweeps" navigation tile in `UserWidget` (`user_widget.dart`).
+- **High-Yield Cash Sweeps & APY Rate Monitor:**
+  - Integrated Robinhood's Cash Sweeps interest rate endpoint (`/accounts/sweeps/interest/`).
+  - Created `SweepsInterest` domain model in `lib/model/stock_loan.dart` with multi-tier rate parsing (Gold APY 5.00% vs. Standard APY 1.50%), promotional boost detection, up to \$2,250,000 FDIC aggregate insurance tracking, and dynamic monthly/annual interest projections on uninvested cash.
+  - Added dedicated "Cash Sweeps & APY" tab in `StockLoanWidget` with effective APY hero metrics, side-by-side tier comparison cards, an interactive cash yield calculator slider (\$500–\$100,000), and a directory of FDIC program partner banks (Citibank, Goldman Sachs Bank USA, Wells Fargo, JPMorgan Chase, etc.).
+- **Testing & Documentation:**
+  - Added 14 unit tests in `test/stock_loan_test.dart` validating JSON parsing, rate calculations, error fallbacks, and `DemoService` integration.
+  - Added widget tests in `test/stock_loan_widget_test.dart` validating SLIP metrics, position rendering, search filter interaction, tab switching, and cash sweeps calculator.
+  - Added comprehensive feature and architectural documentation in `docs/stock-lending-and-cash-sweeps.md` and indexed in `docs/index.md`.
+
 ## [0.44.0] - 2026-09-13
 **Unified Risk & Margin Health, Collateral Tracking, Margin Calls & Financing Costs, Instrument-Specific Buying Power & Trade Warnings, Options Collateral & Tier Upgrades, Combo Orders (Stock + Option Packages), and Historical Cost Basis Lookback**
 
