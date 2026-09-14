@@ -52,6 +52,7 @@ import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/services/resource_owner_password_grant.dart';
 import 'package:robinhood_options_mobile/model/combo_order.dart';
 import 'package:robinhood_options_mobile/model/combo_order_store.dart';
+import 'package:robinhood_options_mobile/model/tax_document.dart';
 
 class PlaidService implements IBrokerageService {
   @override
@@ -987,6 +988,40 @@ class PlaidService implements IBrokerageService {
   @override
   Future<bool> cancelAchTransfer(BrokerageUser user, String cancelUrl) async {
     return false;
+  }
+
+  @override
+  Future<List<dynamic>> getDocuments(BrokerageUser user, {String? type}) async {
+    return [];
+  }
+
+  @override
+  Future<List<dynamic>> getAdrFees(BrokerageUser user) async {
+    return [];
+  }
+
+  @override
+  Future<dynamic> getTaxWithholdingStatus(
+      BrokerageUser user, String instrumentId) async {
+    return null;
+  }
+
+  @override
+  Future<List<AccountDocument>> getAccountDocumentsModel(BrokerageUser user,
+      {String? type}) async {
+    return [];
+  }
+
+  @override
+  Future<List<AdrFee>> getAdrFeesModel(BrokerageUser user) async {
+    return [];
+  }
+
+  @override
+  Future<TaxWithholdingStatus?> getTaxWithholdingStatusModel(
+      BrokerageUser user, String instrumentId,
+      {String? symbol}) async {
+    return null;
   }
 
   @override

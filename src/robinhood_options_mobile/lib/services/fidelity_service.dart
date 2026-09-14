@@ -59,6 +59,7 @@ import 'package:robinhood_options_mobile/model/forex_historicals.dart';
 import 'package:robinhood_options_mobile/model/future_historicals.dart';
 import 'package:robinhood_options_mobile/model/combo_order.dart';
 import 'package:robinhood_options_mobile/model/combo_order_store.dart';
+import 'package:robinhood_options_mobile/model/tax_document.dart';
 
 class FidelityService implements IBrokerageService {
   @override
@@ -1375,6 +1376,40 @@ class FidelityService implements IBrokerageService {
   @override
   Future<bool> cancelAchTransfer(BrokerageUser user, String cancelUrl) async {
     return false;
+  }
+
+  @override
+  Future<List<dynamic>> getDocuments(BrokerageUser user, {String? type}) async {
+    return [];
+  }
+
+  @override
+  Future<List<dynamic>> getAdrFees(BrokerageUser user) async {
+    return [];
+  }
+
+  @override
+  Future<dynamic> getTaxWithholdingStatus(
+      BrokerageUser user, String instrumentId) async {
+    return null;
+  }
+
+  @override
+  Future<List<AccountDocument>> getAccountDocumentsModel(BrokerageUser user,
+      {String? type}) async {
+    return [];
+  }
+
+  @override
+  Future<List<AdrFee>> getAdrFeesModel(BrokerageUser user) async {
+    return [];
+  }
+
+  @override
+  Future<TaxWithholdingStatus?> getTaxWithholdingStatusModel(
+      BrokerageUser user, String instrumentId,
+      {String? symbol}) async {
+    return null;
   }
 
   @override

@@ -53,6 +53,7 @@ import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 import 'package:robinhood_options_mobile/services/yahoo_service.dart';
 import 'package:robinhood_options_mobile/model/banking.dart';
+import 'package:robinhood_options_mobile/model/tax_document.dart';
 
 class DemoService implements IBrokerageService {
   @override
@@ -4576,5 +4577,289 @@ class DemoService implements IBrokerageService {
       return true;
     }
     return false;
+  }
+
+  @override
+  Future<List<dynamic>> getDocuments(BrokerageUser user, {String? type}) async {
+    final allDocs = [
+      {
+        'id': 'doc_1099_2025',
+        'account_number': 'DEMO12345',
+        'type': '1099',
+        'title': '2025 Consolidated Form 1099',
+        'date': '2026-02-15',
+        'year': 2025,
+        'download_url': 'https://api.robinhood.com/documents/doc_1099_2025/download/',
+        'file_size': 458752,
+        'state': 'ready',
+        'created_at': '2026-02-15T08:00:00Z',
+        'updated_at': '2026-02-15T08:00:00Z',
+      },
+      {
+        'id': 'doc_1099_2024',
+        'account_number': 'DEMO12345',
+        'type': '1099',
+        'title': '2024 Consolidated Form 1099',
+        'date': '2025-02-12',
+        'year': 2024,
+        'download_url': 'https://api.robinhood.com/documents/doc_1099_2024/download/',
+        'file_size': 419430,
+        'state': 'ready',
+        'created_at': '2025-02-12T08:00:00Z',
+        'updated_at': '2025-02-12T08:00:00Z',
+      },
+      {
+        'id': 'doc_1099_2023',
+        'account_number': 'DEMO12345',
+        'type': '1099',
+        'title': '2023 Consolidated Form 1099',
+        'date': '2024-02-14',
+        'year': 2023,
+        'download_url': 'https://api.robinhood.com/documents/doc_1099_2023/download/',
+        'file_size': 387072,
+        'state': 'ready',
+        'created_at': '2024-02-14T08:00:00Z',
+        'updated_at': '2024-02-14T08:00:00Z',
+      },
+      {
+        'id': 'doc_stmt_2026_08',
+        'account_number': 'DEMO12345',
+        'type': 'account_statement',
+        'title': 'August 2026 Account Statement',
+        'date': '2026-08-31',
+        'year': 2026,
+        'download_url': 'https://api.robinhood.com/documents/doc_stmt_2026_08/download/',
+        'file_size': 184320,
+        'state': 'ready',
+        'created_at': '2026-09-02T10:00:00Z',
+        'updated_at': '2026-09-02T10:00:00Z',
+      },
+      {
+        'id': 'doc_stmt_2026_07',
+        'account_number': 'DEMO12345',
+        'type': 'account_statement',
+        'title': 'July 2026 Account Statement',
+        'date': '2026-07-31',
+        'year': 2026,
+        'download_url': 'https://api.robinhood.com/documents/doc_stmt_2026_07/download/',
+        'file_size': 192512,
+        'state': 'ready',
+        'created_at': '2026-08-02T10:00:00Z',
+        'updated_at': '2026-08-02T10:00:00Z',
+      },
+      {
+        'id': 'doc_stmt_2026_06',
+        'account_number': 'DEMO12345',
+        'type': 'account_statement',
+        'title': 'June 2026 Account Statement',
+        'date': '2026-06-30',
+        'year': 2026,
+        'download_url': 'https://api.robinhood.com/documents/doc_stmt_2026_06/download/',
+        'file_size': 176128,
+        'state': 'ready',
+        'created_at': '2026-07-02T10:00:00Z',
+        'updated_at': '2026-07-02T10:00:00Z',
+      },
+      {
+        'id': 'doc_stmt_2026_05',
+        'account_number': 'DEMO12345',
+        'type': 'account_statement',
+        'title': 'May 2026 Account Statement',
+        'date': '2026-05-31',
+        'year': 2026,
+        'download_url': 'https://api.robinhood.com/documents/doc_stmt_2026_05/download/',
+        'file_size': 168960,
+        'state': 'ready',
+        'created_at': '2026-06-02T10:00:00Z',
+        'updated_at': '2026-06-02T10:00:00Z',
+      },
+      {
+        'id': 'doc_conf_2026_09_08',
+        'account_number': 'DEMO12345',
+        'type': 'trade_confirmation',
+        'title': 'Trade Confirmation - NVDA Equity Buy',
+        'date': '2026-09-08',
+        'year': 2026,
+        'download_url': 'https://api.robinhood.com/documents/doc_conf_2026_09_08/download/',
+        'file_size': 65536,
+        'state': 'ready',
+        'created_at': '2026-09-08T16:30:00Z',
+        'updated_at': '2026-09-08T16:30:00Z',
+      },
+      {
+        'id': 'doc_conf_2026_09_02',
+        'account_number': 'DEMO12345',
+        'type': 'trade_confirmation',
+        'title': 'Trade Confirmation - SPY \$550 Call Buy',
+        'date': '2026-09-02',
+        'year': 2026,
+        'download_url': 'https://api.robinhood.com/documents/doc_conf_2026_09_02/download/',
+        'file_size': 61440,
+        'state': 'ready',
+        'created_at': '2026-09-02T15:45:00Z',
+        'updated_at': '2026-09-02T15:45:00Z',
+      },
+      {
+        'id': 'doc_conf_2026_08_28',
+        'account_number': 'DEMO12345',
+        'type': 'trade_confirmation',
+        'title': 'Trade Confirmation - AAPL \$220 Put Sell',
+        'date': '2026-08-28',
+        'year': 2026,
+        'download_url': 'https://api.robinhood.com/documents/doc_conf_2026_08_28/download/',
+        'file_size': 62464,
+        'state': 'ready',
+        'created_at': '2026-08-28T14:10:00Z',
+        'updated_at': '2026-08-28T14:10:00Z',
+      },
+    ];
+
+    if (type != null && type.isNotEmpty) {
+      return allDocs.where((d) => d['type'] == type).toList();
+    }
+    return allDocs;
+  }
+
+  @override
+  Future<List<AccountDocument>> getAccountDocumentsModel(BrokerageUser user,
+      {String? type}) async {
+    final list = await getDocuments(user, type: type);
+    return list.map((item) => AccountDocument.fromJson(item)).toList();
+  }
+
+  @override
+  Future<List<dynamic>> getAdrFees(BrokerageUser user) async {
+    return [
+      {
+        'id': 'adr_fee_demo_01',
+        'account_number': 'DEMO12345',
+        'instrument_id': 'inst_baba_01',
+        'symbol': 'BABA',
+        'amount': '4.50',
+        'rate': '0.02',
+        'quantity': '225',
+        'currency_code': 'USD',
+        'date': '2026-06-15T12:00:00Z',
+        'fee_type': 'custody_fee',
+        'description': 'Alibaba Group ADR Annual Custody Fee',
+      },
+      {
+        'id': 'adr_fee_demo_02',
+        'account_number': 'DEMO12345',
+        'instrument_id': 'inst_tsm_02',
+        'symbol': 'TSM',
+        'amount': '3.00',
+        'rate': '0.015',
+        'quantity': '200',
+        'currency_code': 'USD',
+        'date': '2026-05-18T12:00:00Z',
+        'fee_type': 'custody_fee',
+        'description': 'TSMC ADR Pass-Through Custody Fee',
+      },
+      {
+        'id': 'adr_fee_demo_03',
+        'account_number': 'DEMO12345',
+        'instrument_id': 'inst_bti_03',
+        'symbol': 'BTI',
+        'amount': '2.25',
+        'rate': '0.015',
+        'quantity': '150',
+        'currency_code': 'USD',
+        'date': '2026-03-24T12:00:00Z',
+        'fee_type': 'dividend_fee',
+        'description': 'British American Tobacco ADR Dividend Fee',
+      },
+      {
+        'id': 'adr_fee_demo_04',
+        'account_number': 'DEMO12345',
+        'instrument_id': 'inst_asml_04',
+        'symbol': 'ASML',
+        'amount': '1.80',
+        'rate': '0.02',
+        'quantity': '90',
+        'currency_code': 'USD',
+        'date': '2026-01-20T12:00:00Z',
+        'fee_type': 'custody_fee',
+        'description': 'ASML Holding ADR Semi-Annual Custody Fee',
+      },
+    ];
+  }
+
+  @override
+  Future<List<AdrFee>> getAdrFeesModel(BrokerageUser user) async {
+    final list = await getAdrFees(user);
+    return list.map((item) => AdrFee.fromJson(item)).toList();
+  }
+
+  @override
+  Future<dynamic> getTaxWithholdingStatus(
+      BrokerageUser user, String instrumentId) async {
+    final Map<String, dynamic> statusMap = {
+      'BTI': {
+        'instrument_id': instrumentId,
+        'symbol': 'BTI',
+        'country': 'GB',
+        'country_name': 'United Kingdom',
+        'withholding_rate': 0.0,
+        'treaty_rate': 0.0,
+        'status': 'exempt',
+        'description':
+            'No UK dividend withholding tax applied under US-UK Double Taxation Treaty.',
+      },
+      'ASML': {
+        'instrument_id': instrumentId,
+        'symbol': 'ASML',
+        'country': 'NL',
+        'country_name': 'Netherlands',
+        'withholding_rate': 0.15,
+        'treaty_rate': 0.15,
+        'status': 'reduced',
+        'description':
+            '15% reduced statutory rate applied under US-Netherlands Double Taxation Treaty.',
+      },
+      'BABA': {
+        'instrument_id': instrumentId,
+        'symbol': 'BABA',
+        'country': 'KY',
+        'country_name': 'Cayman Islands',
+        'withholding_rate': 0.0,
+        'treaty_rate': 0.0,
+        'status': 'exempt',
+        'description':
+            'Cayman Islands tax exempt entity; no foreign dividend withholding applies.',
+      },
+      'TSM': {
+        'instrument_id': instrumentId,
+        'symbol': 'TSM',
+        'country': 'TW',
+        'country_name': 'Taiwan',
+        'withholding_rate': 0.21,
+        'treaty_rate': 0.21,
+        'status': 'standard',
+        'description':
+            'Standard 21% Taiwan non-resident dividend withholding tax rate.',
+      },
+    };
+
+    return statusMap[instrumentId.toUpperCase()] ??
+        {
+          'instrument_id': instrumentId,
+          'symbol': instrumentId.toUpperCase(),
+          'country': 'US',
+          'country_name': 'United States',
+          'withholding_rate': 0.0,
+          'treaty_rate': 0.0,
+          'status': 'exempt',
+          'description': 'Domestic US equity; domestic dividend reporting applies.',
+        };
+  }
+
+  @override
+  Future<TaxWithholdingStatus?> getTaxWithholdingStatusModel(
+      BrokerageUser user, String instrumentId,
+      {String? symbol}) async {
+    final data = await getTaxWithholdingStatus(user, instrumentId);
+    if (data == null) return null;
+    return TaxWithholdingStatus.fromJson(data, defaultSymbol: symbol);
   }
 }

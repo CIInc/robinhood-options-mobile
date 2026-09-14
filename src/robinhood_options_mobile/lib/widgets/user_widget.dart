@@ -37,6 +37,7 @@ import 'package:robinhood_options_mobile/widgets/day_trade_monitor_widget.dart';
 import 'package:robinhood_options_mobile/widgets/margin_health_widget.dart';
 import 'package:robinhood_options_mobile/widgets/stock_loan_widget.dart';
 import 'package:robinhood_options_mobile/widgets/banking_widget.dart';
+import 'package:robinhood_options_mobile/widgets/tax_documents_widget.dart';
 
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
@@ -906,21 +907,36 @@ class _UserWidgetState extends State<UserWidget> {
                                   borderRadius: BorderRadius.circular(16),
                                 ),
                                 child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     ListTile(
-                                        contentPadding:
-                                            const EdgeInsets.symmetric(
-                                                horizontal: 20, vertical: 8),
-                                        leading: const Icon(Icons.stars),
-                                        title: Text(
-                                          'Features',
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .titleMedium
-                                              ?.copyWith(
-                                                  fontWeight: FontWeight.bold),
-                                        )),
-                                    // Agentic Trading Settings entry moved here from the app Drawer
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                              horizontal: 20, vertical: 8),
+                                      leading: const Icon(Icons.stars),
+                                      title: Text(
+                                        'Features',
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .titleMedium
+                                            ?.copyWith(
+                                                fontWeight: FontWeight.bold),
+                                      ),
+                                      subtitle: const Text(
+                                        'Trading tools, account operations & risk safeguards',
+                                      ),
+                                    ),
+                                    const Divider(height: 1),
+
+                                    // -------------------------------------------------------------
+                                    // 1. TRADING & SIMULATION
+                                    // -------------------------------------------------------------
+                                    _buildFeatureCategoryHeader(
+                                      context,
+                                      'Trading & Simulation',
+                                      icon: Icons.psychology_outlined,
+                                    ),
+                                    // Automated Trading
                                     ListTile(
                                       leading: CircleAvatar(
                                         backgroundColor: Theme.of(context)
@@ -958,6 +974,87 @@ class _UserWidgetState extends State<UserWidget> {
                                           );
                                         }
                                       },
+                                    ),
+                                    // Backtesting Interface
+                                    ListTile(
+                                      leading: CircleAvatar(
+                                        backgroundColor: Theme.of(context)
+                                            .colorScheme
+                                            .secondaryContainer,
+                                        foregroundColor: Theme.of(context)
+                                            .colorScheme
+                                            .onSecondaryContainer,
+                                        child:
+                                            const Icon(Icons.history_outlined),
+                                      ),
+                                      title: const Text('Backtesting'),
+                                      subtitle: const Text(
+                                          'Test strategies on historical data'),
+                                      trailing: const Icon(Icons.chevron_right),
+                                      onTap: () async {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                BacktestingWidget(
+                                              user: user,
+                                              userDocRef: userDocumentReference,
+                                              brokerageUser:
+                                                  widget.brokerageUser,
+                                              service: widget.service,
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                    // Paper Trading Simulator
+                                    ListTile(
+                                      leading: CircleAvatar(
+                                        backgroundColor: Theme.of(context)
+                                            .colorScheme
+                                            .secondaryContainer,
+                                        foregroundColor: Theme.of(context)
+                                            .colorScheme
+                                            .onSecondaryContainer,
+                                        child:
+                                            const Icon(Icons.school_outlined),
+                                      ),
+                                      title:
+                                          const Text('Paper Trading Simulator'),
+                                      subtitle: const Text(
+                                          'Practice trading with virtual money'),
+                                      trailing: const Icon(Icons.chevron_right),
+                                      onTap: () async {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                PaperTradingDashboardWidget(
+                                              analytics: widget.analytics,
+                                              observer: widget.observer,
+                                              brokerageUser:
+                                                  widget.brokerageUser,
+                                              service: widget.service!,
+                                              user: user,
+                                              userDocRef: userDocumentReference,
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    ),
+
+                                    const Divider(
+                                        height: 1,
+                                        indent: 16,
+                                        endIndent: 16),
+
+                                    // -------------------------------------------------------------
+                                    // 2. SIGNALS & ALERTS
+                                    // -------------------------------------------------------------
+                                    _buildFeatureCategoryHeader(
+                                      context,
+                                      'Signals & Alerts',
+                                      icon: Icons.notifications_active_outlined,
                                     ),
                                     // Trade Signal Notification Settings
                                     ListTile(
@@ -1017,6 +1114,20 @@ class _UserWidgetState extends State<UserWidget> {
                                           ),
                                         );
                                       },
+                                    ),
+
+                                    const Divider(
+                                        height: 1,
+                                        indent: 16,
+                                        endIndent: 16),
+
+                                    // -------------------------------------------------------------
+                                    // 3. RISK & MARGIN SAFEGUARDS
+                                    // -------------------------------------------------------------
+                                    _buildFeatureCategoryHeader(
+                                      context,
+                                      'Risk & Margin Safeguards',
+                                      icon: Icons.security_outlined,
                                     ),
                                     // Margin Health & Collateral
                                     ListTile(
@@ -1097,6 +1208,102 @@ class _UserWidgetState extends State<UserWidget> {
                                         }
                                       },
                                     ),
+
+                                    const Divider(
+                                        height: 1,
+                                        indent: 16,
+                                        endIndent: 16),
+
+                                    // -------------------------------------------------------------
+                                    // 4. BANKING & DOCUMENTS
+                                    // -------------------------------------------------------------
+                                    _buildFeatureCategoryHeader(
+                                      context,
+                                      'Banking & Documents',
+                                      icon: Icons.account_balance_outlined,
+                                    ),
+                                    // Banking & Transfers
+                                    ListTile(
+                                      leading: CircleAvatar(
+                                        backgroundColor: Theme.of(context)
+                                            .colorScheme
+                                            .secondaryContainer,
+                                        foregroundColor: Theme.of(context)
+                                            .colorScheme
+                                            .onSecondaryContainer,
+                                        child:
+                                            const Icon(Icons.account_balance),
+                                      ),
+                                      title: const Text(
+                                          'Banking & Transfers'),
+                                      subtitle: const Text(
+                                          'Manage deposits, withdrawals & linked bank accounts'),
+                                      trailing:
+                                          const Icon(Icons.chevron_right),
+                                      onTap: () async {
+                                        if (widget.brokerageUser != null &&
+                                            widget.service != null) {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) =>
+                                                  BankingWidget(
+                                                brokerageUser:
+                                                    widget.brokerageUser!,
+                                                service: widget.service!,
+                                              ),
+                                            ),
+                                          );
+                                        } else {
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(const SnackBar(
+                                            content: Text(
+                                                'Please link a brokerage account to view banking & transfers.'),
+                                          ));
+                                        }
+                                      },
+                                    ),
+                                    // Tax Documents & Statements
+                                    ListTile(
+                                      leading: CircleAvatar(
+                                        backgroundColor: Theme.of(context)
+                                            .colorScheme
+                                            .secondaryContainer,
+                                        foregroundColor: Theme.of(context)
+                                            .colorScheme
+                                            .onSecondaryContainer,
+                                        child:
+                                            const Icon(Icons.receipt_long),
+                                      ),
+                                      title: const Text(
+                                          'Tax Documents & Statements'),
+                                      subtitle: const Text(
+                                          'Download Form 1099, monthly statements & ADR fees'),
+                                      trailing:
+                                          const Icon(Icons.chevron_right),
+                                      onTap: () async {
+                                        if (widget.brokerageUser != null &&
+                                            widget.service != null) {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) =>
+                                                  TaxDocumentsWidget(
+                                                brokerageUser:
+                                                    widget.brokerageUser!,
+                                                service: widget.service!,
+                                              ),
+                                            ),
+                                          );
+                                        } else {
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(const SnackBar(
+                                            content: Text(
+                                                'Please link a brokerage account to view tax documents & statements.'),
+                                          ));
+                                        }
+                                      },
+                                    ),
                                     // Stock Lending & Cash Sweeps
                                     ListTile(
                                       leading: CircleAvatar(
@@ -1138,139 +1345,19 @@ class _UserWidgetState extends State<UserWidget> {
                                         }
                                       },
                                     ),
-                                    ListTile(
-                                      leading: CircleAvatar(
-                                        backgroundColor: Theme.of(context)
-                                            .colorScheme
-                                            .secondaryContainer,
-                                        foregroundColor: Theme.of(context)
-                                            .colorScheme
-                                            .onSecondaryContainer,
-                                        child:
-                                            const Icon(Icons.account_balance),
-                                      ),
-                                      title: const Text(
-                                          'Banking & Transfers'),
-                                      subtitle: const Text(
-                                          'Manage deposits, withdrawals & linked bank accounts'),
-                                      trailing:
-                                          const Icon(Icons.chevron_right),
-                                      onTap: () async {
-                                        if (widget.brokerageUser != null &&
-                                            widget.service != null) {
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (context) =>
-                                                  BankingWidget(
-                                                brokerageUser:
-                                                    widget.brokerageUser!,
-                                                service: widget.service!,
-                                              ),
-                                            ),
-                                          );
-                                        } else {
-                                          ScaffoldMessenger.of(context)
-                                              .showSnackBar(const SnackBar(
-                                            content: Text(
-                                                'Please link a brokerage account to view banking & transfers.'),
-                                          ));
-                                        }
-                                      },
-                                    ),
-                                    // Backtesting Interface
-                                    ListTile(
-                                      leading: CircleAvatar(
-                                        backgroundColor: Theme.of(context)
-                                            .colorScheme
-                                            .secondaryContainer,
-                                        foregroundColor: Theme.of(context)
-                                            .colorScheme
-                                            .onSecondaryContainer,
-                                        child:
-                                            const Icon(Icons.history_outlined),
-                                      ),
-                                      title: const Text('Backtesting'),
-                                      subtitle: const Text(
-                                          'Test strategies on historical data'),
-                                      trailing: const Icon(Icons.chevron_right),
-                                      onTap: () async {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) =>
-                                                BacktestingWidget(
-                                              user: user,
-                                              userDocRef: userDocumentReference,
-                                              brokerageUser:
-                                                  widget.brokerageUser,
-                                              service: widget.service,
-                                            ),
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                    // // Alpha Factor Discovery
-                                    // ListTile(
-                                    //   leading: CircleAvatar(
-                                    //     backgroundColor: Theme.of(context)
-                                    //         .colorScheme
-                                    //         .secondaryContainer,
-                                    //     foregroundColor: Theme.of(context)
-                                    //         .colorScheme
-                                    //         .onSecondaryContainer,
-                                    //     child:
-                                    //         const Icon(Icons.science_outlined),
-                                    //   ),
-                                    //   title:
-                                    //       const Text('Alpha Factor Discovery'),
-                                    //   subtitle: const Text(
-                                    //       'Analyze predictive power of indicators'),
-                                    //   trailing: const Icon(Icons.chevron_right),
-                                    //   onTap: () async {
-                                    //     Navigator.push(
-                                    //       context,
-                                    //       MaterialPageRoute(
-                                    //         builder: (context) =>
-                                    //             const AlphaFactorDiscoveryWidget(),
-                                    //       ),
-                                    //     );
-                                    //   },
-                                    // ),
-                                    // Paper Trading Simulator
-                                    ListTile(
-                                      leading: CircleAvatar(
-                                        backgroundColor: Theme.of(context)
-                                            .colorScheme
-                                            .secondaryContainer,
-                                        foregroundColor: Theme.of(context)
-                                            .colorScheme
-                                            .onSecondaryContainer,
-                                        child:
-                                            const Icon(Icons.school_outlined),
-                                      ),
-                                      title:
-                                          const Text('Paper Trading Simulator'),
-                                      subtitle: const Text(
-                                          'Practice trading with virtual money'),
-                                      trailing: const Icon(Icons.chevron_right),
-                                      onTap: () async {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) =>
-                                                PaperTradingDashboardWidget(
-                                              analytics: widget.analytics,
-                                              observer: widget.observer,
-                                              brokerageUser:
-                                                  widget.brokerageUser,
-                                              service: widget.service!,
-                                              user: user,
-                                              userDocRef: userDocumentReference,
-                                            ),
-                                          ),
-                                        );
-                                      },
+
+                                    const Divider(
+                                        height: 1,
+                                        indent: 16,
+                                        endIndent: 16),
+
+                                    // -------------------------------------------------------------
+                                    // 5. PROFILE & COMMUNITY
+                                    // -------------------------------------------------------------
+                                    _buildFeatureCategoryHeader(
+                                      context,
+                                      'Profile & Community',
+                                      icon: Icons.person_outline,
                                     ),
                                     // Investment Profile
                                     ListTile(
@@ -1356,6 +1443,8 @@ class _UserWidgetState extends State<UserWidget> {
                                         }
                                       },
                                     ),
+
+                                    const SizedBox(height: 8),
                                   ],
                                 ),
                               ),
@@ -1452,6 +1541,37 @@ class _UserWidgetState extends State<UserWidget> {
     var userStore = Provider.of<BrokerageUserStore>(context, listen: false);
     userStore.addOrUpdate(widget.brokerageUser!);
     userStore.save();
+  }
+
+  Widget _buildFeatureCategoryHeader(
+    BuildContext context,
+    String title, {
+    IconData? icon,
+  }) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
+      child: Row(
+        children: [
+          if (icon != null) ...[
+            Icon(
+              icon,
+              size: 15,
+              color: theme.colorScheme.primary,
+            ),
+            const SizedBox(width: 8),
+          ],
+          Text(
+            title.toUpperCase(),
+            style: theme.textTheme.labelSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.1,
+              color: theme.colorScheme.primary,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _onSettingsChanged({User? user, bool persistUser = true}) async {

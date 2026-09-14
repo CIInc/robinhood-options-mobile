@@ -341,7 +341,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ **Banking, ACH & Cash Movement:** Monitor bank deposits, withdrawals, clearing status, and linked bank accounts (`/ach/transfers/`, `/ach/relationships/`).
 - **Corporate Action Splits & Shareholder Q&A:** Stock split cash-in-lieu adjustments (`/corp_actions/v2/split_payments/`) and Say Technologies earnings Q&A participation (`/qa/events-section/`).
 - **Multi-Account & Retirement Expansion:** Full multi-account hydration including Traditional/Roth IRAs (`ira_traditional`, `ira_roth`), contribution history (`/retirement/history/`), spending accounts (`/rhy/accounts/`), and connected agent management (`/oauth2/list_external_tokens/`).
-- **Tax Documents & Statements:** Direct access and download for 1099 tax documents, monthly statements, ADR fees, and foreign tax withholding (`/documents/?type=1099`, `/corp_actions/adr_fees/`, `/tax_info/`).
+- ✅ **Tax Documents & Statements:** Direct access and download for 1099 tax documents, monthly statements, ADR fees, and foreign tax withholding (`/documents/?type=1099`, `/corp_actions/adr_fees/`, `/tax_info/`).
 
 ### v0.46.0 (Q4 2026 - November)
 **Investor Groups 2.0 & Collaborative Analytics**
@@ -738,7 +738,7 @@ Q3 2026 shifts focus from basic execution to **Advanced Intelligence** and **Reg
 - [x] **Stock Lending Program (SLIP) Dashboard** (v0.45.0): Track loaned shares, earned yield payments, and agreement eligibility (`/accounts/stock_loan_payments/`, `/slip/eligibility/`) - **Small** (1-2 weeks)
 - [x] **Cash Sweeps & APY Rate Monitor** (v0.45.0): Track FDIC sweep balances and multi-tier interest rates (`/accounts/sweeps/interest/`) - **Small** (1 week)
 - [x] **Banking & ACH Transfers** (v0.45.0): Monitor bank deposits, withdrawals, clearing status, and linked accounts (`/ach/transfers/`, `/ach/relationships/`) - **Small** (1-2 weeks)
-- [ ] **Tax Documents & Account Statements**: In-app download and review of Form 1099, monthly statements, and withholding status (`/documents/`, `/tax_info/`) - **Small** (1 week)
+- [x] **Tax Documents & Account Statements** (v0.45.0): In-app download and review of Form 1099, monthly statements, and withholding status (`/documents/`, `/tax_info/`) - **Small** (1 week)
 - [ ] **Corporate Action Split Adjustments**: Stock split payments, cash-in-lieu tracking, and ratio adjustments (`/corp_actions/v2/split_payments/`) - **Small** (1 week)
 - [ ] **Shareholder Say Q&A Engagement**: Verified shareholder Q&A viewing and submission for upcoming earnings calls (`/qa/events-section/`) - **Small** (1-2 weeks)
 - [ ] **Automated DRIP with Threshold** ([#23](https://github.com/CIInc/robinhood-options-mobile/issues/23)): Dividend reinvestment at price thresholds - **Small** (1 week)

@@ -58,6 +58,7 @@ import 'package:robinhood_options_mobile/model/watchlist_item.dart';
 import 'package:robinhood_options_mobile/model/instrument_buying_power.dart';
 import 'package:robinhood_options_mobile/model/option_collateral.dart';
 import 'package:robinhood_options_mobile/model/stock_loan.dart';
+import 'package:robinhood_options_mobile/model/tax_document.dart';
 import 'package:robinhood_options_mobile/model/banking.dart';
 
 class _FuturesMarginCacheEntry {
@@ -5053,11 +5054,78 @@ WATCHLIST
 
   /// Fetches tax forms (1099), monthly account statements, or trade confirmations
   /// https://api.robinhood.com/documents/?type={type}
+  @override
   Future<List<dynamic>> getDocuments(BrokerageUser user, {String? type}) async {
     var query = type != null ? "?type=$type" : "";
     var url = "$endpoint/documents/$query";
     var results = await RobinhoodService.pagedGet(user, url);
     return results;
+  }
+
+  /// Fetches typed AccountDocument models
+  @override
+  Future<List<AccountDocument>> getAccountDocumentsModel(BrokerageUser user,
+      {String? type}) async {
+    if (type != null) {
+      final raw = await getDocuments(user, type: type);
+      return raw.map((item) => AccountDocument.fromJson(item)).toList();
+    }
+    // If no type specified, fetch 1099s and account_statements concurrently
+    // to avoid paging through hundreds of trade confirmation slips
+    try {
+      final results = await Future.wait([
+        getDocuments(user, type: '1099'),
+        getDocuments(user, type: 'account_statement'),
+      ]);
+      final combined = [...results[0], ...results[1]];
+      return combined.map((item) => AccountDocument.fromJson(item)).toList();
+    } catch (_) {
+      final raw = await getDocuments(user);
+      return raw.map((item) => AccountDocument.fromJson(item)).toList();
+    }
+  }
+
+  /// Fetches typed AdrFee models
+  @override
+  Future<List<AdrFee>> getAdrFeesModel(BrokerageUser user) async {
+    final raw = await getAdrFees(user);
+    final list = raw.map((item) => AdrFee.fromJson(item)).toList();
+    for (int i = 0; i < list.length; i++) {
+      final fee = list[i];
+      if (fee.symbol.isEmpty &&
+          fee.instrumentId != null &&
+          fee.instrumentId!.isNotEmpty) {
+        try {
+          final instUrl = fee.instrumentId!.startsWith('http')
+              ? fee.instrumentId!
+              : '$endpoint/instruments/${fee.instrumentId}/';
+          final instJson = await getJson(user, instUrl);
+          if (instJson != null &&
+              instJson is Map &&
+              instJson['symbol'] != null) {
+            list[i] = fee.copyWith(
+              symbol: instJson['symbol'].toString().toUpperCase(),
+              description: instJson['simple_name']?.toString() ??
+                  instJson['name']?.toString() ??
+                  fee.description,
+            );
+          }
+        } catch (e) {
+          debugPrint('Error resolving ADR fee instrument: $e');
+        }
+      }
+    }
+    return list;
+  }
+
+  /// Fetches typed TaxWithholdingStatus model
+  @override
+  Future<TaxWithholdingStatus?> getTaxWithholdingStatusModel(
+      BrokerageUser user, String instrumentId,
+      {String? symbol}) async {
+    final raw = await getTaxWithholdingStatus(user, instrumentId);
+    if (raw == null) return null;
+    return TaxWithholdingStatus.fromJson(raw, defaultSymbol: symbol);
   }
 
   /*
@@ -5308,6 +5376,7 @@ WATCHLIST
 
   /// Fetches foreign stock American Depositary Receipt (ADR) pass-through fees
   /// https://api.robinhood.com/corp_actions/adr_fees/
+  @override
   Future<List<dynamic>> getAdrFees(BrokerageUser user) async {
     var url = "$endpoint/corp_actions/adr_fees/";
     var results = await RobinhoodService.pagedGet(user, url);
@@ -5447,11 +5516,17 @@ WATCHLIST
 
   /// Fetches foreign tax withholding classification and status for an instrument
   /// https://bonfire.robinhood.com/tax_info/instrument/{instrument_id}/withholding_status/
+  @override
   Future<dynamic> getTaxWithholdingStatus(
       BrokerageUser user, String instrumentId) async {
-    var url =
-        "$robinHoodBonfireEndpoint/tax_info/instrument/$instrumentId/withholding_status/";
-    return await getJson(user, url);
+    try {
+      var url =
+          "$robinHoodBonfireEndpoint/tax_info/instrument/$instrumentId/withholding_status/";
+      return await getJson(user, url);
+    } catch (e) {
+      debugPrint("Error fetching tax withholding status for $instrumentId: $e");
+      return null;
+    }
   }
 
   /*

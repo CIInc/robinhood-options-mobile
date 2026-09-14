@@ -3,9 +3,20 @@
 All notable changes to this project will be documented in this file.
 
 ## [0.45.0] - 2026-09-14
-**Securities Lending (SLIP) Dashboard & High-Yield FDIC Cash Sweeps APY Monitor**
+**Securities Lending (SLIP), High-Yield Cash Sweeps, Banking/ACH Transfers & Tax Documents**
 
 ### Added
+- **Tax Documents & Account Statements:**
+  - Integrated Robinhood's tax document and monthly statement endpoints (`/documents/?type=1099`, `/documents/?type=account_statement`), ADR pass-through fee endpoint (`/corp_actions/adr_fees/`), and foreign tax withholding status endpoint (`/tax_info/instrument/{id}/withholding_status/`).
+  - Created `AccountDocument`, `AdrFee`, `TaxWithholdingStatus`, and `TaxDocumentsSummary` domain models in `lib/model/tax_document.dart` with JSON serialization, tax year parsing, file size formatting, treaty rate comparisons, and cumulative summary calculations.
+  - Extended `IBrokerageService` with `getDocuments`, `getAdrFees`, and `getTaxWithholdingStatus`, alongside typed model helpers (`getAccountDocumentsModel`, `getAdrFeesModel`, `getTaxWithholdingStatusModel`). Implemented concrete overrides in `RobinhoodService`, realistic multi-year 1099, monthly statements, ADR fees, and foreign tax treaty fixtures in `DemoService`, and concrete stubs in `PaperService`, `FidelityService`, `SchwabService`, and `PlaidService`.
+  - Built `TaxDocumentsWidget` (`lib/widgets/tax_documents_widget.dart`) offering a 3-tab dashboard:
+    - **Tax Forms (1099):** Hero summary card, tax year filter chips (`All Years`, `2025`, `2024`, `2023`), keyword search, document download actions, and detail bottom sheet.
+    - **Statements & Trade Confirms:** Segmented filter (`All`, `Statements`, `Trade Confirms`), search bar, and chronological list of monthly statements and order execution confirmations.
+    - **ADR Fees & Withholding:** Hero metric of cumulative ADR pass-through fees paid, ADR fee ledger with per-share rates and share quantities, and foreign tax withholding rates table with statutory vs. treaty rates and exemption badges (e.g. UK 0% treaty exempt, Netherlands 15% reduced, Cayman Islands tax-exempt).
+  - Integrated "Tax Documents" actionable badge chip in `UserInfoWidget` (`user_info_widget.dart`) and "Tax Documents & Statements" navigation tile in `UserWidget` (`user_widget.dart`).
+  - Added 15 unit tests in `test/tax_document_test.dart` and widget tests in `test/tax_documents_widget_test.dart`.
+  - Added feature documentation in `docs/tax-documents-and-statements.md` and updated `docs/index.md`.
 - **Stock Lending Program (SLIP) Dashboard:**
   - Integrated Robinhood's Fully Paid Securities Lending Program endpoints (`/accounts/stock_loan_payments/`, `/stock_loan/payments/`, and `/slip/eligibility/`).
   - Created `StockLoanPosition`, `StockLoanPayment`, and `SlipEligibility` domain models in `lib/model/stock_loan.dart` with JSON serialization, 102% cash collateral backing tracking, borrow rate formatting, and enrollment status management (`enrolled`, `eligible`, `ineligible`, `pending`, `paused`).

@@ -42,6 +42,7 @@ import 'package:robinhood_options_mobile/model/portfolio_store.dart';
 import 'package:robinhood_options_mobile/model/quote.dart';
 import 'package:robinhood_options_mobile/model/quote_store.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
+import 'package:robinhood_options_mobile/model/tax_document.dart';
 import 'package:robinhood_options_mobile/model/user_info.dart';
 import 'package:robinhood_options_mobile/model/watchlist.dart';
 
@@ -519,4 +520,46 @@ abstract class IBrokerageService {
   Future<bool> cancelAchTransfer(BrokerageUser user, String cancelUrl) async {
     return false;
   }
+
+  /// Fetches tax forms (1099), monthly account statements, or trade confirmations
+  /// https://api.robinhood.com/documents/?type={type}
+  Future<List<dynamic>> getDocuments(BrokerageUser user, {String? type}) async {
+    return [];
+  }
+
+  /// Fetches foreign stock American Depositary Receipt (ADR) pass-through fees
+  /// https://api.robinhood.com/corp_actions/adr_fees/
+  Future<List<dynamic>> getAdrFees(BrokerageUser user) async {
+    return [];
+  }
+
+  /// Fetches foreign tax withholding classification and status for an instrument
+  /// https://bonfire.robinhood.com/tax_info/instrument/{instrument_id}/withholding_status/
+  Future<dynamic> getTaxWithholdingStatus(
+      BrokerageUser user, String instrumentId) async {
+    return null;
+  }
+
+  /// Fetches typed AccountDocument models
+  Future<List<AccountDocument>> getAccountDocumentsModel(BrokerageUser user,
+      {String? type}) async {
+    final raw = await getDocuments(user, type: type);
+    return raw.map((item) => AccountDocument.fromJson(item)).toList();
+  }
+
+  /// Fetches typed AdrFee models
+  Future<List<AdrFee>> getAdrFeesModel(BrokerageUser user) async {
+    final raw = await getAdrFees(user);
+    return raw.map((item) => AdrFee.fromJson(item)).toList();
+  }
+
+  /// Fetches typed TaxWithholdingStatus model
+  Future<TaxWithholdingStatus?> getTaxWithholdingStatusModel(
+      BrokerageUser user, String instrumentId,
+      {String? symbol}) async {
+    final raw = await getTaxWithholdingStatus(user, instrumentId);
+    if (raw == null) return null;
+    return TaxWithholdingStatus.fromJson(raw, defaultSymbol: symbol);
+  }
 }
+
