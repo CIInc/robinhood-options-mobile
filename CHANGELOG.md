@@ -3,9 +3,22 @@
 All notable changes to this project will be documented in this file.
 
 ## [0.45.0] - 2026-09-14
-**Securities Lending (SLIP), High-Yield Cash Sweeps, Banking/ACH Transfers & Tax Documents**
+**Corporate Action Split Adjustments, Cash-in-Lieu Tracking, Securities Lending (SLIP), High-Yield Cash Sweeps, Banking/ACH Transfers & Tax Documents**
 
 ### Added
+- **Corporate Action Split Adjustments & Cash-in-Lieu Tracking:**
+  - Integrated Robinhood's corporate action stock split payment endpoint (`/corp_actions/v2/split_payments/`) and instrument split history (`/instruments/{id}/splits/`).
+  - Created `Split`, `SplitPayment`, and `CorporateActionSplitsSummary` domain models in `lib/model/split.dart` with forward/reverse split ratio formatting (e.g., `10:1 Forward Split`, `1:25 Reverse Split`), cost basis adjustment factors, fractional share cash-in-lieu calculation, and JSON serialization.
+  - Extended `IBrokerageService` with `getSplitPayments`, `getSplitPaymentsModel`, and `getCorporateActionSplitsSummary`. Added live network fetching in `RobinhoodService`, realistic multi-stock forward/reverse split fixtures (`NVDA 10:1`, `TSLA 3:1`, `AAPL 4:1`, `BIOR 1:25` reverse split with cash-in-lieu) in `DemoService`, and concrete stubs across `FidelityService`, `SchwabService`, `PlaidService`, and `PaperService`.
+  - Built `CorporateActionsWidget` (`lib/widgets/corporate_actions_widget.dart`) offering a comprehensive dashboard:
+    - Hero metrics card displaying cumulative cash-in-lieu received and completed split count.
+    - Interactive filter chips (`All`, `Forward Splits`, `Reverse Splits`, `Cash-in-Lieu`).
+    - Keyword search by symbol, company name, or ratio.
+    - Interactive split payment detail bottom sheet with original/adjusted cost basis formulas, tax treatment (Form 1099-B Box 1d) breakdown, and corporate action reference numbers.
+    - Educational Stock Splits & Cash-in-Lieu FAQ dialog.
+  - Integrated Corporate Actions entry point in `UserWidget` under Banking & Documents, "Corporate Actions" actionable badge chip in `UserInfoWidget`, and "Adjustments" text button in `InstrumentWidget`'s Stock Splits section header linking directly with pre-filtered symbol context.
+  - Added 12 unit tests in `test/split_test.dart` and 5 widget tests in `test/corporate_actions_widget_test.dart`.
+  - Added comprehensive feature documentation in `docs/corporate-actions-and-stock-splits.md` and updated `docs/index.md`.
 - **Tax Documents & Account Statements:**
   - Integrated Robinhood's tax document and monthly statement endpoints (`/documents/?type=1099`, `/documents/?type=account_statement`), ADR pass-through fee endpoint (`/corp_actions/adr_fees/`), and foreign tax withholding status endpoint (`/tax_info/instrument/{id}/withholding_status/`).
   - Created `AccountDocument`, `AdrFee`, `TaxWithholdingStatus`, and `TaxDocumentsSummary` domain models in `lib/model/tax_document.dart` with JSON serialization, tax year parsing, file size formatting, treaty rate comparisons, and cumulative summary calculations.

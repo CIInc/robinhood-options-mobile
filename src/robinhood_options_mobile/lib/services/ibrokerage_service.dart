@@ -42,6 +42,7 @@ import 'package:robinhood_options_mobile/model/portfolio_store.dart';
 import 'package:robinhood_options_mobile/model/quote.dart';
 import 'package:robinhood_options_mobile/model/quote_store.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
+import 'package:robinhood_options_mobile/model/split.dart';
 import 'package:robinhood_options_mobile/model/tax_document.dart';
 import 'package:robinhood_options_mobile/model/user_info.dart';
 import 'package:robinhood_options_mobile/model/watchlist.dart';
@@ -560,6 +561,27 @@ abstract class IBrokerageService {
     final raw = await getTaxWithholdingStatus(user, instrumentId);
     if (raw == null) return null;
     return TaxWithholdingStatus.fromJson(raw, defaultSymbol: symbol);
+  }
+
+  /// Fetches corporate action stock split cash/share adjustments
+  /// https://api.robinhood.com/corp_actions/v2/split_payments/
+  Future<List<dynamic>> getSplitPayments(BrokerageUser user,
+      {String? instrumentId}) async {
+    return [];
+  }
+
+  /// Fetches typed SplitPayment models
+  Future<List<SplitPayment>> getSplitPaymentsModel(BrokerageUser user,
+      {String? instrumentId}) async {
+    final raw = await getSplitPayments(user, instrumentId: instrumentId);
+    return raw.map((item) => SplitPayment.fromJson(item)).toList();
+  }
+
+  /// Aggregates corporate action stock split summary metrics
+  Future<CorporateActionSplitsSummary> getCorporateActionSplitsSummary(
+      BrokerageUser user) async {
+    final payments = await getSplitPaymentsModel(user);
+    return CorporateActionSplitsSummary.fromPayments(payments);
   }
 }
 

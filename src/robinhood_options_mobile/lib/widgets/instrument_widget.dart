@@ -30,6 +30,7 @@ import 'package:robinhood_options_mobile/model/instrument_order_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
 import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/paper_trading_store.dart';
+import 'package:robinhood_options_mobile/model/split.dart' as model;
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
@@ -48,6 +49,7 @@ import 'package:robinhood_options_mobile/widgets/option_chain_widget.dart';
 import 'package:robinhood_options_mobile/widgets/list_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_order_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_positions_widget.dart';
+import 'package:robinhood_options_mobile/widgets/corporate_actions_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_note_widget.dart';
 import 'package:robinhood_options_mobile/widgets/options_flow_widget.dart';
 import 'package:robinhood_options_mobile/widgets/gamma_exposure_widget.dart';
@@ -4570,6 +4572,23 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           _buildSectionHeader(
             title: "Stock Splits",
             icon: Icons.call_split_outlined,
+            trailing: TextButton.icon(
+              icon: const Icon(Icons.history, size: 14),
+              label: const Text('Adjustments', style: TextStyle(fontSize: 12)),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => CorporateActionsWidget(
+                      brokerageUser: widget.brokerageUser,
+                      service: widget.service,
+                      filterSymbol: instrument.symbol,
+                      filterInstrumentId: instrument.id,
+                    ),
+                  ),
+                );
+              },
+            ),
           ),
           Card(
             margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -4598,27 +4617,19 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                 endIndent: 16,
               ),
               itemBuilder: (BuildContext context, int index) {
-                var split = splits[index]; // Note: Assumes splitsObj existence
-                var splitText = "${split["multiplier"]} Split";
-                try {
-                  var multiplier = double.parse(split["multiplier"]);
-                  if (multiplier > 1) {
-                    if (multiplier % 1 == 0) {
-                      splitText = "${multiplier.toInt()} for 1 Split";
-                    } else {
-                      splitText = "$multiplier for 1 Split";
-                    }
-                  } else if (multiplier > 0 && multiplier < 1) {
-                    var reverse = 1 / multiplier;
-                    if ((reverse - reverse.round()).abs() < 0.001) {
-                      splitText = "1 for ${reverse.round()} Reverse Split";
-                    } else {
-                      splitText = "1 for $reverse Reverse Split";
-                    }
-                  }
-                } catch (e) {
-                  // ignore
+                var rawSplit = splits[index]; // Note: Assumes splitsObj existence
+                model.Split splitObj;
+                if (rawSplit is model.Split) {
+                  splitObj = rawSplit;
+                } else {
+                  splitObj = model.Split.fromJson(rawSplit);
                 }
+                var splitText = splitObj.formattedRatio;
+                var dateStr = splitObj.executionDate != null
+                    ? formatDate.format(splitObj.executionDate!)
+                    : (rawSplit is Map && rawSplit['execution_date'] != null
+                        ? rawSplit['execution_date'].toString()
+                        : 'Unknown date');
                 return ListTile(
                   title: Text(
                     splitText,
@@ -4626,7 +4637,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                         fontSize: 16.0, fontWeight: FontWeight.w500),
                   ),
                   subtitle: Text(
-                      "Ex-Date: ${formatDate.format(DateTime.parse(split["execution_date"]))}",
+                      "Ex-Date: $dateStr",
                       style: TextStyle(
                           fontSize: 14,
                           color: Theme.of(context).textTheme.bodySmall?.color)),

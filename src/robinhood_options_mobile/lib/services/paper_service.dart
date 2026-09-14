@@ -41,6 +41,7 @@ import 'package:robinhood_options_mobile/model/option_order.dart';
 import 'package:robinhood_options_mobile/model/option_order_store.dart';
 import 'package:robinhood_options_mobile/model/combo_order.dart';
 import 'package:robinhood_options_mobile/model/combo_order_store.dart';
+import 'package:robinhood_options_mobile/model/split.dart';
 import 'package:robinhood_options_mobile/model/tax_document.dart';
 import 'package:robinhood_options_mobile/model/option_position_store.dart';
 import 'package:robinhood_options_mobile/model/paper_trading_store.dart';
@@ -1799,6 +1800,24 @@ class PaperService implements IBrokerageService {
       BrokerageUser user, String instrumentId,
       {String? symbol}) async {
     return null;
+  }
+
+  @override
+  Future<List<dynamic>> getSplitPayments(BrokerageUser user,
+      {String? instrumentId}) async {
+    return [];
+  }
+
+  @override
+  Future<List<SplitPayment>> getSplitPaymentsModel(BrokerageUser user,
+      {String? instrumentId}) async {
+    return [];
+  }
+
+  @override
+  Future<CorporateActionSplitsSummary> getCorporateActionSplitsSummary(
+      BrokerageUser user) async {
+    return const CorporateActionSplitsSummary();
   }
 
   @override

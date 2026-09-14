@@ -26,6 +26,7 @@ import 'package:robinhood_options_mobile/widgets/option_collateral_widget.dart';
 import 'package:robinhood_options_mobile/widgets/stock_loan_widget.dart';
 import 'package:robinhood_options_mobile/widgets/banking_widget.dart';
 import 'package:robinhood_options_mobile/widgets/tax_documents_widget.dart';
+import 'package:robinhood_options_mobile/widgets/corporate_actions_widget.dart';
 
 final formatDate = DateFormat("yMMMd");
 final formatCompactDate = DateFormat("MMMd");
@@ -684,6 +685,7 @@ class _UserInfoWidgetState extends State<UserInfoWidget> {
                   _buildStockLoanChip(context, account),
                   _buildBankingChip(context, account),
                   _buildTaxDocumentsChip(context, account),
+                  _buildCorporateActionsChip(context, account),
                 ],
               ),
             ],
@@ -1152,6 +1154,67 @@ class _UserInfoWidgetState extends State<UserInfoWidget> {
               const Flexible(
                 child: Text(
                   'Tax Documents',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: badgeColor,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 2),
+              Icon(
+                Icons.chevron_right,
+                size: 12,
+                color: badgeColor.withValues(alpha: 0.7),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCorporateActionsChip(BuildContext context, Account account) {
+    const Color badgeColor = Colors.indigo;
+    final Color badgeBg = Colors.indigo.withValues(alpha: 0.12);
+    final Color badgeBorder = Colors.indigo.withValues(alpha: 0.3);
+
+    return Material(
+      color: badgeBg,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(6),
+        side: BorderSide(color: badgeBorder),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(6),
+        onTap: () {
+          final effectiveService = widget.service ??
+              (widget.brokerageUser.source == BrokerageSource.robinhood
+                  ? RobinhoodService()
+                  : DemoService());
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => CorporateActionsWidget(
+                brokerageUser: widget.brokerageUser,
+                service: effectiveService,
+                account: account,
+              ),
+            ),
+          );
+        },
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.call_split, size: 12, color: badgeColor),
+              const SizedBox(width: 4),
+              const Flexible(
+                child: Text(
+                  'Corporate Actions',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(

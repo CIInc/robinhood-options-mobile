@@ -33,6 +33,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 import 'package:flutter/foundation.dart';
 import 'package:collection/collection.dart';
+import 'package:robinhood_options_mobile/utils/json.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/forex_holding.dart';
 import 'package:robinhood_options_mobile/model/forex_order.dart';
@@ -57,6 +58,7 @@ import 'package:robinhood_options_mobile/model/watchlist.dart';
 import 'package:robinhood_options_mobile/model/watchlist_item.dart';
 import 'package:robinhood_options_mobile/model/instrument_buying_power.dart';
 import 'package:robinhood_options_mobile/model/option_collateral.dart';
+import 'package:robinhood_options_mobile/model/split.dart';
 import 'package:robinhood_options_mobile/model/stock_loan.dart';
 import 'package:robinhood_options_mobile/model/tax_document.dart';
 import 'package:robinhood_options_mobile/model/banking.dart';
@@ -1886,10 +1888,12 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
         var instrumentObjs =
             await getInstrumentsByIds(user, instrumentStore, instrumentIds);
         for (var instrumentObj in instrumentObjs) {
-          var position = store.items.firstWhere(
+          var position = store.items.firstWhereOrNull(
               (element) => element.instrumentId == instrumentObj.id);
-          position.instrumentObj = instrumentObj;
-          store.update(position);
+          if (position != null) {
+            position.instrumentObj = instrumentObj;
+            store.update(position);
+          }
         }
         var symbols = store.items
             .where((e) =>
@@ -1998,8 +2002,9 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
       var quoteObjs =
           await getQuoteByIds(user, quoteStore, symbols, fromCache: false);
       for (var quoteObj in quoteObjs) {
-        var position = store.items.firstWhere(
-            (element) => element.instrumentObj!.symbol == quoteObj.symbol);
+        var position = store.items.firstWhereOrNull(
+            (element) => element.instrumentObj?.symbol == quoteObj.symbol);
+        if (position == null) continue;
         if (position.instrumentObj!.quoteObj == null ||
             position.instrumentObj!.quoteObj!.updatedAt!
                 .isBefore(quoteObj.updatedAt!)) {
@@ -3093,14 +3098,86 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
     //debugPrint(instrumentObj.splits);
     // Splits
     // https://api.robinhood.com/instruments/{0}/splits/'.format(id_for_stock(symbol))
-    //https://api.robinhood.com/corp_actions/v2/split_payments/?instrument_ids=943c5009-a0bb-4665-8cf4-a95dab5874e4
-    var results = await RobinhoodService.pagedGet(user, instrumentObj.splits);
     List<dynamic> list = [];
-    for (var i = 0; i < results.length; i++) {
-      var result = results[i];
-      //var op = Split.fromJson(result);
-      list.add(result);
+    var splitsUrl = instrumentObj.splits;
+    if (splitsUrl.isEmpty || splitsUrl.contains(r'$symbol')) {
+      if (instrumentObj.id.isNotEmpty && !instrumentObj.id.startsWith('dummy')) {
+        splitsUrl = "$endpoint/instruments/${instrumentObj.id}/splits/";
+      }
     }
+
+    if (splitsUrl.isNotEmpty) {
+      try {
+        var results = await RobinhoodService.pagedGet(user, splitsUrl);
+        for (var i = 0; i < results.length; i++) {
+          list.add(results[i]);
+        }
+      } catch (e) {
+        debugPrint('Error fetching splits from $splitsUrl: $e');
+      }
+    }
+
+    // Robinhood's /instruments/{id}/splits/ endpoint is deprecated/empty for many
+    // stocks (e.g. AMZN, GOOG). Fallback to fetching corporate actions split payments
+    // for this instrument/symbol if available.
+    if (list.isEmpty) {
+      try {
+        var payments = await getSplitPaymentsModel(user,
+            instrumentId:
+                instrumentObj.id.isNotEmpty ? instrumentObj.id : null);
+        if (payments.isEmpty) {
+          final allPayments = await getSplitPaymentsModel(user);
+          payments = allPayments
+              .where((p) =>
+                  (instrumentObj.id.isNotEmpty &&
+                      (p.instrumentId == instrumentObj.id ||
+                       p.oldInstrumentId == instrumentObj.id ||
+                       p.newInstrumentId == instrumentObj.id)) ||
+                  (p.symbol.isNotEmpty &&
+                      p.symbol.toUpperCase() ==
+                          instrumentObj.symbol.toUpperCase()))
+              .toList();
+        }
+        for (final payment in payments) {
+          final matchesId = instrumentObj.id.isNotEmpty &&
+              (payment.instrumentId == instrumentObj.id ||
+               payment.oldInstrumentId == instrumentObj.id ||
+               payment.newInstrumentId == instrumentObj.id);
+          final matchesSym = payment.symbol.isNotEmpty &&
+              payment.symbol.toUpperCase() ==
+                  instrumentObj.symbol.toUpperCase();
+
+          if (matchesId || matchesSym) {
+            final splitObj = payment.split;
+            final mult = (splitObj != null && splitObj.multiplier > 0)
+                ? splitObj.multiplier
+                : payment.multiplier;
+            final div = (splitObj != null && splitObj.divisor > 0)
+                ? splitObj.divisor
+                : payment.divisor;
+            final execDate = splitObj?.effectiveDate ??
+                payment.executionDate ??
+                payment.paymentDate;
+
+            list.add({
+              'id': splitObj?.id.isNotEmpty == true ? splitObj!.id : payment.id,
+              'instrument': payment.instrumentId.isNotEmpty
+                  ? payment.instrumentId
+                  : (splitObj?.oldInstrumentId.isNotEmpty == true
+                      ? splitObj!.oldInstrumentId
+                      : instrumentObj.id),
+              'multiplier': mult.toString(),
+              'divisor': div.toString(),
+              'execution_date': execDate?.toIso8601String(),
+              'description': payment.description,
+            });
+          }
+        }
+      } catch (e) {
+        debugPrint('Error fetching fallback split payments: $e');
+      }
+    }
+
     return list;
   }
 
@@ -3923,9 +4000,10 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
       var quoteObjs = await getForexQuoteByIds(user, symbols);
       for (var quoteObj in quoteObjs) {
         var forex = forexHolding
-            .firstWhere((element) => element.quoteObj!.id == quoteObj.id);
-        if (forex.quoteObj == null ||
-            forex.quoteObj!.updatedAt!.isBefore(quoteObj.updatedAt!)) {
+            .firstWhereOrNull((element) => element.quoteObj?.id == quoteObj.id);
+        if (forex != null &&
+            (forex.quoteObj == null ||
+                forex.quoteObj!.updatedAt!.isBefore(quoteObj.updatedAt!))) {
           forex.quoteObj = quoteObj;
           store.update(forex);
         }
@@ -5385,12 +5463,199 @@ WATCHLIST
 
   /// Fetches corporate action stock split cash/share adjustments
   /// https://api.robinhood.com/corp_actions/v2/split_payments/
+  @override
   Future<List<dynamic>> getSplitPayments(BrokerageUser user,
       {String? instrumentId}) async {
     var query = instrumentId != null ? "?instrument_ids=$instrumentId" : "";
     var url = "$endpoint/corp_actions/v2/split_payments/$query";
     var results = await RobinhoodService.pagedGet(user, url);
     return results;
+  }
+
+  /// Fetches typed SplitPayment models
+  @override
+  Future<List<SplitPayment>> getSplitPaymentsModel(BrokerageUser user,
+      {String? instrumentId}) async {
+    var raw = await getSplitPayments(user, instrumentId: instrumentId);
+    if (raw.isEmpty && instrumentId != null) {
+      final allRaw = await getSplitPayments(user);
+      raw = allRaw.where((item) {
+        if (item is! Map) return false;
+        final topInst = item['instrument_id']?.toString() ??
+            item['instrument']?.toString() ??
+            item['equity_instrument_id']?.toString();
+        if (topInst != null &&
+            (topInst == instrumentId || topInst.contains(instrumentId))) {
+          return true;
+        }
+        if (item['split'] is Map) {
+          final s = item['split'] as Map;
+          if (s['old_instrument_id']?.toString() == instrumentId ||
+              s['new_instrument_id']?.toString() == instrumentId ||
+              s['instrument_id']?.toString() == instrumentId) {
+            return true;
+          }
+        }
+        return false;
+      }).toList();
+    }
+
+    if (raw.isNotEmpty) {
+      debugPrint('RAW SPLIT PAYMENTS ITEM: ${raw.first}');
+    }
+    final list = raw.map((item) => SplitPayment.fromJson(item)).toList();
+    final Map<String, dynamic> splitCache = {};
+    final Map<String, dynamic> instrumentCache = {};
+    final Map<String, dynamic> instSplitsCache = {};
+
+    for (int i = 0; i < list.length; i++) {
+      var payment = list[i];
+      var targetInstrument = payment.oldInstrumentId.isNotEmpty
+          ? payment.oldInstrumentId
+          : payment.instrumentId;
+
+      // 1. Fetch split definition if split foreign key URL is present
+      final splitUrl = payment.split?.url;
+      if (splitUrl != null && splitUrl.startsWith('http')) {
+        try {
+          dynamic splitJson = splitCache[splitUrl];
+          if (splitJson == null) {
+            splitJson = await getJson(user, splitUrl);
+            if (splitJson != null) {
+              splitCache[splitUrl] = splitJson;
+            }
+          }
+          if (splitJson is Map) {
+            final fetchedSplit = SplitPaymentSplit.fromJson(splitJson);
+            if (targetInstrument.isEmpty) {
+              targetInstrument = fetchedSplit.oldInstrumentId.isNotEmpty
+                  ? fetchedSplit.oldInstrumentId
+                  : fetchedSplit.newInstrumentId;
+            }
+            var mult = payment.multiplier;
+            var div = payment.divisor;
+            if (payment.effectiveMultiplier == 1.0) {
+              if (fetchedSplit.multiplier > 0) mult = fetchedSplit.multiplier;
+              if (fetchedSplit.divisor > 0) div = fetchedSplit.divisor;
+            }
+            DateTime? execDate =
+                payment.executionDate ?? fetchedSplit.effectiveDate;
+            final desc = payment.description ??
+                splitJson['description']?.toString() ??
+                splitJson['simple_name']?.toString();
+            final sym = payment.symbol.isNotEmpty
+                ? payment.symbol
+                : (splitJson['symbol']?.toString().toUpperCase() ?? '');
+            final actionType = mult > div
+                ? 'forward_split'
+                : (mult < div ? 'reverse_split' : payment.actionType);
+
+            payment = payment.copyWith(
+              symbol: sym.isNotEmpty ? sym : null,
+              instrumentId:
+                  targetInstrument.isNotEmpty ? targetInstrument : null,
+              multiplier: mult,
+              divisor: div,
+              executionDate: execDate,
+              description: desc,
+              actionType: actionType,
+              split: fetchedSplit,
+            );
+          }
+        } catch (e) {
+          debugPrint('Error fetching split detail for $splitUrl: $e');
+        }
+      }
+
+      // 2. Resolve instrument if symbol or description is missing, or for fallback split lookup
+      if (targetInstrument.isNotEmpty) {
+        try {
+          final instUrl = targetInstrument.startsWith('http')
+              ? targetInstrument
+              : '$endpoint/instruments/$targetInstrument/';
+          dynamic instJson = instrumentCache[instUrl];
+          if (instJson == null) {
+            instJson = await getJson(user, instUrl);
+            if (instJson != null) {
+              instrumentCache[instUrl] = instJson;
+            }
+          }
+          if (instJson is Map) {
+            if (instJson['symbol'] != null && payment.symbol.isEmpty) {
+              payment = payment.copyWith(
+                instrumentId: targetInstrument,
+                symbol: instJson['symbol'].toString().toUpperCase(),
+                description: instJson['simple_name']?.toString() ??
+                    instJson['name']?.toString() ??
+                    payment.description,
+              );
+            } else if (payment.description == null &&
+                (instJson['simple_name'] != null || instJson['name'] != null)) {
+              payment = payment.copyWith(
+                description: instJson['simple_name']?.toString() ??
+                    instJson['name']?.toString(),
+              );
+            }
+
+            // 3. Fallback: if effectiveMultiplier is still 1.0, look up instrument splits
+            if (payment.effectiveMultiplier == 1.0 &&
+                instJson['splits'] != null) {
+              final splitsUrl = instJson['splits'].toString();
+              dynamic splitsRes = instSplitsCache[splitsUrl];
+              if (splitsRes == null) {
+                splitsRes = await RobinhoodService.pagedGet(user, splitsUrl);
+                if (splitsRes != null) {
+                  instSplitsCache[splitsUrl] = splitsRes;
+                }
+              }
+              if (splitsRes is List && splitsRes.isNotEmpty) {
+                dynamic matchSplit;
+                if (payment.executionDate != null) {
+                  matchSplit = splitsRes.firstWhereOrNull((s) {
+                    if (s is! Map) return false;
+                    final d = DateTime.tryParse(
+                        (s['execution_date'] ?? s['date'] ?? '').toString());
+                    if (d == null) return false;
+                    return d.year == payment.executionDate!.year &&
+                        d.month == payment.executionDate!.month &&
+                        (d.day - payment.executionDate!.day).abs() <= 2;
+                  });
+                }
+                matchSplit ??= splitsRes.first;
+                if (matchSplit is Map) {
+                  final sm = parseDouble(matchSplit['multiplier']);
+                  final sd = parseDouble(matchSplit['divisor']);
+                  if (sm != null && sd != null && (sm != 1.0 || sd != 1.0)) {
+                    final actionType = sm > sd
+                        ? 'forward_split'
+                        : (sm < sd ? 'reverse_split' : payment.actionType);
+                    payment = payment.copyWith(
+                      multiplier: sm,
+                      divisor: sd,
+                      actionType: actionType,
+                    );
+                  }
+                }
+              }
+            }
+          }
+        } catch (e) {
+          debugPrint(
+              'Error fetching instrument detail for $targetInstrument: $e');
+        }
+      }
+
+      list[i] = payment;
+    }
+    return list;
+  }
+
+  /// Aggregates corporate action stock split summary metrics
+  @override
+  Future<CorporateActionSplitsSummary> getCorporateActionSplitsSummary(
+      BrokerageUser user) async {
+    final payments = await getSplitPaymentsModel(user);
+    return CorporateActionSplitsSummary.fromPayments(payments);
   }
 
   /*

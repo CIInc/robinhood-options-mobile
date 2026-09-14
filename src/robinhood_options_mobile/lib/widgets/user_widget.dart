@@ -38,6 +38,7 @@ import 'package:robinhood_options_mobile/widgets/margin_health_widget.dart';
 import 'package:robinhood_options_mobile/widgets/stock_loan_widget.dart';
 import 'package:robinhood_options_mobile/widgets/banking_widget.dart';
 import 'package:robinhood_options_mobile/widgets/tax_documents_widget.dart';
+import 'package:robinhood_options_mobile/widgets/corporate_actions_widget.dart';
 
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
@@ -1300,6 +1301,47 @@ class _UserWidgetState extends State<UserWidget> {
                                               .showSnackBar(const SnackBar(
                                             content: Text(
                                                 'Please link a brokerage account to view tax documents & statements.'),
+                                          ));
+                                        }
+                                      },
+                                    ),
+                                    // Corporate Actions & Stock Splits
+                                    ListTile(
+                                      leading: CircleAvatar(
+                                        backgroundColor: Theme.of(context)
+                                            .colorScheme
+                                            .secondaryContainer,
+                                        foregroundColor: Theme.of(context)
+                                            .colorScheme
+                                            .onSecondaryContainer,
+                                        child:
+                                            const Icon(Icons.call_split),
+                                      ),
+                                      title: const Text(
+                                          'Corporate Actions & Splits'),
+                                      subtitle: const Text(
+                                          'Stock split adjustments, cash-in-lieu & ratios'),
+                                      trailing:
+                                          const Icon(Icons.chevron_right),
+                                      onTap: () async {
+                                        if (widget.brokerageUser != null &&
+                                            widget.service != null) {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) =>
+                                                  CorporateActionsWidget(
+                                                brokerageUser:
+                                                    widget.brokerageUser!,
+                                                service: widget.service!,
+                                              ),
+                                            ),
+                                          );
+                                        } else {
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(const SnackBar(
+                                            content: Text(
+                                                'Please link a brokerage account to view corporate actions.'),
                                           ));
                                         }
                                       },

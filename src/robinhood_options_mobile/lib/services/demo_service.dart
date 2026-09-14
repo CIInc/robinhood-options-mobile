@@ -53,6 +53,7 @@ import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 import 'package:robinhood_options_mobile/services/yahoo_service.dart';
 import 'package:robinhood_options_mobile/model/banking.dart';
+import 'package:robinhood_options_mobile/model/split.dart';
 import 'package:robinhood_options_mobile/model/tax_document.dart';
 
 class DemoService implements IBrokerageService {
@@ -1856,13 +1857,42 @@ class DemoService implements IBrokerageService {
 
   @override
   Future<List> getSplits(BrokerageUser user, Instrument instrumentObj) async {
-    dynamic json = jsonDecode('[]');
-    final results = await Future.delayed(Duration.zero, () => json);
+    final payments = await getSplitPaymentsModel(user);
     List<dynamic> list = [];
-    for (var i = 0; i < results.length; i++) {
-      var result = results[i];
-      //var op = Split.fromJson(result);
-      list.add(result);
+    for (var payment in payments) {
+      final matchesId = instrumentObj.id.isNotEmpty &&
+          (payment.instrumentId == instrumentObj.id ||
+           payment.oldInstrumentId == instrumentObj.id ||
+           payment.newInstrumentId == instrumentObj.id);
+      final matchesSym = payment.symbol.isNotEmpty &&
+          payment.symbol.toUpperCase() ==
+              instrumentObj.symbol.toUpperCase();
+
+      if (matchesId || matchesSym) {
+        final splitObj = payment.split;
+        final mult = (splitObj != null && splitObj.multiplier > 0)
+            ? splitObj.multiplier
+            : payment.multiplier;
+        final div = (splitObj != null && splitObj.divisor > 0)
+            ? splitObj.divisor
+            : payment.divisor;
+        final execDate = splitObj?.effectiveDate ??
+            payment.executionDate ??
+            payment.paymentDate;
+
+        list.add({
+          'id': splitObj?.id.isNotEmpty == true ? splitObj!.id : payment.id,
+          'instrument': payment.instrumentId.isNotEmpty
+              ? payment.instrumentId
+              : (splitObj?.oldInstrumentId.isNotEmpty == true
+                  ? splitObj!.oldInstrumentId
+                  : instrumentObj.id),
+          'multiplier': mult.toString(),
+          'divisor': div.toString(),
+          'execution_date': execDate?.toIso8601String(),
+          'description': payment.description,
+        });
+      }
     }
     return list;
   }
@@ -4861,5 +4891,139 @@ class DemoService implements IBrokerageService {
     final data = await getTaxWithholdingStatus(user, instrumentId);
     if (data == null) return null;
     return TaxWithholdingStatus.fromJson(data, defaultSymbol: symbol);
+  }
+
+  @override
+  Future<List<dynamic>> getSplitPayments(BrokerageUser user,
+      {String? instrumentId}) async {
+    final list = [
+      {
+        'id': 'split_pay_nvda_2024',
+        'account_number': 'DEMO12345',
+        'instrument_id': 'inst_nvda_01',
+        'symbol': 'NVDA',
+        'action_type': 'forward_split',
+        'multiplier': '10.0',
+        'divisor': '1.0',
+        'old_shares': '15.5',
+        'new_shares': '155.0',
+        'cash_in_lieu': '14.25',
+        'currency_code': 'USD',
+        'state': 'settled',
+        'execution_date': '2024-06-10T13:30:00Z',
+        'payment_date': '2024-06-10T20:00:00Z',
+        'description': 'NVIDIA Corp 10-for-1 Forward Stock Split',
+      },
+      {
+        'id': 'split_pay_tsla_2022',
+        'account_number': 'DEMO12345',
+        'instrument_id': 'inst_tsla_02',
+        'symbol': 'TSLA',
+        'action_type': 'forward_split',
+        'multiplier': '3.0',
+        'divisor': '1.0',
+        'old_shares': '20.0',
+        'new_shares': '60.0',
+        'cash_in_lieu': '0.0',
+        'currency_code': 'USD',
+        'state': 'settled',
+        'execution_date': '2022-08-25T13:30:00Z',
+        'payment_date': '2022-08-25T20:00:00Z',
+        'description': 'Tesla Inc 3-for-1 Forward Stock Split',
+      },
+      {
+        'id': 'split_pay_aapl_2020',
+        'account_number': 'DEMO12345',
+        'instrument_id': 'inst_aapl_03',
+        'symbol': 'AAPL',
+        'action_type': 'forward_split',
+        'multiplier': '4.0',
+        'divisor': '1.0',
+        'old_shares': '25.0',
+        'new_shares': '100.0',
+        'cash_in_lieu': '0.0',
+        'currency_code': 'USD',
+        'state': 'settled',
+        'execution_date': '2020-08-31T13:30:00Z',
+        'payment_date': '2020-08-31T20:00:00Z',
+        'description': 'Apple Inc 4-for-1 Forward Stock Split',
+      },
+      {
+        'id': 'split_pay_bior_2024',
+        'account_number': 'DEMO12345',
+        'instrument_id': 'inst_bior_04',
+        'symbol': 'BIOR',
+        'action_type': 'reverse_split',
+        'multiplier': '1.0',
+        'divisor': '25.0',
+        'old_shares': '55.0',
+        'new_shares': '2.0',
+        'cash_in_lieu': '18.40',
+        'currency_code': 'USD',
+        'state': 'settled',
+        'execution_date': '2024-01-16T14:30:00Z',
+        'payment_date': '2024-01-16T21:00:00Z',
+        'description': 'Biora Therapeutics 1-for-25 Reverse Stock Split',
+      },
+      {
+        'id': 'split_pay_amzn_2022',
+        'account_number': 'DEMO12345',
+        'instrument_id': 'c0bb3aec-bd1e-471e-a4f0-ca011cbec711',
+        'symbol': 'AMZN',
+        'action_type': 'forward_split',
+        'multiplier': '20.0',
+        'divisor': '1.0',
+        'old_shares': '5.0',
+        'new_shares': '100.0',
+        'cash_in_lieu': '0.0',
+        'currency_code': 'USD',
+        'state': 'settled',
+        'execution_date': '2022-06-06T13:30:00Z',
+        'payment_date': '2022-06-06T20:00:00Z',
+        'description': 'Amazon.com, Inc. 20-for-1 Forward Stock Split',
+        'split': {
+          'id': 'd592308d-2f8a-4066-854b-02cbb689db85',
+          'old_instrument_id': 'c0bb3aec-bd1e-471e-a4f0-ca011cbec711',
+          'new_instrument_id': 'c0bb3aec-bd1e-471e-a4f0-ca011cbec711',
+          'effective_date': '2022-06-06',
+          'multiplier': '20.00000000000000',
+          'divisor': '1.00000000000000',
+          'direction': 'forward',
+          'updated_at': '2022-06-08T13:52:03.811354Z',
+        },
+      },
+    ];
+
+    if (instrumentId != null && instrumentId.isNotEmpty) {
+      return list.where((item) {
+        if (item['instrument_id'] == instrumentId ||
+            item['symbol'] == instrumentId.toUpperCase()) {
+          return true;
+        }
+        if (item['split'] is Map) {
+          final s = item['split'] as Map;
+          if (s['old_instrument_id'] == instrumentId ||
+              s['new_instrument_id'] == instrumentId) {
+            return true;
+          }
+        }
+        return false;
+      }).toList();
+    }
+    return list;
+  }
+
+  @override
+  Future<List<SplitPayment>> getSplitPaymentsModel(BrokerageUser user,
+      {String? instrumentId}) async {
+    final list = await getSplitPayments(user, instrumentId: instrumentId);
+    return list.map((item) => SplitPayment.fromJson(item)).toList();
+  }
+
+  @override
+  Future<CorporateActionSplitsSummary> getCorporateActionSplitsSummary(
+      BrokerageUser user) async {
+    final payments = await getSplitPaymentsModel(user);
+    return CorporateActionSplitsSummary.fromPayments(payments);
   }
 }

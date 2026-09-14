@@ -57,6 +57,7 @@ import 'package:robinhood_options_mobile/services/yahoo_service.dart';
 import 'package:robinhood_options_mobile/utils/auth.dart';
 import 'package:robinhood_options_mobile/model/combo_order.dart';
 import 'package:robinhood_options_mobile/model/combo_order_store.dart';
+import 'package:robinhood_options_mobile/model/split.dart';
 import 'package:robinhood_options_mobile/model/tax_document.dart';
 
 class SchwabService implements IBrokerageService {
@@ -2541,5 +2542,23 @@ https://api.schwabapi.com/marketdata/v1/instruments?symbol=Google&projection=sea
       BrokerageUser user, String instrumentId,
       {String? symbol}) async {
     return null;
+  }
+
+  @override
+  Future<List<dynamic>> getSplitPayments(BrokerageUser user,
+      {String? instrumentId}) async {
+    return [];
+  }
+
+  @override
+  Future<List<SplitPayment>> getSplitPaymentsModel(BrokerageUser user,
+      {String? instrumentId}) async {
+    return [];
+  }
+
+  @override
+  Future<CorporateActionSplitsSummary> getCorporateActionSplitsSummary(
+      BrokerageUser user) async {
+    return const CorporateActionSplitsSummary();
   }
 }

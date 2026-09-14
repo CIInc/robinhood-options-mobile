@@ -52,6 +52,7 @@ import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/services/resource_owner_password_grant.dart';
 import 'package:robinhood_options_mobile/model/combo_order.dart';
 import 'package:robinhood_options_mobile/model/combo_order_store.dart';
+import 'package:robinhood_options_mobile/model/split.dart';
 import 'package:robinhood_options_mobile/model/tax_document.dart';
 
 class PlaidService implements IBrokerageService {
@@ -1022,6 +1023,24 @@ class PlaidService implements IBrokerageService {
       BrokerageUser user, String instrumentId,
       {String? symbol}) async {
     return null;
+  }
+
+  @override
+  Future<List<dynamic>> getSplitPayments(BrokerageUser user,
+      {String? instrumentId}) async {
+    return [];
+  }
+
+  @override
+  Future<List<SplitPayment>> getSplitPaymentsModel(BrokerageUser user,
+      {String? instrumentId}) async {
+    return [];
+  }
+
+  @override
+  Future<CorporateActionSplitsSummary> getCorporateActionSplitsSummary(
+      BrokerageUser user) async {
+    return const CorporateActionSplitsSummary();
   }
 
   @override
