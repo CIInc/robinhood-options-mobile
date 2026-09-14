@@ -1921,6 +1921,16 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
     }
   }
 
+  /// Fetches closed positions with zero remaining quantity.
+  /// https://api.robinhood.com/positions/?nonzero=false
+  Future<List<dynamic>> getClosedPositions(BrokerageUser user,
+      {String? accountNumber}) async {
+    final query = accountNumber != null ? '?nonzero=false&account_number=$accountNumber' : '?nonzero=false';
+    final url = '$endpoint/positions/$query';
+    final results = await RobinhoodService.pagedGet(user, url);
+    return results;
+  }
+
   // Stream<InstrumentPositionStore> streamStockPositionStore(
   //     BrokerageUser user,
   //     InstrumentPositionStore store,

@@ -62,6 +62,8 @@ import 'package:robinhood_options_mobile/widgets/trade_instrument_widget.dart';
 import 'package:robinhood_options_mobile/widgets/news_intelligence_widget.dart';
 import 'package:robinhood_options_mobile/model/instrument_buying_power.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_buying_power_widget.dart';
+import 'package:robinhood_options_mobile/model/instrument_historical_position.dart';
+import 'package:robinhood_options_mobile/widgets/instrument_historical_positions_widget.dart';
 import 'package:url_launcher/url_launcher.dart';
 //import 'package:charts_flutter/flutter.dart' as charts;
 
@@ -1852,6 +1854,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           // 1. Holdings & Activity
           _buildPositionSliver(instrument),
           _buildOptionPositionsSliver(instrument),
+          _buildHistoricalPositionsSliver(instrument),
           _buildStockOrdersSliver(instrument),
           _buildOptionOrdersSliver(instrument),
           if (instrument.dividendsObj != null &&
@@ -1879,6 +1882,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           // Holdings (if any)
           _buildPositionSliver(instrument),
           _buildOptionPositionsSliver(instrument),
+          _buildHistoricalPositionsSliver(instrument),
           // Market Quote
           _buildMarketQuoteSliver(instrument),
           _buildBuyingPowerSliver(instrument),
@@ -2233,6 +2237,42 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     });
   }
 
+  Widget _buildHistoricalPositionsSliver(Instrument instrument) {
+    return Consumer<InstrumentOrderStore>(
+        builder: (context, stockOrderStore, child) {
+      List<InstrumentOrder>? positionOrders;
+      if (widget.brokerageUser.source == BrokerageSource.paper) {
+        final paperStore =
+            Provider.of<PaperTradingStore>(context, listen: false);
+        var history = paperStore.history
+            .where(
+                (h) => h['symbol'] == instrument.symbol && h['type'] == 'STOCK')
+            .toList();
+        positionOrders =
+            history.map((h) => InstrumentOrder.fromPaperJson(h)).toList();
+      } else {
+        positionOrders = instrument.positionOrders;
+      }
+
+      if (positionOrders != null && positionOrders.isNotEmpty) {
+        final summary = InstrumentCostBasisLookbackSummary.fromOrders(
+          positionOrders,
+          symbol: instrument.symbol,
+          instrumentId: instrument.id,
+          splits: instrument.splitsObj,
+        );
+        if (summary.hasHistory) {
+          return SliverToBoxAdapter(
+            child: InstrumentHistoricalPositionsWidget(
+              summary: summary,
+            ),
+          );
+        }
+      }
+      return const SliverToBoxAdapter(child: SizedBox.shrink());
+    });
+  }
+
   Widget _buildOptionOrdersSliver(Instrument instrument) {
     return Consumer<OptionOrderStore>(
         builder: (context, optionOrderStore, child) {
@@ -2287,6 +2327,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     return [
       _buildPositionSliver(instrument),
       _buildOptionPositionsSliver(instrument),
+      _buildHistoricalPositionsSliver(instrument),
       _buildStockOrdersSliver(instrument),
       _buildOptionOrdersSliver(instrument),
       if (instrument.dividendsObj != null &&
