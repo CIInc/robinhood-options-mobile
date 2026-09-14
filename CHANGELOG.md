@@ -16,6 +16,14 @@ All notable changes to this project will be documented in this file.
   - Integrated Robinhood's Cash Sweeps interest rate endpoint (`/accounts/sweeps/interest/`).
   - Created `SweepsInterest` domain model in `lib/model/stock_loan.dart` with multi-tier rate parsing (Gold APY 5.00% vs. Standard APY 1.50%), promotional boost detection, up to \$2,250,000 FDIC aggregate insurance tracking, and dynamic monthly/annual interest projections on uninvested cash.
   - Added dedicated "Cash Sweeps & APY" tab in `StockLoanWidget` with effective APY hero metrics, side-by-side tier comparison cards, an interactive cash yield calculator slider (\$500–\$100,000), and a directory of FDIC program partner banks (Citibank, Goldman Sachs Bank USA, Wells Fargo, JPMorgan Chase, etc.).
+- **Banking, ACH Transfers & Linked Accounts:**
+  - Integrated Robinhood's deposit and withdrawal transfer history endpoints (`/ach/transfers/`) and linked bank account relationship endpoints (`/ach/relationships/`).
+  - Created `AchTransfer`, `AchRelationship`, and `AchSummary` domain models in `lib/model/banking.dart` with JSON serialization, direction handling (deposit vs. withdrawal), landing/clearing timeline estimation, masked account numbers (`****1234`), and net cash flow aggregations.
+  - Extended `IBrokerageService` with `getAchTransfers`, `getAchRelationships`, `getAchTransfersModel`, `getAchRelationshipsModel`, and `cancelAchTransfer`, implemented live API calls and cancellation support in `RobinhoodService`, multi-institution mock fixtures in `DemoService`, and concrete stubs in `PaperService`, `FidelityService`, `SchwabService`, and `PlaidService`.
+  - Built `BankingWidget` (`lib/widgets/banking_widget.dart`) offering a 2-tab interface featuring a net cash movement hero card, pending transfers banner with estimated clearing dates, transfer search and filter chips (`All`, `Deposits`, `Withdrawals`, `Pending`, `Completed`), transfer detail bottom sheet with audit trail and cancel action, linked bank cards with verification chips and `PRIMARY` indicators, and ACH guidelines.
+  - Integrated "Banking & Transfers" actionable badge chip in `UserInfoWidget` (`user_info_widget.dart`) and navigation tile in `UserWidget` (`user_widget.dart`).
+  - Added 11 unit tests in `test/banking_test.dart` and widget tests in `test/banking_widget_test.dart`.
+  - Added full feature documentation in `docs/banking-and-transfers.md` and indexed in `docs/index.md`.
 - **Testing & Documentation:**
   - Added 14 unit tests in `test/stock_loan_test.dart` validating JSON parsing, rate calculations, error fallbacks, and `DemoService` integration.
   - Added widget tests in `test/stock_loan_widget_test.dart` validating SLIP metrics, position rendering, search filter interaction, tab switching, and cash sweeps calculator.

@@ -36,6 +36,7 @@ import 'package:robinhood_options_mobile/widgets/backtesting_widget.dart';
 import 'package:robinhood_options_mobile/widgets/day_trade_monitor_widget.dart';
 import 'package:robinhood_options_mobile/widgets/margin_health_widget.dart';
 import 'package:robinhood_options_mobile/widgets/stock_loan_widget.dart';
+import 'package:robinhood_options_mobile/widgets/banking_widget.dart';
 
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
@@ -1133,6 +1134,46 @@ class _UserWidgetState extends State<UserWidget> {
                                               .showSnackBar(const SnackBar(
                                             content: Text(
                                                 'Please link a brokerage account to view stock lending & sweeps.'),
+                                          ));
+                                        }
+                                      },
+                                    ),
+                                    ListTile(
+                                      leading: CircleAvatar(
+                                        backgroundColor: Theme.of(context)
+                                            .colorScheme
+                                            .secondaryContainer,
+                                        foregroundColor: Theme.of(context)
+                                            .colorScheme
+                                            .onSecondaryContainer,
+                                        child:
+                                            const Icon(Icons.account_balance),
+                                      ),
+                                      title: const Text(
+                                          'Banking & Transfers'),
+                                      subtitle: const Text(
+                                          'Manage deposits, withdrawals & linked bank accounts'),
+                                      trailing:
+                                          const Icon(Icons.chevron_right),
+                                      onTap: () async {
+                                        if (widget.brokerageUser != null &&
+                                            widget.service != null) {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) =>
+                                                  BankingWidget(
+                                                brokerageUser:
+                                                    widget.brokerageUser!,
+                                                service: widget.service!,
+                                              ),
+                                            ),
+                                          );
+                                        } else {
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(const SnackBar(
+                                            content: Text(
+                                                'Please link a brokerage account to view banking & transfers.'),
                                           ));
                                         }
                                       },

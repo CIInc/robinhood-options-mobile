@@ -52,6 +52,7 @@ import 'package:robinhood_options_mobile/model/watchlist_item.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 import 'package:robinhood_options_mobile/services/yahoo_service.dart';
+import 'package:robinhood_options_mobile/model/banking.dart';
 
 class DemoService implements IBrokerageService {
   @override
@@ -4375,5 +4376,205 @@ class DemoService implements IBrokerageService {
       ],
       'updated_at': DateTime.now().toIso8601String(),
     };
+  }
+
+  List<Map<String, dynamic>>? _demoAchTransfersList;
+
+  List<Map<String, dynamic>> _getDefaultDemoAchTransfers(String accountNumber) {
+    final now = DateTime.now();
+    return [
+      {
+        'id': 'ach_demo_102',
+        'account': accountNumber,
+        'account_number': accountNumber,
+        'cancel': 'https://api.robinhood.com/ach/transfers/ach_demo_102/cancel/',
+        'cancel_url': 'https://api.robinhood.com/ach/transfers/ach_demo_102/cancel/',
+        'direction': 'deposit',
+        'amount': '1000.00',
+        'state': 'pending',
+        'status_description':
+            'Deposit initiated from Chase Checking - Estimated arrival tomorrow',
+        'scheduled': false,
+        'expected_landing_date': now
+            .add(const Duration(days: 1))
+            .toIso8601String()
+            .substring(0, 10),
+        'expected_landing_datetime':
+            now.add(const Duration(days: 1, hours: 9)).toIso8601String(),
+        'created_at': now.subtract(const Duration(hours: 4)).toIso8601String(),
+        'updated_at': now.subtract(const Duration(hours: 4)).toIso8601String(),
+        'ach_relationship': 'ach_rel_demo_01',
+        'fees': '0.00',
+        'ref_id': 'REF-DEP-9942',
+        'rhs_state': 'pending',
+      },
+      {
+        'id': 'ach_demo_101',
+        'account': accountNumber,
+        'account_number': accountNumber,
+        'direction': 'deposit',
+        'amount': '2500.00',
+        'state': 'completed',
+        'status_description': 'Deposit completed from Chase Checking',
+        'scheduled': false,
+        'expected_landing_date': now
+            .subtract(const Duration(days: 4))
+            .toIso8601String()
+            .substring(0, 10),
+        'expected_landing_datetime':
+            now.subtract(const Duration(days: 4, hours: 2)).toIso8601String(),
+        'created_at': now.subtract(const Duration(days: 6)).toIso8601String(),
+        'updated_at': now.subtract(const Duration(days: 4)).toIso8601String(),
+        'ach_relationship': 'ach_rel_demo_01',
+        'fees': '0.00',
+        'ref_id': 'REF-DEP-9941',
+        'rhs_state': 'completed',
+      },
+      {
+        'id': 'ach_demo_103',
+        'account': accountNumber,
+        'account_number': accountNumber,
+        'direction': 'withdraw',
+        'amount': '750.00',
+        'state': 'completed',
+        'status_description': 'Withdrawal completed to Ally Savings',
+        'scheduled': false,
+        'expected_landing_date': now
+            .subtract(const Duration(days: 15))
+            .toIso8601String()
+            .substring(0, 10),
+        'expected_landing_datetime':
+            now.subtract(const Duration(days: 15)).toIso8601String(),
+        'created_at': now.subtract(const Duration(days: 17)).toIso8601String(),
+        'updated_at': now.subtract(const Duration(days: 15)).toIso8601String(),
+        'ach_relationship': 'ach_rel_demo_02',
+        'fees': '0.00',
+        'ref_id': 'REF-WTH-8812',
+        'rhs_state': 'completed',
+      },
+      {
+        'id': 'ach_demo_104',
+        'account': accountNumber,
+        'account_number': accountNumber,
+        'direction': 'deposit',
+        'amount': '5000.00',
+        'state': 'completed',
+        'status_description': 'Deposit completed from Chase Checking',
+        'scheduled': true,
+        'expected_landing_date': now
+            .subtract(const Duration(days: 35))
+            .toIso8601String()
+            .substring(0, 10),
+        'expected_landing_datetime':
+            now.subtract(const Duration(days: 35)).toIso8601String(),
+        'created_at': now.subtract(const Duration(days: 37)).toIso8601String(),
+        'updated_at': now.subtract(const Duration(days: 35)).toIso8601String(),
+        'ach_relationship': 'ach_rel_demo_01',
+        'fees': '0.00',
+        'ref_id': 'REF-DEP-9104',
+        'rhs_state': 'completed',
+      },
+      {
+        'id': 'ach_demo_105',
+        'account': accountNumber,
+        'account_number': accountNumber,
+        'direction': 'withdraw',
+        'amount': '1200.00',
+        'state': 'cancelled',
+        'status_description': 'Withdrawal cancelled by user',
+        'scheduled': false,
+        'created_at': now.subtract(const Duration(days: 52)).toIso8601String(),
+        'updated_at': now.subtract(const Duration(days: 52)).toIso8601String(),
+        'ach_relationship': 'ach_rel_demo_02',
+        'fees': '0.00',
+        'ref_id': 'REF-WTH-7731',
+        'rhs_state': 'canceled',
+      },
+    ];
+  }
+
+  @override
+  Future<List<dynamic>> getAchTransfers(BrokerageUser user) async {
+    _demoAchTransfersList ??= _getDefaultDemoAchTransfers('DEMO12345');
+    return List<dynamic>.from(_demoAchTransfersList!);
+  }
+
+  @override
+  Future<List<AchTransfer>> getAchTransfersModel(BrokerageUser user) async {
+    final list = await getAchTransfers(user);
+    return list.map((item) => AchTransfer.fromJson(item)).toList();
+  }
+
+  @override
+  Future<List<dynamic>> getAchRelationships(BrokerageUser user) async {
+    return [
+      {
+        'id': 'ach_rel_demo_01',
+        'url': 'https://api.robinhood.com/ach/relationships/ach_rel_demo_01/',
+        'bank_account_nickname': 'JPMorgan Chase Checking',
+        'bank_account_type': 'checking',
+        'bank_account_holder_name': 'Alex Mercer',
+        'bank_routing_number': '021000021',
+        'bank_account_number': '****6742',
+        'state': 'approved',
+        'verified': true,
+        'default': true,
+        'is_default': true,
+        'created_at': '2025-06-10T14:20:00Z',
+        'updated_at': '2025-06-10T14:20:00Z',
+      },
+      {
+        'id': 'ach_rel_demo_02',
+        'url': 'https://api.robinhood.com/ach/relationships/ach_rel_demo_02/',
+        'bank_account_nickname': 'Ally Online Savings',
+        'bank_account_type': 'savings',
+        'bank_account_holder_name': 'Alex Mercer',
+        'bank_routing_number': '124003116',
+        'bank_account_number': '****1983',
+        'state': 'approved',
+        'verified': true,
+        'default': false,
+        'is_default': false,
+        'created_at': '2025-08-22T09:15:00Z',
+        'updated_at': '2025-08-22T09:15:00Z',
+      },
+      {
+        'id': 'ach_rel_demo_03',
+        'url': 'https://api.robinhood.com/ach/relationships/ach_rel_demo_03/',
+        'bank_account_nickname': 'Wells Fargo Premier Checking',
+        'bank_account_type': 'checking',
+        'bank_account_holder_name': 'Alex Mercer',
+        'bank_routing_number': '121000248',
+        'bank_account_number': '****4409',
+        'state': 'pending',
+        'verified': false,
+        'default': false,
+        'is_default': false,
+        'verify_micro_deposits':
+            'https://api.robinhood.com/ach/relationships/ach_rel_demo_03/micro_deposits/',
+        'created_at': '2026-09-10T18:30:00Z',
+        'updated_at': '2026-09-10T18:30:00Z',
+      },
+    ];
+  }
+
+  @override
+  Future<List<AchRelationship>> getAchRelationshipsModel(
+      BrokerageUser user) async {
+    final list = await getAchRelationships(user);
+    return list.map((item) => AchRelationship.fromJson(item)).toList();
+  }
+
+  @override
+  Future<bool> cancelAchTransfer(BrokerageUser user, String cancelUrl) async {
+    _demoAchTransfersList ??= _getDefaultDemoAchTransfers('DEMO12345');
+    final match = _demoAchTransfersList!.firstWhereOrNull(
+        (t) => t['cancel'] == cancelUrl || t['cancel_url'] == cancelUrl);
+    if (match != null) {
+      match['state'] = 'cancelled';
+      match['status_description'] = 'Transfer cancelled by user';
+      return true;
+    }
+    return false;
   }
 }

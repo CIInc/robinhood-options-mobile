@@ -58,6 +58,7 @@ import 'package:robinhood_options_mobile/model/watchlist_item.dart';
 import 'package:robinhood_options_mobile/model/instrument_buying_power.dart';
 import 'package:robinhood_options_mobile/model/option_collateral.dart';
 import 'package:robinhood_options_mobile/model/stock_loan.dart';
+import 'package:robinhood_options_mobile/model/banking.dart';
 
 class _FuturesMarginCacheEntry {
   const _FuturesMarginCacheEntry(this.value, this.expiresAt);
@@ -5374,18 +5375,46 @@ WATCHLIST
 
   /// Fetches deposit and withdrawal transfers with status, clearing dates, and amounts
   /// https://api.robinhood.com/ach/transfers/
+  @override
   Future<List<dynamic>> getAchTransfers(BrokerageUser user) async {
     var url = "$endpoint/ach/transfers/";
     var results = await RobinhoodService.pagedGet(user, url);
     return results;
   }
 
+  /// Fetches typed AchTransfer models
+  @override
+  Future<List<AchTransfer>> getAchTransfersModel(BrokerageUser user) async {
+    final raw = await getAchTransfers(user);
+    return raw.map((item) => AchTransfer.fromJson(item)).toList();
+  }
+
   /// Fetches linked bank account relationships and verification state
   /// https://api.robinhood.com/ach/relationships/
+  @override
   Future<List<dynamic>> getAchRelationships(BrokerageUser user) async {
     var url = "$endpoint/ach/relationships/";
     var results = await RobinhoodService.pagedGet(user, url);
     return results;
+  }
+
+  /// Fetches typed AchRelationship models
+  @override
+  Future<List<AchRelationship>> getAchRelationshipsModel(BrokerageUser user) async {
+    final raw = await getAchRelationships(user);
+    return raw.map((item) => AchRelationship.fromJson(item)).toList();
+  }
+
+  /// Cancels a pending ACH transfer by cancel URL
+  @override
+  Future<bool> cancelAchTransfer(BrokerageUser user, String cancelUrl) async {
+    try {
+      final res = await user.oauth2Client!.post(Uri.parse(cancelUrl));
+      return res.statusCode == 200 || res.statusCode == 204;
+    } catch (e) {
+      debugPrint('Error cancelling ACH transfer: $e');
+      return false;
+    }
   }
 
   /*

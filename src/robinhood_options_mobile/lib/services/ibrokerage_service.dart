@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/account_store.dart';
+import 'package:robinhood_options_mobile/model/banking.dart';
 import 'package:robinhood_options_mobile/model/combo_order.dart';
 import 'package:robinhood_options_mobile/model/combo_order_store.dart';
 import 'package:robinhood_options_mobile/model/dividend_store.dart';
@@ -488,5 +489,34 @@ abstract class IBrokerageService {
   /// https://api.robinhood.com/accounts/sweeps/interest/
   Future<dynamic> getSweepsInterest(BrokerageUser user) async {
     return null;
+  }
+
+  /// Fetches deposit and withdrawal transfers with status, clearing dates, and amounts
+  /// https://api.robinhood.com/ach/transfers/
+  Future<List<dynamic>> getAchTransfers(BrokerageUser user) async {
+    return [];
+  }
+
+  /// Fetches linked bank account relationships and verification state
+  /// https://api.robinhood.com/ach/relationships/
+  Future<List<dynamic>> getAchRelationships(BrokerageUser user) async {
+    return [];
+  }
+
+  /// Fetches typed AchTransfer models
+  Future<List<AchTransfer>> getAchTransfersModel(BrokerageUser user) async {
+    final raw = await getAchTransfers(user);
+    return raw.map((item) => AchTransfer.fromJson(item)).toList();
+  }
+
+  /// Fetches typed AchRelationship models
+  Future<List<AchRelationship>> getAchRelationshipsModel(BrokerageUser user) async {
+    final raw = await getAchRelationships(user);
+    return raw.map((item) => AchRelationship.fromJson(item)).toList();
+  }
+
+  /// Cancels a pending ACH transfer by cancel URL
+  Future<bool> cancelAchTransfer(BrokerageUser user, String cancelUrl) async {
+    return false;
   }
 }

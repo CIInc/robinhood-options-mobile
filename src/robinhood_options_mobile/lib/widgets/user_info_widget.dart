@@ -24,6 +24,7 @@ import 'package:robinhood_options_mobile/widgets/margin_health_widget.dart';
 import 'package:robinhood_options_mobile/widgets/margin_financing_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_collateral_widget.dart';
 import 'package:robinhood_options_mobile/widgets/stock_loan_widget.dart';
+import 'package:robinhood_options_mobile/widgets/banking_widget.dart';
 
 final formatDate = DateFormat("yMMMd");
 final formatCompactDate = DateFormat("MMMd");
@@ -680,6 +681,7 @@ class _UserInfoWidgetState extends State<UserInfoWidget> {
                   _buildMarginFinancingChip(context, account),
                   _buildOptionsUpgradeChip(context, account),
                   _buildStockLoanChip(context, account),
+                  _buildBankingChip(context, account),
                 ],
               ),
             ],
@@ -1009,6 +1011,63 @@ class _UserInfoWidgetState extends State<UserInfoWidget> {
               const SizedBox(width: 4),
               const Text(
                 'Stock Lending & Sweeps',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: badgeColor,
+                ),
+              ),
+              const SizedBox(width: 2),
+              Icon(
+                Icons.chevron_right,
+                size: 12,
+                color: badgeColor.withValues(alpha: 0.7),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBankingChip(BuildContext context, Account account) {
+    const Color badgeColor = Colors.indigo;
+    final Color badgeBg = Colors.indigo.withValues(alpha: 0.12);
+    final Color badgeBorder = Colors.indigo.withValues(alpha: 0.3);
+
+    return Material(
+      color: badgeBg,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(6),
+        side: BorderSide(color: badgeBorder),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(6),
+        onTap: () {
+          final effectiveService = widget.service ??
+              (widget.brokerageUser.source == BrokerageSource.robinhood
+                  ? RobinhoodService()
+                  : DemoService());
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => BankingWidget(
+                brokerageUser: widget.brokerageUser,
+                service: effectiveService,
+                account: account,
+              ),
+            ),
+          );
+        },
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.account_balance, size: 12, color: badgeColor),
+              const SizedBox(width: 4),
+              const Text(
+                'Banking & Transfers',
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w600,

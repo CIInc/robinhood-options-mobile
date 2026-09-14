@@ -12,6 +12,7 @@ import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/account_store.dart';
+import 'package:robinhood_options_mobile/model/banking.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user_store.dart';
 import 'package:robinhood_options_mobile/model/dividend_store.dart';
@@ -1349,6 +1350,31 @@ class FidelityService implements IBrokerageService {
   @override
   Future<dynamic> getSweepsInterest(BrokerageUser user) async {
     return null;
+  }
+
+  @override
+  Future<List<dynamic>> getAchTransfers(BrokerageUser user) async {
+    return [];
+  }
+
+  @override
+  Future<List<dynamic>> getAchRelationships(BrokerageUser user) async {
+    return [];
+  }
+
+  @override
+  Future<List<AchTransfer>> getAchTransfersModel(BrokerageUser user) async {
+    return [];
+  }
+
+  @override
+  Future<List<AchRelationship>> getAchRelationshipsModel(BrokerageUser user) async {
+    return [];
+  }
+
+  @override
+  Future<bool> cancelAchTransfer(BrokerageUser user, String cancelUrl) async {
+    return false;
   }
 
   @override
