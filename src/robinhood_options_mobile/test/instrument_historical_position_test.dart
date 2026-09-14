@@ -300,6 +300,7 @@ void main() {
       expect(cycle.splitsApplied.length, 1);
       expect(cycle.splitsApplied.first.formattedRatio, '10 for 1 Split');
       expect(cycle.splitsApplied.first.shortRatioBadge, '10:1 Split');
+      expect(cycle.splitsApplied.first.executionDate, splitDate);
 
       // 10 pre-split shares become 100 post-split shares
       expect(cycle.totalShares, 100.0);
