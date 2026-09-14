@@ -54,6 +54,7 @@ import 'package:robinhood_options_mobile/model/user_info.dart';
 import 'package:robinhood_options_mobile/model/watchlist.dart';
 import 'package:robinhood_options_mobile/model/watchlist_item.dart';
 import 'package:robinhood_options_mobile/model/instrument_buying_power.dart';
+import 'package:robinhood_options_mobile/model/option_collateral.dart';
 
 class _FuturesMarginCacheEntry {
   const _FuturesMarginCacheEntry(this.value, this.expiresAt);
@@ -5080,20 +5081,56 @@ WATCHLIST
 
   /// Fetches cash and equity collateral locked by an options chain for a given account
   /// https://api.robinhood.com/options/chains/{chainId}/collateral/?account_number={account}
-  Future<dynamic> getOptionsChainCollateral(
+  @override
+  Future<dynamic> getOptionChainCollateral(
       BrokerageUser user, String chainId, String accountNumber) async {
     var url =
         "$endpoint/options/chains/$chainId/collateral/?account_number=$accountNumber";
     return await getJson(user, url);
   }
 
+  /// Alias for getOptionChainCollateral
+  Future<dynamic> getOptionsChainCollateral(
+      BrokerageUser user, String chainId, String accountNumber) =>
+      getOptionChainCollateral(user, chainId, accountNumber);
+
+  /// Typed helper for OptionChainCollateral
+  Future<OptionChainCollateral?> getOptionChainCollateralModel(
+      BrokerageUser user, String chainId, String accountNumber) async {
+    try {
+      final json = await getOptionChainCollateral(user, chainId, accountNumber);
+      if (json != null) {
+        return OptionChainCollateral.fromJson(chainId, accountNumber, json);
+      }
+    } catch (e) {
+      debugPrint('Error fetching options chain collateral: $e');
+    }
+    return null;
+  }
+
   /// Checks options tier upgrade eligibility (Level 2 vs Level 3 multi-leg)
   /// https://api.robinhood.com/options/should_show_options_upgrade_on_sdp/?account_number={account}
+  @override
   Future<dynamic> getOptionsUpgradeStatus(
       BrokerageUser user, String accountNumber) async {
     var url =
         "$endpoint/options/should_show_options_upgrade_on_sdp/?account_number=$accountNumber";
     return await getJson(user, url);
+  }
+
+  /// Typed helper for OptionUpgradeStatus
+  Future<OptionUpgradeStatus?> getOptionsUpgradeStatusModel(
+      BrokerageUser user, String accountNumber, {String? defaultAccountLevel}) async {
+    try {
+      final json = await getOptionsUpgradeStatus(user, accountNumber);
+      if (json != null) {
+        return OptionUpgradeStatus.fromJson(json,
+            defaultAccountLevel: defaultAccountLevel);
+      }
+    } catch (e) {
+      debugPrint('Error fetching options upgrade status: $e');
+    }
+    return null;
   }
 
   /*

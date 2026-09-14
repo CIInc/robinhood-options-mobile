@@ -22,6 +22,7 @@ import 'package:robinhood_options_mobile/utils/auth.dart';
 import 'package:robinhood_options_mobile/widgets/day_trade_monitor_widget.dart';
 import 'package:robinhood_options_mobile/widgets/margin_health_widget.dart';
 import 'package:robinhood_options_mobile/widgets/margin_financing_widget.dart';
+import 'package:robinhood_options_mobile/widgets/option_collateral_widget.dart';
 
 final formatDate = DateFormat("yMMMd");
 final formatCompactDate = DateFormat("MMMd");
@@ -676,6 +677,7 @@ class _UserInfoWidgetState extends State<UserInfoWidget> {
                   _buildMarginChip(
                       context, account, isMarginBorrowed, showBalances),
                   _buildMarginFinancingChip(context, account),
+                  _buildOptionsUpgradeChip(context, account),
                 ],
               ),
 
@@ -881,6 +883,73 @@ class _UserInfoWidgetState extends State<UserInfoWidget> {
               const SizedBox(width: 4),
               Text(
                 "Margin Calls",
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: badgeColor,
+                ),
+              ),
+              const SizedBox(width: 2),
+              Icon(
+                Icons.chevron_right,
+                size: 12,
+                color: badgeColor.withValues(alpha: 0.7),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOptionsUpgradeChip(BuildContext context, Account account) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isL3 = account.optionLevel.toLowerCase().contains('3');
+    final Color badgeColor = isL3 ? Colors.green : colorScheme.secondary;
+    final Color badgeBg = isL3
+        ? Colors.green.withValues(alpha: 0.12)
+        : colorScheme.secondary.withValues(alpha: 0.1);
+    final Color badgeBorder = isL3
+        ? Colors.green.withValues(alpha: 0.3)
+        : colorScheme.secondary.withValues(alpha: 0.3);
+    final String label = isL3 ? 'Options L3 Active' : 'Options Tiers & Collateral';
+    final IconData icon = isL3 ? Icons.verified : Icons.upgrade_rounded;
+
+    return Material(
+      color: badgeBg,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(6),
+        side: BorderSide(color: badgeBorder),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(6),
+        onTap: () {
+          final effectiveService = widget.service ??
+              (widget.brokerageUser.source == BrokerageSource.robinhood
+                  ? RobinhoodService()
+                  : DemoService());
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => OptionCollateralWidget(
+                brokerageUser: widget.brokerageUser,
+                service: effectiveService,
+                account: account,
+                initialTabIndex: isL3 ? 0 : 1,
+              ),
+            ),
+          );
+        },
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 12, color: badgeColor),
+              const SizedBox(width: 4),
+              Text(
+                label,
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w600,

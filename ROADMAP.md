@@ -331,7 +331,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ **Unified Risk & Margin Health:** Unified accounts endpoint integration (`/phoenix/accounts/unified`) for `margin_health`, `margin_buffer`, true options/crypto/account buying powers, and collateral holds.
 - ✅ **Margin Calls & Financing Costs:** Real-time margin call deficit demands and monthly margin interest debit history (`/margin/calls/`, `/cash_journal/margin_interest_charges/`).
 - ✅ **Instrument-Specific Buying Power & Trade Warnings:** Real-time buying power per instrument and risk/volatility warnings (`/accounts/{account}/instrument_buying_power/{id}/`, `/instruments/{id}/v2/warnings/`).
-- **Options Collateral & Tier Upgrades:** Chain-level cash/equity collateral breakdown (`/options/chains/{id}/collateral/`) and upgrade eligibility (`/options/should_show_options_upgrade_on_sdp/`).
+- ✅ **Options Collateral & Tier Upgrades:** Chain-level cash/equity collateral breakdown (`/options/chains/{id}/collateral/`) and upgrade eligibility (`/options/should_show_options_upgrade_on_sdp/`).
 - **Combo Orders (Stock + Option Packages):** Execution and order history for multi-leg equity and option packages (`/combo/orders/`).
 - **Instrument Previous Positions & Cost Basis Lookback:** Ability to look back on previous closed and historical positions within an instrument, displaying historical average buy and sell prices, realized P&L, hold duration, and round-trip execution metrics.
 
@@ -733,6 +733,7 @@ Q3 2026 shifts focus from basic execution to **Advanced Intelligence** and **Reg
 - [x] **Pattern Day Trader (PDT) Protection & Counter** (v0.42.0): Real-time rolling 5-day day-trade counter for equities and options to prevent regulatory PDT restrictions (`/accounts/{account}/recent_day_trades/`) - **Small** (1-2 weeks)
 - [x] **Margin Calls & Financing Costs** (v0.44.0): Real-time margin call deficit notifications and monthly margin interest debit history (`/margin/calls/`, `/cash_journal/margin_interest_charges/`) - **Small** (1-2 weeks)
 - [x] **Instrument-Specific Buying Power & Trade Warnings** (v0.44.0): Real-time buying power per instrument and risk/volatility warnings (`/accounts/{account}/instrument_buying_power/{id}/`, `/instruments/{id}/v2/warnings/`) - **Small** (1-2 weeks)
+- [x] **Options Collateral & Tier Upgrades** (v0.44.0): Chain-level cash/equity collateral breakdown (`/options/chains/{id}/collateral/`) and upgrade eligibility (`/options/should_show_options_upgrade_on_sdp/`) - **Small** (1-2 weeks)
 - [ ] **Stock Lending Program (SLIP) Dashboard**: Track loaned shares, earned yield payments, and agreement eligibility (`/accounts/stock_loan_payments/`, `/slip/eligibility/`) - **Small** (1-2 weeks)
 - [ ] **Cash Sweeps & APY Rate Monitor**: Track FDIC sweep balances and multi-tier interest rates (`/accounts/sweeps/interest/`) - **Small** (1 week)
 - [ ] **Banking & ACH Transfers**: Monitor bank deposits, withdrawals, clearing status, and linked accounts (`/ach/transfers/`, `/ach/relationships/`) - **Small** (1-2 weeks)

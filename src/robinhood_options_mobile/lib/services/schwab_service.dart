@@ -2410,4 +2410,16 @@ https://api.schwabapi.com/marketdata/v1/instruments?symbol=Google&projection=sea
       BrokerageUser user, String instrumentId) async {
     return null;
   }
+
+  @override
+  Future<dynamic> getOptionChainCollateral(
+      BrokerageUser user, String chainId, String accountNumber) async {
+    return null;
+  }
+
+  @override
+  Future<dynamic> getOptionsUpgradeStatus(
+      BrokerageUser user, String accountNumber) async {
+    return null;
+  }
 }

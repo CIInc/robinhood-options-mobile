@@ -3,9 +3,19 @@
 All notable changes to this project will be documented in this file.
 
 ## [0.44.0] - 2026-09-13
-**Unified Risk & Margin Health, Collateral Tracking, Margin Calls & Financing Costs, Instrument-Specific Buying Power & Trade Warnings, Segregated Buying Powers, and Action Center Margin Alerts**
+**Unified Risk & Margin Health, Collateral Tracking, Margin Calls & Financing Costs, Instrument-Specific Buying Power & Trade Warnings, Options Collateral & Tier Upgrades, and Action Center Margin Alerts**
 
 ### Added
+- **Options Collateral & Tier Upgrades:**
+  - Integrated Robinhood's chain-level options collateral endpoint (`/options/chains/{chainId}/collateral/?account_number={account}`) and upgrade eligibility endpoint (`/options/should_show_options_upgrade_on_sdp/?account_number={account}`).
+  - Created `OptionChainCollateral`, `OptionCollateralCash`, `OptionCollateralEquity`, `OptionCollateralBreakdown`, and `OptionUpgradeStatus` domain models in `lib/model/option_collateral.dart` with cash/equity collateral segregation, infinite liability support, and tier-based capability mapping (Level 1, Level 2, Level 3).
+  - Extended `IBrokerageService` with `getOptionChainCollateral` and `getOptionsUpgradeStatus`, with full implementations across `RobinhoodService`, `DemoService`, `PaperService`, `SchwabService`, `FidelityService`, and `PlaidService`.
+  - Built `OptionCollateralWidget` (`lib/widgets/option_collateral_widget.dart`) offering a 2-tab dashboard with Total Locked Collateral hero card, active positions vs pending orders breakdown, strategy collateral rules guide (Cash-Secured Puts, Covered Calls, Credit Spreads), capability matrix, and direct Level 3 upgrade application flow.
+  - Integrated quick options collateral & tier navigation in `InstrumentOptionChainWidget` (`option_chain_widget.dart`) via SliverAppBar action button (`Icons.shield_outlined`).
+  - Added "Options Tiers & Collateral" / "Options L3 Active" actionable badge chip in `UserInfoWidget` (`user_info_widget.dart`).
+  - Added comprehensive test suite in `test/option_collateral_test.dart` and `test/option_collateral_widget_test.dart` (16 unit & widget tests).
+  - Added complete documentation in `docs/options-collateral-and-tier-upgrades.md` and indexed in `docs/index.md`.
+
 - **Instrument-Specific Buying Power & Trade Warnings:**
   - Integrated Robinhood's instrument buying power endpoint (`/accounts/{account}/instrument_buying_power/{instrument_id}/`) and trade risk warnings endpoint (`/instruments/{instrument_id}/v2/warnings/`).
   - Created `InstrumentBuyingPower`, `InstrumentTradeWarning`, and `InstrumentTradeWarnings` domain models in `lib/model/instrument_buying_power.dart` with JSON serialization, margin requirement formatting (e.g. `50% Initial Margin`, `100% Cash Required`), shorting capacity tracking, and severity categorization (critical, warning, notice).

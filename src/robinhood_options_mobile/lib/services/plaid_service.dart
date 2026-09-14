@@ -891,6 +891,18 @@ class PlaidService implements IBrokerageService {
     return null;
   }
 
+  @override
+  Future<dynamic> getOptionChainCollateral(
+      BrokerageUser user, String chainId, String accountNumber) async {
+    return null;
+  }
+
+  @override
+  Future<dynamic> getOptionsUpgradeStatus(
+      BrokerageUser user, String accountNumber) async {
+    return null;
+  }
+
 
   @override
   Future<List<ForexOrder>> getForexOrders(BrokerageUser user) {

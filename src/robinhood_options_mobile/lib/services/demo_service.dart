@@ -3834,5 +3834,98 @@ class DemoService implements IBrokerageService {
       'updated_at': DateTime.now().toIso8601String(),
     };
   }
+
+  @override
+  Future<dynamic> getOptionChainCollateral(
+      BrokerageUser user, String chainId, String accountNumber) async {
+    return {
+      'collateral': {
+        'cash': {
+          'amount': '3250.0000',
+          'direction': 'debit',
+          'infinite': false,
+        },
+        'equities': [
+          {
+            'quantity': '100.00000000',
+            'direction': 'debit',
+            'instrument':
+                'https://api.robinhood.com/instruments/943c5009-a0bb-4665-8cf4-a95dab5874e4/',
+            'symbol': 'GOOG',
+          }
+        ]
+      },
+      'collateral_held_for_orders': {
+        'cash': {
+          'amount': '650.0000',
+          'direction': 'debit',
+          'infinite': false,
+        },
+        'equities': [
+          {
+            'quantity': '0E-8',
+            'direction': 'debit',
+            'instrument':
+                'https://api.robinhood.com/instruments/943c5009-a0bb-4665-8cf4-a95dab5874e4/',
+            'symbol': 'GOOG',
+          }
+        ]
+      }
+    };
+  }
+
+  @override
+  Future<dynamic> getOptionsUpgradeStatus(
+      BrokerageUser user, String accountNumber) async {
+    final isL3 = accountNumber.toLowerCase().contains('l3') ||
+        accountNumber.contains('789') ||
+        user.accounts.any((a) =>
+            a.accountNumber == accountNumber &&
+            a.optionLevel.toLowerCase().contains('3'));
+
+    if (isL3) {
+      return {
+        'should_show_options_upgrade': false,
+        'option_level': 'option_level_3',
+        'current_tier': 3,
+        'target_tier': 3,
+        'upgrade_title': 'Level 3 Options Active',
+        'upgrade_subtitle':
+            'Multi-leg spreads and complex strategies are fully enabled.',
+        'upgrade_url': null,
+        'is_eligible': true,
+        'requirements': ['Approved for advanced multi-leg strategies'],
+        'features': [
+          'Multi-leg debit & credit spreads',
+          'Iron condors & iron butterflies',
+          'Calendar & diagonal spreads',
+          'Straddles & strangles',
+        ],
+      };
+    }
+
+    return {
+      'should_show_options_upgrade': true,
+      'option_level': 'option_level_2',
+      'current_tier': 2,
+      'target_tier': 3,
+      'upgrade_title': 'Upgrade to Options Level 3',
+      'upgrade_subtitle':
+          'Unlock multi-leg strategies including Spreads, Iron Condors, and Straddles.',
+      'upgrade_url': 'https://robinhood.com/account/options/upgrade',
+      'is_eligible': true,
+      'requirements': [
+        'Margin or limited-margin account enabled',
+        'Options trading agreement acknowledged',
+        'Options risk profile suitable for multi-leg strategies',
+      ],
+      'features': [
+        'Multi-leg debit & credit spreads',
+        'Iron condors & iron butterflies',
+        'Calendar & diagonal spreads',
+        'Straddles & strangles',
+      ],
+    };
+  }
 }
 

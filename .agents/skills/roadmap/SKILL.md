@@ -1,10 +1,15 @@
 ---
 name: roadmap
 description: Select the highest-priority actionable feature from ROADMAP.md and implement it end to end with tests, documentation, and roadmap updates.
-argument-hint: Optional constraints or a roadmap area to prioritize (for example, "focus on portfolio analytics" or "pick the smallest safe item").
 ---
 
+# Roadmap Implementation
+
 Use the repository roadmap as the source of truth for the next implementation task.
+
+## Argument Hint
+
+Optional constraints or a roadmap area to prioritize (for example, "focus on portfolio analytics" or "pick the smallest safe item").
 
 ## Workflow
 

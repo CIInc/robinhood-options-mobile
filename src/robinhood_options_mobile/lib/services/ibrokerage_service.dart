@@ -421,5 +421,19 @@ abstract class IBrokerageService {
       BrokerageUser user, String instrumentId) async {
     return null;
   }
+
+  /// Fetches cash and equity collateral locked by an options chain for a given account
+  /// https://api.robinhood.com/options/chains/{chainId}/collateral/?account_number={account}
+  Future<dynamic> getOptionChainCollateral(
+      BrokerageUser user, String chainId, String accountNumber) async {
+    return null;
+  }
+
+  /// Checks options tier upgrade eligibility (Level 2 vs Level 3 multi-leg)
+  /// https://api.robinhood.com/options/should_show_options_upgrade_on_sdp/?account_number={account}
+  Future<dynamic> getOptionsUpgradeStatus(
+      BrokerageUser user, String accountNumber) async {
+    return null;
+  }
 }
 

@@ -1564,6 +1564,51 @@ class PaperService implements IBrokerageService {
     return null;
   }
 
+  @override
+  Future<dynamic> getOptionChainCollateral(
+      BrokerageUser user, String chainId, String accountNumber) async {
+    return {
+      'collateral': {
+        'cash': {
+          'amount': '0.0000',
+          'direction': 'debit',
+          'infinite': false,
+        },
+        'equities': []
+      },
+      'collateral_held_for_orders': {
+        'cash': {
+          'amount': '0.0000',
+          'direction': 'debit',
+          'infinite': false,
+        },
+        'equities': []
+      }
+    };
+  }
+
+  @override
+  Future<dynamic> getOptionsUpgradeStatus(
+      BrokerageUser user, String accountNumber) async {
+    return {
+      'should_show_options_upgrade': false,
+      'option_level': 'option_level_3',
+      'current_tier': 3,
+      'target_tier': 3,
+      'upgrade_title': 'Paper Trading Level 3 Active',
+      'upgrade_subtitle':
+          'Multi-leg spreads and simulated options strategies are fully enabled.',
+      'upgrade_url': null,
+      'is_eligible': true,
+      'requirements': ['Paper trading mode active'],
+      'features': [
+        'Multi-leg debit & credit spreads',
+        'Iron condors & iron butterflies',
+        'Simulated execution with zero capital risk',
+      ],
+    };
+  }
+
 
   @override
   Future<List<dynamic>> getFuturesOrders(

@@ -11,6 +11,8 @@ import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/model/generative_provider.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 
+import 'package:robinhood_options_mobile/model/account.dart';
+import 'package:robinhood_options_mobile/model/account_store.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/option_chain.dart';
@@ -20,6 +22,7 @@ import 'package:robinhood_options_mobile/model/option_position_store.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
+import 'package:robinhood_options_mobile/widgets/option_collateral_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_instrument_widget.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
@@ -636,6 +639,44 @@ class _InstrumentOptionChainWidgetState
             tooltip: 'Filter Options',
             onPressed: () {
               _showFilterDialog(context);
+            }),
+        IconButton(
+            icon: const Icon(Icons.shield_outlined),
+            tooltip: 'Options Collateral & Tiers',
+            onPressed: () {
+              Account? currentAccount;
+              try {
+                final accountStore =
+                    Provider.of<AccountStore>(context, listen: false);
+                currentAccount = accountStore.selectedAccount ??
+                    (accountStore.items.isNotEmpty
+                        ? accountStore.items.first
+                        : null);
+              } catch (_) {}
+              currentAccount ??= Account(
+                '',
+                0,
+                widget.brokerageUser.userName ?? 'default',
+                'margin',
+                0,
+                'option_level_2',
+                0,
+                0,
+                0,
+              );
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => OptionCollateralWidget(
+                    brokerageUser: widget.brokerageUser,
+                    service: widget.service,
+                    account: currentAccount!,
+                    chainId: instrument.tradeableChainId,
+                    symbol: instrument.symbol,
+                    instrument: instrument,
+                  ),
+                ),
+              );
             }),
         IconButton(
             icon: const Icon(Icons.arrow_downward),
