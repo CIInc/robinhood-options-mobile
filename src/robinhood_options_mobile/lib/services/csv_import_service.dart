@@ -479,7 +479,6 @@ class CsvImportService {
       amount.abs() /
           100 /
           quantity.abs(), // premium (per share?) No, premium is usually total?
-
       // OptionOrder premium usually is total price?
       // In RH API "premium" field is usually price * quantity * 100? No.
       // checking Model... premium, processedPremium, price.
