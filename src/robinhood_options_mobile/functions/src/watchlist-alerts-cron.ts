@@ -35,26 +35,51 @@ interface WatchlistAlert {
  * @param {string} userId The user ID to fetch tokens for.
  * @return {Promise<string[]>} Array of FCM tokens for the user.
  */
-async function getUserFCMTokens(userId: string): Promise<string[]> {
-  try {
-    const userDoc = await db.collection("user").doc(userId).get();
-    const userData = userDoc.data() as any;
-    // Devices expected as array of objects with optional fcmToken
-    const devices: Array<{ fcmToken?: string | null }> =
-      userData?.devices || [];
-    const fcmTokens: string[] = devices
-      .map((device) => device.fcmToken)
-      .filter((token): token is string => token != null && token !== "");
+export async function getUserFCMTokens(userId: string): Promise<string[]> {
+  return getUsersFCMTokens([userId]);
+}
 
-    if (fcmTokens.length === 0) {
-      logger.info("No FCM tokens found for user", { userId });
-      return [];
-    }
-    return Array.isArray(fcmTokens) ? fcmTokens : [];
-  } catch (e) {
-    logger.warn(`Failed to fetch FCM tokens for user ${userId}`, e);
+/**
+ * Fetch FCM tokens for multiple users in bulk from Firestore.
+ * @param {string[]} userIds The user IDs to fetch tokens for.
+ * @return {Promise<string[]>} Array of FCM tokens for all users.
+ */
+export async function getUsersFCMTokens(
+  userIds: string[]
+): Promise<string[]> {
+  if (!Array.isArray(userIds) || userIds.length === 0) {
     return [];
   }
+
+  const allTokens: string[] = [];
+  const BATCH_SIZE = 500;
+
+  try {
+    for (let i = 0; i < userIds.length; i += BATCH_SIZE) {
+      const batchIds = userIds.slice(i, i + BATCH_SIZE);
+      const docRefs = batchIds.map((id) => db.collection("user").doc(id));
+      const userDocs = await db.getAll(...docRefs);
+
+      for (const userDoc of userDocs) {
+        if (!userDoc.exists) {
+          continue;
+        }
+        const userData = userDoc.data() as any;
+        const devices: Array<{ fcmToken?: string | null }> =
+          userData?.devices || [];
+        const fcmTokens = devices
+          .map((device) => device.fcmToken)
+          .filter(
+            (token): token is string => token != null && token !== ""
+          );
+        allTokens.push(...fcmTokens);
+      }
+    }
+  } catch (e) {
+    logger.warn("Failed to fetch FCM tokens in bulk", e);
+  }
+
+  return allTokens;
 }
 
 /**
@@ -95,12 +120,8 @@ async function sendAlertNotification(
       return 0;
     }
 
-    // Collect FCM tokens from all members
-    const allTokens: string[] = [];
-    for (const memberId of members) {
-      const tokens = await getUserFCMTokens(memberId);
-      allTokens.push(...tokens);
-    }
+    // Collect FCM tokens from all members in a single batch query
+    const allTokens = await getUsersFCMTokens(members);
 
     if (allTokens.length === 0) {
       logger.info("No FCM tokens found for group members");
