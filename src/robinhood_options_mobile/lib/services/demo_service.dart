@@ -56,6 +56,10 @@ import 'package:robinhood_options_mobile/model/banking.dart';
 import 'package:robinhood_options_mobile/model/shareholder_qa_event.dart';
 import 'package:robinhood_options_mobile/model/split.dart';
 import 'package:robinhood_options_mobile/model/tax_document.dart';
+import 'package:robinhood_options_mobile/model/retirement.dart';
+import 'package:robinhood_options_mobile/model/spending_account.dart';
+import 'package:robinhood_options_mobile/model/external_token.dart';
+import 'package:robinhood_options_mobile/model/notification_item.dart';
 
 class DemoService implements IBrokerageService {
   @override
@@ -231,6 +235,30 @@ class DemoService implements IBrokerageService {
                 'affiliate': 'rhf',
                 'second_trade_suitability_completed': false,
                 'has_futures_account': false
+              },
+              <String, dynamic>{
+                'url': 'https://api.robinhood.com/accounts/ROTH7890/',
+                'portfolio_cash': '7000.0000',
+                'can_downgrade_to_cash': null,
+                'user': 'api.robinhood.com/user/',
+                'account_number': 'ROTH7890',
+                'type': 'cash',
+                'brokerage_account_type': 'ira_roth',
+                'created_at': '2023-01-10T14:20:00.000000Z',
+                'updated_at': '2026-09-10T00:00:00.000000Z',
+                'deactivated': false,
+                'deposit_halted': false,
+                'withdrawal_halted': false,
+                'only_position_closing_trades': false,
+                'buying_power': '7000.0000',
+                'cash_available_for_withdrawal': '0.0000',
+                'cash': '7000.0000',
+                'cash_held_for_orders': '0.0000',
+                'uncleared_deposits': '0.0000',
+                'unsettled_funds': '0.0000',
+                'unsettled_debit': '0.0000',
+                'crypto_buying_power': '0.0000',
+                'day_trades_protection': true,
               }
             ]);
     List<Account> accounts = [];
@@ -5443,5 +5471,593 @@ class DemoService implements IBrokerageService {
       }
     }
     return ShareholderQuestion.fromJson(newQuestion, defaultEventId: eventId);
+  }
+
+  final List<Map<String, dynamic>> _demoTokens = [
+    {
+      'id': '8302568840',
+      'oauth_application': {
+        'client_id': 'x1JVNz1jYW8Ivcs54utW8Gy1adQ4ALI3PdkpPwB3',
+        'name': 'X1',
+        'description': 'X1 Card and banking integration',
+        'icon': '',
+      },
+      'fourth_party_application': <String, dynamic>{},
+      'created': '2026-09-15T01:04:43.210557-04:00',
+      'updated': '2026-09-15T01:04:43.210566-04:00',
+      'initial_login_time': '2026-08-22T00:30:58.016847-04:00',
+      'is_active': true,
+    },
+    {
+      'id': '8300476890',
+      'oauth_application': {
+        'client_id': 'ZChWJMwkQdmTTCOyHieGIJu4I6ktHPlbhH2PhtQ5',
+        'name': 'Yodlee',
+        'description': '',
+        'icon': '',
+      },
+      'fourth_party_application': {
+        'display_name': 'Charles Schwab',
+        'logo_url': 'https://cdn.yodlee.com/COBLOGO/OBAggregator_generic_icon.svg',
+      },
+      'created': '2026-09-14T16:01:00.953562-04:00',
+      'updated': '2026-09-14T16:01:00.953575-04:00',
+      'initial_login_time': '2024-07-13T14:26:18.519352-04:00',
+      'is_active': true,
+    },
+    {
+      'id': '8296605716',
+      'oauth_application': {
+        'client_id': 'LtLiNmbs9owbYfWgBlC68Z2VujIPuvGoAiSYr8xW',
+        'name': 'Robinhood Trading MCP',
+        'description': 'Autonomous MCP trading agent client',
+        'icon': '',
+      },
+      'fourth_party_application': {
+        'agentic_accounts': ['970049961'],
+        'agent_id': '356edc10-b67c-478c-94a3-88c70b25962f',
+        'display_name': 'Agentic_Token_1789343517',
+      },
+      'created': '2026-09-13T19:51:57.638106-04:00',
+      'updated': '2026-09-13T19:51:57.638113-04:00',
+      'initial_login_time': '2026-09-13T19:51:57.637920-04:00',
+      'is_active': true,
+    },
+    {
+      'id': '8033186916',
+      'oauth_application': {
+        'client_id': 'LtLiNmbs9owbYfWgBlC68Z2V-cursor',
+        'name': 'Cursor',
+        'description': 'AI coding assistant agent connector',
+        'icon': '',
+      },
+      'fourth_party_application': {
+        'agentic_accounts': ['970049961'],
+        'agent_id': 'f716ac67-39cd-4d2f-ae1f-5864a07fa2b7',
+        'display_name': 'Agentic_Token_1784004268',
+      },
+      'created': '2026-07-20T22:28:11.683987-04:00',
+      'updated': '2026-07-20T22:28:11.684001-04:00',
+      'initial_login_time': '2026-07-14T00:44:29.154956-04:00',
+      'is_active': true,
+    },
+    {
+      'id': '8281625071',
+      'oauth_application': {
+        'client_id': '3xpM1Y14nA8X3drQSSp0OWqyR52yaA77InpQvES9',
+        'name': 'Intuit Production',
+        'description': 'TurboTax and Mint tax data export',
+        'icon': '',
+      },
+      'fourth_party_application': <String, dynamic>{},
+      'created': '2026-09-10T13:11:15.682142-04:00',
+      'updated': '2026-09-10T13:11:15.682152-04:00',
+      'initial_login_time': '2026-04-02T01:02:31.783708-04:00',
+      'is_active': true,
+    },
+    {
+      'id': '6678716321',
+      'oauth_application': {
+        'client_id': 'YxZ2HM5jDqLOz7GKm5nRqQImEVRprPbsobVK3dW1',
+        'name': 'SnapTrade',
+        'description': '',
+        'icon': '',
+      },
+      'fourth_party_application': {
+        'display_name': 'Snowball Analytics',
+        'logo_url': 'https://snaptrade-partner-logos.s3.ca-central-1.amazonaws.com/Snowball-logo-square.png',
+      },
+      'created': '2025-10-14T01:48:37.906694-04:00',
+      'updated': '2025-10-14T01:48:37.906707-04:00',
+      'initial_login_time': '2025-09-23T22:26:18.872215-04:00',
+      'is_active': true,
+    },
+  ];
+
+  @override
+  Future<List<dynamic>> getExternalTokens(BrokerageUser user) async {
+    return Future.value(_demoTokens);
+  }
+
+  @override
+  Future<List<ExternalToken>> getExternalTokensModel(BrokerageUser user) async {
+    return _demoTokens.map((t) => ExternalToken.fromJson(t)).toList();
+  }
+
+  @override
+  Future<bool> revokeExternalToken(BrokerageUser user, String tokenId) async {
+    final idx = _demoTokens.indexWhere((t) => t['id'] == tokenId);
+    if (idx != -1) {
+      _demoTokens[idx]['is_active'] = false;
+      return true;
+    }
+    return false;
+  }
+
+  @override
+  Future<List<dynamic>> getNotificationStack(BrokerageUser user) async {
+    return Future.value([
+      {
+        'card_id': 'notif_01',
+        'category': 8,
+        'type': 'market_closure',
+        'title': 'Upcoming Market Holiday',
+        'message':
+            'U.S. stock and options markets will be closed on the upcoming federal holiday. Orders placed will queue for next market open.',
+        'call_to_action': 'View Market Hours',
+        'action': 'robinhood://web?url=https%3A%2F%2Frobinhood.com%2Fsupport',
+        'icon': 'alert',
+        'time': DateTime.now()
+            .subtract(const Duration(hours: 4))
+            .toIso8601String(),
+        'fixed': true,
+        'is_read': false,
+      },
+      {
+        'card_id': 'notif_02',
+        'category': 5,
+        'type': 'feature_announcement',
+        'title': 'IRA 3% Match Available',
+        'message':
+            'Maximize your retirement savings with Robinhood Gold. Get a 3% match on all eligible IRA contributions.',
+        'call_to_action': 'Explore Retirement',
+        'action': 'robinhood://retirement',
+        'icon': 'star',
+        'time': DateTime.now()
+            .subtract(const Duration(days: 2))
+            .toIso8601String(),
+        'fixed': false,
+        'is_read': false,
+      },
+      {
+        'card_id': 'notif_03',
+        'category': 5,
+        'type': 'screener_launch_v2',
+        'title': 'High Gamma Exposure Screener',
+        'message':
+            'Discover equities with explosive market maker pinning and gamma flips using our curated screener presets.',
+        'call_to_action': 'Open Screeners',
+        'action': 'robinhood://screeners',
+        'icon': 'lightbulb',
+        'time': DateTime.now()
+            .subtract(const Duration(days: 4))
+            .toIso8601String(),
+        'fixed': false,
+        'is_read': true,
+      },
+    ]);
+  }
+
+  @override
+  Future<List<NotificationItem>> getNotificationStackModel(
+      BrokerageUser user) async {
+    final raw = await getNotificationStack(user);
+    return raw.map((i) => NotificationItem.fromJson(i)).toList();
+  }
+
+  @override
+  Future<dynamic> getInboxThreads(BrokerageUser user) async {
+    final now = DateTime.now();
+    return Future.value([
+      {
+        'id': '1770776568893810711',
+        'pagination_id': '03459986457140144671',
+        'display_name': 'Announcements',
+        'short_display_name': '!',
+        'is_read': true,
+        'is_critical': false,
+        'is_muted': false,
+        'avatar_color': '#21CE99',
+        'preview_text': {
+          'text':
+              'Select single stock options like NVDA, TSLA, and AAPL now expire 3 days a week—on Mondays, Wednesdays, and Fridays.\n\nExplore current eligible* single stock symbols now.\n\n*Eligibility is subject to change.',
+        },
+        'most_recent_message': {
+          'id': '3459986457140144671',
+          'rich_text': {
+            'text':
+                'Select single stock options like NVDA, TSLA, and AAPL now expire 3 days a week—on Mondays, Wednesdays, and Fridays.\n\nExplore current eligible* single stock symbols now.\n\n*Eligibility is subject to change.',
+          },
+          'action': {
+            'display_text': 'View full list',
+            'url':
+                'robinhood://lists?owner_type=robinhood&id=9f3c8a6e-4a7e-4b0d-9f4a-6b8e2d1c7f3a',
+          },
+          'responses': [],
+          'created_at': now.subtract(const Duration(hours: 2)).toIso8601String(),
+        },
+        'last_message_sent_at':
+            now.subtract(const Duration(hours: 2)).toIso8601String(),
+      },
+      {
+        'id': '2144063194186918883',
+        'pagination_id': '03244495333606042379',
+        'display_name': 'Dogecoin',
+        'short_display_name': 'DOGE',
+        'is_read': false,
+        'is_critical': false,
+        'is_muted': false,
+        'avatar_color': '#ECC841',
+        'preview_text': {
+          'text':
+              'Your market order to sell 1,018.67 DOGE was filled for \$166.69.',
+        },
+        'most_recent_message': {
+          'id': '3244495333606042379',
+          'rich_text': {
+            'text':
+                'Your market order to sell 1,018.67 DOGE was filled for \$166.69.',
+          },
+          'action': {
+            'display_text': 'View order details',
+            'url':
+                'robinhood://orders?id=67efdad9-0e14-47e5-b794-3ebc015a50df&type=currency',
+          },
+          'responses': [],
+          'created_at':
+              now.subtract(const Duration(hours: 5)).toIso8601String(),
+        },
+        'last_message_sent_at':
+            now.subtract(const Duration(hours: 5)).toIso8601String(),
+      },
+      {
+        'id': '2144063194186918884',
+        'display_name': 'Robinhood',
+        'short_display_name': 'R',
+        'is_read': false,
+        'is_critical': true,
+        'is_muted': false,
+        'avatar_color': '#21CE99',
+        'preview_text': {
+          'text':
+              'Your recent trade confirmations are available.\n\nHere’s how to find trade confirmations:\n1. Select Account > Reports and Statements\n2. Open Trade Confirmations to download documents.',
+        },
+        'most_recent_message': {
+          'id': '3244495333606042380',
+          'rich_text': {
+            'text':
+                'Your recent trade confirmations are available.\n\nHere’s how to find trade confirmations:\n1. Select Account > Reports and Statements\n2. Open Trade Confirmations to download documents.',
+          },
+          'action': {
+            'display_text': 'History',
+            'url': 'robinhood://orders',
+          },
+          'responses': [],
+          'created_at':
+              now.subtract(const Duration(hours: 8)).toIso8601String(),
+        },
+        'last_message_sent_at':
+            now.subtract(const Duration(hours: 8)).toIso8601String(),
+      },
+      {
+        'id': '2144063194186918885',
+        'display_name': 'Bitcoin',
+        'short_display_name': 'BTC',
+        'is_read': true,
+        'is_critical': false,
+        'is_muted': false,
+        'avatar_color': '#F49431',
+        'preview_text': {
+          'text':
+              'Your limit order to buy 0.00180285 BTC through your Individual account (...1412) was canceled because the limit price was not met.',
+        },
+        'most_recent_message': {
+          'id': '3244495333606042381',
+          'rich_text': {
+            'text':
+                'Your limit order to buy 0.00180285 BTC through your Individual account (...1412) was canceled because the limit price was not met.',
+          },
+          'action': {
+            'display_text': 'View order details',
+            'url':
+                'robinhood://orders?id=6983af38-212b-4b28-9dd0-962a325a0050&type=currency',
+          },
+          'responses': [
+            {'display_text': 'Can I see more details? 🤓', 'answer': '238700'},
+            {"display_text": "Why wasn't this order filled? 🤔", 'answer': '239159'},
+            {"display_text": "I'd like to place a new order. 😎", 'answer': '239177'},
+          ],
+          'created_at':
+              now.subtract(const Duration(days: 1)).toIso8601String(),
+        },
+        'last_message_sent_at':
+            now.subtract(const Duration(days: 1)).toIso8601String(),
+      },
+      {
+        'id': '2144063194186918886',
+        'display_name': 'Paramount Global Class B',
+        'short_display_name': 'PARA',
+        'is_read': true,
+        'is_critical': false,
+        'is_muted': false,
+        'avatar_color': '#FEBD30',
+        'preview_text': {
+          'text':
+              'Your order to sell to close 1 contract of PARA \$10.00 Call 1/17/2025 has been filled for an average price of \$0.65.',
+        },
+        'most_recent_message': {
+          'id': '3244495333606042382',
+          'rich_text': {
+            'text':
+                'Your order to sell to close 1 contract of PARA \$10.00 Call 1/17/2025 has been filled for an average price of \$0.65.',
+          },
+          'action': {
+            'display_text': 'View Order',
+            'url':
+                'robinhood://orders?id=6769bb73-e1ba-4287-ae6a-1f5391db2a9f&type=option',
+          },
+          'responses': [
+            {"display_text": "I'd like to place a new order. 😎", 'answer': '239170'},
+            {'display_text': 'Hooray! 🙌', 'answer': '238725'},
+          ],
+          'created_at':
+              now.subtract(const Duration(days: 2)).toIso8601String(),
+        },
+        'last_message_sent_at':
+            now.subtract(const Duration(days: 2)).toIso8601String(),
+      },
+      {
+        'id': '2144063194186918887',
+        'display_name': 'Micro Russell 2000 Index Futures',
+        'short_display_name': '/M2K',
+        'is_read': true,
+        'is_critical': false,
+        'is_muted': false,
+        'avatar_color': '#FB7137',
+        'preview_text': {
+          'text':
+              'Your order to sell 1 /M2KU26 has been filled at an average price of 3,015.1.',
+        },
+        'most_recent_message': {
+          'id': '3244495333606042383',
+          'rich_text': {
+            'text':
+                'Your order to sell 1 /M2KU26 has been filled at an average price of 3,015.1.',
+          },
+          'responses': [],
+          'created_at':
+              now.subtract(const Duration(days: 3)).toIso8601String(),
+        },
+        'last_message_sent_at':
+            now.subtract(const Duration(days: 3)).toIso8601String(),
+      },
+      {
+        'id': '2144063194186918888',
+        'display_name': 'Bank of America',
+        'short_display_name': 'BAC',
+        'is_read': true,
+        'is_critical': false,
+        'is_muted': false,
+        'avatar_color': '#EE3215',
+        'preview_text': {
+          'text':
+              'Your \$82.41 dividend reinvestment for BAC in your traditional IRA (•••2639) account is complete.',
+        },
+        'most_recent_message': {
+          'id': '3244495333606042384',
+          'rich_text': {
+            'text':
+                'Your \$82.41 dividend reinvestment for BAC in your traditional IRA (•••2639) account is complete.',
+          },
+          'action': {
+            'display_text': 'View order',
+            'url':
+                'robinhood://orders/?id=6a3f2ba4-8afd-4da6-a86c-d527261a8455',
+          },
+          'responses': [],
+          'created_at':
+              now.subtract(const Duration(days: 4)).toIso8601String(),
+        },
+        'last_message_sent_at':
+            now.subtract(const Duration(days: 4)).toIso8601String(),
+      },
+      {
+        'id': '2144063194186918889',
+        'display_name': 'Standard Nuclear',
+        'short_display_name': 'STDN',
+        'is_read': true,
+        'is_critical': false,
+        'is_muted': false,
+        'avatar_color': '#70D4FF',
+        'preview_text': {
+          'text':
+              'Standard Nuclear, Inc. (STDN) plans to go public. You can now find STDN in the IPO Access list and request shares.',
+        },
+        'most_recent_message': {
+          'id': '3244495333606042385',
+          'rich_text': {
+            'text':
+                'Standard Nuclear, Inc. (STDN) plans to go public. You can now find STDN in the IPO Access list and request shares.',
+          },
+          'action': {
+            'display_text': 'View list',
+            'url':
+                'robinhood://lists?id=8ce9f620-5bb0-4b6a-8c61-5a06763f7a8b&owner_type=robinhood',
+          },
+          'responses': [],
+          'created_at':
+              now.subtract(const Duration(days: 5)).toIso8601String(),
+        },
+        'last_message_sent_at':
+            now.subtract(const Duration(days: 5)).toIso8601String(),
+      },
+      {
+        'id': '2144063194186918890',
+        'display_name': 'Robinhood Support',
+        'short_display_name': 'RS',
+        'is_read': false,
+        'is_critical': false,
+        'is_muted': false,
+        'avatar_color': '#FB7137',
+        'preview_text': {
+          'text':
+              'Someone just viewed your Robinhood Cash Card number. If this wasn’t you, please secure your account immediately.',
+        },
+        'most_recent_message': {
+          'id': '3244495333606042386',
+          'rich_text': {
+            'text':
+                'Someone just viewed your Robinhood Cash Card number. If this wasn’t you, please secure your account immediately.',
+          },
+          'action': {
+            'display_text': 'Secure your account',
+            'url': 'robinhood://trusted_devices',
+          },
+          'responses': [],
+          'created_at':
+              now.subtract(const Duration(days: 6)).toIso8601String(),
+        },
+        'last_message_sent_at':
+            now.subtract(const Duration(days: 6)).toIso8601String(),
+      },
+      {
+        'id': '2144063194186918891',
+        'display_name': 'Petrobras',
+        'short_display_name': 'PBR',
+        'is_read': true,
+        'is_critical': false,
+        'is_muted': false,
+        'avatar_color': '#70D4FF',
+        'preview_text': {
+          'text':
+              'Because you owned 50 shares of PBR in your individual account on 12/27/2024, you’ve received a dividend payment.',
+        },
+        'most_recent_message': {
+          'id': '3244495333606042387',
+          'rich_text': {
+            'text':
+                'Because you owned 50 shares of PBR in your individual account on 12/27/2024, you’ve received a dividend payment.',
+          },
+          'action': {
+            'display_text': 'View Dividend',
+            'url':
+                'robinhood://dividends?id=67e4ad54-e258-431c-a33e-bd85c32e0af9',
+          },
+          'responses': [
+            {'display_text': 'Hooray! 🙌', 'answer': '238725'},
+            {'display_text': 'What is a dividend? 🤔', 'answer': '238726'},
+          ],
+          'created_at':
+              now.subtract(const Duration(days: 7)).toIso8601String(),
+        },
+        'last_message_sent_at':
+            now.subtract(const Duration(days: 7)).toIso8601String(),
+      },
+    ]);
+  }
+
+  @override
+  Future<List<NotificationItem>> getInboxThreadsModel(
+      BrokerageUser user) async {
+    final raw = await getInboxThreads(user);
+    return (raw as List).map((i) => NotificationItem.fromJson(i)).toList();
+  }
+
+  @override
+  Future<dynamic> getSpendingAccount(BrokerageUser user) async {
+    return Future.value({
+      'id': 'spending_demo_01',
+      'account_number': 'RHSP-4491-0812',
+      'routing_number': '021000021',
+      'status': 'active',
+      'balance': '1250.40',
+      'available_balance': '1250.40',
+      'unsettled_charges': '45.20',
+      'interest_earned': '38.65',
+      'apy': '0.0500',
+      'card_status': 'active',
+      'card_last_four': '8834',
+      'card_type': 'physical',
+      'created_at': '2023-05-10T12:00:00Z',
+    });
+  }
+
+  @override
+  Future<SpendingAccount?> getSpendingAccountModel(BrokerageUser user) async {
+    final raw = await getSpendingAccount(user);
+    return SpendingAccount.fromJson(raw);
+  }
+
+  @override
+  Future<dynamic> getRetirementHistory(BrokerageUser user) async {
+    return Future.value({
+      'account_number': 'ROTH7890',
+      'account_id': 'ret_demo_acct_01',
+      'total_contributions': '18500.00',
+      'total_match': '555.00',
+      'results': [
+        {
+          'year': 2026,
+          'account_type': 'ira_roth',
+          'contribution_amount': '5500.00',
+          'match_amount': '165.00',
+          'match_rate': '0.03',
+          'direct_contributions': '5500.00',
+          'rollover_contributions': '0.00',
+          'conversions': '0.00',
+          'limit': '7000.00',
+          'catch_up_limit': '8000.00',
+          'created_at': '2026-01-15T09:00:00Z',
+          'updated_at': '2026-08-20T14:30:00Z',
+          'status': 'active',
+        },
+        {
+          'year': 2025,
+          'account_type': 'ira_roth',
+          'contribution_amount': '7000.00',
+          'match_amount': '210.00',
+          'match_rate': '0.03',
+          'direct_contributions': '7000.00',
+          'rollover_contributions': '0.00',
+          'conversions': '0.00',
+          'limit': '7000.00',
+          'catch_up_limit': '8000.00',
+          'created_at': '2025-01-10T10:00:00Z',
+          'updated_at': '2025-12-30T17:00:00Z',
+          'status': 'active',
+        },
+        {
+          'year': 2024,
+          'account_type': 'ira_roth',
+          'contribution_amount': '6000.00',
+          'match_amount': '180.00',
+          'match_rate': '0.03',
+          'direct_contributions': '6000.00',
+          'rollover_contributions': '0.00',
+          'conversions': '0.00',
+          'limit': '7000.00',
+          'catch_up_limit': '8000.00',
+          'created_at': '2024-02-01T11:00:00Z',
+          'updated_at': '2024-12-15T16:00:00Z',
+          'status': 'active',
+        },
+      ],
+    });
+  }
+
+  @override
+  Future<RetirementHistory> getRetirementHistoryModel(BrokerageUser user) async {
+    final raw = await getRetirementHistory(user);
+    return RetirementHistory.fromJson(raw);
   }
 }

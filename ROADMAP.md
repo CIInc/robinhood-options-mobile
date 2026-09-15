@@ -40,9 +40,9 @@ This document outlines the planned features and enhancements for RealizeAlpha.
 **RealizeAlpha** is a comprehensive mobile trading platform with advanced AI-powered features. This roadmap tracks both completed achievements and planned enhancements across 25+ major categories.
 
 ### Quick Stats
-- **Completed Features**: 16 major categories (100+ items)
+- **Completed Features**: 16 major categories (120+ items)
 - **Planned Enhancements**: 24+ categories (195+ items)
-- **Open GitHub Issues**: 11 tracked features
+- **Open GitHub Issues**: 46 active issues (30 feature & tracking epics + 16 enhancement/maintenance issues)
 - **Focus Areas**: Advanced trading strategies, brokerage integrations, security, social features, AI coaching, quantitative research, behavioral finance, frontier tech
 
 ### Key Highlights
@@ -335,13 +335,13 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ **Combo Orders (Stock + Option Packages):** Execution and order history for multi-leg equity and option packages (`/combo/orders/`).
 - ✅ **Instrument Previous Positions & Cost Basis Lookback:** Ability to look back on previous closed and historical positions within an instrument, displaying historical average buy and sell prices, realized P&L, hold duration, and round-trip execution metrics.
 
-### v0.45.0 (Q4 2026 - Mid October)
+### v0.45.0 ✅ (Released September 14, 2026)
 **Cash Management, Banking, Retirement & Tax Documents**
 - ✅ **Securities Lending (SLIP) & Cash Sweeps:** Fully Paid Stock Loan income tracking (`/accounts/stock_loan_payments/`), SLIP status, and high-yield cash sweeps APY & tier tracking (`/accounts/sweeps/interest/`).
 - ✅ **Banking, ACH & Cash Movement:** Monitor bank deposits, withdrawals, clearing status, and linked bank accounts (`/ach/transfers/`, `/ach/relationships/`).
 - ✅ **Corporate Action Splits & Cash-in-Lieu:** Stock split cash-in-lieu adjustments, ratio tracking, and tax basis reporting (`/corp_actions/v2/split_payments/`).
 - ✅ **Shareholder Say Q&A Engagement:** Say Technologies earnings Q&A participation (`/qa/events-section/`).
-- **Multi-Account & Retirement Expansion:** Full multi-account hydration including Traditional/Roth IRAs (`ira_traditional`, `ira_roth`), contribution history (`/retirement/history/`), spending accounts (`/rhy/accounts/`), and connected agent management (`/oauth2/list_external_tokens/`).
+- ✅ **Multi-Account & Retirement Expansion:** Full multi-account hydration including Traditional/Roth IRAs (`ira_traditional`, `ira_roth`), contribution history (`/retirement/history/`), spending accounts (`/rhy/accounts/`), and connected agent management (`/oauth2/list_external_tokens/`).
 - ✅ **Tax Documents & Statements:** Direct access and download for 1099 tax documents, monthly statements, ADR fees, and foreign tax withholding (`/documents/?type=1099`, `/corp_actions/adr_fees/`, `/tax_info/`).
 
 ### v0.46.0 (Q4 2026 - November)
@@ -488,7 +488,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 ## Completed Features ✅
 
 ### Investor Groups
-- [x] Create and manage investor groups
+- [x] Create and manage investor groups ([#31](https://github.com/CIInc/robinhood-options-mobile/issues/31))
 - [x] Public and private group options
 - [x] Portfolio sharing within groups
 - [x] Admin controls and member management
@@ -501,7 +501,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - [x] Intraday signals - 15m, 1h, daily ([#48](https://github.com/CIInc/robinhood-options-mobile/issues/48))
 - [x] Server-side filtering for trade signals ([#46](https://github.com/CIInc/robinhood-options-mobile/issues/46))
 - [x] On-demand trade signal generation
-- [x] **Agentic Trading** ([#126](https://github.com/CIInc/robinhood-options-mobile/issues/126)):
+- [x] **Agentic Trading** ([#109](https://github.com/CIInc/robinhood-options-mobile/issues/109), [#126](https://github.com/CIInc/robinhood-options-mobile/issues/126)):
     - [x] Fully autonomous execution with 5-minute periodic checks
     - [x] Trade-level TP/SL tracking with entry price accuracy
     - [x] Firebase persistence for cross-device continuity
@@ -519,7 +519,7 @@ Mapping features to specific versions helps users anticipate releases and unders
     - [x] Performance by time of day analysis
     - [x] Performance by indicator combination analysis
     - [x] Performance by symbol tracking (top 10)
-- [x] **Paper Trading Mode** ([#131](https://github.com/CIInc/robinhood-options-mobile/pull/131)):
+- [x] **Paper Trading Mode** ([#73](https://github.com/CIInc/robinhood-options-mobile/issues/73), [#131](https://github.com/CIInc/robinhood-options-mobile/pull/131), [#144](https://github.com/CIInc/robinhood-options-mobile/issues/144)):
     - [x] Risk-free strategy testing with simulated execution
     - [x] Paper vs real trade filtering and comparison
     - [x] Visual indicators (PAPER badges throughout UI)
@@ -543,12 +543,12 @@ Mapping features to specific versions helps users anticipate releases and unders
     - [x] Create and use custom technical indicators
 - [x] **Performance Dashboard** ([#112](https://github.com/CIInc/robinhood-options-mobile/issues/112)):
     - [x] Track signal performance metrics (Signal Strength & Indicator Performance)
-- [x] **Trade Signal Notifications** ([#115](https://github.com/CIInc/robinhood-options-mobile/issues/115)):
+- [x] **Trade Signal Notifications** ([#80](https://github.com/CIInc/robinhood-options-mobile/issues/80), [#115](https://github.com/CIInc/robinhood-options-mobile/issues/115)):
     - [x] Configurable push notifications for trade signals
     - [x] Filtering by signal type, symbol, and confidence
     - [x] Deep linking to instrument details
     - [x] **Rich Notifications**: Charts and data in push notifications ([#80](https://github.com/CIInc/robinhood-options-mobile/issues/80))
-- [x] **Options Flow Analysis**:
+- [x] **Options Flow Analysis** ([#83](https://github.com/CIInc/robinhood-options-mobile/issues/83), [#134](https://github.com/CIInc/robinhood-options-mobile/issues/134)):
     - [x] Enhanced smart flags (Cheap Vol, High Premium, Large Block, etc.)
     - [x] Improved detection algorithms (Whale, LEAPS)
     - [x] Comprehensive in-app definitions
@@ -587,7 +587,7 @@ Mapping features to specific versions helps users anticipate releases and unders
     - [x] Real-time Firestore integration
     - [x] User backtest history (last 50 runs)
 ### Copy Trading
-- [x] Manual order execution for copied trades
+- [x] Manual order execution for copied trades ([#28](https://github.com/CIInc/robinhood-options-mobile/issues/28))
 - [x] Push notifications for copyable trades
 - [x] Selection-based UI for batch copying
 - [x] Quantity and amount limits
@@ -610,13 +610,13 @@ Mapping features to specific versions helps users anticipate releases and unders
 - [x] Live futures position enrichment with contract metadata
 - [x] Real-time quote integration and Open P/L calculation
 - [x] **Futures Auto-Trading**: Settings configuration, performance logging, custom activity timeline cards, and backend cron jobs
-- [x] **Futures Historical Metrics**: Realized P&L and Day P&L calculations matching real-time contract streams
+- [x] **Futures Historical Metrics**: Realized P&L and Day P&L calculations matching real-time contract streams ([#102](https://github.com/CIInc/robinhood-options-mobile/issues/102))
 
 ### Data Persistence
-- [x] Firestore persisted portfolios, positions, and transactions ([#29](https://github.com/CIInc/robinhood-options-mobile/issues/29))
+- [x] Firestore persisted portfolios, positions, and transactions ([#16](https://github.com/CIInc/robinhood-options-mobile/issues/16), [#29](https://github.com/CIInc/robinhood-options-mobile/issues/29))
 
 ### Portfolio Visualization
-- [x] Portfolio allocation pie charts (Asset, Position, Sector, Industry) ([#127](https://github.com/CIInc/robinhood-options-mobile/pull/127))
+- [x] Portfolio allocation pie charts (Asset, Position, Sector, Industry) ([#2](https://github.com/CIInc/robinhood-options-mobile/issues/2), [#127](https://github.com/CIInc/robinhood-options-mobile/pull/127))
 - [x] Interactive carousel with page indicators
 - [x] Bidirectional highlighting between chart slices and legend entries
 - [x] Top 5 holdings display with percentage labels
@@ -629,6 +629,8 @@ Mapping features to specific versions helps users anticipate releases and unders
 - [x] **UX & Navigation Enhancements**:
     - [x] **Scroll-to-Top**: Quick return to top for major list views (v0.37.0)
     - [x] **Responsive Appbar**: Sliver-based architecture for smooth scrolling
+    - [x] **Home Screen Widgets** ([#86](https://github.com/CIInc/robinhood-options-mobile/issues/86)): iOS widgets for portfolio, watchlists, and trade signals with deep linking
+    - [x] **Deep Linking** ([#85](https://github.com/CIInc/robinhood-options-mobile/issues/85)): Universal links and sharing functionality for instruments and referral codes
 
 ### Trading & Execution
 - [x] **Option Chain Screener** ([#12](https://github.com/CIInc/robinhood-options-mobile/issues/12)):
@@ -664,7 +666,7 @@ Mapping features to specific versions helps users anticipate releases and unders
     - [x] Stop order protection and live pip value calculations
     - [x] Carry Trade Optimizer with interest rate differential matrix and basket builder
     - [x] Multi-Asset Portfolio Allocation across Stocks, Options, Crypto, Forex, Futures, Fixed Income, and Cash
-- [x] **Schwab Integration** ([#122](https://github.com/CIInc/robinhood-options-mobile/issues/122)):
+- [x] **Schwab Integration** ([#4](https://github.com/CIInc/robinhood-options-mobile/issues/4), [#8](https://github.com/CIInc/robinhood-options-mobile/issues/8), [#122](https://github.com/CIInc/robinhood-options-mobile/issues/122)):
     - [x] Native Schwab brokerage support
     - [x] Enhanced option order handling
 
@@ -742,6 +744,7 @@ Q3 2026 shifts focus from basic execution to **Advanced Intelligence** and **Reg
 - [x] **Tax Documents & Account Statements** (v0.45.0): In-app download and review of Form 1099, monthly statements, and withholding status (`/documents/`, `/tax_info/`) - **Small** (1 week)
 - [x] **Corporate Action Split Adjustments** (v0.45.0): Stock split payments, cash-in-lieu tracking, and ratio adjustments (`/corp_actions/v2/split_payments/`) - **Small** (1 week)
 - [x] **Shareholder Say Q&A Engagement** (v0.45.0): Verified shareholder Q&A viewing and submission for upcoming earnings calls (`/qa/events-section/`) - **Small** (1-2 weeks)
+- [x] **Multi-Account & Retirement Expansion** (v0.45.0): Full multi-account hydration including Traditional/Roth IRAs, annual contribution limits, Robinhood Gold match tracker, spending accounts, connected external OAuth agents, and notification center - **Medium** (2 weeks)
 - [ ] **Automated DRIP with Threshold** ([#23](https://github.com/CIInc/robinhood-options-mobile/issues/23)): Dividend reinvestment at price thresholds - **Small** (1 week)
 - [x] **Benchmark Comparison** ([#18](https://github.com/CIInc/robinhood-options-mobile/issues/18)): Compare against market indices - **Small** (1 week)
 
@@ -789,7 +792,7 @@ Q3 2026 shifts focus from basic execution to **Advanced Intelligence** and **Reg
 
 #### Notifications & Alerts ([Tracking: #115](https://github.com/CIInc/robinhood-options-mobile/issues/115))
 - [x] **Custom Alerts**: Price, volume, and volatility alerts ([#81](https://github.com/CIInc/robinhood-options-mobile/issues/81))
-- [ ] **Notification History**: In-app log of past notifications ([#82](https://github.com/CIInc/robinhood-options-mobile/issues/82))
+- [x] **Notification History**: In-app log of past notifications ([#82](https://github.com/CIInc/robinhood-options-mobile/issues/82))
 - [ ] **Email/SMS Channels**: Critical signal notifications via multiple channels
 - [ ] **Alert Customization**: Custom sounds and per-signal preferences
 - [ ] **Earnings Calendar Notifications**: Earnings date alerts
@@ -863,7 +866,7 @@ Q3 launches the social/community ecosystem. Investor Groups already exist (✅),
 - [ ] **Twitter Sentiment**: Market sentiment tracking - **Medium** (2-3 weeks)
 - [ ] **Community Trade Ideas**: Crowdsourced trade suggestions - **Small** (1-2 weeks)
 - [ ] **RealizeAlpha Social Platform** ([#24](https://github.com/CIInc/robinhood-options-mobile/issues/24)): Comprehensive social features - **Large** (4-5 weeks)
-- [ ] **Share Portfolio** ([#25](https://github.com/CIInc/robinhood-options-mobile/issues/25)): Share portfolio performance - **Small** (1 week)
+- [x] **Share Portfolio** ([#25](https://github.com/CIInc/robinhood-options-mobile/issues/25)): Share portfolio performance via deep links and Investor Groups
 
 ### Platform Foundation & Operations
 
@@ -887,26 +890,31 @@ Technical debt accumulation slows velocity. Investing in testing, CI/CD, and sec
 - [ ] **Offline Mode**: View cached data without internet ([#87](https://github.com/CIInc/robinhood-options-mobile/issues/87))
 - [ ] **Landscape Mode**: Advanced charting and data tables support
 - [ ] **Accessibility**: Voice/Assistant integrations, dynamic type, haptic feedback
+- [ ] **Mobile UX Enhancements** ([#117](https://github.com/CIInc/robinhood-options-mobile/issues/117)): Siri/Assistant shortcuts, tablet layouts, and haptics
+- [ ] **Synchronized Position Scroll** ([#7](https://github.com/CIInc/robinhood-options-mobile/issues/7)): Synchronized scroll across portfolio position detail rows
+- [ ] **Position Bar Chart Values** ([#19](https://github.com/CIInc/robinhood-options-mobile/issues/19)): Combined display of both $ and % values in stock and option bar charts
 
 #### Infrastructure & Security
 - [x] **Biometric Authentication**: Face/fingerprint login ([#69](https://github.com/CIInc/robinhood-options-mobile/issues/69))
+- [ ] **Two-Factor Authentication (2FA)** ([#89](https://github.com/CIInc/robinhood-options-mobile/issues/89)): TOTP, SMS backup codes, recovery codes, and trusted devices
 - [ ] **End-to-End Encryption**: Sensitive data encryption
 - [x] **CI/CD Pipeline**: Automated testing and deployment ([#70](https://github.com/CIInc/robinhood-options-mobile/issues/70))
-- [ ] **Performance Optimization**: App size, startup time, and list scrolling performance
-- [ ] **Security Audit**: Third-party assessment and compliance automation
+- [ ] **Performance & Technical Debt Optimization** ([#124](https://github.com/CIInc/robinhood-options-mobile/issues/124)): App size, market data batching, viewport fixes, and list scrolling performance
+- [ ] **Security Audit & Infrastructure Roadmap** ([#135](https://github.com/CIInc/robinhood-options-mobile/issues/135)): Third-party security assessment, enterprise MCP hub, and zero-knowledge portfolio sharing
 
 #### Data & Integration
 - [x] **Schwab Integration**: Full portfolio and trading support ([#91](https://github.com/CIInc/robinhood-options-mobile/issues/91), [#93](https://github.com/CIInc/robinhood-options-mobile/issues/93), [#122](https://github.com/CIInc/robinhood-options-mobile/issues/122))
     - [x] Schwab Auth & Portfolio Sync (Phase 1)
     - [x] Schwab Options Order Placement (Phase 2, v0.37.5) - [Tracking: #138](https://github.com/CIInc/robinhood-options-mobile/issues/138)
     - [x] Schwab Multi-Account Support (Phase 3): Preserve Schwab account hash IDs and route orders to the selected account
-- [ ] **Robinhood Native Multi-Account & Retirement Support**:
-    - [ ] IRA Traditional & Roth Account support (`ira_traditional`, `ira_roth`) with contribution tracking
-    - [ ] Connected Agents & External Tokens management (`/oauth2/list_external_tokens/`)
-    - [ ] First-Party In-App Notifications & Stack announcements (`/inbox/threads/`, `/midlands/notifications/stack/`)
-- [x] **Yahoo Finance**: Real-time news and charting
-- [ ] **Plaid Integration**: Full account linking and options support ([#15](https://github.com/CIInc/robinhood-options-mobile/issues/15), [#92](https://github.com/CIInc/robinhood-options-mobile/issues/92))
-- [ ] **Multi-Broker**: Unified view across Fidelity, IBKR, and others
+- [x] **Robinhood Native Multi-Account & Retirement Support**:
+    - [x] IRA Traditional & Roth Account support (`ira_traditional`, `ira_roth`) with contribution tracking
+    - [x] Connected Agents & External Tokens management (`/oauth2/list_external_tokens/`)
+    - [x] First-Party In-App Notifications & Stack announcements (`/inbox/threads/`, `/midlands/notifications/stack/`)
+    - [x] Robinhood Crypto Direct Integration (native service complete; external API [#65](https://github.com/CIInc/robinhood-options-mobile/issues/65) wontfix)
+- [x] **Yahoo Finance**: Real-time news and charting ([#121](https://github.com/CIInc/robinhood-options-mobile/issues/121))
+- [ ] **Plaid Integration**: Full account linking, options support, and transaction sync ([#15](https://github.com/CIInc/robinhood-options-mobile/issues/15), [#92](https://github.com/CIInc/robinhood-options-mobile/issues/92), [#123](https://github.com/CIInc/robinhood-options-mobile/issues/123))
+- [ ] **Multi-Broker**: Unified view across Fidelity (CSV import complete; direct API [#33](https://github.com/CIInc/robinhood-options-mobile/issues/33) invalid), Interactive Brokers ([#30](https://github.com/CIInc/robinhood-options-mobile/issues/30)), and others
 - [ ] **Developer API**: Public API access and webhook webhooks
 - [ ] **SEC & EDGAR Data**: Direct access to regulatory filings and financial data ([Tracking: #143](https://github.com/CIInc/robinhood-options-mobile/issues/143))
     - [ ] Real-time 13F filings (Institutional Ownership)
@@ -916,8 +924,8 @@ Technical debt accumulation slows velocity. Investing in testing, CI/CD, and sec
 
 #### Technical Excellence
 - [x] **Testing**: Comprehensive unit, widget, and integration test coverage ([#75](https://github.com/CIInc/robinhood-options-mobile/issues/75), [#90](https://github.com/CIInc/robinhood-options-mobile/issues/90))
-- [ ] **Code Quality**: Stricter linting (Dart 3 migration), technical debt reduction
-- [ ] **Documentation**: Complete API reference, developer guides, and architecture records ([#94](https://github.com/CIInc/robinhood-options-mobile/issues/94), [#140](https://github.com/CIInc/robinhood-options-mobile/issues/140))
+- [ ] **Code Quality & Maintenance** ([#125](https://github.com/CIInc/robinhood-options-mobile/issues/125)): Stricter linting (Dart 3 migration), resolving deprecations, and technical debt reduction
+- [ ] **Documentation & Developer Experience** ([#94](https://github.com/CIInc/robinhood-options-mobile/issues/94), [#95](https://github.com/CIInc/robinhood-options-mobile/issues/95), [#96](https://github.com/CIInc/robinhood-options-mobile/issues/96), [#140](https://github.com/CIInc/robinhood-options-mobile/issues/140)): Complete API reference, developer onboarding guide, and Architecture Decision Records (ADRs)
 - [x] **Monetization**: AdMob integration ([#120](https://github.com/CIInc/robinhood-options-mobile/issues/120)) and subscription management
 
 ### Future Horizons
@@ -929,15 +937,17 @@ Staying ahead of the curve requires exploring frontier technologies. Decentraliz
 
 #### Advanced Derivatives
 - [ ] **Futures Trading**: Full lifecycle management, SPAN margin, and roll automation ([#67](https://github.com/CIInc/robinhood-options-mobile/issues/67), [#72](https://github.com/CIInc/robinhood-options-mobile/issues/72), [#103](https://github.com/CIInc/robinhood-options-mobile/issues/103), [#104](https://github.com/CIInc/robinhood-options-mobile/issues/104))
-- [ ] **Risk Analytics**: Greeks, volatility surfaces, and VaR adjustments ([#105](https://github.com/CIInc/robinhood-options-mobile/issues/105), [#106](https://github.com/CIInc/robinhood-options-mobile/issues/106))
+- [ ] **Risk Analytics**: Greeks, volatility surfaces, VaR adjustments, and seasonality analysis ([#105](https://github.com/CIInc/robinhood-options-mobile/issues/105), [#106](https://github.com/CIInc/robinhood-options-mobile/issues/106), [#111](https://github.com/CIInc/robinhood-options-mobile/issues/111))
 - [x] **Forex Integration**: Multi-currency account support, FX trading, and Carry Trade Optimizer ([#116](https://github.com/CIInc/robinhood-options-mobile/issues/116))
 
 #### Quantitative & Strategy
-- [ ] **Strategy Validator**: Monte Carlo simulations and walk-forward analysis ([#136](https://github.com/CIInc/robinhood-options-mobile/issues/136))
+- [x] **Strategy Validator & Backtesting Engine** ([#136](https://github.com/CIInc/robinhood-options-mobile/issues/136)): Strategy template validation and historical backtesting engine
+- [ ] **Advanced Monte Carlo Simulations**: Walk-forward analysis and multi-regime stress validation
 - [ ] **Alpha Discovery**: Custom factor testing and correlation matrices ([#137](https://github.com/CIInc/robinhood-options-mobile/issues/137))
 - [ ] **Smart Order Routing**: Execution optimization across venues ([#108](https://github.com/CIInc/robinhood-options-mobile/issues/108))
 
 #### Social & Education
+- [ ] **Education & Learning Platform** ([#119](https://github.com/CIInc/robinhood-options-mobile/issues/119)): Interactive tutorials, strategy guides, options education modules, and video explanations
 - [ ] **Gamified Learning**: Trading challenges, XP systems, and certifications
 - [ ] **Social Sentiment**: Crowdsourced trade ideas and sentiment tracking
 - [ ] **Mentorship**: Community Q&A and verified expert badges

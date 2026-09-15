@@ -6,6 +6,7 @@ class Account {
   final double? portfolioCash;
   final String accountNumber;
   final String type;
+  final String? brokerageAccountType;
   final double? buyingPower;
   final String optionLevel;
   final double? cashHeldForOptionsCollateral;
@@ -30,7 +31,8 @@ class Account {
       this.cashHeldForOptionsCollateral,
       this.unsettledDebit,
       this.settledAmountBorrowed,
-      {this.isAgentic = false,
+      {this.brokerageAccountType,
+      this.isAgentic = false,
       this.dayTradesProtection = true,
       this.dayTradeBuyingPower,
       this.dayTradeRatio,
@@ -38,12 +40,42 @@ class Account {
       this.patternDayTraderExpiryDate,
       this.isPdtForever = false});
 
+  bool get isTraditionalIra =>
+      (brokerageAccountType?.toLowerCase().contains('ira_traditional') ??
+          false) ||
+      type.toLowerCase().contains('ira_traditional') ||
+      (brokerageAccountType?.toLowerCase().contains('traditional') ?? false);
+
+  bool get isRothIra =>
+      (brokerageAccountType?.toLowerCase().contains('ira_roth') ?? false) ||
+      type.toLowerCase().contains('ira_roth') ||
+      (brokerageAccountType?.toLowerCase().contains('roth') ?? false);
+
+  bool get isRetirement =>
+      isTraditionalIra ||
+      isRothIra ||
+      (brokerageAccountType?.toLowerCase().contains('ira') ?? false) ||
+      type.toLowerCase().contains('ira') ||
+      (brokerageAccountType?.toLowerCase().contains('retirement') ?? false);
+
+  String get displayType {
+    if (isRothIra) return 'Roth IRA';
+    if (isTraditionalIra) return 'Traditional IRA';
+    if (isRetirement) return 'IRA';
+    if (type.isNotEmpty) {
+      return type[0].toUpperCase() + type.substring(1);
+    }
+    return 'Individual';
+  }
+
   Account.fromJson(dynamic json) //, BrokerageUser user
       : // userId = user.id,
         url = json['url'] ?? '',
         portfolioCash = parseDouble(json['portfolio_cash']),
         accountNumber = json['account_number'] ?? '',
         type = json['type'] ?? '',
+        brokerageAccountType =
+            json['brokerage_account_type']?.toString() ?? json['account_type']?.toString(),
         buyingPower = parseDouble(json['buying_power']),
         optionLevel = json['option_level'] ?? '',
         cashHeldForOptionsCollateral =
@@ -100,6 +132,10 @@ class Account {
             : null,
         accountNumber = json['securitiesAccount']['accountNumber'],
         type = json['securitiesAccount']['type'] ?? '',
+        brokerageAccountType =
+            json['securitiesAccount']['type']?.toString().toLowerCase().contains('ira') == true
+                ? json['securitiesAccount']['type']?.toString()
+                : 'individual',
         buyingPower = json['securitiesAccount']['currentBalances'] != null
             ? parseDouble(
                 json['securitiesAccount']['currentBalances']['buyingPower'])
@@ -123,6 +159,7 @@ class Account {
         portfolioCash = parseDouble(json['accounts'][0]['balances']['current']),
         accountNumber = json['accounts'][0]['mask'],
         type = json['accounts'][0]['type'],
+        brokerageAccountType = json['accounts'][0]['subtype']?.toString() ?? 'individual',
         buyingPower = parseDouble(json['accounts'][0]['balances']['current']),
         optionLevel =
             '', // TODO: From getUser() /userprincipals/. Use .authorizations.optionTradingLevel
@@ -144,6 +181,7 @@ class Account {
       'portfolio_cash': portfolioCash,
       'account_number': accountNumber,
       'type': type,
+      'brokerage_account_type': brokerageAccountType,
       'buying_power': buyingPower,
       'option_level': optionLevel,
       'cash_held_for_options_collateral': cashHeldForOptionsCollateral,

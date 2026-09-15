@@ -3,9 +3,33 @@
 All notable changes to this project will be documented in this file.
 
 ## [0.45.0] - 2026-09-14
-**Corporate Action Split Adjustments, Cash-in-Lieu Tracking, Securities Lending (SLIP), High-Yield Cash Sweeps, Banking/ACH Transfers, Tax Documents & Shareholder Say Q&A Engagement**
+**Multi-Account & Retirement Expansion, Corporate Action Split Adjustments, Cash-in-Lieu Tracking, Securities Lending (SLIP), High-Yield Cash Sweeps, Banking/ACH Transfers, Tax Documents & Shareholder Say Q&A Engagement**
 
 ### Added
+- **Multi-Account & Retirement Expansion (Traditional/Roth IRAs, Connected Agents, and Midlands Notification Center):**
+  - Expanded `Account`, `UnifiedAccount`, and `AccountStore` models to support Robinhood Traditional and Roth IRAs (`ira_traditional`, `ira_roth`), automatic margin restriction enforcement (IRAs cannot use margin/options borrow), and distinct multi-account filtering (`brokerageAccounts` vs. `retirementAccounts`).
+  - Created `RetirementContribution` and `RetirementHistory` models (`lib/model/retirement.dart`) with annual IRS contribution limits for 2023–2026 (\$7,000 baseline, \$8,000 age 50+ catch-up), Robinhood Gold 3% retirement match tracking, and JSON serialization.
+  - Created `SpendingAccount` model (`lib/model/spending_account.dart`) for Robinhood Spending/Cash Management (`/rhy/accounts/`) with debit card status, APY, and balance metrics.
+  - Created `ExternalToken` model (`lib/model/external_token.dart`) for connected third-party applications, OAuth2 integrations, and AI trading agents (`/oauth2/list_external_tokens/`) with scopes, expiration tracking, and revocation support (`/oauth2/revoke_token/`).
+  - Created `NotificationItem` model (`lib/model/notification_item.dart`) for first-party in-app announcements, market closure cards, and system notices (`/midlands/notifications/stack/`, `/inbox/threads/`).
+  - Extended `IBrokerageService` with `getExternalTokens`, `revokeExternalToken`, `getNotificationStack`, `getInboxThreads`, `getSpendingAccount`, and `getRetirementHistory` across `RobinhoodService`, `DemoService`, `SchwabService`, `PaperService`, `FidelityService`, and `PlaidService`.
+  - Built `RetirementWidget` (`lib/widgets/retirement_widget.dart`):
+    - Annual contribution progress dashboard with IRS limit progress bar and completion percentage.
+    - Age 50+ catch-up limit toggle switch.
+    - Robinhood retirement match tracker highlighting bonus earnings.
+    - Multi-year contribution ledger with tax year badges and account breakdown.
+    - Educational notice detailing IRS filing deadlines and contribution rules.
+  - Built `ConnectedAgentsWidget` (`lib/widgets/connected_agents_widget.dart`):
+    - Connected applications and AI trading agents management viewer.
+    - Scope chips, creation/expiration dates, and active/expired status indicators.
+    - Interactive "Revoke Access" confirmation dialog with live token revocation.
+  - Built `NotificationCenterWidget` (`lib/widgets/notification_center_widget.dart`):
+    - Unified notifications dashboard aggregating Midlands announcement stack cards and inbox threads.
+    - Filter chips by category (`All`, `Market`, `Feature`, `Account`, `Security`).
+    - Pinned priority notices and external link launching.
+  - Integrated retirement badges and savings icons into `SliverAppBarWidget` multi-account selector dropdown.
+  - Added navigation list tiles in `UserWidget` under Banking & Documents for "Retirement & IRA", "Connected Agents & Apps", and "Notification Center".
+  - Added 32 unit tests across `test/retirement_test.dart`, `test/spending_account_test.dart`, `test/external_token_test.dart`, `test/notification_item_test.dart`, and `test/account_type_test.dart`.
 - **Shareholder Say Q&A Engagement:**
   - Integrated Robinhood and Say Technologies verified shareholder Q&A endpoints (`/instruments/{id}/qa/events-section/`, `/qa/events/{id}/questions/{id}/upvote/`, and `/qa/events/{id}/questions/`).
   - Created domain models in `lib/model/shareholder_qa_event.dart`: `ShareholderAnswer`, `ShareholderQuestion`, `ShareholderQaEvent`, and `ShareholderQaSection` with JSON serialization, verified shareholder indicators, compact vote/share formatting, event status getters, and video timestamp conversion.
@@ -67,6 +91,15 @@ All notable changes to this project will be documented in this file.
   - Added 14 unit tests in `test/stock_loan_test.dart` validating JSON parsing, rate calculations, error fallbacks, and `DemoService` integration.
   - Added widget tests in `test/stock_loan_widget_test.dart` validating SLIP metrics, position rendering, search filter interaction, tab switching, and cash sweeps calculator.
   - Added comprehensive feature and architectural documentation in `docs/stock-lending-and-cash-sweeps.md` and indexed in `docs/index.md`.
+
+### Fixed
+- **Agentic Reasoning Mode & GEX Structural Level Fallbacks:**
+  - Resolved issue where alpha-agent in `reasoning` mode failed to pass spot prices to `fetchGammaExposure`, causing missing price warnings.
+  - Added robust structural level fallbacks for `pTrans`, `nTrans`, `plusGex`, and `cotmp` in `computeGammaExposure` when option chains lack zero-crossing gamma flips.
+  - Enforced Rule 4 compatibility (`pTrans > nTrans`) across all dealer gamma regimes.
+  - Enriched agentic reasoning prompt with Total Call/Put GEX and Total Open Interest while correcting `$N/A` formatting.
+  - Enabled graceful fallback to deterministic technical indicators and macro assessment in agentic decision engine when options chain or GEX data is unavailable.
+  - Added unit test coverage in `functions/tests/gamma-exposure.test.ts` for GEX structural fallbacks without zero-crossings.
 
 ## [0.44.0] - 2026-09-13
 **Unified Risk & Margin Health, Collateral Tracking, Margin Calls & Financing Costs, Instrument-Specific Buying Power & Trade Warnings, Options Collateral & Tier Upgrades, Combo Orders (Stock + Option Packages), and Historical Cost Basis Lookback**

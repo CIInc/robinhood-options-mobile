@@ -357,33 +357,32 @@ class _FuturesPositionsWidgetState extends State<FuturesPositionsWidget> {
               _navigateToPosition(context, position);
             },
           );
+          void openFuturesPage() {
+            _handleNavigation(context, () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => FuturesPositionsPageWidget(
+                    widget.brokerageUser,
+                    widget.service,
+                    widget.futuresPositions,
+                    analytics: widget.analytics,
+                    observer: widget.observer,
+                    generativeService: widget.generativeService,
+                    user: widget.user,
+                    userDocRef: widget.userDocRef,
+                  ),
+                ),
+              );
+            });
+          }
+
           return SliverToBoxAdapter(
             child: Column(
               children: [
                 if (widget.showGroupHeader)
                   InkWell(
-                    onTap: !widget.showList
-                        ? () {
-                            _handleNavigation(context, () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      FuturesPositionsPageWidget(
-                                    widget.brokerageUser,
-                                    widget.service,
-                                    widget.futuresPositions,
-                                    analytics: widget.analytics,
-                                    observer: widget.observer,
-                                    generativeService: widget.generativeService,
-                                    user: widget.user,
-                                    userDocRef: widget.userDocRef,
-                                  ),
-                                ),
-                              );
-                            });
-                          }
-                        : null,
+                    onTap: !widget.showList ? openFuturesPage : null,
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 6.0),
                       child: Row(
@@ -443,6 +442,12 @@ class _FuturesPositionsWidgetState extends State<FuturesPositionsWidget> {
                               ),
                             ),
                           ),
+                          if (!widget.showList)
+                            IconButton(
+                              icon: const Icon(Icons.chevron_right),
+                              tooltip: 'View futures details',
+                              onPressed: openFuturesPage,
+                            ),
                         ],
                       ),
                     ),

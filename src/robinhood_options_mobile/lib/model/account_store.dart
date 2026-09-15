@@ -23,6 +23,14 @@ class AccountStore extends ChangeNotifier {
   /// An unmodifiable view of the items in the store.
   UnmodifiableListView<Account> get items => UnmodifiableListView(_items);
 
+  /// Accounts categorized as standard brokerage accounts.
+  List<Account> get brokerageAccounts =>
+      _items.where((a) => !a.isRetirement).toList();
+
+  /// Accounts categorized as retirement (Traditional IRA, Roth IRA, etc.).
+  List<Account> get retirementAccounts =>
+      _items.where((a) => a.isRetirement).toList();
+
   String? get selectedAccountNumber => _selectedAccountNumber;
   bool get showBalances => _showBalances;
 

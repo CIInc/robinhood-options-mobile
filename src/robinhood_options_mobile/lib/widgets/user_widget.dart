@@ -40,6 +40,9 @@ import 'package:robinhood_options_mobile/widgets/banking_widget.dart';
 import 'package:robinhood_options_mobile/widgets/tax_documents_widget.dart';
 import 'package:robinhood_options_mobile/widgets/corporate_actions_widget.dart';
 import 'package:robinhood_options_mobile/widgets/shareholder_qa_widget.dart';
+import 'package:robinhood_options_mobile/widgets/retirement_widget.dart';
+import 'package:robinhood_options_mobile/widgets/connected_agents_widget.dart';
+import 'package:robinhood_options_mobile/widgets/notification_center_widget.dart';
 
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
@@ -1384,6 +1387,125 @@ class _UserWidgetState extends State<UserWidget> {
                                               .showSnackBar(const SnackBar(
                                             content: Text(
                                                 'Please link a brokerage account to view stock lending & sweeps.'),
+                                          ));
+                                        }
+                                      },
+                                    ),
+                                    // Retirement & IRA
+                                    ListTile(
+                                      leading: CircleAvatar(
+                                        backgroundColor: Theme.of(context)
+                                            .colorScheme
+                                            .secondaryContainer,
+                                        foregroundColor: Theme.of(context)
+                                            .colorScheme
+                                            .onSecondaryContainer,
+                                        child: const Icon(Icons.savings_outlined),
+                                      ),
+                                      title: const Text('Retirement & IRA'),
+                                      subtitle: const Text(
+                                          'IRA contributions, Robinhood match & IRS limits'),
+                                      trailing: const Icon(Icons.chevron_right),
+                                      onTap: () async {
+                                        if (widget.brokerageUser != null &&
+                                            widget.service != null) {
+                                          final currentAccount = Provider.of<AccountStore>(
+                                                  context,
+                                                  listen: false)
+                                              .selectedAccount;
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) =>
+                                                  RetirementWidget(
+                                                brokerageUser:
+                                                    widget.brokerageUser!,
+                                                service: widget.service!,
+                                                account: currentAccount,
+                                              ),
+                                            ),
+                                          );
+                                        } else {
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(const SnackBar(
+                                            content: Text(
+                                                'Please link a brokerage account to view retirement & IRA.'),
+                                          ));
+                                        }
+                                      },
+                                    ),
+                                    // Connected Agents & Apps
+                                    ListTile(
+                                      leading: CircleAvatar(
+                                        backgroundColor: Theme.of(context)
+                                            .colorScheme
+                                            .secondaryContainer,
+                                        foregroundColor: Theme.of(context)
+                                            .colorScheme
+                                            .onSecondaryContainer,
+                                        child: const Icon(Icons.extension_outlined),
+                                      ),
+                                      title: const Text('Connected Agents & Apps'),
+                                      subtitle: const Text(
+                                          'Manage OAuth tokens, trading agents & app access'),
+                                      trailing: const Icon(Icons.chevron_right),
+                                      onTap: () async {
+                                        if (widget.brokerageUser != null &&
+                                            widget.service != null) {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) =>
+                                                  ConnectedAgentsWidget(
+                                                brokerageUser:
+                                                    widget.brokerageUser!,
+                                                service: widget.service!,
+                                              ),
+                                            ),
+                                          );
+                                        } else {
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(const SnackBar(
+                                            content: Text(
+                                                'Please link a brokerage account to view connected apps.'),
+                                          ));
+                                        }
+                                      },
+                                    ),
+                                    // Notification Center
+                                    ListTile(
+                                      leading: CircleAvatar(
+                                        backgroundColor: Theme.of(context)
+                                            .colorScheme
+                                            .secondaryContainer,
+                                        foregroundColor: Theme.of(context)
+                                            .colorScheme
+                                            .onSecondaryContainer,
+                                        child: const Icon(Icons.notifications_outlined),
+                                      ),
+                                      title: const Text('Notification Center'),
+                                      subtitle: const Text(
+                                          'Midlands announcements, market notices & inbox'),
+                                      trailing: const Icon(Icons.chevron_right),
+                                      onTap: () async {
+                                        if (widget.brokerageUser != null &&
+                                            widget.service != null) {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) =>
+                                                  NotificationCenterWidget(
+                                                brokerageUser:
+                                                    widget.brokerageUser!,
+                                                service: widget.service!,
+                                              ),
+                                            ),
+                                          );
+                                        } else {
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(const SnackBar(
+                                            content: Text(
+                                                'Please link a brokerage account to view notification center.'),
                                           ));
                                         }
                                       },

@@ -414,6 +414,7 @@ class CollateralAllocations {
 class UnifiedAccount {
   final String accountNumber;
   final String accountType; // 'margin', 'cash'
+  final String? brokerageAccountType;
   final double buyingPower;
   final double optionsBuyingPower;
   final double cryptoBuyingPower;
@@ -432,6 +433,7 @@ class UnifiedAccount {
   const UnifiedAccount({
     required this.accountNumber,
     this.accountType = 'margin',
+    this.brokerageAccountType,
     this.buyingPower = 0.0,
     this.optionsBuyingPower = 0.0,
     this.cryptoBuyingPower = 0.0,
@@ -448,9 +450,15 @@ class UnifiedAccount {
     this.uninvestedCash,
   });
 
+  bool get isRetirement =>
+      (brokerageAccountType?.toLowerCase().contains('ira') ?? false) ||
+      accountType.toLowerCase().contains('ira') ||
+      (brokerageAccountType?.toLowerCase().contains('retirement') ?? false);
+
   bool get isMarginAccount =>
-      accountType.toLowerCase().contains('margin') ||
-      marginHealth.borrowedAmount > 0;
+      !isRetirement &&
+      (accountType.toLowerCase().contains('margin') ||
+          marginHealth.borrowedAmount > 0);
 
   factory UnifiedAccount.fromJson(dynamic json) {
     if (json == null) {
@@ -483,6 +491,7 @@ class UnifiedAccount {
             '')
         .toString();
     final type = (data['account_type'] ?? data['type'] ?? 'margin').toString();
+    final brokerageType = data['brokerage_account_type']?.toString();
 
     final bp =
         parseDouble(data['account_buying_power'] ?? data['buying_power']) ??
@@ -541,6 +550,7 @@ class UnifiedAccount {
     return UnifiedAccount(
       accountNumber: acctNum,
       accountType: type,
+      brokerageAccountType: brokerageType,
       buyingPower: bp,
       optionsBuyingPower: optBp,
       cryptoBuyingPower: cryptoBp,
@@ -613,6 +623,7 @@ class UnifiedAccount {
     return UnifiedAccount(
       accountNumber: account.accountNumber,
       accountType: account.type,
+      brokerageAccountType: account.brokerageAccountType,
       buyingPower: bp,
       optionsBuyingPower: optBp,
       cryptoBuyingPower: bp,
@@ -631,6 +642,7 @@ class UnifiedAccount {
     return {
       'account_number': accountNumber,
       'account_type': accountType,
+      'brokerage_account_type': brokerageAccountType,
       'buying_power': buyingPower,
       'options_buying_power': optionsBuyingPower,
       'crypto_buying_power': cryptoBuyingPower,
