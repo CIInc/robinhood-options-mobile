@@ -39,15 +39,22 @@ class Watchlist {
   final DateTime? updatedAt;
   List<WatchlistItem> items = [];
 
-  Watchlist(this.id, this.displayName, this.ownerType, this.iconEmoji,
-      this.imageUrls, this.createdAt, this.updatedAt);
+  Watchlist(
+    this.id,
+    this.displayName,
+    this.ownerType,
+    this.iconEmoji,
+    this.imageUrls,
+    this.createdAt,
+    this.updatedAt,
+  );
 
   Watchlist.fromJson(dynamic json)
-      : id = json['id'],
-        displayName = json['display_name'],
-        ownerType = json['owner_type'],
-        iconEmoji = json['icon_emoji'],
-        imageUrls = json['image_urls'],
-        createdAt = DateTime.tryParse(json['created_at']),
-        updatedAt = DateTime.tryParse(json['updated_at']);
+    : id = json['id'],
+      displayName = json['display_name'],
+      ownerType = json['owner_type'],
+      iconEmoji = json['icon_emoji'],
+      imageUrls = json['image_urls'],
+      createdAt = DateTime.tryParse(json['created_at']),
+      updatedAt = DateTime.tryParse(json['updated_at']);
 }

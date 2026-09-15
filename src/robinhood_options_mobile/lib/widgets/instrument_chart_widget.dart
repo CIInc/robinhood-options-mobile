@@ -92,8 +92,9 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
           for (final ind in savedIndicators) {
             try {
               final indicator = _OverlayIndicator.values.firstWhere(
-                  (e) => e.toString() == ind,
-                  orElse: () => _OverlayIndicator.sma20);
+                (e) => e.toString() == ind,
+                orElse: () => _OverlayIndicator.sma20,
+              );
               _activeIndicators.add(indicator);
             } catch (_) {}
           }
@@ -112,8 +113,9 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
       await prefs.setBool('chart_show_legend', _showIndicatorLegend);
       await prefs.setBool('chart_show_summary', _showTechnicalSummary);
 
-      final indicatorsList =
-          _activeIndicators.map((e) => e.toString()).toList();
+      final indicatorsList = _activeIndicators
+          .map((e) => e.toString())
+          .toList();
       await prefs.setStringList('chart_active_indicators', indicatorsList);
     } catch (e) {
       debugPrint('Error saving preferences: $e');
@@ -143,17 +145,29 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
     }
 
     cache(
-        _OverlayIndicator.sma10, TechnicalIndicators.calculateSMA(candles, 10));
+      _OverlayIndicator.sma10,
+      TechnicalIndicators.calculateSMA(candles, 10),
+    );
     cache(
-        _OverlayIndicator.sma20, TechnicalIndicators.calculateSMA(candles, 20));
+      _OverlayIndicator.sma20,
+      TechnicalIndicators.calculateSMA(candles, 20),
+    );
     cache(
-        _OverlayIndicator.sma50, TechnicalIndicators.calculateSMA(candles, 50));
-    cache(_OverlayIndicator.sma200,
-        TechnicalIndicators.calculateSMA(candles, 200));
+      _OverlayIndicator.sma50,
+      TechnicalIndicators.calculateSMA(candles, 50),
+    );
     cache(
-        _OverlayIndicator.ema12, TechnicalIndicators.calculateEMA(candles, 12));
+      _OverlayIndicator.sma200,
+      TechnicalIndicators.calculateSMA(candles, 200),
+    );
     cache(
-        _OverlayIndicator.ema26, TechnicalIndicators.calculateEMA(candles, 26));
+      _OverlayIndicator.ema12,
+      TechnicalIndicators.calculateEMA(candles, 12),
+    );
+    cache(
+      _OverlayIndicator.ema26,
+      TechnicalIndicators.calculateEMA(candles, 26),
+    );
     cache(_OverlayIndicator.vwap, TechnicalIndicators.calculateVWAP(candles));
 
     final bb = TechnicalIndicators.calculateBollingerBands(candles);
@@ -233,12 +247,14 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
     return Consumer<InstrumentHistoricalsStore>(
       builder: (context, instrumentHistoricalsStore, child) {
         var currentHistoricals = instrumentHistoricalsStore.items
-            .firstWhereOrNull((element) =>
-                element.symbol == widget.instrument.symbol &&
-                element.span ==
-                    convertChartSpanFilter(widget.chartDateSpanFilter) &&
-                element.bounds ==
-                    convertChartBoundsFilter(widget.chartBoundsFilter));
+            .firstWhereOrNull(
+              (element) =>
+                  element.symbol == widget.instrument.symbol &&
+                  element.span ==
+                      convertChartSpanFilter(widget.chartDateSpanFilter) &&
+                  element.bounds ==
+                      convertChartBoundsFilter(widget.chartBoundsFilter),
+            );
 
         if (currentHistoricals != null) {
           widget.instrument.instrumentHistoricalsObj = currentHistoricals;
@@ -277,14 +293,17 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
           // Calculate indicators if needed
           _calculateIndicators(historicals);
 
-          final maxVolume =
-              historicals.map((e) => e.volume).reduce(math.max).toDouble();
+          final maxVolume = historicals
+              .map((e) => e.volume)
+              .reduce(math.max)
+              .toDouble();
 
           final List<charts.Series<dynamic, DateTime>> seriesList = [
             charts.Series<InstrumentHistorical, DateTime>(
               id: 'Price',
               colorFn: (_, __) => charts.ColorUtil.fromDartColor(
-                  Theme.of(context).colorScheme.primary),
+                Theme.of(context).colorScheme.primary,
+              ),
               domainFn: (InstrumentHistorical history, _) => history.beginsAt!,
               measureFn: (InstrumentHistorical history, _) =>
                   history.closePrice ?? history.openPrice,
@@ -293,17 +312,26 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
           ];
 
           if (_showVolume) {
-            seriesList.add(charts.Series<InstrumentHistorical, DateTime>(
-              id: 'Volume',
-              domainFn: (InstrumentHistorical history, _) => history.beginsAt!,
-              measureFn: (InstrumentHistorical history, _) => history.volume,
-              data: historicals,
-              colorFn: (_, __) => charts.ColorUtil.fromDartColor(
-                  Theme.of(context).colorScheme.primary.withValues(alpha: 0.2)),
-            )
-              ..setAttribute(charts.rendererIdKey, 'volume')
-              ..setAttribute(
-                  charts.measureAxisIdKey, charts.Axis.secondaryMeasureAxisId));
+            seriesList.add(
+              charts.Series<InstrumentHistorical, DateTime>(
+                  id: 'Volume',
+                  domainFn: (InstrumentHistorical history, _) =>
+                      history.beginsAt!,
+                  measureFn: (InstrumentHistorical history, _) =>
+                      history.volume,
+                  data: historicals,
+                  colorFn: (_, __) => charts.ColorUtil.fromDartColor(
+                    Theme.of(
+                      context,
+                    ).colorScheme.primary.withValues(alpha: 0.2),
+                  ),
+                )
+                ..setAttribute(charts.rendererIdKey, 'volume')
+                ..setAttribute(
+                  charts.measureAxisIdKey,
+                  charts.Axis.secondaryMeasureAxisId,
+                ),
+            );
           }
 
           final List<double> extentValues = historicals
@@ -313,7 +341,8 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
 
           void addIndicatorValues(List<_IndicatorPoint> points) {
             extentValues.addAll(
-                points.map((p) => p.value).whereType<double>().toList());
+              points.map((p) => p.value).whereType<double>().toList(),
+            );
           }
 
           List<charts.Series<dynamic, DateTime>> indicatorSeries = [];
@@ -323,37 +352,49 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
 
             final points = _indicatorPoints[indicator];
             if (points != null && points.isNotEmpty) {
-              indicatorSeries.add(_createIndicatorSeries(
+              indicatorSeries.add(
+                _createIndicatorSeries(
                   label: _indicatorLabel(indicator),
                   points: points,
-                  color: _indicatorColor(indicator, context)));
+                  color: _indicatorColor(indicator, context),
+                ),
+              );
               addIndicatorValues(points);
             }
           }
 
           if (_activeIndicators.contains(_OverlayIndicator.bollinger)) {
-            indicatorSeries.add(_createIndicatorSeries(
+            indicatorSeries.add(
+              _createIndicatorSeries(
                 label: 'BB Upper',
                 dashPattern: const [4, 2],
                 points: _bbUpperPoints,
-                color: _indicatorColor(_OverlayIndicator.bollinger, context)));
-            indicatorSeries.add(_createIndicatorSeries(
+                color: _indicatorColor(_OverlayIndicator.bollinger, context),
+              ),
+            );
+            indicatorSeries.add(
+              _createIndicatorSeries(
                 label: 'BB Lower',
                 dashPattern: const [4, 2],
                 points: _bbLowerPoints,
-                color: _indicatorColor(_OverlayIndicator.bollinger, context)));
+                color: _indicatorColor(_OverlayIndicator.bollinger, context),
+              ),
+            );
             addIndicatorValues(_bbUpperPoints);
             addIndicatorValues(_bbLowerPoints);
 
             // Add Squeeze Points (Red dots on the midline/SMA20)
             if (_squeezePoints.isNotEmpty) {
-              seriesList.add(charts.Series<_IndicatorPoint, DateTime>(
-                id: 'TTM Squeeze',
-                colorFn: (_, __) => charts.ColorUtil.fromDartColor(Colors.red),
-                domainFn: (point, _) => point.time,
-                measureFn: (point, _) => point.value,
-                data: _squeezePoints,
-              )..setAttribute(charts.rendererIdKey, 'squeezePoints'));
+              seriesList.add(
+                charts.Series<_IndicatorPoint, DateTime>(
+                  id: 'TTM Squeeze',
+                  colorFn: (_, __) =>
+                      charts.ColorUtil.fromDartColor(Colors.red),
+                  domainFn: (point, _) => point.time,
+                  measureFn: (point, _) => point.value,
+                  data: _squeezePoints,
+                )..setAttribute(charts.rendererIdKey, 'squeezePoints'),
+              );
             }
           }
 
@@ -361,179 +402,206 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
 
           var extents = _calculateChartExtents(extentValues);
           var provider = Provider.of<InstrumentHistoricalsSelectionStore>(
-              context,
-              listen: false);
+            context,
+            listen: false,
+          );
 
-          chart = TimeSeriesChart(seriesList,
-              key: ValueKey('chart_${_showVolume}_${_activeIndicators.length}'),
-              open: open,
-              close: close,
-              animate: true,
-              behaviors: [
-                charts.SelectNearest(
-                    eventTrigger: charts.SelectionTrigger.tapAndDrag,
-                    selectionMode: common.SelectionMode.expandToDomain),
-                charts.LinePointHighlighter(
-                    showVerticalFollowLine:
-                        charts.LinePointHighlighterFollowLineType.nearest,
-                    drawFollowLinesAcrossChart: true,
-                    symbolRenderer: TextSymbolRenderer(
-                      () {
-                        return provider.selection != null
-                            ? formatCompactDateTimeWithHour.format(
-                                (provider.selection as InstrumentHistorical)
-                                    .beginsAt!
-                                    .toLocal())
-                            : '0';
-                      },
-                      marginBottom: 16,
-                      backgroundColor:
-                          Theme.of(context).colorScheme.inverseSurface,
-                      textColor: Theme.of(context).colorScheme.onInverseSurface,
-                    )),
-                if (_showIndicatorLegend && _activeIndicators.isNotEmpty)
-                  charts.SeriesLegend(
-                    position: charts.BehaviorPosition.top,
-                    outsideJustification: charts.OutsideJustification.start,
-                    horizontalFirst: true,
-                    desiredMaxColumns: 5,
-                    cellPadding:
-                        const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                    entryTextStyle: charts.TextStyleSpec(
-                        fontSize: 11,
-                        color: charts.ColorUtil.fromDartColor(
-                            Theme.of(context).colorScheme.onSurface)),
-                  ),
-                if (open != 0 && close != 0)
-                  charts.RangeAnnotation([
-                    charts.RangeAnnotationSegment(
-                        open <= close ? open : close,
-                        open <= close ? close : open,
-                        charts.RangeAnnotationAxisType.measure,
-                        startLabel: open <= close
-                            ? 'open ${formatCurrency.format(open)}'
-                            : 'close ${formatCurrency.format(close)}',
-                        endLabel: open <= close
-                            ? 'close ${formatCurrency.format(close)}'
-                            : 'open ${formatCurrency.format(open)}',
-                        labelStyleSpec: charts.TextStyleSpec(
-                            fontSize: 14,
-                            color: charts.ColorUtil.fromDartColor(
-                                Theme.of(context)
-                                    .colorScheme
-                                    .onSurfaceVariant)),
-                        color: charts.ColorUtil.fromDartColor(Theme.of(context)
-                            .colorScheme
-                            .surfaceContainerHighest
-                            .withValues(alpha: 0.3)))
-                  ])
-              ],
-              selectionMode: common.SelectionMode.expandToDomain,
-              showVerticalFollowLine:
-                  charts.LinePointHighlighterFollowLineType.nearest,
-              drawFollowLinesAcrossChart: true,
-              customSeriesRenderers: [
-                charts.LineRendererConfig<DateTime>(
-                    customRendererId: 'area',
-                    includeArea: true,
-                    strokeWidthPx: 2.0),
-                charts.LineRendererConfig<DateTime>(
-                    customRendererId: _indicatorRendererId,
-                    includeArea: false,
-                    strokeWidthPx: 1.5,
-                    symbolRenderer: CustomLineSymbolRenderer()),
-                charts.PointRendererConfig<DateTime>(
-                    customRendererId: 'squeezePoints', radiusPx: 3.5),
-                if (_showVolume)
-                  charts.BarRendererConfig<DateTime>(
-                      customRendererId: 'volume',
-                      groupingType: charts.BarGroupingType.grouped)
-              ],
-              primaryMeasureAxis: charts.NumericAxisSpec(
-                tickFormatterSpec:
-                    charts.BasicNumericTickFormatterSpec.fromNumberFormat(
-                        formatCompactCurrency),
-                tickProviderSpec: const charts.BasicNumericTickProviderSpec(
-                  zeroBound: false,
-                  dataIsInWholeNumbers: false,
-                ),
-                renderSpec: charts.GridlineRendererSpec(
-                    labelStyle: charts.TextStyleSpec(
-                        color: charts.ColorUtil.fromDartColor(
-                            Theme.of(context).colorScheme.onSurface))),
+          chart = TimeSeriesChart(
+            seriesList,
+            key: ValueKey('chart_${_showVolume}_${_activeIndicators.length}'),
+            open: open,
+            close: close,
+            animate: true,
+            behaviors: [
+              charts.SelectNearest(
+                eventTrigger: charts.SelectionTrigger.tapAndDrag,
+                selectionMode: common.SelectionMode.expandToDomain,
               ),
-              secondaryMeasureAxis: _showVolume
-                  ? charts.NumericAxisSpec(
-                      tickProviderSpec:
-                          const charts.BasicNumericTickProviderSpec(
-                              zeroBound: true),
-                      renderSpec: charts.NoneRenderSpec(),
-                      viewport: charts.NumericExtents(0, maxVolume * 5))
-                  : null,
-              seriesLegend: null,
-              onSelected: (charts.SelectionModel<DateTime>? historical) {
-            final selectedHistorical = historical?.selectedDatum
-                .firstWhereOrNull(
-                    (element) => element.datum is InstrumentHistorical)
-                ?.datum as InstrumentHistorical?;
-            if (selectedHistorical != provider.selection) {
-              HapticFeedback.selectionClick();
-              provider.selectionChanged(selectedHistorical);
-            }
-          },
-              symbolRenderer: null,
-              zeroBound: false,
-              dataIsInWholeNumbers: false,
-              viewport: extents);
+              charts.LinePointHighlighter(
+                showVerticalFollowLine:
+                    charts.LinePointHighlighterFollowLineType.nearest,
+                drawFollowLinesAcrossChart: true,
+                symbolRenderer: TextSymbolRenderer(
+                  () {
+                    return provider.selection != null
+                        ? formatCompactDateTimeWithHour.format(
+                            (provider.selection as InstrumentHistorical)
+                                .beginsAt!
+                                .toLocal(),
+                          )
+                        : '0';
+                  },
+                  marginBottom: 16,
+                  backgroundColor: Theme.of(context).colorScheme.inverseSurface,
+                  textColor: Theme.of(context).colorScheme.onInverseSurface,
+                ),
+              ),
+              if (_showIndicatorLegend && _activeIndicators.isNotEmpty)
+                charts.SeriesLegend(
+                  position: charts.BehaviorPosition.top,
+                  outsideJustification: charts.OutsideJustification.start,
+                  horizontalFirst: true,
+                  desiredMaxColumns: 5,
+                  cellPadding: const EdgeInsets.symmetric(
+                    horizontal: 4,
+                    vertical: 2,
+                  ),
+                  entryTextStyle: charts.TextStyleSpec(
+                    fontSize: 11,
+                    color: charts.ColorUtil.fromDartColor(
+                      Theme.of(context).colorScheme.onSurface,
+                    ),
+                  ),
+                ),
+              if (open != 0 && close != 0)
+                charts.RangeAnnotation([
+                  charts.RangeAnnotationSegment(
+                    open <= close ? open : close,
+                    open <= close ? close : open,
+                    charts.RangeAnnotationAxisType.measure,
+                    startLabel: open <= close
+                        ? 'open ${formatCurrency.format(open)}'
+                        : 'close ${formatCurrency.format(close)}',
+                    endLabel: open <= close
+                        ? 'close ${formatCurrency.format(close)}'
+                        : 'open ${formatCurrency.format(open)}',
+                    labelStyleSpec: charts.TextStyleSpec(
+                      fontSize: 14,
+                      color: charts.ColorUtil.fromDartColor(
+                        Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    color: charts.ColorUtil.fromDartColor(
+                      Theme.of(context).colorScheme.surfaceContainerHighest
+                          .withValues(alpha: 0.3),
+                    ),
+                  ),
+                ]),
+            ],
+            selectionMode: common.SelectionMode.expandToDomain,
+            showVerticalFollowLine:
+                charts.LinePointHighlighterFollowLineType.nearest,
+            drawFollowLinesAcrossChart: true,
+            customSeriesRenderers: [
+              charts.LineRendererConfig<DateTime>(
+                customRendererId: 'area',
+                includeArea: true,
+                strokeWidthPx: 2.0,
+              ),
+              charts.LineRendererConfig<DateTime>(
+                customRendererId: _indicatorRendererId,
+                includeArea: false,
+                strokeWidthPx: 1.5,
+                symbolRenderer: CustomLineSymbolRenderer(),
+              ),
+              charts.PointRendererConfig<DateTime>(
+                customRendererId: 'squeezePoints',
+                radiusPx: 3.5,
+              ),
+              if (_showVolume)
+                charts.BarRendererConfig<DateTime>(
+                  customRendererId: 'volume',
+                  groupingType: charts.BarGroupingType.grouped,
+                ),
+            ],
+            primaryMeasureAxis: charts.NumericAxisSpec(
+              tickFormatterSpec:
+                  charts.BasicNumericTickFormatterSpec.fromNumberFormat(
+                    formatCompactCurrency,
+                  ),
+              tickProviderSpec: const charts.BasicNumericTickProviderSpec(
+                zeroBound: false,
+                dataIsInWholeNumbers: false,
+              ),
+              renderSpec: charts.GridlineRendererSpec(
+                labelStyle: charts.TextStyleSpec(
+                  color: charts.ColorUtil.fromDartColor(
+                    Theme.of(context).colorScheme.onSurface,
+                  ),
+                ),
+              ),
+            ),
+            secondaryMeasureAxis: _showVolume
+                ? charts.NumericAxisSpec(
+                    tickProviderSpec: const charts.BasicNumericTickProviderSpec(
+                      zeroBound: true,
+                    ),
+                    renderSpec: charts.NoneRenderSpec(),
+                    viewport: charts.NumericExtents(0, maxVolume * 5),
+                  )
+                : null,
+            seriesLegend: null,
+            onSelected: (charts.SelectionModel<DateTime>? historical) {
+              final selectedHistorical =
+                  historical?.selectedDatum
+                          .firstWhereOrNull(
+                            (element) => element.datum is InstrumentHistorical,
+                          )
+                          ?.datum
+                      as InstrumentHistorical?;
+              if (selectedHistorical != provider.selection) {
+                HapticFeedback.selectionClick();
+                provider.selectionChanged(selectedHistorical);
+              }
+            },
+            symbolRenderer: null,
+            zeroBound: false,
+            dataIsInWholeNumbers: false,
+            viewport: extents,
+          );
 
           return Column(
             children: [
               Consumer<InstrumentHistoricalsSelectionStore>(
-                  builder: (context, value, child) {
-                selection = value.selection;
-                int selectedIndex = -1;
-                if (selection != null) {
-                  selectedIndex = historicals
-                      .indexWhere((h) => h.beginsAt == selection!.beginsAt);
-                }
+                builder: (context, value, child) {
+                  selection = value.selection;
+                  int selectedIndex = -1;
+                  if (selection != null) {
+                    selectedIndex = historicals.indexWhere(
+                      (h) => h.beginsAt == selection!.beginsAt,
+                    );
+                  }
 
-                if (selectedIndex == -1) {
-                  selection = null;
-                }
+                  if (selectedIndex == -1) {
+                    selection = null;
+                  }
 
-                if (selection != null) {
-                  changeInPeriod = selection!.closePrice! - open;
-                  changePercentInPeriod = selection!.closePrice! / open - 1;
-                } else {
-                  changeInPeriod = close - open;
-                  changePercentInPeriod = close / open - 1;
-                }
+                  if (selection != null) {
+                    changeInPeriod = selection!.closePrice! - open;
+                    changePercentInPeriod = selection!.closePrice! / open - 1;
+                  } else {
+                    changeInPeriod = close - open;
+                    changePercentInPeriod = close / open - 1;
+                  }
 
-                // Get indicator values at selected point
-                selectedIndex =
-                    selection != null ? selectedIndex : historicals.length - 1;
+                  // Get indicator values at selected point
+                  selectedIndex = selection != null
+                      ? selectedIndex
+                      : historicals.length - 1;
 
-                return SizedBox(
+                  return SizedBox(
                     width: double.infinity,
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 16.0, vertical: 4.0),
+                        horizontal: 16.0,
+                        vertical: 4.0,
+                      ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           AnimatedPriceText(
-                              price: selection != null
-                                  ? selection!.closePrice!
-                                  : close,
-                              format: formatCurrency,
-                              style: TextStyle(
-                                  fontSize: 32,
-                                  fontWeight: FontWeight.bold,
-                                  color: textColor,
-                                  height: 1.1,
-                                  fontFeatures: [
-                                    ui.FontFeature.tabularFigures()
-                                  ])),
+                            price: selection != null
+                                ? selection!.closePrice!
+                                : close,
+                            format: formatCurrency,
+                            style: TextStyle(
+                              fontSize: 32,
+                              fontWeight: FontWeight.bold,
+                              color: textColor,
+                              height: 1.1,
+                              fontFeatures: [ui.FontFeature.tabularFigures()],
+                            ),
+                          ),
                           // Text(
                           //   formatCurrency.format(selection != null
                           //       ? selection!.closePrice
@@ -551,26 +619,33 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
                           Row(
                             children: [
                               Text(
-                                "${changeInPeriod > 0 ? "+" : changeInPeriod < 0 ? "-" : ""}${formatCurrency.format(changeInPeriod.abs())} (${formatPercentage.format(changePercentInPeriod.abs())})",
+                                "${changeInPeriod > 0
+                                    ? "+"
+                                    : changeInPeriod < 0
+                                    ? "-"
+                                    : ""}${formatCurrency.format(changeInPeriod.abs())} (${formatPercentage.format(changePercentInPeriod.abs())})",
                                 style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                    color: changeInPeriod > 0
-                                        ? Colors.green
-                                        : (changeInPeriod < 0
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: changeInPeriod > 0
+                                      ? Colors.green
+                                      : (changeInPeriod < 0
                                             ? Colors.red
                                             : textColor),
-                                    fontFeatures: [
-                                      ui.FontFeature.tabularFigures()
-                                    ]),
+                                  fontFeatures: [
+                                    ui.FontFeature.tabularFigures(),
+                                  ],
+                                ),
                               ),
                               const SizedBox(width: 8),
                               Expanded(
                                 child: AnimatedSwitcher(
                                   duration: const Duration(milliseconds: 200),
                                   child: Row(
-                                    key: ValueKey(selection?.beginsAt ??
-                                        widget.chartDateSpanFilter),
+                                    key: ValueKey(
+                                      selection?.beginsAt ??
+                                          widget.chartDateSpanFilter,
+                                    ),
                                     children: [
                                       Icon(
                                         selection != null
@@ -585,17 +660,21 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
                                           selection != null
                                               ? formatMediumDateTime.format(
                                                   selection!.beginsAt!
-                                                      .toLocal())
+                                                      .toLocal(),
+                                                )
                                               : _getPeriodLabel(
-                                                  widget.chartDateSpanFilter),
+                                                  widget.chartDateSpanFilter,
+                                                ),
                                           style: TextStyle(
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.w500,
-                                              color: textColor.withValues(
-                                                  alpha: 0.7),
-                                              fontFeatures: [
-                                                ui.FontFeature.tabularFigures()
-                                              ]),
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w500,
+                                            color: textColor.withValues(
+                                              alpha: 0.7,
+                                            ),
+                                            fontFeatures: [
+                                              ui.FontFeature.tabularFigures(),
+                                            ],
+                                          ),
                                           overflow: TextOverflow.fade,
                                           maxLines: 1,
                                           softWrap: false,
@@ -611,8 +690,10 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
                                   width: 32,
                                   height: 32,
                                   child: IconButton(
-                                    icon:
-                                        const Icon(Icons.fullscreen, size: 20),
+                                    icon: const Icon(
+                                      Icons.fullscreen,
+                                      size: 20,
+                                    ),
                                     padding: EdgeInsets.zero,
                                     visualDensity: VisualDensity.compact,
                                     tooltip: 'Full Screen',
@@ -622,14 +703,14 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
                                         MaterialPageRoute(
                                           builder: (context) =>
                                               FullScreenInstrumentChartWidget(
-                                            instrument: widget.instrument,
-                                            chartDateSpanFilter:
-                                                widget.chartDateSpanFilter,
-                                            chartBoundsFilter:
-                                                widget.chartBoundsFilter,
-                                            onFilterChanged:
-                                                widget.onFilterChanged,
-                                          ),
+                                                instrument: widget.instrument,
+                                                chartDateSpanFilter:
+                                                    widget.chartDateSpanFilter,
+                                                chartBoundsFilter:
+                                                    widget.chartBoundsFilter,
+                                                onFilterChanged:
+                                                    widget.onFilterChanged,
+                                              ),
                                         ),
                                       );
                                     },
@@ -646,48 +727,62 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
                               child: SingleChildScrollView(
                                 scrollDirection: Axis.horizontal,
                                 child: Row(
-                                  children: _buildIndicatorValueChips(
-                                          selectedIndex, context, textColor)
-                                      .map((w) => Padding(
-                                          padding:
-                                              const EdgeInsets.only(right: 6),
-                                          child: w))
-                                      .toList(),
+                                  children:
+                                      _buildIndicatorValueChips(
+                                            selectedIndex,
+                                            context,
+                                            textColor,
+                                          )
+                                          .map(
+                                            (w) => Padding(
+                                              padding: const EdgeInsets.only(
+                                                right: 6,
+                                              ),
+                                              child: w,
+                                            ),
+                                          )
+                                          .toList(),
                                 ),
                               ),
                             ),
                         ],
                       ),
-                    ));
-              }),
+                    ),
+                  );
+                },
+              ),
               widget.isFullScreen
                   ? Expanded(
                       child: Padding(
-                      padding: const EdgeInsets.all(10.0),
-                      child: Stack(
-                        children: [
-                          _showCandles
-                              ? Candlesticks(
-                                  candles: _generateCandles(
-                                      _lastValidHistoricals!.historicals),
-                                )
-                              : chart!,
-                        ],
+                        padding: const EdgeInsets.all(10.0),
+                        child: Stack(
+                          children: [
+                            _showCandles
+                                ? Candlesticks(
+                                    candles: _generateCandles(
+                                      _lastValidHistoricals!.historicals,
+                                    ),
+                                  )
+                                : chart!,
+                          ],
+                        ),
                       ),
-                    ))
+                    )
                   : Stack(
                       children: [
                         SizedBox(
-                            height: 340,
-                            child: Padding(
-                              padding: const EdgeInsets.all(10.0),
-                              child: _showCandles
-                                  ? Candlesticks(
-                                      candles: _generateCandles(
-                                          _lastValidHistoricals!.historicals),
-                                    )
-                                  : chart!,
-                            )),
+                          height: 340,
+                          child: Padding(
+                            padding: const EdgeInsets.all(10.0),
+                            child: _showCandles
+                                ? Candlesticks(
+                                    candles: _generateCandles(
+                                      _lastValidHistoricals!.historicals,
+                                    ),
+                                  )
+                                : chart!,
+                          ),
+                        ),
                       ],
                     ),
               _buildChartControls(),
@@ -701,36 +796,38 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
         return Column(
           children: [
             SizedBox(
-                height: 340,
-                child: Center(
-                    child: Column(
+              height: 340,
+              child: Center(
+                child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     SizedBox(
-                        width: 40,
-                        height: 40,
-                        child: CircularProgressIndicator.adaptive(
-                          strokeWidth: 3,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                              Theme.of(context)
-                                  .colorScheme
-                                  .primary
-                                  .withValues(alpha: 0.7)),
-                        )),
+                      width: 40,
+                      height: 40,
+                      child: CircularProgressIndicator.adaptive(
+                        strokeWidth: 3,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          Theme.of(
+                            context,
+                          ).colorScheme.primary.withValues(alpha: 0.7),
+                        ),
+                      ),
+                    ),
                     const SizedBox(height: 20),
                     Text(
                       "Loading chart data...",
                       style: TextStyle(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .onSurface
-                            .withValues(alpha: 0.6),
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.6),
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
                       ),
-                    )
+                    ),
                   ],
-                ))),
+                ),
+              ),
+            ),
             _buildDateFilters(),
             if (widget.isFullScreen) const SizedBox(height: 25),
           ],
@@ -740,7 +837,10 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
   }
 
   List<Widget> _buildIndicatorValueChips(
-      int index, BuildContext context, Color textColor) {
+    int index,
+    BuildContext context,
+    Color textColor,
+  ) {
     final chips = <Widget>[];
 
     Widget buildChip(String label, double? value, Color color) {
@@ -754,24 +854,29 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(label,
-                style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
-                    color: textColor.withValues(alpha: 0.9),
-                    fontFeatures: [ui.FontFeature.tabularFigures()])),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+                color: textColor.withValues(alpha: 0.9),
+                fontFeatures: [ui.FontFeature.tabularFigures()],
+              ),
+            ),
             const SizedBox(width: 4),
             Text(
-                value != null
-                    ? (label == 'Vol'
+              value != null
+                  ? (label == 'Vol'
                         ? formatCompactNumber.format(value)
                         : formatCurrency.format(value))
-                    : '-',
-                style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    color: color,
-                    fontFeatures: [ui.FontFeature.tabularFigures()])),
+                  : '-',
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+                color: color,
+                fontFeatures: [ui.FontFeature.tabularFigures()],
+              ),
+            ),
           ],
         ),
       );
@@ -780,20 +885,26 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
     if (_showVolume &&
         _lastValidHistoricals != null &&
         index < _lastValidHistoricals!.historicals.length) {
-      chips.add(buildChip(
+      chips.add(
+        buildChip(
           'Vol',
           _lastValidHistoricals!.historicals[index].volume.toDouble(),
-          Theme.of(context).colorScheme.primary));
+          Theme.of(context).colorScheme.primary,
+        ),
+      );
     }
 
     for (final indicator in _activeIndicators) {
       if (indicator == _OverlayIndicator.bollinger) continue;
       final values = _indicatorValues[indicator];
       if (values != null) {
-        chips.add(buildChip(
+        chips.add(
+          buildChip(
             _indicatorLabel(indicator),
             values.elementAtOrNull(index),
-            _indicatorColor(indicator, context)));
+            _indicatorColor(indicator, context),
+          ),
+        );
       }
     }
 
@@ -807,7 +918,9 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
   }
 
   Widget _buildIndicatorChip(
-      _OverlayIndicator indicator, BuildContext context) {
+    _OverlayIndicator indicator,
+    BuildContext context,
+  ) {
     final selected = _activeIndicators.contains(indicator);
     final color = _indicatorColor(indicator, context);
     return GestureDetector(
@@ -822,9 +935,11 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
         });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(selected
-                ? 'All indicators cleared'
-                : 'Showing only ${_indicatorLabel(indicator)}'),
+            content: Text(
+              selected
+                  ? 'All indicators cleared'
+                  : 'Showing only ${_indicatorLabel(indicator)}',
+            ),
             duration: const Duration(milliseconds: 1500),
             behavior: SnackBarBehavior.floating,
           ),
@@ -840,10 +955,7 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
             decoration: BoxDecoration(
               color: selected ? color : color.withValues(alpha: 0.3),
               shape: BoxShape.circle,
-              border: Border.all(
-                color: color,
-                width: selected ? 2 : 1,
-              ),
+              border: Border.all(color: color, width: selected ? 2 : 1),
             ),
           ),
           label: Text(_indicatorLabel(indicator)),
@@ -914,7 +1026,9 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
   }
 
   List<_IndicatorPoint> _buildIndicatorPoints(
-      List<InstrumentHistorical> historicals, List<double?> values) {
+    List<InstrumentHistorical> historicals,
+    List<double?> values,
+  ) {
     final points = <_IndicatorPoint>[];
     final length = math.min(historicals.length, values.length);
 
@@ -927,11 +1041,12 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
     return points;
   }
 
-  charts.Series<_IndicatorPoint, DateTime> _createIndicatorSeries(
-      {required String label,
-      required List<_IndicatorPoint> points,
-      required Color color,
-      List<int>? dashPattern}) {
+  charts.Series<_IndicatorPoint, DateTime> _createIndicatorSeries({
+    required String label,
+    required List<_IndicatorPoint> points,
+    required Color color,
+    List<int>? dashPattern,
+  }) {
     final adjustedColor = color.withValues(alpha: 0.85);
     return charts.Series<_IndicatorPoint, DateTime>(
       id: label,
@@ -988,20 +1103,20 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
               const PopupMenuItem(
                 enabled: false,
                 height: 32,
-                child: Text('VIEW',
-                    style:
-                        TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                child: Text(
+                  'VIEW',
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                ),
               ),
               PopupMenuItem(
                 value: 'type',
                 child: Row(
                   children: [
                     Icon(
-                        _showCandles
-                            ? Icons.candlestick_chart
-                            : Icons.show_chart,
-                        size: 18,
-                        color: Theme.of(context).colorScheme.primary),
+                      _showCandles ? Icons.candlestick_chart : Icons.show_chart,
+                      size: 18,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
                     const SizedBox(width: 12),
                     Text(_showCandles ? 'Line Chart' : 'Candlestick'),
                   ],
@@ -1013,13 +1128,14 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
                   child: Row(
                     children: [
                       Icon(
-                          _showVolume
-                              ? Icons.bar_chart
-                              : Icons.bar_chart_outlined,
-                          size: 18,
-                          color: _showVolume
-                              ? Theme.of(context).colorScheme.primary
-                              : null),
+                        _showVolume
+                            ? Icons.bar_chart
+                            : Icons.bar_chart_outlined,
+                        size: 18,
+                        color: _showVolume
+                            ? Theme.of(context).colorScheme.primary
+                            : null,
+                      ),
                       const SizedBox(width: 12),
                       Text('Volume'),
                       const Spacer(),
@@ -1033,13 +1149,14 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
                   child: Row(
                     children: [
                       Icon(
-                          _showIndicatorLegend
-                              ? Icons.legend_toggle
-                              : Icons.legend_toggle_outlined,
-                          size: 18,
-                          color: _showIndicatorLegend
-                              ? Theme.of(context).colorScheme.primary
-                              : null),
+                        _showIndicatorLegend
+                            ? Icons.legend_toggle
+                            : Icons.legend_toggle_outlined,
+                        size: 18,
+                        color: _showIndicatorLegend
+                            ? Theme.of(context).colorScheme.primary
+                            : null,
+                      ),
                       const SizedBox(width: 12),
                       Text('Legend'),
                       const Spacer(),
@@ -1053,13 +1170,14 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
                   child: Row(
                     children: [
                       Icon(
-                          _showTechnicalSummary
-                              ? Icons.analytics
-                              : Icons.analytics_outlined,
-                          size: 18,
-                          color: _showTechnicalSummary
-                              ? Theme.of(context).colorScheme.primary
-                              : null),
+                        _showTechnicalSummary
+                            ? Icons.analytics
+                            : Icons.analytics_outlined,
+                        size: 18,
+                        color: _showTechnicalSummary
+                            ? Theme.of(context).colorScheme.primary
+                            : null,
+                      ),
                       const SizedBox(width: 12),
                       Text('Analysis'),
                       const Spacer(),
@@ -1074,60 +1192,74 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
               const PopupMenuItem(
                 enabled: false,
                 height: 32,
-                child: Text('INDICATOR PRESETS',
-                    style:
-                        TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                child: Text(
+                  'INDICATOR PRESETS',
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                ),
               ),
               if (_showCandles)
                 const PopupMenuItem(
                   enabled: false,
                   height: 32,
-                  child: Text('Not available in Candlestick mode',
-                      style: TextStyle(
-                          fontSize: 11,
-                          fontStyle: FontStyle.italic,
-                          color: Colors.grey)),
+                  child: Text(
+                    'Not available in Candlestick mode',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontStyle: FontStyle.italic,
+                      color: Colors.grey,
+                    ),
+                  ),
                 ),
               if (!_showCandles) ...[
                 const PopupMenuItem(
                   value: 'trend',
-                  child: Row(children: [
-                    Icon(Icons.trending_up, size: 18),
-                    SizedBox(width: 12),
-                    Text('Trend Following')
-                  ]),
+                  child: Row(
+                    children: [
+                      Icon(Icons.trending_up, size: 18),
+                      SizedBox(width: 12),
+                      Text('Trend Following'),
+                    ],
+                  ),
                 ),
                 const PopupMenuItem(
                   value: 'momentum',
-                  child: Row(children: [
-                    Icon(Icons.speed, size: 18),
-                    SizedBox(width: 12),
-                    Text('Momentum')
-                  ]),
+                  child: Row(
+                    children: [
+                      Icon(Icons.speed, size: 18),
+                      SizedBox(width: 12),
+                      Text('Momentum'),
+                    ],
+                  ),
                 ),
                 const PopupMenuItem(
                   value: 'volatility',
-                  child: Row(children: [
-                    Icon(Icons.import_export, size: 18),
-                    SizedBox(width: 12),
-                    Text('Volatility')
-                  ]),
+                  child: Row(
+                    children: [
+                      Icon(Icons.import_export, size: 18),
+                      SizedBox(width: 12),
+                      Text('Volatility'),
+                    ],
+                  ),
                 ),
                 const PopupMenuItem(
                   value: 'all',
-                  child: Row(children: [
-                    Icon(Icons.done_all, size: 18),
-                    SizedBox(width: 12),
-                    Text('Add All')
-                  ]),
+                  child: Row(
+                    children: [
+                      Icon(Icons.done_all, size: 18),
+                      SizedBox(width: 12),
+                      Text('Add All'),
+                    ],
+                  ),
                 ),
                 const PopupMenuItem(
                   value: 'clear',
-                  child: Row(children: [
-                    Icon(Icons.clear_all, size: 18, color: Colors.red),
-                    SizedBox(width: 12),
-                    Text('Clear All', style: TextStyle(color: Colors.red))
-                  ]),
+                  child: Row(
+                    children: [
+                      Icon(Icons.clear_all, size: 18, color: Colors.red),
+                      SizedBox(width: 12),
+                      Text('Clear All', style: TextStyle(color: Colors.red)),
+                    ],
+                  ),
                 ),
               ],
               const PopupMenuDivider(),
@@ -1170,7 +1302,9 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
                   break;
                 case 'help':
                   Future.delayed(
-                      const Duration(milliseconds: 100), _showIndicatorHelp);
+                    const Duration(milliseconds: 100),
+                    _showIndicatorHelp,
+                  );
                   break;
                 case 'clear':
                   setState(() {
@@ -1235,7 +1369,7 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
               ChartDateSpan.year: '1Y',
               ChartDateSpan.year_5: '5Y',
             }.entries.map((e) => _buildDateSpanChip(e.key, e.value)).toList(),
-          )
+          ),
         ],
       ),
     );
@@ -1263,7 +1397,7 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
                     color: Colors.black.withValues(alpha: 0.1),
                     blurRadius: 4,
                     offset: const Offset(0, 2),
-                  )
+                  ),
                 ]
               : null,
         ),
@@ -1281,8 +1415,10 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
     );
   }
 
-  List<Candle> _generateCandles(List<InstrumentHistorical> historicals,
-      {bool fullResolution = false}) {
+  List<Candle> _generateCandles(
+    List<InstrumentHistorical> historicals, {
+    bool fullResolution = false,
+  }) {
     if (historicals.isEmpty) return [];
 
     // Determine bucket size based on total points to get roughly 60 candles
@@ -1312,8 +1448,9 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
       double low = chunk
           .map((e) => math.min(e.lowPrice ?? 0, e.openPrice ?? 0))
           .reduce(math.min);
-      double volume =
-          chunk.map((e) => e.volume.toDouble()).reduce((a, b) => a + b);
+      double volume = chunk
+          .map((e) => e.volume.toDouble())
+          .reduce((a, b) => a + b);
 
       if (volume < 1) volume = 1;
 
@@ -1331,14 +1468,16 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
       if (open < minPrice) open = minPrice;
       if (close < minPrice) close = minPrice;
 
-      candles.add(Candle(
-        date: chunk.first.beginsAt!,
-        high: high,
-        low: low,
-        open: open,
-        close: close,
-        volume: volume,
-      ));
+      candles.add(
+        Candle(
+          date: chunk.first.beginsAt!,
+          high: high,
+          low: low,
+          open: open,
+          close: close,
+          volume: volume,
+        ),
+      );
     }
     // Candlesticks package expects newest first
     return candles.reversed.toList();
@@ -1388,14 +1527,26 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              _buildHelpItem('SMA', 'Simple Moving Average',
-                  'Average price over a period. Helps identify trends.'),
-              _buildHelpItem('EMA', 'Exponential Moving Average',
-                  'Weighted average giving more weight to recent prices.'),
-              _buildHelpItem('VWAP', 'Volume Weighted Average Price',
-                  'Average price weighted by volume. Intraday benchmark.'),
-              _buildHelpItem('Bollinger Bands', 'Volatility Bands',
-                  'Shows price volatility. Price near upper band = overbought, near lower = oversold. Includes TTM Squeeze detection (Red dots).'),
+              _buildHelpItem(
+                'SMA',
+                'Simple Moving Average',
+                'Average price over a period. Helps identify trends.',
+              ),
+              _buildHelpItem(
+                'EMA',
+                'Exponential Moving Average',
+                'Weighted average giving more weight to recent prices.',
+              ),
+              _buildHelpItem(
+                'VWAP',
+                'Volume Weighted Average Price',
+                'Average price weighted by volume. Intraday benchmark.',
+              ),
+              _buildHelpItem(
+                'Bollinger Bands',
+                'Volatility Bands',
+                'Shows price volatility. Price near upper band = overbought, near lower = oversold. Includes TTM Squeeze detection (Red dots).',
+              ),
             ],
           ),
         ),
@@ -1415,12 +1566,18 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title,
-              style:
-                  const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-          Text(subtitle,
-              style: TextStyle(
-                  fontSize: 12, color: Colors.grey.shade600, height: 1.2)),
+          Text(
+            title,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+          ),
+          Text(
+            subtitle,
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey.shade600,
+              height: 1.2,
+            ),
+          ),
           const SizedBox(height: 4),
           Text(description, style: const TextStyle(fontSize: 12, height: 1.3)),
         ],
@@ -1452,8 +1609,10 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
 
     // Generate Candles (reused logic efficiently)
     // Use fullResolution=true to get all available data points for accurate indicator calculation (especially SMA 200)
-    final candles = _generateCandles(_lastValidHistoricals!.historicals,
-        fullResolution: true);
+    final candles = _generateCandles(
+      _lastValidHistoricals!.historicals,
+      fullResolution: true,
+    );
     // Sort oldest first for calculation
     final sortedCandles = candles.reversed.toList();
 
@@ -1512,7 +1671,11 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
     var bbLow = bbData['lower']!.last;
 
     var kcData = TechnicalIndicators.calculateKeltnerChannels(
-        sortedCandles, 20, 10, 1.5);
+      sortedCandles,
+      20,
+      10,
+      1.5,
+    );
     var kcUp = kcData['upper']!.last;
     var kcLow = kcData['lower']!.last;
 
@@ -1551,7 +1714,8 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
     if (rsi != null) {
       if (rsi < 30) {
         vote(true); // Oversold -> Buy
-      } else if (rsi > 70) vote(false); // Overbought -> Sell
+      } else if (rsi > 70)
+        vote(false); // Overbought -> Sell
     }
     if (stochK != null && stochD != null) {
       if (stochK < 20 && stochK > stochD) {
@@ -1562,12 +1726,14 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
     if (cci != null) {
       if (cci < -100) {
         vote(true);
-      } else if (cci > 100) vote(false);
+      } else if (cci > 100)
+        vote(false);
     }
     if (williamsR != null) {
       if (williamsR < -80) {
         vote(true);
-      } else if (williamsR > -20) vote(false);
+      } else if (williamsR > -20)
+        vote(false);
     }
     if (macd != null && signal != null) {
       vote(macd > signal);
@@ -1578,14 +1744,16 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
     if (cmf != null) {
       if (cmf > 0.05) {
         vote(true);
-      } else if (cmf < -0.05) vote(false);
+      } else if (cmf < -0.05)
+        vote(false);
     }
     if (spanA != null && spanB != null) {
       bool aboveCloud = currentPrice > math.max(spanA, spanB);
       bool belowCloud = currentPrice < math.min(spanA, spanB);
       if (aboveCloud) {
         vote(true);
-      } else if (belowCloud) vote(false);
+      } else if (belowCloud)
+        vote(false);
     }
     if (sar != null && isUptrendSar != null) {
       vote(isUptrendSar);
@@ -1631,15 +1799,17 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(16),
-        border:
-            Border.all(color: summaryColor.withValues(alpha: 0.3), width: 1),
+        border: Border.all(
+          color: summaryColor.withValues(alpha: 0.3),
+          width: 1,
+        ),
         boxShadow: [
           if (_showTechnicalSummary)
             BoxShadow(
               color: summaryColor.withValues(alpha: 0.1),
               blurRadius: 10,
               offset: const Offset(0, 4),
-            )
+            ),
         ],
       ),
       child: _showTechnicalSummary
@@ -1650,7 +1820,9 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
                 borderRadius: BorderRadius.circular(12),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 16.0, vertical: 12.0),
+                    horizontal: 16.0,
+                    vertical: 12.0,
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -1662,10 +1834,14 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
                               color: summaryColor.withValues(alpha: 0.1),
                               shape: BoxShape.circle,
                               border: Border.all(
-                                  color: summaryColor.withValues(alpha: 0.3)),
+                                color: summaryColor.withValues(alpha: 0.3),
+                              ),
                             ),
-                            child: Icon(summaryIcon,
-                                color: summaryColor, size: 20),
+                            child: Icon(
+                              summaryIcon,
+                              color: summaryColor,
+                              size: 20,
+                            ),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
@@ -1685,9 +1861,9 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
                                   'Based on ${sortedCandles.length} periods',
                                   style: TextStyle(
                                     fontSize: 10,
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurfaceVariant,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
                                   ),
                                 ),
                                 if (isSqueeze)
@@ -1695,21 +1871,29 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
                                     padding: const EdgeInsets.only(top: 4.0),
                                     child: Container(
                                       padding: const EdgeInsets.symmetric(
-                                          horizontal: 6, vertical: 2),
+                                        horizontal: 6,
+                                        vertical: 2,
+                                      ),
                                       decoration: BoxDecoration(
-                                        color:
-                                            Colors.red.withValues(alpha: 0.1),
+                                        color: Colors.red.withValues(
+                                          alpha: 0.1,
+                                        ),
                                         borderRadius: BorderRadius.circular(4),
                                         border: Border.all(
-                                            color: Colors.red
-                                                .withValues(alpha: 0.3),
-                                            width: 1),
+                                          color: Colors.red.withValues(
+                                            alpha: 0.3,
+                                          ),
+                                          width: 1,
+                                        ),
                                       ),
                                       child: const Row(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
-                                          Icon(Icons.compress,
-                                              size: 10, color: Colors.red),
+                                          Icon(
+                                            Icons.compress,
+                                            size: 10,
+                                            color: Colors.red,
+                                          ),
                                           SizedBox(width: 4),
                                           Text(
                                             "TTM Squeeze",
@@ -1739,17 +1923,20 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
                                     Text(
                                       '$bullishVotes',
                                       style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.green.shade400,
-                                          fontSize: 13),
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.green.shade400,
+                                        fontSize: 13,
+                                      ),
                                     ),
                                     Text(
                                       ' Buy',
                                       style: TextStyle(
-                                          fontSize: 10,
-                                          color: Colors.green.shade400
-                                              .withValues(alpha: 0.8),
-                                          fontWeight: FontWeight.w500),
+                                        fontSize: 10,
+                                        color: Colors.green.shade400.withValues(
+                                          alpha: 0.8,
+                                        ),
+                                        fontWeight: FontWeight.w500,
+                                      ),
                                     ),
                                     const SizedBox(width: 8),
                                   ],
@@ -1757,27 +1944,31 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
                                     Text(
                                       '$bearishVotes',
                                       style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.red.shade400,
-                                          fontSize: 13),
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.red.shade400,
+                                        fontSize: 13,
+                                      ),
                                     ),
                                     Text(
                                       ' Sell',
                                       style: TextStyle(
-                                          fontSize: 10,
-                                          color: Colors.red.shade400
-                                              .withValues(alpha: 0.8),
-                                          fontWeight: FontWeight.w500),
+                                        fontSize: 10,
+                                        color: Colors.red.shade400.withValues(
+                                          alpha: 0.8,
+                                        ),
+                                        fontWeight: FontWeight.w500,
+                                      ),
                                     ),
                                   ],
                                   if (bullishVotes == 0 && bearishVotes == 0)
                                     Text(
                                       'No Signals',
                                       style: TextStyle(
-                                          fontSize: 11,
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .outline),
+                                        fontSize: 11,
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.outline,
+                                      ),
                                     ),
                                 ],
                               ),
@@ -1793,21 +1984,25 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
                                         Expanded(
                                           flex: bullishVotes,
                                           child: Container(
-                                              color: Colors.green.shade400),
+                                            color: Colors.green.shade400,
+                                          ),
                                         ),
                                       if (bearishVotes > 0)
                                         Expanded(
                                           flex: bearishVotes,
                                           child: Container(
-                                              color: Colors.red.shade400),
+                                            color: Colors.red.shade400,
+                                          ),
                                         ),
                                       if (bullishVotes == 0 &&
                                           bearishVotes == 0)
                                         Expanded(
-                                            child: Container(
-                                                color: Theme.of(context)
-                                                    .colorScheme
-                                                    .surfaceContainerHighest)),
+                                          child: Container(
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .surfaceContainerHighest,
+                                          ),
+                                        ),
                                     ],
                                   ),
                                 ),
@@ -1818,8 +2013,9 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
                           Icon(
                             Icons.chevron_right,
                             size: 20,
-                            color:
-                                Theme.of(context).colorScheme.onSurfaceVariant,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
                           ),
                         ],
                       ),
@@ -1829,22 +2025,32 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
                           spacing: 8,
                           runSpacing: 8,
                           children: [
-                            _buildQuickMetric('RSI', rsi, (v) {
-                              return v.toStringAsFixed(1);
-                            }, (v) {
-                              if (v > 70) return Colors.red;
-                              if (v < 30) return Colors.green;
-                              return Theme.of(context).colorScheme.onSurface;
-                            }),
-                            _buildQuickMetric('MACD', macd, (v) {
-                              if (signal == null) return 'N/A';
-                              // Using simple diff string
-                              final diff = v - signal;
-                              return '${diff > 0 ? '+' : ''}${diff.toStringAsFixed(2)}';
-                            }, (v) {
-                              if (signal == null) return Colors.grey;
-                              return v > signal ? Colors.green : Colors.red;
-                            }),
+                            _buildQuickMetric(
+                              'RSI',
+                              rsi,
+                              (v) {
+                                return v.toStringAsFixed(1);
+                              },
+                              (v) {
+                                if (v > 70) return Colors.red;
+                                if (v < 30) return Colors.green;
+                                return Theme.of(context).colorScheme.onSurface;
+                              },
+                            ),
+                            _buildQuickMetric(
+                              'MACD',
+                              macd,
+                              (v) {
+                                if (signal == null) return 'N/A';
+                                // Using simple diff string
+                                final diff = v - signal;
+                                return '${diff > 0 ? '+' : ''}${diff.toStringAsFixed(2)}';
+                              },
+                              (v) {
+                                if (signal == null) return Colors.grey;
+                                return v > signal ? Colors.green : Colors.red;
+                              },
+                            ),
                           ],
                         ),
                       ],
@@ -1858,10 +2064,11 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
   }
 
   Widget _buildQuickMetric(
-      String label,
-      double? value,
-      String Function(double) textProvider,
-      Color Function(double) colorProvider) {
+    String label,
+    double? value,
+    String Function(double) textProvider,
+    Color Function(double) colorProvider,
+  ) {
     if (value == null) return const SizedBox.shrink();
 
     final text = textProvider(value);
@@ -1879,10 +2086,7 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
         children: [
           Text(
             '$label: ',
-            style: const TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w500,
-            ),
+            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
           ),
           Text(
             text,
@@ -1905,8 +2109,10 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
 
     // Generate Candles (reused logic efficiently)
     // Use fullResolution=true to get all available data points for accurate indicator calculation (especially SMA 200)
-    final candles = _generateCandles(_lastValidHistoricals!.historicals,
-        fullResolution: true);
+    final candles = _generateCandles(
+      _lastValidHistoricals!.historicals,
+      fullResolution: true,
+    );
     // Sort oldest first for calculation
     final sortedCandles = candles.reversed.toList();
 
@@ -1957,7 +2163,11 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
 
     // Keltner Channels for Squeeze
     var kcData = TechnicalIndicators.calculateKeltnerChannels(
-        sortedCandles, 20, 10, 1.5);
+      sortedCandles,
+      20,
+      10,
+      1.5,
+    );
     var kcUp = kcData['upper']!.last;
     var kcLow = kcData['lower']!.last;
 
@@ -2015,7 +2225,8 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
     if (rsi != null) {
       if (rsi < 30) {
         vote(true); // Oversold -> Buy
-      } else if (rsi > 70) vote(false); // Overbought -> Sell
+      } else if (rsi > 70)
+        vote(false); // Overbought -> Sell
     }
     if (stochK != null && stochD != null) {
       if (stochK < 20 && stochK > stochD) {
@@ -2026,12 +2237,14 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
     if (cci != null) {
       if (cci < -100) {
         vote(true);
-      } else if (cci > 100) vote(false);
+      } else if (cci > 100)
+        vote(false);
     }
     if (williamsR != null) {
       if (williamsR < -80) {
         vote(true);
-      } else if (williamsR > -20) vote(false);
+      } else if (williamsR > -20)
+        vote(false);
     }
     if (macd != null && signal != null) {
       vote(macd > signal);
@@ -2042,14 +2255,16 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
     if (cmf != null) {
       if (cmf > 0.05) {
         vote(true);
-      } else if (cmf < -0.05) vote(false);
+      } else if (cmf < -0.05)
+        vote(false);
     }
     if (spanA != null && spanB != null) {
       bool aboveCloud = currentPrice > math.max(spanA, spanB);
       bool belowCloud = currentPrice < math.min(spanA, spanB);
       if (aboveCloud) {
         vote(true);
-      } else if (belowCloud) vote(false);
+      } else if (belowCloud)
+        vote(false);
     }
     if (sar != null && isUptrendSar != null) {
       vote(isUptrendSar);
@@ -2072,292 +2287,383 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
     }
 
     showModalBottomSheet(
-        context: context,
-        isScrollControlled: true,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        builder: (context) {
-          return DraggableScrollableSheet(
-            initialChildSize: 0.85,
-            minChildSize: 0.4,
-            maxChildSize: 0.95,
-            expand: false,
-            builder: (context, scrollController) {
-              return Container(
-                  padding: const EdgeInsets.all(16),
-                  child: SingleChildScrollView(
-                      controller: scrollController,
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.85,
+          minChildSize: 0.4,
+          maxChildSize: 0.95,
+          expand: false,
+          builder: (context, scrollController) {
+            return Container(
+              padding: const EdgeInsets.all(16),
+              child: SingleChildScrollView(
+                controller: scrollController,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 32,
+                        height: 4,
+                        margin: const EdgeInsets.only(bottom: 8),
+                        decoration: BoxDecoration(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          "Technical Analysis",
+                          style: Theme.of(context).textTheme.headlineSmall,
+                        ),
+                        IconButton(
+                          onPressed: () => Navigator.pop(context),
+                          icon: const Icon(Icons.close),
+                        ),
+                      ],
+                    ),
+                    Text(
+                      "Based on latest candle close: ${formatCurrency.format(currentPrice)}",
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Summary Card
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: summaryColor.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: summaryColor),
+                      ),
                       child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Center(
-                              child: Container(
-                                width: 32,
-                                height: 4,
-                                margin: const EdgeInsets.only(bottom: 8),
-                                decoration: BoxDecoration(
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onSurfaceVariant
-                                      .withValues(alpha: 0.4),
-                                  borderRadius: BorderRadius.circular(2),
-                                ),
-                              ),
+                        children: [
+                          Text(
+                            summaryText,
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: summaryColor,
                             ),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text("Technical Analysis",
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .headlineSmall),
-                                IconButton(
-                                    onPressed: () => Navigator.pop(context),
-                                    icon: const Icon(Icons.close))
-                              ],
-                            ),
-                            Text(
-                                "Based on latest candle close: ${formatCurrency.format(currentPrice)}",
-                                style: Theme.of(context).textTheme.bodySmall),
-                            const SizedBox(height: 16),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            "Bullish: $bullishVotes  Bearish: $bearishVotes",
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
 
-                            // Summary Card
-                            Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.all(16),
-                                decoration: BoxDecoration(
-                                    color: summaryColor.withValues(alpha: 0.1),
-                                    borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(color: summaryColor)),
-                                child: Column(children: [
-                                  Text(summaryText,
-                                      style: TextStyle(
-                                          fontSize: 24,
-                                          fontWeight: FontWeight.bold,
-                                          color: summaryColor)),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                      "Bullish: $bullishVotes  Bearish: $bearishVotes",
-                                      style: const TextStyle(fontSize: 12))
-                                ])),
-                            const SizedBox(height: 16),
+                    _buildSectionHeader(context, "Momentum & Oscillators"),
+                    _buildIndicatorWithSignal("RSI (14)", rsi, (v) {
+                      if (v > 70) {
+                        return const Signal(
+                          text: "Overbought",
+                          color: Colors.red,
+                        );
+                      }
+                      if (v < 30) {
+                        return const Signal(
+                          text: "Oversold",
+                          color: Colors.green,
+                        );
+                      }
+                      return const Signal(text: "Neutral", color: Colors.grey);
+                    }, indicatorKey: 'momentum'),
+                    _buildIndicatorWithSignal(
+                      "Stochastic (14, 3)",
+                      stochK,
+                      (v) {
+                        if (v > 80) {
+                          return const Signal(
+                            text: "Overbought",
+                            color: Colors.red,
+                          );
+                        }
+                        if (v < 20) {
+                          return const Signal(
+                            text: "Oversold",
+                            color: Colors.green,
+                          );
+                        }
+                        return const Signal(
+                          text: "Neutral",
+                          color: Colors.grey,
+                        );
+                      },
+                      valueText:
+                          "K: ${stochK?.toStringAsFixed(2)} D: ${stochD?.toStringAsFixed(2)}",
+                      indicatorKey: 'stochastic',
+                    ),
+                    _buildIndicatorWithSignal("CCI (20)", cci, (v) {
+                      if (v > 100) {
+                        return const Signal(
+                          text: "Overbought",
+                          color: Colors.red,
+                        );
+                      }
+                      if (v < -100) {
+                        return const Signal(
+                          text: "Oversold",
+                          color: Colors.green,
+                        );
+                      }
+                      return const Signal(text: "Neutral", color: Colors.grey);
+                    }, indicatorKey: 'cci'),
+                    _buildIndicatorWithSignal("Williams %R (14)", williamsR, (
+                      v,
+                    ) {
+                      if (v > -20) {
+                        return const Signal(
+                          text: "Overbought",
+                          color: Colors.red,
+                        );
+                      }
+                      if (v < -80) {
+                        return const Signal(
+                          text: "Oversold",
+                          color: Colors.green,
+                        );
+                      }
+                      return const Signal(text: "Neutral", color: Colors.grey);
+                    }, indicatorKey: 'williamsR'),
+                    _buildIndicatorWithSignal(
+                      "MACD (12, 26, 9)",
+                      macd,
+                      (v) {
+                        if (signal == null) {
+                          return const Signal(text: "N/A", color: Colors.grey);
+                        }
+                        if (v > signal) {
+                          return const Signal(
+                            text: "Bullish",
+                            color: Colors.green,
+                          );
+                        }
+                        return const Signal(text: "Bearish", color: Colors.red);
+                      },
+                      valueText: "${macd?.toStringAsFixed(2)}",
+                      indicatorKey: 'macd',
+                    ),
+                    _buildIndicatorWithSignal("ROC (9)", roc, (v) {
+                      if (v > 0) {
+                        return const Signal(
+                          text: "Bullish",
+                          color: Colors.green,
+                        );
+                      }
+                      return const Signal(text: "Bearish", color: Colors.red);
+                    }, indicatorKey: 'roc'),
+                    _buildIndicatorWithSignal(
+                      "CMF (20)",
+                      cmf,
+                      (v) {
+                        if (v > 0.05) {
+                          return const Signal(
+                            text: "Accumulation",
+                            color: Colors.green,
+                          );
+                        }
+                        if (v < -0.05) {
+                          return const Signal(
+                            text: "Distribution",
+                            color: Colors.red,
+                          );
+                        }
+                        return const Signal(
+                          text: "Neutral",
+                          color: Colors.grey,
+                        );
+                      },
+                      valueText: cmf?.toStringAsFixed(3),
+                      indicatorKey: 'chaikinMoneyFlow',
+                    ),
 
-                            _buildSectionHeader(
-                                context, "Momentum & Oscillators"),
-                            _buildIndicatorWithSignal("RSI (14)", rsi, (v) {
-                              if (v > 70) {
-                                return const Signal(
-                                    text: "Overbought", color: Colors.red);
-                              }
-                              if (v < 30) {
-                                return const Signal(
-                                    text: "Oversold", color: Colors.green);
-                              }
-                              return const Signal(
-                                  text: "Neutral", color: Colors.grey);
-                            }, indicatorKey: 'momentum'),
-                            _buildIndicatorWithSignal(
-                                "Stochastic (14, 3)", stochK, (v) {
-                              if (v > 80) {
-                                return const Signal(
-                                    text: "Overbought", color: Colors.red);
-                              }
-                              if (v < 20) {
-                                return const Signal(
-                                    text: "Oversold", color: Colors.green);
-                              }
-                              return const Signal(
-                                  text: "Neutral", color: Colors.grey);
-                            },
-                                valueText:
-                                    "K: ${stochK?.toStringAsFixed(2)} D: ${stochD?.toStringAsFixed(2)}",
-                                indicatorKey: 'stochastic'),
-                            _buildIndicatorWithSignal("CCI (20)", cci, (v) {
-                              if (v > 100) {
-                                return const Signal(
-                                    text: "Overbought", color: Colors.red);
-                              }
-                              if (v < -100) {
-                                return const Signal(
-                                    text: "Oversold", color: Colors.green);
-                              }
-                              return const Signal(
-                                  text: "Neutral", color: Colors.grey);
-                            }, indicatorKey: 'cci'),
-                            _buildIndicatorWithSignal(
-                                "Williams %R (14)", williamsR, (v) {
-                              if (v > -20) {
-                                return const Signal(
-                                    text: "Overbought", color: Colors.red);
-                              }
-                              if (v < -80) {
-                                return const Signal(
-                                    text: "Oversold", color: Colors.green);
-                              }
-                              return const Signal(
-                                  text: "Neutral", color: Colors.grey);
-                            }, indicatorKey: 'williamsR'),
-                            _buildIndicatorWithSignal("MACD (12, 26, 9)", macd,
-                                (v) {
-                              if (signal == null) {
-                                return const Signal(
-                                    text: "N/A", color: Colors.grey);
-                              }
-                              if (v > signal) {
-                                return const Signal(
-                                    text: "Bullish", color: Colors.green);
-                              }
-                              return const Signal(
-                                  text: "Bearish", color: Colors.red);
-                            },
-                                valueText: "${macd?.toStringAsFixed(2)}",
-                                indicatorKey: 'macd'),
-                            _buildIndicatorWithSignal("ROC (9)", roc, (v) {
-                              if (v > 0) {
-                                return const Signal(
-                                    text: "Bullish", color: Colors.green);
-                              }
-                              return const Signal(
-                                  text: "Bearish", color: Colors.red);
-                            }, indicatorKey: 'roc'),
-                            _buildIndicatorWithSignal("CMF (20)", cmf, (v) {
-                              if (v > 0.05) {
-                                return const Signal(
-                                    text: "Accumulation", color: Colors.green);
-                              }
-                              if (v < -0.05) {
-                                return const Signal(
-                                    text: "Distribution", color: Colors.red);
-                              }
-                              return const Signal(
-                                  text: "Neutral", color: Colors.grey);
-                            },
-                                valueText: cmf?.toStringAsFixed(3),
-                                indicatorKey: 'chaikinMoneyFlow'),
+                    const Divider(),
+                    _buildSectionHeader(context, "Trend Strength"),
+                    _buildIndicatorWithSignal("ADX (14)", adx, (v) {
+                      if (v > 25) {
+                        return const Signal(
+                          text: "Strong Trend",
+                          color: Colors.blue,
+                        );
+                      }
+                      return const Signal(
+                        text: "Weak Trend",
+                        color: Colors.grey,
+                      );
+                    }, indicatorKey: 'adx'),
+                    _buildIndicatorWithSignal(
+                      "Ichimoku Cloud",
+                      spanA,
+                      (v) {
+                        final sA = spanA;
+                        final sB = spanB;
+                        if (sA == null || sB == null) {
+                          return const Signal(text: "N/A", color: Colors.grey);
+                        }
+                        bool aboveCloud = currentPrice > math.max(sA, sB);
+                        bool belowCloud = currentPrice < math.min(sA, sB);
 
-                            const Divider(),
-                            _buildSectionHeader(context, "Trend Strength"),
-                            _buildIndicatorWithSignal("ADX (14)", adx, (v) {
-                              if (v > 25) {
-                                return const Signal(
-                                    text: "Strong Trend", color: Colors.blue);
-                              }
-                              return const Signal(
-                                  text: "Weak Trend", color: Colors.grey);
-                            }, indicatorKey: 'adx'),
-                            _buildIndicatorWithSignal("Ichimoku Cloud", spanA,
-                                (v) {
-                              final sA = spanA;
-                              final sB = spanB;
-                              if (sA == null || sB == null) {
-                                return const Signal(
-                                    text: "N/A", color: Colors.grey);
-                              }
-                              bool aboveCloud = currentPrice > math.max(sA, sB);
-                              bool belowCloud = currentPrice < math.min(sA, sB);
+                        if (aboveCloud) {
+                          return const Signal(
+                            text: "Bullish (Above)",
+                            color: Colors.green,
+                          );
+                        }
+                        if (belowCloud) {
+                          return const Signal(
+                            text: "Bearish (Below)",
+                            color: Colors.red,
+                          );
+                        }
+                        return const Signal(
+                          text: "Neutral (In Cloud)",
+                          color: Colors.grey,
+                        );
+                      },
+                      valueText:
+                          "A: ${spanA?.toStringAsFixed(2)} B: ${spanB?.toStringAsFixed(2)}",
+                      indicatorKey: 'ichimoku',
+                    ),
+                    if (sar != null)
+                      _buildIndicatorWithSignal("Parabolic SAR", sar, (v) {
+                        if (isUptrendSar == true) {
+                          return const Signal(
+                            text: "Bullish",
+                            color: Colors.green,
+                          );
+                        }
+                        return const Signal(text: "Bearish", color: Colors.red);
+                      }, indicatorKey: 'parabolicSar'),
 
-                              if (aboveCloud) {
-                                return const Signal(
-                                    text: "Bullish (Above)",
-                                    color: Colors.green);
-                              }
-                              if (belowCloud) {
-                                return const Signal(
-                                    text: "Bearish (Below)", color: Colors.red);
-                              }
-                              return const Signal(
-                                  text: "Neutral (In Cloud)",
-                                  color: Colors.grey);
-                            },
-                                valueText:
-                                    "A: ${spanA?.toStringAsFixed(2)} B: ${spanB?.toStringAsFixed(2)}",
-                                indicatorKey: 'ichimoku'),
-                            if (sar != null)
-                              _buildIndicatorWithSignal("Parabolic SAR", sar,
-                                  (v) {
-                                if (isUptrendSar == true) {
-                                  return const Signal(
-                                      text: "Bullish", color: Colors.green);
-                                }
-                                return const Signal(
-                                    text: "Bearish", color: Colors.red);
-                              }, indicatorKey: 'parabolicSar'),
-
-                            const Divider(),
-                            _buildSectionHeader(context, "Moving Averages"),
-                            _buildIndicatorWithSignal("SMA 10", sma10,
-                                (v) => _comparePrice(currentPrice, v),
-                                indicatorKey: 'sma'),
-                            _buildIndicatorWithSignal("SMA 20", sma20,
-                                (v) => _comparePrice(currentPrice, v),
-                                indicatorKey: 'sma'),
-                            _buildIndicatorWithSignal("SMA 50", sma50,
-                                (v) => _comparePrice(currentPrice, v),
-                                indicatorKey: 'sma'),
-                            _buildIndicatorWithSignal("SMA 200", sma200,
-                                (v) => _comparePrice(currentPrice, v),
-                                indicatorKey: 'sma'),
-                            _buildIndicatorWithSignal("EMA 12", ema12,
-                                (v) => _comparePrice(currentPrice, v),
-                                indicatorKey: 'ema'),
-                            _buildIndicatorWithSignal("EMA 26", ema26,
-                                (v) => _comparePrice(currentPrice, v),
-                                indicatorKey: 'ema'),
-                            _buildIndicatorWithSignal("VWAP", vwap,
-                                (v) => _comparePrice(currentPrice, v),
-                                indicatorKey: 'vwap'),
-                            const Divider(),
-                            _buildSectionHeader(context, "Volatility & Volume"),
-                            _buildIndicatorWithSignal(
-                                "ATR (14)",
-                                atr,
-                                (v) => const Signal(
-                                    text: "Volatility", color: Colors.grey),
-                                indicatorKey: 'atr'),
-                            _buildIndicatorWithSignal(
-                                "OBV",
-                                obv,
-                                (v) => const Signal(
-                                    text: "Volume", color: Colors.grey),
-                                valueText: formatCompactCurrency
-                                    .format(obv)
-                                    .replaceAll('\$', ''),
-                                indicatorKey: 'obv'),
-                            _buildIndicatorWithSignal("Bollinger Bands", null,
-                                (v) {
-                              if (upper != null && currentPrice > upper) {
-                                return const Signal(
-                                    text: "Above Upper", color: Colors.red);
-                              }
-                              if (lower != null && currentPrice < lower) {
-                                return const Signal(
-                                    text: "Below Lower", color: Colors.green);
-                              }
-                              return const Signal(
-                                  text: "Within Bands", color: Colors.grey);
-                            },
-                                valueText:
-                                    "U: ${upper?.toStringAsFixed(2)} / L: ${lower?.toStringAsFixed(2)}",
-                                indicatorKey: 'bollingerBands'),
-                            _buildIndicatorWithSignal(
-                                "TTM Squeeze", isSqueezeIndepth ? 1.0 : 0.0,
-                                (v) {
-                              if (v == 1.0) {
-                                return const Signal(
-                                    text: "Squeeze ON", color: Colors.red);
-                              }
-                              return const Signal(
-                                  text: "No Squeeze", color: Colors.grey);
-                            },
-                                valueText:
-                                    isSqueezeIndepth ? "Active" : "Inactive",
-                                indicatorKey: 'ttmSqueeze'),
-                          ])));
-            },
-          );
-        });
+                    const Divider(),
+                    _buildSectionHeader(context, "Moving Averages"),
+                    _buildIndicatorWithSignal(
+                      "SMA 10",
+                      sma10,
+                      (v) => _comparePrice(currentPrice, v),
+                      indicatorKey: 'sma',
+                    ),
+                    _buildIndicatorWithSignal(
+                      "SMA 20",
+                      sma20,
+                      (v) => _comparePrice(currentPrice, v),
+                      indicatorKey: 'sma',
+                    ),
+                    _buildIndicatorWithSignal(
+                      "SMA 50",
+                      sma50,
+                      (v) => _comparePrice(currentPrice, v),
+                      indicatorKey: 'sma',
+                    ),
+                    _buildIndicatorWithSignal(
+                      "SMA 200",
+                      sma200,
+                      (v) => _comparePrice(currentPrice, v),
+                      indicatorKey: 'sma',
+                    ),
+                    _buildIndicatorWithSignal(
+                      "EMA 12",
+                      ema12,
+                      (v) => _comparePrice(currentPrice, v),
+                      indicatorKey: 'ema',
+                    ),
+                    _buildIndicatorWithSignal(
+                      "EMA 26",
+                      ema26,
+                      (v) => _comparePrice(currentPrice, v),
+                      indicatorKey: 'ema',
+                    ),
+                    _buildIndicatorWithSignal(
+                      "VWAP",
+                      vwap,
+                      (v) => _comparePrice(currentPrice, v),
+                      indicatorKey: 'vwap',
+                    ),
+                    const Divider(),
+                    _buildSectionHeader(context, "Volatility & Volume"),
+                    _buildIndicatorWithSignal(
+                      "ATR (14)",
+                      atr,
+                      (v) =>
+                          const Signal(text: "Volatility", color: Colors.grey),
+                      indicatorKey: 'atr',
+                    ),
+                    _buildIndicatorWithSignal(
+                      "OBV",
+                      obv,
+                      (v) => const Signal(text: "Volume", color: Colors.grey),
+                      valueText: formatCompactCurrency
+                          .format(obv)
+                          .replaceAll('\$', ''),
+                      indicatorKey: 'obv',
+                    ),
+                    _buildIndicatorWithSignal(
+                      "Bollinger Bands",
+                      null,
+                      (v) {
+                        if (upper != null && currentPrice > upper) {
+                          return const Signal(
+                            text: "Above Upper",
+                            color: Colors.red,
+                          );
+                        }
+                        if (lower != null && currentPrice < lower) {
+                          return const Signal(
+                            text: "Below Lower",
+                            color: Colors.green,
+                          );
+                        }
+                        return const Signal(
+                          text: "Within Bands",
+                          color: Colors.grey,
+                        );
+                      },
+                      valueText:
+                          "U: ${upper?.toStringAsFixed(2)} / L: ${lower?.toStringAsFixed(2)}",
+                      indicatorKey: 'bollingerBands',
+                    ),
+                    _buildIndicatorWithSignal(
+                      "TTM Squeeze",
+                      isSqueezeIndepth ? 1.0 : 0.0,
+                      (v) {
+                        if (v == 1.0) {
+                          return const Signal(
+                            text: "Squeeze ON",
+                            color: Colors.red,
+                          );
+                        }
+                        return const Signal(
+                          text: "No Squeeze",
+                          color: Colors.grey,
+                        );
+                      },
+                      valueText: isSqueezeIndepth ? "Active" : "Inactive",
+                      indicatorKey: 'ttmSqueeze',
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   Signal _comparePrice(double price, double indicatorValue) {
@@ -2373,16 +2679,23 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
   Widget _buildSectionHeader(BuildContext context, String title) {
     return Padding(
       padding: const EdgeInsets.only(top: 8, bottom: 8),
-      child: Text(title,
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: Theme.of(context).colorScheme.primary)),
+      child: Text(
+        title,
+        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+          fontWeight: FontWeight.bold,
+          color: Theme.of(context).colorScheme.primary,
+        ),
+      ),
     );
   }
 
   Widget _buildIndicatorWithSignal(
-      String label, double? value, Signal Function(double) getSignal,
-      {String? valueText, String? indicatorKey}) {
+    String label,
+    double? value,
+    Signal Function(double) getSignal, {
+    String? valueText,
+    String? indicatorKey,
+  }) {
     Signal signal = const Signal(text: "N/A", color: Colors.grey);
     if (value != null) {
       signal = getSignal(value);
@@ -2397,8 +2710,10 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
             child: Row(
               children: [
                 Flexible(
-                  child: Text(label,
-                      style: const TextStyle(fontWeight: FontWeight.w500)),
+                  child: Text(
+                    label,
+                    style: const TextStyle(fontWeight: FontWeight.w500),
+                  ),
                 ),
                 if (indicatorKey != null) ...[
                   const SizedBox(width: 2),
@@ -2407,8 +2722,10 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
                     icon: const Icon(Icons.info_outline, size: 18),
                     tooltip: 'About $label',
                     visualDensity: VisualDensity.compact,
-                    constraints:
-                        const BoxConstraints(minWidth: 36, minHeight: 36),
+                    constraints: const BoxConstraints(
+                      minWidth: 36,
+                      minHeight: 36,
+                    ),
                     padding: const EdgeInsets.all(8),
                   ),
                 ],
@@ -2422,31 +2739,41 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
               mainAxisSize: MainAxisSize.min,
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                Text(valueText ?? value?.toStringAsFixed(2) ?? "N/A",
-                    style: const TextStyle(fontWeight: FontWeight.w400)),
+                Text(
+                  valueText ?? value?.toStringAsFixed(2) ?? "N/A",
+                  style: const TextStyle(fontWeight: FontWeight.w400),
+                ),
                 const SizedBox(width: 8),
                 Flexible(
                   child: Tooltip(
                     message: signal.text,
                     child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                            color: signal.color.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(4),
-                            border: Border.all(
-                                color: signal.color.withValues(alpha: 0.5))),
-                        child: Text(signal.text,
-                            style: TextStyle(
-                                color: signal.color,
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold),
-                            overflow: TextOverflow.ellipsis)),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: signal.color.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(
+                          color: signal.color.withValues(alpha: 0.5),
+                        ),
+                      ),
+                      child: Text(
+                        signal.text,
+                        style: TextStyle(
+                          color: signal.color,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
                   ),
-                )
+                ),
               ],
             ),
-          )
+          ),
         ],
       ),
     );
@@ -2459,9 +2786,7 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
         content: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 480),
           child: SingleChildScrollView(
-            child: IndicatorDocumentationWidget(
-              indicatorKey: indicatorKey,
-            ),
+            child: IndicatorDocumentationWidget(indicatorKey: indicatorKey),
           ),
         ),
         actions: [
@@ -2496,5 +2821,5 @@ enum _OverlayIndicator {
   ema12,
   ema26,
   vwap,
-  bollinger
+  bollinger,
 }

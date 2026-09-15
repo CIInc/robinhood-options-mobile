@@ -96,11 +96,11 @@ class ScreenerCriterion {
   }
 
   Map<String, dynamic> toJson() => {
-        'field': field.name,
-        'minimum': minimum,
-        'maximum': maximum,
-        'textValue': textValue,
-      };
+    'field': field.name,
+    'minimum': minimum,
+    'maximum': maximum,
+    'textValue': textValue,
+  };
 
   factory ScreenerCriterion.fromJson(Map<String, dynamic> json) {
     final field = ScreenerField.values.firstWhere(

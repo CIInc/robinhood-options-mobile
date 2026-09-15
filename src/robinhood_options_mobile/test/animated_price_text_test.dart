@@ -4,8 +4,9 @@ import 'package:intl/intl.dart';
 import 'package:robinhood_options_mobile/widgets/animated_price_text.dart';
 
 void main() {
-  testWidgets('AnimatedPriceText displays initial price correctly',
-      (WidgetTester tester) async {
+  testWidgets('AnimatedPriceText displays initial price correctly', (
+    WidgetTester tester,
+  ) async {
     await tester.pumpWidget(
       const MaterialApp(
         home: Scaffold(
@@ -22,8 +23,9 @@ void main() {
     expect(textWidget.style?.color, Colors.black);
   });
 
-  testWidgets('AnimatedPriceText animates color on price increase',
-      (WidgetTester tester) async {
+  testWidgets('AnimatedPriceText animates color on price increase', (
+    WidgetTester tester,
+  ) async {
     await tester.pumpWidget(
       const MaterialApp(
         home: Scaffold(
@@ -72,8 +74,9 @@ void main() {
     expect(textWidgetAfter.style?.color, Colors.black);
   });
 
-  testWidgets('AnimatedPriceText animates color on price decrease',
-      (WidgetTester tester) async {
+  testWidgets('AnimatedPriceText animates color on price decrease', (
+    WidgetTester tester,
+  ) async {
     await tester.pumpWidget(
       const MaterialApp(
         home: Scaffold(
@@ -109,17 +112,13 @@ void main() {
     expect(textWidgetAfter.style?.color, Colors.black);
   });
 
-  testWidgets('AnimatedPriceText uses NumberFormat',
-      (WidgetTester tester) async {
+  testWidgets('AnimatedPriceText uses NumberFormat', (
+    WidgetTester tester,
+  ) async {
     final format = NumberFormat.currency(symbol: '\$');
     await tester.pumpWidget(
       MaterialApp(
-        home: Scaffold(
-          body: AnimatedPriceText(
-            price: 1234.56,
-            format: format,
-          ),
-        ),
+        home: Scaffold(body: AnimatedPriceText(price: 1234.56, format: format)),
       ),
     );
 

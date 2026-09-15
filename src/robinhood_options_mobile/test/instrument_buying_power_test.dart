@@ -114,7 +114,9 @@ void main() {
       expect(reconstituted.cashOnly, original.cashOnly);
       expect(reconstituted.marginRate, original.marginRate);
       expect(
-          reconstituted.maintenanceMarginRate, original.maintenanceMarginRate);
+        reconstituted.maintenanceMarginRate,
+        original.maintenanceMarginRate,
+      );
       expect(reconstituted.maxShares, original.maxShares);
       expect(reconstituted.maxShortShares, original.maxShortShares);
     });
@@ -159,72 +161,78 @@ void main() {
       expect(delistWarn.title, 'Bankruptcy / Delisting Risk');
     });
 
-    test('InstrumentTradeWarnings container parses list and detects criticals',
-        () {
-      final containerJson = {
-        'instrument_id': 'inst_volatile',
-        'halted': false,
-        'trade_restricted': false,
-        'warnings': [
-          {
-            'id': 'w1',
-            'type': 'volatility',
-            'title': 'Volatile Stock',
-            'message': 'High price swing',
-            'severity': 'warning',
-          },
-          {
-            'id': 'w2',
-            'type': 'reverse_split',
-            'title': 'Reverse Split',
-            'message': '1-for-10 split occurred',
-            'severity': 'info',
-          },
-        ],
-      };
+    test(
+      'InstrumentTradeWarnings container parses list and detects criticals',
+      () {
+        final containerJson = {
+          'instrument_id': 'inst_volatile',
+          'halted': false,
+          'trade_restricted': false,
+          'warnings': [
+            {
+              'id': 'w1',
+              'type': 'volatility',
+              'title': 'Volatile Stock',
+              'message': 'High price swing',
+              'severity': 'warning',
+            },
+            {
+              'id': 'w2',
+              'type': 'reverse_split',
+              'title': 'Reverse Split',
+              'message': '1-for-10 split occurred',
+              'severity': 'info',
+            },
+          ],
+        };
 
-      final container =
-          InstrumentTradeWarnings.fromJson('inst_volatile', containerJson);
+        final container = InstrumentTradeWarnings.fromJson(
+          'inst_volatile',
+          containerJson,
+        );
 
-      expect(container.hasWarnings, isTrue);
-      expect(container.hasCritical, isFalse);
-      expect(container.warnings.length, 2);
-      expect(container.highestSeverity, InstrumentWarningSeverity.warning);
-      expect(container.primaryWarning?.id, 'w1');
-    });
+        expect(container.hasWarnings, isTrue);
+        expect(container.hasCritical, isFalse);
+        expect(container.warnings.length, 2);
+        expect(container.highestSeverity, InstrumentWarningSeverity.warning);
+        expect(container.primaryWarning?.id, 'w1');
+      },
+    );
 
-    test('InstrumentTradeWarnings synthesizes halt warning if halted is true',
-        () {
-      final haltedJson = {
-        'instrument_id': 'inst_halted',
-        'halted': true,
-        'warnings': [],
-      };
+    test(
+      'InstrumentTradeWarnings synthesizes halt warning if halted is true',
+      () {
+        final haltedJson = {
+          'instrument_id': 'inst_halted',
+          'halted': true,
+          'warnings': [],
+        };
 
-      final container =
-          InstrumentTradeWarnings.fromJson('inst_halted', haltedJson);
+        final container = InstrumentTradeWarnings.fromJson(
+          'inst_halted',
+          haltedJson,
+        );
 
-      expect(container.isHalted, isTrue);
-      expect(container.hasWarnings, isTrue);
-      expect(container.hasCritical, isTrue);
-      expect(container.highestSeverity, InstrumentWarningSeverity.critical);
-      expect(container.warnings.length, 1);
-      expect(container.warnings.first.type, 'halt');
-    });
+        expect(container.isHalted, isTrue);
+        expect(container.hasWarnings, isTrue);
+        expect(container.hasCritical, isTrue);
+        expect(container.highestSeverity, InstrumentWarningSeverity.critical);
+        expect(container.warnings.length, 1);
+        expect(container.warnings.first.type, 'halt');
+      },
+    );
   });
 
   group('DemoService Instrument Buying Power & Warnings Integration', () {
     test('returns standard margin terms for normal instruments', () async {
       final demoService = DemoService();
-      final user = BrokerageUser(
-        BrokerageSource.demo,
-        'demo_user',
-        null,
-        null,
-      );
+      final user = BrokerageUser(BrokerageSource.demo, 'demo_user', null, null);
 
       final bpJson = await demoService.getInstrumentBuyingPower(
-          user, '5QR12345', 'inst_aapl');
+        user,
+        '5QR12345',
+        'inst_aapl',
+      );
       expect(bpJson, isNotNull);
 
       final bp = InstrumentBuyingPower.fromJson('inst_aapl', bpJson);
@@ -233,8 +241,10 @@ void main() {
       expect(bp.buyingPower, 41505.26);
       expect(bp.hasShortCapacity, isTrue);
 
-      final warnJson =
-          await demoService.getInstrumentWarnings(user, 'inst_aapl');
+      final warnJson = await demoService.getInstrumentWarnings(
+        user,
+        'inst_aapl',
+      );
       expect(warnJson, isNotNull);
 
       final warnings = InstrumentTradeWarnings.fromJson('inst_aapl', warnJson);
@@ -243,15 +253,13 @@ void main() {
 
     test('returns 100% cash and warnings for volatile symbols', () async {
       final demoService = DemoService();
-      final user = BrokerageUser(
-        BrokerageSource.demo,
-        'demo_user',
-        null,
-        null,
-      );
+      final user = BrokerageUser(BrokerageSource.demo, 'demo_user', null, null);
 
       final bpJson = await demoService.getInstrumentBuyingPower(
-          user, '5QR12345', 'inst_gme_meme');
+        user,
+        '5QR12345',
+        'inst_gme_meme',
+      );
       expect(bpJson, isNotNull);
 
       final bp = InstrumentBuyingPower.fromJson('inst_gme_meme', bpJson);
@@ -260,12 +268,16 @@ void main() {
       expect(bp.buyingPower, 17546.87);
       expect(bp.marginStatusLabel, '100% Cash Required');
 
-      final warnJson =
-          await demoService.getInstrumentWarnings(user, 'inst_gme_meme');
+      final warnJson = await demoService.getInstrumentWarnings(
+        user,
+        'inst_gme_meme',
+      );
       expect(warnJson, isNotNull);
 
-      final warnings =
-          InstrumentTradeWarnings.fromJson('inst_gme_meme', warnJson);
+      final warnings = InstrumentTradeWarnings.fromJson(
+        'inst_gme_meme',
+        warnJson,
+      );
       expect(warnings.hasWarnings, isTrue);
       expect(warnings.warnings.length, 2);
       expect(warnings.primaryWarning?.type, 'volatility');

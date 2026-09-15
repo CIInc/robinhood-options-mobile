@@ -95,9 +95,17 @@ void main() {
         accountNumber: '12345678',
         dayTrades: [
           DayTrade(
-              id: 't1', symbol: 'AAPL', executionDate: now, timestamp: now),
+            id: 't1',
+            symbol: 'AAPL',
+            executionDate: now,
+            timestamp: now,
+          ),
           DayTrade(
-              id: 't2', symbol: 'MSFT', executionDate: now, timestamp: now),
+            id: 't2',
+            symbol: 'MSFT',
+            executionDate: now,
+            timestamp: now,
+          ),
         ],
         portfolioEquity: 15000,
         accountType: 'margin',
@@ -115,11 +123,23 @@ void main() {
         accountNumber: '12345678',
         dayTrades: [
           DayTrade(
-              id: 't1', symbol: 'AAPL', executionDate: now, timestamp: now),
+            id: 't1',
+            symbol: 'AAPL',
+            executionDate: now,
+            timestamp: now,
+          ),
           DayTrade(
-              id: 't2', symbol: 'MSFT', executionDate: now, timestamp: now),
+            id: 't2',
+            symbol: 'MSFT',
+            executionDate: now,
+            timestamp: now,
+          ),
           DayTrade(
-              id: 't3', symbol: 'NVDA', executionDate: now, timestamp: now),
+            id: 't3',
+            symbol: 'NVDA',
+            executionDate: now,
+            timestamp: now,
+          ),
         ],
         portfolioEquity: 18000,
         accountType: 'margin',
@@ -137,13 +157,29 @@ void main() {
         accountNumber: '12345678',
         dayTrades: [
           DayTrade(
-              id: 't1', symbol: 'AAPL', executionDate: now, timestamp: now),
+            id: 't1',
+            symbol: 'AAPL',
+            executionDate: now,
+            timestamp: now,
+          ),
           DayTrade(
-              id: 't2', symbol: 'MSFT', executionDate: now, timestamp: now),
+            id: 't2',
+            symbol: 'MSFT',
+            executionDate: now,
+            timestamp: now,
+          ),
           DayTrade(
-              id: 't3', symbol: 'NVDA', executionDate: now, timestamp: now),
+            id: 't3',
+            symbol: 'NVDA',
+            executionDate: now,
+            timestamp: now,
+          ),
           DayTrade(
-              id: 't4', symbol: 'TSLA', executionDate: now, timestamp: now),
+            id: 't4',
+            symbol: 'TSLA',
+            executionDate: now,
+            timestamp: now,
+          ),
         ],
         portfolioEquity: 20000,
         markedPatternDayTraderDate: DateTime(2026, 3, 1),
@@ -163,13 +199,29 @@ void main() {
         accountNumber: '12345678',
         dayTrades: [
           DayTrade(
-              id: 't1', symbol: 'AAPL', executionDate: now, timestamp: now),
+            id: 't1',
+            symbol: 'AAPL',
+            executionDate: now,
+            timestamp: now,
+          ),
           DayTrade(
-              id: 't2', symbol: 'MSFT', executionDate: now, timestamp: now),
+            id: 't2',
+            symbol: 'MSFT',
+            executionDate: now,
+            timestamp: now,
+          ),
           DayTrade(
-              id: 't3', symbol: 'NVDA', executionDate: now, timestamp: now),
+            id: 't3',
+            symbol: 'NVDA',
+            executionDate: now,
+            timestamp: now,
+          ),
           DayTrade(
-              id: 't4', symbol: 'TSLA', executionDate: now, timestamp: now),
+            id: 't4',
+            symbol: 'TSLA',
+            executionDate: now,
+            timestamp: now,
+          ),
         ],
         portfolioEquity: 35000,
         accountType: 'margin',
@@ -218,10 +270,14 @@ void main() {
       expect(account.dayTradesProtection, isTrue);
       expect(account.dayTradeBuyingPower, 40000.00);
       expect(account.dayTradeRatio, 0.25);
-      expect(account.markedPatternDayTraderDate,
-          DateTime.parse('2026-02-15T00:00:00Z'));
-      expect(account.patternDayTraderExpiryDate,
-          DateTime.parse('2026-05-15T00:00:00Z'));
+      expect(
+        account.markedPatternDayTraderDate,
+        DateTime.parse('2026-02-15T00:00:00Z'),
+      );
+      expect(
+        account.patternDayTraderExpiryDate,
+        DateTime.parse('2026-05-15T00:00:00Z'),
+      );
       expect(account.isPdtForever, isFalse);
 
       final exported = account.toJson();
@@ -235,12 +291,7 @@ void main() {
   group('DemoService Day Trades', () {
     test('returns mock day trades with active trades', () async {
       final demoService = DemoService();
-      final user = BrokerageUser(
-        BrokerageSource.demo,
-        'demo_user',
-        null,
-        null,
-      );
+      final user = BrokerageUser(BrokerageSource.demo, 'demo_user', null, null);
 
       final res = await demoService.getRecentDayTrades(user, 'DEMO1234');
       expect(res, isNotNull);
@@ -263,75 +314,90 @@ void main() {
 
   group('PortfolioAlertService PDT Alerts', () {
     test(
-        'triggers critical alert when account has marked PDT date with under \$25k equity',
-        () {
-      final account = Account(
-        'https://api.robinhood.com/accounts/12345/',
-        15000.0,
-        '12345',
-        'margin',
-        15000.0,
-        'level_3',
-        0.0,
-        0.0,
-        0.0,
-        markedPatternDayTraderDate: DateTime(2026, 3, 1),
-      );
+      'triggers critical alert when account has marked PDT date with under \$25k equity',
+      () {
+        final account = Account(
+          'https://api.robinhood.com/accounts/12345/',
+          15000.0,
+          '12345',
+          'margin',
+          15000.0,
+          'level_3',
+          0.0,
+          0.0,
+          0.0,
+          markedPatternDayTraderDate: DateTime(2026, 3, 1),
+        );
 
-      final alerts = PortfolioAlertService.buildAlerts(
-        instrumentPositions: [],
-        optionPositions: [],
-        account: account,
-        totalEquity: 15000.0,
-      );
+        final alerts = PortfolioAlertService.buildAlerts(
+          instrumentPositions: [],
+          optionPositions: [],
+          account: account,
+          totalEquity: 15000.0,
+        );
 
-      final pdtAlert = alerts.firstWhere((a) => a.id == 'pdt-flagged');
-      expect(pdtAlert.severity, PortfolioAlertSeverity.critical);
-      expect(pdtAlert.title, contains('Pattern Day Trader restriction'));
-      expect(pdtAlert.target, PortfolioAlertTarget.risk);
-    });
+        final pdtAlert = alerts.firstWhere((a) => a.id == 'pdt-flagged');
+        expect(pdtAlert.severity, PortfolioAlertSeverity.critical);
+        expect(pdtAlert.title, contains('Pattern Day Trader restriction'));
+        expect(pdtAlert.target, PortfolioAlertTarget.risk);
+      },
+    );
 
-    test('triggers critical alert when PDT limit reached (3 of 3 trades used)',
-        () {
-      final account = Account(
-        'https://api.robinhood.com/accounts/12345/',
-        12000.0,
-        '12345',
-        'margin',
-        12000.0,
-        'level_3',
-        0.0,
-        0.0,
-        0.0,
-      );
+    test(
+      'triggers critical alert when PDT limit reached (3 of 3 trades used)',
+      () {
+        final account = Account(
+          'https://api.robinhood.com/accounts/12345/',
+          12000.0,
+          '12345',
+          'margin',
+          12000.0,
+          'level_3',
+          0.0,
+          0.0,
+          0.0,
+        );
 
-      final now = DateTime.now();
-      final summary = DayTradeSummary(
-        accountNumber: '12345',
-        dayTrades: [
-          DayTrade(
-              id: 't1', symbol: 'AAPL', executionDate: now, timestamp: now),
-          DayTrade(
-              id: 't2', symbol: 'TSLA', executionDate: now, timestamp: now),
-          DayTrade(
-              id: 't3', symbol: 'NVDA', executionDate: now, timestamp: now),
-        ],
-        portfolioEquity: 12000.0,
-        accountType: 'margin',
-      );
+        final now = DateTime.now();
+        final summary = DayTradeSummary(
+          accountNumber: '12345',
+          dayTrades: [
+            DayTrade(
+              id: 't1',
+              symbol: 'AAPL',
+              executionDate: now,
+              timestamp: now,
+            ),
+            DayTrade(
+              id: 't2',
+              symbol: 'TSLA',
+              executionDate: now,
+              timestamp: now,
+            ),
+            DayTrade(
+              id: 't3',
+              symbol: 'NVDA',
+              executionDate: now,
+              timestamp: now,
+            ),
+          ],
+          portfolioEquity: 12000.0,
+          accountType: 'margin',
+        );
 
-      final alerts = PortfolioAlertService.buildAlerts(
-        instrumentPositions: [],
-        optionPositions: [],
-        account: account,
-        totalEquity: 12000.0,
-        dayTradeSummary: summary,
-      );
+        final alerts = PortfolioAlertService.buildAlerts(
+          instrumentPositions: [],
+          optionPositions: [],
+          account: account,
+          totalEquity: 12000.0,
+          dayTradeSummary: summary,
+        );
 
-      final pdtAlert = alerts.firstWhere((a) => a.id == 'pdt-limit-reached');
-      expect(pdtAlert.severity, PortfolioAlertSeverity.critical);
-      expect(pdtAlert.title, contains('PDT limit reached'));
-    });
+        final pdtAlert = alerts.firstWhere((a) => a.id == 'pdt-limit-reached');
+        expect(pdtAlert.severity, PortfolioAlertSeverity.critical);
+        expect(pdtAlert.title, contains('PDT limit reached'));
+      },
+    );
 
     test('triggers warning alert when 1 day trade remains', () {
       final account = Account(
@@ -351,9 +417,17 @@ void main() {
         accountNumber: '12345',
         dayTrades: [
           DayTrade(
-              id: 't1', symbol: 'AAPL', executionDate: now, timestamp: now),
+            id: 't1',
+            symbol: 'AAPL',
+            executionDate: now,
+            timestamp: now,
+          ),
           DayTrade(
-              id: 't2', symbol: 'TSLA', executionDate: now, timestamp: now),
+            id: 't2',
+            symbol: 'TSLA',
+            executionDate: now,
+            timestamp: now,
+          ),
         ],
         portfolioEquity: 12000.0,
         accountType: 'margin',
@@ -390,11 +464,23 @@ void main() {
         accountNumber: '12345',
         dayTrades: [
           DayTrade(
-              id: 't1', symbol: 'AAPL', executionDate: now, timestamp: now),
+            id: 't1',
+            symbol: 'AAPL',
+            executionDate: now,
+            timestamp: now,
+          ),
           DayTrade(
-              id: 't2', symbol: 'TSLA', executionDate: now, timestamp: now),
+            id: 't2',
+            symbol: 'TSLA',
+            executionDate: now,
+            timestamp: now,
+          ),
           DayTrade(
-              id: 't3', symbol: 'NVDA', executionDate: now, timestamp: now),
+            id: 't3',
+            symbol: 'NVDA',
+            executionDate: now,
+            timestamp: now,
+          ),
         ],
         portfolioEquity: 35000.0,
         accountType: 'margin',

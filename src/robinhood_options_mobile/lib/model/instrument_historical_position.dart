@@ -69,23 +69,23 @@ class InstrumentHistoricalPosition {
   }
 
   Map<String, dynamic> toJson() => {
-        'cycle_id': cycleId,
-        'symbol': symbol,
-        'instrument_id': instrumentId,
-        'opened_at': openedAt.toIso8601String(),
-        'closed_at': closedAt?.toIso8601String(),
-        'is_closed': isClosed,
-        'total_shares': totalShares,
-        'total_cost_basis': totalCostBasis,
-        'average_buy_price': averageBuyPrice,
-        'total_proceeds': totalProceeds,
-        'average_sell_price': averageSellPrice,
-        'realized_gain_loss': realizedGainLoss,
-        'realized_gain_loss_percent': realizedGainLossPercent,
-        'hold_duration_seconds': holdDuration.inSeconds,
-        'orders_count': orders.length,
-        'splits_count': splitsApplied.length,
-      };
+    'cycle_id': cycleId,
+    'symbol': symbol,
+    'instrument_id': instrumentId,
+    'opened_at': openedAt.toIso8601String(),
+    'closed_at': closedAt?.toIso8601String(),
+    'is_closed': isClosed,
+    'total_shares': totalShares,
+    'total_cost_basis': totalCostBasis,
+    'average_buy_price': averageBuyPrice,
+    'total_proceeds': totalProceeds,
+    'average_sell_price': averageSellPrice,
+    'realized_gain_loss': realizedGainLoss,
+    'realized_gain_loss_percent': realizedGainLossPercent,
+    'hold_duration_seconds': holdDuration.inSeconds,
+    'orders_count': orders.length,
+    'splits_count': splitsApplied.length,
+  };
 }
 
 /// Represents a corporate stock split (forward or reverse).
@@ -152,7 +152,8 @@ class StockSplit {
   factory StockSplit.fromJson(Map<String, dynamic> json) {
     DateTime date;
     if (json['execution_date'] != null) {
-      date = DateTime.tryParse(json['execution_date'].toString()) ??
+      date =
+          DateTime.tryParse(json['execution_date'].toString()) ??
           DateTime.now();
     } else if (json['date'] != null) {
       date = DateTime.tryParse(json['date'].toString()) ?? DateTime.now();
@@ -180,12 +181,12 @@ class StockSplit {
   }
 
   Map<String, dynamic> toJson() => {
-        'execution_date': executionDate.toIso8601String(),
-        'multiplier': multiplier,
-        'divisor': divisor,
-        'effective_multiplier': effectiveMultiplier,
-        'formatted_ratio': formattedRatio,
-      };
+    'execution_date': executionDate.toIso8601String(),
+    'multiplier': multiplier,
+    'divisor': divisor,
+    'effective_multiplier': effectiveMultiplier,
+    'formatted_ratio': formattedRatio,
+  };
 }
 
 /// Internal FIFO Lot for tracking share accumulation and matching.
@@ -326,7 +327,8 @@ class InstrumentCostBasisLookbackSummary {
       // Apply any splits whose execution date is on or before this order date
       while (splitIndex < parsedSplits.length) {
         final split = parsedSplits[splitIndex];
-        final isSplitEffective = split.executionDate.isBefore(orderDate) ||
+        final isSplitEffective =
+            split.executionDate.isBefore(orderDate) ||
             (split.executionDate.year == orderDate.year &&
                 split.executionDate.month == orderDate.month &&
                 split.executionDate.day == orderDate.day);
@@ -369,12 +371,14 @@ class InstrumentCostBasisLookbackSummary {
         }
 
         final buyCost = orderQty * orderPrice;
-        openLots.add(_FifoLot(
-          remainingShares: orderQty,
-          price: orderPrice,
-          date: orderDate,
-          order: order,
-        ));
+        openLots.add(
+          _FifoLot(
+            remainingShares: orderQty,
+            price: orderPrice,
+            date: orderDate,
+            order: order,
+          ),
+        );
         currentCycleOrders.add(order);
         currentCycleCostBasis += buyCost;
         currentCycleSharesBought += orderQty;
@@ -416,12 +420,15 @@ class InstrumentCostBasisLookbackSummary {
         totalRealizedPnl += (sellProceeds - costOfSharesSoldInOrder);
 
         // Check if cycle is completely closed
-        final remainingInLots =
-            openLots.fold<double>(0.0, (acc, lot) => acc + lot.remainingShares);
+        final remainingInLots = openLots.fold<double>(
+          0.0,
+          (acc, lot) => acc + lot.remainingShares,
+        );
         if (remainingInLots <= 0.000001) {
           openLots.clear();
-          final cycleHoldDuration =
-              orderDate.difference(currentCycleOpenedAt ?? orderDate);
+          final cycleHoldDuration = orderDate.difference(
+            currentCycleOpenedAt ?? orderDate,
+          );
           final cycleAvgBuy = currentCycleSharesBought > 0
               ? (currentCycleCostBasis / currentCycleSharesBought)
               : 0.0;
@@ -433,24 +440,26 @@ class InstrumentCostBasisLookbackSummary {
               ? (cycleRealizedPnl / currentCycleCostBasis)
               : 0.0;
 
-          cycles.add(InstrumentHistoricalPosition(
-            cycleId: 'cycle_${cycleCounter++}',
-            symbol: symbol,
-            instrumentId: instrumentId,
-            openedAt: currentCycleOpenedAt ?? orderDate,
-            closedAt: orderDate,
-            isClosed: true,
-            totalShares: currentCycleSharesBought,
-            totalCostBasis: currentCycleCostBasis,
-            averageBuyPrice: cycleAvgBuy,
-            totalProceeds: currentCycleProceeds,
-            averageSellPrice: cycleAvgSell,
-            realizedGainLoss: cycleRealizedPnl,
-            realizedGainLossPercent: cyclePnlPercent,
-            holdDuration: cycleHoldDuration,
-            orders: List.unmodifiable(currentCycleOrders),
-            splitsApplied: List.unmodifiable(currentCycleSplits),
-          ));
+          cycles.add(
+            InstrumentHistoricalPosition(
+              cycleId: 'cycle_${cycleCounter++}',
+              symbol: symbol,
+              instrumentId: instrumentId,
+              openedAt: currentCycleOpenedAt ?? orderDate,
+              closedAt: orderDate,
+              isClosed: true,
+              totalShares: currentCycleSharesBought,
+              totalCostBasis: currentCycleCostBasis,
+              averageBuyPrice: cycleAvgBuy,
+              totalProceeds: currentCycleProceeds,
+              averageSellPrice: cycleAvgSell,
+              realizedGainLoss: cycleRealizedPnl,
+              realizedGainLossPercent: cyclePnlPercent,
+              holdDuration: cycleHoldDuration,
+              orders: List.unmodifiable(currentCycleOrders),
+              splitsApplied: List.unmodifiable(currentCycleSplits),
+            ),
+          );
 
           // Reset cycle state
           currentCycleOrders.clear();
@@ -486,10 +495,13 @@ class InstrumentCostBasisLookbackSummary {
 
     // If there's an ongoing active unclosed cycle:
     if (openLots.isNotEmpty && currentCycleOpenedAt != null) {
-      final remainingShares =
-          openLots.fold<double>(0.0, (acc, lot) => acc + lot.remainingShares);
-      final activeHoldDuration =
-          DateTime.now().difference(currentCycleOpenedAt);
+      final remainingShares = openLots.fold<double>(
+        0.0,
+        (acc, lot) => acc + lot.remainingShares,
+      );
+      final activeHoldDuration = DateTime.now().difference(
+        currentCycleOpenedAt,
+      );
       final activeAvgBuy = currentCycleSharesBought > 0
           ? (currentCycleCostBasis / currentCycleSharesBought)
           : 0.0;
@@ -498,34 +510,38 @@ class InstrumentCostBasisLookbackSummary {
           : 0.0;
       final costOfSold = currentCycleSharesSold * activeAvgBuy;
       final activeRealizedPnl = currentCycleProceeds - costOfSold;
-      final activePnlPercent =
-          costOfSold > 0 ? (activeRealizedPnl / costOfSold) : 0.0;
+      final activePnlPercent = costOfSold > 0
+          ? (activeRealizedPnl / costOfSold)
+          : 0.0;
 
-      cycles.add(InstrumentHistoricalPosition(
-        cycleId: 'cycle_${cycleCounter++}_active',
-        symbol: symbol,
-        instrumentId: instrumentId,
-        openedAt: currentCycleOpenedAt,
-        closedAt: null,
-        isClosed: false,
-        totalShares: remainingShares,
-        totalCostBasis: currentCycleCostBasis,
-        averageBuyPrice: activeAvgBuy,
-        totalProceeds: currentCycleProceeds,
-        averageSellPrice: activeAvgSell,
-        realizedGainLoss: activeRealizedPnl,
-        realizedGainLossPercent: activePnlPercent,
-        holdDuration: activeHoldDuration,
-        orders: List.unmodifiable(currentCycleOrders),
-        splitsApplied: List.unmodifiable(currentCycleSplits),
-      ));
+      cycles.add(
+        InstrumentHistoricalPosition(
+          cycleId: 'cycle_${cycleCounter++}_active',
+          symbol: symbol,
+          instrumentId: instrumentId,
+          openedAt: currentCycleOpenedAt,
+          closedAt: null,
+          isClosed: false,
+          totalShares: remainingShares,
+          totalCostBasis: currentCycleCostBasis,
+          averageBuyPrice: activeAvgBuy,
+          totalProceeds: currentCycleProceeds,
+          averageSellPrice: activeAvgSell,
+          realizedGainLoss: activeRealizedPnl,
+          realizedGainLossPercent: activePnlPercent,
+          holdDuration: activeHoldDuration,
+          orders: List.unmodifiable(currentCycleOrders),
+          splitsApplied: List.unmodifiable(currentCycleSplits),
+        ),
+      );
     }
 
     final closedCycles = cycles.where((c) => c.isClosed).toList();
     final winningTrades = closedCycles.where((c) => c.isProfitable).length;
     final losingTrades = closedCycles.where((c) => c.isLoss).length;
-    final winRate =
-        closedCycles.isNotEmpty ? (winningTrades / closedCycles.length) : 0.0;
+    final winRate = closedCycles.isNotEmpty
+        ? (winningTrades / closedCycles.length)
+        : 0.0;
 
     final totalClosedHoldSeconds = closedCycles.fold<int>(
       0,
@@ -533,7 +549,8 @@ class InstrumentCostBasisLookbackSummary {
     );
     final avgHoldDuration = closedCycles.isNotEmpty
         ? Duration(
-            seconds: (totalClosedHoldSeconds / closedCycles.length).round())
+            seconds: (totalClosedHoldSeconds / closedCycles.length).round(),
+          )
         : Duration.zero;
 
     final overallAvgBuy = cumulativeBuyShares > 0

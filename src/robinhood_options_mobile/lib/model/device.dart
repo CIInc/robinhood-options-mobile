@@ -10,28 +10,30 @@ class Device {
   DateTime dateCreated;
   DateTime? dateUpdated;
 
-  Device(
-      {required this.id,
-      this.model,
-      this.apnsToken,
-      this.fcmToken,
-      this.appVersion,
-      this.deviceInfo,
-      required this.dateCreated,
-      this.dateUpdated});
+  Device({
+    required this.id,
+    this.model,
+    this.apnsToken,
+    this.fcmToken,
+    this.appVersion,
+    this.deviceInfo,
+    required this.dateCreated,
+    this.dateUpdated,
+  });
 
   Device.fromJson(Map<String, Object?> json)
-      : this(
-            id: json['id'] as String,
-            model: json['model'] as String?,
-            apnsToken: json['apnsToken'] as String?,
-            fcmToken: json['fcmToken'] as String?,
-            appVersion: json['appVersion'] as String?,
-            deviceInfo: json['deviceInfo'] as Map<String, dynamic>?,
-            dateCreated: (json['dateCreated'] as Timestamp).toDate(),
-            dateUpdated: json['dateUpdated'] != null
-                ? (json['dateUpdated'] as Timestamp).toDate()
-                : null);
+    : this(
+        id: json['id'] as String,
+        model: json['model'] as String?,
+        apnsToken: json['apnsToken'] as String?,
+        fcmToken: json['fcmToken'] as String?,
+        appVersion: json['appVersion'] as String?,
+        deviceInfo: json['deviceInfo'] as Map<String, dynamic>?,
+        dateCreated: (json['dateCreated'] as Timestamp).toDate(),
+        dateUpdated: json['dateUpdated'] != null
+            ? (json['dateUpdated'] as Timestamp).toDate()
+            : null,
+      );
 
   Map<String, Object?> toJson() {
     return {
@@ -42,7 +44,7 @@ class Device {
       'appVersion': appVersion,
       'deviceInfo': deviceInfo,
       'dateCreated': dateCreated,
-      'dateUpdated': dateUpdated
+      'dateUpdated': dateUpdated,
     };
   }
 

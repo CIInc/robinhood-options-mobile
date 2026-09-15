@@ -54,78 +54,97 @@ class _InstrumentPositionsPageWidgetState
   @override
   Widget build(BuildContext context) {
     return Material(
-        child: CustomScrollView(slivers: [
-      SliverAppBar(
-        centerTitle: false,
-        // title: Text(
-        //   "Stocks & ETFs",
-        //   style: Theme.of(context)
-        //       .textTheme
-        //       .titleLarge
-        //       ?.copyWith(fontWeight: FontWeight.bold),
-        // ),
-        // floating: true,
-        // snap: true,
-        // pinned: false,
-        pinned: true,
-        actions: [
-          IconButton(
-              icon: auth.currentUser != null
-                  ? (auth.currentUser!.photoURL == null
-                      ? const Icon(Icons.account_circle)
-                      : CircleAvatar(
-                          maxRadius: 12,
-                          backgroundImage: CachedNetworkImageProvider(
-                              auth.currentUser!.photoURL!
-                              //  ?? Constants .placeholderImage, // No longer used
-                              )))
-                  : const Icon(Icons.account_circle_outlined),
-              onPressed: () {
-                showProfile(context, auth, _firestoreService, widget.analytics,
-                    widget.observer, widget.brokerageUser, widget.service);
-              }),
-          IconButton(
-              icon: Icon(Icons.more_vert),
-              onPressed: () async {
-                await showModalBottomSheet<void>(
+      child: CustomScrollView(
+        slivers: [
+          SliverAppBar(
+            centerTitle: false,
+            // title: Text(
+            //   "Stocks & ETFs",
+            //   style: Theme.of(context)
+            //       .textTheme
+            //       .titleLarge
+            //       ?.copyWith(fontWeight: FontWeight.bold),
+            // ),
+            // floating: true,
+            // snap: true,
+            // pinned: false,
+            pinned: true,
+            actions: [
+              IconButton(
+                icon: auth.currentUser != null
+                    ? (auth.currentUser!.photoURL == null
+                          ? const Icon(Icons.account_circle)
+                          : CircleAvatar(
+                              maxRadius: 12,
+                              backgroundImage: CachedNetworkImageProvider(
+                                auth.currentUser!.photoURL!,
+                                //  ?? Constants .placeholderImage, // No longer used
+                              ),
+                            ))
+                    : const Icon(Icons.account_circle_outlined),
+                onPressed: () {
+                  showProfile(
+                    context,
+                    auth,
+                    _firestoreService,
+                    widget.analytics,
+                    widget.observer,
+                    widget.brokerageUser,
+                    widget.service,
+                  );
+                },
+              ),
+              IconButton(
+                icon: Icon(Icons.more_vert),
+                onPressed: () async {
+                  await showModalBottomSheet<void>(
                     context: context,
                     showDragHandle: true,
                     //isScrollControlled: true,
                     //useRootNavigator: true,
                     //constraints: const BoxConstraints(maxHeight: 200),
-                    builder: (_) => MoreMenuBottomSheet(widget.brokerageUser,
-                            analytics: widget.analytics,
-                            observer: widget.observer,
-                            showStockSettings: true,
-                            chainSymbols: null,
-                            positionSymbols: null,
-                            cryptoSymbols: null,
-                            optionSymbolFilters: null,
-                            stockSymbolFilters: null,
-                            cryptoFilters: null, onSettingsChanged: (value) {
-                          // debugPrint(
-                          //     "Settings changed ${jsonEncode(value)}");
-                          debugPrint(
-                              "showPositionDetails: ${widget.brokerageUser.showPositionDetails.toString()}");
-                          debugPrint(
-                              "displayValue: ${widget.brokerageUser.displayValue.toString()}");
-                          setState(() {});
-                        }));
-                // Navigator.pop(context);
-              })
+                    builder: (_) => MoreMenuBottomSheet(
+                      widget.brokerageUser,
+                      analytics: widget.analytics,
+                      observer: widget.observer,
+                      showStockSettings: true,
+                      chainSymbols: null,
+                      positionSymbols: null,
+                      cryptoSymbols: null,
+                      optionSymbolFilters: null,
+                      stockSymbolFilters: null,
+                      cryptoFilters: null,
+                      onSettingsChanged: (value) {
+                        // debugPrint(
+                        //     "Settings changed ${jsonEncode(value)}");
+                        debugPrint(
+                          "showPositionDetails: ${widget.brokerageUser.showPositionDetails.toString()}",
+                        );
+                        debugPrint(
+                          "displayValue: ${widget.brokerageUser.displayValue.toString()}",
+                        );
+                        setState(() {});
+                      },
+                    ),
+                  );
+                  // Navigator.pop(context);
+                },
+              ),
+            ],
+          ),
+          InstrumentPositionsWidget(
+            widget.brokerageUser,
+            widget.service,
+            widget.filteredPositions,
+            analytics: widget.analytics,
+            observer: widget.observer,
+            generativeService: widget.generativeService,
+            user: widget.user,
+            userDocRef: widget.userDocRef,
+            disableNavigation: widget.disableNavigation,
+          ),
         ],
       ),
-      InstrumentPositionsWidget(
-        widget.brokerageUser,
-        widget.service,
-        widget.filteredPositions,
-        analytics: widget.analytics,
-        observer: widget.observer,
-        generativeService: widget.generativeService,
-        user: widget.user,
-        userDocRef: widget.userDocRef,
-        disableNavigation: widget.disableNavigation,
-      )
-    ]));
+    );
   }
 }

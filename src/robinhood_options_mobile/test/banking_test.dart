@@ -58,7 +58,10 @@ void main() {
       final transfer = AchTransfer.fromJson(json);
       expect(transfer.id, 'ach_102');
       expect(transfer.account, 'ACCT12345');
-      expect(transfer.cancelUrl, 'https://api.robinhood.com/ach/transfers/ach_102/cancel/');
+      expect(
+        transfer.cancelUrl,
+        'https://api.robinhood.com/ach/transfers/ach_102/cancel/',
+      );
       expect(transfer.direction, 'withdraw');
       expect(transfer.amount, 450.75);
       expect(transfer.isWithdrawal, isTrue);
@@ -218,7 +221,10 @@ void main() {
         ),
       ];
 
-      final summary = AchSummary.fromTransfersAndRelationships(transfers, relationships);
+      final summary = AchSummary.fromTransfersAndRelationships(
+        transfers,
+        relationships,
+      );
 
       expect(summary.totalDeposited, 5000.0);
       expect(summary.totalWithdrawn, 1200.0);
@@ -236,12 +242,7 @@ void main() {
   });
 
   group('DemoService Banking Integration Tests', () {
-    final user = BrokerageUser(
-      BrokerageSource.demo,
-      'demo_trader',
-      null,
-      null,
-    );
+    final user = BrokerageUser(BrokerageSource.demo, 'demo_trader', null, null);
 
     test('returns demo ACH transfers with valid models', () async {
       final service = DemoService();
@@ -255,27 +256,34 @@ void main() {
       expect(pending.amount, 1000.0);
       expect(pending.cancelUrl, isNotNull);
 
-      final completedDeposits = transfers.where((t) => t.isDeposit && t.isCompleted);
+      final completedDeposits = transfers.where(
+        (t) => t.isDeposit && t.isCompleted,
+      );
       expect(completedDeposits, isNotEmpty);
     });
 
-    test('returns demo ACH relationships with verified Chase and Ally', () async {
-      final service = DemoService();
-      final relationships = await service.getAchRelationshipsModel(user);
+    test(
+      'returns demo ACH relationships with verified Chase and Ally',
+      () async {
+        final service = DemoService();
+        final relationships = await service.getAchRelationshipsModel(user);
 
-      expect(relationships, isNotEmpty);
-      expect(relationships.length, 3);
+        expect(relationships, isNotEmpty);
+        expect(relationships.length, 3);
 
-      final chase = relationships.firstWhere((r) => r.id == 'ach_rel_demo_01');
-      expect(chase.displayName, contains('Chase'));
-      expect(chase.isDefault, isTrue);
-      expect(chase.isApproved, isTrue);
-      expect(chase.maskedAccountNumber, '****6742');
+        final chase = relationships.firstWhere(
+          (r) => r.id == 'ach_rel_demo_01',
+        );
+        expect(chase.displayName, contains('Chase'));
+        expect(chase.isDefault, isTrue);
+        expect(chase.isApproved, isTrue);
+        expect(chase.maskedAccountNumber, '****6742');
 
-      final pendingBank = relationships.firstWhere((r) => r.isPending);
-      expect(pendingBank.isPending, isTrue);
-      expect(pendingBank.verifyMicroDepositsUrl, isNotNull);
-    });
+        final pendingBank = relationships.firstWhere((r) => r.isPending);
+        expect(pendingBank.isPending, isTrue);
+        expect(pendingBank.verifyMicroDepositsUrl, isNotNull);
+      },
+    );
 
     test('cancels pending ACH transfer in DemoService', () async {
       final service = DemoService();

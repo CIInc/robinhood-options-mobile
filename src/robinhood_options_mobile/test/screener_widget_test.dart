@@ -33,90 +33,96 @@ void main() {
   });
 
   testWidgets(
-      'ScreenerWidget with initialPreset renders Active Preset Banner and details prominently',
-      (WidgetTester tester) async {
-    tester.view.physicalSize = const Size(1080, 2400);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(() {
-      tester.view.resetPhysicalSize();
-      tester.view.resetDevicePixelRatio();
-    });
+    'ScreenerWidget with initialPreset renders Active Preset Banner and details prominently',
+    (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
 
-    final brokerageUser =
-        BrokerageUser(BrokerageSource.demo, 'demo_user', null, null);
-    final service = DemoService();
+      final brokerageUser = BrokerageUser(
+        BrokerageSource.demo,
+        'demo_user',
+        null,
+        null,
+      );
+      final service = DemoService();
 
-    const preset = RobinhoodScreenerPreset(
-      id: '834ca4dc-7d82-4cfc-b95b-ccd9d85db5c0',
-      name: 'Highest dividend yield',
-      description: 'Stocks with dividend yield above 5%',
-      category: 'Dividends',
-      iconEmoji: '💡',
-      sortBy: 'dividend_yield',
-      sortDirection: 'DESC',
-      itemCount: 42,
-      sampleSymbols: ['JNJ', 'PG', 'KO'],
-      criteria: [
-        ScreenerPresetCriterion(
-          field: 'dividend_yield',
-          operator: 'gte',
-          minValue: 5.0,
-        ),
-      ],
-    );
-
-    await tester.pumpWidget(
-      MultiProvider(
-        providers: [
-          ChangeNotifierProvider<InstrumentStore>(
-            create: (_) => InstrumentStore(),
+      const preset = RobinhoodScreenerPreset(
+        id: '834ca4dc-7d82-4cfc-b95b-ccd9d85db5c0',
+        name: 'Highest dividend yield',
+        description: 'Stocks with dividend yield above 5%',
+        category: 'Dividends',
+        iconEmoji: '💡',
+        sortBy: 'dividend_yield',
+        sortDirection: 'DESC',
+        itemCount: 42,
+        sampleSymbols: ['JNJ', 'PG', 'KO'],
+        criteria: [
+          ScreenerPresetCriterion(
+            field: 'dividend_yield',
+            operator: 'gte',
+            minValue: 5.0,
           ),
         ],
-        child: MaterialApp(
-          home: ScreenerWidget(
-            brokerageUser,
-            service,
-            analytics: FakeFirebaseAnalytics(),
-            observer: FakeFirebaseAnalyticsObserver(),
-            generativeService: FakeGenerativeService(),
-            user: null,
-            userDocRef: null,
-            initialPreset: preset,
+      );
+
+      await tester.pumpWidget(
+        MultiProvider(
+          providers: [
+            ChangeNotifierProvider<InstrumentStore>(
+              create: (_) => InstrumentStore(),
+            ),
+          ],
+          child: MaterialApp(
+            home: ScreenerWidget(
+              brokerageUser,
+              service,
+              analytics: FakeFirebaseAnalytics(),
+              observer: FakeFirebaseAnalyticsObserver(),
+              generativeService: FakeGenerativeService(),
+              user: null,
+              userDocRef: null,
+              initialPreset: preset,
+            ),
           ),
         ),
-      ),
-    );
+      );
 
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 100));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
 
-    // Verify AppBar shows active preset title and subtitle
-    expect(find.text('Highest dividend yield'), findsWidgets);
-    expect(find.text('Curated Screener • Dividends'), findsOneWidget);
+      // Verify AppBar shows active preset title and subtitle
+      expect(find.text('Highest dividend yield'), findsWidgets);
+      expect(find.text('Curated Screener • Dividends'), findsOneWidget);
 
-    // Verify Active Preset Hero Card
-    expect(find.text('ACTIVE CURATED SCREENER: DIVIDENDS'), findsOneWidget);
-    expect(find.text('Stocks with dividend yield above 5%'), findsOneWidget);
-    expect(find.text('Div Yield ≥ 5.0%'), findsWidgets);
-    expect(find.text('Switch'), findsOneWidget);
+      // Verify Active Preset Hero Card
+      expect(find.text('ACTIVE CURATED SCREENER: DIVIDENDS'), findsOneWidget);
+      expect(find.text('Stocks with dividend yield above 5%'), findsOneWidget);
+      expect(find.text('Div Yield ≥ 5.0%'), findsWidgets);
+      expect(find.text('Switch'), findsOneWidget);
 
-    // Verify collapsed filter bar is shown initially to conserve screen space
-    expect(find.textContaining('Filter Criteria'), findsOneWidget);
-    expect(find.text('Edit'), findsOneWidget);
+      // Verify collapsed filter bar is shown initially to conserve screen space
+      expect(find.textContaining('Filter Criteria'), findsOneWidget);
+      expect(find.text('Edit'), findsOneWidget);
 
-    // Tap "Edit" to expand filters
-    await tester.tap(find.text('Edit'));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 100));
+      // Tap "Edit" to expand filters
+      await tester.tap(find.text('Edit'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
 
-    // Verify full filters are now expanded
-    expect(find.text('Quick Presets'), findsOneWidget);
-    expect(find.text('High Dividend'), findsOneWidget);
-    expect(find.text('Sector'), findsOneWidget);
-  });
+      // Verify full filters are now expanded
+      expect(find.text('Quick Presets'), findsOneWidget);
+      expect(find.text('High Dividend'), findsOneWidget);
+      expect(find.text('Sector'), findsOneWidget);
+    },
+  );
 
-  testWidgets('ScreenerWidget allows toggling between Grid view and List view',
-      (WidgetTester tester) async {
+  testWidgets('ScreenerWidget allows toggling between Grid view and List view', (
+    WidgetTester tester,
+  ) async {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(() {
@@ -124,8 +130,12 @@ void main() {
       tester.view.resetDevicePixelRatio();
     });
 
-    final brokerageUser =
-        BrokerageUser(BrokerageSource.demo, 'demo_user', null, null);
+    final brokerageUser = BrokerageUser(
+      BrokerageSource.demo,
+      'demo_user',
+      null,
+      null,
+    );
     final service = DemoService();
 
     final testInstruments = List.generate(

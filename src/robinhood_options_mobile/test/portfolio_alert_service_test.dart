@@ -84,16 +84,16 @@ InstrumentPosition buildPosition({
 }
 
 Account buildAccount({double? cash, double? buyingPower}) => Account(
-      'https://example.com/accounts/1AB23456/',
-      cash,
-      '1AB23456',
-      'margin',
-      buyingPower,
-      '2',
-      0,
-      0,
-      0,
-    );
+  'https://example.com/accounts/1AB23456/',
+  cash,
+  '1AB23456',
+  'margin',
+  buyingPower,
+  '2',
+  0,
+  0,
+  0,
+);
 
 void main() {
   group('PortfolioAlertService concentration', () {
@@ -166,9 +166,17 @@ void main() {
       final alerts = PortfolioAlertService.buildAlerts(
         instrumentPositions: [
           buildPosition(
-              symbol: 'META', price: 110, quantity: 100, previousClose: 100),
+            symbol: 'META',
+            price: 110,
+            quantity: 100,
+            previousClose: 100,
+          ),
           buildPosition(
-              symbol: 'TSLA', price: 94, quantity: 10, previousClose: 100),
+            symbol: 'TSLA',
+            price: 94,
+            quantity: 10,
+            previousClose: 100,
+          ),
         ],
         optionPositions: const [],
       );
@@ -183,7 +191,11 @@ void main() {
       final alerts = PortfolioAlertService.buildAlerts(
         instrumentPositions: [
           buildPosition(
-              symbol: 'HOOD', price: 94.8, quantity: 10, previousClose: 100),
+            symbol: 'HOOD',
+            price: 94.8,
+            quantity: 10,
+            previousClose: 100,
+          ),
         ],
         optionPositions: const [],
       );
@@ -198,7 +210,11 @@ void main() {
       final alerts = PortfolioAlertService.buildAlerts(
         instrumentPositions: [
           buildPosition(
-              symbol: 'KO', price: 101, quantity: 100, previousClose: 100),
+            symbol: 'KO',
+            price: 101,
+            quantity: 100,
+            previousClose: 100,
+          ),
         ],
         optionPositions: const [],
       );
@@ -262,7 +278,11 @@ void main() {
       instrumentPositions: [
         buildPosition(symbol: 'NVDA', price: 100, quantity: 40),
         buildPosition(
-            symbol: 'META', price: 110, quantity: 100, previousClose: 100),
+          symbol: 'META',
+          price: 110,
+          quantity: 100,
+          previousClose: 100,
+        ),
       ],
       optionPositions: const [],
       account: buildAccount(cash: 8200, buyingPower: 8200),

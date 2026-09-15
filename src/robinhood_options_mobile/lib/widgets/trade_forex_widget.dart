@@ -17,12 +17,15 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
 
 class TradeForexWidget extends StatefulWidget {
-  const TradeForexWidget(this.brokerageUser, this.service,
-      {super.key,
-      required this.analytics,
-      required this.observer,
-      required this.holding,
-      this.positionType = "Buy"});
+  const TradeForexWidget(
+    this.brokerageUser,
+    this.service, {
+    super.key,
+    required this.analytics,
+    required this.observer,
+    required this.holding,
+    this.positionType = "Buy",
+  });
 
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
@@ -105,29 +108,33 @@ class _TradeForexWidgetState extends State<TradeForexWidget> {
     final currentPrice = quote?.markPrice ?? 0.0;
 
     return Scaffold(
-        appBar: AppBar(
-          title: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                  '${widget.holding.currencyCode} ${widget.holding.assetTypeLabel}'),
-              AnimatedPriceText(
-                  price: currentPrice,
-                  format: formatCurrency,
-                  style: theme.textTheme.labelMedium
-                      ?.copyWith(color: Colors.white70)),
-            ],
-          ),
-          actions: [
-            if (!_isPreviewing)
-              IconButton(
-                icon: const Icon(Icons.save_as),
-                onPressed: _showTemplatesDialog,
-                tooltip: 'Order Templates',
-              )
+      appBar: AppBar(
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '${widget.holding.currencyCode} ${widget.holding.assetTypeLabel}',
+            ),
+            AnimatedPriceText(
+              price: currentPrice,
+              format: formatCurrency,
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: Colors.white70,
+              ),
+            ),
           ],
         ),
-        body: _isPreviewing ? _buildPreview(context) : _buildForm(context));
+        actions: [
+          if (!_isPreviewing)
+            IconButton(
+              icon: const Icon(Icons.save_as),
+              onPressed: _showTemplatesDialog,
+              tooltip: 'Order Templates',
+            ),
+        ],
+      ),
+      body: _isPreviewing ? _buildPreview(context) : _buildForm(context),
+    );
   }
 
   Widget _buildForm(BuildContext context) {
@@ -184,24 +191,24 @@ class _TradeForexWidgetState extends State<TradeForexWidget> {
                 });
               },
               style: ButtonStyle(
-                backgroundColor: WidgetStateProperty.resolveWith<Color?>(
-                  (Set<WidgetState> states) {
-                    if (states.contains(WidgetState.selected)) {
-                      return positionType == "Buy"
-                          ? Colors.green.withValues(alpha: 0.2)
-                          : Colors.red.withValues(alpha: 0.2);
-                    }
-                    return null;
-                  },
-                ),
-                foregroundColor: WidgetStateProperty.resolveWith<Color?>(
-                  (Set<WidgetState> states) {
-                    if (states.contains(WidgetState.selected)) {
-                      return positionType == "Buy" ? Colors.green : Colors.red;
-                    }
-                    return null;
-                  },
-                ),
+                backgroundColor: WidgetStateProperty.resolveWith<Color?>((
+                  Set<WidgetState> states,
+                ) {
+                  if (states.contains(WidgetState.selected)) {
+                    return positionType == "Buy"
+                        ? Colors.green.withValues(alpha: 0.2)
+                        : Colors.red.withValues(alpha: 0.2);
+                  }
+                  return null;
+                }),
+                foregroundColor: WidgetStateProperty.resolveWith<Color?>((
+                  Set<WidgetState> states,
+                ) {
+                  if (states.contains(WidgetState.selected)) {
+                    return positionType == "Buy" ? Colors.green : Colors.red;
+                  }
+                  return null;
+                }),
               ),
             ),
             const SizedBox(height: 24),
@@ -213,8 +220,10 @@ class _TradeForexWidgetState extends State<TradeForexWidget> {
                 labelText: "Order Type",
                 border: OutlineInputBorder(),
                 filled: true,
-                contentPadding:
-                    EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                contentPadding: EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 16,
+                ),
               ),
               onChanged: (String? newValue) {
                 setState(() {
@@ -222,16 +231,14 @@ class _TradeForexWidgetState extends State<TradeForexWidget> {
                   _updateEstimates();
                 });
               },
-              items: <String>[
-                'Market',
-                'Limit',
-                'Stop',
-              ].map<DropdownMenuItem<String>>((String value) {
-                return DropdownMenuItem<String>(
-                  value: value,
-                  child: Text(value),
-                );
-              }).toList(),
+              items: <String>['Market', 'Limit', 'Stop']
+                  .map<DropdownMenuItem<String>>((String value) {
+                    return DropdownMenuItem<String>(
+                      value: value,
+                      child: Text(value),
+                    );
+                  })
+                  .toList(),
             ),
             const SizedBox(height: 16),
 
@@ -242,9 +249,12 @@ class _TradeForexWidgetState extends State<TradeForexWidget> {
                 child: Wrap(
                   spacing: 6,
                   children: [
-                    Text('Lot Presets: ',
-                        style: theme.textTheme.bodySmall
-                            ?.copyWith(fontWeight: FontWeight.w600)),
+                    Text(
+                      'Lot Presets: ',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                     ActionChip(
                       label: const Text('Micro (1k)'),
                       padding: EdgeInsets.zero,
@@ -275,21 +285,23 @@ class _TradeForexWidgetState extends State<TradeForexWidget> {
                   ],
                 ),
               ),
-              Builder(builder: (context) {
-                final qty = double.tryParse(quantityCtl.text) ?? 0.0;
-                final isJpy = widget.holding.currencyCode.contains('JPY');
-                final pipSize = isJpy ? 0.01 : 0.0001;
-                final pipVal = qty * pipSize;
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 8.0),
-                  child: Text(
-                    'Est. Pip Value: ${formatCurrency.format(pipVal)} | Standard Pip: $pipSize',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.secondary,
+              Builder(
+                builder: (context) {
+                  final qty = double.tryParse(quantityCtl.text) ?? 0.0;
+                  final isJpy = widget.holding.currencyCode.contains('JPY');
+                  final pipSize = isJpy ? 0.01 : 0.0001;
+                  final pipVal = qty * pipSize;
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 8.0),
+                    child: Text(
+                      'Est. Pip Value: ${formatCurrency.format(pipVal)} | Standard Pip: $pipSize',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.secondary,
+                      ),
                     ),
-                  ),
-                );
-              }),
+                  );
+                },
+              ),
             ],
             TextFormField(
               controller: quantityCtl,
@@ -307,8 +319,10 @@ class _TradeForexWidgetState extends State<TradeForexWidget> {
                   }
                 } else {
                   // Check buying power
-                  final accountStore =
-                      Provider.of<AccountStore>(context, listen: false);
+                  final accountStore = Provider.of<AccountStore>(
+                    context,
+                    listen: false,
+                  );
                   if (accountStore.items.isNotEmpty) {
                     final buyingPower = accountStore.items.first.buyingPower;
                     if (buyingPower != null && estimatedTotal > buyingPower) {
@@ -318,10 +332,11 @@ class _TradeForexWidgetState extends State<TradeForexWidget> {
                 }
                 return null;
               },
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,8}'))
+                FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,8}')),
               ],
               decoration: const InputDecoration(
                 labelText: "Units",
@@ -349,10 +364,11 @@ class _TradeForexWidgetState extends State<TradeForexWidget> {
                   }
                   return null;
                 },
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
                 inputFormatters: [
-                  FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,4}'))
+                  FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,4}')),
                 ],
                 decoration: const InputDecoration(
                   labelText: "Limit Price",
@@ -381,10 +397,11 @@ class _TradeForexWidgetState extends State<TradeForexWidget> {
                   }
                   return null;
                 },
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
                 inputFormatters: [
-                  FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,4}'))
+                  FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,4}')),
                 ],
                 decoration: const InputDecoration(
                   labelText: "Stop Price",
@@ -404,8 +421,10 @@ class _TradeForexWidgetState extends State<TradeForexWidget> {
                 labelText: "Time in Force",
                 border: OutlineInputBorder(),
                 filled: true,
-                contentPadding:
-                    EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                contentPadding: EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 16,
+                ),
               ),
               onChanged: (String? newValue) {
                 setState(() {
@@ -414,21 +433,24 @@ class _TradeForexWidgetState extends State<TradeForexWidget> {
               },
               items: <String>['gtc', 'gfd', 'ioc', 'opg']
                   .map<DropdownMenuItem<String>>((String value) {
-                return DropdownMenuItem<String>(
-                  value: value,
-                  child: Text(value.toUpperCase()),
-                );
-              }).toList(),
+                    return DropdownMenuItem<String>(
+                      value: value,
+                      child: Text(value.toUpperCase()),
+                    );
+                  })
+                  .toList(),
             ),
             const SizedBox(height: 24),
 
             // Summary Section
             Card(
               elevation: 0,
-              color: theme.colorScheme.surfaceContainerHighest
-                  .withValues(alpha: 0.5),
+              color: theme.colorScheme.surfaceContainerHighest.withValues(
+                alpha: 0.5,
+              ),
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16)),
+                borderRadius: BorderRadius.circular(16),
+              ),
               child: Padding(
                 padding: const EdgeInsets.all(20.0),
                 child: Column(
@@ -436,8 +458,10 @@ class _TradeForexWidgetState extends State<TradeForexWidget> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text("Estimated Total",
-                            style: theme.textTheme.bodyLarge),
+                        Text(
+                          "Estimated Total",
+                          style: theme.textTheme.bodyLarge,
+                        ),
                         Text(
                           formatCurrency.format(estimatedTotal),
                           style: theme.textTheme.titleLarge?.copyWith(
@@ -456,11 +480,16 @@ class _TradeForexWidgetState extends State<TradeForexWidget> {
                         return Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text("Buying Power",
-                                style: theme.textTheme.bodyMedium?.copyWith(
-                                    color: theme.colorScheme.onSurfaceVariant)),
-                            Text(formatCurrency.format(buyingPower),
-                                style: theme.textTheme.bodyMedium),
+                            Text(
+                              "Buying Power",
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                            Text(
+                              formatCurrency.format(buyingPower),
+                              style: theme.textTheme.bodyMedium,
+                            ),
                           ],
                         );
                       },
@@ -486,7 +515,8 @@ class _TradeForexWidgetState extends State<TradeForexWidget> {
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
                           color: Colors.white,
-                        ))
+                        ),
+                      )
                     : const Icon(Icons.visibility),
                 onPressed: placingOrder || estimatedTotal <= 0
                     ? null
@@ -512,8 +542,9 @@ class _TradeForexWidgetState extends State<TradeForexWidget> {
         children: <Widget>[
           Text(
             "Review Order",
-            style: theme.textTheme.headlineSmall
-                ?.copyWith(fontWeight: FontWeight.bold),
+            style: theme.textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
             textAlign: TextAlign.center,
           ),
           if (_riskGuardWarning != null) ...[
@@ -532,8 +563,9 @@ class _TradeForexWidgetState extends State<TradeForexWidget> {
                   Expanded(
                     child: Text(
                       "RiskGuard Warning: $_riskGuardWarning",
-                      style: theme.textTheme.bodyMedium
-                          ?.copyWith(color: Colors.orange),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: Colors.orange,
+                      ),
                     ),
                   ),
                 ],
@@ -555,8 +587,9 @@ class _TradeForexWidgetState extends State<TradeForexWidget> {
                   Expanded(
                     child: Text(
                       "RiskGuard Check Passed",
-                      style: theme.textTheme.bodyMedium
-                          ?.copyWith(color: Colors.green),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: Colors.green,
+                      ),
                     ),
                   ),
                 ],
@@ -566,33 +599,41 @@ class _TradeForexWidgetState extends State<TradeForexWidget> {
           const SizedBox(height: 24),
           Card(
             elevation: 0,
-            color: theme.colorScheme.surfaceContainerHighest
-                .withValues(alpha: 0.5),
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            color: theme.colorScheme.surfaceContainerHighest.withValues(
+              alpha: 0.5,
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
             child: Padding(
               padding: const EdgeInsets.all(20.0),
               child: Column(
                 children: [
                   Text(
                     "$positionType ${quantityCtl.text} units",
-                    style: theme.textTheme.titleLarge
-                        ?.copyWith(fontWeight: FontWeight.bold),
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     widget.holding.currencyCode,
-                    style: theme.textTheme.titleMedium
-                        ?.copyWith(color: theme.colorScheme.secondary),
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: theme.colorScheme.secondary,
+                    ),
                   ),
                   const SizedBox(height: 24),
                   _buildPreviewRow("Order Type", orderType),
                   if (orderType == 'Limit')
-                    _buildPreviewRow("Limit Price",
-                        formatCurrency.format(double.parse(priceCtl.text))),
+                    _buildPreviewRow(
+                      "Limit Price",
+                      formatCurrency.format(double.parse(priceCtl.text)),
+                    ),
                   if (orderType == 'Stop')
-                    _buildPreviewRow("Stop Price",
-                        formatCurrency.format(double.parse(stopPriceCtl.text))),
+                    _buildPreviewRow(
+                      "Stop Price",
+                      formatCurrency.format(double.parse(stopPriceCtl.text)),
+                    ),
                   _buildPreviewRow("Time in Force", timeInForce.toUpperCase()),
                   const Padding(
                     padding: EdgeInsets.symmetric(vertical: 12.0),
@@ -620,11 +661,16 @@ class _TradeForexWidgetState extends State<TradeForexWidget> {
                       return Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text("Buying Power",
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                  color: theme.colorScheme.onSurfaceVariant)),
-                          Text(formatCurrency.format(buyingPower),
-                              style: theme.textTheme.bodyMedium),
+                          Text(
+                            "Buying Power",
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                          Text(
+                            formatCurrency.format(buyingPower),
+                            style: theme.textTheme.bodyMedium,
+                          ),
                         ],
                       );
                     },
@@ -665,13 +711,19 @@ class _TradeForexWidgetState extends State<TradeForexWidget> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label,
-              style: theme.textTheme.bodyMedium
-                  ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
-          Text(value,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                  fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
-                  color: theme.colorScheme.onSurface)),
+          Text(
+            label,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          Text(
+            value,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+              color: theme.colorScheme.onSurface,
+            ),
+          ),
         ],
       ),
     );
@@ -691,11 +743,14 @@ class _TradeForexWidgetState extends State<TradeForexWidget> {
       }
 
       var accountStore = Provider.of<AccountStore>(context, listen: false);
-      var agenticProvider =
-          Provider.of<AgenticTradingProvider>(context, listen: false);
+      var agenticProvider = Provider.of<AgenticTradingProvider>(
+        context,
+        listen: false,
+      );
       final portfolioState = <String, dynamic>{};
       if (accountStore.items.isNotEmpty) {
-        final buyingPower = accountStore.items[0].buyingPower ??
+        final buyingPower =
+            accountStore.items[0].buyingPower ??
             accountStore.items[0].portfolioCash ??
             0.0;
         portfolioState['buyingPower'] = buyingPower;
@@ -704,23 +759,24 @@ class _TradeForexWidgetState extends State<TradeForexWidget> {
         if (widget.holding.quantity != null && widget.holding.quantity! > 0) {
           portfolioState[widget.holding.currencyCode] = {
             'quantity': widget.holding.quantity,
-            'price': widget.holding.averageCost
+            'price': widget.holding.averageCost,
           };
         }
       }
 
-      final riskResult =
-          await FirebaseFunctions.instance.httpsCallable('riskguardTask').call({
-        'proposal': {
-          'symbol': widget.holding.currencyCode,
-          'quantity': double.tryParse(quantityCtl.text) ?? 0,
-          'price': price ?? 0,
-          'action': positionType == 'Buy' ? 'BUY' : 'SELL',
-          'orderType': orderType,
-        },
-        'portfolioState': portfolioState,
-        'config': agenticProvider.config,
-      });
+      final riskResult = await FirebaseFunctions.instance
+          .httpsCallable('riskguardTask')
+          .call({
+            'proposal': {
+              'symbol': widget.holding.currencyCode,
+              'quantity': double.tryParse(quantityCtl.text) ?? 0,
+              'price': price ?? 0,
+              'action': positionType == 'Buy' ? 'BUY' : 'SELL',
+              'orderType': orderType,
+            },
+            'portfolioState': portfolioState,
+            'config': agenticProvider.config,
+          });
 
       if (riskResult.data['approved'] == false) {
         if (!mounted) return;
@@ -729,7 +785,8 @@ class _TradeForexWidgetState extends State<TradeForexWidget> {
           builder: (context) => AlertDialog(
             title: const Text('RiskGuard Warning'),
             content: Text(
-                riskResult.data['reason'] ?? 'Trade rejected by RiskGuard.'),
+              riskResult.data['reason'] ?? 'Trade rejected by RiskGuard.',
+            ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context, false),
@@ -757,11 +814,13 @@ class _TradeForexWidgetState extends State<TradeForexWidget> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text("RiskGuard Error: $e"),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: Colors.red,
-        ));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("RiskGuard Error: $e"),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     } finally {
       if (mounted) {
@@ -821,30 +880,36 @@ class _TradeForexWidgetState extends State<TradeForexWidget> {
       if (!mounted) return;
 
       if (orderJson.statusCode != 200 && orderJson.statusCode != 201) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text("Error: ${jsonEncode(orderJson.body)}"),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: Colors.red,
-        ));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Error: ${jsonEncode(orderJson.body)}"),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: Colors.red,
+          ),
+        );
       } else {
         // var newOrder = InstrumentOrder.fromJson(jsonDecode(orderJson.body));
         // Crypto orders might have different structure.
         // For now just show success.
 
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text("Order placed successfully!"),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: Colors.green,
-        ));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Order placed successfully!"),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: Colors.green,
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text("Error: $e"),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: Colors.red,
-        ));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Error: $e"),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     } finally {
       if (mounted) {
@@ -880,7 +945,8 @@ class _TradeForexWidgetState extends State<TradeForexWidget> {
                       return ListTile(
                         title: Text(template.name),
                         subtitle: Text(
-                            '${template.symbol != null ? "${template.symbol} " : ""}${template.positionType} ${template.orderType} ${template.quantity != null ? "${template.quantity} units" : ""}'),
+                          '${template.symbol != null ? "${template.symbol} " : ""}${template.positionType} ${template.orderType} ${template.quantity != null ? "${template.quantity} units" : ""}',
+                        ),
                         trailing: IconButton(
                           icon: const Icon(Icons.delete),
                           onPressed: () {
@@ -948,7 +1014,8 @@ class _TradeForexWidgetState extends State<TradeForexWidget> {
         builder: (context) => AlertDialog(
           title: const Text('Overwrite Template?'),
           content: Text(
-              'A template named "$name" already exists. Do you want to overwrite it?'),
+            'A template named "$name" already exists. Do you want to overwrite it?',
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
@@ -989,8 +1056,9 @@ class _TradeForexWidgetState extends State<TradeForexWidget> {
     );
 
     context.read<OrderTemplateStore>().addTemplate(template);
-    ScaffoldMessenger.of(context)
-        .showSnackBar(const SnackBar(content: Text('Template saved')));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Template saved')));
   }
 
   void _applyTemplate(OrderTemplate template) {

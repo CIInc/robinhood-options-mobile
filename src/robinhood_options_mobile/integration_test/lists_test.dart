@@ -7,8 +7,11 @@ import 'package:robinhood_options_mobile/widgets/search_widget.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 // Utility to handle infinite animations
-Future<void> pumpManual(WidgetTester tester, int count,
-    {Duration duration = const Duration(milliseconds: 100)}) async {
+Future<void> pumpManual(
+  WidgetTester tester,
+  int count, {
+  Duration duration = const Duration(milliseconds: 100),
+}) async {
   for (int i = 0; i < count; i++) {
     await tester.pump(duration);
   }
@@ -17,8 +20,9 @@ Future<void> pumpManual(WidgetTester tester, int count,
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('Lists Widget navigation and content test',
-      (WidgetTester tester) async {
+  testWidgets('Lists Widget navigation and content test', (
+    WidgetTester tester,
+  ) async {
     // 1. Setup - Mock SharedPreferences
     SharedPreferences.setMockInitialValues({});
 
@@ -70,13 +74,19 @@ void main() {
     // 3. Verify 'All Lists' button is present
     final Finder allListsButton = find.text('All Lists');
     final verticalScrollable = find
-        .byWidgetPredicate((widget) =>
-            widget is Scrollable && widget.axisDirection == AxisDirection.down)
+        .byWidgetPredicate(
+          (widget) =>
+              widget is Scrollable &&
+              widget.axisDirection == AxisDirection.down,
+        )
         .first;
 
     try {
-      await tester.scrollUntilVisible(allListsButton, 500.0,
-          scrollable: verticalScrollable);
+      await tester.scrollUntilVisible(
+        allListsButton,
+        500.0,
+        scrollable: verticalScrollable,
+      );
       await pumpManual(tester, 10);
     } catch (e) {
       await tester.drag(verticalScrollable, const Offset(0, -600));
@@ -96,8 +106,9 @@ void main() {
     // expect(find.text('Bullish'), findsOneWidget); // Might need scrolling
 
     // 6. Verify Back navigation works
-    final Finder backButton =
-        find.byTooltip('Back'); // Standard AppBar back button
+    final Finder backButton = find.byTooltip(
+      'Back',
+    ); // Standard AppBar back button
     if (backButton.evaluate().isNotEmpty) {
       await tester.tap(backButton);
       await pumpManual(tester, 20);

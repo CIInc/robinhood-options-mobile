@@ -70,8 +70,9 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget> {
   void _refreshStreams() {
     _publicGroupsStream = widget.firestoreService.getPublicInvestorGroups();
     if (auth.currentUser != null) {
-      _userGroupsStream =
-          widget.firestoreService.getUserInvestorGroups(auth.currentUser!.uid);
+      _userGroupsStream = widget.firestoreService.getUserInvestorGroups(
+        auth.currentUser!.uid,
+      );
       _pendingInvitationsStream = widget.firestoreService
           .getUserPendingInvitations(auth.currentUser!.uid);
     } else {
@@ -124,14 +125,8 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget> {
               indicatorWeight: 3,
               indicatorSize: TabBarIndicatorSize.tab,
               tabs: [
-                const Tab(
-                  icon: Icon(Icons.explore_rounded),
-                  text: 'Discover',
-                ),
-                const Tab(
-                  icon: Icon(Icons.groups_rounded),
-                  text: 'My Groups',
-                ),
+                const Tab(icon: Icon(Icons.explore_rounded), text: 'Discover'),
+                const Tab(icon: Icon(Icons.groups_rounded), text: 'My Groups'),
                 Tab(
                   child: Stack(
                     clipBehavior: Clip.none,
@@ -231,8 +226,9 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget> {
         case 'members':
           return b.members.length.compareTo(a.members.length);
         case 'recent':
-          return (b.dateUpdated ?? b.dateCreated)
-              .compareTo(a.dateUpdated ?? a.dateCreated);
+          return (b.dateUpdated ?? b.dateCreated).compareTo(
+            a.dateUpdated ?? a.dateCreated,
+          );
         case 'name':
         default:
           return a.name.compareTo(b.name);
@@ -348,28 +344,31 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.groups_outlined,
-                      size: 64,
-                      color: Theme.of(context)
-                          .colorScheme
-                          .primary
-                          .withValues(alpha: 0.6)),
+                  Icon(
+                    Icons.groups_outlined,
+                    size: 64,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.primary.withValues(alpha: 0.6),
+                  ),
                   const SizedBox(height: 16),
-                  const Text('Sign in to join investor groups',
-                      style:
-                          TextStyle(fontSize: 18, fontWeight: FontWeight.w500)),
+                  const Text(
+                    'Sign in to join investor groups',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
+                  ),
                   const SizedBox(height: 16),
                   ElevatedButton.icon(
                     icon: const Icon(Icons.login),
                     onPressed: () async {
                       await showProfile(
-                          context,
-                          auth,
-                          widget.firestoreService,
-                          widget.analytics,
-                          widget.observer,
-                          widget.brokerageUser,
-                          widget.service);
+                        context,
+                        auth,
+                        widget.firestoreService,
+                        widget.analytics,
+                        widget.observer,
+                        widget.brokerageUser,
+                        widget.service,
+                      );
                       setState(() {
                         _refreshStreams();
                       });
@@ -412,14 +411,12 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget> {
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
                               colors: [
-                                Theme.of(context)
-                                    .colorScheme
-                                    .primary
-                                    .withValues(alpha: 0.2),
-                                Theme.of(context)
-                                    .colorScheme
-                                    .secondary
-                                    .withValues(alpha: 0.1),
+                                Theme.of(
+                                  context,
+                                ).colorScheme.primary.withValues(alpha: 0.2),
+                                Theme.of(
+                                  context,
+                                ).colorScheme.secondary.withValues(alpha: 0.1),
                               ],
                             ),
                             shape: BoxShape.circle,
@@ -443,8 +440,9 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget> {
                           'Create a group to collaborate with other investors\nor discover public groups',
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                            color:
-                                Theme.of(context).colorScheme.onSurfaceVariant,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
                             fontSize: 16,
                             height: 1.5,
                           ),
@@ -455,17 +453,19 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget> {
                           children: [
                             FilledButton.icon(
                               onPressed: () async {
-                                widget.analytics
-                                    .logEvent(name: 'create_group_empty_state');
+                                widget.analytics.logEvent(
+                                  name: 'create_group_empty_state',
+                                );
                                 await Navigator.push(
                                   context,
                                   MaterialPageRoute(
                                     builder: (context) =>
                                         InvestorGroupCreateWidget(
-                                      firestoreService: widget.firestoreService,
-                                      analytics: widget.analytics,
-                                      observer: widget.observer,
-                                    ),
+                                          firestoreService:
+                                              widget.firestoreService,
+                                          analytics: widget.analytics,
+                                          observer: widget.observer,
+                                        ),
                                   ),
                                 );
                               },
@@ -496,9 +496,7 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget> {
           },
           child: CustomScrollView(
             slivers: [
-              SliverToBoxAdapter(
-                child: _buildSearchAndSort(),
-              ),
+              SliverToBoxAdapter(child: _buildSearchAndSort()),
               if (filteredGroups.isEmpty && _searchQuery.trim().isNotEmpty)
                 SliverFillRemaining(
                   hasScrollBody: false,
@@ -506,23 +504,31 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.search_off,
-                            size: 64,
-                            color: Theme.of(context)
-                                .colorScheme
-                                .primary
-                                .withValues(alpha: 0.6)),
+                        Icon(
+                          Icons.search_off,
+                          size: 64,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.primary.withValues(alpha: 0.6),
+                        ),
                         const SizedBox(height: 16),
-                        const Text('No groups found',
-                            style: TextStyle(
-                                fontSize: 18, fontWeight: FontWeight.w500)),
+                        const Text(
+                          'No groups found',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
                         const SizedBox(height: 8),
-                        Text('Try adjusting your search',
-                            style: TextStyle(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurfaceVariant,
-                                fontSize: 14)),
+                        Text(
+                          'Try adjusting your search',
+                          style: TextStyle(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
+                            fontSize: 14,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -530,67 +536,69 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget> {
               else
                 SliverPadding(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 12.0, vertical: 8.0),
+                    horizontal: 12.0,
+                    vertical: 8.0,
+                  ),
                   sliver: SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        final group = filteredGroups[index];
-                        return _AnimatedGroupCard(
-                          index: index,
-                          child: _GroupCard(
-                            group: group,
-                            heroSource: 'my_groups',
-                            trailing: group.isPrivate
-                                ? Chip(
-                                    label: const Text(
-                                      'Private',
-                                      style: TextStyle(fontSize: 11),
-                                    ),
-                                    avatar: const Icon(Icons.lock_rounded,
-                                        size: 14),
-                                    visualDensity: VisualDensity.compact,
-                                    materialTapTargetSize:
-                                        MaterialTapTargetSize.shrinkWrap,
-                                  )
-                                : Chip(
-                                    label: const Text(
-                                      'Public',
-                                      style: TextStyle(fontSize: 11),
-                                    ),
-                                    avatar: const Icon(Icons.public_rounded,
-                                        size: 14),
-                                    visualDensity: VisualDensity.compact,
-                                    materialTapTargetSize:
-                                        MaterialTapTargetSize.shrinkWrap,
+                    delegate: SliverChildBuilderDelegate((context, index) {
+                      final group = filteredGroups[index];
+                      return _AnimatedGroupCard(
+                        index: index,
+                        child: _GroupCard(
+                          group: group,
+                          heroSource: 'my_groups',
+                          trailing: group.isPrivate
+                              ? Chip(
+                                  label: const Text(
+                                    'Private',
+                                    style: TextStyle(fontSize: 11),
                                   ),
-                            onTap: () {
-                              widget.analytics.logEvent(
-                                name: 'view_group_details',
-                                parameters: {
-                                  'group_id': group.id,
-                                  'from': 'my_groups',
-                                },
-                              );
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      InvestorGroupDetailWidget(
-                                    groupId: group.id,
-                                    firestoreService: widget.firestoreService,
-                                    service: widget.service,
-                                    brokerageUser: widget.brokerageUser,
-                                    analytics: widget.analytics,
-                                    observer: widget.observer,
+                                  avatar: const Icon(
+                                    Icons.lock_rounded,
+                                    size: 14,
                                   ),
+                                  visualDensity: VisualDensity.compact,
+                                  materialTapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                )
+                              : Chip(
+                                  label: const Text(
+                                    'Public',
+                                    style: TextStyle(fontSize: 11),
+                                  ),
+                                  avatar: const Icon(
+                                    Icons.public_rounded,
+                                    size: 14,
+                                  ),
+                                  visualDensity: VisualDensity.compact,
+                                  materialTapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
                                 ),
-                              );
-                            },
-                          ),
-                        );
-                      },
-                      childCount: filteredGroups.length,
-                    ),
+                          onTap: () {
+                            widget.analytics.logEvent(
+                              name: 'view_group_details',
+                              parameters: {
+                                'group_id': group.id,
+                                'from': 'my_groups',
+                              },
+                            );
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => InvestorGroupDetailWidget(
+                                  groupId: group.id,
+                                  firestoreService: widget.firestoreService,
+                                  service: widget.service,
+                                  brokerageUser: widget.brokerageUser,
+                                  analytics: widget.analytics,
+                                  observer: widget.observer,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      );
+                    }, childCount: filteredGroups.length),
                   ),
                 ),
             ],
@@ -610,28 +618,31 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.mail_outline,
-                      size: 64,
-                      color: Theme.of(context)
-                          .colorScheme
-                          .primary
-                          .withValues(alpha: 0.6)),
+                  Icon(
+                    Icons.mail_outline,
+                    size: 64,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.primary.withValues(alpha: 0.6),
+                  ),
                   const SizedBox(height: 16),
-                  const Text('Sign in to view invitations',
-                      style:
-                          TextStyle(fontSize: 18, fontWeight: FontWeight.w500)),
+                  const Text(
+                    'Sign in to view invitations',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
+                  ),
                   const SizedBox(height: 16),
                   ElevatedButton.icon(
                     icon: const Icon(Icons.login),
                     onPressed: () async {
                       await showProfile(
-                          context,
-                          auth,
-                          widget.firestoreService,
-                          widget.analytics,
-                          widget.observer,
-                          widget.brokerageUser,
-                          widget.service);
+                        context,
+                        auth,
+                        widget.firestoreService,
+                        widget.analytics,
+                        widget.observer,
+                        widget.brokerageUser,
+                        widget.service,
+                      );
                       setState(() {
                         _refreshStreams();
                       });
@@ -654,7 +665,8 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget> {
         }
         if (snapshot.hasError) {
           return _buildErrorState(
-              'Error loading invitations: ${snapshot.error}');
+            'Error loading invitations: ${snapshot.error}',
+          );
         }
         if (!snapshot.hasData || snapshot.data!.size == 0) {
           // Update count when we receive data
@@ -685,14 +697,12 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget> {
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
                               colors: [
-                                Theme.of(context)
-                                    .colorScheme
-                                    .primary
-                                    .withValues(alpha: 0.2),
-                                Theme.of(context)
-                                    .colorScheme
-                                    .tertiary
-                                    .withValues(alpha: 0.1),
+                                Theme.of(
+                                  context,
+                                ).colorScheme.primary.withValues(alpha: 0.2),
+                                Theme.of(
+                                  context,
+                                ).colorScheme.tertiary.withValues(alpha: 0.1),
                               ],
                             ),
                             shape: BoxShape.circle,
@@ -716,8 +726,9 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget> {
                           'Group admins can invite you to join\ntheir investor groups',
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                            color:
-                                Theme.of(context).colorScheme.onSurfaceVariant,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
                             fontSize: 16,
                             height: 1.5,
                           ),
@@ -753,9 +764,7 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget> {
           },
           child: CustomScrollView(
             slivers: [
-              SliverToBoxAdapter(
-                child: _buildSearchAndSort(),
-              ),
+              SliverToBoxAdapter(child: _buildSearchAndSort()),
               if (filteredGroups.isEmpty && _searchQuery.trim().isNotEmpty)
                 SliverFillRemaining(
                   hasScrollBody: false,
@@ -763,16 +772,21 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.search_off,
-                            size: 64,
-                            color: Theme.of(context)
-                                .colorScheme
-                                .primary
-                                .withValues(alpha: 0.6)),
+                        Icon(
+                          Icons.search_off,
+                          size: 64,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.primary.withValues(alpha: 0.6),
+                        ),
                         const SizedBox(height: 16),
-                        const Text('No invitations found',
-                            style: TextStyle(
-                                fontSize: 18, fontWeight: FontWeight.w500)),
+                        const Text(
+                          'No invitations found',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -780,119 +794,119 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget> {
               else
                 SliverPadding(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 12.0, vertical: 8.0),
+                    horizontal: 12.0,
+                    vertical: 8.0,
+                  ),
                   sliver: SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        final group = filteredGroups[index];
+                    delegate: SliverChildBuilderDelegate((context, index) {
+                      final group = filteredGroups[index];
 
-                        return _AnimatedGroupCard(
-                          index: index,
-                          child: _GroupCard(
-                            group: group,
-                            heroSource: 'invitations',
-                            subtitle: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                if (group.description != null)
-                                  Text(
-                                    group.description!,
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
+                      return _AnimatedGroupCard(
+                        index: index,
+                        child: _GroupCard(
+                          group: group,
+                          heroSource: 'invitations',
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (group.description != null)
                                 Text(
-                                  'Invitation from group admin',
-                                  style: TextStyle(
-                                    color:
-                                        Theme.of(context).colorScheme.primary,
-                                    fontSize: 12,
-                                  ),
+                                  group.description!,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                              ],
-                            ),
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Semantics(
-                                  label: 'Accept invitation to ${group.name}',
-                                  child: FilledButton.tonal(
-                                    onPressed: () async {
-                                      await _acceptInvitation(context, group);
-                                    },
-                                    style: FilledButton.styleFrom(
-                                      backgroundColor:
-                                          Colors.green.withValues(alpha: 0.2),
-                                      foregroundColor: Colors.green[700],
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 12, vertical: 8),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        const Icon(Icons.check_rounded,
-                                            size: 18),
-                                        const SizedBox(width: 4),
-                                        const Text('Accept'),
-                                      ],
-                                    ),
-                                  ),
+                              Text(
+                                'Invitation from group admin',
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.primary,
+                                  fontSize: 12,
                                 ),
-                                const SizedBox(width: 8),
-                                Semantics(
-                                  label: 'Decline invitation to ${group.name}',
-                                  child: OutlinedButton(
-                                    onPressed: () async {
-                                      await _declineInvitation(context, group);
-                                    },
-                                    style: OutlinedButton.styleFrom(
-                                      foregroundColor: Colors.red[700],
-                                      side: BorderSide(
-                                          color: Colors.red
-                                              .withValues(alpha: 0.5)),
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 12, vertical: 8),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        const Icon(Icons.close_rounded,
-                                            size: 18),
-                                        const SizedBox(width: 4),
-                                        const Text('Decline'),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            onTap: () {
-                              widget.analytics.logEvent(
-                                name: 'view_group_details',
-                                parameters: {
-                                  'group_id': group.id,
-                                  'from': 'invitations',
-                                },
-                              );
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      InvestorGroupDetailWidget(
-                                    groupId: group.id,
-                                    firestoreService: widget.firestoreService,
-                                    service: widget.service,
-                                    brokerageUser: widget.brokerageUser,
-                                    analytics: widget.analytics,
-                                    observer: widget.observer,
-                                  ),
-                                ),
-                              );
-                            },
+                              ),
+                            ],
                           ),
-                        );
-                      },
-                      childCount: filteredGroups.length,
-                    ),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Semantics(
+                                label: 'Accept invitation to ${group.name}',
+                                child: FilledButton.tonal(
+                                  onPressed: () async {
+                                    await _acceptInvitation(context, group);
+                                  },
+                                  style: FilledButton.styleFrom(
+                                    backgroundColor: Colors.green.withValues(
+                                      alpha: 0.2,
+                                    ),
+                                    foregroundColor: Colors.green[700],
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 8,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.check_rounded, size: 18),
+                                      const SizedBox(width: 4),
+                                      const Text('Accept'),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Semantics(
+                                label: 'Decline invitation to ${group.name}',
+                                child: OutlinedButton(
+                                  onPressed: () async {
+                                    await _declineInvitation(context, group);
+                                  },
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: Colors.red[700],
+                                    side: BorderSide(
+                                      color: Colors.red.withValues(alpha: 0.5),
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 8,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.close_rounded, size: 18),
+                                      const SizedBox(width: 4),
+                                      const Text('Decline'),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          onTap: () {
+                            widget.analytics.logEvent(
+                              name: 'view_group_details',
+                              parameters: {
+                                'group_id': group.id,
+                                'from': 'invitations',
+                              },
+                            );
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => InvestorGroupDetailWidget(
+                                  groupId: group.id,
+                                  firestoreService: widget.firestoreService,
+                                  service: widget.service,
+                                  brokerageUser: widget.brokerageUser,
+                                  analytics: widget.analytics,
+                                  observer: widget.observer,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      );
+                    }, childCount: filteredGroups.length),
                   ),
                 ),
             ],
@@ -903,12 +917,16 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget> {
   }
 
   Future<void> _acceptInvitation(
-      BuildContext context, InvestorGroup group) async {
+    BuildContext context,
+    InvestorGroup group,
+  ) async {
     if (auth.currentUser == null) return;
 
     try {
-      await widget.firestoreService
-          .acceptGroupInvitation(group.id, auth.currentUser!.uid);
+      await widget.firestoreService.acceptGroupInvitation(
+        group.id,
+        auth.currentUser!.uid,
+      );
       widget.analytics.logEvent(
         name: 'accept_group_invitation',
         parameters: {'group_id': group.id, 'group_name': group.name},
@@ -952,12 +970,16 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget> {
   }
 
   Future<void> _declineInvitation(
-      BuildContext context, InvestorGroup group) async {
+    BuildContext context,
+    InvestorGroup group,
+  ) async {
     if (auth.currentUser == null) return;
 
     try {
-      await widget.firestoreService
-          .declineGroupInvitation(group.id, auth.currentUser!.uid);
+      await widget.firestoreService.declineGroupInvitation(
+        group.id,
+        auth.currentUser!.uid,
+      );
       widget.analytics.logEvent(
         name: 'decline_group_invitation',
         parameters: {'group_id': group.id, 'group_name': group.name},
@@ -994,23 +1016,23 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget> {
                 ),
                 margin: const EdgeInsets.symmetric(vertical: 6),
                 child: ListTile(
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                   leading: CircleAvatar(
                     radius: 28,
-                    backgroundColor: Theme.of(context)
-                        .colorScheme
-                        .primary
-                        .withValues(alpha: 0.1),
+                    backgroundColor: Theme.of(
+                      context,
+                    ).colorScheme.primary.withValues(alpha: 0.1),
                   ),
                   title: Container(
                     height: 16,
                     width: double.infinity,
                     decoration: BoxDecoration(
-                      color: Theme.of(context)
-                          .colorScheme
-                          .primary
-                          .withValues(alpha: 0.1),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.primary.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(4),
                     ),
                   ),
@@ -1019,10 +1041,9 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget> {
                     width: 100,
                     margin: const EdgeInsets.only(top: 8),
                     decoration: BoxDecoration(
-                      color: Theme.of(context)
-                          .colorScheme
-                          .primary
-                          .withValues(alpha: 0.1),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.primary.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(4),
                     ),
                   ),
@@ -1052,13 +1073,20 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.error_outline,
-                      size: 64, color: Theme.of(context).colorScheme.error),
+                  Icon(
+                    Icons.error_outline,
+                    size: 64,
+                    color: Theme.of(context).colorScheme.error,
+                  ),
                   const SizedBox(height: 16),
-                  Text(message,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.w500)),
+                  Text(
+                    message,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
                   const SizedBox(height: 16),
                   ElevatedButton.icon(
                     icon: const Icon(Icons.refresh),
@@ -1087,7 +1115,8 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget> {
         }
         if (snapshot.hasError) {
           return _buildErrorState(
-              'Error loading public groups: ${snapshot.error}');
+            'Error loading public groups: ${snapshot.error}',
+          );
         }
         if (!snapshot.hasData || snapshot.data!.size == 0) {
           return CustomScrollView(
@@ -1108,14 +1137,12 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget> {
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
                               colors: [
-                                Theme.of(context)
-                                    .colorScheme
-                                    .primary
-                                    .withValues(alpha: 0.2),
-                                Theme.of(context)
-                                    .colorScheme
-                                    .secondary
-                                    .withValues(alpha: 0.1),
+                                Theme.of(
+                                  context,
+                                ).colorScheme.primary.withValues(alpha: 0.2),
+                                Theme.of(
+                                  context,
+                                ).colorScheme.secondary.withValues(alpha: 0.1),
                               ],
                             ),
                             shape: BoxShape.circle,
@@ -1139,8 +1166,9 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget> {
                           'Be the first to create a public group\nand build an investing community!',
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                            color:
-                                Theme.of(context).colorScheme.onSurfaceVariant,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
                             fontSize: 16,
                             height: 1.5,
                           ),
@@ -1149,7 +1177,8 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget> {
                         FilledButton.icon(
                           onPressed: () async {
                             widget.analytics.logEvent(
-                                name: 'create_public_group_empty_state');
+                              name: 'create_public_group_empty_state',
+                            );
                             await Navigator.push(
                               context,
                               MaterialPageRoute(
@@ -1186,9 +1215,7 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget> {
           },
           child: CustomScrollView(
             slivers: [
-              SliverToBoxAdapter(
-                child: _buildSearchAndSort(),
-              ),
+              SliverToBoxAdapter(child: _buildSearchAndSort()),
               if (filteredGroups.isEmpty && _searchQuery.trim().isNotEmpty)
                 SliverFillRemaining(
                   hasScrollBody: false,
@@ -1196,23 +1223,31 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.search_off,
-                            size: 64,
-                            color: Theme.of(context)
-                                .colorScheme
-                                .primary
-                                .withValues(alpha: 0.6)),
+                        Icon(
+                          Icons.search_off,
+                          size: 64,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.primary.withValues(alpha: 0.6),
+                        ),
                         const SizedBox(height: 16),
-                        const Text('No groups found',
-                            style: TextStyle(
-                                fontSize: 18, fontWeight: FontWeight.w500)),
+                        const Text(
+                          'No groups found',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
                         const SizedBox(height: 8),
-                        Text('Try adjusting your search',
-                            style: TextStyle(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurfaceVariant,
-                                fontSize: 14)),
+                        Text(
+                          'Try adjusting your search',
+                          style: TextStyle(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
+                            fontSize: 14,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -1220,89 +1255,88 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget> {
               else
                 SliverPadding(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 12.0, vertical: 8.0),
+                    horizontal: 12.0,
+                    vertical: 8.0,
+                  ),
                   sliver: SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        final group = filteredGroups[index];
-                        final isMember = auth.currentUser != null &&
-                            group.isMember(auth.currentUser!.uid);
+                    delegate: SliverChildBuilderDelegate((context, index) {
+                      final group = filteredGroups[index];
+                      final isMember =
+                          auth.currentUser != null &&
+                          group.isMember(auth.currentUser!.uid);
 
-                        return _AnimatedGroupCard(
-                          index: index,
-                          child: _GroupCard(
-                            group: group,
-                            heroSource: 'discover',
-                            trailing: isMember
-                                ? Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 12, vertical: 6),
-                                    decoration: BoxDecoration(
-                                      gradient: LinearGradient(
-                                        colors: [
-                                          Theme.of(context).colorScheme.primary,
-                                          Theme.of(context)
-                                              .colorScheme
-                                              .primary
-                                              .withValues(alpha: 0.8),
-                                        ],
-                                      ),
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(
-                                          Icons.check_circle_rounded,
-                                          size: 16,
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .onPrimary,
-                                        ),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          'Joined',
-                                          style: TextStyle(
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .onPrimary,
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
+                      return _AnimatedGroupCard(
+                        index: index,
+                        child: _GroupCard(
+                          group: group,
+                          heroSource: 'discover',
+                          trailing: isMember
+                              ? Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 6,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: [
+                                        Theme.of(context).colorScheme.primary,
+                                        Theme.of(context).colorScheme.primary
+                                            .withValues(alpha: 0.8),
                                       ],
                                     ),
-                                  )
-                                : null,
-                            onTap: () {
-                              widget.analytics.logEvent(
-                                name: 'view_group_details',
-                                parameters: {
-                                  'group_id': group.id,
-                                  'from': 'discover',
-                                  'is_member': isMember.toString(),
-                                },
-                              );
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      InvestorGroupDetailWidget(
-                                    groupId: group.id,
-                                    firestoreService: widget.firestoreService,
-                                    service: widget.service,
-                                    brokerageUser: widget.brokerageUser,
-                                    analytics: widget.analytics,
-                                    observer: widget.observer,
+                                    borderRadius: BorderRadius.circular(20),
                                   ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.check_circle_rounded,
+                                        size: 16,
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.onPrimary,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        'Joined',
+                                        style: TextStyle(
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.onPrimary,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              : null,
+                          onTap: () {
+                            widget.analytics.logEvent(
+                              name: 'view_group_details',
+                              parameters: {
+                                'group_id': group.id,
+                                'from': 'discover',
+                                'is_member': isMember.toString(),
+                              },
+                            );
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => InvestorGroupDetailWidget(
+                                  groupId: group.id,
+                                  firestoreService: widget.firestoreService,
+                                  service: widget.service,
+                                  brokerageUser: widget.brokerageUser,
+                                  analytics: widget.analytics,
+                                  observer: widget.observer,
                                 ),
-                              );
-                            },
-                          ),
-                        );
-                      },
-                      childCount: filteredGroups.length,
-                    ),
+                              ),
+                            );
+                          },
+                        ),
+                      );
+                    }, childCount: filteredGroups.length),
                   ),
                 ),
             ],
@@ -1361,23 +1395,20 @@ class _GroupCard extends StatelessWidget {
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                         colors: [
-                          Theme.of(context)
-                              .colorScheme
-                              .primary
-                              .withValues(alpha: 0.3),
-                          Theme.of(context)
-                              .colorScheme
-                              .secondary
-                              .withValues(alpha: 0.2),
+                          Theme.of(
+                            context,
+                          ).colorScheme.primary.withValues(alpha: 0.3),
+                          Theme.of(
+                            context,
+                          ).colorScheme.secondary.withValues(alpha: 0.2),
                         ],
                       ),
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .primary
-                              .withValues(alpha: 0.2),
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.primary.withValues(alpha: 0.2),
                           blurRadius: 8,
                           offset: const Offset(0, 2),
                         ),
@@ -1424,9 +1455,9 @@ class _GroupCard extends StatelessWidget {
                                   overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
                                     fontSize: 14,
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurfaceVariant,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
                                     height: 1.3,
                                   ),
                                 ),
@@ -1436,8 +1467,9 @@ class _GroupCard extends StatelessWidget {
                                   Icon(
                                     Icons.people_rounded,
                                     size: 16,
-                                    color:
-                                        Theme.of(context).colorScheme.primary,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.primary,
                                   ),
                                   const SizedBox(width: 6),
                                   Text(
@@ -1445,8 +1477,9 @@ class _GroupCard extends StatelessWidget {
                                     style: TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w600,
-                                      color:
-                                          Theme.of(context).colorScheme.primary,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.primary,
                                     ),
                                   ),
                                   const SizedBox(width: 4),
@@ -1456,9 +1489,9 @@ class _GroupCard extends StatelessWidget {
                                         : 'members',
                                     style: TextStyle(
                                       fontSize: 13,
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurfaceVariant,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurfaceVariant,
                                     ),
                                   ),
                                 ],
@@ -1468,10 +1501,7 @@ class _GroupCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                if (trailing != null) ...[
-                  const SizedBox(width: 12),
-                  trailing!,
-                ],
+                if (trailing != null) ...[const SizedBox(width: 12), trailing!],
               ],
             ),
           ),
@@ -1486,10 +1516,7 @@ class _AnimatedGroupCard extends StatelessWidget {
   final int index;
   final Widget child;
 
-  const _AnimatedGroupCard({
-    required this.index,
-    required this.child,
-  });
+  const _AnimatedGroupCard({required this.index, required this.child});
 
   @override
   Widget build(BuildContext context) {
@@ -1500,10 +1527,7 @@ class _AnimatedGroupCard extends StatelessWidget {
       builder: (context, value, child) {
         return Transform.translate(
           offset: Offset(0, 20 * (1 - value)),
-          child: Opacity(
-            opacity: value,
-            child: child,
-          ),
+          child: Opacity(opacity: value, child: child),
         );
       },
       child: child,

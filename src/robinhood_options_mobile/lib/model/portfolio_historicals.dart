@@ -14,42 +14,44 @@ class PortfolioHistoricals {
   final bool useNewHp;
 
   PortfolioHistoricals(
-      this.adjustedOpenEquity,
-      this.adjustedPreviousCloseEquity,
-      this.openEquity,
-      this.previousCloseEquity,
-      this.openTime,
-      this.interval,
-      this.span,
-      this.bounds,
-      this.totalReturn,
-      this.equityHistoricals,
-      this.useNewHp);
+    this.adjustedOpenEquity,
+    this.adjustedPreviousCloseEquity,
+    this.openEquity,
+    this.previousCloseEquity,
+    this.openTime,
+    this.interval,
+    this.span,
+    this.bounds,
+    this.totalReturn,
+    this.equityHistoricals,
+    this.useNewHp,
+  );
 
   PortfolioHistoricals.fromJson(dynamic json)
-      : adjustedOpenEquity = json['adjusted_open_equity'] != null
-            ? double.tryParse(json['adjusted_open_equity'])
-            : null,
-        adjustedPreviousCloseEquity =
-            json['adjusted_previous_close_equity'] != null
-                ? double.tryParse(json['adjusted_previous_close_equity'])
-                : null,
-        openEquity = json['open_equity'] != null
-            ? double.tryParse(json['open_equity'])
-            : null,
-        previousCloseEquity = json['previous_close_equity'] != null
-            ? double.tryParse(json['previous_close_equity'])
-            : null,
-        openTime = json['open_time'],
-        interval = json['interval'],
-        span = json['span'],
-        bounds = json['bounds'],
-        totalReturn = double.tryParse(json['total_return']),
-        equityHistoricals =
-            EquityHistorical.fromJsonArray(json['equity_historicals']),
-        useNewHp = json['use_new_hp'];
+    : adjustedOpenEquity = json['adjusted_open_equity'] != null
+          ? double.tryParse(json['adjusted_open_equity'])
+          : null,
+      adjustedPreviousCloseEquity =
+          json['adjusted_previous_close_equity'] != null
+          ? double.tryParse(json['adjusted_previous_close_equity'])
+          : null,
+      openEquity = json['open_equity'] != null
+          ? double.tryParse(json['open_equity'])
+          : null,
+      previousCloseEquity = json['previous_close_equity'] != null
+          ? double.tryParse(json['previous_close_equity'])
+          : null,
+      openTime = json['open_time'],
+      interval = json['interval'],
+      span = json['span'],
+      bounds = json['bounds'],
+      totalReturn = double.tryParse(json['total_return']),
+      equityHistoricals = EquityHistorical.fromJsonArray(
+        json['equity_historicals'],
+      ),
+      useNewHp = json['use_new_hp'];
 
-/*
+  /*
 {
     "title": null,
     "weight": null,
@@ -325,19 +327,19 @@ class PortfolioHistoricals {
 }
 */
   PortfolioHistoricals.fromPerformanceJson(dynamic json)
-      : adjustedOpenEquity = json['performance_baseline'] != null
-            ? double.parse(json['performance_baseline']['amount'])
-            : null,
-        adjustedPreviousCloseEquity = null,
-        openEquity = null,
-        previousCloseEquity = null,
-        openTime = null,
-        interval = '',
-        span = json['display_span'] ?? 'day',
-        bounds = '',
-        totalReturn = null,
-        equityHistoricals = [],
-        useNewHp = false {
+    : adjustedOpenEquity = json['performance_baseline'] != null
+          ? double.parse(json['performance_baseline']['amount'])
+          : null,
+      adjustedPreviousCloseEquity = null,
+      openEquity = null,
+      previousCloseEquity = null,
+      openTime = null,
+      interval = '',
+      span = json['display_span'] ?? 'day',
+      bounds = '',
+      totalReturn = null,
+      equityHistoricals = [],
+      useNewHp = false {
     if (json == null) {
       return;
     }
@@ -355,8 +357,9 @@ class PortfolioHistoricals {
             for (var point in points) {
               var cursorData = point['cursor_data'];
               if (cursorData != null) {
-                equityHistoricals
-                    .add(EquityHistorical.fromPerformanceJson(cursorData));
+                equityHistoricals.add(
+                  EquityHistorical.fromPerformanceJson(cursorData),
+                );
               }
             }
           }
@@ -371,8 +374,9 @@ class PortfolioHistoricals {
   }
 
   bool update(EquityHistorical item) {
-    var index = equityHistoricals
-        .indexWhere((element) => element.beginsAt == item.beginsAt);
+    var index = equityHistoricals.indexWhere(
+      (element) => element.beginsAt == item.beginsAt,
+    );
     if (index == -1) {
       return false;
     }

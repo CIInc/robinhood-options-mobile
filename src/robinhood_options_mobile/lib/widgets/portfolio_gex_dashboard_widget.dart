@@ -64,14 +64,18 @@ class _PortfolioGexDashboardWidgetState
       final List<String> symbolsToFetch = [];
 
       if (mounted) {
-        final instrumentPositionStore =
-            Provider.of<InstrumentPositionStore>(context, listen: false);
+        final instrumentPositionStore = Provider.of<InstrumentPositionStore>(
+          context,
+          listen: false,
+        );
         symbolsToFetch.addAll(instrumentPositionStore.symbols);
       }
 
       if (mounted) {
-        final optionPositionStore =
-            Provider.of<OptionPositionStore>(context, listen: false);
+        final optionPositionStore = Provider.of<OptionPositionStore>(
+          context,
+          listen: false,
+        );
         symbolsToFetch.addAll(optionPositionStore.symbols);
       }
 
@@ -89,8 +93,9 @@ class _PortfolioGexDashboardWidgetState
         return;
       }
 
-      final callable =
-          FirebaseFunctions.instance.httpsCallable('getTopGammaExposure');
+      final callable = FirebaseFunctions.instance.httpsCallable(
+        'getTopGammaExposure',
+      );
       final result = await callable.call<Map<String, dynamic>>({
         'symbols': uniqueSymbols,
         'includeDefaults': false,
@@ -100,8 +105,11 @@ class _PortfolioGexDashboardWidgetState
       if (responseMap['status'] == 'ok' && responseMap['data'] != null) {
         final List<dynamic> list = responseMap['data'] as List<dynamic>;
         final dataList = list
-            .map((e) =>
-                GammaExposureData.fromJson(Map<String, dynamic>.from(e as Map)))
+            .map(
+              (e) => GammaExposureData.fromJson(
+                Map<String, dynamic>.from(e as Map),
+              ),
+            )
             .toList();
         if (mounted) {
           setState(() {
@@ -201,284 +209,281 @@ class _PortfolioGexDashboardWidgetState
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.cloud_off_outlined, size: 48),
-                        const SizedBox(height: 12),
-                        Text(
-                          _error!,
-                          textAlign: TextAlign.center,
-                          style: theme.textTheme.bodyMedium,
-                        ),
-                        const SizedBox(height: 16),
-                        FilledButton.icon(
-                          onPressed: _fetchPortfolioGEX,
-                          icon: const Icon(Icons.refresh),
-                          label: const Text('Retry'),
-                        ),
-                      ],
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.cloud_off_outlined, size: 48),
+                    const SizedBox(height: 12),
+                    Text(
+                      _error!,
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.bodyMedium,
                     ),
-                  ),
-                )
-              : _portfolioGexData == null || _portfolioGexData!.isEmpty
-                  ? Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(32.0),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.auto_graph,
-                                size: 64, color: theme.colorScheme.outline),
-                            const SizedBox(height: 16),
-                            Text(
-                              'No Portfolio Positions Detected',
-                              style: theme.textTheme.titleMedium,
-                              textAlign: TextAlign.center,
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Add instruments or options to your portfolio to track their gamma exposure.',
-                              style: theme.textTheme.bodyMedium
-                                  ?.copyWith(color: theme.colorScheme.outline),
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
+                    const SizedBox(height: 16),
+                    FilledButton.icon(
+                      onPressed: _fetchPortfolioGEX,
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Retry'),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          : _portfolioGexData == null || _portfolioGexData!.isEmpty
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(32.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.auto_graph,
+                      size: 64,
+                      color: theme.colorScheme.outline,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'No Portfolio Positions Detected',
+                      style: theme.textTheme.titleMedium,
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Add instruments or options to your portfolio to track their gamma exposure.',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.outline,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+            )
+          : RefreshIndicator(
+              onRefresh: _fetchPortfolioGEX,
+              child: ListView(
+                padding: const EdgeInsets.all(16.0),
+                children: [
+                  _buildPortfolioSummary(),
+                  const SizedBox(height: 16),
+                  _buildExposureBreakdown(),
+                  const SizedBox(height: 24),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Position GEX Profiles',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
-                    )
-                  : RefreshIndicator(
-                      onRefresh: _fetchPortfolioGEX,
-                      child: ListView(
-                        padding: const EdgeInsets.all(16.0),
-                        children: [
-                          _buildPortfolioSummary(),
-                          const SizedBox(height: 16),
-                          _buildExposureBreakdown(),
-                          const SizedBox(height: 24),
-                          Row(
+                      PopupMenuButton<_GexSortMode>(
+                        initialValue: _sortMode,
+                        tooltip: 'Sort positions',
+                        icon: const Icon(Icons.sort),
+                        onSelected: (value) =>
+                            setState(() => _sortMode = value),
+                        itemBuilder: (context) => const [
+                          PopupMenuItem(
+                            value: _GexSortMode.magnitude,
+                            child: Text('Largest exposure'),
+                          ),
+                          PopupMenuItem(
+                            value: _GexSortMode.proximity,
+                            child: Text('Nearest key level'),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: FilterChip(
+                      selected: _amplifyingOnly,
+                      avatar: const Icon(Icons.bolt, size: 18),
+                      label: const Text('Amplifying risk only'),
+                      onSelected: (value) =>
+                          setState(() => _amplifyingOnly = value),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  if (_visibleGexData.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 32),
+                      child: Center(
+                        child: Text(
+                          'No short-gamma positions in this portfolio.',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.colorScheme.outline,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ..._visibleGexData.map(
+                    (data) => Card(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      child: InkWell(
+                        onTap: () => _navigateToGexDashboard(data.symbol),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Expanded(
-                                child: Text(
-                                  'Position GEX Profiles',
-                                  style: theme.textTheme.titleMedium?.copyWith(
-                                    fontWeight: FontWeight.bold,
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    data.symbol,
+                                    style: theme.textTheme.titleMedium
+                                        ?.copyWith(fontWeight: FontWeight.bold),
                                   ),
-                                ),
-                              ),
-                              PopupMenuButton<_GexSortMode>(
-                                initialValue: _sortMode,
-                                tooltip: 'Sort positions',
-                                icon: const Icon(Icons.sort),
-                                onSelected: (value) =>
-                                    setState(() => _sortMode = value),
-                                itemBuilder: (context) => const [
-                                  PopupMenuItem(
-                                    value: _GexSortMode.magnitude,
-                                    child: Text('Largest exposure'),
-                                  ),
-                                  PopupMenuItem(
-                                    value: _GexSortMode.proximity,
-                                    child: Text('Nearest key level'),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color:
+                                          data.dealerPositioning ==
+                                              DealerPositioning.longGamma
+                                          ? Colors.green.withValues(alpha: 0.1)
+                                          : data.dealerPositioning ==
+                                                DealerPositioning.shortGamma
+                                          ? Colors.red.withValues(alpha: 0.1)
+                                          : theme.colorScheme.primaryContainer,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      data.dealerPositioning.displayLabel,
+                                      style: theme.textTheme.labelSmall
+                                          ?.copyWith(
+                                            color:
+                                                data.dealerPositioning ==
+                                                    DealerPositioning.longGamma
+                                                ? Colors.green
+                                                : data.dealerPositioning ==
+                                                      DealerPositioning
+                                                          .shortGamma
+                                                ? Colors.red
+                                                : theme
+                                                      .colorScheme
+                                                      .onPrimaryContainer,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                    ),
                                   ),
                                 ],
                               ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: FilterChip(
-                              selected: _amplifyingOnly,
-                              avatar: const Icon(Icons.bolt, size: 18),
-                              label: const Text('Amplifying risk only'),
-                              onSelected: (value) =>
-                                  setState(() => _amplifyingOnly = value),
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          if (_visibleGexData.isEmpty)
-                            Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 32),
-                              child: Center(
-                                child: Text(
-                                  'No short-gamma positions in this portfolio.',
-                                  style: theme.textTheme.bodyMedium?.copyWith(
-                                    color: theme.colorScheme.outline,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ..._visibleGexData.map((data) => Card(
-                                margin: const EdgeInsets.only(bottom: 12),
-                                child: InkWell(
-                                  onTap: () =>
-                                      _navigateToGexDashboard(data.symbol),
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(16.0),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceBetween,
-                                          children: [
-                                            Text(
-                                              data.symbol,
-                                              style: theme.textTheme.titleMedium
-                                                  ?.copyWith(
-                                                      fontWeight:
-                                                          FontWeight.bold),
-                                            ),
-                                            Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      horizontal: 8,
-                                                      vertical: 4),
-                                              decoration: BoxDecoration(
-                                                color: data.dealerPositioning ==
-                                                        DealerPositioning
-                                                            .longGamma
-                                                    ? Colors.green
-                                                        .withValues(alpha: 0.1)
-                                                    : data.dealerPositioning ==
-                                                            DealerPositioning
-                                                                .shortGamma
-                                                        ? Colors.red.withValues(
-                                                            alpha: 0.1)
-                                                        : theme.colorScheme
-                                                            .primaryContainer,
-                                                borderRadius:
-                                                    BorderRadius.circular(8),
-                                              ),
-                                              child: Text(
-                                                data.dealerPositioning
-                                                    .displayLabel,
-                                                style: theme
-                                                    .textTheme.labelSmall
-                                                    ?.copyWith(
-                                                  color: data.dealerPositioning ==
-                                                          DealerPositioning
-                                                              .longGamma
-                                                      ? Colors.green
-                                                      : data.dealerPositioning ==
-                                                              DealerPositioning
-                                                                  .shortGamma
-                                                          ? Colors.red
-                                                          : theme.colorScheme
-                                                              .onPrimaryContainer,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                        const SizedBox(height: 8),
-                                        Row(
-                                          children: [
-                                            Expanded(
-                                              child: _buildPositionMetric(
-                                                theme,
-                                                'Net GEX',
-                                                data.formattedNetGEX,
-                                                color: data.totalNetGEX >= 0
-                                                    ? Colors.green
-                                                    : Colors.red,
-                                              ),
-                                            ),
-                                            Expanded(
-                                              child: _buildPositionMetric(
-                                                theme,
-                                                'Spot',
-                                                _formatPrice(data.spotPrice),
-                                                alignEnd: true,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                        const SizedBox(height: 10),
-                                        Row(
-                                          children: [
-                                            Expanded(
-                                              child: _buildPositionMetric(
-                                                theme,
-                                                'Zero Gamma',
-                                                _formatPrice(data.gammaFlip),
-                                              ),
-                                            ),
-                                            Expanded(
-                                              child: _buildPositionMetric(
-                                                theme,
-                                                'Call Wall',
-                                                _formatPrice(data.callWall),
-                                                alignEnd: true,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                        const SizedBox(height: 10),
-                                        Row(
-                                          children: [
-                                            Expanded(
-                                              child: _buildPositionMetric(
-                                                theme,
-                                                'Put Wall',
-                                                _formatPrice(data.putWall),
-                                              ),
-                                            ),
-                                            Expanded(
-                                              child: _buildPositionMetric(
-                                                theme,
-                                                'Nearest Level',
-                                                _formatNearestLevel(data),
-                                                alignEnd: true,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                        const SizedBox(height: 8),
-                                        ClipRRect(
-                                          borderRadius:
-                                              BorderRadius.circular(4),
-                                          child: LinearProgressIndicator(
-                                            value: data.gexRatio,
-                                            minHeight: 8,
-                                            backgroundColor: Colors.red
-                                                .withValues(alpha: 0.2),
-                                            valueColor:
-                                                const AlwaysStoppedAnimation<
-                                                    Color>(Colors.green),
-                                          ),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceBetween,
-                                          children: [
-                                            Text(
-                                                'C: ${(data.gexRatio * 100).toStringAsFixed(0)}%',
-                                                style:
-                                                    theme.textTheme.labelSmall),
-                                            Text(
-                                                'P: ${((1 - data.gexRatio) * 100).toStringAsFixed(0)}%',
-                                                style:
-                                                    theme.textTheme.labelSmall),
-                                          ],
-                                        ),
-                                        const SizedBox(height: 8),
-                                        _buildFreshnessLabel(theme, data),
-                                      ],
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _buildPositionMetric(
+                                      theme,
+                                      'Net GEX',
+                                      data.formattedNetGEX,
+                                      color: data.totalNetGEX >= 0
+                                          ? Colors.green
+                                          : Colors.red,
                                     ),
                                   ),
+                                  Expanded(
+                                    child: _buildPositionMetric(
+                                      theme,
+                                      'Spot',
+                                      _formatPrice(data.spotPrice),
+                                      alignEnd: true,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 10),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _buildPositionMetric(
+                                      theme,
+                                      'Zero Gamma',
+                                      _formatPrice(data.gammaFlip),
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: _buildPositionMetric(
+                                      theme,
+                                      'Call Wall',
+                                      _formatPrice(data.callWall),
+                                      alignEnd: true,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 10),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _buildPositionMetric(
+                                      theme,
+                                      'Put Wall',
+                                      _formatPrice(data.putWall),
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: _buildPositionMetric(
+                                      theme,
+                                      'Nearest Level',
+                                      _formatNearestLevel(data),
+                                      alignEnd: true,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(4),
+                                child: LinearProgressIndicator(
+                                  value: data.gexRatio,
+                                  minHeight: 8,
+                                  backgroundColor: Colors.red.withValues(
+                                    alpha: 0.2,
+                                  ),
+                                  valueColor:
+                                      const AlwaysStoppedAnimation<Color>(
+                                        Colors.green,
+                                      ),
                                 ),
-                              )),
-                        ],
+                              ),
+                              const SizedBox(height: 4),
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    'C: ${(data.gexRatio * 100).toStringAsFixed(0)}%',
+                                    style: theme.textTheme.labelSmall,
+                                  ),
+                                  Text(
+                                    'P: ${((1 - data.gexRatio) * 100).toStringAsFixed(0)}%',
+                                    style: theme.textTheme.labelSmall,
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              _buildFreshnessLabel(theme, data),
+                            ],
+                          ),
+                        ),
                       ),
                     ),
+                  ),
+                ],
+              ),
+            ),
     );
   }
 
@@ -490,8 +495,9 @@ class _PortfolioGexDashboardWidgetState
     bool alignEnd = false,
   }) {
     return Column(
-      crossAxisAlignment:
-          alignEnd ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+      crossAxisAlignment: alignEnd
+          ? CrossAxisAlignment.end
+          : CrossAxisAlignment.start,
       children: [
         Text(
           label,
@@ -524,10 +530,7 @@ class _PortfolioGexDashboardWidgetState
     return '${level.label} $sign${distance.toStringAsFixed(1)}%';
   }
 
-  Widget _buildFreshnessLabel(
-    ThemeData theme,
-    GammaExposureData data,
-  ) {
+  Widget _buildFreshnessLabel(ThemeData theme, GammaExposureData data) {
     final now = DateTime.now();
     final isStale = data.isStaleAt(now);
     final age = data.ageAt(now);
@@ -569,13 +572,13 @@ class _PortfolioGexDashboardWidgetState
     final positioningColor = portfolioPositioning == DealerPositioning.longGamma
         ? Colors.green
         : portfolioPositioning == DealerPositioning.shortGamma
-            ? Colors.red
-            : theme.colorScheme.outline;
+        ? Colors.red
+        : theme.colorScheme.outline;
     final regimeLabel = portfolioPositioning == DealerPositioning.longGamma
         ? 'DAMPENING'
         : portfolioPositioning == DealerPositioning.shortGamma
-            ? 'AMPLIFYING'
-            : 'BALANCED';
+        ? 'AMPLIFYING'
+        : 'BALANCED';
 
     return Card(
       color: theme.colorScheme.primaryContainer.withValues(alpha: 0.2),
@@ -618,8 +621,8 @@ class _PortfolioGexDashboardWidgetState
                     portfolioPositioning == DealerPositioning.longGamma
                         ? Icons.compress
                         : portfolioPositioning == DealerPositioning.shortGamma
-                            ? Icons.expand
-                            : Icons.balance,
+                        ? Icons.expand
+                        : Icons.balance,
                     size: 16,
                     color: positioningColor,
                   ),
@@ -639,8 +642,8 @@ class _PortfolioGexDashboardWidgetState
               portfolioPositioning == DealerPositioning.longGamma
                   ? 'Market makers are net long gamma on your holdings, which typically dampens volatility.'
                   : portfolioPositioning == DealerPositioning.shortGamma
-                      ? 'Market makers are net short gamma on your holdings, which can amplify price swings.'
-                      : 'Positive and negative gamma exposures are closely balanced, so the net figure can understate activity.',
+                  ? 'Market makers are net short gamma on your holdings, which can amplify price swings.'
+                  : 'Positive and negative gamma exposures are closely balanced, so the net figure can understate activity.',
               textAlign: TextAlign.center,
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
@@ -778,76 +781,81 @@ class _PortfolioGexDashboardWidgetState
       children: [
         Text(
           'Top Gamma Drivers',
-          style: theme.textTheme.titleMedium
-              ?.copyWith(fontWeight: FontWeight.bold),
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
         ),
         const SizedBox(height: 12),
-        ...topHoldings.map((data) => Padding(
-              padding: const EdgeInsets.only(bottom: 8.0),
-              child: Row(
-                children: [
-                  SizedBox(
-                    width: 60,
-                    child: Text(
-                      data.symbol,
-                      style: theme.textTheme.titleSmall
-                          ?.copyWith(fontWeight: FontWeight.bold),
+        ...topHoldings.map(
+          (data) => Padding(
+            padding: const EdgeInsets.only(bottom: 8.0),
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 60,
+                  child: Text(
+                    data.symbol,
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                  Expanded(
-                    child: Stack(
-                      children: [
-                        Container(
+                ),
+                Expanded(
+                  child: Stack(
+                    children: [
+                      Container(
+                        height: 24,
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.surfaceContainerHighest,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                      FractionallySizedBox(
+                        widthFactor: sortedByAbsGex[0].totalNetGEX == 0
+                            ? 0
+                            : (data.totalNetGEX.abs() /
+                                      sortedByAbsGex[0].totalNetGEX.abs())
+                                  .clamp(0.05, 1.0),
+                        child: Container(
                           height: 24,
                           decoration: BoxDecoration(
-                            color: theme.colorScheme.surfaceContainerHighest,
+                            color: data.totalNetGEX >= 0
+                                ? Colors.green.withValues(alpha: 0.6)
+                                : Colors.red.withValues(alpha: 0.6),
                             borderRadius: BorderRadius.circular(4),
                           ),
                         ),
-                        FractionallySizedBox(
-                          widthFactor: sortedByAbsGex[0].totalNetGEX == 0
-                              ? 0
-                              : (data.totalNetGEX.abs() /
-                                      sortedByAbsGex[0].totalNetGEX.abs())
-                                  .clamp(0.05, 1.0),
-                          child: Container(
-                            height: 24,
-                            decoration: BoxDecoration(
-                              color: data.totalNetGEX >= 0
-                                  ? Colors.green.withValues(alpha: 0.6)
-                                  : Colors.red.withValues(alpha: 0.6),
-                              borderRadius: BorderRadius.circular(4),
+                      ),
+                      Positioned.fill(
+                        child: Center(
+                          child: Text(
+                            data.totalNetGEX >= 0 ? 'LONG' : 'SHORT',
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: theme.colorScheme.onSurface,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
                         ),
-                        Positioned.fill(
-                            child: Center(
-                                child: Text(
-                          data.totalNetGEX >= 0 ? 'LONG' : 'SHORT',
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: theme.colorScheme.onSurface,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ))),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  SizedBox(
-                    width: 70,
-                    child: Text(
-                      '\$${(data.totalNetGEX / 1e6).toStringAsFixed(1)}M',
-                      textAlign: TextAlign.right,
-                      style: theme.textTheme.labelMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color:
-                            data.totalNetGEX >= 0 ? Colors.green : Colors.red,
                       ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                SizedBox(
+                  width: 70,
+                  child: Text(
+                    '\$${(data.totalNetGEX / 1e6).toStringAsFixed(1)}M',
+                    textAlign: TextAlign.right,
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: data.totalNetGEX >= 0 ? Colors.green : Colors.red,
                     ),
                   ),
-                ],
-              ),
-            )),
+                ),
+              ],
+            ),
+          ),
+        ),
       ],
     );
   }

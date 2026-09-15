@@ -33,10 +33,7 @@ class TradingPsychologyScoreCard extends StatelessWidget {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(20),
           gradient: LinearGradient(
-            colors: [
-              Theme.of(context).cardColor,
-              scoreColor.withOpacity(0.05),
-            ],
+            colors: [Theme.of(context).cardColor, scoreColor.withOpacity(0.05)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -64,8 +61,10 @@ class TradingPsychologyScoreCard extends StatelessWidget {
                   ],
                 ),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: scoreColor.withOpacity(0.12),
                     borderRadius: BorderRadius.circular(12),
@@ -119,8 +118,9 @@ class TradingPsychologyScoreCard extends StatelessWidget {
                                     ? Icons.arrow_upward
                                     : Icons.arrow_downward,
                                 size: 10,
-                                color:
-                                    scoreDelta > 0 ? Colors.green : Colors.red,
+                                color: scoreDelta > 0
+                                    ? Colors.green
+                                    : Colors.red,
                               ),
                               Text(
                                 "${scoreDelta > 0 ? '+' : ''}$scoreDelta",
@@ -236,8 +236,13 @@ class TradingPsychologyScoreCard extends StatelessWidget {
     );
   }
 
-  Widget _buildPillarRow(BuildContext context, String label, int value,
-      int? prevValue, String tooltip) {
+  Widget _buildPillarRow(
+    BuildContext context,
+    String label,
+    int value,
+    int? prevValue,
+    String tooltip,
+  ) {
     final color = _getColorForValue(value);
     int? delta;
     if (prevValue != null) {
@@ -257,7 +262,9 @@ class TradingPsychologyScoreCard extends StatelessWidget {
                   child: Text(
                     label,
                     style: const TextStyle(
-                        fontSize: 12, fontWeight: FontWeight.w500),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
@@ -378,8 +385,10 @@ class DetectedBiasesCardView extends StatelessWidget {
               TextButton.icon(
                 onPressed: onLogReflection,
                 icon: const Icon(Icons.edit_note, size: 16),
-                label: const Text("Journal Reflection",
-                    style: TextStyle(fontSize: 12)),
+                label: const Text(
+                  "Journal Reflection",
+                  style: TextStyle(fontSize: 12),
+                ),
               ),
           ],
         ),
@@ -429,14 +438,18 @@ class DetectedBiasesCardView extends StatelessWidget {
                       Text(
                         bias.description,
                         style: TextStyle(
-                            fontSize: 12, color: Colors.grey.shade600),
+                          fontSize: 12,
+                          color: Colors.grey.shade600,
+                        ),
                       ),
                     ],
                   ),
                 ),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: severityColor.withOpacity(0.15),
                     borderRadius: BorderRadius.circular(8),
@@ -463,22 +476,27 @@ class DetectedBiasesCardView extends StatelessWidget {
                       : Colors.grey.shade100,
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
-                      color: Theme.of(context)
-                          .colorScheme
-                          .outline
-                          .withOpacity(0.15)),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.outline.withOpacity(0.15),
+                  ),
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.format_quote,
-                        size: 16, color: Colors.grey),
+                    const Icon(
+                      Icons.format_quote,
+                      size: 16,
+                      color: Colors.grey,
+                    ),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
                         bias.evidence,
                         style: const TextStyle(
-                            fontSize: 12, fontStyle: FontStyle.italic),
+                          fontSize: 12,
+                          fontStyle: FontStyle.italic,
+                        ),
                       ),
                     ),
                   ],
@@ -498,8 +516,11 @@ class DetectedBiasesCardView extends StatelessWidget {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.lightbulb_outline,
-                        size: 18, color: Colors.teal),
+                    const Icon(
+                      Icons.lightbulb_outline,
+                      size: 18,
+                      color: Colors.teal,
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Column(
@@ -518,7 +539,9 @@ class DetectedBiasesCardView extends StatelessWidget {
                           Text(
                             bias.mitigation,
                             style: const TextStyle(
-                                fontSize: 12, fontWeight: FontWeight.w500),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
                         ],
                       ),
@@ -560,8 +583,11 @@ class TradingPatternCardView extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(Icons.timeline,
-                    color: Theme.of(context).colorScheme.primary, size: 20),
+                Icon(
+                  Icons.timeline,
+                  color: Theme.of(context).colorScheme.primary,
+                  size: 20,
+                ),
                 const SizedBox(width: 8),
                 const Text(
                   "PERSONALIZED PATTERN ANALYSIS",
@@ -687,8 +713,14 @@ class TradingPatternCardView extends StatelessWidget {
     );
   }
 
-  Widget _buildPatternStat(BuildContext context, String title, String value,
-      Color color, String subtitle, IconData icon) {
+  Widget _buildPatternStat(
+    BuildContext context,
+    String title,
+    String value,
+    Color color,
+    String subtitle,
+    IconData icon,
+  ) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -761,8 +793,9 @@ class EmotionJournalView extends StatelessWidget {
     }
 
     final totalLogs = emotionLogs.length;
-    final constructivePct =
-        totalLogs > 0 ? (constructiveCount / totalLogs) * 100 : 0.0;
+    final constructivePct = totalLogs > 0
+        ? (constructiveCount / totalLogs) * 100
+        : 0.0;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
@@ -781,10 +814,9 @@ class EmotionJournalView extends StatelessWidget {
                 gradient: LinearGradient(
                   colors: [
                     Theme.of(context).colorScheme.primaryContainer,
-                    Theme.of(context)
-                        .colorScheme
-                        .primaryContainer
-                        .withOpacity(0.6),
+                    Theme.of(
+                      context,
+                    ).colorScheme.primaryContainer.withOpacity(0.6),
                   ],
                 ),
               ),
@@ -802,9 +834,9 @@ class EmotionJournalView extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onPrimaryContainer,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onPrimaryContainer,
                           ),
                         ),
                       ),
@@ -815,10 +847,9 @@ class EmotionJournalView extends StatelessWidget {
                     "Track how emotional states impact your execution discipline, trade sizing, and profitability over time.",
                     style: TextStyle(
                       fontSize: 13,
-                      color: Theme.of(context)
-                          .colorScheme
-                          .onPrimaryContainer
-                          .withOpacity(0.85),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onPrimaryContainer.withOpacity(0.85),
                       height: 1.4,
                     ),
                   ),
@@ -829,7 +860,9 @@ class EmotionJournalView extends StatelessWidget {
                     label: const Text("Log Emotional State"),
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 20, vertical: 12),
+                        horizontal: 20,
+                        vertical: 12,
+                      ),
                       backgroundColor: Theme.of(context).colorScheme.primary,
                       foregroundColor: Theme.of(context).colorScheme.onPrimary,
                       shape: RoundedRectangleBorder(
@@ -848,7 +881,8 @@ class EmotionJournalView extends StatelessWidget {
             Card(
               elevation: 2,
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16)),
+                borderRadius: BorderRadius.circular(16),
+              ),
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
@@ -880,8 +914,10 @@ class EmotionJournalView extends StatelessWidget {
                               ),
                               const Text(
                                 "Constructive State (Calm, Disciplined)",
-                                style:
-                                    TextStyle(fontSize: 11, color: Colors.grey),
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.grey,
+                                ),
                               ),
                             ],
                           ),
@@ -889,10 +925,9 @@ class EmotionJournalView extends StatelessWidget {
                         Container(
                           height: 36,
                           width: 1,
-                          color: Theme.of(context)
-                              .colorScheme
-                              .outline
-                              .withOpacity(0.3),
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.outline.withOpacity(0.3),
                         ),
                         const SizedBox(width: 16),
                         Expanded(
@@ -909,8 +944,10 @@ class EmotionJournalView extends StatelessWidget {
                               ),
                               const Text(
                                 "Reactive State (FOMO, Frustrated)",
-                                style:
-                                    TextStyle(fontSize: 11, color: Colors.grey),
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.grey,
+                                ),
                               ),
                             ],
                           ),
@@ -945,7 +982,8 @@ class EmotionJournalView extends StatelessWidget {
             Card(
               elevation: 1,
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16)),
+                borderRadius: BorderRadius.circular(16),
+              ),
               child: Padding(
                 padding: const EdgeInsets.all(32.0),
                 child: Column(
@@ -954,14 +992,18 @@ class EmotionJournalView extends StatelessWidget {
                     const SizedBox(height: 12),
                     const Text(
                       "No Journal Entries Yet",
-                      style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: 6),
                     Text(
                       "Log your emotions before entering or after exiting trades to build self-awareness and improve trading psychology.",
-                      style:
-                          TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade600,
+                      ),
                       textAlign: TextAlign.center,
                     ),
                   ],
@@ -1013,18 +1055,21 @@ class EmotionJournalView extends StatelessWidget {
                             const SizedBox(width: 8),
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 6, vertical: 2),
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
                               decoration: BoxDecoration(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .outline
-                                    .withOpacity(0.1),
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.outline.withOpacity(0.1),
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Text(
                                 log.sessionType!,
                                 style: const TextStyle(
-                                    fontSize: 10, color: Colors.grey),
+                                  fontSize: 10,
+                                  color: Colors.grey,
+                                ),
                               ),
                             ),
                           ],
@@ -1032,8 +1077,10 @@ class EmotionJournalView extends StatelessWidget {
                       ),
                       Text(
                         dateFormat.format(log.timestamp),
-                        style:
-                            const TextStyle(fontSize: 11, color: Colors.grey),
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey,
+                        ),
                       ),
                     ],
                   ),
@@ -1050,8 +1097,11 @@ class EmotionJournalView extends StatelessWidget {
                       value: 'delete',
                       child: Row(
                         children: [
-                          Icon(Icons.delete_outline,
-                              color: Colors.red, size: 18),
+                          Icon(
+                            Icons.delete_outline,
+                            color: Colors.red,
+                            size: 18,
+                          ),
                           SizedBox(width: 8),
                           Text("Delete Entry"),
                         ],
@@ -1089,8 +1139,8 @@ class EmotionJournalView extends StatelessWidget {
                   log.marketSentiment == 'Bullish'
                       ? Colors.green
                       : (log.marketSentiment == 'Bearish'
-                          ? Colors.red
-                          : Colors.grey),
+                            ? Colors.red
+                            : Colors.grey),
                 ),
               ],
             ),
@@ -1107,8 +1157,9 @@ class EmotionJournalView extends StatelessWidget {
                 label: Text(log.symbol!),
                 visualDensity: VisualDensity.compact,
                 side: BorderSide.none,
-                backgroundColor:
-                    Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                backgroundColor: Theme.of(
+                  context,
+                ).colorScheme.primary.withOpacity(0.1),
               ),
             ],
           ],
@@ -1117,8 +1168,13 @@ class EmotionJournalView extends StatelessWidget {
     );
   }
 
-  Widget _buildIndicatorPill(BuildContext context, String label, String value,
-      IconData icon, Color color) {
+  Widget _buildIndicatorPill(
+    BuildContext context,
+    String label,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
@@ -1134,7 +1190,10 @@ class EmotionJournalView extends StatelessWidget {
           Text(
             "$label: $value",
             style: TextStyle(
-                fontSize: 10, fontWeight: FontWeight.bold, color: color),
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
           ),
         ],
       ),
@@ -1172,7 +1231,7 @@ class _EmotionCheckInSheetState extends State<EmotionCheckInSheet> {
     'Trade Entry',
     'Trade Exit',
     'Post-Market',
-    'Weekly Review'
+    'Weekly Review',
   ];
 
   @override
@@ -1215,9 +1274,9 @@ class _EmotionCheckInSheetState extends State<EmotionCheckInSheet> {
         setState(() {
           _isSaving = false;
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Failed to save check-in: $e")),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Failed to save check-in: $e")));
       }
     }
   }
@@ -1273,10 +1332,9 @@ class _EmotionCheckInSheetState extends State<EmotionCheckInSheet> {
                   side: BorderSide(
                     color: isSelected
                         ? emotion.color
-                        : Theme.of(context)
-                            .colorScheme
-                            .outline
-                            .withOpacity(0.3),
+                        : Theme.of(
+                            context,
+                          ).colorScheme.outline.withOpacity(0.3),
                   ),
                   onSelected: (selected) {
                     if (selected) {
@@ -1321,11 +1379,14 @@ class _EmotionCheckInSheetState extends State<EmotionCheckInSheet> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text("Confidence Level",
-                    style:
-                        TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-                Text("${_confidenceLevel.toInt()} / 5",
-                    style: const TextStyle(fontWeight: FontWeight.bold)),
+                const Text(
+                  "Confidence Level",
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                ),
+                Text(
+                  "${_confidenceLevel.toInt()} / 5",
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
               ],
             ),
             Slider(
@@ -1340,11 +1401,14 @@ class _EmotionCheckInSheetState extends State<EmotionCheckInSheet> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text("Energy / Alertness Level",
-                    style:
-                        TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-                Text("${_energyLevel.toInt()} / 5",
-                    style: const TextStyle(fontWeight: FontWeight.bold)),
+                const Text(
+                  "Energy / Alertness Level",
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                ),
+                Text(
+                  "${_energyLevel.toInt()} / 5",
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
               ],
             ),
             Slider(
@@ -1412,9 +1476,13 @@ class _EmotionCheckInSheetState extends State<EmotionCheckInSheet> {
                       width: 20,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Text("Save Mindset Entry",
-                      style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  : const Text(
+                      "Save Mindset Entry",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
             ),
           ],
         ),

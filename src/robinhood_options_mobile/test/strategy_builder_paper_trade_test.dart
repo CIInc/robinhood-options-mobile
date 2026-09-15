@@ -31,13 +31,16 @@ class FakeFirebaseFirestore extends Fake implements FirebaseFirestore {}
 // Mock Service using Fake
 class MockBrokerageService extends Fake implements IBrokerageService {
   Future<dynamic> getOptionChain(
-      BrokerageUser user, String symbol, String strategy) async {
+    BrokerageUser user,
+    String symbol,
+    String strategy,
+  ) async {
     return {
       'expiration_dates': ['2023-01-01'],
       'trade_value_multiplier': 100.0,
       'underlying_instruments': [
-        {'id': 'test', 'symbol': 'TEST'}
-      ]
+        {'id': 'test', 'symbol': 'TEST'},
+      ],
     };
   }
 
@@ -51,99 +54,108 @@ class MockBrokerageService extends Fake implements IBrokerageService {
       'expiration_dates': ['2023-01-01'],
       'trade_value_multiplier': 100.0,
       'underlying_instruments': [
-        {'id': 'test', 'symbol': 'TEST'}
+        {'id': 'test', 'symbol': 'TEST'},
       ],
-      'min_ticks': {'above_tick': 0.05, 'below_tick': 0.01, 'cutoff_price': 0.0}
+      'min_ticks': {
+        'above_tick': 0.05,
+        'below_tick': 0.01,
+        'cutoff_price': 0.0,
+      },
     });
   }
 
   @override
   Stream<List<OptionInstrument>> streamOptionInstruments(
-      BrokerageUser user,
-      OptionInstrumentStore store,
-      Instrument instrument,
-      String? expirationDates,
-      String? type,
-      {String? state = "active",
-      bool includeMarketData = false}) {
+    BrokerageUser user,
+    OptionInstrumentStore store,
+    Instrument instrument,
+    String? expirationDates,
+    String? type, {
+    String? state = "active",
+    bool includeMarketData = false,
+  }) {
     final option = OptionInstrument(
-        'chain_id', // chainId
-        'TEST', // chainSymbol
-        DateTime.now(), // createdAt
-        DateTime(2023, 1, 1), // expirationDate
-        'opt_1', // id
-        DateTime.now(), // issueDate
-        const MinTicks(0.05, 0.01, 0.0), // minTicks
-        'tradable', // rhsTradability
-        'active', // state
-        100.0, // strikePrice
-        'tradable', // tradability
-        'call', // type
-        DateTime.now(), // updatedAt
-        'http://url', // url
-        null, // selloutDateTime
-        'long_code', // longStrategyCode
-        'short_code' // shortStrategyCode
-        );
+      'chain_id', // chainId
+      'TEST', // chainSymbol
+      DateTime.now(), // createdAt
+      DateTime(2023, 1, 1), // expirationDate
+      'opt_1', // id
+      DateTime.now(), // issueDate
+      const MinTicks(0.05, 0.01, 0.0), // minTicks
+      'tradable', // rhsTradability
+      'active', // state
+      100.0, // strikePrice
+      'tradable', // tradability
+      'call', // type
+      DateTime.now(), // updatedAt
+      'http://url', // url
+      null, // selloutDateTime
+      'long_code', // longStrategyCode
+      'short_code', // shortStrategyCode
+    );
     // Mutate optionMarketData manually
     option.optionMarketData = OptionMarketData(
-        1.0, // adjustedMarkPrice
-        1.1, // askPrice
-        10, // askSize
-        0.9, // bidPrice
-        10, // bidSize
-        101.0, // breakEvenPrice
-        1.2, // highPrice
-        'opt_1', // instrument
-        'opt_1', // instrumentId
-        1.0, // lastTradePrice
-        5, // lastTradeSize
-        0.8, // lowPrice
-        1.0, // markPrice
-        100, // openInterest
-        DateTime.now().subtract(const Duration(days: 1)), // previousCloseDate
-        0.95, // previousClosePrice
-        50, // volume
-        'TEST', // symbol
-        'TEST...C...', // occSymbol
-        0.5, // chanceOfProfitLong
-        0.4, // chanceOfProfitShort
-        0.5, // delta
-        0.1, // gamma
-        0.2, // impliedVolatility
-        0.01, // rho
-        -0.05, // theta
-        0.1, // vega
-        null, // highFillRateBuyPrice
-        null, // highFillRateSellPrice
-        null, // lowFillRateBuyPrice
-        null, // lowFillRateSellPrice
-        DateTime.now() // updatedAt
-        );
+      1.0, // adjustedMarkPrice
+      1.1, // askPrice
+      10, // askSize
+      0.9, // bidPrice
+      10, // bidSize
+      101.0, // breakEvenPrice
+      1.2, // highPrice
+      'opt_1', // instrument
+      'opt_1', // instrumentId
+      1.0, // lastTradePrice
+      5, // lastTradeSize
+      0.8, // lowPrice
+      1.0, // markPrice
+      100, // openInterest
+      DateTime.now().subtract(const Duration(days: 1)), // previousCloseDate
+      0.95, // previousClosePrice
+      50, // volume
+      'TEST', // symbol
+      'TEST...C...', // occSymbol
+      0.5, // chanceOfProfitLong
+      0.4, // chanceOfProfitShort
+      0.5, // delta
+      0.1, // gamma
+      0.2, // impliedVolatility
+      0.01, // rho
+      -0.05, // theta
+      0.1, // vega
+      null, // highFillRateBuyPrice
+      null, // highFillRateSellPrice
+      null, // lowFillRateBuyPrice
+      null, // lowFillRateSellPrice
+      DateTime.now(), // updatedAt
+    );
 
     return Stream.value([option]);
   }
 
   @override
   Future<Quote> getQuote(
-      BrokerageUser user, QuoteStore store, String symbol) async {
+    BrokerageUser user,
+    QuoteStore store,
+    String symbol,
+  ) async {
     return Quote(
-        adjustedPreviousClose: 100.0,
-        askPrice: 100.1,
-        askSize: 10,
-        bidPrice: 99.9,
-        bidSize: 10,
-        lastExtendedHoursTradePrice: 100.0,
-        lastTradePrice: 100.0,
-        previousClose: 100.0,
-        previousCloseDate: DateTime.now().subtract(const Duration(days: 1)),
-        symbol: symbol,
-        tradingHalted: false,
-        hasTraded: true,
-        updatedAt: DateTime.now(),
-        instrument: 'test_id',
-        lastTradePriceSource: 'consolidated',
-        instrumentId: 'test_id');
+      adjustedPreviousClose: 100.0,
+      askPrice: 100.1,
+      askSize: 10,
+      bidPrice: 99.9,
+      bidSize: 10,
+      lastExtendedHoursTradePrice: 100.0,
+      lastTradePrice: 100.0,
+      previousClose: 100.0,
+      previousCloseDate: DateTime.now().subtract(const Duration(days: 1)),
+      symbol: symbol,
+      tradingHalted: false,
+      hasTraded: true,
+      updatedAt: DateTime.now(),
+      instrument: 'test_id',
+      lastTradePriceSource: 'consolidated',
+      instrumentId: 'test_id',
+    );
   }
 }
 
@@ -212,8 +224,9 @@ class FakeGenerativeService extends Fake implements GenerativeService {}
 class FakeOptionInstrumentStore extends Fake implements OptionInstrumentStore {}
 
 void main() {
-  testWidgets('StrategyBuilderWidget Paper Trade Toggle test',
-      (WidgetTester tester) async {
+  testWidgets('StrategyBuilderWidget Paper Trade Toggle test', (
+    WidgetTester tester,
+  ) async {
     final mockService = MockBrokerageService();
     final mockPaperStore = MockPaperTradingStore();
     final mockAccountStore = MockAccountStore(); // Added
@@ -221,8 +234,12 @@ void main() {
     final mockOptionInstrumentStore =
         OptionInstrumentStore(); // Use real store as it is simple ChangeNotifier
 
-    final user =
-        BrokerageUser(BrokerageSource.robinhood, 'test_user', '123', null);
+    final user = BrokerageUser(
+      BrokerageSource.robinhood,
+      'test_user',
+      '123',
+      null,
+    );
 
     final quote = Quote(
       adjustedPreviousClose: 100.0,
@@ -244,33 +261,34 @@ void main() {
     );
 
     final instrument = Instrument(
-        id: 'test_id',
-        url: 'http://test',
-        quote: 'http://quote',
-        fundamentals: 'http://fund',
-        splits: 'http://splits',
-        state: 'active',
-        market: 'test_market',
-        simpleName: 'Test',
-        name: 'Test Corp',
-        tradeable: true,
-        tradability: 'tradable',
-        rhsTradability: 'tradable',
-        fractionalTradability: 'tradable',
-        isSpac: false,
-        isTest: false,
-        ipoAccessSupportsDsp: false,
-        symbol: 'TEST',
-        bloombergUnique: '123',
-        marginInitialRatio: 0.5,
-        maintenanceRatio: 0.25,
-        country: 'US',
-        dayTradeRatio: 0.25,
-        listDate: DateTime.now(),
-        minTickSize: 0.01,
-        type: 'stock',
-        dateCreated: DateTime.now(),
-        quoteObj: quote);
+      id: 'test_id',
+      url: 'http://test',
+      quote: 'http://quote',
+      fundamentals: 'http://fund',
+      splits: 'http://splits',
+      state: 'active',
+      market: 'test_market',
+      simpleName: 'Test',
+      name: 'Test Corp',
+      tradeable: true,
+      tradability: 'tradable',
+      rhsTradability: 'tradable',
+      fractionalTradability: 'tradable',
+      isSpac: false,
+      isTest: false,
+      ipoAccessSupportsDsp: false,
+      symbol: 'TEST',
+      bloombergUnique: '123',
+      marginInitialRatio: 0.5,
+      maintenanceRatio: 0.25,
+      country: 'US',
+      dayTradeRatio: 0.25,
+      listDate: DateTime.now(),
+      minTickSize: 0.01,
+      type: 'stock',
+      dateCreated: DateTime.now(),
+      quoteObj: quote,
+    );
 
     final appUser = User(
       devices: [],
@@ -280,7 +298,9 @@ void main() {
 
     // Need screen size for layout
     tester.view.physicalSize = const Size(
-        800, 2000); // Standard screen size to avoid hit-test/overflow issues
+      800,
+      2000,
+    ); // Standard screen size to avoid hit-test/overflow issues
     tester.view.devicePixelRatio = 1.0;
 
     addTearDown(tester.view.resetPhysicalSize);
@@ -289,15 +309,20 @@ void main() {
       MultiProvider(
         providers: [
           ChangeNotifierProvider<PaperTradingStore>.value(
-              value: mockPaperStore),
+            value: mockPaperStore,
+          ),
           ChangeNotifierProvider<OptionInstrumentStore>.value(
-              value: mockOptionInstrumentStore),
+            value: mockOptionInstrumentStore,
+          ),
           ChangeNotifierProvider<OptionPositionStore>.value(
-              value: mockOptionPositionStore),
+            value: mockOptionPositionStore,
+          ),
           ChangeNotifierProvider<AccountStore>.value(
-              value: mockAccountStore), // Added
+            value: mockAccountStore,
+          ), // Added
           ChangeNotifierProvider<GenerativeProvider>(
-              create: (_) => GenerativeProvider()),
+            create: (_) => GenerativeProvider(),
+          ),
         ],
         child: MaterialApp(
           home: Scaffold(

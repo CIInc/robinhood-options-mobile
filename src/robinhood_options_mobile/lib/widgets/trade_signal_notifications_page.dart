@@ -107,27 +107,25 @@ class _TradeSignalNotificationsPageState
                       child: Icon(
                         Icons.notifications_none_rounded,
                         size: 48,
-                        color: Theme.of(context)
-                            .colorScheme
-                            .primary
-                            .withValues(alpha: 0.5),
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.primary.withValues(alpha: 0.5),
                       ),
                     ),
                     const SizedBox(height: 24),
                     Text(
                       'No new trade signals',
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       'You will be notified when new trading opportunities match your criteria.',
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color:
-                                Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
                     ),
                     const SizedBox(height: 32),
                     if (!widget.fromSettings)
@@ -137,10 +135,10 @@ class _TradeSignalNotificationsPageState
                             MaterialPageRoute(
                               builder: (context) =>
                                   TradeSignalNotificationSettingsWidget(
-                                user: widget.user,
-                                userDocRef: widget.userDocRef,
-                                hideNotificationIcon: true,
-                              ),
+                                    user: widget.user,
+                                    userDocRef: widget.userDocRef,
+                                    hideNotificationIcon: true,
+                                  ),
                             ),
                           );
                         },
@@ -181,8 +179,9 @@ class _TradeSignalNotificationsPageState
           }).toList();
 
           // Group notifications by date
-          final groupedNotifications =
-              _groupNotifications(filteredNotifications);
+          final groupedNotifications = _groupNotifications(
+            filteredNotifications,
+          );
 
           return Column(
             children: [
@@ -218,7 +217,9 @@ class _TradeSignalNotificationsPageState
                             ),
                             filled: true,
                             contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 0),
+                              horizontal: 16,
+                              vertical: 0,
+                            ),
                             fillColor: Theme.of(context)
                                 .colorScheme
                                 .surfaceContainerHighest
@@ -256,12 +257,12 @@ class _TradeSignalNotificationsPageState
                     ? Center(
                         child: Text(
                           'No signals found',
-                          style:
-                              Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurfaceVariant,
-                                  ),
+                          style: Theme.of(context).textTheme.bodyLarge
+                              ?.copyWith(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
+                              ),
                         ),
                       )
                     : ListView.builder(
@@ -272,8 +273,12 @@ class _TradeSignalNotificationsPageState
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Padding(
-                                padding:
-                                    const EdgeInsets.fromLTRB(16, 24, 16, 8),
+                                padding: const EdgeInsets.fromLTRB(
+                                  16,
+                                  24,
+                                  16,
+                                  8,
+                                ),
                                 child: Row(
                                   children: [
                                     Text(
@@ -282,28 +287,31 @@ class _TradeSignalNotificationsPageState
                                           .textTheme
                                           .titleSmall
                                           ?.copyWith(
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .primary,
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.primary,
                                             fontWeight: FontWeight.bold,
                                           ),
                                     ),
                                     const SizedBox(width: 8),
                                     Expanded(
-                                        child: Divider(
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .outlineVariant)),
+                                      child: Divider(
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.outlineVariant,
+                                      ),
+                                    ),
                                   ],
                                 ),
                               ),
-                              ...group.notifications
-                                  .map((notification) => _NotificationItem(
-                                        notification: notification,
-                                        store: store,
-                                        user: widget.user,
-                                        userDocRef: widget.userDocRef,
-                                      )),
+                              ...group.notifications.map(
+                                (notification) => _NotificationItem(
+                                  notification: notification,
+                                  store: store,
+                                  user: widget.user,
+                                  userDocRef: widget.userDocRef,
+                                ),
+                              ),
                             ],
                           );
                         },
@@ -351,7 +359,8 @@ class _TradeSignalNotificationsPageState
   }
 
   List<_NotificationGroup> _groupNotifications(
-      List<TradeSignalNotification> notifications) {
+    List<TradeSignalNotification> notifications,
+  ) {
     final groups = <_NotificationGroup>[];
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
@@ -362,8 +371,11 @@ class _TradeSignalNotificationsPageState
     final olderNotifications = <TradeSignalNotification>[];
 
     for (var n in notifications) {
-      final date =
-          DateTime(n.timestamp.year, n.timestamp.month, n.timestamp.day);
+      final date = DateTime(
+        n.timestamp.year,
+        n.timestamp.month,
+        n.timestamp.day,
+      );
       if (date.isAtSameMomentAs(today)) {
         todayNotifications.add(n);
       } else if (date.isAtSameMomentAs(yesterday)) {
@@ -413,13 +425,17 @@ class _NotificationItem extends StatelessWidget {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final yesterday = today.subtract(const Duration(days: 1));
-    final date = DateTime(notification.timestamp.year,
-        notification.timestamp.month, notification.timestamp.day);
+    final date = DateTime(
+      notification.timestamp.year,
+      notification.timestamp.month,
+      notification.timestamp.day,
+    );
 
     final isTodayOrYesterday =
         date.isAtSameMomentAs(today) || date.isAtSameMomentAs(yesterday);
-    final dateFormat =
-        isTodayOrYesterday ? DateFormat.jm() : DateFormat.MMMd().add_jm();
+    final dateFormat = isTodayOrYesterday
+        ? DateFormat.jm()
+        : DateFormat.MMMd().add_jm();
 
     Color signalColor;
     IconData signalIcon;
@@ -447,10 +463,13 @@ class _NotificationItem extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
-            Text('Delete',
-                style: TextStyle(
-                    color: theme.colorScheme.onError,
-                    fontWeight: FontWeight.bold)),
+            Text(
+              'Delete',
+              style: TextStyle(
+                color: theme.colorScheme.onError,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             const SizedBox(width: 8),
             Icon(Icons.delete_outline, color: theme.colorScheme.onError),
           ],
@@ -459,9 +478,9 @@ class _NotificationItem extends StatelessWidget {
       direction: DismissDirection.endToStart,
       onDismissed: (direction) {
         store.delete(notification.id);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Notification deleted')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Notification deleted')));
       },
       child: InkWell(
         onTap: () {
@@ -493,11 +512,7 @@ class _NotificationItem extends StatelessWidget {
                     color: signalColor.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(
-                    signalIcon,
-                    color: signalColor,
-                    size: 24,
-                  ),
+                  child: Icon(signalIcon, color: signalColor, size: 24),
                 ),
                 const SizedBox(width: 16),
                 // Content
@@ -532,8 +547,9 @@ class _NotificationItem extends StatelessWidget {
                       Text(
                         notification.body,
                         style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.textTheme.bodyMedium?.color
-                              ?.withValues(alpha: 0.8),
+                          color: theme.textTheme.bodyMedium?.color?.withValues(
+                            alpha: 0.8,
+                          ),
                         ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
@@ -545,14 +561,17 @@ class _NotificationItem extends StatelessWidget {
                           children: [
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 2),
+                                horizontal: 8,
+                                vertical: 2,
+                              ),
                               decoration: BoxDecoration(
                                 color:
                                     theme.colorScheme.surfaceContainerHighest,
                                 borderRadius: BorderRadius.circular(4),
                                 border: Border.all(
-                                  color: theme.colorScheme.outline
-                                      .withValues(alpha: 0.2),
+                                  color: theme.colorScheme.outline.withValues(
+                                    alpha: 0.2,
+                                  ),
                                 ),
                               ),
                               child: Row(
@@ -570,14 +589,15 @@ class _NotificationItem extends StatelessWidget {
                                     notification.interval == '1d'
                                         ? 'Daily'
                                         : notification.interval == '1h'
-                                            ? 'Hourly'
-                                            : notification.interval == '30m'
-                                                ? '30m'
-                                                : notification.interval == '15m'
-                                                    ? '15m'
-                                                    : notification.interval,
-                                    style: theme.textTheme.bodySmall
-                                        ?.copyWith(fontSize: 11),
+                                        ? 'Hourly'
+                                        : notification.interval == '30m'
+                                        ? '30m'
+                                        : notification.interval == '15m'
+                                        ? '15m'
+                                        : notification.interval,
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      fontSize: 11,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -585,7 +605,9 @@ class _NotificationItem extends StatelessWidget {
                             if (notification.price != null)
                               Container(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 8, vertical: 2),
+                                  horizontal: 8,
+                                  vertical: 2,
+                                ),
                                 decoration: BoxDecoration(
                                   color:
                                       theme.colorScheme.surfaceContainerHighest,
@@ -593,24 +615,30 @@ class _NotificationItem extends StatelessWidget {
                                 ),
                                 child: Text(
                                   '\$${notification.price!.toStringAsFixed(2)}',
-                                  style: theme.textTheme.bodySmall
-                                      ?.copyWith(fontSize: 11),
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    fontSize: 11,
+                                  ),
                                 ),
                               ),
                             if (notification.confidence != null)
                               Container(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 8, vertical: 2),
+                                  horizontal: 8,
+                                  vertical: 2,
+                                ),
                                 decoration: BoxDecoration(
                                   color: (notification.confidence! > 0.8)
                                       ? Colors.green.withValues(alpha: 0.1)
                                       : theme
-                                          .colorScheme.surfaceContainerHighest,
+                                            .colorScheme
+                                            .surfaceContainerHighest,
                                   borderRadius: BorderRadius.circular(4),
                                   border: (notification.confidence! > 0.8)
                                       ? Border.all(
-                                          color: Colors.green
-                                              .withValues(alpha: 0.3))
+                                          color: Colors.green.withValues(
+                                            alpha: 0.3,
+                                          ),
+                                        )
                                       : null,
                                 ),
                                 child: Text(
@@ -654,8 +682,10 @@ class _NotificationItem extends StatelessWidget {
     if (notification.symbol.isEmpty) return;
 
     final userStore = Provider.of<BrokerageUserStore>(context, listen: false);
-    final instrumentStore =
-        Provider.of<InstrumentStore>(context, listen: false);
+    final instrumentStore = Provider.of<InstrumentStore>(
+      context,
+      listen: false,
+    );
 
     if (userStore.items.isNotEmpty) {
       // Use the current user or default to first
@@ -692,40 +722,45 @@ class _NotificationItem extends StatelessWidget {
 
       service
           .getInstrumentBySymbol(
-              brokerageUser, instrumentStore, notification.symbol)
+            brokerageUser,
+            instrumentStore,
+            notification.symbol,
+          )
           .then((instrument) {
-        if (!context.mounted) return;
-        Navigator.pop(context); // Dismiss loading
+            if (!context.mounted) return;
+            Navigator.pop(context); // Dismiss loading
 
-        if (instrument != null) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => InstrumentWidget(
-                brokerageUser,
-                service,
-                instrument,
-                analytics: FirebaseAnalytics.instance,
-                observer: MyApp.observer,
-                generativeService: GenerativeService(),
-                user: user,
-                userDocRef: userDocRef,
-              ),
-            ),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-                content: Text('Instrument not found: ${notification.symbol}')),
-          );
-        }
-      }).catchError((e) {
-        if (!context.mounted) return;
-        Navigator.pop(context); // Dismiss loading
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error loading instrument: $e')),
-        );
-      });
+            if (instrument != null) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => InstrumentWidget(
+                    brokerageUser,
+                    service,
+                    instrument,
+                    analytics: FirebaseAnalytics.instance,
+                    observer: MyApp.observer,
+                    generativeService: GenerativeService(),
+                    user: user,
+                    userDocRef: userDocRef,
+                  ),
+                ),
+              );
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Instrument not found: ${notification.symbol}'),
+                ),
+              );
+            }
+          })
+          .catchError((e) {
+            if (!context.mounted) return;
+            Navigator.pop(context); // Dismiss loading
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Error loading instrument: $e')),
+            );
+          });
     }
   }
 }

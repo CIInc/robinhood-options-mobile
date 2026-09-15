@@ -91,12 +91,14 @@ class _UserInfoWidgetState extends State<UserInfoWidget> {
     if (expiration != null) {
       final diff = expiration.difference(DateTime.now());
       final totalSeconds = (diff.inMilliseconds / 1000).ceil();
-      _remainingTime =
-          totalSeconds > 0 ? Duration(seconds: totalSeconds) : Duration.zero;
+      _remainingTime = totalSeconds > 0
+          ? Duration(seconds: totalSeconds)
+          : Duration.zero;
 
       if (_remainingTime > Duration.zero) {
-        _tokenExpirationTimer =
-            Timer.periodic(const Duration(seconds: 1), (timer) {
+        _tokenExpirationTimer = Timer.periodic(const Duration(seconds: 1), (
+          timer,
+        ) {
           if (!mounted) {
             timer.cancel();
             return;
@@ -143,221 +145,239 @@ class _UserInfoWidgetState extends State<UserInfoWidget> {
   @override
   Widget build(BuildContext context) {
     final accountStore = Provider.of<AccountStore>(context);
-    final activeAccountNum = accountStore.selectedAccountNumber ??
+    final activeAccountNum =
+        accountStore.selectedAccountNumber ??
         (widget.brokerageUser.accounts.isNotEmpty
             ? widget.brokerageUser.accounts.first.accountNumber
             : null);
 
-    return Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-      ListTile(
-        minTileHeight: 10,
-        title: const Text("Brokerage", style: TextStyle(fontSize: 14)),
-        trailing: Text(
-          widget.brokerageUser.source.enumValue().capitalize(),
-          style: const TextStyle(fontSize: 16),
-        ),
-      ),
-      if (widget.user.profileName != null) ...[
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
         ListTile(
           minTileHeight: 10,
-          title: const Text("Profile Name", style: TextStyle(fontSize: 14)),
+          title: const Text("Brokerage", style: TextStyle(fontSize: 14)),
           trailing: Text(
-            widget.user.profileName!,
+            widget.brokerageUser.source.enumValue().capitalize(),
+            style: const TextStyle(fontSize: 16),
+          ),
+        ),
+        if (widget.user.profileName != null) ...[
+          ListTile(
+            minTileHeight: 10,
+            title: const Text("Profile Name", style: TextStyle(fontSize: 14)),
+            trailing: Text(
+              widget.user.profileName!,
+              style: const TextStyle(fontSize: 16),
+              textAlign: TextAlign.end,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+        ListTile(
+          minTileHeight: 10,
+          title: const Text("Username", style: TextStyle(fontSize: 14)),
+          trailing: Text(
+            widget.user.username,
             style: const TextStyle(fontSize: 16),
             textAlign: TextAlign.end,
             overflow: TextOverflow.ellipsis,
           ),
         ),
-      ],
-      ListTile(
-        minTileHeight: 10,
-        title: const Text("Username", style: TextStyle(fontSize: 14)),
-        trailing: Text(
-          widget.user.username,
-          style: const TextStyle(fontSize: 16),
-          textAlign: TextAlign.end,
-          overflow: TextOverflow.ellipsis,
-        ),
-      ),
-      if (widget.user.lastName != null) ...[
-        ListTile(
-          minTileHeight: 10,
-          title: const Text("Full Name", style: TextStyle(fontSize: 14)),
-          trailing: Text("${widget.user.firstName} ${widget.user.lastName}",
-              style: const TextStyle(fontSize: 16)),
-        ),
-      ],
-      if (widget.user.email != null) ...[
-        ListTile(
-          minTileHeight: 10,
-          title: const Text("Email", style: TextStyle(fontSize: 14)),
-          trailing:
-              Text(widget.user.email!, style: const TextStyle(fontSize: 16)),
-        ),
-      ],
-      if (widget.user.createdAt != null) ...[
-        ListTile(
-          minTileHeight: 10,
-          title: const Text("Joined", style: TextStyle(fontSize: 14)),
-          trailing: Text(formatDate.format(widget.user.createdAt!),
-              style: const TextStyle(fontSize: 16)),
-        ),
-      ],
-      if (widget.user.locality != null) ...[
-        ListTile(
-          minTileHeight: 10,
-          title: const Text("Locality", style: TextStyle(fontSize: 14)),
-          trailing:
-              Text(widget.user.locality!, style: const TextStyle(fontSize: 16)),
-        ),
-      ],
-      const Divider(),
-      Padding(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-        child: Row(
-          children: [
-            Icon(
-              Icons.account_balance_rounded,
-              size: 18,
-              color: Theme.of(context).colorScheme.primary,
+        if (widget.user.lastName != null) ...[
+          ListTile(
+            minTileHeight: 10,
+            title: const Text("Full Name", style: TextStyle(fontSize: 14)),
+            trailing: Text(
+              "${widget.user.firstName} ${widget.user.lastName}",
+              style: const TextStyle(fontSize: 16),
             ),
-            const SizedBox(width: 8),
-            Text(
-              "Accounts",
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-                color: Theme.of(context).colorScheme.onSurface,
-              ),
+          ),
+        ],
+        if (widget.user.email != null) ...[
+          ListTile(
+            minTileHeight: 10,
+            title: const Text("Email", style: TextStyle(fontSize: 14)),
+            trailing: Text(
+              widget.user.email!,
+              style: const TextStyle(fontSize: 16),
             ),
-            const SizedBox(width: 6),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Text(
-                "${widget.brokerageUser.accounts.length}",
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-              ),
+          ),
+        ],
+        if (widget.user.createdAt != null) ...[
+          ListTile(
+            minTileHeight: 10,
+            title: const Text("Joined", style: TextStyle(fontSize: 14)),
+            trailing: Text(
+              formatDate.format(widget.user.createdAt!),
+              style: const TextStyle(fontSize: 16),
             ),
-            const Spacer(),
-            if (widget.brokerageUser.accounts.length > 1)
-              Flexible(
-                child: Text(
-                  "Tap to switch",
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Theme.of(context).colorScheme.outline,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-          ],
-        ),
-      ),
-      if (widget.brokerageUser.accounts.isEmpty) ...[
+          ),
+        ],
+        if (widget.user.locality != null) ...[
+          ListTile(
+            minTileHeight: 10,
+            title: const Text("Locality", style: TextStyle(fontSize: 14)),
+            trailing: Text(
+              widget.user.locality!,
+              style: const TextStyle(fontSize: 16),
+            ),
+          ),
+        ],
+        const Divider(),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Center(
-            child: Text(
-              "No accounts found",
-              style: TextStyle(
-                fontSize: 14,
-                color: Theme.of(context).colorScheme.outline,
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+          child: Row(
+            children: [
+              Icon(
+                Icons.account_balance_rounded,
+                size: 18,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                "Accounts",
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+              ),
+              const SizedBox(width: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  "${widget.brokerageUser.accounts.length}",
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+              const Spacer(),
+              if (widget.brokerageUser.accounts.length > 1)
+                Flexible(
+                  child: Text(
+                    "Tap to switch",
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Theme.of(context).colorScheme.outline,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+            ],
+          ),
+        ),
+        if (widget.brokerageUser.accounts.isEmpty) ...[
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Center(
+              child: Text(
+                "No accounts found",
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Theme.of(context).colorScheme.outline,
+                ),
               ),
             ),
           ),
-        ),
-      ] else ...[
-        ...widget.brokerageUser.accounts.map((account) {
-          final isSelected = account.accountNumber == activeAccountNum;
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            child: _buildAccountCard(
-              context: context,
-              account: account,
-              isSelected: isSelected,
-              showBalances: accountStore.showBalances,
-              onSelect: () async {
-                HapticFeedback.mediumImpact();
-                accountStore.setSelectedAccountNumber(account.accountNumber);
-                await accountStore.saveSelectedAccountNumber(
-                  _selectionStorageKey(),
-                );
-                if (context.mounted && Navigator.canPop(context)) {
-                  Navigator.pop(context, 'account_switched');
-                }
-              },
+        ] else ...[
+          ...widget.brokerageUser.accounts.map((account) {
+            final isSelected = account.accountNumber == activeAccountNum;
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              child: _buildAccountCard(
+                context: context,
+                account: account,
+                isSelected: isSelected,
+                showBalances: accountStore.showBalances,
+                onSelect: () async {
+                  HapticFeedback.mediumImpact();
+                  accountStore.setSelectedAccountNumber(account.accountNumber);
+                  await accountStore.saveSelectedAccountNumber(
+                    _selectionStorageKey(),
+                  );
+                  if (context.mounted && Navigator.canPop(context)) {
+                    Navigator.pop(context, 'account_switched');
+                  }
+                },
+              ),
+            );
+          }),
+        ],
+        const SizedBox(height: 8),
+        const Divider(),
+        if (widget.brokerageUser.oauth2Client != null &&
+            widget.brokerageUser.oauth2Client!.credentials.expiration !=
+                null) ...[
+          ListTile(
+            minTileHeight: 10,
+            title: const Text(
+              "Authorization token",
+              style: TextStyle(fontSize: 14),
             ),
-          );
-        }),
-      ],
-      const SizedBox(height: 8),
-      const Divider(),
-      if (widget.brokerageUser.oauth2Client != null &&
-          widget.brokerageUser.oauth2Client!.credentials.expiration !=
-              null) ...[
-        ListTile(
-          minTileHeight: 10,
-          title:
-              const Text("Authorization token", style: TextStyle(fontSize: 14)),
-          trailing: Text(
-            _formatExpirationDuration(_remainingTime),
-            style: const TextStyle(fontSize: 16),
+            trailing: Text(
+              _formatExpirationDuration(_remainingTime),
+              style: const TextStyle(fontSize: 16),
+            ),
+            onLongPress: () async {
+              await refreshToken(context, widget.brokerageUser);
+            },
           ),
-          onLongPress: () async {
-            await refreshToken(context, widget.brokerageUser);
-          },
+        ],
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          child: OverflowBar(
+            alignment: MainAxisAlignment.end,
+            spacing: 8,
+            overflowSpacing: 4,
+            children: [
+              TextButton.icon(
+                icon: const Icon(Icons.sync_lock_rounded),
+                onPressed: () {
+                  reauthenticate(context);
+                },
+                label: const Text('Renew'),
+              ),
+              TextButton.icon(
+                icon: const Icon(Icons.refresh),
+                onPressed: () async {
+                  await refreshToken(context, widget.brokerageUser);
+                },
+                label: const Text('Refresh'),
+              ),
+              TextButton.icon(
+                icon: const Icon(Icons.link_off),
+                onPressed: () async {
+                  var userStore = Provider.of<BrokerageUserStore>(
+                    context,
+                    listen: false,
+                  );
+                  userStore.remove(widget.brokerageUser);
+                  await userStore.save();
+                  userStore.setCurrentUserIndex(0);
+
+                  if (auth.currentUser != null) {
+                    final authUtil = AuthUtil(auth);
+                    await authUtil.setUser(
+                      widget.firestoreService,
+                      brokerageUserStore: userStore,
+                    );
+                  }
+                },
+                label: const Text('Unlink'),
+              ),
+            ],
+          ),
         ),
       ],
-      Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-        child: OverflowBar(
-          alignment: MainAxisAlignment.end,
-          spacing: 8,
-          overflowSpacing: 4,
-          children: [
-            TextButton.icon(
-              icon: const Icon(Icons.sync_lock_rounded),
-              onPressed: () {
-                reauthenticate(context);
-              },
-              label: const Text('Renew'),
-            ),
-            TextButton.icon(
-              icon: const Icon(Icons.refresh),
-              onPressed: () async {
-                await refreshToken(context, widget.brokerageUser);
-              },
-              label: const Text('Refresh'),
-            ),
-            TextButton.icon(
-              icon: const Icon(Icons.link_off),
-              onPressed: () async {
-                var userStore =
-                    Provider.of<BrokerageUserStore>(context, listen: false);
-                userStore.remove(widget.brokerageUser);
-                await userStore.save();
-                userStore.setCurrentUserIndex(0);
-
-                if (auth.currentUser != null) {
-                  final authUtil = AuthUtil(auth);
-                  await authUtil.setUser(widget.firestoreService,
-                      brokerageUserStore: userStore);
-                }
-              },
-              label: const Text('Unlink'),
-            ),
-          ],
-        ),
-      ),
-    ]);
+    );
   }
 
   void reauthenticate(BuildContext context) {
@@ -398,10 +418,7 @@ class _UserInfoWidgetState extends State<UserInfoWidget> {
       color: cardBgColor,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(
-          color: cardBorderColor,
-          width: isSelected ? 1.5 : 1.0,
-        ),
+        side: BorderSide(color: cardBorderColor, width: isSelected ? 1.5 : 1.0),
       ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -422,8 +439,8 @@ class _UserInfoWidgetState extends State<UserInfoWidget> {
                       color: account.isAgentic
                           ? Colors.amber.withValues(alpha: 0.15)
                           : (isSelected
-                              ? colorScheme.primary.withValues(alpha: 0.15)
-                              : colorScheme.surfaceContainerHighest),
+                                ? colorScheme.primary.withValues(alpha: 0.15)
+                                : colorScheme.surfaceContainerHighest),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Icon(
@@ -434,8 +451,8 @@ class _UserInfoWidgetState extends State<UserInfoWidget> {
                       color: account.isAgentic
                           ? (Colors.amber[800] ?? Colors.amber)
                           : (isSelected
-                              ? colorScheme.primary
-                              : colorScheme.onSurfaceVariant),
+                                ? colorScheme.primary
+                                : colorScheme.onSurfaceVariant),
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -462,19 +479,24 @@ class _UserInfoWidgetState extends State<UserInfoWidget> {
                             if (account.isAgentic) ...[
                               Container(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 5, vertical: 1.5),
+                                  horizontal: 5,
+                                  vertical: 1.5,
+                                ),
                                 decoration: BoxDecoration(
                                   color: Colors.amber.withValues(alpha: 0.15),
                                   borderRadius: BorderRadius.circular(4),
                                   border: Border.all(
-                                      color:
-                                          Colors.amber.withValues(alpha: 0.5)),
+                                    color: Colors.amber.withValues(alpha: 0.5),
+                                  ),
                                 ),
                                 child: const Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Icon(Icons.auto_awesome,
-                                        size: 10, color: Colors.amber),
+                                    Icon(
+                                      Icons.auto_awesome,
+                                      size: 10,
+                                      color: Colors.amber,
+                                    ),
                                     SizedBox(width: 2),
                                     Text(
                                       "Agentic",
@@ -506,7 +528,9 @@ class _UserInfoWidgetState extends State<UserInfoWidget> {
                   if (isSelected)
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 3),
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
                       decoration: BoxDecoration(
                         color: colorScheme.primary,
                         borderRadius: BorderRadius.circular(12),
@@ -514,8 +538,11 @@ class _UserInfoWidgetState extends State<UserInfoWidget> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.check,
-                              size: 12, color: colorScheme.onPrimary),
+                          Icon(
+                            Icons.check,
+                            size: 12,
+                            color: colorScheme.onPrimary,
+                          ),
                           const SizedBox(width: 3),
                           Text(
                             "Active",
@@ -539,11 +566,14 @@ class _UserInfoWidgetState extends State<UserInfoWidget> {
               const SizedBox(height: 10),
               // Balances Row
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
-                  color: colorScheme.surfaceContainerHighest
-                      .withValues(alpha: 0.5),
+                  color: colorScheme.surfaceContainerHighest.withValues(
+                    alpha: 0.5,
+                  ),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
@@ -569,9 +599,11 @@ class _UserInfoWidgetState extends State<UserInfoWidget> {
                             alignment: Alignment.centerLeft,
                             child: Text(
                               showBalances
-                                  ? formatCurrency.format(account.buyingPower ??
-                                      account.portfolioCash ??
-                                      0)
+                                  ? formatCurrency.format(
+                                      account.buyingPower ??
+                                          account.portfolioCash ??
+                                          0,
+                                    )
                                   : '\$••••••',
                               maxLines: 1,
                               style: TextStyle(
@@ -613,8 +645,9 @@ class _UserInfoWidgetState extends State<UserInfoWidget> {
                               alignment: Alignment.centerLeft,
                               child: Text(
                                 showBalances
-                                    ? formatCurrency
-                                        .format(account.portfolioCash!)
+                                    ? formatCurrency.format(
+                                        account.portfolioCash!,
+                                      )
                                     : '\$••••••',
                                 maxLines: 1,
                                 style: TextStyle(
@@ -680,7 +713,11 @@ class _UserInfoWidgetState extends State<UserInfoWidget> {
                 children: [
                   _buildPdtChip(context, account, isPdtFlagged),
                   _buildMarginChip(
-                      context, account, isMarginBorrowed, showBalances),
+                    context,
+                    account,
+                    isMarginBorrowed,
+                    showBalances,
+                  ),
                   _buildMarginFinancingChip(context, account),
                   _buildOptionsUpgradeChip(context, account),
                   _buildStockLoanChip(context, account),
@@ -698,24 +735,27 @@ class _UserInfoWidgetState extends State<UserInfoWidget> {
   }
 
   Widget _buildPdtChip(
-      BuildContext context, Account account, bool isPdtFlagged) {
+    BuildContext context,
+    Account account,
+    bool isPdtFlagged,
+  ) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final Color badgeColor = isPdtFlagged
         ? Colors.purple
         : (account.dayTradesProtection
-            ? Colors.teal
-            : colorScheme.onSurfaceVariant);
+              ? Colors.teal
+              : colorScheme.onSurfaceVariant);
     final Color badgeBg = isPdtFlagged
         ? Colors.purple.withValues(alpha: 0.12)
         : (account.dayTradesProtection
-            ? Colors.teal.withValues(alpha: 0.1)
-            : colorScheme.surfaceContainerHighest);
+              ? Colors.teal.withValues(alpha: 0.1)
+              : colorScheme.surfaceContainerHighest);
     final Color badgeBorder = isPdtFlagged
         ? Colors.purple.withValues(alpha: 0.4)
         : (account.dayTradesProtection
-            ? Colors.teal.withValues(alpha: 0.3)
-            : colorScheme.outlineVariant);
+              ? Colors.teal.withValues(alpha: 0.3)
+              : colorScheme.outlineVariant);
 
     final String label = isPdtFlagged
         ? "PDT Flagged"
@@ -724,8 +764,8 @@ class _UserInfoWidgetState extends State<UserInfoWidget> {
     final IconData icon = isPdtFlagged
         ? Icons.warning_rounded
         : (account.dayTradesProtection
-            ? Icons.shield_outlined
-            : Icons.show_chart_rounded);
+              ? Icons.shield_outlined
+              : Icons.show_chart_rounded);
 
     return Material(
       color: badgeBg,
@@ -736,7 +776,8 @@ class _UserInfoWidgetState extends State<UserInfoWidget> {
       child: InkWell(
         borderRadius: BorderRadius.circular(6),
         onTap: () {
-          final effectiveService = widget.service ??
+          final effectiveService =
+              widget.service ??
               (widget.brokerageUser.source == BrokerageSource.robinhood
                   ? RobinhoodService()
                   : DemoService());
@@ -783,8 +824,12 @@ class _UserInfoWidgetState extends State<UserInfoWidget> {
     );
   }
 
-  Widget _buildMarginChip(BuildContext context, Account account,
-      bool isMarginBorrowed, bool showBalances) {
+  Widget _buildMarginChip(
+    BuildContext context,
+    Account account,
+    bool isMarginBorrowed,
+    bool showBalances,
+  ) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final Color badgeColor = isMarginBorrowed
@@ -801,8 +846,9 @@ class _UserInfoWidgetState extends State<UserInfoWidget> {
         ? "Margin: ${showBalances ? formatCurrency.format(account.settledAmountBorrowed) : '\$••••••'}"
         : "Unleveraged";
 
-    final IconData icon =
-        isMarginBorrowed ? Icons.speed : Icons.check_circle_outline_rounded;
+    final IconData icon = isMarginBorrowed
+        ? Icons.speed
+        : Icons.check_circle_outline_rounded;
 
     return Material(
       color: badgeBg,
@@ -813,7 +859,8 @@ class _UserInfoWidgetState extends State<UserInfoWidget> {
       child: InkWell(
         borderRadius: BorderRadius.circular(6),
         onTap: () {
-          final effectiveService = widget.service ??
+          final effectiveService =
+              widget.service ??
               (widget.brokerageUser.source == BrokerageSource.robinhood
                   ? RobinhoodService()
                   : DemoService());
@@ -876,7 +923,8 @@ class _UserInfoWidgetState extends State<UserInfoWidget> {
       child: InkWell(
         borderRadius: BorderRadius.circular(6),
         onTap: () {
-          final effectiveService = widget.service ??
+          final effectiveService =
+              widget.service ??
               (widget.brokerageUser.source == BrokerageSource.robinhood
                   ? RobinhoodService()
                   : DemoService());
@@ -934,8 +982,7 @@ class _UserInfoWidgetState extends State<UserInfoWidget> {
     final Color badgeBorder = isL3
         ? Colors.green.withValues(alpha: 0.3)
         : colorScheme.secondary.withValues(alpha: 0.3);
-    final String label =
-        isL3 ? 'Options L3 Active' : 'Options & Collateral';
+    final String label = isL3 ? 'Options L3 Active' : 'Options & Collateral';
     final IconData icon = isL3 ? Icons.verified : Icons.upgrade_rounded;
 
     return Material(
@@ -947,7 +994,8 @@ class _UserInfoWidgetState extends State<UserInfoWidget> {
       child: InkWell(
         borderRadius: BorderRadius.circular(6),
         onTap: () {
-          final effectiveService = widget.service ??
+          final effectiveService =
+              widget.service ??
               (widget.brokerageUser.source == BrokerageSource.robinhood
                   ? RobinhoodService()
                   : DemoService());
@@ -1009,7 +1057,8 @@ class _UserInfoWidgetState extends State<UserInfoWidget> {
       child: InkWell(
         borderRadius: BorderRadius.circular(6),
         onTap: () {
-          final effectiveService = widget.service ??
+          final effectiveService =
+              widget.service ??
               (widget.brokerageUser.source == BrokerageSource.robinhood
                   ? RobinhoodService()
                   : DemoService());
@@ -1070,7 +1119,8 @@ class _UserInfoWidgetState extends State<UserInfoWidget> {
       child: InkWell(
         borderRadius: BorderRadius.circular(6),
         onTap: () {
-          final effectiveService = widget.service ??
+          final effectiveService =
+              widget.service ??
               (widget.brokerageUser.source == BrokerageSource.robinhood
                   ? RobinhoodService()
                   : DemoService());
@@ -1131,7 +1181,8 @@ class _UserInfoWidgetState extends State<UserInfoWidget> {
       child: InkWell(
         borderRadius: BorderRadius.circular(6),
         onTap: () {
-          final effectiveService = widget.service ??
+          final effectiveService =
+              widget.service ??
               (widget.brokerageUser.source == BrokerageSource.robinhood
                   ? RobinhoodService()
                   : DemoService());
@@ -1192,7 +1243,8 @@ class _UserInfoWidgetState extends State<UserInfoWidget> {
       child: InkWell(
         borderRadius: BorderRadius.circular(6),
         onTap: () {
-          final effectiveService = widget.service ??
+          final effectiveService =
+              widget.service ??
               (widget.brokerageUser.source == BrokerageSource.robinhood
                   ? RobinhoodService()
                   : DemoService());
@@ -1253,7 +1305,8 @@ class _UserInfoWidgetState extends State<UserInfoWidget> {
       child: InkWell(
         borderRadius: BorderRadius.circular(6),
         onTap: () {
-          final effectiveService = widget.service ??
+          final effectiveService =
+              widget.service ??
               (widget.brokerageUser.source == BrokerageSource.robinhood
                   ? RobinhoodService()
                   : DemoService());
@@ -1303,8 +1356,10 @@ class _UserInfoWidgetState extends State<UserInfoWidget> {
     if (optionLevel.isEmpty) return '';
     var cleaned = optionLevel.trim();
     cleaned = cleaned.replaceAll(
-      RegExp(r'^(upgrade_requested[\s_]*)?(options?[\s_]*)?(level[\s_]*)?',
-          caseSensitive: false),
+      RegExp(
+        r'^(upgrade_requested[\s_]*)?(options?[\s_]*)?(level[\s_]*)?',
+        caseSensitive: false,
+      ),
       '',
     );
     cleaned = cleaned.replaceAll(
@@ -1330,19 +1385,23 @@ class _UserInfoWidgetState extends State<UserInfoWidget> {
       if (context.mounted) {
         ScaffoldMessenger.of(context)
           ..removeCurrentSnackBar()
-          ..showSnackBar(const SnackBar(
-            content: Text("Token refreshed."),
-            behavior: SnackBarBehavior.floating,
-          ));
+          ..showSnackBar(
+            const SnackBar(
+              content: Text("Token refreshed."),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
       }
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context)
           ..removeCurrentSnackBar()
-          ..showSnackBar(SnackBar(
-            content: Text(e.toString()),
-            behavior: SnackBarBehavior.floating,
-          ));
+          ..showSnackBar(
+            SnackBar(
+              content: Text(e.toString()),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
       }
     }
   }

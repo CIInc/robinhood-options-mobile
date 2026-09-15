@@ -34,8 +34,10 @@ class _CopyTradingDashboardWidgetState
       builder: (context, snapshot) {
         final allTrades = snapshot.data ?? [];
         final filteredTrades = _filterTrades(allTrades);
-        final uniqueTraders =
-            allTrades.map((t) => t.sourceUserId).toSet().toList();
+        final uniqueTraders = allTrades
+            .map((t) => t.sourceUserId)
+            .toSet()
+            .toList();
 
         final completedTrades = _processTrades(filteredTrades);
 
@@ -64,27 +66,27 @@ class _CopyTradingDashboardWidgetState
           body: snapshot.hasError
               ? Center(child: Text('Error: ${snapshot.error}'))
               : snapshot.connectionState == ConnectionState.waiting
-                  ? const Center(child: CircularProgressIndicator())
-                  : SingleChildScrollView(
-                      child: Column(
-                        children: [
-                          _buildSummary(filteredTrades, completedTrades),
-                          _buildPerformanceChart(completedTrades),
-                          _buildTraderComparison(completedTrades),
-                          _buildCharts(filteredTrades),
-                          _buildFilters(context, uniqueTraders),
-                          ListView.builder(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            itemCount: filteredTrades.length,
-                            itemBuilder: (context, index) {
-                              final trade = filteredTrades[index];
-                              return _buildTradeItem(trade);
-                            },
-                          ),
-                        ],
+              ? const Center(child: CircularProgressIndicator())
+              : SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      _buildSummary(filteredTrades, completedTrades),
+                      _buildPerformanceChart(completedTrades),
+                      _buildTraderComparison(completedTrades),
+                      _buildCharts(filteredTrades),
+                      _buildFilters(context, uniqueTraders),
+                      ListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: filteredTrades.length,
+                        itemBuilder: (context, index) {
+                          final trade = filteredTrades[index];
+                          return _buildTradeItem(trade);
+                        },
                       ),
-                    ),
+                    ],
+                  ),
+                ),
         );
       },
     );
@@ -102,11 +104,13 @@ class _CopyTradingDashboardWidgetState
 
       final key = '${trade.sourceUserId}_${trade.symbol}_${trade.orderType}';
 
-      bool isOpening = trade.side.toLowerCase().contains('buy') &&
+      bool isOpening =
+          trade.side.toLowerCase().contains('buy') &&
           !trade.side.toLowerCase().contains('close');
       if (trade.side.toLowerCase().contains('open')) isOpening = true;
 
-      bool isClosing = trade.side.toLowerCase().contains('sell') &&
+      bool isClosing =
+          trade.side.toLowerCase().contains('sell') &&
           !trade.side.toLowerCase().contains('open');
       if (trade.side.toLowerCase().contains('close')) isClosing = true;
 
@@ -138,18 +142,20 @@ class _CopyTradingDashboardWidgetState
             final costBasis = openPos.record.price * matchQty * multiplier;
             final returnPct = (costBasis != 0) ? (pnl / costBasis) : 0.0;
 
-            completedTrades.add(CompletedTrade(
-              symbol: trade.symbol,
-              sourceUserId: trade.sourceUserId,
-              entryDate: openPos.record.timestamp,
-              exitDate: trade.timestamp,
-              quantity: matchQty,
-              entryPrice: openPos.record.price,
-              exitPrice: trade.price,
-              pnl: pnl,
-              returnPct: returnPct,
-              assetType: trade.orderType,
-            ));
+            completedTrades.add(
+              CompletedTrade(
+                symbol: trade.symbol,
+                sourceUserId: trade.sourceUserId,
+                entryDate: openPos.record.timestamp,
+                exitDate: trade.timestamp,
+                quantity: matchQty,
+                entryPrice: openPos.record.price,
+                exitPrice: trade.price,
+                pnl: pnl,
+                returnPct: returnPct,
+                assetType: trade.orderType,
+              ),
+            );
 
             remainingQty -= matchQty;
             openPos.remainingQuantity -= matchQty;
@@ -181,8 +187,10 @@ class _CopyTradingDashboardWidgetState
         children: [
           const Padding(
             padding: EdgeInsets.all(16),
-            child: Text('Trader Performance',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            child: Text(
+              'Trader Performance',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
           ),
           ListView.builder(
             shrinkWrap: true,
@@ -202,10 +210,13 @@ class _CopyTradingDashboardWidgetState
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text(NumberFormat.simpleCurrency().format(pnl),
-                        style: TextStyle(
-                            color: pnl >= 0 ? Colors.green : Colors.red,
-                            fontWeight: FontWeight.bold)),
+                    Text(
+                      NumberFormat.simpleCurrency().format(pnl),
+                      style: TextStyle(
+                        color: pnl >= 0 ? Colors.green : Colors.red,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                     Text('Win Rate: ${(winRate * 100).toStringAsFixed(1)}%'),
                   ],
                 ),
@@ -238,8 +249,10 @@ class _CopyTradingDashboardWidgetState
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Cumulative P&L',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const Text(
+              'Cumulative P&L',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
             SizedBox(
               height: 200,
               child: charts.TimeSeriesChart(
@@ -251,7 +264,7 @@ class _CopyTradingDashboardWidgetState
                     domainFn: (_TimeSeriesSales sales, _) => sales.time,
                     measureFn: (_TimeSeriesSales sales, _) => sales.sales,
                     data: data,
-                  )
+                  ),
                 ],
                 animate: true,
                 dateTimeFactory: const charts.LocalDateTimeFactory(),
@@ -274,8 +287,9 @@ class _CopyTradingDashboardWidgetState
       }
       if (_dateRangeFilter != null) {
         if (trade.timestamp.isBefore(_dateRangeFilter!.start) ||
-            trade.timestamp
-                .isAfter(_dateRangeFilter!.end.add(const Duration(days: 1)))) {
+            trade.timestamp.isAfter(
+              _dateRangeFilter!.end.add(const Duration(days: 1)),
+            )) {
           return false;
         }
       }
@@ -284,7 +298,9 @@ class _CopyTradingDashboardWidgetState
   }
 
   void _exportTrades(
-      List<CopyTradeRecord> trades, List<CompletedTrade> completedTrades) {
+    List<CopyTradeRecord> trades,
+    List<CompletedTrade> completedTrades,
+  ) {
     List<List<dynamic>> rows = [];
     rows.add([
       'Date',
@@ -297,7 +313,7 @@ class _CopyTradingDashboardWidgetState
       'Result',
       'Error',
       'P&L',
-      'Return %'
+      'Return %',
     ]);
 
     for (var trade in trades) {
@@ -305,10 +321,12 @@ class _CopyTradingDashboardWidgetState
       double? returnPct;
 
       try {
-        final completed = completedTrades.firstWhere((c) =>
-            c.exitDate == trade.timestamp &&
-            c.symbol == trade.symbol &&
-            c.assetType == trade.orderType);
+        final completed = completedTrades.firstWhere(
+          (c) =>
+              c.exitDate == trade.timestamp &&
+              c.symbol == trade.symbol &&
+              c.assetType == trade.orderType,
+        );
         pnl = completed.pnl;
         returnPct = completed.returnPct;
       } catch (e) {
@@ -326,27 +344,29 @@ class _CopyTradingDashboardWidgetState
         trade.executionResult ?? '',
         trade.error ?? '',
         pnl != null ? pnl.toStringAsFixed(2) : '',
-        returnPct != null ? '${(returnPct * 100).toStringAsFixed(2)}%' : ''
+        returnPct != null ? '${(returnPct * 100).toStringAsFixed(2)}%' : '',
       ]);
     }
 
     String csv = Csv().encode(rows);
-    SharePlus.instance.share(ShareParams(
-      text: csv,
-      subject: 'Copy Trade History.csv',
-    ));
+    SharePlus.instance.share(
+      ShareParams(text: csv, subject: 'Copy Trade History.csv'),
+    );
   }
 
   Widget _buildSummary(
-      List<CopyTradeRecord> trades, List<CompletedTrade> completedTrades) {
+    List<CopyTradeRecord> trades,
+    List<CompletedTrade> completedTrades,
+  ) {
     final totalTrades = trades.length;
     final totalVolume = trades.fold<double>(
-        0,
-        (sum, trade) =>
-            sum +
-            (trade.price *
-                trade.copiedQuantity *
-                (trade.orderType == 'option' ? 100 : 1)));
+      0,
+      (sum, trade) =>
+          sum +
+          (trade.price *
+              trade.copiedQuantity *
+              (trade.orderType == 'option' ? 100 : 1)),
+    );
 
     final totalPnL = completedTrades.fold<double>(0, (sum, t) => sum + t.pnl);
     final winningTrades = completedTrades.where((t) => t.pnl > 0).length;
@@ -364,8 +384,10 @@ class _CopyTradingDashboardWidgetState
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 _buildSummaryItem('Total Trades', totalTrades.toString()),
-                _buildSummaryItem('Total Volume',
-                    NumberFormat.simpleCurrency().format(totalVolume)),
+                _buildSummaryItem(
+                  'Total Volume',
+                  NumberFormat.simpleCurrency().format(totalVolume),
+                ),
               ],
             ),
             const SizedBox(height: 16),
@@ -373,10 +395,14 @@ class _CopyTradingDashboardWidgetState
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 _buildSummaryItem(
-                    'Total P&L', NumberFormat.simpleCurrency().format(totalPnL),
-                    color: totalPnL >= 0 ? Colors.green : Colors.red),
+                  'Total P&L',
+                  NumberFormat.simpleCurrency().format(totalPnL),
+                  color: totalPnL >= 0 ? Colors.green : Colors.red,
+                ),
                 _buildSummaryItem(
-                    'Win Rate', '${(winRate * 100).toStringAsFixed(1)}%'),
+                  'Win Rate',
+                  '${(winRate * 100).toStringAsFixed(1)}%',
+                ),
               ],
             ),
           ],
@@ -391,8 +417,11 @@ class _CopyTradingDashboardWidgetState
     // Group by Symbol
     final Map<String, double> symbolDistribution = {};
     for (var trade in trades) {
-      symbolDistribution.update(trade.symbol, (value) => value + 1,
-          ifAbsent: () => 1);
+      symbolDistribution.update(
+        trade.symbol,
+        (value) => value + 1,
+        ifAbsent: () => 1,
+      );
     }
 
     final data = symbolDistribution.entries
@@ -407,7 +436,7 @@ class _CopyTradingDashboardWidgetState
         data: data,
         labelAccessorFn: (pie_chart.PieChartData row, _) =>
             '${row.label}: ${row.value.toInt()}',
-      )
+      ),
     ];
 
     return SizedBox(
@@ -429,9 +458,14 @@ class _CopyTradingDashboardWidgetState
   Widget _buildSummaryItem(String label, String value, {Color? color}) {
     return Column(
       children: [
-        Text(value,
-            style: TextStyle(
-                fontSize: 20, fontWeight: FontWeight.bold, color: color)),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
         Text(label, style: const TextStyle(color: Colors.grey)),
       ],
     );
@@ -502,7 +536,8 @@ class _CopyTradingDashboardWidgetState
                       return DropdownMenuItem(
                         value: traderId,
                         child: Text(
-                            traderId.substring(0, 8)), // Show short ID for now
+                          traderId.substring(0, 8),
+                        ), // Show short ID for now
                       );
                     }),
                   ],
@@ -525,8 +560,9 @@ class _CopyTradingDashboardWidgetState
 
     return ListTile(
       title: Text('${trade.side.toUpperCase()} ${trade.symbol}'),
-      subtitle:
-          Text('${dateFormat.format(trade.timestamp)} • ${trade.orderType}'),
+      subtitle: Text(
+        '${dateFormat.format(trade.timestamp)} • ${trade.orderType}',
+      ),
       trailing: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.end,
@@ -539,14 +575,14 @@ class _CopyTradingDashboardWidgetState
             trade.executed
                 ? 'Executed'
                 : (trade.executionResult == 'skipped_daily_limit'
-                    ? 'Skipped'
-                    : 'Pending'),
+                      ? 'Skipped'
+                      : 'Pending'),
             style: TextStyle(
               color: trade.executed
                   ? Colors.green
                   : (trade.executionResult == 'skipped_daily_limit'
-                      ? Colors.red
-                      : Colors.orange),
+                        ? Colors.red
+                        : Colors.orange),
               fontSize: 12,
             ),
           ),

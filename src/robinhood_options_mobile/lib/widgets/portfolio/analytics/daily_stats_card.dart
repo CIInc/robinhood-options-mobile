@@ -18,49 +18,106 @@ class DailyStatsCard extends StatelessWidget {
 
     List<Widget> stats = [];
     if (data.containsKey('profitFactor')) {
-      stats.add(MetricPresentation.buildStatItem(
-          context, 'Profit Factor', data['profitFactor'],
-          goodThreshold: 1.5, badThreshold: 1.0));
+      stats.add(
+        MetricPresentation.buildStatItem(
+          context,
+          'Profit Factor',
+          data['profitFactor'],
+          goodThreshold: 1.5,
+          badThreshold: 1.0,
+        ),
+      );
     }
     if (data.containsKey('winRate')) {
-      stats.add(MetricPresentation.buildStatItem(
-          context, 'Win Rate', data['winRate'],
-          isPercent: true, goodThreshold: 0.55, badThreshold: 0.45));
+      stats.add(
+        MetricPresentation.buildStatItem(
+          context,
+          'Win Rate',
+          data['winRate'],
+          isPercent: true,
+          goodThreshold: 0.55,
+          badThreshold: 0.45,
+        ),
+      );
     }
     if (data.containsKey('payoffRatio')) {
-      stats.add(MetricPresentation.buildStatItem(
-          context, 'Payoff Ratio', data['payoffRatio'],
-          goodThreshold: 1.5, badThreshold: 1.0));
+      stats.add(
+        MetricPresentation.buildStatItem(
+          context,
+          'Payoff Ratio',
+          data['payoffRatio'],
+          goodThreshold: 1.5,
+          badThreshold: 1.0,
+        ),
+      );
     }
     if (data.containsKey('expectancy')) {
-      stats.add(MetricPresentation.buildStatItem(
-          context, 'Expectancy', data['expectancy'],
-          goodThreshold: 0.0, isCurrency: true));
+      stats.add(
+        MetricPresentation.buildStatItem(
+          context,
+          'Expectancy',
+          data['expectancy'],
+          goodThreshold: 0.0,
+          isCurrency: true,
+        ),
+      );
     }
     if (data.containsKey('avgWin')) {
-      stats.add(MetricPresentation.buildStatItem(
-          context, 'Avg Win', data['avgWin'],
-          goodThreshold: 0.0, isCurrency: true));
+      stats.add(
+        MetricPresentation.buildStatItem(
+          context,
+          'Avg Win',
+          data['avgWin'],
+          goodThreshold: 0.0,
+          isCurrency: true,
+        ),
+      );
     }
     if (data.containsKey('avgLoss')) {
-      stats.add(MetricPresentation.buildStatItem(
-          context, 'Avg Loss', data['avgLoss'],
-          badThreshold: 0.0, isCurrency: true, reverseColor: true));
+      stats.add(
+        MetricPresentation.buildStatItem(
+          context,
+          'Avg Loss',
+          data['avgLoss'],
+          badThreshold: 0.0,
+          isCurrency: true,
+          reverseColor: true,
+        ),
+      );
     }
     if (data.containsKey('avgDailyReturn')) {
-      stats.add(MetricPresentation.buildStatItem(
-          context, 'Avg Daily', data['avgDailyReturn'],
-          isPercent: true, goodThreshold: 0.0));
+      stats.add(
+        MetricPresentation.buildStatItem(
+          context,
+          'Avg Daily',
+          data['avgDailyReturn'],
+          isPercent: true,
+          goodThreshold: 0.0,
+        ),
+      );
     }
     if (data.containsKey('maxWinStreak')) {
-      stats.add(MetricPresentation.buildStatItem(
-          context, 'Max Win Streak', (data['maxWinStreak'] as int).toDouble(),
-          isInt: true, goodThreshold: 3.0));
+      stats.add(
+        MetricPresentation.buildStatItem(
+          context,
+          'Max Win Streak',
+          (data['maxWinStreak'] as int).toDouble(),
+          isInt: true,
+          goodThreshold: 3.0,
+        ),
+      );
     }
     if (data.containsKey('maxLossStreak')) {
-      stats.add(MetricPresentation.buildStatItem(
-          context, 'Max Loss Streak', (data['maxLossStreak'] as int).toDouble(),
-          isInt: true, badThreshold: 3.0, reverseColor: true));
+      stats.add(
+        MetricPresentation.buildStatItem(
+          context,
+          'Max Loss Streak',
+          (data['maxLossStreak'] as int).toDouble(),
+          isInt: true,
+          badThreshold: 3.0,
+          reverseColor: true,
+        ),
+      );
     }
 
     return AnalyticsStyleCard(
@@ -69,11 +126,15 @@ class DailyStatsCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(Icons.analytics_outlined,
-                  color: Theme.of(context).colorScheme.primary),
+              Icon(
+                Icons.analytics_outlined,
+                color: Theme.of(context).colorScheme.primary,
+              ),
               const SizedBox(width: 12),
-              Text('Daily Return Stats',
-                  style: Theme.of(context).textTheme.titleLarge),
+              Text(
+                'Daily Return Stats',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
             ],
           ),
           const SizedBox(height: 20),

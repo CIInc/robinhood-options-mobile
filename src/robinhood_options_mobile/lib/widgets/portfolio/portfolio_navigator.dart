@@ -40,7 +40,10 @@ class PortfolioNavigator {
         return openSection(context, PortfolioSection.positions, sectionContext);
       case PortfolioAlertTarget.performance:
         return openSection(
-            context, PortfolioSection.performance, sectionContext);
+          context,
+          PortfolioSection.performance,
+          sectionContext,
+        );
       case PortfolioAlertTarget.risk:
         return openSection(context, PortfolioSection.risk, sectionContext);
       case PortfolioAlertTarget.insights:
@@ -49,7 +52,10 @@ class PortfolioNavigator {
         return openSection(context, PortfolioSection.taxes, sectionContext);
       case PortfolioAlertTarget.strategies:
         return openSection(
-            context, PortfolioSection.strategies, sectionContext);
+          context,
+          PortfolioSection.strategies,
+          sectionContext,
+        );
       case PortfolioAlertTarget.rebalance:
         return _openRebalance(context, sectionContext);
       case PortfolioAlertTarget.none:
@@ -58,7 +64,9 @@ class PortfolioNavigator {
   }
 
   static Widget _pageFor(
-      PortfolioSection section, PortfolioSectionContext sectionContext) {
+    PortfolioSection section,
+    PortfolioSectionContext sectionContext,
+  ) {
     switch (section) {
       case PortfolioSection.positions:
         return PositionsSectionPage(sectionContext: sectionContext);
@@ -76,7 +84,9 @@ class PortfolioNavigator {
   }
 
   static Future<void> _openRebalance(
-      BuildContext context, PortfolioSectionContext sectionContext) {
+    BuildContext context,
+    PortfolioSectionContext sectionContext,
+  ) {
     final appUser = sectionContext.appUser;
     final userDocRef = sectionContext.userDocRef;
     final account = sectionContext.account;

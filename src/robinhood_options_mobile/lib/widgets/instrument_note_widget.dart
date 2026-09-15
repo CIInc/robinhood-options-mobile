@@ -39,149 +39,166 @@ class _InstrumentNoteWidgetState extends State<InstrumentNoteWidget> {
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) {
-        return StatefulBuilder(builder: (context, setDialogState) {
-          return AlertDialog(
-            title: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(child: Text('Note for ${widget.instrument.symbol}')),
-                IconButton(
-                  icon: const Icon(Icons.auto_awesome),
-                  color: Colors.purple,
-                  tooltip: "Draft with AI",
-                  onPressed: isSaving
-                      ? null
-                      : () async {
-                          setDialogState(() => isSaving = true);
-                          try {
-                            final prompt =
-                                GenerativeService.buildDraftNotePrompt(
-                                    widget.instrument.symbol);
-                            final result = await widget.generativeService
-                                .generateContentFromServer(
-                                    prompt, null, null, null);
-                            if (result.isNotEmpty) {
-                              if (_noteController.text.isEmpty) {
-                                _noteController.text = result;
-                              } else {
-                                _noteController.text =
-                                    "${_noteController.text}\n\n---\n\n$result";
-                              }
-                            }
-                          } catch (e) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                  content: Text('AI Generation failed: $e')),
-                            );
-                          } finally {
-                            setDialogState(() => isSaving = false);
-                          }
-                        },
-                ),
-              ],
-            ),
-            content: TextField(
-              controller: _noteController,
-              maxLines: null,
-              minLines: 5,
-              autofocus: true,
-              decoration: const InputDecoration(
-                hintText: 'Enter your trading notes... (Markdown supported)',
-                border: OutlineInputBorder(),
-                contentPadding: EdgeInsets.all(12),
-              ),
-            ),
-            actions: [
-              if (existingNote != null)
-                TextButton(
-                  onPressed: isSaving
-                      ? null
-                      : () async {
-                          final confirm = await showDialog<bool>(
-                              context: context,
-                              builder: (context) => AlertDialog(
-                                    title: const Text('Delete Note?'),
-                                    content: const Text(
-                                        'This action cannot be undone.'),
-                                    actions: [
-                                      TextButton(
-                                          onPressed: () =>
-                                              Navigator.pop(context, false),
-                                          child: const Text('Cancel')),
-                                      TextButton(
-                                          onPressed: () =>
-                                              Navigator.pop(context, true),
-                                          child: const Text('Delete',
-                                              style: TextStyle(
-                                                  color: Colors.red))),
-                                    ],
-                                  ));
-
-                          if (confirm == true) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(child: Text('Note for ${widget.instrument.symbol}')),
+                  IconButton(
+                    icon: const Icon(Icons.auto_awesome),
+                    color: Colors.purple,
+                    tooltip: "Draft with AI",
+                    onPressed: isSaving
+                        ? null
+                        : () async {
                             setDialogState(() => isSaving = true);
                             try {
-                              await widget.firestoreService
-                                  .deleteInstrumentNote(
-                                widget.userId!,
-                                widget.instrument.symbol,
-                              );
-                              if (context.mounted) Navigator.pop(context);
+                              final prompt =
+                                  GenerativeService.buildDraftNotePrompt(
+                                    widget.instrument.symbol,
+                                  );
+                              final result = await widget.generativeService
+                                  .generateContentFromServer(
+                                    prompt,
+                                    null,
+                                    null,
+                                    null,
+                                  );
+                              if (result.isNotEmpty) {
+                                if (_noteController.text.isEmpty) {
+                                  _noteController.text = result;
+                                } else {
+                                  _noteController.text =
+                                      "${_noteController.text}\n\n---\n\n$result";
+                                }
+                              }
                             } catch (e) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('AI Generation failed: $e'),
+                                ),
+                              );
+                            } finally {
                               setDialogState(() => isSaving = false);
                             }
-                          }
-                        },
-                  child:
-                      const Text('Delete', style: TextStyle(color: Colors.red)),
+                          },
+                  ),
+                ],
+              ),
+              content: TextField(
+                controller: _noteController,
+                maxLines: null,
+                minLines: 5,
+                autofocus: true,
+                decoration: const InputDecoration(
+                  hintText: 'Enter your trading notes... (Markdown supported)',
+                  border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.all(12),
                 ),
-              if (isSaving)
-                const SizedBox(
+              ),
+              actions: [
+                if (existingNote != null)
+                  TextButton(
+                    onPressed: isSaving
+                        ? null
+                        : () async {
+                            final confirm = await showDialog<bool>(
+                              context: context,
+                              builder: (context) => AlertDialog(
+                                title: const Text('Delete Note?'),
+                                content: const Text(
+                                  'This action cannot be undone.',
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () =>
+                                        Navigator.pop(context, false),
+                                    child: const Text('Cancel'),
+                                  ),
+                                  TextButton(
+                                    onPressed: () =>
+                                        Navigator.pop(context, true),
+                                    child: const Text(
+                                      'Delete',
+                                      style: TextStyle(color: Colors.red),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+
+                            if (confirm == true) {
+                              setDialogState(() => isSaving = true);
+                              try {
+                                await widget.firestoreService
+                                    .deleteInstrumentNote(
+                                      widget.userId!,
+                                      widget.instrument.symbol,
+                                    );
+                                if (context.mounted) Navigator.pop(context);
+                              } catch (e) {
+                                setDialogState(() => isSaving = false);
+                              }
+                            }
+                          },
+                    child: const Text(
+                      'Delete',
+                      style: TextStyle(color: Colors.red),
+                    ),
+                  ),
+                if (isSaving)
+                  const SizedBox(
                     width: 20,
                     height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2))
-              else ...[
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Cancel'),
-                ),
-                TextButton(
-                  onPressed: () async {
-                    setDialogState(() => isSaving = true);
-                    try {
-                      final noteText = _noteController.text.trim();
-                      if (noteText.isEmpty) {
-                        if (existingNote != null) {
-                          await widget.firestoreService.deleteInstrumentNote(
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                else ...[
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Cancel'),
+                  ),
+                  TextButton(
+                    onPressed: () async {
+                      setDialogState(() => isSaving = true);
+                      try {
+                        final noteText = _noteController.text.trim();
+                        if (noteText.isEmpty) {
+                          if (existingNote != null) {
+                            await widget.firestoreService.deleteInstrumentNote(
+                              widget.userId!,
+                              widget.instrument.symbol,
+                            );
+                          }
+                        } else {
+                          final note = InstrumentNote(
+                            symbol: widget.instrument.symbol,
+                            note: noteText,
+                            createdAt:
+                                existingNote?.createdAt ?? DateTime.now(),
+                            updatedAt: DateTime.now(),
+                          );
+                          await widget.firestoreService.saveInstrumentNote(
                             widget.userId!,
-                            widget.instrument.symbol,
+                            note,
                           );
                         }
-                      } else {
-                        final note = InstrumentNote(
-                          symbol: widget.instrument.symbol,
-                          note: noteText,
-                          createdAt: existingNote?.createdAt ?? DateTime.now(),
-                          updatedAt: DateTime.now(),
-                        );
-                        await widget.firestoreService.saveInstrumentNote(
-                          widget.userId!,
-                          note,
+                        if (context.mounted) Navigator.pop(context);
+                      } catch (e) {
+                        setDialogState(() => isSaving = false);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Error saving note: $e')),
                         );
                       }
-                      if (context.mounted) Navigator.pop(context);
-                    } catch (e) {
-                      setDialogState(() => isSaving = false);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Error saving note: $e')),
-                      );
-                    }
-                  },
-                  child: const Text('Save'),
-                ),
-              ]
-            ],
-          );
-        });
+                    },
+                    child: const Text('Save'),
+                  ),
+                ],
+              ],
+            );
+          },
+        );
       },
     );
   }
@@ -200,14 +217,16 @@ class _InstrumentNoteWidgetState extends State<InstrumentNoteWidget> {
       builder: (context, snapshot) {
         if (snapshot.hasError) {
           return SizedBox(
-              height: 100,
-              child:
-                  Center(child: Text('Error loading note: ${snapshot.error}')));
+            height: 100,
+            child: Center(child: Text('Error loading note: ${snapshot.error}')),
+          );
         }
 
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const SizedBox(
-              height: 100, child: Center(child: CircularProgressIndicator()));
+            height: 100,
+            child: Center(child: CircularProgressIndicator()),
+          );
         }
 
         final existingNote = snapshot.data?.data();
@@ -215,7 +234,9 @@ class _InstrumentNoteWidgetState extends State<InstrumentNoteWidget> {
 
         return Card(
           margin: const EdgeInsets.symmetric(
-              vertical: 8.0, horizontal: 0.0), // Match other cards
+            vertical: 8.0,
+            horizontal: 0.0,
+          ), // Match other cards
           child: InkWell(
             onTap: () => _editNote(existingNote),
             child: Padding(
@@ -252,10 +273,13 @@ class _InstrumentNoteWidgetState extends State<InstrumentNoteWidget> {
                           tooltip: 'Copy Note',
                           onPressed: () {
                             Clipboard.setData(
-                                ClipboardData(text: existingNote.note));
+                              ClipboardData(text: existingNote.note),
+                            );
                             ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                    content: Text('Note copied to clipboard')));
+                              const SnackBar(
+                                content: Text('Note copied to clipboard'),
+                              ),
+                            );
                           },
                         ),
                     ],
@@ -268,63 +292,67 @@ class _InstrumentNoteWidgetState extends State<InstrumentNoteWidget> {
                         selectable: true,
                         onTapLink: (text, href, title) {
                           if (href != null) {
-                            launchUrl(Uri.parse(href),
-                                mode: LaunchMode.externalApplication);
+                            launchUrl(
+                              Uri.parse(href),
+                              mode: LaunchMode.externalApplication,
+                            );
                           }
                         },
                         styleSheet:
-                            MarkdownStyleSheet.fromTheme(Theme.of(context))
-                                .copyWith(
-                          p: Theme.of(context).textTheme.bodyMedium,
-                          h1: Theme.of(context).textTheme.titleLarge,
-                          h2: Theme.of(context).textTheme.titleMedium,
-                          h3: Theme.of(context).textTheme.titleSmall,
-                          blockquote: Theme.of(context)
-                              .textTheme
-                              .bodyMedium
-                              ?.copyWith(color: Colors.grey),
-                          code: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                backgroundColor: Theme.of(context)
-                                    .colorScheme
-                                    .surfaceContainerHighest,
-                                fontFamily: 'monospace',
-                              ),
-                        ),
+                            MarkdownStyleSheet.fromTheme(
+                              Theme.of(context),
+                            ).copyWith(
+                              p: Theme.of(context).textTheme.bodyMedium,
+                              h1: Theme.of(context).textTheme.titleLarge,
+                              h2: Theme.of(context).textTheme.titleMedium,
+                              h3: Theme.of(context).textTheme.titleSmall,
+                              blockquote: Theme.of(context).textTheme.bodyMedium
+                                  ?.copyWith(color: Colors.grey),
+                              code: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(
+                                    backgroundColor: Theme.of(
+                                      context,
+                                    ).colorScheme.surfaceContainerHighest,
+                                    fontFamily: 'monospace',
+                                  ),
+                            ),
                       )
                     else
-                      Column(children: [
-                        SizedBox(
+                      Column(
+                        children: [
+                          SizedBox(
                             height: 150,
                             child: ShaderMask(
-                                shaderCallback: (rect) {
-                                  return const LinearGradient(
-                                    begin: Alignment.topCenter,
-                                    end: Alignment.bottomCenter,
-                                    colors: [Colors.black, Colors.transparent],
-                                  ).createShader(Rect.fromLTRB(
-                                      0, 0, rect.width, rect.height));
-                                },
-                                blendMode: BlendMode.dstIn,
-                                child: SingleChildScrollView(
-                                    physics:
-                                        const NeverScrollableScrollPhysics(),
-                                    child: MarkdownBody(
-                                      data: existingNote.note,
-                                      styleSheet: MarkdownStyleSheet.fromTheme(
-                                              Theme.of(context))
-                                          .copyWith(
-                                        p: Theme.of(context)
-                                            .textTheme
-                                            .bodyMedium,
-                                        h1: Theme.of(context)
-                                            .textTheme
-                                            .titleLarge,
-                                        h2: Theme.of(context)
-                                            .textTheme
-                                            .titleMedium,
-                                        h3: Theme.of(context)
-                                            .textTheme
-                                            .titleSmall,
+                              shaderCallback: (rect) {
+                                return const LinearGradient(
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                  colors: [Colors.black, Colors.transparent],
+                                ).createShader(
+                                  Rect.fromLTRB(0, 0, rect.width, rect.height),
+                                );
+                              },
+                              blendMode: BlendMode.dstIn,
+                              child: SingleChildScrollView(
+                                physics: const NeverScrollableScrollPhysics(),
+                                child: MarkdownBody(
+                                  data: existingNote.note,
+                                  styleSheet:
+                                      MarkdownStyleSheet.fromTheme(
+                                        Theme.of(context),
+                                      ).copyWith(
+                                        p: Theme.of(
+                                          context,
+                                        ).textTheme.bodyMedium,
+                                        h1: Theme.of(
+                                          context,
+                                        ).textTheme.titleLarge,
+                                        h2: Theme.of(
+                                          context,
+                                        ).textTheme.titleMedium,
+                                        h3: Theme.of(
+                                          context,
+                                        ).textTheme.titleSmall,
                                         blockquote: Theme.of(context)
                                             .textTheme
                                             .bodyMedium
@@ -339,30 +367,36 @@ class _InstrumentNoteWidgetState extends State<InstrumentNoteWidget> {
                                               fontFamily: 'monospace',
                                             ),
                                       ),
-                                    )))),
-                        TextButton(
+                                ),
+                              ),
+                            ),
+                          ),
+                          TextButton(
                             onPressed: () => setState(() => _isExpanded = true),
-                            child: const Text("Show All"))
-                      ]),
+                            child: const Text("Show All"),
+                          ),
+                        ],
+                      ),
                     if (_isExpanded && existingNote.note.length >= 300)
                       Align(
-                          alignment: Alignment.center,
-                          child: TextButton(
-                              onPressed: () =>
-                                  setState(() => _isExpanded = false),
-                              child: const Text("Show Less")))
+                        alignment: Alignment.center,
+                        child: TextButton(
+                          onPressed: () => setState(() => _isExpanded = false),
+                          child: const Text("Show Less"),
+                        ),
+                      ),
                   ] else
                     Row(
                       children: [
-                        Icon(Icons.edit_note,
-                            color: Theme.of(context).colorScheme.primary,
-                            size: 20),
+                        Icon(
+                          Icons.edit_note,
+                          color: Theme.of(context).colorScheme.primary,
+                          size: 20,
+                        ),
                         const SizedBox(width: 8),
                         Text(
                           'Tap to create a personal note...',
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodyLarge
+                          style: Theme.of(context).textTheme.bodyLarge
                               ?.copyWith(
                                 fontStyle: FontStyle.italic,
                                 color: Theme.of(context).colorScheme.primary,

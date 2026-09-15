@@ -20,8 +20,10 @@ class FuturesAutoTradingCardWidget extends StatelessWidget {
     this.userDocRef,
     this.service,
     this.analytics,
-    this.outerPadding =
-        const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+    this.outerPadding = const EdgeInsets.symmetric(
+      horizontal: 16.0,
+      vertical: 8.0,
+    ),
   });
 
   @override
@@ -117,8 +119,8 @@ class FuturesAutoTradingCardWidget extends StatelessWidget {
                               Text(
                                 isEnabled
                                     ? (isPaper
-                                        ? 'Live Paper Trading'
-                                        : 'Live Real Trading')
+                                          ? 'Live Paper Trading'
+                                          : 'Live Real Trading')
                                     : 'Inactive',
                                 style: theme.textTheme.bodySmall?.copyWith(
                                   color: isEnabled
@@ -143,10 +145,10 @@ class FuturesAutoTradingCardWidget extends StatelessWidget {
                                       MaterialPageRoute(
                                         builder: (context) =>
                                             FuturesTradingSettingsWidget(
-                                          user: user!,
-                                          userDocRef: userDocRef!,
-                                          service: service,
-                                        ),
+                                              user: user!,
+                                              userDocRef: userDocRef!,
+                                              service: service,
+                                            ),
                                       ),
                                     );
                                   },
@@ -209,8 +211,12 @@ class FuturesAutoTradingCardWidget extends StatelessWidget {
   }
 
   Widget _buildStat(
-      BuildContext context, String label, String value, IconData icon,
-      {Color? color}) {
+    BuildContext context,
+    String label,
+    String value,
+    IconData icon, {
+    Color? color,
+  }) {
     final theme = Theme.of(context);
     return Column(
       children: [

@@ -63,26 +63,21 @@ class _ShortInterestWidgetState extends State<ShortInterestWidget> {
     try {
       final results = await Future.wait([
         widget.service
-            .getShortInterest(
-          widget.brokerageUser,
-          widget.instrument.id,
-        )
+            .getShortInterest(widget.brokerageUser, widget.instrument.id)
             .catchError((e) {
-          debugPrint('getShortInterest error: $e');
-          return null;
-        }),
+              debugPrint('getShortInterest error: $e');
+              return null;
+            }),
         widget.service
-            .getShortingAvailability(
-          widget.brokerageUser,
-          widget.instrument.id,
-        )
+            .getShortingAvailability(widget.brokerageUser, widget.instrument.id)
             .catchError((e) {
-          debugPrint('getShortingAvailability error: $e');
-          return null;
-        }),
+              debugPrint('getShortingAvailability error: $e');
+              return null;
+            }),
       ]);
 
-      final adv = widget.instrument.fundamentalsObj?.averageVolume ??
+      final adv =
+          widget.instrument.fundamentalsObj?.averageVolume ??
           widget.instrument.fundamentalsObj?.averageVolume30Days ??
           widget.instrument.fundamentalsObj?.averageVolume2Weeks;
       final floatShares = widget.instrument.fundamentalsObj?.float;
@@ -118,12 +113,16 @@ class _ShortInterestWidgetState extends State<ShortInterestWidget> {
 
         if (snapshot.hasError) {
           return Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16.0,
+              vertical: 8.0,
+            ),
             child: Card(
               child: ListTile(
-                leading: Icon(Icons.error_outline,
-                    color: Theme.of(context).colorScheme.error),
+                leading: Icon(
+                  Icons.error_outline,
+                  color: Theme.of(context).colorScheme.error,
+                ),
                 title: const Text('Short interest data unavailable'),
                 subtitle: Text('${snapshot.error}'),
                 trailing: IconButton(
@@ -159,17 +158,15 @@ class _ShortInterestWidgetState extends State<ShortInterestWidget> {
             Card(
               margin: const EdgeInsets.fromLTRB(16, 4, 16, 8),
               elevation: 0,
-              color: Theme.of(context)
-                  .colorScheme
-                  .surfaceContainerHighest
-                  .withValues(alpha: 0.25),
+              color: Theme.of(
+                context,
+              ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.25),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
                 side: BorderSide(
-                  color: Theme.of(context)
-                      .colorScheme
-                      .outlineVariant
-                      .withValues(alpha: 0.4),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.outlineVariant.withValues(alpha: 0.4),
                 ),
               ),
               child: Padding(
@@ -235,10 +232,9 @@ class _ShortInterestWidgetState extends State<ShortInterestWidget> {
             Container(
               padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
-                color: Theme.of(context)
-                    .colorScheme
-                    .primary
-                    .withValues(alpha: 0.1),
+                color: Theme.of(
+                  context,
+                ).colorScheme.primary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(
@@ -257,16 +253,13 @@ class _ShortInterestWidgetState extends State<ShortInterestWidget> {
                 Text(
                   title,
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 19,
-                      ),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 19,
+                  ),
                 ),
                 if (subtitle != null) ...[
                   const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
+                  Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
                 ],
               ],
             ),
@@ -290,15 +283,16 @@ class _ShortInterestWidgetState extends State<ShortInterestWidget> {
           decoration: BoxDecoration(
             color: squeezeRisk.color.withValues(alpha: 0.15),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: squeezeRisk.color.withValues(alpha: 0.4),
-            ),
+            border: Border.all(color: squeezeRisk.color.withValues(alpha: 0.4)),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.warning_amber_rounded,
-                  size: 14, color: squeezeRisk.color),
+              Icon(
+                Icons.warning_amber_rounded,
+                size: 14,
+                color: squeezeRisk.color,
+              ),
               const SizedBox(width: 4),
               Flexible(
                 child: Text(
@@ -346,23 +340,24 @@ class _ShortInterestWidgetState extends State<ShortInterestWidget> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: Theme.of(context)
-                  .colorScheme
-                  .secondary
-                  .withValues(alpha: 0.12),
+              color: Theme.of(
+                context,
+              ).colorScheme.secondary.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: Theme.of(context)
-                    .colorScheme
-                    .secondary
-                    .withValues(alpha: 0.3),
+                color: Theme.of(
+                  context,
+                ).colorScheme.secondary.withValues(alpha: 0.3),
               ),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.percent,
-                    size: 14, color: Theme.of(context).colorScheme.secondary),
+                Icon(
+                  Icons.percent,
+                  size: 14,
+                  color: Theme.of(context).colorScheme.secondary,
+                ),
                 const SizedBox(width: 4),
                 Text(
                   'Fee: ${summary.availability!.borrowFeeRatePercentage!.toStringAsFixed(2)}%',
@@ -380,7 +375,9 @@ class _ShortInterestWidgetState extends State<ShortInterestWidget> {
   }
 
   Widget _buildPrimaryMetricsGrid(
-      BuildContext context, ShortInterestSummary summary) {
+    BuildContext context,
+    ShortInterestSummary summary,
+  ) {
     final floatPct = summary.shortInterest?.freeFloatPercentage;
     final dtc = summary.shortInterest?.daysToCover;
     final feeRatePct = summary.availability?.borrowFeeRatePercentage;
@@ -406,8 +403,9 @@ class _ShortInterestWidgetState extends State<ShortInterestWidget> {
                     : 'N/A',
                 subtitle: 'Free Float Shorted',
                 valueColor: _getFloatPercentageColor(floatPct),
-                progressValue:
-                    floatPct != null ? (floatPct / 40.0).clamp(0.0, 1.0) : null,
+                progressValue: floatPct != null
+                    ? (floatPct / 40.0).clamp(0.0, 1.0)
+                    : null,
               ),
             ),
             SizedBox(
@@ -459,10 +457,9 @@ class _ShortInterestWidgetState extends State<ShortInterestWidget> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Theme.of(context)
-            .colorScheme
-            .surfaceContainerHighest
-            .withValues(alpha: 0.5),
+        color: Theme.of(
+          context,
+        ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: Theme.of(context).dividerColor.withValues(alpha: 0.3),
@@ -474,21 +471,19 @@ class _ShortInterestWidgetState extends State<ShortInterestWidget> {
           Text(
             title,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context)
-                      .textTheme
-                      .bodySmall
-                      ?.color
-                      ?.withValues(alpha: 0.8),
-                  fontWeight: FontWeight.w500,
-                ),
+              color: Theme.of(
+                context,
+              ).textTheme.bodySmall?.color?.withValues(alpha: 0.8),
+              fontWeight: FontWeight.w500,
+            ),
           ),
           const SizedBox(height: 4),
           Text(
             value,
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: valueColor,
-                ),
+              fontWeight: FontWeight.bold,
+              color: valueColor,
+            ),
           ),
           if (progressValue != null) ...[
             const SizedBox(height: 6),
@@ -497,8 +492,9 @@ class _ShortInterestWidgetState extends State<ShortInterestWidget> {
               child: LinearProgressIndicator(
                 value: progressValue,
                 minHeight: 4,
-                backgroundColor:
-                    Theme.of(context).dividerColor.withValues(alpha: 0.2),
+                backgroundColor: Theme.of(
+                  context,
+                ).dividerColor.withValues(alpha: 0.2),
                 valueColor: AlwaysStoppedAnimation<Color>(
                   valueColor ?? Theme.of(context).colorScheme.primary,
                 ),
@@ -509,13 +505,11 @@ class _ShortInterestWidgetState extends State<ShortInterestWidget> {
           Text(
             subtitle,
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  fontSize: 10,
-                  color: Theme.of(context)
-                      .textTheme
-                      .labelSmall
-                      ?.color
-                      ?.withValues(alpha: 0.6),
-                ),
+              fontSize: 10,
+              color: Theme.of(
+                context,
+              ).textTheme.labelSmall?.color?.withValues(alpha: 0.6),
+            ),
           ),
         ],
       ),
@@ -523,7 +517,9 @@ class _ShortInterestWidgetState extends State<ShortInterestWidget> {
   }
 
   Widget _buildSqueezeBanner(
-      BuildContext context, ShortInterestSummary summary) {
+    BuildContext context,
+    ShortInterestSummary summary,
+  ) {
     final risk = summary.squeezeRisk;
 
     return Container(
@@ -542,10 +538,10 @@ class _ShortInterestWidgetState extends State<ShortInterestWidget> {
             child: Text(
               risk.description,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).textTheme.bodyMedium?.color,
-                    fontSize: 12,
-                    height: 1.3,
-                  ),
+                color: Theme.of(context).textTheme.bodyMedium?.color,
+                fontSize: 12,
+                height: 1.3,
+              ),
             ),
           ),
         ],
@@ -554,18 +550,22 @@ class _ShortInterestWidgetState extends State<ShortInterestWidget> {
   }
 
   Widget _buildDetailedTable(
-      BuildContext context, ShortInterestSummary summary) {
+    BuildContext context,
+    ShortInterestSummary summary,
+  ) {
     final si = summary.shortInterest;
     final avail = summary.availability;
 
     final rows = <Widget>[];
 
     if (si?.sharesShort != null) {
-      rows.add(_buildDetailRow(
-        context,
-        'Current Shares Short',
-        '${_compactNumberFormat.format(si!.sharesShort)} shares',
-      ));
+      rows.add(
+        _buildDetailRow(
+          context,
+          'Current Shares Short',
+          '${_compactNumberFormat.format(si!.sharesShort)} shares',
+        ),
+      );
     }
 
     if (si?.sharesShortPrior != null) {
@@ -583,89 +583,110 @@ class _ShortInterestWidgetState extends State<ShortInterestWidget> {
         changeColor = change > 0 ? Colors.red : Colors.green;
       }
 
-      rows.add(_buildDetailRow(
-        context,
-        'Prior Shares Short',
-        '${_compactNumberFormat.format(si!.sharesShortPrior)} shares',
-        extraWidget: changeText.isNotEmpty
-            ? Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: changeColor?.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  changeText,
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    color: changeColor,
+      rows.add(
+        _buildDetailRow(
+          context,
+          'Prior Shares Short',
+          '${_compactNumberFormat.format(si!.sharesShortPrior)} shares',
+          extraWidget: changeText.isNotEmpty
+              ? Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
                   ),
-                ),
-              )
-            : null,
-      ));
+                  decoration: BoxDecoration(
+                    color: changeColor?.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    changeText,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: changeColor,
+                    ),
+                  ),
+                )
+              : null,
+        ),
+      );
     }
 
     if (si?.sharesShortUpperBound != null &&
         si?.sharesShortLowerBound != null) {
-      rows.add(_buildDetailRow(
-        context,
-        'Short Range Est.',
-        '${_compactNumberFormat.format(si!.sharesShortLowerBound)} – ${_compactNumberFormat.format(si.sharesShortUpperBound)}',
-      ));
+      rows.add(
+        _buildDetailRow(
+          context,
+          'Short Range Est.',
+          '${_compactNumberFormat.format(si!.sharesShortLowerBound)} – ${_compactNumberFormat.format(si.sharesShortUpperBound)}',
+        ),
+      );
     }
 
     if (si?.pcFreeFloatUpperBound != null &&
         si?.pcFreeFloatLowerBound != null) {
-      rows.add(_buildDetailRow(
-        context,
-        'Short Float Range',
-        '${si!.pcFreeFloatLowerBound!.toStringAsFixed(2)}% – ${si.pcFreeFloatUpperBound!.toStringAsFixed(2)}%',
-      ));
+      rows.add(
+        _buildDetailRow(
+          context,
+          'Short Float Range',
+          '${si!.pcFreeFloatLowerBound!.toStringAsFixed(2)}% – ${si.pcFreeFloatUpperBound!.toStringAsFixed(2)}%',
+        ),
+      );
     }
 
     if (si?.freeFloat != null) {
-      rows.add(_buildDetailRow(
-        context,
-        'Total Free Float',
-        '${_compactNumberFormat.format(si!.freeFloat)} shares',
-      ));
+      rows.add(
+        _buildDetailRow(
+          context,
+          'Total Free Float',
+          '${_compactNumberFormat.format(si!.freeFloat)} shares',
+        ),
+      );
     }
 
     if (si?.averageDailyVolume != null) {
-      rows.add(_buildDetailRow(
-        context,
-        'Average Daily Volume',
-        '${_compactNumberFormat.format(si!.averageDailyVolume)} shares',
-      ));
+      rows.add(
+        _buildDetailRow(
+          context,
+          'Average Daily Volume',
+          '${_compactNumberFormat.format(si!.averageDailyVolume)} shares',
+        ),
+      );
     }
 
     if (avail?.marginRequirement != null) {
       final reqPct = avail!.marginRequirement! > 1.0
           ? avail.marginRequirement! * 100.0
           : avail.marginRequirement! * 100.0;
-      rows.add(_buildDetailRow(
-        context,
-        'Margin Requirement',
-        '${reqPct.toStringAsFixed(0)}%',
-      ));
+      rows.add(
+        _buildDetailRow(
+          context,
+          'Margin Requirement',
+          '${reqPct.toStringAsFixed(0)}%',
+        ),
+      );
     }
 
     if (avail != null) {
-      rows.add(_buildDetailRow(
-        context,
-        'Locate Required',
-        avail.locateRequired ? 'Yes (Strict Borrow)' : 'No (Automated Borrow)',
-      ));
+      rows.add(
+        _buildDetailRow(
+          context,
+          'Locate Required',
+          avail.locateRequired
+              ? 'Yes (Strict Borrow)'
+              : 'No (Automated Borrow)',
+        ),
+      );
     }
 
     if (si?.settlementDate != null) {
-      rows.add(_buildDetailRow(
-        context,
-        'FINRA Settlement Date',
-        _dateFormat.format(si!.settlementDate!),
-      ));
+      rows.add(
+        _buildDetailRow(
+          context,
+          'FINRA Settlement Date',
+          _dateFormat.format(si!.settlementDate!),
+        ),
+      );
     }
 
     if (avail?.hardToBorrowReason != null &&
@@ -682,8 +703,11 @@ class _ShortInterestWidgetState extends State<ShortInterestWidget> {
             ),
             child: Row(
               children: [
-                const Icon(Icons.warning_amber_rounded,
-                    color: Colors.orange, size: 16),
+                const Icon(
+                  Icons.warning_amber_rounded,
+                  color: Colors.orange,
+                  size: 16,
+                ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -721,12 +745,10 @@ class _ShortInterestWidgetState extends State<ShortInterestWidget> {
             child: Text(
               label,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context)
-                        .textTheme
-                        .bodySmall
-                        ?.color
-                        ?.withValues(alpha: 0.8),
-                  ),
+                color: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.color?.withValues(alpha: 0.8),
+              ),
               overflow: TextOverflow.ellipsis,
             ),
           ),
@@ -755,14 +777,15 @@ class _ShortInterestWidgetState extends State<ShortInterestWidget> {
   }
 
   Widget _buildEducationalNotes(
-      BuildContext context, ShortInterestSummary summary) {
+    BuildContext context,
+    ShortInterestSummary summary,
+  ) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Theme.of(context)
-            .colorScheme
-            .surfaceContainerHighest
-            .withValues(alpha: 0.3),
+        color: Theme.of(
+          context,
+        ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Column(
@@ -770,10 +793,9 @@ class _ShortInterestWidgetState extends State<ShortInterestWidget> {
         children: [
           Text(
             'Understanding Short Squeeze & Borrow Dynamics',
-            style: Theme.of(context)
-                .textTheme
-                .labelMedium
-                ?.copyWith(fontWeight: FontWeight.bold),
+            style: Theme.of(
+              context,
+            ).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 6),
           Text(
@@ -781,14 +803,12 @@ class _ShortInterestWidgetState extends State<ShortInterestWidget> {
             '• Days to Cover: The ratio of shares short to average daily volume. Values over 4-5 days signal that short sellers will face illiquidity if forced to buy back shares simultaneously.\n'
             '• Borrow Fee Rate: The annualized interest paid to lenders to short the equity. Spikes above 10-15% signal Hard to Borrow conditions and scarce share availability.',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  fontSize: 11,
-                  height: 1.4,
-                  color: Theme.of(context)
-                      .textTheme
-                      .bodySmall
-                      ?.color
-                      ?.withValues(alpha: 0.7),
-                ),
+              fontSize: 11,
+              height: 1.4,
+              color: Theme.of(
+                context,
+              ).textTheme.bodySmall?.color?.withValues(alpha: 0.7),
+            ),
           ),
         ],
       ),

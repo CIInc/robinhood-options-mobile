@@ -42,98 +42,100 @@ class Quote {
   final String instrument;
   final String instrumentId;
 
-  const Quote(
-      {this.askPrice,
-      required this.askSize,
-      this.bidPrice,
-      required this.bidSize,
-      this.lastTradePrice,
-      this.lastExtendedHoursTradePrice,
-      this.previousClose,
-      this.adjustedPreviousClose,
-      this.previousCloseDate,
-      required this.symbol,
-      required this.tradingHalted,
-      required this.hasTraded,
-      required this.lastTradePriceSource,
-      this.updatedAt,
-      required this.instrument,
-      required this.instrumentId});
+  const Quote({
+    this.askPrice,
+    required this.askSize,
+    this.bidPrice,
+    required this.bidSize,
+    this.lastTradePrice,
+    this.lastExtendedHoursTradePrice,
+    this.previousClose,
+    this.adjustedPreviousClose,
+    this.previousCloseDate,
+    required this.symbol,
+    required this.tradingHalted,
+    required this.hasTraded,
+    required this.lastTradePriceSource,
+    this.updatedAt,
+    required this.instrument,
+    required this.instrumentId,
+  });
 
   Quote.fromJson(dynamic json)
-      : askPrice = parseDouble(json['ask_price']),
-        askSize = json['ask_size'],
-        bidPrice = parseDouble(json['bid_price']),
-        bidSize = json['bid_size'],
-        lastTradePrice = parseDouble(json['last_trade_price']),
-        lastExtendedHoursTradePrice =
-            parseDouble(json['last_extended_hours_trade_price']),
-        previousClose = parseDouble(json['previous_close']),
-        adjustedPreviousClose = parseDouble(json['adjusted_previous_close']),
-        previousCloseDate = json['previous_close_date'] is Timestamp
-            ? (json['previous_close_date'] as Timestamp).toDate()
-            : (json['previous_close_date'] is String
+    : askPrice = parseDouble(json['ask_price']),
+      askSize = json['ask_size'],
+      bidPrice = parseDouble(json['bid_price']),
+      bidSize = json['bid_size'],
+      lastTradePrice = parseDouble(json['last_trade_price']),
+      lastExtendedHoursTradePrice = parseDouble(
+        json['last_extended_hours_trade_price'],
+      ),
+      previousClose = parseDouble(json['previous_close']),
+      adjustedPreviousClose = parseDouble(json['adjusted_previous_close']),
+      previousCloseDate = json['previous_close_date'] is Timestamp
+          ? (json['previous_close_date'] as Timestamp).toDate()
+          : (json['previous_close_date'] is String
                 ? DateTime.tryParse(json['previous_close_date'])
                 : null),
-        symbol = json['symbol'],
-        tradingHalted =
-            json['trading_halted'].toString().toLowerCase() == 'true',
-        hasTraded = json['has_traded'].toString().toLowerCase() == 'true',
-        lastTradePriceSource = json['last_trade_price_source'],
-        updatedAt = json['updated_at'] is Timestamp
-            ? (json['updated_at'] as Timestamp).toDate()
-            : (json['updated_at'] is String
+      symbol = json['symbol'],
+      tradingHalted = json['trading_halted'].toString().toLowerCase() == 'true',
+      hasTraded = json['has_traded'].toString().toLowerCase() == 'true',
+      lastTradePriceSource = json['last_trade_price_source'],
+      updatedAt = json['updated_at'] is Timestamp
+          ? (json['updated_at'] as Timestamp).toDate()
+          : (json['updated_at'] is String
                 ? DateTime.tryParse(json['updated_at'])
                 : null),
-        instrument = json['instrument'],
-        instrumentId = json['instrument_id'];
+      instrument = json['instrument'],
+      instrumentId = json['instrument_id'];
 
   Quote.fromSchwabJson(dynamic json)
-      : askPrice = parseDouble(json['quote']['askPrice']),
-        askSize = json['quote']['askSize'] as int,
-        bidPrice = parseDouble(json['quote']['bidPrice']),
-        bidSize = json['quote']['bidSize'] as int,
-        lastTradePrice = parseDouble(json['quote']['lastPrice']),
-        // TODO
-        lastExtendedHoursTradePrice = null,
-        // TODO: open price is not the same as previous close.
-        previousClose = parseDouble(json['quote']['openPrice']),
-        // TODO: open price is not the same as adjusted previous close.
-        adjustedPreviousClose = parseDouble(json['quote']['openPrice']),
-        // TODO
-        previousCloseDate = null,
-        symbol = json['symbol'],
-        // TODO
-        tradingHalted = false,
-        // TODO
-        hasTraded = true,
-        lastTradePriceSource = json['quote']['lastMICId'] ?? '',
-        updatedAt = DateTime.fromMillisecondsSinceEpoch(
-            json['quote']['quoteTime'] as int,
-            isUtc: true),
-        // TODO
-        instrument = '', // json['instrument'],
-        // TODO
-        instrumentId = json['reference']['cusip'];
+    : askPrice = parseDouble(json['quote']['askPrice']),
+      askSize = json['quote']['askSize'] as int,
+      bidPrice = parseDouble(json['quote']['bidPrice']),
+      bidSize = json['quote']['bidSize'] as int,
+      lastTradePrice = parseDouble(json['quote']['lastPrice']),
+      // TODO
+      lastExtendedHoursTradePrice = null,
+      // TODO: open price is not the same as previous close.
+      previousClose = parseDouble(json['quote']['openPrice']),
+      // TODO: open price is not the same as adjusted previous close.
+      adjustedPreviousClose = parseDouble(json['quote']['openPrice']),
+      // TODO
+      previousCloseDate = null,
+      symbol = json['symbol'],
+      // TODO
+      tradingHalted = false,
+      // TODO
+      hasTraded = true,
+      lastTradePriceSource = json['quote']['lastMICId'] ?? '',
+      updatedAt = DateTime.fromMillisecondsSinceEpoch(
+        json['quote']['quoteTime'] as int,
+        isUtc: true,
+      ),
+      // TODO
+      instrument = '', // json['instrument'],
+      // TODO
+      instrumentId = json['reference']['cusip'];
 
   Map<String, dynamic> toJson() => {
-        'ask_price': askPrice,
-        'ask_size': askSize,
-        'bid_price': bidPrice,
-        'bid_size': bidSize,
-        'last_trade_price': lastTradePrice,
-        'last_extended_hours_trade_price': lastExtendedHoursTradePrice,
-        'previous_close': previousClose,
-        'adjusted_previous_close': adjustedPreviousClose,
-        'previous_close_date': previousCloseDate, //!.toIso8601String(),
-        'symbol': symbol,
-        'trading_halted': tradingHalted,
-        'has_traded': hasTraded,
-        'last_trade_price_source': lastTradePriceSource,
-        'updated_at': updatedAt, //!.toIso8601String(),
-        'instrument': instrument,
-        'instrument_id': instrumentId,
-      };
+    'ask_price': askPrice,
+    'ask_size': askSize,
+    'bid_price': bidPrice,
+    'bid_size': bidSize,
+    'last_trade_price': lastTradePrice,
+    'last_extended_hours_trade_price': lastExtendedHoursTradePrice,
+    'previous_close': previousClose,
+    'adjusted_previous_close': adjustedPreviousClose,
+    'previous_close_date': previousCloseDate, //!.toIso8601String(),
+    'symbol': symbol,
+    'trading_halted': tradingHalted,
+    'has_traded': hasTraded,
+    'last_trade_price_source': lastTradePriceSource,
+    'updated_at': updatedAt, //!.toIso8601String(),
+    'instrument': instrument,
+    'instrument_id': instrumentId,
+  };
 
   double get changeToday {
     return (lastExtendedHoursTradePrice ?? lastTradePrice!) -

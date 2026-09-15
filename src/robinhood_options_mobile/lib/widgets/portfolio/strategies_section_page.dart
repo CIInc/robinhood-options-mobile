@@ -104,18 +104,18 @@ class StrategiesSectionPage extends StatelessWidget {
           onTap: ctx.isAggregateMode
               ? null
               : () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => PaperTradingDashboardWidget(
-                        analytics: ctx.analytics,
-                        observer: ctx.observer,
-                        brokerageUser: ctx.brokerageUser,
-                        service: ctx.service,
-                        user: appUser,
-                        userDocRef: userDocRef,
-                      ),
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => PaperTradingDashboardWidget(
+                      analytics: ctx.analytics,
+                      observer: ctx.observer,
+                      brokerageUser: ctx.brokerageUser,
+                      service: ctx.service,
+                      user: appUser,
+                      userDocRef: userDocRef,
                     ),
                   ),
+                ),
         ),
       ],
     );
@@ -140,8 +140,11 @@ class StrategiesSectionPage extends StatelessWidget {
             color: theme.colorScheme.secondaryContainer,
             borderRadius: BorderRadius.circular(12),
           ),
-          child: Icon(icon,
-              size: 24, color: theme.colorScheme.onSecondaryContainer),
+          child: Icon(
+            icon,
+            size: 24,
+            color: theme.colorScheme.onSecondaryContainer,
+          ),
         ),
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
         subtitle: Padding(

@@ -81,9 +81,7 @@ void main() {
         ChangeNotifierProvider<BrokerageUserStore>.value(
           value: mockBrokerageUserStore,
         ),
-        ChangeNotifierProvider<AccountStore>.value(
-          value: mockAccountStore,
-        ),
+        ChangeNotifierProvider<AccountStore>.value(value: mockAccountStore),
       ],
       child: MaterialApp(
         home: Scaffold(
@@ -107,39 +105,42 @@ void main() {
   }
 
   testWidgets(
-      'renders single profile button when logged in and auto-trade is disabled',
-      (tester) async {
-    mockAgenticProvider.config.autoTradeEnabled = false;
-    final auth = MockFirebaseAuth(user: MockFirebaseUser());
+    'renders single profile button when logged in and auto-trade is disabled',
+    (tester) async {
+      mockAgenticProvider.config.autoTradeEnabled = false;
+      final auth = MockFirebaseAuth(user: MockFirebaseUser());
 
-    await tester.pumpWidget(buildWidget(auth: auth));
-    await tester.pumpAndSettle();
+      await tester.pumpWidget(buildWidget(auth: auth));
+      await tester.pumpAndSettle();
 
-    // AutoTradeStatusBadgeWidget combines the avatar and is present
-    expect(find.byType(AutoTradeStatusBadgeWidget), findsOneWidget);
-    // When disabled, it renders as a single IconButton (the user icon)
-    expect(find.byType(IconButton), findsWidgets);
-    expect(find.byIcon(Icons.account_circle), findsOneWidget);
-  });
+      // AutoTradeStatusBadgeWidget combines the avatar and is present
+      expect(find.byType(AutoTradeStatusBadgeWidget), findsOneWidget);
+      // When disabled, it renders as a single IconButton (the user icon)
+      expect(find.byType(IconButton), findsWidgets);
+      expect(find.byIcon(Icons.account_circle), findsOneWidget);
+    },
+  );
 
   testWidgets(
-      'renders combined badge with avatar and countdown when auto-trade is enabled',
-      (tester) async {
-    mockAgenticProvider.config.autoTradeEnabled = true;
-    mockAgenticProvider.autoTradeCountdownSeconds = 180; // 3:00
-    final auth = MockFirebaseAuth(user: MockFirebaseUser());
+    'renders combined badge with avatar and countdown when auto-trade is enabled',
+    (tester) async {
+      mockAgenticProvider.config.autoTradeEnabled = true;
+      mockAgenticProvider.autoTradeCountdownSeconds = 180; // 3:00
+      final auth = MockFirebaseAuth(user: MockFirebaseUser());
 
-    await tester.pumpWidget(buildWidget(auth: auth));
-    await tester.pumpAndSettle();
+      await tester.pumpWidget(buildWidget(auth: auth));
+      await tester.pumpAndSettle();
 
-    // The combined widget renders both the avatar and the countdown
-    expect(find.byType(AutoTradeStatusBadgeWidget), findsOneWidget);
-    expect(find.byIcon(Icons.account_circle), findsOneWidget);
-    expect(find.text('3:00'), findsOneWidget);
-  });
+      // The combined widget renders both the avatar and the countdown
+      expect(find.byType(AutoTradeStatusBadgeWidget), findsOneWidget);
+      expect(find.byIcon(Icons.account_circle), findsOneWidget);
+      expect(find.text('3:00'), findsOneWidget);
+    },
+  );
 
-  testWidgets('renders login icon button when user is logged out',
-      (tester) async {
+  testWidgets('renders login icon button when user is logged out', (
+    tester,
+  ) async {
     final auth = MockFirebaseAuth(user: null);
 
     await tester.pumpWidget(buildWidget(auth: auth));

@@ -36,16 +36,16 @@ class OptionFlowNotificationsStore extends ChangeNotifier {
         .limit(100)
         .snapshots()
         .listen((snapshot) {
-      _notifications.clear();
-      for (var doc in snapshot.docs) {
-        try {
-          _notifications.add(OptionFlowNotification.fromDocument(doc));
-        } catch (e) {
-          debugPrint('Error parsing flow notification ${doc.id}: $e');
-        }
-      }
-      notifyListeners();
-    });
+          _notifications.clear();
+          for (var doc in snapshot.docs) {
+            try {
+              _notifications.add(OptionFlowNotification.fromDocument(doc));
+            } catch (e) {
+              debugPrint('Error parsing flow notification ${doc.id}: $e');
+            }
+          }
+          notifyListeners();
+        });
   }
 
   Future<void> markAsRead(String notificationId) async {

@@ -85,13 +85,17 @@ class _PresetsWidgetState extends State<PresetsWidget> {
         List<RobinhoodScreenerPreset> list = [];
         if (res is Map<String, dynamic> && res['results'] is List) {
           list = (res['results'] as List)
-              .map((p) =>
-                  RobinhoodScreenerPreset.fromJson(p as Map<String, dynamic>))
+              .map(
+                (p) =>
+                    RobinhoodScreenerPreset.fromJson(p as Map<String, dynamic>),
+              )
               .toList();
         } else if (res is List) {
           list = res
-              .map((p) =>
-                  RobinhoodScreenerPreset.fromJson(p as Map<String, dynamic>))
+              .map(
+                (p) =>
+                    RobinhoodScreenerPreset.fromJson(p as Map<String, dynamic>),
+              )
               .toList();
         }
         setState(() {
@@ -130,10 +134,7 @@ class _PresetsWidgetState extends State<PresetsWidget> {
                 icon: Icon(Icons.filter_alt_outlined),
                 text: 'Stock Screener',
               ),
-              Tab(
-                icon: Icon(Icons.public_outlined),
-                text: 'Yahoo Presets',
-              ),
+              Tab(icon: Icon(Icons.public_outlined), text: 'Yahoo Presets'),
             ],
           ),
         ),
@@ -234,10 +235,12 @@ class _PresetsWidgetState extends State<PresetsWidget> {
         final matchesName = p.name.toLowerCase().contains(query);
         final matchesDesc = p.description.toLowerCase().contains(query);
         final matchesCategory = p.category.toLowerCase().contains(query);
-        final matchesSymbol =
-            p.sampleSymbols.any((s) => s.toLowerCase().contains(query));
-        final matchesCrit =
-            p.criteria.any((c) => c.displayLabel.toLowerCase().contains(query));
+        final matchesSymbol = p.sampleSymbols.any(
+          (s) => s.toLowerCase().contains(query),
+        );
+        final matchesCrit = p.criteria.any(
+          (c) => c.displayLabel.toLowerCase().contains(query),
+        );
         if (!matchesName &&
             !matchesDesc &&
             !matchesCategory &&
@@ -257,10 +260,9 @@ class _PresetsWidgetState extends State<PresetsWidget> {
           // Banner
           Card(
             elevation: 0,
-            color: Theme.of(context)
-                .colorScheme
-                .primaryContainer
-                .withValues(alpha: 0.25),
+            color: Theme.of(
+              context,
+            ).colorScheme.primaryContainer.withValues(alpha: 0.25),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
               side: BorderSide(
@@ -275,14 +277,16 @@ class _PresetsWidgetState extends State<PresetsWidget> {
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: Theme.of(context)
-                          .colorScheme
-                          .primary
-                          .withValues(alpha: 0.15),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.primary.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Icon(Icons.auto_awesome,
-                        color: Theme.of(context).colorScheme.primary, size: 24),
+                    child: Icon(
+                      Icons.auto_awesome,
+                      color: Theme.of(context).colorScheme.primary,
+                      size: 24,
+                    ),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
@@ -291,20 +295,18 @@ class _PresetsWidgetState extends State<PresetsWidget> {
                       children: [
                         Text(
                           'Robinhood Curated Presets',
-                          style: Theme.of(context)
-                              .textTheme
-                              .titleMedium
+                          style: Theme.of(context).textTheme.titleMedium
                               ?.copyWith(fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(height: 4),
                         Text(
                           'Server-side fundamental & technical screeners targeting market-leading equities.',
-                          style:
-                              Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurfaceVariant,
-                                  ),
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
+                              ),
                         ),
                       ],
                     ),
@@ -332,8 +334,10 @@ class _PresetsWidgetState extends State<PresetsWidget> {
                       },
                     )
                   : null,
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 14,
+                vertical: 10,
+              ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide(
@@ -404,9 +408,8 @@ class _PresetsWidgetState extends State<PresetsWidget> {
                     Text(
                       'No presets match "$presetSearchQuery"',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color:
-                                Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
                     ),
                   ],
                 ),
@@ -482,10 +485,9 @@ class _PresetsWidgetState extends State<PresetsWidget> {
     return Card(
       elevation: 0,
       margin: const EdgeInsets.only(bottom: 16),
-      color: Theme.of(context)
-          .colorScheme
-          .surfaceContainerHighest
-          .withValues(alpha: 0.3),
+      color: Theme.of(
+        context,
+      ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
         side: BorderSide(
@@ -529,7 +531,9 @@ class _PresetsWidgetState extends State<PresetsWidget> {
                     children: [
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 5),
+                          horizontal: 10,
+                          vertical: 5,
+                        ),
                         decoration: BoxDecoration(
                           color: categoryColor.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(8),
@@ -567,7 +571,9 @@ class _PresetsWidgetState extends State<PresetsWidget> {
                         const SizedBox(width: 8),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 4),
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.amber.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(6),
@@ -595,10 +601,9 @@ class _PresetsWidgetState extends State<PresetsWidget> {
                     Text(
                       '${preset.itemCount} items',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color:
-                                Theme.of(context).colorScheme.onSurfaceVariant,
-                            fontWeight: FontWeight.w500,
-                          ),
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                 ],
               ),
@@ -614,23 +619,21 @@ class _PresetsWidgetState extends State<PresetsWidget> {
                       children: [
                         Text(
                           preset.name,
-                          style:
-                              Theme.of(context).textTheme.titleMedium?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 17,
-                                  ),
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 17,
+                              ),
                         ),
                         if (preset.description.isNotEmpty) ...[
                           const SizedBox(height: 6),
                           Text(
                             preset.description,
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodyMedium
+                            style: Theme.of(context).textTheme.bodyMedium
                                 ?.copyWith(
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onSurfaceVariant,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
                                 ),
                           ),
                         ],
@@ -666,21 +669,23 @@ class _PresetsWidgetState extends State<PresetsWidget> {
               // Sort & Ranking Information
               if (preset.sortBy != null) ...[
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 9,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .surfaceContainerHighest
+                    color: Theme.of(context).colorScheme.surfaceContainerHighest
                         .withValues(alpha: 0.5),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.sort,
-                          size: 13,
-                          color: Theme.of(context).colorScheme.primary),
+                      Icon(
+                        Icons.sort,
+                        size: 13,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
                       const SizedBox(width: 5),
                       Flexible(
                         child: Text(
@@ -688,8 +693,9 @@ class _PresetsWidgetState extends State<PresetsWidget> {
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
-                            color:
-                                Theme.of(context).colorScheme.onSurfaceVariant,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
                           ),
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -708,18 +714,18 @@ class _PresetsWidgetState extends State<PresetsWidget> {
                   children: preset.columnLabels.map((col) {
                     return Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 7, vertical: 3),
+                        horizontal: 7,
+                        vertical: 3,
+                      ),
                       decoration: BoxDecoration(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .surface
-                            .withValues(alpha: 0.8),
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.surface.withValues(alpha: 0.8),
                         borderRadius: BorderRadius.circular(6),
                         border: Border.all(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .outlineVariant
-                              .withValues(alpha: 0.6),
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.outlineVariant.withValues(alpha: 0.6),
                           width: 0.8,
                         ),
                       ),
@@ -744,7 +750,9 @@ class _PresetsWidgetState extends State<PresetsWidget> {
                   children: preset.criteria.map((c) {
                     return Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 9, vertical: 4),
+                        horizontal: 9,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: Theme.of(context).colorScheme.surface,
                         borderRadius: BorderRadius.circular(8),
@@ -771,9 +779,9 @@ class _PresetsWidgetState extends State<PresetsWidget> {
                 Text(
                   'Sample Equities:',
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
                 ),
                 const SizedBox(height: 6),
                 Wrap(
@@ -782,9 +790,13 @@ class _PresetsWidgetState extends State<PresetsWidget> {
                   children: preset.sampleSymbols.map((sym) {
                     return ActionChip(
                       visualDensity: VisualDensity.compact,
-                      label: Text(sym,
-                          style: const TextStyle(
-                              fontSize: 12, fontWeight: FontWeight.bold)),
+                      label: Text(
+                        sym,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                       onPressed: () => _openSymbol(sym),
                     );
                   }).toList(),
@@ -799,8 +811,10 @@ class _PresetsWidgetState extends State<PresetsWidget> {
   }
 
   Future<void> _openSymbol(String symbol) async {
-    final instrumentStore =
-        Provider.of<InstrumentStore>(context, listen: false);
+    final instrumentStore = Provider.of<InstrumentStore>(
+      context,
+      listen: false,
+    );
     final instrument = await widget.service.getInstrumentBySymbol(
       widget.brokerageUser,
       instrumentStore,
@@ -847,8 +861,8 @@ class _PresetsWidgetState extends State<PresetsWidget> {
         if (yahooScreenerResults != null) ...[
           Builder(
             builder: (context) {
-              final records = yahooScreenerResults['finance']?['result']?[0]
-                      ?['records'] ??
+              final records =
+                  yahooScreenerResults['finance']?['result']?[0]?['records'] ??
                   [];
               if (records.isEmpty) {
                 return const Padding(
@@ -879,8 +893,9 @@ class _PresetsWidgetState extends State<PresetsWidget> {
                             crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
                               Text(
-                                formatCurrency
-                                    .format(item['regularMarketPrice']['raw']),
+                                formatCurrency.format(
+                                  item['regularMarketPrice']['raw'],
+                                ),
                                 style: const TextStyle(
                                   fontWeight: FontWeight.normal,
                                   fontSize: 16,
@@ -889,12 +904,12 @@ class _PresetsWidgetState extends State<PresetsWidget> {
                               if (item['regularMarketChangePercent'] != null)
                                 Text(
                                   formatPercentage.format(
-                                      item['regularMarketChangePercent']
-                                              ['raw'] /
-                                          100),
+                                    item['regularMarketChangePercent']['raw'] /
+                                        100,
+                                  ),
                                   style: TextStyle(
-                                    color: (item['regularMarketChangePercent']
-                                                    ['raw'] ??
+                                    color:
+                                        (item['regularMarketChangePercent']['raw'] ??
                                                 0) >=
                                             0
                                         ? Colors.green
@@ -923,10 +938,7 @@ class _PresetsWidgetState extends State<PresetsWidget> {
         DropdownButtonFormField<ScreenerId>(
           initialValue: selectedYahooScreener,
           items: YahooService.scrIds
-              .map((s) => DropdownMenuItem(
-                    value: s,
-                    child: Text(s.display),
-                  ))
+              .map((s) => DropdownMenuItem(value: s, child: Text(s.display)))
               .toList(),
           onChanged: (v) async {
             setState(() => selectedYahooScreener = v);

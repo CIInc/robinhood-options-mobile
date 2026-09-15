@@ -30,11 +30,7 @@ enum WatchlistSortOption {
   oldest,
 }
 
-enum WatchlistFilterOption {
-  all,
-  myWatchlists,
-  editorAccess,
-}
+enum WatchlistFilterOption { all, myWatchlists, editorAccess }
 
 class _GroupWatchlistsWidgetState extends State<GroupWatchlistsWidget> {
   final GroupWatchlistService _service = GroupWatchlistService();
@@ -56,14 +52,16 @@ class _GroupWatchlistsWidgetState extends State<GroupWatchlistsWidget> {
   }
 
   List<GroupWatchlist> _filterAndSortWatchlists(
-      List<GroupWatchlist> watchlists) {
+    List<GroupWatchlist> watchlists,
+  ) {
     var filtered = watchlists;
 
     // Apply role filter
     if (_filterOption != WatchlistFilterOption.all) {
       if (_filterOption == WatchlistFilterOption.myWatchlists) {
-        filtered =
-            filtered.where((w) => w.createdBy == _currentUserId).toList();
+        filtered = filtered
+            .where((w) => w.createdBy == _currentUserId)
+            .toList();
       } else if (_filterOption == WatchlistFilterOption.editorAccess) {
         filtered = filtered.where((w) {
           final permission = w.permissions[_currentUserId];
@@ -77,8 +75,10 @@ class _GroupWatchlistsWidgetState extends State<GroupWatchlistsWidget> {
       filtered = filtered.where((w) {
         return w.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
             w.description.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-            w.symbols.any((s) =>
-                s.symbol.toLowerCase().contains(_searchQuery.toLowerCase()));
+            w.symbols.any(
+              (s) =>
+                  s.symbol.toLowerCase().contains(_searchQuery.toLowerCase()),
+            );
       }).toList();
     }
 
@@ -197,38 +197,35 @@ class _GroupWatchlistsWidgetState extends State<GroupWatchlistsWidget> {
                         SliverPadding(
                           padding: const EdgeInsets.symmetric(horizontal: 16.0),
                           sliver: SliverList(
-                            delegate: SliverChildBuilderDelegate(
-                              (context, index) {
-                                final watchlist = filteredWatchlists[index];
-                                final userId =
-                                    FirebaseAuth.instance.currentUser?.uid ??
-                                        '';
-                                final permission =
-                                    watchlist.permissions[userId] ?? '';
-                                final isCreator = watchlist.createdBy == userId;
-                                final isEditor =
-                                    permission == 'editor' || isCreator;
+                            delegate: SliverChildBuilderDelegate((
+                              context,
+                              index,
+                            ) {
+                              final watchlist = filteredWatchlists[index];
+                              final userId =
+                                  FirebaseAuth.instance.currentUser?.uid ?? '';
+                              final permission =
+                                  watchlist.permissions[userId] ?? '';
+                              final isCreator = watchlist.createdBy == userId;
+                              final isEditor =
+                                  permission == 'editor' || isCreator;
 
-                                return GroupWatchlistCard(
-                                  watchlist: watchlist,
-                                  brokerageUser: widget.brokerageUser,
-                                  groupId: widget.groupId,
-                                  isEditor: isEditor,
-                                  isCreator: isCreator,
-                                  borderColor: _getCardBorderColor(),
-                                  onEdit: () =>
-                                      _showEditDialog(context, watchlist),
-                                  onDelete: () => _showDeleteConfirmation(
-                                      context, watchlist),
-                                );
-                              },
-                              childCount: filteredWatchlists.length,
-                            ),
+                              return GroupWatchlistCard(
+                                watchlist: watchlist,
+                                brokerageUser: widget.brokerageUser,
+                                groupId: widget.groupId,
+                                isEditor: isEditor,
+                                isCreator: isCreator,
+                                borderColor: _getCardBorderColor(),
+                                onEdit: () =>
+                                    _showEditDialog(context, watchlist),
+                                onDelete: () =>
+                                    _showDeleteConfirmation(context, watchlist),
+                              );
+                            }, childCount: filteredWatchlists.length),
                           ),
                         ),
-                      const SliverPadding(
-                        padding: EdgeInsets.only(bottom: 80),
-                      ),
+                      const SliverPadding(padding: EdgeInsets.only(bottom: 80)),
                     ],
                   ),
                 ),
@@ -252,7 +249,10 @@ class _GroupWatchlistsWidgetState extends State<GroupWatchlistsWidget> {
   }
 
   Widget _buildSortMenuItem(
-      IconData icon, String label, WatchlistSortOption option) {
+    IconData icon,
+    String label,
+    WatchlistSortOption option,
+  ) {
     return Row(
       children: [
         Icon(
@@ -266,8 +266,9 @@ class _GroupWatchlistsWidgetState extends State<GroupWatchlistsWidget> {
         Text(
           label,
           style: TextStyle(
-            fontWeight:
-                _sortOption == option ? FontWeight.bold : FontWeight.normal,
+            fontWeight: _sortOption == option
+                ? FontWeight.bold
+                : FontWeight.normal,
           ),
         ),
       ],
@@ -275,7 +276,9 @@ class _GroupWatchlistsWidgetState extends State<GroupWatchlistsWidget> {
   }
 
   Widget _buildSearchBar(
-      List<GroupWatchlist> filtered, List<GroupWatchlist> all) {
+    List<GroupWatchlist> filtered,
+    List<GroupWatchlist> all,
+  ) {
     // Theme-aware color for sort button background
     final sortBgColor = Theme.of(context).brightness == Brightness.dark
         ? Colors.grey[800]
@@ -404,13 +407,11 @@ class _GroupWatchlistsWidgetState extends State<GroupWatchlistsWidget> {
                         ? '${filtered.length} of ${all.length} ${filtered.length == 1 ? 'Watchlist' : 'Watchlists'}'
                         : '${all.length} ${all.length == 1 ? 'Watchlist' : 'Watchlists'}',
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          color: Theme.of(context)
-                              .textTheme
-                              .bodySmall
-                              ?.color
-                              ?.withOpacity(0.7),
-                          fontWeight: FontWeight.w500,
-                        ),
+                      color: Theme.of(
+                        context,
+                      ).textTheme.bodySmall?.color?.withOpacity(0.7),
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
               ),
@@ -429,10 +430,7 @@ class _GroupWatchlistsWidgetState extends State<GroupWatchlistsWidget> {
           scrollDirection: Axis.horizontal,
           child: Row(
             children: [
-              _buildFilterChip(
-                'All Watchlists',
-                WatchlistFilterOption.all,
-              ),
+              _buildFilterChip('All Watchlists', WatchlistFilterOption.all),
               const SizedBox(width: 8),
               _buildFilterChip(
                 'Created by Me',
@@ -472,8 +470,9 @@ class _GroupWatchlistsWidgetState extends State<GroupWatchlistsWidget> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
         side: BorderSide(
-          color:
-              isSelected ? Colors.transparent : Theme.of(context).dividerColor,
+          color: isSelected
+              ? Colors.transparent
+              : Theme.of(context).dividerColor,
         ),
       ),
     );
@@ -481,10 +480,7 @@ class _GroupWatchlistsWidgetState extends State<GroupWatchlistsWidget> {
 
   Widget _buildLoadingWidget() {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Group Watchlists'),
-        elevation: 0,
-      ),
+      appBar: AppBar(title: const Text('Group Watchlists'), elevation: 0),
       body: ListView.builder(
         padding: const EdgeInsets.all(16),
         itemCount: 5,
@@ -539,7 +535,8 @@ class _GroupWatchlistsWidgetState extends State<GroupWatchlistsWidget> {
   }
 
   Widget _buildErrorWidget(Object? error) {
-    final isNetworkError = error.toString().contains('Failed host lookup') ||
+    final isNetworkError =
+        error.toString().contains('Failed host lookup') ||
         error.toString().contains('Network error');
 
     return Scaffold(
@@ -574,8 +571,8 @@ class _GroupWatchlistsWidgetState extends State<GroupWatchlistsWidget> {
               Text(
                 isNetworkError ? 'Network Error' : 'Something went wrong',
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                  fontWeight: FontWeight.bold,
+                ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 12),
@@ -584,12 +581,10 @@ class _GroupWatchlistsWidgetState extends State<GroupWatchlistsWidget> {
                     ? 'Please check your internet connection'
                     : 'Failed to load watchlists. Please try again.',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context)
-                          .textTheme
-                          .bodyMedium
-                          ?.color
-                          ?.withOpacity(0.7),
-                    ),
+                  color: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.color?.withOpacity(0.7),
+                ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
@@ -638,20 +633,18 @@ class _GroupWatchlistsWidgetState extends State<GroupWatchlistsWidget> {
             const SizedBox(height: 24),
             Text(
               'No Watchlists Yet',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
             Text(
               'Create your first watchlist to track group symbols',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Theme.of(context)
-                        .textTheme
-                        .bodyMedium
-                        ?.color
-                        ?.withOpacity(0.7),
-                  ),
+                color: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.color?.withOpacity(0.7),
+              ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
@@ -688,12 +681,10 @@ class _GroupWatchlistsWidgetState extends State<GroupWatchlistsWidget> {
               Text(
                 'Try a different search term',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context)
-                          .textTheme
-                          .bodyMedium
-                          ?.color
-                          ?.withOpacity(0.7),
-                    ),
+                  color: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.color?.withOpacity(0.7),
+                ),
               ),
             ],
           ),
@@ -901,9 +892,7 @@ class _GroupWatchlistsWidgetState extends State<GroupWatchlistsWidget> {
                         }
                       }
                     },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
-              ),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
               child: isLoading
                   ? const SizedBox(
                       width: 20,
@@ -1004,9 +993,7 @@ class GroupWatchlistCard extends StatelessWidget {
                         children: [
                           Text(
                             watchlist.name,
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleMedium
+                            style: Theme.of(context).textTheme.titleMedium
                                 ?.copyWith(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 16,
@@ -1017,13 +1004,15 @@ class GroupWatchlistCard extends StatelessWidget {
                           const SizedBox(height: 4),
                           Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 6, vertical: 2),
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
                               color: isEditor
                                   ? primaryLight
-                                  : Theme.of(context)
-                                      .dividerColor
-                                      .withOpacity(0.1),
+                                  : Theme.of(
+                                      context,
+                                    ).dividerColor.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Row(
@@ -1034,10 +1023,9 @@ class GroupWatchlistCard extends StatelessWidget {
                                   size: 12,
                                   color: isEditor
                                       ? primaryColor
-                                      : Theme.of(context)
-                                          .textTheme
-                                          .bodySmall
-                                          ?.color,
+                                      : Theme.of(
+                                          context,
+                                        ).textTheme.bodySmall?.color,
                                 ),
                                 const SizedBox(width: 4),
                                 Text(
@@ -1047,10 +1035,9 @@ class GroupWatchlistCard extends StatelessWidget {
                                     fontWeight: FontWeight.w600,
                                     color: isEditor
                                         ? primaryColor
-                                        : Theme.of(context)
-                                            .textTheme
-                                            .bodySmall
-                                            ?.color,
+                                        : Theme.of(
+                                            context,
+                                          ).textTheme.bodySmall?.color,
                                   ),
                                 ),
                               ],
@@ -1074,19 +1061,21 @@ class GroupWatchlistCard extends StatelessWidget {
                           ),
                           onTap: () {
                             // Delay navigation to let menu close smoothly
-                            Future.delayed(const Duration(milliseconds: 10),
-                                () {
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      GroupWatchlistDetailWidget(
-                                    brokerageUser: brokerageUser,
-                                    groupId: groupId,
-                                    watchlistId: watchlist.id,
+                            Future.delayed(
+                              const Duration(milliseconds: 10),
+                              () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        GroupWatchlistDetailWidget(
+                                          brokerageUser: brokerageUser,
+                                          groupId: groupId,
+                                          watchlistId: watchlist.id,
+                                        ),
                                   ),
-                                ),
-                              );
-                            });
+                                );
+                              },
+                            );
                           },
                         ),
                         if (isEditor && onEdit != null)
@@ -1123,12 +1112,10 @@ class GroupWatchlistCard extends StatelessWidget {
                     child: Text(
                       watchlist.description,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Theme.of(context)
-                                .textTheme
-                                .bodySmall
-                                ?.color
-                                ?.withOpacity(0.7),
-                          ),
+                        color: Theme.of(
+                          context,
+                        ).textTheme.bodySmall?.color?.withOpacity(0.7),
+                      ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -1145,15 +1132,17 @@ class GroupWatchlistCard extends StatelessWidget {
                       color: primaryColor,
                       bgColor: primaryLight,
                     ),
-                    if (watchlist.symbols
-                        .any((s) => s.alerts.any((a) => a.active)))
+                    if (watchlist.symbols.any(
+                      (s) => s.alerts.any((a) => a.active),
+                    ))
                       _buildMetadataBadge(
                         context,
                         icon: Icons.notifications_active,
                         label:
                             '${watchlist.symbols.expand((s) => s.alerts).where((a) => a.active).length} Alerts',
-                        color:
-                            isDark ? Colors.orange[400]! : Colors.orange[800]!,
+                        color: isDark
+                            ? Colors.orange[400]!
+                            : Colors.orange[800]!,
                         bgColor: isDark
                             ? Colors.orange[900]!.withOpacity(0.3)
                             : Colors.orange[100]!,
@@ -1174,13 +1163,11 @@ class GroupWatchlistCard extends StatelessWidget {
                 Text(
                   'Updated ${DateFormat.yMMMd().add_jm().format(watchlist.updatedAt)}',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        fontSize: 11,
-                        color: Theme.of(context)
-                            .textTheme
-                            .bodySmall
-                            ?.color
-                            ?.withOpacity(0.5),
-                      ),
+                    fontSize: 11,
+                    color: Theme.of(
+                      context,
+                    ).textTheme.bodySmall?.color?.withOpacity(0.5),
+                  ),
                 ),
               ],
             ),
@@ -1206,11 +1193,7 @@ class GroupWatchlistCard extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            icon,
-            size: 14,
-            color: color,
-          ),
+          Icon(icon, size: 14, color: color),
           const SizedBox(width: 4),
           Text(
             label,

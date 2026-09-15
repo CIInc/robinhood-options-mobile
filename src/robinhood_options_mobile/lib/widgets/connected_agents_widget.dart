@@ -20,12 +20,7 @@ class ConnectedAgentsWidget extends StatefulWidget {
   State<ConnectedAgentsWidget> createState() => _ConnectedAgentsWidgetState();
 }
 
-enum _SortOption {
-  recent,
-  firstLogin,
-  name,
-  type,
-}
+enum _SortOption { recent, firstLogin, name, type }
 
 class _ConnectedAgentsWidgetState extends State<ConnectedAgentsWidget> {
   Future<List<ExternalToken>>? _futureTokens;
@@ -51,7 +46,9 @@ class _ConnectedAgentsWidgetState extends State<ConnectedAgentsWidget> {
 
   void _loadData() {
     setState(() {
-      _futureTokens = widget.service.getExternalTokensModel(widget.brokerageUser);
+      _futureTokens = widget.service.getExternalTokensModel(
+        widget.brokerageUser,
+      );
     });
   }
 
@@ -74,7 +71,11 @@ class _ConnectedAgentsWidgetState extends State<ConnectedAgentsWidget> {
       builder: (ctx) => AlertDialog(
         actionsOverflowButtonSpacing: 8,
         actionsOverflowDirection: VerticalDirection.down,
-        icon: const Icon(Icons.warning_amber_rounded, color: Colors.red, size: 36),
+        icon: const Icon(
+          Icons.warning_amber_rounded,
+          color: Colors.red,
+          size: 36,
+        ),
         title: Text('Revoke ${token.primaryTitle}?'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -90,10 +91,14 @@ class _ConnectedAgentsWidgetState extends State<ConnectedAgentsWidget> {
               width: double.infinity,
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                color: Theme.of(
+                  context,
+                ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
-                  color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.outlineVariant.withValues(alpha: 0.5),
                 ),
               ),
               child: Column(
@@ -101,13 +106,20 @@ class _ConnectedAgentsWidgetState extends State<ConnectedAgentsWidget> {
                 children: [
                   Text(
                     'Token ID: ${token.id}',
-                    style: const TextStyle(fontSize: 12, fontFamily: 'monospace', fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontFamily: 'monospace',
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   if (token.agentId != null) ...[
                     const SizedBox(height: 4),
                     Text(
                       'Agent ID: ${token.agentId}',
-                      style: const TextStyle(fontSize: 11, fontFamily: 'monospace'),
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontFamily: 'monospace',
+                      ),
                     ),
                   ],
                   if (token.agenticAccounts.isNotEmpty) ...[
@@ -138,7 +150,10 @@ class _ConnectedAgentsWidgetState extends State<ConnectedAgentsWidget> {
     );
 
     if (confirmed == true) {
-      final success = await widget.service.revokeExternalToken(widget.brokerageUser, token.id);
+      final success = await widget.service.revokeExternalToken(
+        widget.brokerageUser,
+        token.id,
+      );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -187,7 +202,9 @@ class _ConnectedAgentsWidgetState extends State<ConnectedAgentsWidget> {
                     width: 40,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+                      color: theme.colorScheme.onSurfaceVariant.withValues(
+                        alpha: 0.4,
+                      ),
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -206,7 +223,9 @@ class _ConnectedAgentsWidgetState extends State<ConnectedAgentsWidget> {
                         children: [
                           Text(
                             token.primaryTitle,
-                            style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                            style: theme.textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                           if (token.subtitle != null) ...[
                             const SizedBox(height: 3),
@@ -239,14 +258,17 @@ class _ConnectedAgentsWidgetState extends State<ConnectedAgentsWidget> {
                     token.applicationDescription!.isNotEmpty) ...[
                   Text(
                     'About Integration',
-                    style: theme.textTheme.labelLarge?.copyWith(fontWeight: FontWeight.bold),
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 6),
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+                      color: theme.colorScheme.surfaceContainerHighest
+                          .withValues(alpha: 0.4),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(
@@ -261,7 +283,9 @@ class _ConnectedAgentsWidgetState extends State<ConnectedAgentsWidget> {
                 if (token.isAgent) ...[
                   Text(
                     'Agent Capabilities & Scope',
-                    style: theme.textTheme.labelLarge?.copyWith(fontWeight: FontWeight.bold),
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Container(
@@ -269,7 +293,9 @@ class _ConnectedAgentsWidgetState extends State<ConnectedAgentsWidget> {
                     decoration: BoxDecoration(
                       color: token.typeColor.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: token.typeColor.withValues(alpha: 0.25)),
+                      border: Border.all(
+                        color: token.typeColor.withValues(alpha: 0.25),
+                      ),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -296,18 +322,28 @@ class _ConnectedAgentsWidgetState extends State<ConnectedAgentsWidget> {
                           const Divider(height: 16),
                           Row(
                             children: [
-                              const Icon(Icons.fingerprint, size: 14, color: Colors.grey),
+                              const Icon(
+                                Icons.fingerprint,
+                                size: 14,
+                                color: Colors.grey,
+                              ),
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
                                   'Agent ID: ${token.agentId}',
-                                  style: const TextStyle(fontSize: 11, fontFamily: 'monospace'),
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    fontFamily: 'monospace',
+                                  ),
                                 ),
                               ),
                               IconButton(
                                 icon: const Icon(Icons.copy, size: 16),
                                 visualDensity: VisualDensity.compact,
-                                onPressed: () => _copyToClipboard(token.agentId!, 'Agent ID'),
+                                onPressed: () => _copyToClipboard(
+                                  token.agentId!,
+                                  'Agent ID',
+                                ),
                               ),
                             ],
                           ),
@@ -316,12 +352,19 @@ class _ConnectedAgentsWidgetState extends State<ConnectedAgentsWidget> {
                           const SizedBox(height: 4),
                           Row(
                             children: [
-                              const Icon(Icons.account_balance_wallet_outlined, size: 14, color: Colors.grey),
+                              const Icon(
+                                Icons.account_balance_wallet_outlined,
+                                size: 14,
+                                color: Colors.grey,
+                              ),
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
                                   'Authorized Accounts: ${token.agenticAccounts.join(", ")}',
-                                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
                               ),
                             ],
@@ -336,7 +379,9 @@ class _ConnectedAgentsWidgetState extends State<ConnectedAgentsWidget> {
                 // Permissions Breakdown
                 Text(
                   'Granted Permissions & Scopes',
-                  style: theme.textTheme.labelLarge?.copyWith(fontWeight: FontWeight.bold),
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 if (token.scopes.isEmpty)
@@ -344,12 +389,17 @@ class _ConnectedAgentsWidgetState extends State<ConnectedAgentsWidget> {
                     width: double.infinity,
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                      color: theme.colorScheme.surfaceContainerHighest
+                          .withValues(alpha: 0.3),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.check_circle_outline, size: 16, color: Colors.green),
+                        const Icon(
+                          Icons.check_circle_outline,
+                          size: 16,
+                          color: Colors.green,
+                        ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
@@ -369,15 +419,20 @@ class _ConnectedAgentsWidgetState extends State<ConnectedAgentsWidget> {
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 6),
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
                           decoration: BoxDecoration(
-                            color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                            color: theme.colorScheme.surfaceContainerHighest
+                                .withValues(alpha: 0.3),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Row(
                             children: [
                               Icon(
-                                scope.toLowerCase().contains('trade') || scope.toLowerCase().contains('order')
+                                scope.toLowerCase().contains('trade') ||
+                                        scope.toLowerCase().contains('order')
                                     ? Icons.bolt
                                     : Icons.visibility_outlined,
                                 size: 16,
@@ -415,7 +470,9 @@ class _ConnectedAgentsWidgetState extends State<ConnectedAgentsWidget> {
                 // Technical Identifiers
                 Text(
                   'Identifiers & Credentials',
-                  style: theme.textTheme.labelLarge?.copyWith(fontWeight: FontWeight.bold),
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 _buildCopyableInfoTile(context, 'Token ID', token.id),
@@ -429,13 +486,17 @@ class _ConnectedAgentsWidgetState extends State<ConnectedAgentsWidget> {
                 // Timestamps & Lifecycle
                 Text(
                   'Connection Lifecycle',
-                  style: theme.textTheme.labelLarge?.copyWith(fontWeight: FontWeight.bold),
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                    color: theme.colorScheme.surfaceContainerHighest.withValues(
+                      alpha: 0.3,
+                    ),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Column(
@@ -467,14 +528,17 @@ class _ConnectedAgentsWidgetState extends State<ConnectedAgentsWidget> {
                     tilePadding: EdgeInsets.zero,
                     title: Text(
                       'Technical Details (JSON)',
-                      style: theme.textTheme.labelLarge?.copyWith(fontWeight: FontWeight.bold),
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     children: [
                       Container(
                         width: double.infinity,
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.6),
+                          color: theme.colorScheme.surfaceContainerHighest
+                              .withValues(alpha: 0.6),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Stack(
@@ -495,7 +559,8 @@ class _ConnectedAgentsWidgetState extends State<ConnectedAgentsWidget> {
                               child: IconButton(
                                 icon: const Icon(Icons.copy, size: 16),
                                 tooltip: 'Copy JSON',
-                                onPressed: () => _copyToClipboard(jsonStr, 'JSON payload'),
+                                onPressed: () =>
+                                    _copyToClipboard(jsonStr, 'JSON payload'),
                               ),
                             ),
                           ],
@@ -513,10 +578,15 @@ class _ConnectedAgentsWidgetState extends State<ConnectedAgentsWidget> {
                       backgroundColor: Colors.red,
                       foregroundColor: Colors.white,
                       minimumSize: const Size.fromHeight(48),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                     icon: const Icon(Icons.link_off),
-                    label: const Text('Revoke Token Access', style: TextStyle(fontWeight: FontWeight.bold)),
+                    label: const Text(
+                      'Revoke Token Access',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
                     onPressed: () {
                       Navigator.pop(ctx);
                       _revokeToken(token);
@@ -549,13 +619,19 @@ class _ConnectedAgentsWidgetState extends State<ConnectedAgentsWidget> {
     return 'Delegated API access permission';
   }
 
-  Widget _buildCopyableInfoTile(BuildContext context, String label, String value) {
+  Widget _buildCopyableInfoTile(
+    BuildContext context,
+    String label,
+    String value,
+  ) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 6.0),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+          color: Theme.of(
+            context,
+          ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Row(
@@ -564,7 +640,11 @@ class _ConnectedAgentsWidgetState extends State<ConnectedAgentsWidget> {
               width: 90,
               child: Text(
                 label,
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey),
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey,
+                ),
               ),
             ),
             Expanded(
@@ -591,10 +671,7 @@ class _ConnectedAgentsWidgetState extends State<ConnectedAgentsWidget> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          label,
-          style: const TextStyle(fontSize: 12, color: Colors.grey),
-        ),
+        Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
         Row(
           children: [
             Text(
@@ -611,7 +688,11 @@ class _ConnectedAgentsWidgetState extends State<ConnectedAgentsWidget> {
                 ),
                 child: Text(
                   relative,
-                  style: const TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.w600),
+                  style: const TextStyle(
+                    fontSize: 10,
+                    color: Colors.grey,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ],
@@ -629,7 +710,11 @@ class _ConnectedAgentsWidgetState extends State<ConnectedAgentsWidget> {
         actions: [
           // View Mode Toggle
           IconButton(
-            icon: Icon(_isCompactView ? Icons.view_agenda_outlined : Icons.view_headline_outlined),
+            icon: Icon(
+              _isCompactView
+                  ? Icons.view_agenda_outlined
+                  : Icons.view_headline_outlined,
+            ),
             tooltip: _isCompactView ? 'Detailed View' : 'Compact View',
             onPressed: () => setState(() => _isCompactView = !_isCompactView),
           ),
@@ -702,7 +787,11 @@ class _ConnectedAgentsWidgetState extends State<ConnectedAgentsWidget> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                    const Icon(
+                      Icons.error_outline,
+                      size: 48,
+                      color: Colors.red,
+                    ),
                     const SizedBox(height: 16),
                     Text('Error loading connected agents: ${snapshot.error}'),
                     const SizedBox(height: 16),
@@ -720,7 +809,9 @@ class _ConnectedAgentsWidgetState extends State<ConnectedAgentsWidget> {
           final activeTokens = allTokens.where((t) => t.isActive).toList();
           final agentsCount = allTokens.where((t) => t.isAgent).length;
           final linkedCount = allTokens.where((t) => t.isAggregator).length;
-          final oauthCount = allTokens.where((t) => !t.isAgent && !t.isAggregator).length;
+          final oauthCount = allTokens
+              .where((t) => !t.isAgent && !t.isAggregator)
+              .length;
 
           // Apply active-only filter
           var filtered = _showActiveOnly ? activeTokens : allTokens;
@@ -731,7 +822,9 @@ class _ConnectedAgentsWidgetState extends State<ConnectedAgentsWidget> {
           } else if (_selectedCategory == 'linked') {
             filtered = filtered.where((t) => t.isAggregator).toList();
           } else if (_selectedCategory == 'oauth') {
-            filtered = filtered.where((t) => !t.isAgent && !t.isAggregator).toList();
+            filtered = filtered
+                .where((t) => !t.isAgent && !t.isAggregator)
+                .toList();
           }
 
           // Apply keyword search
@@ -740,11 +833,20 @@ class _ConnectedAgentsWidgetState extends State<ConnectedAgentsWidget> {
             filtered = filtered.where((t) {
               final nameMatch = t.applicationName.toLowerCase().contains(query);
               final titleMatch = t.primaryTitle.toLowerCase().contains(query);
-              final subtitleMatch = t.subtitle?.toLowerCase().contains(query) ?? false;
-              final agentMatch = t.agentId?.toLowerCase().contains(query) ?? false;
+              final subtitleMatch =
+                  t.subtitle?.toLowerCase().contains(query) ?? false;
+              final agentMatch =
+                  t.agentId?.toLowerCase().contains(query) ?? false;
               final idMatch = t.id.toLowerCase().contains(query);
-              final accountMatch = t.agenticAccounts.any((a) => a.contains(query));
-              return nameMatch || titleMatch || subtitleMatch || agentMatch || idMatch || accountMatch;
+              final accountMatch = t.agenticAccounts.any(
+                (a) => a.contains(query),
+              );
+              return nameMatch ||
+                  titleMatch ||
+                  subtitleMatch ||
+                  agentMatch ||
+                  idMatch ||
+                  accountMatch;
             }).toList();
           }
 
@@ -752,28 +854,47 @@ class _ConnectedAgentsWidgetState extends State<ConnectedAgentsWidget> {
           filtered.sort((a, b) {
             switch (_sortOption) {
               case _SortOption.recent:
-                final dateA = a.updatedAt ?? a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
-                final dateB = b.updatedAt ?? b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+                final dateA =
+                    a.updatedAt ??
+                    a.createdAt ??
+                    DateTime.fromMillisecondsSinceEpoch(0);
+                final dateB =
+                    b.updatedAt ??
+                    b.createdAt ??
+                    DateTime.fromMillisecondsSinceEpoch(0);
                 return dateB.compareTo(dateA);
               case _SortOption.firstLogin:
-                final dateA = a.initialLoginTime ?? a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
-                final dateB = b.initialLoginTime ?? b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+                final dateA =
+                    a.initialLoginTime ??
+                    a.createdAt ??
+                    DateTime.fromMillisecondsSinceEpoch(0);
+                final dateB =
+                    b.initialLoginTime ??
+                    b.createdAt ??
+                    DateTime.fromMillisecondsSinceEpoch(0);
                 return dateB.compareTo(dateA);
               case _SortOption.name:
-                return a.primaryTitle.toLowerCase().compareTo(b.primaryTitle.toLowerCase());
+                return a.primaryTitle.toLowerCase().compareTo(
+                  b.primaryTitle.toLowerCase(),
+                );
               case _SortOption.type:
                 if (a.isAgent && !b.isAgent) return -1;
                 if (!a.isAgent && b.isAgent) return 1;
                 if (a.isAggregator && !b.isAggregator) return -1;
                 if (!a.isAggregator && b.isAggregator) return 1;
-                return a.primaryTitle.toLowerCase().compareTo(b.primaryTitle.toLowerCase());
+                return a.primaryTitle.toLowerCase().compareTo(
+                  b.primaryTitle.toLowerCase(),
+                );
             }
           });
 
           return RefreshIndicator(
             onRefresh: () async => _loadData(),
             child: ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16.0,
+                vertical: 12.0,
+              ),
               children: [
                 _buildOverviewHeader(
                   context,
@@ -794,12 +915,21 @@ class _ConnectedAgentsWidgetState extends State<ConnectedAgentsWidget> {
                   oauth: oauthCount,
                 ),
                 const SizedBox(height: 10),
-                _buildToolbar(context, filteredCount: filtered.length, totalCount: allTokens.length),
+                _buildToolbar(
+                  context,
+                  filteredCount: filtered.length,
+                  totalCount: allTokens.length,
+                ),
                 const SizedBox(height: 8),
                 if (filtered.isEmpty)
-                  _buildEmptyState(context, isSearching: _searchQuery.isNotEmpty)
+                  _buildEmptyState(
+                    context,
+                    isSearching: _searchQuery.isNotEmpty,
+                  )
                 else if (_isCompactView)
-                  ...filtered.map((token) => _buildCompactTokenTile(context, token))
+                  ...filtered.map(
+                    (token) => _buildCompactTokenTile(context, token),
+                  )
                 else
                   ...filtered.map((token) => _buildTokenCard(context, token)),
               ],
@@ -852,20 +982,29 @@ class _ConnectedAgentsWidgetState extends State<ConnectedAgentsWidget> {
                           Flexible(
                             child: Text(
                               'Authorized Access',
-                              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
                           const SizedBox(width: 6),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
                               color: Colors.green.withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
                               '$active Active',
-                              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.green),
+                              style: const TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.green,
+                              ),
                             ),
                           ),
                         ],
@@ -885,23 +1024,48 @@ class _ConnectedAgentsWidgetState extends State<ConnectedAgentsWidget> {
             const SizedBox(height: 14),
             Row(
               children: [
-                _buildStatBadge(context, '$agents', 'AI Agents', const Color(0xFF7C4DFF), Icons.psychology),
+                _buildStatBadge(
+                  context,
+                  '$agents',
+                  'AI Agents',
+                  const Color(0xFF7C4DFF),
+                  Icons.psychology,
+                ),
                 const SizedBox(width: 8),
-                _buildStatBadge(context, '$linked', 'Linked Hubs', const Color(0xFF00897B), Icons.hub_outlined),
+                _buildStatBadge(
+                  context,
+                  '$linked',
+                  'Linked Hubs',
+                  const Color(0xFF00897B),
+                  Icons.hub_outlined,
+                ),
                 const SizedBox(width: 8),
-                _buildStatBadge(context, '$oauth', 'Direct Apps', const Color(0xFF1E88E5), Icons.apps_outlined),
+                _buildStatBadge(
+                  context,
+                  '$oauth',
+                  'Direct Apps',
+                  const Color(0xFF1E88E5),
+                  Icons.apps_outlined,
+                ),
               ],
             ),
             const SizedBox(height: 10),
             InkWell(
-              onTap: () => setState(() => _isSecurityNoticeExpanded = !_isSecurityNoticeExpanded),
+              onTap: () => setState(
+                () => _isSecurityNoticeExpanded = !_isSecurityNoticeExpanded,
+              ),
               borderRadius: BorderRadius.circular(8),
               child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 2.0),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 4.0,
+                  horizontal: 2.0,
+                ),
                 child: Row(
                   children: [
                     Icon(
-                      _isSecurityNoticeExpanded ? Icons.info : Icons.info_outline,
+                      _isSecurityNoticeExpanded
+                          ? Icons.info
+                          : Icons.info_outline,
                       size: 14,
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
@@ -918,7 +1082,9 @@ class _ConnectedAgentsWidgetState extends State<ConnectedAgentsWidget> {
                       ),
                     ),
                     Icon(
-                      _isSecurityNoticeExpanded ? Icons.expand_less : Icons.expand_more,
+                      _isSecurityNoticeExpanded
+                          ? Icons.expand_less
+                          : Icons.expand_more,
                       size: 16,
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
@@ -934,14 +1100,19 @@ class _ConnectedAgentsWidgetState extends State<ConnectedAgentsWidget> {
                   color: theme.colorScheme.surface.withValues(alpha: 0.6),
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
-                    color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
+                    color: theme.colorScheme.outlineVariant.withValues(
+                      alpha: 0.4,
+                    ),
                   ),
                 ),
                 child: Text(
                   'Connected applications and AI agents hold cryptographic tokens granting access to your Robinhood portfolio. '
                   'AI Agents may have active order placement capabilities. '
                   'Regularly review your authorized connections and revoke access for any applications you are no longer using.',
-                  style: theme.textTheme.bodySmall?.copyWith(fontSize: 11, height: 1.4),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontSize: 11,
+                    height: 1.4,
+                  ),
                 ),
               ),
             ],
@@ -951,7 +1122,13 @@ class _ConnectedAgentsWidgetState extends State<ConnectedAgentsWidget> {
     );
   }
 
-  Widget _buildStatBadge(BuildContext context, String count, String label, Color color, IconData icon) {
+  Widget _buildStatBadge(
+    BuildContext context,
+    String count,
+    String label,
+    Color color,
+    IconData icon,
+  ) {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
@@ -1014,8 +1191,13 @@ class _ConnectedAgentsWidgetState extends State<ConnectedAgentsWidget> {
             : null,
         isDense: true,
         filled: true,
-        fillColor: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        fillColor: Theme.of(
+          context,
+        ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: 10,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
@@ -1079,7 +1261,11 @@ class _ConnectedAgentsWidgetState extends State<ConnectedAgentsWidget> {
     );
   }
 
-  Widget _buildToolbar(BuildContext context, {required int filteredCount, required int totalCount}) {
+  Widget _buildToolbar(
+    BuildContext context, {
+    required int filteredCount,
+    required int totalCount,
+  }) {
     final theme = Theme.of(context);
     String sortLabel = 'Recently Active';
     switch (_sortOption) {
@@ -1118,7 +1304,9 @@ class _ConnectedAgentsWidgetState extends State<ConnectedAgentsWidget> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
+              color: theme.colorScheme.surfaceContainerHighest.withValues(
+                alpha: 0.35,
+              ),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Row(
@@ -1128,7 +1316,10 @@ class _ConnectedAgentsWidgetState extends State<ConnectedAgentsWidget> {
                 const SizedBox(width: 4),
                 Text(
                   sortLabel,
-                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ],
             ),
@@ -1169,8 +1360,14 @@ class _ConnectedAgentsWidgetState extends State<ConnectedAgentsWidget> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
         side: token.isAgent
-            ? BorderSide(color: token.typeColor.withValues(alpha: 0.35), width: 1.5)
-            : BorderSide(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4), width: 0.8),
+            ? BorderSide(
+                color: token.typeColor.withValues(alpha: 0.35),
+                width: 1.5,
+              )
+            : BorderSide(
+                color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
+                width: 0.8,
+              ),
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
@@ -1229,7 +1426,9 @@ class _ConnectedAgentsWidgetState extends State<ConnectedAgentsWidget> {
                   decoration: BoxDecoration(
                     color: token.typeColor.withValues(alpha: 0.07),
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: token.typeColor.withValues(alpha: 0.18)),
+                    border: Border.all(
+                      color: token.typeColor.withValues(alpha: 0.18),
+                    ),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -1252,7 +1451,10 @@ class _ConnectedAgentsWidgetState extends State<ConnectedAgentsWidget> {
                           if (token.agenticAccounts.isNotEmpty) ...[
                             const SizedBox(width: 6),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 1,
+                              ),
                               decoration: BoxDecoration(
                                 color: token.typeColor.withValues(alpha: 0.15),
                                 borderRadius: BorderRadius.circular(6),
@@ -1273,7 +1475,11 @@ class _ConnectedAgentsWidgetState extends State<ConnectedAgentsWidget> {
                         const SizedBox(height: 6),
                         Row(
                           children: [
-                            const Icon(Icons.fingerprint, size: 13, color: Colors.grey),
+                            const Icon(
+                              Icons.fingerprint,
+                              size: 13,
+                              color: Colors.grey,
+                            ),
                             const SizedBox(width: 6),
                             Expanded(
                               child: Text(
@@ -1287,10 +1493,15 @@ class _ConnectedAgentsWidgetState extends State<ConnectedAgentsWidget> {
                               ),
                             ),
                             InkWell(
-                              onTap: () => _copyToClipboard(token.agentId!, 'Agent ID'),
+                              onTap: () =>
+                                  _copyToClipboard(token.agentId!, 'Agent ID'),
                               child: const Padding(
                                 padding: EdgeInsets.symmetric(horizontal: 4.0),
-                                child: Icon(Icons.copy, size: 13, color: Colors.grey),
+                                child: Icon(
+                                  Icons.copy,
+                                  size: 13,
+                                  color: Colors.grey,
+                                ),
                               ),
                             ),
                           ],
@@ -1308,15 +1519,23 @@ class _ConnectedAgentsWidgetState extends State<ConnectedAgentsWidget> {
                   spacing: 6,
                   runSpacing: 4,
                   children: token.scopes
-                      .map((s) => Chip(
-                            label: Text(
-                              s.toUpperCase(),
-                              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+                      .map(
+                        (s) => Chip(
+                          label: Text(
+                            s.toUpperCase(),
+                            style: const TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
                             ),
-                            padding: EdgeInsets.zero,
-                            visualDensity: VisualDensity.compact,
-                            backgroundColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-                          ))
+                          ),
+                          padding: EdgeInsets.zero,
+                          visualDensity: VisualDensity.compact,
+                          backgroundColor: theme
+                              .colorScheme
+                              .surfaceContainerHighest
+                              .withValues(alpha: 0.5),
+                        ),
+                      )
                       .toList(),
                 ),
               ],
@@ -1333,7 +1552,11 @@ class _ConnectedAgentsWidgetState extends State<ConnectedAgentsWidget> {
                     children: [
                       Row(
                         children: [
-                          Icon(Icons.schedule, size: 12, color: theme.colorScheme.onSurfaceVariant),
+                          Icon(
+                            Icons.schedule,
+                            size: 12,
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
                           const SizedBox(width: 4),
                           Expanded(
                             child: Text(
@@ -1353,7 +1576,9 @@ class _ConnectedAgentsWidgetState extends State<ConnectedAgentsWidget> {
                       Text(
                         'ID: #${token.id}  •  First: ${token.relativeFirstLogin}',
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                          color: theme.colorScheme.onSurfaceVariant.withValues(
+                            alpha: 0.7,
+                          ),
                           fontSize: 10,
                           fontFamily: 'monospace',
                         ),
@@ -1372,7 +1597,10 @@ class _ConnectedAgentsWidgetState extends State<ConnectedAgentsWidget> {
                           padding: const EdgeInsets.symmetric(horizontal: 8),
                         ),
                         icon: const Icon(Icons.info_outline, size: 15),
-                        label: const Text('Details', style: TextStyle(fontSize: 12)),
+                        label: const Text(
+                          'Details',
+                          style: TextStyle(fontSize: 12),
+                        ),
                         onPressed: () => _showTokenDetailsSheet(context, token),
                       ),
                       if (token.isActive) ...[
@@ -1385,7 +1613,13 @@ class _ConnectedAgentsWidgetState extends State<ConnectedAgentsWidget> {
                             padding: const EdgeInsets.symmetric(horizontal: 8),
                           ),
                           onPressed: () => _revokeToken(token),
-                          child: const Text('Revoke', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                          child: const Text(
+                            'Revoke',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
                       ],
                     ],
@@ -1444,7 +1678,10 @@ class _ConnectedAgentsWidgetState extends State<ConnectedAgentsWidget> {
             Expanded(
               child: Text(
                 token.primaryTitle,
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
@@ -1458,7 +1695,10 @@ class _ConnectedAgentsWidgetState extends State<ConnectedAgentsWidget> {
             const SizedBox(height: 2),
             Text(
               token.subtitle ?? 'ID: #${token.id}',
-              style: TextStyle(fontSize: 11, color: theme.colorScheme.onSurfaceVariant),
+              style: TextStyle(
+                fontSize: 11,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -1476,7 +1716,9 @@ class _ConnectedAgentsWidgetState extends State<ConnectedAgentsWidget> {
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w600,
-                      color: token.hasTradePermission ? Colors.amber[800] : Colors.grey,
+                      color: token.hasTradePermission
+                          ? Colors.amber[800]
+                          : Colors.grey,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -1492,7 +1734,14 @@ class _ConnectedAgentsWidgetState extends State<ConnectedAgentsWidget> {
                 tooltip: 'Revoke Access',
                 onPressed: () => _revokeToken(token),
               )
-            : const Text('Revoked', style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold)),
+            : const Text(
+                'Revoked',
+                style: TextStyle(
+                  fontSize: 10,
+                  color: Colors.grey,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
       ),
     );
   }
@@ -1552,7 +1801,11 @@ class _ConnectedAgentsWidgetState extends State<ConnectedAgentsWidget> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(hasTrade ? Icons.bolt : Icons.visibility_outlined, size: 10, color: color),
+          Icon(
+            hasTrade ? Icons.bolt : Icons.visibility_outlined,
+            size: 10,
+            color: color,
+          ),
           const SizedBox(width: 3),
           Text(
             hasTrade ? 'TRADING ENABLED' : 'READ ONLY',
@@ -1567,7 +1820,11 @@ class _ConnectedAgentsWidgetState extends State<ConnectedAgentsWidget> {
     );
   }
 
-  Widget _buildAvatar(BuildContext context, ExternalToken token, {double radius = 20}) {
+  Widget _buildAvatar(
+    BuildContext context,
+    ExternalToken token, {
+    double radius = 20,
+  }) {
     if (token.fourthPartyLogoUrl != null &&
         token.fourthPartyLogoUrl!.isNotEmpty &&
         !token.fourthPartyLogoUrl!.toLowerCase().endsWith('.svg')) {
@@ -1578,7 +1835,8 @@ class _ConnectedAgentsWidgetState extends State<ConnectedAgentsWidget> {
           width: radius * 2,
           height: radius * 2,
           fit: BoxFit.contain,
-          errorBuilder: (_, __, ___) => _buildFallbackAvatar(token, radius: radius),
+          errorBuilder: (_, __, ___) =>
+              _buildFallbackAvatar(token, radius: radius),
         ),
       );
     }
@@ -1604,10 +1862,16 @@ class _ConnectedAgentsWidgetState extends State<ConnectedAgentsWidget> {
         padding: const EdgeInsets.all(32.0),
         child: Column(
           children: [
-            Icon(isSearching ? Icons.search_off : Icons.security, size: 48, color: Colors.grey),
+            Icon(
+              isSearching ? Icons.search_off : Icons.security,
+              size: 48,
+              color: Colors.grey,
+            ),
             const SizedBox(height: 16),
             Text(
-              isSearching ? 'No Matching Tokens Found' : 'No Connected Agents or Apps',
+              isSearching
+                  ? 'No Matching Tokens Found'
+                  : 'No Connected Agents or Apps',
               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
             ),
             const SizedBox(height: 8),

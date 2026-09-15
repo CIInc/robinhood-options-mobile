@@ -51,8 +51,9 @@ class _ChatWidgetState extends State<ChatWidget> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance
-        .addPostFrameCallback((_) => _scrollToBottom(animated: false));
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _scrollToBottom(animated: false),
+    );
     if (widget.initialMessage != null) {
       // Small delay to ensure provider runs
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -250,8 +251,10 @@ class _ChatWidgetState extends State<ChatWidget> {
           ),
           const Divider(height: 1),
           Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16.0,
+              vertical: 12.0,
+            ),
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.surface,
               boxShadow: [
@@ -297,9 +300,7 @@ class _ChatWidgetState extends State<ChatWidget> {
                             borderSide: BorderSide.none,
                           ),
                           filled: true,
-                          fillColor: Theme.of(
-                            context,
-                          )
+                          fillColor: Theme.of(context)
                               .colorScheme
                               .surfaceContainerHighest
                               .withValues(alpha: 0.5),
@@ -317,9 +318,9 @@ class _ChatWidgetState extends State<ChatWidget> {
                   ),
                   const SizedBox(width: 8),
                   IconButton.filled(
-                    icon: Icon(_isTyping
-                        ? Icons.stop
-                        : Icons.arrow_upward), // Standard AI send icon style
+                    icon: Icon(
+                      _isTyping ? Icons.stop : Icons.arrow_upward,
+                    ), // Standard AI send icon style
                     onPressed: _isTyping
                         ? () {
                             setState(() {
@@ -327,7 +328,7 @@ class _ChatWidgetState extends State<ChatWidget> {
                             });
                           }
                         : () =>
-                            _handleSubmitted(provider, _textController.text),
+                              _handleSubmitted(provider, _textController.text),
                   ),
                 ],
               ),
@@ -359,7 +360,9 @@ class _ChatWidgetState extends State<ChatWidget> {
                 return SingleChildScrollView(
                   controller: scrollController,
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 16.0, vertical: 8.0),
+                    horizontal: 16.0,
+                    vertical: 8.0,
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -413,7 +416,9 @@ class _ChatWidgetState extends State<ChatWidget> {
                               title: const Text(
                                 'Investment Profile',
                                 style: TextStyle(
-                                    fontWeight: FontWeight.bold, fontSize: 13),
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                ),
                               ),
                               subtitle: const Text(
                                 'Provide risk aversion and trade goals to ground recommendations.',
@@ -434,7 +439,9 @@ class _ChatWidgetState extends State<ChatWidget> {
                               title: const Text(
                                 'Portfolio Holdings',
                                 style: TextStyle(
-                                    fontWeight: FontWeight.bold, fontSize: 13),
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                ),
                               ),
                               subtitle: const Text(
                                 'Share stock, options, forex balances for tailored signal auditing.',
@@ -459,7 +466,8 @@ class _ChatWidgetState extends State<ChatWidget> {
                         builder: (context, snapshot) {
                           final isAuthorized =
                               snapshot.hasData && snapshot.data != null;
-                          final isLoading = snapshot.connectionState ==
+                          final isLoading =
+                              snapshot.connectionState ==
                               ConnectionState.waiting;
 
                           return Column(
@@ -478,12 +486,15 @@ class _ChatWidgetState extends State<ChatWidget> {
                                   ),
                                   Container(
                                     padding: const EdgeInsets.symmetric(
-                                        horizontal: 6, vertical: 2),
+                                      horizontal: 6,
+                                      vertical: 2,
+                                    ),
                                     decoration: BoxDecoration(
-                                      color: (isAuthorized
-                                              ? Colors.green
-                                              : Colors.amber)
-                                          .withValues(alpha: 0.15),
+                                      color:
+                                          (isAuthorized
+                                                  ? Colors.green
+                                                  : Colors.amber)
+                                              .withValues(alpha: 0.15),
                                       borderRadius: BorderRadius.circular(4),
                                     ),
                                     child: Text(
@@ -520,7 +531,9 @@ class _ChatWidgetState extends State<ChatWidget> {
                                       const Text(
                                         'Authorized external client trading services:',
                                         style: TextStyle(
-                                            fontSize: 11, color: Colors.grey),
+                                          fontSize: 11,
+                                          color: Colors.grey,
+                                        ),
                                       ),
                                       const SizedBox(height: 10),
                                       if (isLoading)
@@ -529,7 +542,8 @@ class _ChatWidgetState extends State<ChatWidget> {
                                             height: 20,
                                             width: 20,
                                             child: CircularProgressIndicator(
-                                                strokeWidth: 2),
+                                              strokeWidth: 2,
+                                            ),
                                           ),
                                         )
                                       else ...[
@@ -545,11 +559,14 @@ class _ChatWidgetState extends State<ChatWidget> {
                                                   .generativeService
                                                   .authorizeMcp(context);
                                               if (success && context.mounted) {
-                                                ScaffoldMessenger.of(context)
-                                                    .showSnackBar(
+                                                ScaffoldMessenger.of(
+                                                  context,
+                                                ).showSnackBar(
                                                   const SnackBar(
-                                                      content: Text(
-                                                          'Robinhood MCP authorized successfully!')),
+                                                    content: Text(
+                                                      'Robinhood MCP authorized successfully!',
+                                                    ),
+                                                  ),
                                                 );
                                               }
                                               setBottomSheetState(() {});
@@ -557,26 +574,32 @@ class _ChatWidgetState extends State<ChatWidget> {
                                             }
                                           },
                                           icon: Icon(
-                                              isAuthorized
-                                                  ? Icons.link_off
-                                                  : Icons.link,
-                                              size: 14),
+                                            isAuthorized
+                                                ? Icons.link_off
+                                                : Icons.link,
+                                            size: 14,
+                                          ),
                                           label: Text(
                                             isAuthorized
                                                 ? 'Disconnect MCP'
                                                 : 'Authorize MCP with Robinhood',
                                             style: const TextStyle(
-                                                fontSize: 11,
-                                                fontWeight: FontWeight.bold),
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.bold,
+                                            ),
                                           ),
                                           style: ElevatedButton.styleFrom(
                                             foregroundColor: isAuthorized
                                                 ? Colors.red
                                                 : Colors.green[800],
                                             padding: const EdgeInsets.symmetric(
-                                                vertical: 6, horizontal: 12),
-                                            minimumSize:
-                                                const Size(double.infinity, 32),
+                                              vertical: 6,
+                                              horizontal: 12,
+                                            ),
+                                            minimumSize: const Size(
+                                              double.infinity,
+                                              32,
+                                            ),
                                           ),
                                         ),
                                       ],
@@ -684,8 +707,8 @@ class _ChatWidgetState extends State<ChatWidget> {
                   Text(
                     'Here are some suggestions to get you started.',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
                     textAlign: TextAlign.center,
                   ),
                 ],
@@ -706,42 +729,51 @@ class _ChatWidgetState extends State<ChatWidget> {
     // --- Portfolio Section ---
 
     // 1. Portfolio Summary
-    final portfolioSummary =
-        widget.generativeService.getPrompt('portfolio-summary');
+    final portfolioSummary = widget.generativeService.getPrompt(
+      'portfolio-summary',
+    );
 
     // 2. Performance
-    final portfolioPerformance =
-        widget.generativeService.getPrompt('portfolio-performance-manual');
+    final portfolioPerformance = widget.generativeService.getPrompt(
+      'portfolio-performance-manual',
+    );
 
     // 3. Risk Analysis
-    final portfolioRisk =
-        widget.generativeService.getPrompt('portfolio-risk-manual');
+    final portfolioRisk = widget.generativeService.getPrompt(
+      'portfolio-risk-manual',
+    );
 
     // 4. Options Greeks
-    final optionsGreeks =
-        widget.generativeService.getPrompt('options-greeks-manual');
+    final optionsGreeks = widget.generativeService.getPrompt(
+      'options-greeks-manual',
+    );
 
     // --- Market Section ---
 
     // 5. Market Status
-    final marketStatus =
-        widget.generativeService.getPrompt('market-status-manual');
+    final marketStatus = widget.generativeService.getPrompt(
+      'market-status-manual',
+    );
 
     // 6. Market Outlook
-    final marketOutlook =
-        widget.generativeService.getPrompt('market-predictions');
+    final marketOutlook = widget.generativeService.getPrompt(
+      'market-predictions',
+    );
 
     // 7. Investment Ideas
-    final investmentIdeas =
-        widget.generativeService.getPrompt('portfolio-recommendations');
+    final investmentIdeas = widget.generativeService.getPrompt(
+      'portfolio-recommendations',
+    );
 
     // 8. Construct Portfolio
-    final constructPortfolio =
-        widget.generativeService.getPrompt('construct-portfolio');
+    final constructPortfolio = widget.generativeService.getPrompt(
+      'construct-portfolio',
+    );
 
     // 9. Stock Analysis (Example)
-    final stockAnalysis =
-        widget.generativeService.getPrompt('apple-analysis-manual');
+    final stockAnalysis = widget.generativeService.getPrompt(
+      'apple-analysis-manual',
+    );
 
     return Center(
       child: SingleChildScrollView(
@@ -767,37 +799,27 @@ class _ChatWidgetState extends State<ChatWidget> {
                 Text(
                   'Ask about your portfolio, specific stocks, or market trends.',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
                   textAlign: TextAlign.center,
                 ),
               ],
             ),
             const SizedBox(height: 32),
-            _buildPromptSection(
-              context,
-              'Portfolio Analysis',
-              [
-                portfolioSummary,
-                portfolioPerformance,
-                portfolioRisk,
-                optionsGreeks,
-              ],
-              provider,
-            ),
+            _buildPromptSection(context, 'Portfolio Analysis', [
+              portfolioSummary,
+              portfolioPerformance,
+              portfolioRisk,
+              optionsGreeks,
+            ], provider),
             const SizedBox(height: 24),
-            _buildPromptSection(
-              context,
-              'Market & Strategy',
-              [
-                marketStatus,
-                marketOutlook,
-                investmentIdeas,
-                constructPortfolio,
-                stockAnalysis,
-              ],
-              provider,
-            ),
+            _buildPromptSection(context, 'Market & Strategy', [
+              marketStatus,
+              marketOutlook,
+              investmentIdeas,
+              constructPortfolio,
+              stockAnalysis,
+            ], provider),
             const SizedBox(height: 24),
             _buildAgenticTradingInfoSection(context),
           ],
@@ -855,8 +877,10 @@ class _ChatWidgetState extends State<ChatWidget> {
               const Divider(height: 1),
               ListTile(
                 dense: true,
-                leading:
-                    const Icon(Icons.help_outline, color: Colors.deepPurple),
+                leading: const Icon(
+                  Icons.help_outline,
+                  color: Colors.deepPurple,
+                ),
                 title: const Text(
                   'Trading with Your Assistant',
                   style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
@@ -908,7 +932,9 @@ class _ChatWidgetState extends State<ChatWidget> {
                           const Text(
                             'What is an MCP?',
                             style: TextStyle(
-                                fontWeight: FontWeight.bold, fontSize: 13),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
                           ),
                           const SizedBox(height: 4),
                           const Text(
@@ -976,11 +1002,14 @@ class _ChatWidgetState extends State<ChatWidget> {
                           const SizedBox(height: 12),
                           if (isLoading)
                             const Center(
-                                child: SizedBox(
-                                    height: 24,
-                                    width: 24,
-                                    child: CircularProgressIndicator(
-                                        strokeWidth: 2)))
+                              child: SizedBox(
+                                height: 24,
+                                width: 24,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              ),
+                            )
                           else ...[
                             ElevatedButton.icon(
                               onPressed: () async {
@@ -994,35 +1023,44 @@ class _ChatWidgetState extends State<ChatWidget> {
                                   if (success && context.mounted) {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       const SnackBar(
-                                          content: Text(
-                                              'Robinhood MCP authorized successfully!')),
+                                        content: Text(
+                                          'Robinhood MCP authorized successfully!',
+                                        ),
+                                      ),
                                     );
                                   } else if (context.mounted) {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       const SnackBar(
-                                          content: Text(
-                                              'Failed to authorize with Robinhood MCP.')),
+                                        content: Text(
+                                          'Failed to authorize with Robinhood MCP.',
+                                        ),
+                                      ),
                                     );
                                   }
                                   setDialogState(() {});
                                 }
                               },
                               icon: Icon(
-                                  isAuthorized ? Icons.link_off : Icons.link,
-                                  size: 16),
+                                isAuthorized ? Icons.link_off : Icons.link,
+                                size: 16,
+                              ),
                               label: Text(
                                 isAuthorized
                                     ? 'Disconnect MCP'
                                     : 'Authorize MCP with Robinhood',
                                 style: const TextStyle(
-                                    fontSize: 11, fontWeight: FontWeight.bold),
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                               style: ElevatedButton.styleFrom(
                                 foregroundColor: isAuthorized
                                     ? Colors.red
                                     : Colors.green[800],
                                 padding: const EdgeInsets.symmetric(
-                                    vertical: 8, horizontal: 12),
+                                  vertical: 8,
+                                  horizontal: 12,
+                                ),
                                 minimumSize: const Size(double.infinity, 32),
                               ),
                             ),
@@ -1037,7 +1075,9 @@ class _ChatWidgetState extends State<ChatWidget> {
                           const Text(
                             'What Your Agent Can Do',
                             style: TextStyle(
-                                fontWeight: FontWeight.bold, fontSize: 13),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
                           ),
                           const SizedBox(height: 4),
                           const Text(
@@ -1051,7 +1091,9 @@ class _ChatWidgetState extends State<ChatWidget> {
                           const Text(
                             'Open an Agentic Account',
                             style: TextStyle(
-                                fontWeight: FontWeight.bold, fontSize: 13),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
                           ),
                           const SizedBox(height: 4),
                           const Text(
@@ -1062,15 +1104,18 @@ class _ChatWidgetState extends State<ChatWidget> {
                           const Text(
                             '⚠️ Safety & Disclosures',
                             style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 13,
-                                color: Colors.orange),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                              color: Colors.orange,
+                            ),
                           ),
                           const SizedBox(height: 4),
                           const Text(
                             'You are ultimately responsible for all trades executed by your AI agent. Agentic trading involves significant risk, including possible loss of capital. AI-driven strategies may perform poorly under certain market conditions, move quickly, and may be difficult to monitor or stop in real time. AI agents can make errors or misinterpret instructions. Always monitor active balances and positions closely.',
                             style: TextStyle(
-                                fontSize: 11, fontStyle: FontStyle.italic),
+                              fontSize: 11,
+                              fontStyle: FontStyle.italic,
+                            ),
                           ),
                         ],
                       ),
@@ -1181,9 +1226,9 @@ class _ChatWidgetState extends State<ChatWidget> {
           child: Text(
             title,
             style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  color: Theme.of(context).colorScheme.primary,
-                  fontWeight: FontWeight.bold,
-                ),
+              color: Theme.of(context).colorScheme.primary,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
         Wrap(
@@ -1287,8 +1332,9 @@ class _ChatWidgetState extends State<ChatWidget> {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12.0),
       child: Row(
-        mainAxisAlignment:
-            isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment: isUser
+            ? MainAxisAlignment.end
+            : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (!isUser) ...[
@@ -1309,8 +1355,9 @@ class _ChatWidgetState extends State<ChatWidget> {
               decoration: BoxDecoration(
                 color: isUser
                     ? theme.colorScheme.primary
-                    : theme.colorScheme.surfaceContainerHighest
-                        .withValues(alpha: 0.5),
+                    : theme.colorScheme.surfaceContainerHighest.withValues(
+                        alpha: 0.5,
+                      ),
                 borderRadius: BorderRadius.only(
                   topLeft: const Radius.circular(20),
                   topRight: const Radius.circular(20),
@@ -1319,8 +1366,9 @@ class _ChatWidgetState extends State<ChatWidget> {
                 ),
                 border: !isUser
                     ? Border.all(
-                        color: theme.colorScheme.outlineVariant
-                            .withValues(alpha: 0.5),
+                        color: theme.colorScheme.outlineVariant.withValues(
+                          alpha: 0.5,
+                        ),
                       )
                     : null,
               ),
@@ -1358,7 +1406,8 @@ class _ChatWidgetState extends State<ChatWidget> {
     }
 
     final provider = Provider.of<GenerativeProvider>(context, listen: false);
-    final isLast = provider.chatMessages.isNotEmpty &&
+    final isLast =
+        provider.chatMessages.isNotEmpty &&
         provider.chatMessages.last == message;
 
     if (message.text.trim().isEmpty) {
@@ -1374,10 +1423,7 @@ class _ChatWidgetState extends State<ChatWidget> {
             ),
           ),
           const SizedBox(width: 8),
-          Text(
-            'Thinking...',
-            style: theme.textTheme.bodySmall,
-          ),
+          Text('Thinking...', style: theme.textTheme.bodySmall),
         ],
       );
     }
@@ -1433,10 +1479,12 @@ class _ChatWidgetState extends State<ChatWidget> {
           const SizedBox(height: 12),
           const Divider(),
           const SizedBox(height: 8),
-          ...proposals.map((proposal) => Padding(
-                padding: const EdgeInsets.only(bottom: 12.0),
-                child: AgenticTradeCard(proposal: proposal),
-              )),
+          ...proposals.map(
+            (proposal) => Padding(
+              padding: const EdgeInsets.only(bottom: 12.0),
+              child: AgenticTradeCard(proposal: proposal),
+            ),
+          ),
         ],
         if (isLast && _isTyping) ...[
           const SizedBox(height: 12),
@@ -1455,8 +1503,9 @@ class _ChatWidgetState extends State<ChatWidget> {
               Text(
                 'Thinking...',
                 style: theme.textTheme.bodySmall?.copyWith(
-                  color:
-                      theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+                  color: theme.colorScheme.onSurfaceVariant.withValues(
+                    alpha: 0.8,
+                  ),
                 ),
               ),
             ],
@@ -1501,17 +1550,20 @@ class _ChatWidgetState extends State<ChatWidget> {
       final symbol = match.group(2)!.toUpperCase();
       final quantity = double.tryParse(match.group(3) ?? '') ?? 0.0;
       final type = match.group(4)!.toLowerCase();
-      final price =
-          match.group(5) != null ? double.tryParse(match.group(5)!) : null;
+      final price = match.group(5) != null
+          ? double.tryParse(match.group(5)!)
+          : null;
 
-      proposals.add(TradeProposal(
-        isOption: false,
-        side: side,
-        symbol: symbol,
-        quantity: quantity,
-        type: type,
-        price: price,
-      ));
+      proposals.add(
+        TradeProposal(
+          isOption: false,
+          side: side,
+          symbol: symbol,
+          quantity: quantity,
+          type: type,
+          price: price,
+        ),
+      );
     }
 
     final optionRegExp = RegExp(
@@ -1528,17 +1580,19 @@ class _ChatWidgetState extends State<ChatWidget> {
       final type = match.group(7)!.toLowerCase();
       final price = double.tryParse(match.group(8) ?? '') ?? 0.0;
 
-      proposals.add(TradeProposal(
-        isOption: true,
-        side: side,
-        symbol: symbol,
-        quantity: quantity,
-        type: type,
-        price: price,
-        optionType: optionType,
-        expirationDate: expirationDate,
-        strike: strike,
-      ));
+      proposals.add(
+        TradeProposal(
+          isOption: true,
+          side: side,
+          symbol: symbol,
+          quantity: quantity,
+          type: type,
+          price: price,
+          optionType: optionType,
+          expirationDate: expirationDate,
+          strike: strike,
+        ),
+      );
     }
 
     return proposals;
@@ -1570,10 +1624,13 @@ class _ChatWidgetState extends State<ChatWidget> {
 
   String _cleanMessageText(String text) {
     var cleaned = text.replaceAll(
-        RegExp(r'\[TRADE_PROPOSAL:\s*[^\]]+\]', caseSensitive: false), '');
+      RegExp(r'\[TRADE_PROPOSAL:\s*[^\]]+\]', caseSensitive: false),
+      '',
+    );
     cleaned = cleaned.replaceAll(
-        RegExp(r'\[TRADE_PROPOSAL_OPTION:\s*[^\]]+\]', caseSensitive: false),
-        '');
+      RegExp(r'\[TRADE_PROPOSAL_OPTION:\s*[^\]]+\]', caseSensitive: false),
+      '',
+    );
     cleaned = _cleanToolExecutions(cleaned);
     return cleaned.trim();
   }
@@ -1581,10 +1638,13 @@ class _ChatWidgetState extends State<ChatWidget> {
   List<_ChatMessageContentPart> _parseMessageIntoParts(String text) {
     // First, strip trade proposals from the text because they are rendered at the bottom in the Column
     var textWithStrips = text.replaceAll(
-        RegExp(r'\[TRADE_PROPOSAL:\s*[^\]]+\]', caseSensitive: false), '');
+      RegExp(r'\[TRADE_PROPOSAL:\s*[^\]]+\]', caseSensitive: false),
+      '',
+    );
     textWithStrips = textWithStrips.replaceAll(
-        RegExp(r'\[TRADE_PROPOSAL_OPTION:\s*[^\]]+\]', caseSensitive: false),
-        '');
+      RegExp(r'\[TRADE_PROPOSAL_OPTION:\s*[^\]]+\]', caseSensitive: false),
+      '',
+    );
 
     final List<_ChatMessageContentPart> parts = [];
     final lines = textWithStrips.split('\n');
@@ -1610,22 +1670,26 @@ class _ChatWidgetState extends State<ChatWidget> {
 
     void flushToolGroup() {
       if (currentExecutionsGroup.isNotEmpty) {
-        parts.add(_ChatMessageContentPart(
-          executions: List.from(currentExecutionsGroup),
-        ));
+        parts.add(
+          _ChatMessageContentPart(
+            executions: List.from(currentExecutionsGroup),
+          ),
+        );
         currentExecutionsGroup.clear();
       }
     }
 
     void addPendingTool() {
       if (currentTool != null) {
-        currentExecutionsGroup.add(ToolExecution(
-          toolName: currentTool!,
-          arguments: currentArgs,
-          response: currentResponse,
-          error: currentError,
-          isInProgress: currentResponse == null && currentError == null,
-        ));
+        currentExecutionsGroup.add(
+          ToolExecution(
+            toolName: currentTool!,
+            arguments: currentArgs,
+            response: currentResponse,
+            error: currentError,
+            isInProgress: currentResponse == null && currentError == null,
+          ),
+        );
         currentTool = null;
         currentArgs = null;
         currentResponse = null;
@@ -1750,14 +1814,22 @@ class _AgenticTradeCardState extends State<AgenticTradeCard> {
       }
 
       final quoteStore = Provider.of<QuoteStore>(context, listen: false);
-      final instrumentStore =
-          Provider.of<InstrumentStore>(context, listen: false);
+      final instrumentStore = Provider.of<InstrumentStore>(
+        context,
+        listen: false,
+      );
       final rhService = RobinhoodService();
 
       _instrument = await rhService.getInstrumentBySymbol(
-          brokerageUser, instrumentStore, widget.proposal.symbol);
+        brokerageUser,
+        instrumentStore,
+        widget.proposal.symbol,
+      );
       _quote = await rhService.getQuote(
-          brokerageUser, quoteStore, widget.proposal.symbol);
+        brokerageUser,
+        quoteStore,
+        widget.proposal.symbol,
+      );
 
       if (widget.proposal.isOption) {
         final optType = widget.proposal.optionType!.toLowerCase();
@@ -1848,10 +1920,12 @@ class _AgenticTradeCardState extends State<AgenticTradeCard> {
           throw "Option contract not loaded.";
         }
         final limitPrice = widget.proposal.price ?? 0.0;
-        final positionEffect =
-            widget.proposal.side.toLowerCase() == 'buy' ? 'open' : 'close';
-        final direction =
-            widget.proposal.side.toLowerCase() == 'buy' ? 'debit' : 'credit';
+        final positionEffect = widget.proposal.side.toLowerCase() == 'buy'
+            ? 'open'
+            : 'close';
+        final direction = widget.proposal.side.toLowerCase() == 'buy'
+            ? 'debit'
+            : 'credit';
 
         final response = await RobinhoodService().placeOptionsOrder(
           brokerageUser,
@@ -1870,8 +1944,9 @@ class _AgenticTradeCardState extends State<AgenticTradeCard> {
           _successMessage =
               "🎉 Option Order Placed! Successfully submitted Agentic trade on Robinhood in account ${account.accountNumber}.";
         } else {
-          final errorBody =
-              response != null ? response.body : 'Unknown broker error';
+          final errorBody = response != null
+              ? response.body
+              : 'Unknown broker error';
           throw "Broker response: $errorBody";
         }
       } else {
@@ -1896,8 +1971,9 @@ class _AgenticTradeCardState extends State<AgenticTradeCard> {
           _successMessage =
               "🎉 Stock Order Placed! Successfully submitted Agentic trade to Robinhood in account ${account.accountNumber}.";
         } else {
-          final errorBody =
-              response != null ? response.body : 'Unknown broker error';
+          final errorBody = response != null
+              ? response.body
+              : 'Unknown broker error';
           throw "Broker response: $errorBody";
         }
       }
@@ -1962,10 +2038,9 @@ class _AgenticTradeCardState extends State<AgenticTradeCard> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: Theme.of(context)
-                  .colorScheme
-                  .surfaceContainerHighest
-                  .withValues(alpha: 0.3),
+              color: Theme.of(
+                context,
+              ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(12),
                 topRight: Radius.circular(12),
@@ -1977,8 +2052,11 @@ class _AgenticTradeCardState extends State<AgenticTradeCard> {
                 Expanded(
                   child: Row(
                     children: [
-                      const Icon(Icons.auto_awesome,
-                          size: 14, color: Colors.amber),
+                      const Icon(
+                        Icons.auto_awesome,
+                        size: 14,
+                        color: Colors.amber,
+                      ),
                       const SizedBox(width: 6),
                       Expanded(
                         child: Text(
@@ -1997,8 +2075,10 @@ class _AgenticTradeCardState extends State<AgenticTradeCard> {
                 ),
                 const SizedBox(width: 8),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.amber.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(4),
@@ -2035,7 +2115,9 @@ class _AgenticTradeCardState extends State<AgenticTradeCard> {
                         const SizedBox(width: 8),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 2),
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: actionColor.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(4),
@@ -2167,15 +2249,17 @@ class _AgenticTradeCardState extends State<AgenticTradeCard> {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: (_reviewAlerts!.substring(0, 1) == '✅'
-                              ? Colors.green[50]
-                              : Colors.amber[50])!
-                          .withValues(alpha: 0.8),
+                      color:
+                          (_reviewAlerts!.substring(0, 1) == '✅'
+                                  ? Colors.green[50]
+                                  : Colors.amber[50])!
+                              .withValues(alpha: 0.8),
                       borderRadius: BorderRadius.circular(6),
                       border: Border.all(
-                          color: (_reviewAlerts!.substring(0, 1) == '✅'
-                              ? Colors.green[200]
-                              : Colors.amber[200])!),
+                        color: (_reviewAlerts!.substring(0, 1) == '✅'
+                            ? Colors.green[200]
+                            : Colors.amber[200])!,
+                      ),
                     ),
                     child: Text(
                       _reviewAlerts!,
@@ -2200,9 +2284,10 @@ class _AgenticTradeCardState extends State<AgenticTradeCard> {
                     child: Text(
                       _successMessage!,
                       style: TextStyle(
-                          color: Colors.green[900],
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold),
+                        color: Colors.green[900],
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ],
@@ -2228,12 +2313,14 @@ class _AgenticTradeCardState extends State<AgenticTradeCard> {
                               width: 12,
                               height: 12,
                               child: CircularProgressIndicator(
-                                  strokeWidth: 1.5, color: Colors.white),
+                                strokeWidth: 1.5,
+                                color: Colors.white,
+                              ),
                             )
                           : const Icon(Icons.check, size: 14),
-                      label: Text(_successMessage != null
-                          ? "Executed"
-                          : "Execute Trade"),
+                      label: Text(
+                        _successMessage != null ? "Executed" : "Execute Trade",
+                      ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: _successMessage != null
                             ? Colors.green[700]
@@ -2262,20 +2349,14 @@ class _AgenticTradeCardState extends State<AgenticTradeCard> {
           label,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: TextStyle(
-            fontSize: 10,
-            color: Colors.grey[600],
-          ),
+          style: TextStyle(fontSize: 10, color: Colors.grey[600]),
         ),
         const SizedBox(height: 2),
         Text(
           value,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.bold,
-          ),
+          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
         ),
       ],
     );
@@ -2363,17 +2444,17 @@ class _ToolExecutionsGroupCardState extends State<ToolExecutionsGroupCard> {
     );
   }
 
-  Widget _buildStatusChip(BuildContext context,
-      {required String label, required Color color}) {
+  Widget _buildStatusChip(
+    BuildContext context, {
+    required String label,
+    required Color color,
+  }) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: color.withValues(alpha: 0.3),
-          width: 0.5,
-        ),
+        border: Border.all(color: color.withValues(alpha: 0.3), width: 0.5),
       ),
       child: Text(
         label,
@@ -2475,7 +2556,8 @@ class _ToolExecutionsGroupCardState extends State<ToolExecutionsGroupCard> {
 
     if (showCollapseToggle && isTruncated) {
       final lines = text.split('\n');
-      final truncatedText = lines.take(maxLinesToTruncate).join('\n') +
+      final truncatedText =
+          lines.take(maxLinesToTruncate).join('\n') +
           (lines.length > maxLinesToTruncate ? '\n...' : '');
       codeBody = Text(
         truncatedText,
@@ -2500,10 +2582,7 @@ class _ToolExecutionsGroupCardState extends State<ToolExecutionsGroupCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Padding(
-            padding: const EdgeInsets.all(8),
-            child: codeBody,
-          ),
+          Padding(padding: const EdgeInsets.all(8), child: codeBody),
           if (showCollapseToggle) ...[
             const Divider(height: 1),
             InkWell(
@@ -2551,8 +2630,9 @@ class _ToolExecutionsGroupCardState extends State<ToolExecutionsGroupCard> {
     if (executions.isEmpty) return const SizedBox.shrink();
 
     final hasInProgress = executions.any((e) => e.isInProgress);
-    final hasFailed =
-        executions.any((e) => e.error != null && e.error!.isNotEmpty);
+    final hasFailed = executions.any(
+      (e) => e.error != null && e.error!.isNotEmpty,
+    );
 
     Color groupColor;
     String groupStatus;
@@ -2573,8 +2653,10 @@ class _ToolExecutionsGroupCardState extends State<ToolExecutionsGroupCard> {
     }
 
     final toolsCount = executions.length;
-    final distinctToolNames =
-        executions.map((e) => e.toolName).toSet().toList();
+    final distinctToolNames = executions
+        .map((e) => e.toolName)
+        .toSet()
+        .toList();
     final toolsString = distinctToolNames.join(', ');
 
     return Card(
@@ -2606,16 +2688,10 @@ class _ToolExecutionsGroupCardState extends State<ToolExecutionsGroupCard> {
                     const SizedBox(
                       width: 14,
                       height: 14,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 1.5,
-                      ),
+                      child: CircularProgressIndicator(strokeWidth: 1.5),
                     ),
                   ] else ...[
-                    Icon(
-                      groupIconText,
-                      size: 16,
-                      color: groupColor,
-                    ),
+                    Icon(groupIconText, size: 16, color: groupColor),
                   ],
                   const SizedBox(width: 8),
                   Expanded(
@@ -2637,8 +2713,11 @@ class _ToolExecutionsGroupCardState extends State<ToolExecutionsGroupCard> {
                     ),
                   ),
                   const SizedBox(width: 6),
-                  _buildStatusChip(context,
-                      label: groupStatus, color: groupColor),
+                  _buildStatusChip(
+                    context,
+                    label: groupStatus,
+                    color: groupColor,
+                  ),
                   const SizedBox(width: 4),
                   Icon(
                     _isExpanded ? Icons.expand_less : Icons.expand_more,
@@ -2696,15 +2775,18 @@ class _ToolExecutionsGroupCardState extends State<ToolExecutionsGroupCard> {
                       },
                       child: Padding(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 8),
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
                         child: Row(
                           children: [
                             if (runInProgress) ...[
                               const SizedBox(
                                 width: 12,
                                 height: 12,
-                                child:
-                                    CircularProgressIndicator(strokeWidth: 1.2),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 1.2,
+                                ),
                               ),
                             ] else ...[
                               Icon(runIcon, size: 14, color: runColor),
@@ -2720,8 +2802,11 @@ class _ToolExecutionsGroupCardState extends State<ToolExecutionsGroupCard> {
                                 ),
                               ),
                             ),
-                            _buildStatusChip(context,
-                                label: runStatusLabel, color: runColor),
+                            _buildStatusChip(
+                              context,
+                              label: runStatusLabel,
+                              color: runColor,
+                            ),
                             const SizedBox(width: 4),
                             Icon(
                               isToolExpanded
@@ -2738,7 +2823,10 @@ class _ToolExecutionsGroupCardState extends State<ToolExecutionsGroupCard> {
                     if (isToolExpanded) ...[
                       Padding(
                         padding: const EdgeInsets.only(
-                            left: 12, right: 12, bottom: 8),
+                          left: 12,
+                          right: 12,
+                          bottom: 8,
+                        ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
@@ -2774,7 +2862,8 @@ class _ToolExecutionsGroupCardState extends State<ToolExecutionsGroupCard> {
                                       context: context,
                                       text: displayArgs,
                                       backgroundColor: theme
-                                          .colorScheme.surfaceContainerHighest
+                                          .colorScheme
+                                          .surfaceContainerHighest
                                           .withValues(alpha: 0.5),
                                       textColor: theme.colorScheme.onSurface,
                                     ),
@@ -2825,7 +2914,8 @@ class _ToolExecutionsGroupCardState extends State<ToolExecutionsGroupCard> {
                                       context: context,
                                       text: displayResponse,
                                       backgroundColor: theme
-                                          .colorScheme.surfaceContainerHighest
+                                          .colorScheme
+                                          .surfaceContainerHighest
                                           .withValues(alpha: 0.5),
                                       textColor: theme.colorScheme.onSurface,
                                       allowTruncate: true,
@@ -2857,7 +2947,8 @@ class _ToolExecutionsGroupCardState extends State<ToolExecutionsGroupCard> {
                                     context: context,
                                     text: run.error!,
                                     backgroundColor: theme
-                                        .colorScheme.errorContainer
+                                        .colorScheme
+                                        .errorContainer
                                         .withValues(alpha: 0.4),
                                     textColor:
                                         theme.colorScheme.onErrorContainer,
@@ -2906,8 +2997,9 @@ class _McpToolsListState extends State<_McpToolsList> {
   Future<List<mcp.Tool>> _fetchTools() async {
     final client = RobinhoodMcpClient(widget.accessToken);
     try {
-      final tools =
-          await client.listTools().timeout(const Duration(seconds: 10));
+      final tools = await client.listTools().timeout(
+        const Duration(seconds: 10),
+      );
       return tools;
     } catch (e) {
       debugPrint("Error fetching MCP tools: $e");
@@ -2987,8 +3079,11 @@ class _McpToolsListState extends State<_McpToolsList> {
     );
   }
 
-  Widget _buildParametersList(BuildContext context,
-      Map<String, dynamic>? properties, List<dynamic>? requiredList) {
+  Widget _buildParametersList(
+    BuildContext context,
+    Map<String, dynamic>? properties,
+    List<dynamic>? requiredList,
+  ) {
     if (properties == null || properties.isEmpty) {
       return const Padding(
         padding: EdgeInsets.symmetric(vertical: 4.0),
@@ -3027,11 +3122,14 @@ class _McpToolsListState extends State<_McpToolsList> {
                   ),
                   const SizedBox(width: 6),
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 4,
+                      vertical: 1,
+                    ),
                     decoration: BoxDecoration(
-                      color: (isRequired ? Colors.red : Colors.grey)
-                          .withValues(alpha: 0.1),
+                      color: (isRequired ? Colors.red : Colors.grey).withValues(
+                        alpha: 0.1,
+                      ),
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Text(
@@ -3048,8 +3146,9 @@ class _McpToolsListState extends State<_McpToolsList> {
                     'type: $type',
                     style: TextStyle(
                       fontSize: 9.5,
-                      color: theme.colorScheme.onSurfaceVariant
-                          .withValues(alpha: 0.7),
+                      color: theme.colorScheme.onSurfaceVariant.withValues(
+                        alpha: 0.7,
+                      ),
                     ),
                   ),
                 ],
@@ -3108,14 +3207,19 @@ class _McpToolsListState extends State<_McpToolsList> {
             padding: const EdgeInsets.symmetric(vertical: 8.0),
             child: Row(
               children: [
-                Icon(Icons.error_outline,
-                    size: 14, color: theme.colorScheme.error),
+                Icon(
+                  Icons.error_outline,
+                  size: 14,
+                  color: theme.colorScheme.error,
+                ),
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
                     "Could not load active tools: ${snapshot.error}",
-                    style:
-                        TextStyle(color: theme.colorScheme.error, fontSize: 11),
+                    style: TextStyle(
+                      color: theme.colorScheme.error,
+                      fontSize: 11,
+                    ),
                   ),
                 ),
               ],
@@ -3146,8 +3250,11 @@ class _McpToolsListState extends State<_McpToolsList> {
             const SizedBox(height: 12),
             Row(
               children: [
-                Icon(Icons.terminal_outlined,
-                    size: 16, color: theme.colorScheme.primary),
+                Icon(
+                  Icons.terminal_outlined,
+                  size: 16,
+                  color: theme.colorScheme.primary,
+                ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -3181,8 +3288,10 @@ class _McpToolsListState extends State<_McpToolsList> {
                         },
                       )
                     : null,
-                contentPadding:
-                    const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
+                contentPadding: const EdgeInsets.symmetric(
+                  vertical: 0,
+                  horizontal: 12,
+                ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(20),
                   borderSide: BorderSide(
@@ -3193,8 +3302,9 @@ class _McpToolsListState extends State<_McpToolsList> {
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(20),
                   borderSide: BorderSide(
-                    color:
-                        theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+                    color: theme.colorScheme.outlineVariant.withValues(
+                      alpha: 0.5,
+                    ),
                     width: 0.8,
                   ),
                 ),
@@ -3206,8 +3316,9 @@ class _McpToolsListState extends State<_McpToolsList> {
                   ),
                 ),
                 filled: true,
-                fillColor: theme.colorScheme.surfaceContainerHighest
-                    .withValues(alpha: 0.2),
+                fillColor: theme.colorScheme.surfaceContainerHighest.withValues(
+                  alpha: 0.2,
+                ),
               ),
               style: const TextStyle(fontSize: 12),
               onChanged: (val) {
@@ -3250,16 +3361,18 @@ class _McpToolsListState extends State<_McpToolsList> {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
                       side: BorderSide(
-                        color: theme.colorScheme.outlineVariant
-                            .withValues(alpha: 0.4),
+                        color: theme.colorScheme.outlineVariant.withValues(
+                          alpha: 0.4,
+                        ),
                         width: 0.8,
                       ),
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(10),
                       child: Theme(
-                        data: Theme.of(context)
-                            .copyWith(dividerColor: Colors.transparent),
+                        data: Theme.of(
+                          context,
+                        ).copyWith(dividerColor: Colors.transparent),
                         child: ExpansionTile(
                           iconColor: theme.colorScheme.primary,
                           collapsedIconColor:
@@ -3279,8 +3392,12 @@ class _McpToolsListState extends State<_McpToolsList> {
                               _buildBadgeForTool(name),
                             ],
                           ),
-                          childrenPadding:
-                              const EdgeInsets.fromLTRB(12.0, 4.0, 12.0, 12.0),
+                          childrenPadding: const EdgeInsets.fromLTRB(
+                            12.0,
+                            4.0,
+                            12.0,
+                            12.0,
+                          ),
                           expandedCrossAxisAlignment: CrossAxisAlignment.start,
                           expandedAlignment: Alignment.topLeft,
                           children: [
@@ -3324,8 +3441,9 @@ class _McpToolsListState extends State<_McpToolsList> {
                                         ? "Formatted View"
                                         : "Raw JSON Schema",
                                     style: const TextStyle(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold),
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                                   onPressed: () {
                                     setState(() {
@@ -3346,7 +3464,8 @@ class _McpToolsListState extends State<_McpToolsList> {
                                 padding: const EdgeInsets.all(8.0),
                                 decoration: BoxDecoration(
                                   color: theme
-                                      .colorScheme.surfaceContainerHighest
+                                      .colorScheme
+                                      .surfaceContainerHighest
                                       .withValues(alpha: 0.4),
                                   borderRadius: BorderRadius.circular(6),
                                   border: Border.all(
@@ -3356,8 +3475,9 @@ class _McpToolsListState extends State<_McpToolsList> {
                                   ),
                                 ),
                                 child: Text(
-                                  const JsonEncoder.withIndent('  ')
-                                      .convert(schemaMap),
+                                  const JsonEncoder.withIndent(
+                                    '  ',
+                                  ).convert(schemaMap),
                                   style: const TextStyle(
                                     fontFamily: 'monospace',
                                     fontSize: 9.5,
@@ -3366,7 +3486,10 @@ class _McpToolsListState extends State<_McpToolsList> {
                               )
                             else
                               _buildParametersList(
-                                  context, properties, requiredList),
+                                context,
+                                properties,
+                                requiredList,
+                              ),
                           ],
                         ),
                       ),

@@ -39,15 +39,16 @@ class BacktestingWidget extends StatefulWidget {
   final AgenticTradingConfig? prefilledConfig;
   final TradeStrategyConfig? prefilledStrategyConfig;
 
-  const BacktestingWidget(
-      {super.key,
-      this.user,
-      this.userDocRef,
-      this.brokerageUser,
-      this.service,
-      this.prefilledSymbol,
-      this.prefilledConfig,
-      this.prefilledStrategyConfig});
+  const BacktestingWidget({
+    super.key,
+    this.user,
+    this.userDocRef,
+    this.brokerageUser,
+    this.service,
+    this.prefilledSymbol,
+    this.prefilledConfig,
+    this.prefilledStrategyConfig,
+  });
 
   @override
   State<BacktestingWidget> createState() => _BacktestingWidgetState();
@@ -174,8 +175,9 @@ class BacktestRunTabState extends State<BacktestRunTab> {
   final _riskPerTradeController = TextEditingController(text: '1.0');
   final _atrMultiplierController = TextEditingController(text: '2.0');
   final _rsiExitThresholdController = TextEditingController(text: '70');
-  final _signalStrengthExitThresholdController =
-      TextEditingController(text: '30');
+  final _signalStrengthExitThresholdController = TextEditingController(
+    text: '30',
+  );
   final _gexExitThresholdController = TextEditingController(text: '0');
 
   DateTime _startDate = DateTime.now().subtract(const Duration(days: 365));
@@ -230,18 +232,18 @@ class BacktestRunTabState extends State<BacktestRunTab> {
     if (widget.prefilledConfig != null) {
       final config = widget.prefilledConfig!;
       if (config.strategyConfig.initialCapital != null) {
-        _initialCapitalController.text =
-            config.strategyConfig.initialCapital.toString();
+        _initialCapitalController.text = config.strategyConfig.initialCapital
+            .toString();
       }
-      _tradeQuantityController.text =
-          config.strategyConfig.tradeQuantity.toString();
-      _takeProfitController.text =
-          config.strategyConfig.takeProfitPercent.toString();
-      _stopLossController.text =
-          config.strategyConfig.stopLossPercent.toString();
+      _tradeQuantityController.text = config.strategyConfig.tradeQuantity
+          .toString();
+      _takeProfitController.text = config.strategyConfig.takeProfitPercent
+          .toString();
+      _stopLossController.text = config.strategyConfig.stopLossPercent
+          .toString();
       _trailingStopEnabled = config.strategyConfig.trailingStopEnabled;
-      _trailingStopController.text =
-          config.strategyConfig.trailingStopPercent.toString();
+      _trailingStopController.text = config.strategyConfig.trailingStopPercent
+          .toString();
       _rocPeriodController.text = config.strategyConfig.rocPeriod.toString();
       _rsiPeriodController.text = config.strategyConfig.rsiPeriod.toString();
       _smaFastController.text = config.strategyConfig.smaPeriodFast.toString();
@@ -251,33 +253,39 @@ class BacktestRunTabState extends State<BacktestRunTab> {
       _indicatorReasons.addAll(config.strategyConfig.indicatorReasons);
 
       // Advanced Init
-      _minSignalStrengthController.text =
-          config.strategyConfig.minSignalStrength.toString();
+      _minSignalStrengthController.text = config
+          .strategyConfig
+          .minSignalStrength
+          .toString();
       _requireAllIndicatorsGreen =
           config.strategyConfig.requireAllIndicatorsGreen;
       _timeBasedExitEnabled = config.strategyConfig.timeBasedExitEnabled;
-      _timeBasedExitController.text =
-          config.strategyConfig.timeBasedExitMinutes.toString();
+      _timeBasedExitController.text = config.strategyConfig.timeBasedExitMinutes
+          .toString();
       _marketCloseExitEnabled = config.strategyConfig.marketCloseExitEnabled;
-      _marketCloseExitController.text =
-          config.strategyConfig.marketCloseExitMinutes.toString();
+      _marketCloseExitController.text = config
+          .strategyConfig
+          .marketCloseExitMinutes
+          .toString();
       _enablePartialExits = config.strategyConfig.enablePartialExits;
       _enableDynamicPositionSizing =
           config.strategyConfig.enableDynamicPositionSizing;
-      _riskPerTradeController.text =
-          (config.strategyConfig.riskPerTrade * 100).toString();
-      _atrMultiplierController.text =
-          config.strategyConfig.atrMultiplier.toString();
+      _riskPerTradeController.text = (config.strategyConfig.riskPerTrade * 100)
+          .toString();
+      _atrMultiplierController.text = config.strategyConfig.atrMultiplier
+          .toString();
       _exitStages = List.from(config.strategyConfig.exitStages);
       _customIndicators = List.from(config.strategyConfig.customIndicators);
 
       _rsiExitEnabled = config.strategyConfig.rsiExitEnabled;
-      _rsiExitThresholdController.text =
-          config.strategyConfig.rsiExitThreshold.toString();
+      _rsiExitThresholdController.text = config.strategyConfig.rsiExitThreshold
+          .toString();
       _signalStrengthExitEnabled =
           config.strategyConfig.signalStrengthExitEnabled;
-      _signalStrengthExitThresholdController.text =
-          config.strategyConfig.signalStrengthExitThreshold.toString();
+      _signalStrengthExitThresholdController.text = config
+          .strategyConfig
+          .signalStrengthExitThreshold
+          .toString();
       _gexExitEnabled = config.strategyConfig.gexExitEnabled;
       _gexExitThresholdController.text =
           (config.strategyConfig.gexExitThreshold / 1e6).toString();
@@ -303,8 +311,8 @@ class BacktestRunTabState extends State<BacktestRunTab> {
       _timeBasedExitEnabled = config.timeBasedExitEnabled;
       _timeBasedExitController.text = config.timeBasedExitMinutes.toString();
       _marketCloseExitEnabled = config.marketCloseExitEnabled;
-      _marketCloseExitController.text =
-          config.marketCloseExitMinutes.toString();
+      _marketCloseExitController.text = config.marketCloseExitMinutes
+          .toString();
       _enablePartialExits = config.enablePartialExits;
       _enableDynamicPositionSizing = config.enableDynamicPositionSizing;
       _riskPerTradeController.text = (config.riskPerTrade * 100).toString();
@@ -315,8 +323,9 @@ class BacktestRunTabState extends State<BacktestRunTab> {
       _rsiExitEnabled = config.rsiExitEnabled;
       _rsiExitThresholdController.text = config.rsiExitThreshold.toString();
       _signalStrengthExitEnabled = config.signalStrengthExitEnabled;
-      _signalStrengthExitThresholdController.text =
-          config.signalStrengthExitThreshold.toString();
+      _signalStrengthExitThresholdController.text = config
+          .signalStrengthExitThreshold
+          .toString();
 
       if (config.startDate != null) _startDate = config.startDate!;
       if (config.endDate != null) _endDate = config.endDate!;
@@ -457,8 +466,8 @@ class BacktestRunTabState extends State<BacktestRunTab> {
   void loadConfig(TradeStrategyConfig config) {
     setState(() {
       _symbolController.text = config.symbolFilter.join(', ');
-      _initialCapitalController.text =
-          (config.initialCapital ?? 10000.0).toString();
+      _initialCapitalController.text = (config.initialCapital ?? 10000.0)
+          .toString();
       _tradeQuantityController.text = config.tradeQuantity.toString();
       _takeProfitController.text = config.takeProfitPercent.toString();
       _stopLossController.text = config.stopLossPercent.toString();
@@ -480,8 +489,8 @@ class BacktestRunTabState extends State<BacktestRunTab> {
       _timeBasedExitEnabled = config.timeBasedExitEnabled;
       _timeBasedExitController.text = config.timeBasedExitMinutes.toString();
       _marketCloseExitEnabled = config.marketCloseExitEnabled;
-      _marketCloseExitController.text =
-          config.marketCloseExitMinutes.toString();
+      _marketCloseExitController.text = config.marketCloseExitMinutes
+          .toString();
       _enablePartialExits = config.enablePartialExits;
       _enableDynamicPositionSizing = config.enableDynamicPositionSizing;
       _riskPerTradeController.text = (config.riskPerTrade * 100).toString();
@@ -492,11 +501,12 @@ class BacktestRunTabState extends State<BacktestRunTab> {
       _rsiExitEnabled = config.rsiExitEnabled;
       _rsiExitThresholdController.text = config.rsiExitThreshold.toString();
       _signalStrengthExitEnabled = config.signalStrengthExitEnabled;
-      _signalStrengthExitThresholdController.text =
-          config.signalStrengthExitThreshold.toString();
+      _signalStrengthExitThresholdController.text = config
+          .signalStrengthExitThreshold
+          .toString();
       _gexExitEnabled = config.gexExitEnabled;
-      _gexExitThresholdController.text =
-          (config.gexExitThreshold / 1e6).toString();
+      _gexExitThresholdController.text = (config.gexExitThreshold / 1e6)
+          .toString();
     });
 
     // Switch to Run tab
@@ -504,7 +514,8 @@ class BacktestRunTabState extends State<BacktestRunTab> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-          content: Text('Configuration loaded from optimization result')),
+        content: Text('Configuration loaded from optimization result'),
+      ),
     );
   }
 
@@ -517,8 +528,8 @@ class BacktestRunTabState extends State<BacktestRunTab> {
       _tradeQuantityController.text = template.config.tradeQuantity.toString();
       _takeProfitController.text = template.config.takeProfitPercent.toString();
       _stopLossController.text = template.config.stopLossPercent.toString();
-      _trailingStopController.text =
-          template.config.trailingStopPercent.toString();
+      _trailingStopController.text = template.config.trailingStopPercent
+          .toString();
       _rsiPeriodController.text = template.config.rsiPeriod.toString();
       _smaFastController.text = template.config.smaPeriodFast.toString();
       _smaSlowController.text = template.config.smaPeriodSlow.toString();
@@ -538,30 +549,32 @@ class BacktestRunTabState extends State<BacktestRunTab> {
 
       _minSignalStrengthController.text =
           template.config.requireAllIndicatorsGreen
-              ? '100'
-              : template.config.minSignalStrength.toString();
+          ? '100'
+          : template.config.minSignalStrength.toString();
       _requireAllIndicatorsGreen = template.config.requireAllIndicatorsGreen;
       _timeBasedExitEnabled = template.config.timeBasedExitEnabled;
-      _timeBasedExitController.text =
-          template.config.timeBasedExitMinutes.toString();
+      _timeBasedExitController.text = template.config.timeBasedExitMinutes
+          .toString();
       _marketCloseExitEnabled = template.config.marketCloseExitEnabled;
-      _marketCloseExitController.text =
-          template.config.marketCloseExitMinutes.toString();
+      _marketCloseExitController.text = template.config.marketCloseExitMinutes
+          .toString();
       _enablePartialExits = template.config.enablePartialExits;
       _enableDynamicPositionSizing =
           template.config.enableDynamicPositionSizing;
-      _riskPerTradeController.text =
-          (template.config.riskPerTrade * 100).toString();
+      _riskPerTradeController.text = (template.config.riskPerTrade * 100)
+          .toString();
       _atrMultiplierController.text = template.config.atrMultiplier.toString();
       _exitStages = List.from(template.config.exitStages);
       _customIndicators = List.from(template.config.customIndicators);
 
       _rsiExitEnabled = template.config.rsiExitEnabled;
-      _rsiExitThresholdController.text =
-          template.config.rsiExitThreshold.toString();
+      _rsiExitThresholdController.text = template.config.rsiExitThreshold
+          .toString();
       _signalStrengthExitEnabled = template.config.signalStrengthExitEnabled;
-      _signalStrengthExitThresholdController.text =
-          template.config.signalStrengthExitThreshold.toString();
+      _signalStrengthExitThresholdController.text = template
+          .config
+          .signalStrengthExitThreshold
+          .toString();
       _gexExitEnabled = template.config.gexExitEnabled;
       _gexExitThresholdController.text =
           (template.config.gexExitThreshold / 1e6).toString();
@@ -571,9 +584,7 @@ class BacktestRunTabState extends State<BacktestRunTab> {
   void _addCustomIndicator() async {
     final result = await Navigator.push<CustomIndicatorConfig>(
       context,
-      MaterialPageRoute(
-        builder: (context) => const CustomIndicatorPage(),
-      ),
+      MaterialPageRoute(builder: (context) => const CustomIndicatorPage()),
     );
 
     if (result != null) {
@@ -639,7 +650,9 @@ class BacktestRunTabState extends State<BacktestRunTab> {
                       const Text(
                         'Backtesting Engine',
                         style: TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.bold),
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       Text(
                         'Test strategies on historical data',
@@ -656,21 +669,24 @@ class BacktestRunTabState extends State<BacktestRunTab> {
                   tooltip: 'Reset to Defaults',
                   onPressed: () async {
                     final confirm = await showDialog<bool>(
-                        context: context,
-                        builder: (context) => AlertDialog(
-                                title: const Text('Reset Configuration'),
-                                content: const Text(
-                                    'Are you sure you want to reset all settings to default values?'),
-                                actions: [
-                                  TextButton(
-                                      onPressed: () =>
-                                          Navigator.pop(context, false),
-                                      child: const Text('Cancel')),
-                                  TextButton(
-                                      onPressed: () =>
-                                          Navigator.pop(context, true),
-                                      child: const Text('Reset')),
-                                ]));
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: const Text('Reset Configuration'),
+                        content: const Text(
+                          'Are you sure you want to reset all settings to default values?',
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, false),
+                            child: const Text('Cancel'),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, true),
+                            child: const Text('Reset'),
+                          ),
+                        ],
+                      ),
+                    );
                     if (confirm == true) _resetToDefaults();
                   },
                 ),
@@ -686,18 +702,24 @@ class BacktestRunTabState extends State<BacktestRunTab> {
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 child: Container(
                   width: double.infinity,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
                     color: colorScheme.primary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
-                        color: colorScheme.primary.withValues(alpha: 0.3)),
+                      color: colorScheme.primary.withValues(alpha: 0.3),
+                    ),
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.bookmark,
-                          size: 16, color: colorScheme.primary),
+                      Icon(
+                        Icons.bookmark,
+                        size: 16,
+                        color: colorScheme.primary,
+                      ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
@@ -717,8 +739,11 @@ class BacktestRunTabState extends State<BacktestRunTab> {
                             _loadedTemplate = null;
                           });
                         },
-                        child: Icon(Icons.close,
-                            size: 16, color: colorScheme.primary),
+                        child: Icon(
+                          Icons.close,
+                          size: 16,
+                          color: colorScheme.primary,
+                        ),
                       ),
                     ],
                   ),
@@ -778,8 +803,10 @@ class BacktestRunTabState extends State<BacktestRunTab> {
                   context: context,
                   firstDate: DateTime(2000),
                   lastDate: DateTime.now(),
-                  initialDateRange:
-                      DateTimeRange(start: _startDate, end: _endDate),
+                  initialDateRange: DateTimeRange(
+                    start: _startDate,
+                    end: _endDate,
+                  ),
                 );
                 if (range != null) {
                   setState(() {
@@ -797,8 +824,11 @@ class BacktestRunTabState extends State<BacktestRunTab> {
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.calendar_today,
-                        size: 18, color: colorScheme.onSurfaceVariant),
+                    Icon(
+                      Icons.calendar_today,
+                      size: 18,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
                     const SizedBox(width: 12),
                     Text(
                       '${DateFormat('MMM dd, yyyy').format(_startDate)} - ${DateFormat('MMM dd, yyyy').format(_endDate)}',
@@ -841,8 +871,11 @@ class BacktestRunTabState extends State<BacktestRunTab> {
     );
   }
 
-  Widget _buildDateRangeChip(String label, Duration? duration,
-      {bool isYtd = false}) {
+  Widget _buildDateRangeChip(
+    String label,
+    Duration? duration, {
+    bool isYtd = false,
+  }) {
     return InkWell(
       onTap: () {
         setState(() {
@@ -902,11 +935,14 @@ class BacktestRunTabState extends State<BacktestRunTab> {
         ),
         filled: true,
         fillColor: Theme.of(context).colorScheme.surface,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 12,
+          vertical: 16,
+        ),
       ),
       keyboardType: keyboardType,
-      validator: validator ??
+      validator:
+          validator ??
           (value) {
             if (value?.isEmpty ?? true) return 'Required';
             if (keyboardType == TextInputType.number) {
@@ -927,10 +963,13 @@ class BacktestRunTabState extends State<BacktestRunTab> {
     bool isSecondary = false,
   }) {
     return SwitchListTile(
-      title: Text(title,
-          style: TextStyle(
-              fontWeight: isSecondary ? FontWeight.normal : FontWeight.w600,
-              fontSize: isSecondary ? 14 : 16)),
+      title: Text(
+        title,
+        style: TextStyle(
+          fontWeight: isSecondary ? FontWeight.normal : FontWeight.w600,
+          fontSize: isSecondary ? 14 : 16,
+        ),
+      ),
       subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
       value: value,
       onChanged: onChanged,
@@ -949,7 +988,9 @@ class BacktestRunTabState extends State<BacktestRunTab> {
                 width: 20,
                 height: 20,
                 child: CircularProgressIndicator(
-                    strokeWidth: 2, color: Colors.white),
+                  strokeWidth: 2,
+                  color: Colors.white,
+                ),
               )
             : const Icon(Icons.play_arrow_rounded, size: 28),
         label: Text(
@@ -980,7 +1021,7 @@ class BacktestRunTabState extends State<BacktestRunTab> {
       endDate: _endDate,
       initialCapital:
           double.tryParse(_initialCapitalController.text.replaceAll(',', '')) ??
-              10000.0,
+          10000.0,
       interval: _interval,
       enabledIndicators: _enabledIndicators,
       tradeQuantity: int.tryParse(_tradeQuantityController.text) ?? 1,
@@ -993,8 +1034,8 @@ class BacktestRunTabState extends State<BacktestRunTab> {
       smaPeriodSlow: int.tryParse(_smaSlowController.text) ?? 30,
       marketIndexSymbol:
           _marketIndexController.text.trim().toUpperCase().isEmpty
-              ? 'SPY'
-              : _marketIndexController.text.trim().toUpperCase(),
+          ? 'SPY'
+          : _marketIndexController.text.trim().toUpperCase(),
       minSignalStrength:
           double.tryParse(_minSignalStrengthController.text) ?? 50.0,
       requireAllIndicatorsGreen: _requireAllIndicatorsGreen,
@@ -1037,15 +1078,16 @@ class BacktestRunTabState extends State<BacktestRunTab> {
         context,
         MaterialPageRoute(
           builder: (context) => _BacktestResultPage(
-              result: result,
-              user: widget.user,
-              userDocRef: widget.userDocRef,
-              brokerageUser: widget.brokerageUser,
-              service: widget.service,
-              onApplyConfig: (config) {
-                loadConfig(config);
-                Navigator.pop(context);
-              }),
+            result: result,
+            user: widget.user,
+            userDocRef: widget.userDocRef,
+            brokerageUser: widget.brokerageUser,
+            service: widget.service,
+            onApplyConfig: (config) {
+              loadConfig(config);
+              Navigator.pop(context);
+            },
+          ),
         ),
       );
     } else if (provider.errorMessage != null && mounted) {
@@ -1132,14 +1174,18 @@ class BacktestRunTabState extends State<BacktestRunTab> {
                           children: [
                             Expanded(
                               child: _buildTextField(
-                                  _riskPerTradeController, 'Risk per Trade',
-                                  suffixText: '%'),
+                                _riskPerTradeController,
+                                'Risk per Trade',
+                                suffixText: '%',
+                              ),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
                               child: _buildTextField(
-                                  _atrMultiplierController, 'ATR Multiplier',
-                                  suffixText: 'x'),
+                                _atrMultiplierController,
+                                'ATR Multiplier',
+                                suffixText: 'x',
+                              ),
                             ),
                           ],
                         ),
@@ -1169,10 +1215,12 @@ class BacktestRunTabState extends State<BacktestRunTab> {
                             setState(() => _enabledIndicators[key] = val),
                         onToggleAllIndicators: () {
                           setState(() {
-                            final allEnabled = _enabledIndicators.values
-                                .every((enabled) => enabled);
-                            _enabledIndicators
-                                .updateAll((key, value) => !allEnabled);
+                            final allEnabled = _enabledIndicators.values.every(
+                              (enabled) => enabled,
+                            );
+                            _enabledIndicators.updateAll(
+                              (key, value) => !allEnabled,
+                            );
                           });
                         },
                         rsiPeriodController: _rsiPeriodController,
@@ -1295,15 +1343,18 @@ class BacktestRunTabState extends State<BacktestRunTab> {
                 if (nameController.text.trim().isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                        content: Text('Please enter a template name')),
+                      content: Text('Please enter a template name'),
+                    ),
                   );
                   return;
                 }
 
                 final config = _createConfigFromState();
 
-                final provider =
-                    Provider.of<BacktestingProvider>(context, listen: false);
+                final provider = Provider.of<BacktestingProvider>(
+                  context,
+                  listen: false,
+                );
                 try {
                   // Update existing template
                   final template = TradeStrategyTemplate(
@@ -1320,7 +1371,8 @@ class BacktestRunTabState extends State<BacktestRunTab> {
                     Navigator.pop(dialogContext);
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                          content: Text('Template updated successfully')),
+                        content: Text('Template updated successfully'),
+                      ),
                     );
                     setState(() {
                       _loadedTemplate = template;
@@ -1347,8 +1399,10 @@ class BacktestRunTabState extends State<BacktestRunTab> {
 
               final config = _createConfigFromState();
 
-              final provider =
-                  Provider.of<BacktestingProvider>(context, listen: false);
+              final provider = Provider.of<BacktestingProvider>(
+                context,
+                listen: false,
+              );
               try {
                 final newId = await provider.saveConfigAsTemplate(
                   name: nameController.text.trim(),
@@ -1360,10 +1414,12 @@ class BacktestRunTabState extends State<BacktestRunTab> {
                   Navigator.pop(dialogContext);
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                        content: Text('Template saved successfully')),
+                      content: Text('Template saved successfully'),
+                    ),
                   );
-                  final newTemplate =
-                      provider.templates.firstWhere((t) => t.id == newId);
+                  final newTemplate = provider.templates.firstWhere(
+                    (t) => t.id == newId,
+                  );
                   setState(() {
                     _loadedTemplate = newTemplate;
                   });
@@ -1423,7 +1479,9 @@ class _BacktestResultPageState extends State<_BacktestResultPage> {
   final List<BacktestFilter> _advancedFilters = [];
 
   Map<String, dynamic>? _getIndicatorResult(
-      Map<String, dynamic> signalData, String key) {
+    Map<String, dynamic> signalData,
+    String key,
+  ) {
     // Check nested under 'indicators' (standard)
     if (signalData['indicators'] is Map) {
       final indicators = signalData['indicators'] as Map;
@@ -1501,7 +1559,8 @@ class _BacktestResultPageState extends State<_BacktestResultPage> {
   }
 
   List<charts.ChartBehavior<DateTime>> _buildChartBehaviors(
-      List<EquityPoint> chartData) {
+    List<EquityPoint> chartData,
+  ) {
     final behaviors = <charts.ChartBehavior<DateTime>>[
       charts.SelectNearest(),
       charts.LinePointHighlighter(
@@ -1588,17 +1647,20 @@ class _BacktestResultPageState extends State<_BacktestResultPage> {
     // Generate default name and description
     final dateFormat = DateFormat('MMM dd, yyyy');
     final symbolDisplay = _getSymbolDisplay(widget.result.config.symbolFilter);
-    final defaultName = widget.result.templateName ??
+    final defaultName =
+        widget.result.templateName ??
         '$symbolDisplay ${widget.result.config.interval} Strategy';
     final defaultDescription =
         '$symbolDisplay backtest from ${widget.result.config.startDate != null ? dateFormat.format(widget.result.config.startDate!) : 'N/A'} to ${widget.result.config.endDate != null ? dateFormat.format(widget.result.config.endDate!) : 'N/A'} '
         '(${widget.result.totalTrades} trades, ${(widget.result.winRate * 100).toStringAsFixed(1)}% win rate)';
 
     final nameController = TextEditingController(text: defaultName);
-    final descriptionController =
-        TextEditingController(text: defaultDescription);
+    final descriptionController = TextEditingController(
+      text: defaultDescription,
+    );
 
-    final canUpdate = widget.result.templateId != null &&
+    final canUpdate =
+        widget.result.templateId != null &&
         !widget.result.templateId!.startsWith('default_');
 
     showDialog(
@@ -1612,7 +1674,9 @@ class _BacktestResultPageState extends State<_BacktestResultPage> {
               Text(
                 'Originally from: ${widget.result.templateName}',
                 style: TextStyle(
-                    fontSize: 12, color: Theme.of(context).colorScheme.primary),
+                  fontSize: 12,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
               ),
               const SizedBox(height: 16),
             ],
@@ -1646,13 +1710,16 @@ class _BacktestResultPageState extends State<_BacktestResultPage> {
                 if (nameController.text.trim().isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                        content: Text('Please enter a template name')),
+                      content: Text('Please enter a template name'),
+                    ),
                   );
                   return;
                 }
 
-                final provider =
-                    Provider.of<BacktestingProvider>(context, listen: false);
+                final provider = Provider.of<BacktestingProvider>(
+                  context,
+                  listen: false,
+                );
                 try {
                   // Update existing template
                   final template = TradeStrategyTemplate(
@@ -1672,7 +1739,8 @@ class _BacktestResultPageState extends State<_BacktestResultPage> {
                     Navigator.pop(dialogContext);
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                          content: Text('Template updated successfully')),
+                        content: Text('Template updated successfully'),
+                      ),
                     );
                   }
                 } catch (e) {
@@ -1694,8 +1762,10 @@ class _BacktestResultPageState extends State<_BacktestResultPage> {
                 return;
               }
 
-              final provider =
-                  Provider.of<BacktestingProvider>(context, listen: false);
+              final provider = Provider.of<BacktestingProvider>(
+                context,
+                listen: false,
+              );
               try {
                 await provider.saveConfigAsTemplate(
                   name: nameController.text.trim(),
@@ -1709,7 +1779,8 @@ class _BacktestResultPageState extends State<_BacktestResultPage> {
                   Navigator.pop(dialogContext);
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                        content: Text('Template saved successfully')),
+                      content: Text('Template saved successfully'),
+                    ),
                   );
                 }
               } catch (e) {
@@ -1733,7 +1804,8 @@ class _BacktestResultPageState extends State<_BacktestResultPage> {
       builder: (dialogContext) => AlertDialog(
         title: const Text('Delete Backtest'),
         content: const Text(
-            'Are you sure you want to delete this backtest from history? This action cannot be undone.'),
+          'Are you sure you want to delete this backtest from history? This action cannot be undone.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
@@ -1741,9 +1813,7 @@ class _BacktestResultPageState extends State<_BacktestResultPage> {
           ),
           FilledButton(
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            style: FilledButton.styleFrom(
-              backgroundColor: Colors.red,
-            ),
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
             child: const Text('Delete'),
           ),
         ],
@@ -1788,15 +1858,19 @@ class _BacktestResultPageState extends State<_BacktestResultPage> {
           title: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(_templateName ?? 'Backtest Results',
-                  overflow: TextOverflow.fade,
-                  maxLines: 1,
-                  softWrap: false,
-                  style: const TextStyle(fontSize: 16)),
+              Text(
+                _templateName ?? 'Backtest Results',
+                overflow: TextOverflow.fade,
+                maxLines: 1,
+                softWrap: false,
+                style: const TextStyle(fontSize: 16),
+              ),
               Text(
                 '${_getSymbolDisplay(widget.result.config.symbolFilter)} · ${widget.result.config.startDate != null ? DateFormat('MMM dd, yyyy').format(widget.result.config.startDate!) : 'N/A'} - ${widget.result.config.endDate != null ? DateFormat('MMM dd, yyyy').format(widget.result.config.endDate!) : 'N/A'}',
                 style: const TextStyle(
-                    fontSize: 12, fontWeight: FontWeight.normal),
+                  fontSize: 12,
+                  fontWeight: FontWeight.normal,
+                ),
               ),
             ],
           ),
@@ -1809,8 +1883,9 @@ class _BacktestResultPageState extends State<_BacktestResultPage> {
               margin: const EdgeInsets.only(right: 8),
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: (isProfit ? Colors.green : Colors.red)
-                    .withValues(alpha: 0.2),
+                color: (isProfit ? Colors.green : Colors.red).withValues(
+                  alpha: 0.2,
+                ),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Row(
@@ -1859,9 +1934,11 @@ class _BacktestResultPageState extends State<_BacktestResultPage> {
                   value: 'edit',
                   child: Row(
                     children: [
-                      Icon(Icons.edit,
-                          size: 20,
-                          color: Theme.of(context).colorScheme.primary),
+                      Icon(
+                        Icons.edit,
+                        size: 20,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
                       const SizedBox(width: 12),
                       const Text('Edit Strategy'),
                     ],
@@ -1871,9 +1948,11 @@ class _BacktestResultPageState extends State<_BacktestResultPage> {
                   value: 'save',
                   child: Row(
                     children: [
-                      Icon(Icons.bookmark_add,
-                          size: 20,
-                          color: Theme.of(context).colorScheme.primary),
+                      Icon(
+                        Icons.bookmark_add,
+                        size: 20,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
                       const SizedBox(width: 12),
                       const Text('Save as Template'),
                     ],
@@ -1883,9 +1962,11 @@ class _BacktestResultPageState extends State<_BacktestResultPage> {
                   value: 'share',
                   child: Row(
                     children: [
-                      Icon(Icons.share,
-                          size: 20,
-                          color: Theme.of(context).colorScheme.primary),
+                      Icon(
+                        Icons.share,
+                        size: 20,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
                       const SizedBox(width: 12),
                       const Text('Share Results'),
                     ],
@@ -1895,9 +1976,11 @@ class _BacktestResultPageState extends State<_BacktestResultPage> {
                   value: 'export',
                   child: Row(
                     children: [
-                      Icon(Icons.download,
-                          size: 20,
-                          color: Theme.of(context).colorScheme.primary),
+                      Icon(
+                        Icons.download,
+                        size: 20,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
                       const SizedBox(width: 12),
                       const Text('Export to CSV'),
                     ],
@@ -1909,8 +1992,10 @@ class _BacktestResultPageState extends State<_BacktestResultPage> {
                     children: [
                       Icon(Icons.delete_outline, size: 20, color: Colors.red),
                       SizedBox(width: 12),
-                      Text('Delete Result',
-                          style: TextStyle(color: Colors.red)),
+                      Text(
+                        'Delete Result',
+                        style: TextStyle(color: Colors.red),
+                      ),
                     ],
                   ),
                 ),
@@ -2000,12 +2085,15 @@ class _BacktestResultPageState extends State<_BacktestResultPage> {
     );
 
     final box = context.findRenderObject() as RenderBox?;
-    await SharePlus.instance.share(ShareParams(
-      files: [xFile],
-      text: 'Backtest Trades CSV',
-      sharePositionOrigin:
-          box != null ? box.localToGlobal(Offset.zero) & box.size : null,
-    ));
+    await SharePlus.instance.share(
+      ShareParams(
+        files: [xFile],
+        text: 'Backtest Trades CSV',
+        sharePositionOrigin: box != null
+            ? box.localToGlobal(Offset.zero) & box.size
+            : null,
+      ),
+    );
   }
 
   Future<void> _shareResults(BuildContext context) async {
@@ -2014,7 +2102,8 @@ class _BacktestResultPageState extends State<_BacktestResultPage> {
     final templateDisplay = widget.result.templateName != null
         ? ' (${widget.result.templateName})'
         : '';
-    final shareText = '''
+    final shareText =
+        '''
 📊 Backtest Results - $symbolDisplay$templateDisplay
 
 📅 Period: ${widget.result.config.startDate != null ? dateFormat.format(widget.result.config.startDate!) : 'N/A'} - ${widget.result.config.endDate != null ? dateFormat.format(widget.result.config.endDate!) : 'N/A'}
@@ -2050,12 +2139,15 @@ Generated by RealizeAlpha
 ''';
 
     final box = context.findRenderObject() as RenderBox?;
-    await SharePlus.instance.share(ShareParams(
-      text: shareText,
-      subject: 'Backtest Results - $symbolDisplay',
-      sharePositionOrigin:
-          box != null ? box.localToGlobal(Offset.zero) & box.size : null,
-    ));
+    await SharePlus.instance.share(
+      ShareParams(
+        text: shareText,
+        subject: 'Backtest Results - $symbolDisplay',
+        sharePositionOrigin: box != null
+            ? box.localToGlobal(Offset.zero) & box.size
+            : null,
+      ),
+    );
   }
 
   Map<int, Map<int, double>> _calculateMonthlyReturns() {
@@ -2078,8 +2170,9 @@ Generated by RealizeAlpha
 
     for (final key in sortedKeys) {
       final currentEquity = eomEquity[key]!;
-      final ret =
-          prevEquity != 0 ? (currentEquity - prevEquity) / prevEquity : 0.0;
+      final ret = prevEquity != 0
+          ? (currentEquity - prevEquity) / prevEquity
+          : 0.0;
 
       final year = key ~/ 100;
       final month = key % 100;
@@ -2110,8 +2203,10 @@ Generated by RealizeAlpha
     if (returns.isEmpty) return 0.0;
 
     // Calculate downside deviation (RMS of negative returns)
-    final sumSquaredNegatives =
-        returns.fold(0.0, (sum, r) => sum + (r < 0 ? r * r : 0.0));
+    final sumSquaredNegatives = returns.fold(
+      0.0,
+      (sum, r) => sum + (r < 0 ? r * r : 0.0),
+    );
     final meanSquaredNegatives = sumSquaredNegatives / returns.length;
 
     // Annualization factor based on interval
@@ -2146,7 +2241,7 @@ Generated by RealizeAlpha
       'Sep',
       'Oct',
       'Nov',
-      'Dec'
+      'Dec',
     ];
 
     final posColor = isDark ? Colors.green[300] : Colors.green[800];
@@ -2171,39 +2266,62 @@ Generated by RealizeAlpha
                 defaultColumnWidth: const FixedColumnWidth(40),
                 columnWidths: const {0: FixedColumnWidth(50)},
                 border: TableBorder.all(
-                    color: Colors.grey.withValues(alpha: 0.2), width: 0.5),
+                  color: Colors.grey.withValues(alpha: 0.2),
+                  width: 0.5,
+                ),
                 children: [
                   // Header Row
                   TableRow(
                     decoration: BoxDecoration(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .surfaceContainerHighest),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.surfaceContainerHighest,
+                    ),
                     children: [
                       const TableCell(
+                        child: Padding(
+                          padding: EdgeInsets.all(4),
+                          child: Center(
+                            child: Text(
+                              'Year',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 10,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      ...months.map(
+                        (m) => TableCell(
                           child: Padding(
-                              padding: EdgeInsets.all(4),
-                              child: Center(
-                                  child: Text('Year',
-                                      style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 10))))),
-                      ...months.map((m) => TableCell(
-                          child: Padding(
-                              padding: const EdgeInsets.all(4),
-                              child: Center(
-                                  child: Text(m,
-                                      style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 10)))))),
+                            padding: const EdgeInsets.all(4),
+                            child: Center(
+                              child: Text(
+                                m,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 10,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
                       const TableCell(
-                          child: Padding(
-                              padding: EdgeInsets.all(4),
-                              child: Center(
-                                  child: Text('YTD',
-                                      style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 10))))),
+                        child: Padding(
+                          padding: EdgeInsets.all(4),
+                          child: Center(
+                            child: Text(
+                              'YTD',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 10,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                   // Data Rows
@@ -2221,13 +2339,19 @@ Generated by RealizeAlpha
                     return TableRow(
                       children: [
                         TableCell(
-                            child: Padding(
-                                padding: const EdgeInsets.all(4),
-                                child: Center(
-                                    child: Text('$year',
-                                        style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 11))))),
+                          child: Padding(
+                            padding: const EdgeInsets.all(4),
+                            child: Center(
+                              child: Text(
+                                '$year',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
                         ...List.generate(12, (index) {
                           final m = index + 1;
                           final ret = yReturns[m];
@@ -2237,9 +2361,11 @@ Generated by RealizeAlpha
 
                           final bg = ret >= 0
                               ? Colors.green.withValues(
-                                  alpha: 0.1 + (ret * 2).clamp(0.0, 0.4))
+                                  alpha: 0.1 + (ret * 2).clamp(0.0, 0.4),
+                                )
                               : Colors.red.withValues(
-                                  alpha: 0.1 + (ret.abs() * 2).clamp(0.0, 0.4));
+                                  alpha: 0.1 + (ret.abs() * 2).clamp(0.0, 0.4),
+                                );
 
                           return TableCell(
                             child: Container(
@@ -2249,9 +2375,10 @@ Generated by RealizeAlpha
                               child: Text(
                                 '${(ret * 100).toStringAsFixed(1)}%',
                                 style: TextStyle(
-                                    fontSize: 10,
-                                    color: ret >= 0 ? posColor : negColor,
-                                    fontWeight: FontWeight.w500),
+                                  fontSize: 10,
+                                  color: ret >= 0 ? posColor : negColor,
+                                  fontWeight: FontWeight.w500,
+                                ),
                               ),
                             ),
                           );
@@ -2304,7 +2431,7 @@ Generated by RealizeAlpha
         // formula: (End / Start) ^ (1 / Years) - 1
         cagr =
             (dart_math.pow(endingValue / initialCapital, 1 / years) as double) -
-                1;
+            1;
       }
     }
 
@@ -2467,11 +2594,15 @@ Generated by RealizeAlpha
           children: [
             Icon(Icons.block, size: 48, color: Colors.grey[400]),
             const SizedBox(height: 16),
-            Text('No trades executed',
-                style: TextStyle(color: Colors.grey[600], fontSize: 16)),
+            Text(
+              'No trades executed',
+              style: TextStyle(color: Colors.grey[600], fontSize: 16),
+            ),
             const SizedBox(height: 8),
-            const Text('Try adjusting your entry strategy or signal filters.',
-                style: TextStyle(color: Colors.grey)),
+            const Text(
+              'Try adjusting your entry strategy or signal filters.',
+              style: TextStyle(color: Colors.grey),
+            ),
           ],
         ),
       );
@@ -2496,8 +2627,10 @@ Generated by RealizeAlpha
         }
 
         for (final filter in _advancedFilters) {
-          final indicatorResult =
-              _getIndicatorResult(trade.signalData!, filter.indicatorKey);
+          final indicatorResult = _getIndicatorResult(
+            trade.signalData!,
+            filter.indicatorKey,
+          );
           if (indicatorResult == null) return false;
 
           final signal = indicatorResult['signal'] as String?;
@@ -2517,8 +2650,10 @@ Generated by RealizeAlpha
             children: [
               Row(
                 children: [
-                  const Text('Filter: ',
-                      style: TextStyle(fontWeight: FontWeight.bold)),
+                  const Text(
+                    'Filter: ',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
                   const SizedBox(width: 8),
                   Wrap(
                     spacing: 8,
@@ -2538,8 +2673,10 @@ Generated by RealizeAlpha
                     }).toList(),
                   ),
                   const Spacer(),
-                  Text('${filteredTrades.length} trades',
-                      style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+                  Text(
+                    '${filteredTrades.length} trades',
+                    style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                  ),
                 ],
               ),
               if (_advancedFilters.isNotEmpty) ...[
@@ -2553,7 +2690,8 @@ Generated by RealizeAlpha
                           .indicatorMetadata[entry.value.indicatorKey];
                       return Chip(
                         label: Text(
-                            '${meta?.label ?? entry.value.indicatorKey}: ${entry.value.signal}'),
+                          '${meta?.label ?? entry.value.indicatorKey}: ${entry.value.signal}',
+                        ),
                         deleteIcon: const Icon(Icons.close, size: 16),
                         onDeleted: () {
                           setState(() {
@@ -2599,8 +2737,9 @@ Generated by RealizeAlpha
                   leading: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: (isBuy ? Colors.blue : Colors.orange)
-                          .withValues(alpha: 0.1),
+                      color: (isBuy ? Colors.blue : Colors.orange).withValues(
+                        alpha: 0.1,
+                      ),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Icon(
@@ -2616,8 +2755,11 @@ Generated by RealizeAlpha
                   subtitle: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(DateFormat('MMM dd, yyyy HH:mm')
-                          .format(trade.timestamp)),
+                      Text(
+                        DateFormat(
+                          'MMM dd, yyyy HH:mm',
+                        ).format(trade.timestamp),
+                      ),
                       Text(trade.reason, style: const TextStyle(fontSize: 12)),
                       if (_advancedFilters.isNotEmpty &&
                           trade.signalData != null)
@@ -2627,15 +2769,19 @@ Generated by RealizeAlpha
                             spacing: 4,
                             children: _advancedFilters.map((f) {
                               final d = _getIndicatorResult(
-                                  trade.signalData!, f.indicatorKey);
+                                trade.signalData!,
+                                f.indicatorKey,
+                              );
                               final val = d?['value'];
                               return Container(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 4, vertical: 2),
+                                  horizontal: 4,
+                                  vertical: 2,
+                                ),
                                 decoration: BoxDecoration(
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .surfaceContainerHighest,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.surfaceContainerHighest,
                                   borderRadius: BorderRadius.circular(4),
                                 ),
                                 child: Text(
@@ -2679,10 +2825,12 @@ Generated by RealizeAlpha
                 initialValue: selectedIndicator,
                 decoration: const InputDecoration(labelText: 'Indicator'),
                 items: EntryStrategiesWidget.indicatorMetadata.entries
-                    .map((entry) => DropdownMenuItem(
-                          value: entry.key,
-                          child: Text(entry.value.label),
-                        ))
+                    .map(
+                      (entry) => DropdownMenuItem(
+                        value: entry.key,
+                        child: Text(entry.value.label),
+                      ),
+                    )
                     .toList(),
                 onChanged: (val) {
                   if (val != null) {
@@ -2698,9 +2846,9 @@ Generated by RealizeAlpha
                 items: ['BUY', 'SELL'].map((s) {
                   return DropdownMenuItem(
                     value: s,
-                    child: Text(s == 'BUY'
-                        ? 'Signal: BUY (Green)'
-                        : 'Signal: SELL (Red)'),
+                    child: Text(
+                      s == 'BUY' ? 'Signal: BUY (Green)' : 'Signal: SELL (Red)',
+                    ),
                   );
                 }).toList(),
                 onChanged: (val) {
@@ -2719,10 +2867,12 @@ Generated by RealizeAlpha
             TextButton(
               onPressed: () {
                 this.setState(() {
-                  _advancedFilters.add(BacktestFilter(
-                    indicatorKey: selectedIndicator,
-                    signal: selectedSignal,
-                  ));
+                  _advancedFilters.add(
+                    BacktestFilter(
+                      indicatorKey: selectedIndicator,
+                      signal: selectedSignal,
+                    ),
+                  );
                 });
                 Navigator.pop(context);
               },
@@ -2784,12 +2934,14 @@ Generated by RealizeAlpha
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
-            color:
-                (isProfit ? Colors.green : Colors.red).withValues(alpha: 0.05),
+            color: (isProfit ? Colors.green : Colors.red).withValues(
+              alpha: 0.05,
+            ),
             border: Border(
               bottom: BorderSide(
-                color: (isProfit ? Colors.green : Colors.red)
-                    .withValues(alpha: 0.2),
+                color: (isProfit ? Colors.green : Colors.red).withValues(
+                  alpha: 0.2,
+                ),
               ),
             ),
           ),
@@ -2821,15 +2973,19 @@ Generated by RealizeAlpha
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  _buildStatChip('Start',
-                      '\$${(widget.result.config.initialCapital ?? 10000.0).toStringAsFixed(0)}'),
+                  _buildStatChip(
+                    'Start',
+                    '\$${(widget.result.config.initialCapital ?? 10000.0).toStringAsFixed(0)}',
+                  ),
                   Icon(
                     Icons.trending_up,
                     size: 20,
                     color: isProfit ? Colors.green : Colors.red,
                   ),
-                  _buildStatChip('Final',
-                      '\$${widget.result.finalCapital.toStringAsFixed(0)}'),
+                  _buildStatChip(
+                    'Final',
+                    '\$${widget.result.finalCapital.toStringAsFixed(0)}',
+                  ),
                   const Icon(Icons.arrow_forward, size: 20),
                   _buildStatChip(
                     'Return',
@@ -2861,16 +3017,16 @@ Generated by RealizeAlpha
                   // areaColorFn for Drawdown to fill below
                   areaColorFn: isDrawdown
                       ? (_, __) => charts.ColorUtil.fromDartColor(
-                          Colors.red.withValues(alpha: 0.2))
+                          Colors.red.withValues(alpha: 0.2),
+                        )
                       : null,
                   labelAccessorFn: (EquityPoint point, _) => isDrawdown
                       ? '${point.equity.toStringAsFixed(2)}%'
                       : '\$${point.equity.toStringAsFixed(2)}',
                 )..setAttribute(
-                    charts.rendererIdKey,
-                    isDrawdown
-                        ? 'drawdownArea'
-                        : 'default'), // Use area renderer for drawdown
+                  charts.rendererIdKey,
+                  isDrawdown ? 'drawdownArea' : 'default',
+                ), // Use area renderer for drawdown
 
                 if (!isDrawdown && secondaryData.isNotEmpty)
                   charts.Series<EquityPoint, DateTime>(
@@ -2917,13 +3073,14 @@ Generated by RealizeAlpha
                     customRendererId: 'drawdownArea',
                     includeArea: true,
                     stacked: false,
-                  )
+                  ),
               ],
               behaviors: _buildChartBehaviors(chartData),
               primaryMeasureAxis: isDrawdown
                   ? const charts.NumericAxisSpec(
-                      tickProviderSpec:
-                          charts.BasicNumericTickProviderSpec(zeroBound: true),
+                      tickProviderSpec: charts.BasicNumericTickProviderSpec(
+                        zeroBound: true,
+                      ),
                       renderSpec: charts.GridlineRendererSpec(
                         labelStyle: charts.TextStyleSpec(fontSize: 10),
                       ),
@@ -2946,7 +3103,7 @@ Generated by RealizeAlpha
               final isSelected = _selectedIndex == index;
               final tradesAtTime =
                   tradesByTimestamp[timestamp.millisecondsSinceEpoch] ??
-                      const <BacktestTrade>[];
+                  const <BacktestTrade>[];
 
               // If Drawdown mode, point.equity is drawdown %
               // If Equity mode, point.equity is $ value
@@ -2977,8 +3134,9 @@ Generated by RealizeAlpha
                     DateFormat('MM/dd/yy').format(timestamp),
                     style: TextStyle(
                       fontSize: 11,
-                      fontWeight:
-                          isSelected ? FontWeight.bold : FontWeight.normal,
+                      fontWeight: isSelected
+                          ? FontWeight.bold
+                          : FontWeight.normal,
                     ),
                   ),
                   title: Text(
@@ -2986,8 +3144,9 @@ Generated by RealizeAlpha
                         ? '${point.equity.toStringAsFixed(2)}%'
                         : '\$${point.equity.toStringAsFixed(2)}',
                     style: TextStyle(
-                      fontWeight:
-                          isSelected ? FontWeight.bold : FontWeight.w600,
+                      fontWeight: isSelected
+                          ? FontWeight.bold
+                          : FontWeight.w600,
                       fontSize: 14,
                       color: isDrawdown ? Colors.red : null,
                     ),
@@ -3003,7 +3162,9 @@ Generated by RealizeAlpha
                               final isBuy = trade.action == 'BUY';
                               return Container(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 8, vertical: 4),
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
                                 decoration: BoxDecoration(
                                   color: (isBuy ? Colors.blue : Colors.orange)
                                       .withValues(alpha: 0.1),
@@ -3021,8 +3182,9 @@ Generated by RealizeAlpha
                                           ? Icons.arrow_downward
                                           : Icons.arrow_upward,
                                       size: 12,
-                                      color:
-                                          isBuy ? Colors.blue : Colors.orange,
+                                      color: isBuy
+                                          ? Colors.blue
+                                          : Colors.orange,
                                     ),
                                     const SizedBox(width: 4),
                                     Text(
@@ -3030,8 +3192,9 @@ Generated by RealizeAlpha
                                       style: TextStyle(
                                         fontSize: 11,
                                         fontWeight: FontWeight.w600,
-                                        color:
-                                            isBuy ? Colors.blue : Colors.orange,
+                                        color: isBuy
+                                            ? Colors.blue
+                                            : Colors.orange,
                                       ),
                                     ),
                                   ],
@@ -3049,7 +3212,8 @@ Generated by RealizeAlpha
                           // We can recalculate change percent if needed or just hide it for Drawdown mode.
                           '${((point.equity - (widget.result.config.initialCapital ?? 10000.0)) / (widget.result.config.initialCapital ?? 10000.0) * 100).toStringAsFixed(2)}%',
                           style: TextStyle(
-                            color: (point.equity -
+                            color:
+                                (point.equity -
                                         (widget.result.config.initialCapital ??
                                             10000.0)) >=
                                     0
@@ -3088,15 +3252,20 @@ Generated by RealizeAlpha
                   if (widget.result.templateName != null)
                     _buildDetailRow('Template', widget.result.templateName!),
                   _buildDetailRow(
-                      'Symbol',
-                      widget.result.config.symbolFilter.isNotEmpty
-                          ? _getSymbolDisplay(widget.result.config.symbolFilter)
-                          : "Multi"),
+                    'Symbol',
+                    widget.result.config.symbolFilter.isNotEmpty
+                        ? _getSymbolDisplay(widget.result.config.symbolFilter)
+                        : "Multi",
+                  ),
                   _buildDetailRow('Interval', widget.result.config.interval),
-                  _buildDetailRow('Initial Capital',
-                      '\$${(widget.result.config.initialCapital ?? 10000.0).toStringAsFixed(2)}'),
-                  _buildDetailRow('Trade Quantity',
-                      '${widget.result.config.tradeQuantity} shares'),
+                  _buildDetailRow(
+                    'Initial Capital',
+                    '\$${(widget.result.config.initialCapital ?? 10000.0).toStringAsFixed(2)}',
+                  ),
+                  _buildDetailRow(
+                    'Trade Quantity',
+                    '${widget.result.config.tradeQuantity} shares',
+                  ),
                   _buildDetailRow(
                     'Position Sizing',
                     widget.result.config.enableDynamicPositionSizing
@@ -3104,10 +3273,14 @@ Generated by RealizeAlpha
                         : 'Fixed Quantity',
                   ),
                   if (widget.result.config.enableDynamicPositionSizing) ...[
-                    _buildDetailRow('Risk Per Trade',
-                        '${(widget.result.config.riskPerTrade * 100).toStringAsFixed(1)}%'),
-                    _buildDetailRow('ATR Multiplier',
-                        '${widget.result.config.atrMultiplier}x'),
+                    _buildDetailRow(
+                      'Risk Per Trade',
+                      '${(widget.result.config.riskPerTrade * 100).toStringAsFixed(1)}%',
+                    ),
+                    _buildDetailRow(
+                      'ATR Multiplier',
+                      '${widget.result.config.atrMultiplier}x',
+                    ),
                   ],
                 ],
               ),
@@ -3133,17 +3306,27 @@ Generated by RealizeAlpha
                         : 'Score Based',
                   ),
                   if (!widget.result.config.requireAllIndicatorsGreen)
-                    _buildDetailRow('Min Strength',
-                        '${widget.result.config.minSignalStrength.toStringAsFixed(0)}%'),
+                    _buildDetailRow(
+                      'Min Strength',
+                      '${widget.result.config.minSignalStrength.toStringAsFixed(0)}%',
+                    ),
                   const Divider(),
                   _buildDetailRow(
-                      'RSI Period', '${widget.result.config.rsiPeriod}'),
+                    'RSI Period',
+                    '${widget.result.config.rsiPeriod}',
+                  ),
                   _buildDetailRow(
-                      'Fast SMA', '${widget.result.config.smaPeriodFast}'),
+                    'Fast SMA',
+                    '${widget.result.config.smaPeriodFast}',
+                  ),
                   _buildDetailRow(
-                      'Slow SMA', '${widget.result.config.smaPeriodSlow}'),
+                    'Slow SMA',
+                    '${widget.result.config.smaPeriodSlow}',
+                  ),
                   _buildDetailRow(
-                      'Market Index', widget.result.config.marketIndexSymbol),
+                    'Market Index',
+                    widget.result.config.marketIndexSymbol,
+                  ),
                 ],
               ),
             ),
@@ -3161,10 +3344,14 @@ Generated by RealizeAlpha
               padding: const EdgeInsets.all(16),
               child: Column(
                 children: [
-                  _buildDetailRow('Take Profit',
-                      '${widget.result.config.takeProfitPercent}%'),
                   _buildDetailRow(
-                      'Stop Loss', '${widget.result.config.stopLossPercent}%'),
+                    'Take Profit',
+                    '${widget.result.config.takeProfitPercent}%',
+                  ),
+                  _buildDetailRow(
+                    'Stop Loss',
+                    '${widget.result.config.stopLossPercent}%',
+                  ),
                   _buildDetailRow(
                     'Trailing Stop',
                     widget.result.config.trailingStopEnabled
@@ -3188,8 +3375,8 @@ Generated by RealizeAlpha
                     'Partial Exits',
                     widget.result.config.enablePartialExits
                         ? widget.result.config.exitStages.isEmpty
-                            ? 'Enabled (No stages)'
-                            : 'Enabled'
+                              ? 'Enabled (No stages)'
+                              : 'Enabled'
                         : 'Disabled',
                   ),
                   if (widget.result.config.enablePartialExits &&
@@ -3197,9 +3384,13 @@ Generated by RealizeAlpha
                     const Divider(height: 16),
                     const Padding(
                       padding: EdgeInsets.only(bottom: 8),
-                      child: Text('Exit Stages:',
-                          style: TextStyle(
-                              fontSize: 12, fontWeight: FontWeight.bold)),
+                      child: Text(
+                        'Exit Stages:',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                     ...widget.result.config.exitStages.asMap().entries.map((e) {
                       final stage = e.value;
@@ -3207,13 +3398,18 @@ Generated by RealizeAlpha
                         padding: const EdgeInsets.only(left: 12, bottom: 4),
                         child: Row(
                           children: [
-                            Text('${e.key + 1}. ',
-                                style: const TextStyle(
-                                    fontSize: 12, color: Colors.grey)),
+                            Text(
+                              '${e.key + 1}. ',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey,
+                              ),
+                            ),
                             Expanded(
                               child: Text(
-                                  'Target: ${stage.profitTargetPercent}% → Sell ${(stage.quantityPercent * 100).toStringAsFixed(0)}%',
-                                  style: const TextStyle(fontSize: 12)),
+                                'Target: ${stage.profitTargetPercent}% → Sell ${(stage.quantityPercent * 100).toStringAsFixed(0)}%',
+                                style: const TextStyle(fontSize: 12),
+                              ),
                             ),
                           ],
                         ),
@@ -3237,17 +3433,21 @@ Generated by RealizeAlpha
             runSpacing: 8,
             children: widget.result.config.enabledIndicators.entries
                 .where((e) => e.value)
-                .map((e) => Chip(
-                      avatar: const Icon(Icons.check_circle, size: 16),
-                      label: Text(_getIndicatorLabel(e.key)),
-                      visualDensity: VisualDensity.compact,
-                    ))
+                .map(
+                  (e) => Chip(
+                    avatar: const Icon(Icons.check_circle, size: 16),
+                    label: Text(_getIndicatorLabel(e.key)),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                )
                 .toList(),
           ),
           if (widget.result.config.customIndicators.isNotEmpty) ...[
             const SizedBox(height: 24),
-            const Text('Custom Indicators',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const Text(
+              'Custom Indicators',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 12),
             ...widget.result.config.customIndicators.map((ci) {
               return Card(
@@ -3259,17 +3459,24 @@ Generated by RealizeAlpha
                     children: [
                       Row(
                         children: [
-                          Icon(Icons.perm_data_setting_sharp,
-                              size: 16,
-                              color: Theme.of(context).colorScheme.primary),
+                          Icon(
+                            Icons.perm_data_setting_sharp,
+                            size: 16,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
                           const SizedBox(width: 8),
-                          Text(ci.name,
-                              style:
-                                  const TextStyle(fontWeight: FontWeight.bold)),
+                          Text(
+                            ci.name,
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
                           const Spacer(),
-                          Text(ci.type.toString().split('.').last,
-                              style: const TextStyle(
-                                  fontSize: 12, color: Colors.grey)),
+                          Text(
+                            ci.type.toString().split('.').last,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey,
+                            ),
+                          ),
                         ],
                       ),
                       const SizedBox(height: 8),
@@ -3285,7 +3492,9 @@ Generated by RealizeAlpha
                             return Text(
                               '${p.key}: ${p.value}',
                               style: const TextStyle(
-                                  fontSize: 12, color: Colors.grey),
+                                fontSize: 12,
+                                color: Colors.grey,
+                              ),
                             );
                           }).toList(),
                         ),
@@ -3310,8 +3519,9 @@ Generated by RealizeAlpha
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children:
-                      widget.result.performanceByIndicator.entries.map((entry) {
+                  children: widget.result.performanceByIndicator.entries.map((
+                    entry,
+                  ) {
                     final data = entry.value is Map
                         ? Map<String, dynamic>.from(entry.value as Map)
                         : null;
@@ -3340,17 +3550,26 @@ Generated by RealizeAlpha
                               _buildSignalBadge('BUY', buySignals, Colors.blue),
                               const SizedBox(width: 8),
                               _buildSignalBadge(
-                                  'SELL', sellSignals, Colors.orange),
+                                'SELL',
+                                sellSignals,
+                                Colors.orange,
+                              ),
                               const SizedBox(width: 8),
                               _buildSignalBadge(
-                                  'HOLD', holdSignals, Colors.grey),
+                                'HOLD',
+                                holdSignals,
+                                Colors.grey,
+                              ),
                               const Spacer(),
                               Container(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 10, vertical: 4),
+                                  horizontal: 10,
+                                  vertical: 4,
+                                ),
                                 decoration: BoxDecoration(
-                                  color: _getWinRateColor(winRate)
-                                      .withValues(alpha: 0.2),
+                                  color: _getWinRateColor(
+                                    winRate,
+                                  ).withValues(alpha: 0.2),
                                   borderRadius: BorderRadius.circular(12),
                                   border: Border.all(
                                     color: _getWinRateColor(winRate),
@@ -3388,18 +3607,30 @@ Generated by RealizeAlpha
               padding: const EdgeInsets.all(16),
               child: Column(
                 children: [
-                  _buildDetailRow('Average Win',
-                      '\$${widget.result.averageWin.toStringAsFixed(2)}'),
-                  _buildDetailRow('Average Loss',
-                      '\$${widget.result.averageLoss.toStringAsFixed(2)}'),
-                  _buildDetailRow('Largest Win',
-                      '\$${widget.result.largestWin.toStringAsFixed(2)}'),
-                  _buildDetailRow('Largest Loss',
-                      '\$${widget.result.largestLoss.toStringAsFixed(2)}'),
-                  _buildDetailRow('Avg Hold Time',
-                      _formatDuration(widget.result.averageHoldTime)),
-                  _buildDetailRow('Total Duration',
-                      _formatDuration(widget.result.totalDuration)),
+                  _buildDetailRow(
+                    'Average Win',
+                    '\$${widget.result.averageWin.toStringAsFixed(2)}',
+                  ),
+                  _buildDetailRow(
+                    'Average Loss',
+                    '\$${widget.result.averageLoss.toStringAsFixed(2)}',
+                  ),
+                  _buildDetailRow(
+                    'Largest Win',
+                    '\$${widget.result.largestWin.toStringAsFixed(2)}',
+                  ),
+                  _buildDetailRow(
+                    'Largest Loss',
+                    '\$${widget.result.largestLoss.toStringAsFixed(2)}',
+                  ),
+                  _buildDetailRow(
+                    'Avg Hold Time',
+                    _formatDuration(widget.result.averageHoldTime),
+                  ),
+                  _buildDetailRow(
+                    'Total Duration',
+                    _formatDuration(widget.result.totalDuration),
+                  ),
                 ],
               ),
             ),
@@ -3503,13 +3734,7 @@ Generated by RealizeAlpha
             ),
           ),
           const SizedBox(width: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 10,
-              color: color,
-            ),
-          ),
+          Text(label, style: TextStyle(fontSize: 10, color: color)),
         ],
       ),
     );
@@ -3522,15 +3747,18 @@ Generated by RealizeAlpha
   }
 
   Widget _buildMetricCard(
-      String title, String value, String subtitle, Color color,
-      {Widget? subtitleWidget, String? tooltip}) {
+    String title,
+    String value,
+    String subtitle,
+    Color color, {
+    Widget? subtitleWidget,
+    String? tooltip,
+  }) {
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(
-          color: Theme.of(context).colorScheme.outlineVariant,
-        ),
+        side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -3639,22 +3867,27 @@ class _BacktestHistoryTabState extends State<_BacktestHistoryTab> {
           final displaySymbol = result.config.symbolFilter.isNotEmpty
               ? result.config.symbolFilter.first
               : "Multi";
-          final matchesSearch =
-              displaySymbol.toLowerCase().contains(_searchQuery.toLowerCase());
+          final matchesSearch = displaySymbol.toLowerCase().contains(
+            _searchQuery.toLowerCase(),
+          );
 
           final isProfit = result.totalReturn >= 0;
-          final matchesFilter = _filterType == 'All' ||
+          final matchesFilter =
+              _filterType == 'All' ||
               (_filterType == 'Profit' && isProfit) ||
               (_filterType == 'Loss' && !isProfit);
 
-          final matchesDate = (_filterStartDate == null ||
+          final matchesDate =
+              (_filterStartDate == null ||
                   (result.config.startDate != null &&
-                      result.config.startDate!.isAfter(_filterStartDate!
-                          .subtract(const Duration(days: 1))))) &&
+                      result.config.startDate!.isAfter(
+                        _filterStartDate!.subtract(const Duration(days: 1)),
+                      ))) &&
               (_filterEndDate == null ||
                   (result.config.endDate != null &&
                       result.config.endDate!.isBefore(
-                          _filterEndDate!.add(const Duration(days: 1)))));
+                        _filterEndDate!.add(const Duration(days: 1)),
+                      )));
 
           return matchesSearch && matchesFilter && matchesDate;
         }).toList();
@@ -3717,7 +3950,9 @@ class _BacktestHistoryTabState extends State<_BacktestHistoryTab> {
                                 .surfaceContainerHighest
                                 .withValues(alpha: 0.3),
                             contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 0),
+                              horizontal: 16,
+                              vertical: 0,
+                            ),
                             isDense: true,
                           ),
                           onChanged: (value) {
@@ -3737,46 +3972,51 @@ class _BacktestHistoryTabState extends State<_BacktestHistoryTab> {
                             _sortBy = newValue;
                           });
                         },
-                        itemBuilder: (context) => [
-                          'Date',
-                          'Return',
-                          'Trades',
-                          'Sharpe Ratio',
-                          'Win Rate'
-                        ].map((String value) {
-                          return PopupMenuItem<String>(
-                            value: value,
-                            child: Row(
-                              children: [
-                                Icon(
-                                  value == 'Return' ||
-                                          value == 'Sharpe Ratio' ||
-                                          value == 'Win Rate'
-                                      ? Icons.trending_up
-                                      : (value == 'Trades'
-                                          ? Icons.analytics_outlined
-                                          : Icons.calendar_today),
-                                  size: 18,
-                                  color: _sortBy == value
-                                      ? Theme.of(context).colorScheme.primary
-                                      : null,
+                        itemBuilder: (context) =>
+                            [
+                              'Date',
+                              'Return',
+                              'Trades',
+                              'Sharpe Ratio',
+                              'Win Rate',
+                            ].map((String value) {
+                              return PopupMenuItem<String>(
+                                value: value,
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      value == 'Return' ||
+                                              value == 'Sharpe Ratio' ||
+                                              value == 'Win Rate'
+                                          ? Icons.trending_up
+                                          : (value == 'Trades'
+                                                ? Icons.analytics_outlined
+                                                : Icons.calendar_today),
+                                      size: 18,
+                                      color: _sortBy == value
+                                          ? Theme.of(
+                                              context,
+                                            ).colorScheme.primary
+                                          : null,
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Text(
+                                      value,
+                                      style: TextStyle(
+                                        fontWeight: _sortBy == value
+                                            ? FontWeight.bold
+                                            : null,
+                                        color: _sortBy == value
+                                            ? Theme.of(
+                                                context,
+                                              ).colorScheme.primary
+                                            : null,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                const SizedBox(width: 12),
-                                Text(
-                                  value,
-                                  style: TextStyle(
-                                    fontWeight: _sortBy == value
-                                        ? FontWeight.bold
-                                        : null,
-                                    color: _sortBy == value
-                                        ? Theme.of(context).colorScheme.primary
-                                        : null,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-                        }).toList(),
+                              );
+                            }).toList(),
                       ),
                     ],
                   ),
@@ -3822,8 +4062,9 @@ class _BacktestHistoryTabState extends State<_BacktestHistoryTab> {
                           label: Text(
                             _filterStartDate == null
                                 ? 'Start Date'
-                                : DateFormat('MMM dd, yyyy')
-                                    .format(_filterStartDate!),
+                                : DateFormat(
+                                    'MMM dd, yyyy',
+                                  ).format(_filterStartDate!),
                             style: const TextStyle(fontSize: 12),
                           ),
                           onPressed: () async {
@@ -3848,8 +4089,9 @@ class _BacktestHistoryTabState extends State<_BacktestHistoryTab> {
                           label: Text(
                             _filterEndDate == null
                                 ? 'End Date'
-                                : DateFormat('MMM dd, yyyy')
-                                    .format(_filterEndDate!),
+                                : DateFormat(
+                                    'MMM dd, yyyy',
+                                  ).format(_filterEndDate!),
                             style: const TextStyle(fontSize: 12),
                           ),
                           onPressed: () async {
@@ -3896,8 +4138,9 @@ class _BacktestHistoryTabState extends State<_BacktestHistoryTab> {
                   final result = filteredHistory[index];
                   final isProfit = result.totalReturn >= 0;
                   // For deletion, we need the original index in the provider's list
-                  final originalIndex =
-                      provider.backtestHistory.indexOf(result);
+                  final originalIndex = provider.backtestHistory.indexOf(
+                    result,
+                  );
 
                   return Dismissible(
                     key: Key('backtest_${originalIndex}_${result.hashCode}'),
@@ -3918,7 +4161,8 @@ class _BacktestHistoryTabState extends State<_BacktestHistoryTab> {
                           return AlertDialog(
                             title: const Text('Delete Backtest'),
                             content: const Text(
-                                'Are you sure you want to delete this backtest from history?'),
+                              'Are you sure you want to delete this backtest from history?',
+                            ),
                             actions: [
                               TextButton(
                                 onPressed: () =>
@@ -3964,8 +4208,9 @@ class _BacktestHistoryTabState extends State<_BacktestHistoryTab> {
                                 service: widget.service,
                                 onApplyConfig: (config) {
                                   if (widget.runTabKey?.currentState != null) {
-                                    widget.runTabKey!.currentState!
-                                        .loadConfig(config);
+                                    widget.runTabKey!.currentState!.loadConfig(
+                                      config,
+                                    );
                                   }
                                   if (widget.tabController != null) {
                                     widget.tabController!.animateTo(0);
@@ -3996,8 +4241,9 @@ class _BacktestHistoryTabState extends State<_BacktestHistoryTab> {
                                       isProfit
                                           ? Icons.trending_up
                                           : Icons.trending_down,
-                                      color:
-                                          isProfit ? Colors.green : Colors.red,
+                                      color: isProfit
+                                          ? Colors.green
+                                          : Colors.red,
                                       size: 24,
                                     ),
                                   ),
@@ -4011,23 +4257,28 @@ class _BacktestHistoryTabState extends State<_BacktestHistoryTab> {
                                           children: [
                                             Flexible(
                                               child: Text(
-                                                result.config.symbolFilter
+                                                result
+                                                        .config
+                                                        .symbolFilter
                                                         .isEmpty
                                                     ? "Multi"
-                                                    : result.config.symbolFilter
-                                                                .length ==
-                                                            1
-                                                        ? result.config
-                                                            .symbolFilter.first
-                                                        : result
-                                                                    .config
-                                                                    .symbolFilter
-                                                                    .length <=
-                                                                3
-                                                            ? result.config
-                                                                .symbolFilter
-                                                                .join(', ')
-                                                            : '${result.config.symbolFilter.first} +${result.config.symbolFilter.length - 1}',
+                                                    : result
+                                                              .config
+                                                              .symbolFilter
+                                                              .length ==
+                                                          1
+                                                    ? result
+                                                          .config
+                                                          .symbolFilter
+                                                          .first
+                                                    : result
+                                                              .config
+                                                              .symbolFilter
+                                                              .length <=
+                                                          3
+                                                    ? result.config.symbolFilter
+                                                          .join(', ')
+                                                    : '${result.config.symbolFilter.first} +${result.config.symbolFilter.length - 1}',
                                                 style: const TextStyle(
                                                   fontSize: 18,
                                                   fontWeight: FontWeight.bold,
@@ -4040,7 +4291,8 @@ class _BacktestHistoryTabState extends State<_BacktestHistoryTab> {
                                               label: Text(
                                                 result.config.interval,
                                                 style: const TextStyle(
-                                                    fontSize: 11),
+                                                  fontSize: 11,
+                                                ),
                                               ),
                                               padding: EdgeInsets.zero,
                                               visualDensity:
@@ -4064,8 +4316,9 @@ class _BacktestHistoryTabState extends State<_BacktestHistoryTab> {
                                     style: TextStyle(
                                       fontSize: 20,
                                       fontWeight: FontWeight.bold,
-                                      color:
-                                          isProfit ? Colors.green : Colors.red,
+                                      color: isProfit
+                                          ? Colors.green
+                                          : Colors.red,
                                     ),
                                   ),
                                 ],
@@ -4110,13 +4363,7 @@ class _BacktestHistoryTabState extends State<_BacktestHistoryTab> {
       children: [
         Icon(icon, size: 14, color: Colors.grey[600]),
         const SizedBox(width: 4),
-        Text(
-          text,
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey[600],
-          ),
-        ),
+        Text(text, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
       ],
     );
   }
@@ -4175,7 +4422,8 @@ class _BacktestTemplatesTabState extends State<_BacktestTemplatesTab> {
                 return AlertDialog(
                   title: const Text('Delete Template'),
                   content: Text(
-                      'Are you sure you want to delete the template "${template.name}"?'),
+                    'Are you sure you want to delete the template "${template.name}"?',
+                  ),
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.of(dialogContext).pop(false),
@@ -4209,7 +4457,9 @@ class _BacktestTemplatesTabState extends State<_BacktestTemplatesTab> {
   }
 
   void _showTemplateDetailsSheet(
-      BuildContext context, TradeStrategyTemplate template) {
+    BuildContext context,
+    TradeStrategyTemplate template,
+  ) {
     TradeStrategyConfig? currentConfig;
     if (widget.runTabKey?.currentState != null) {
       currentConfig = widget.runTabKey!.currentState!.getStrategyConfig();
@@ -4221,8 +4471,10 @@ class _BacktestTemplatesTabState extends State<_BacktestTemplatesTab> {
       currentConfig: currentConfig,
       onConfirmLoad: (t) async {
         // Load template into Run tab via provider
-        final provider =
-            Provider.of<BacktestingProvider>(context, listen: false);
+        final provider = Provider.of<BacktestingProvider>(
+          context,
+          listen: false,
+        );
 
         // Set pending template and update usage
         provider.setPendingTemplate(t);
@@ -4234,11 +4486,9 @@ class _BacktestTemplatesTabState extends State<_BacktestTemplatesTab> {
         }
 
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Loaded template: ${t.name}'),
-            ),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Loaded template: ${t.name}')));
         }
       },
       onSearch: () {
@@ -4246,26 +4496,28 @@ class _BacktestTemplatesTabState extends State<_BacktestTemplatesTab> {
           final initialIndicators = template.config.enabledIndicators.entries
               .where((e) => e.value)
               .fold<Map<String, String>>({}, (prev, element) {
-            prev[element.key] = "BUY";
-            // _indicatorNames[element.key] ?? element.key.toUpperCase();
-            return prev;
-          });
+                prev[element.key] = "BUY";
+                // _indicatorNames[element.key] ?? element.key.toUpperCase();
+                return prev;
+              });
 
           Navigator.pop(context); // Close sheet
           Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (context) => TradeSignalsPage(
-                        user: widget.user,
-                        userDocRef: widget.userDocRef,
-                        brokerageUser: widget.brokerageUser,
-                        service: widget.service,
-                        analytics: MyApp.analytics,
-                        observer: MyApp.observer,
-                        generativeService: GenerativeService(),
-                        initialIndicators: initialIndicators,
-                        strategyTemplate: template,
-                      )));
+            context,
+            MaterialPageRoute(
+              builder: (context) => TradeSignalsPage(
+                user: widget.user,
+                userDocRef: widget.userDocRef,
+                brokerageUser: widget.brokerageUser,
+                service: widget.service,
+                analytics: MyApp.analytics,
+                observer: MyApp.observer,
+                generativeService: GenerativeService(),
+                initialIndicators: initialIndicators,
+                strategyTemplate: template,
+              ),
+            ),
+          );
         } else {
           Navigator.pop(context);
           ScaffoldMessenger.of(context).showSnackBar(
@@ -4286,8 +4538,11 @@ class EquityPoint {
 }
 
 class _TradeMarker {
-  _TradeMarker(
-      {required this.timestamp, required this.equity, required this.color});
+  _TradeMarker({
+    required this.timestamp,
+    required this.equity,
+    required this.color,
+  });
 
   final DateTime timestamp;
   final double equity;
@@ -4314,9 +4569,7 @@ class _BacktestConfigSection extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 16),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(
-          color: Theme.of(context).colorScheme.outlineVariant,
-        ),
+        side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
       ),
       child: Theme(
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
@@ -4326,10 +4579,7 @@ class _BacktestConfigSection extends StatelessWidget {
             title,
             style: const TextStyle(fontWeight: FontWeight.w600),
           ),
-          leading: Icon(
-            icon,
-            color: Theme.of(context).colorScheme.primary,
-          ),
+          leading: Icon(icon, color: Theme.of(context).colorScheme.primary),
           childrenPadding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
           children: children,
         ),

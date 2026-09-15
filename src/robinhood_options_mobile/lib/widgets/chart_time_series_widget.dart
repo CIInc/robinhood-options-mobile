@@ -36,31 +36,32 @@ class TimeSeriesChart extends StatefulWidget {
   final charts.LinePointHighlighterFollowLineType showVerticalFollowLine;
   final bool? drawFollowLinesAcrossChart;
 
-  const TimeSeriesChart(this.seriesList,
-      {super.key,
-      this.animate = true,
-      required this.onSelected,
-      this.symbolRenderer,
-      // this.getTextForTextSymbolRenderer,
-      this.open,
-      this.close,
-      this.showRangeAnnotationValues = true,
-      this.seriesRendererConfig,
-      this.customSeriesRenderers,
-      this.selectionMode = common.SelectionMode.expandToDomain,
-      this.behaviors,
-      this.seriesLegend,
-      this.initialSelection,
-      this.domainAxis,
-      this.primaryMeasureAxis,
-      this.secondaryMeasureAxis,
-      this.viewport,
-      this.zeroBound = true,
-      this.dataIsInWholeNumbers = true,
-      this.hidePrimaryMeasureAxisValues = false,
-      this.showVerticalFollowLine =
-          charts.LinePointHighlighterFollowLineType.all,
-      this.drawFollowLinesAcrossChart});
+  const TimeSeriesChart(
+    this.seriesList, {
+    super.key,
+    this.animate = true,
+    required this.onSelected,
+    this.symbolRenderer,
+    // this.getTextForTextSymbolRenderer,
+    this.open,
+    this.close,
+    this.showRangeAnnotationValues = true,
+    this.seriesRendererConfig,
+    this.customSeriesRenderers,
+    this.selectionMode = common.SelectionMode.expandToDomain,
+    this.behaviors,
+    this.seriesLegend,
+    this.initialSelection,
+    this.domainAxis,
+    this.primaryMeasureAxis,
+    this.secondaryMeasureAxis,
+    this.viewport,
+    this.zeroBound = true,
+    this.dataIsInWholeNumbers = true,
+    this.hidePrimaryMeasureAxisValues = false,
+    this.showVerticalFollowLine = charts.LinePointHighlighterFollowLineType.all,
+    this.drawFollowLinesAcrossChart,
+  });
 
   // We need a Stateful widget to build the selection details with the current
   // selection as the state.
@@ -86,41 +87,49 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
 
     return charts.TimeSeriesChart(
       widget.seriesList,
-      defaultRenderer: widget.seriesRendererConfig ??
+      defaultRenderer:
+          widget.seriesRendererConfig ??
           charts.LineRendererConfig(
-              includeArea: true,
-              stacked: false,
-              strokeWidthPx: 1.0,
-              symbolRenderer: CustomLineSymbolRenderer()),
+            includeArea: true,
+            stacked: false,
+            strokeWidthPx: 1.0,
+            symbolRenderer: CustomLineSymbolRenderer(),
+          ),
       customSeriesRenderers: widget.customSeriesRenderers ?? [],
       // defaultInteractions:
       //     widget.seriesRendererConfig is charts.LineRendererConfig
       //         ? true
       //         : false,
       animate: widget.animate,
-      primaryMeasureAxis: widget.primaryMeasureAxis ??
+      primaryMeasureAxis:
+          widget.primaryMeasureAxis ??
           charts.NumericAxisSpec(
             viewport: widget.viewport,
             //showAxisLine: true,
             //renderSpec: charts.GridlineRendererSpec(),
             renderSpec: charts.SmallTickRendererSpec(
-                labelStyle: charts.TextStyleSpec(color: measureAxisLabelColor)),
+              labelStyle: charts.TextStyleSpec(color: measureAxisLabelColor),
+            ),
             //renderSpec: charts.NoneRenderSpec(),
             tickProviderSpec: charts.BasicNumericTickProviderSpec(
-                zeroBound: widget.zeroBound,
-                dataIsInWholeNumbers: widget.dataIsInWholeNumbers,
-                desiredMinTickCount: 6),
+              zeroBound: widget.zeroBound,
+              dataIsInWholeNumbers: widget.dataIsInWholeNumbers,
+              desiredMinTickCount: 6,
+            ),
             tickFormatterSpec:
                 charts.BasicNumericTickFormatterSpec.fromNumberFormat(
-                    NumberFormat.compactSimpleCurrency()),
+                  NumberFormat.compactSimpleCurrency(),
+                ),
           ),
       secondaryMeasureAxis: widget.secondaryMeasureAxis,
-      domainAxis: widget.domainAxis ??
+      domainAxis:
+          widget.domainAxis ??
           charts.DateTimeAxisSpec(
             // EndPointsTimeAxisSpec
             //showAxisLine: true,
             renderSpec: charts.SmallTickRendererSpec(
-                labelStyle: charts.TextStyleSpec(color: axisLabelColor)),
+              labelStyle: charts.TextStyleSpec(color: axisLabelColor),
+            ),
             //tickProviderSpec:
             //    charts.AutoDateTimeTickProviderSpec(includeTime: true)
             // tickProviderSpec: charts.DayTickProviderSpec(increments: [364])
@@ -128,21 +137,23 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
           ),
       selectionModels: [
         charts.SelectionModelConfig(
-            type: charts.SelectionModelType.info,
-            changedListener: (charts.SelectionModel<DateTime> model) {
-              if (model.hasDatumSelection) {
-                // var selected = model
-                //     .selectedDatum[0].datum; //  as MapEntry<DateTime, double>
-                // var selected = model.selectedDatum
-                //     .map((s) => s.datum); //  as MapEntry<DateTime, double>
-                // widget.onSelected(selected.first);
-                widget.onSelected(model);
-              } else {
-                widget.onSelected(null);
-              }
-            })
+          type: charts.SelectionModelType.info,
+          changedListener: (charts.SelectionModel<DateTime> model) {
+            if (model.hasDatumSelection) {
+              // var selected = model
+              //     .selectedDatum[0].datum; //  as MapEntry<DateTime, double>
+              // var selected = model.selectedDatum
+              //     .map((s) => s.datum); //  as MapEntry<DateTime, double>
+              // widget.onSelected(selected.first);
+              widget.onSelected(model);
+            } else {
+              widget.onSelected(null);
+            }
+          },
+        ),
       ],
-      behaviors: widget.behaviors ??
+      behaviors:
+          widget.behaviors ??
           [
             /*
         charts.Slider(
@@ -153,51 +164,62 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
             onChangeCallback: _onSliderChange),
             */
             charts.SelectNearest(
-                eventTrigger: charts.SelectionTrigger.tapAndDrag,
-                selectionMode: widget.selectionMode), // pressHold
+              eventTrigger: charts.SelectionTrigger.tapAndDrag,
+              selectionMode: widget.selectionMode,
+            ), // pressHold
             charts.LinePointHighlighter(
-                // showHorizontalFollowLine:
-                //     charts.LinePointHighlighterFollowLineType.all, // .none
-                showVerticalFollowLine: widget.showVerticalFollowLine,
-                dashPattern: const [1], // const [10],
-                defaultRadiusPx: 3,
-                // radiusPaddingPx: 6,
-                drawFollowLinesAcrossChart: widget.drawFollowLinesAcrossChart,
-                // symbolRenderer: TextSymbolRenderer(() => 'rtest')),
-                symbolRenderer: widget.symbolRenderer),
+              // showHorizontalFollowLine:
+              //     charts.LinePointHighlighterFollowLineType.all, // .none
+              showVerticalFollowLine: widget.showVerticalFollowLine,
+              dashPattern: const [1], // const [10],
+              defaultRadiusPx: 3,
+              // radiusPaddingPx: 6,
+              drawFollowLinesAcrossChart: widget.drawFollowLinesAcrossChart,
+              // symbolRenderer: TextSymbolRenderer(() => 'rtest')),
+              symbolRenderer: widget.symbolRenderer,
+            ),
+
             // symbolRenderer: widget.getTextForTextSymbolRenderer != null
             // ? TextSymbolRenderer(widget.getTextForTextSymbolRenderer!, marginBottom: 16)
             //     : null),
-
             if (widget.initialSelection != null) ...[widget.initialSelection!],
             if (widget.seriesLegend != null) ...[widget.seriesLegend!],
             if (widget.open != null && widget.close != null) ...[
               charts.RangeAnnotation([
                 charts.RangeAnnotationSegment(
-                    widget.open! <= widget.close!
-                        ? widget.open!
-                        : widget.close!,
-                    widget.open! <= widget.close!
-                        ? widget.close!
-                        : widget.open!,
-                    charts.RangeAnnotationAxisType.measure,
-                    startLabel: widget.open! <= widget.close!
-                        ? _rangeAnnotationLabel('open', widget.open!,
-                            widget.showRangeAnnotationValues)
-                        : _rangeAnnotationLabel('close', widget.close!,
-                            widget.showRangeAnnotationValues),
-                    endLabel: widget.open! <= widget.close!
-                        ? _rangeAnnotationLabel('close', widget.close!,
-                            widget.showRangeAnnotationValues)
-                        : _rangeAnnotationLabel('open', widget.open!,
-                            widget.showRangeAnnotationValues),
-                    labelStyleSpec: charts.TextStyleSpec(
-                        fontSize: 14,
-                        color: rangeAnnotationLabelColor), //axisLabelColor
-                    color: rangeAnnotationColor // gray.shade200
-                    ),
-              ])
-            ]
+                  widget.open! <= widget.close! ? widget.open! : widget.close!,
+                  widget.open! <= widget.close! ? widget.close! : widget.open!,
+                  charts.RangeAnnotationAxisType.measure,
+                  startLabel: widget.open! <= widget.close!
+                      ? _rangeAnnotationLabel(
+                          'open',
+                          widget.open!,
+                          widget.showRangeAnnotationValues,
+                        )
+                      : _rangeAnnotationLabel(
+                          'close',
+                          widget.close!,
+                          widget.showRangeAnnotationValues,
+                        ),
+                  endLabel: widget.open! <= widget.close!
+                      ? _rangeAnnotationLabel(
+                          'close',
+                          widget.close!,
+                          widget.showRangeAnnotationValues,
+                        )
+                      : _rangeAnnotationLabel(
+                          'open',
+                          widget.open!,
+                          widget.showRangeAnnotationValues,
+                        ),
+                  labelStyleSpec: charts.TextStyleSpec(
+                    fontSize: 14,
+                    color: rangeAnnotationLabelColor,
+                  ), //axisLabelColor
+                  color: rangeAnnotationColor, // gray.shade200
+                ),
+              ]),
+            ],
           ],
     );
     /*
@@ -230,13 +252,15 @@ String _rangeAnnotationLabel(String label, double value, bool showValue) {
 typedef GetText = String Function();
 
 class TextSymbolRenderer extends CustomCircleSymbolRenderer {
-  TextSymbolRenderer(this.getText,
-      {this.marginBottom = 8,
-      this.padding = const EdgeInsets.all(8),
-      this.placeAbovePoint = false,
-      this.textColor = Colors.black,
-      this.backgroundColor = Colors.white,
-      this.fontSize = 12});
+  TextSymbolRenderer(
+    this.getText, {
+    this.marginBottom = 8,
+    this.padding = const EdgeInsets.all(8),
+    this.placeAbovePoint = false,
+    this.textColor = Colors.black,
+    this.backgroundColor = Colors.white,
+    this.fontSize = 12,
+  });
 
   final GetText getText;
   final double marginBottom;
@@ -247,32 +271,41 @@ class TextSymbolRenderer extends CustomCircleSymbolRenderer {
   final int fontSize;
 
   @override
-  void paint(charts.ChartCanvas canvas, Rectangle<num> bounds,
-      {List<int>? dashPattern,
-      charts.Color? fillColor,
-      charts.FillPatternType? fillPattern,
-      charts.Color? strokeColor,
-      double? strokeWidthPx}) {
-    super.paint(canvas, bounds,
-        dashPattern: dashPattern,
-        fillColor: fillColor,
-        fillPattern: fillPattern,
-        strokeColor: strokeColor,
-        strokeWidthPx: strokeWidthPx);
+  void paint(
+    charts.ChartCanvas canvas,
+    Rectangle<num> bounds, {
+    List<int>? dashPattern,
+    charts.Color? fillColor,
+    charts.FillPatternType? fillPattern,
+    charts.Color? strokeColor,
+    double? strokeWidthPx,
+  }) {
+    super.paint(
+      canvas,
+      bounds,
+      dashPattern: dashPattern,
+      fillColor: fillColor,
+      fillPattern: fillPattern,
+      strokeColor: strokeColor,
+      strokeWidthPx: strokeWidthPx,
+    );
 
     style.TextStyle textStyle = style.TextStyle();
     textStyle.color = charts.ColorUtil.fromDartColor(textColor);
     textStyle.fontSize = fontSize;
 
-    element.TextElement textElement =
-        element.TextElement(getText.call(), style: textStyle);
+    element.TextElement textElement = element.TextElement(
+      getText.call(),
+      style: textStyle,
+    );
     double width = textElement.measurement.horizontalSliceWidth;
     double height = textElement.measurement.verticalSliceWidth;
 
     double centerX = bounds.left + bounds.width / 2;
     double centerY = marginBottom + padding.bottom;
     if (placeAbovePoint) {
-      centerY = bounds.top +
+      centerY =
+          bounds.top +
           bounds.height / 2 -
           marginBottom -
           (padding.top + padding.bottom);

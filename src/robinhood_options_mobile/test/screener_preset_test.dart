@@ -74,11 +74,7 @@ void main() {
         'sort_direction': 'desc',
         'sample_symbols': ['JNJ', 'PG', 'KO'],
         'criteria': [
-          {
-            'field': 'dividend_yield',
-            'operator': 'gte',
-            'min_value': 3.0,
-          },
+          {'field': 'dividend_yield', 'operator': 'gte', 'min_value': 3.0},
           {
             'field': 'market_cap',
             'operator': 'gte',
@@ -101,8 +97,7 @@ void main() {
       expect(preset.criteria[1].displayLabel, 'Market Cap ≥ \$50B');
     });
 
-    test('parses real Robinhood preset JSON with display_name and asset_urls',
-        () {
+    test('parses real Robinhood preset JSON with display_name and asset_urls', () {
       final json = {
         'id': '94ee72a4-5b0b-4164-9f02-7e119a1e68c0',
         'display_name': 'Daily price jumps',
@@ -121,7 +116,7 @@ void main() {
             '2x':
                 'https://cdn.robinhood.com/app_assets/screener_illustrations/daily-price-jumps/180x100/2x.png',
             'svg':
-                'https://cdn.robinhood.com/app_assets/screener_illustrations/daily-price-jumps/180x100/svg.svg'
+                'https://cdn.robinhood.com/app_assets/screener_illustrations/daily-price-jumps/180x100/svg.svg',
           },
           '255x160': {
             '1x':
@@ -129,16 +124,16 @@ void main() {
             '2x':
                 'https://cdn.robinhood.com/app_assets/screener_illustrations/daily-price-jumps/255x160/2x.png',
             'svg':
-                'https://cdn.robinhood.com/app_assets/screener_illustrations/daily-price-jumps/255x160/svg.svg'
-          }
+                'https://cdn.robinhood.com/app_assets/screener_illustrations/daily-price-jumps/255x160/svg.svg',
+          },
         },
         'columns': [
           'sparkline',
           '1d_price_change',
           'price',
           'todays_volume',
-          'market_cap'
-        ]
+          'market_cap',
+        ],
       };
 
       final preset = RobinhoodScreenerPreset.fromJson(json);
@@ -146,7 +141,9 @@ void main() {
       expect(preset.id, '94ee72a4-5b0b-4164-9f02-7e119a1e68c0');
       expect(preset.name, 'Daily price jumps');
       expect(
-          preset.description, 'Stocks with the biggest price increases today');
+        preset.description,
+        'Stocks with the biggest price increases today',
+      );
       expect(preset.category, 'Movers');
       expect(preset.iconEmoji, '💡');
       expect(preset.isCurated, isTrue);
@@ -161,48 +158,57 @@ void main() {
         '1d_price_change',
         'price',
         'todays_volume',
-        'market_cap'
+        'market_cap',
       ]);
-      expect(preset.columnLabels,
-          ['Sparkline', '1D Change', 'Price', 'Volume', 'Market Cap']);
+      expect(preset.columnLabels, [
+        'Sparkline',
+        '1D Change',
+        'Price',
+        'Volume',
+        'Market Cap',
+      ]);
       expect(preset.criteria.isNotEmpty, isTrue);
       expect(preset.criteria.first.displayLabel, 'Top 1-Day Price Gainers');
       expect(preset.sampleSymbols, contains('NVDA'));
       expect(preset.sampleSymbols, contains('TSLA'));
     });
 
-    test('parses Robinhood dividend yield preset with auto-inferred criteria',
-        () {
-      final json = {
-        'id': '834ca4dc-7d82-4cfc-b95b-ccd9d85db5c0',
-        'display_name': 'Highest dividend yield',
-        'display_description': 'Stocks with dividend yield above 5%',
-        'hide_from_search': null,
-        'icon_emoji': '💡',
-        'icon_url': '',
-        'sort_by': 'dividend_yield',
-        'sort_direction': 'DESC',
-        'filters': [],
-        'is_preset': true,
-        'columns': [
-          'sparkline',
-          'dividend_yield',
-          'price',
-          'todays_volume',
-          'market_cap'
-        ]
-      };
+    test(
+      'parses Robinhood dividend yield preset with auto-inferred criteria',
+      () {
+        final json = {
+          'id': '834ca4dc-7d82-4cfc-b95b-ccd9d85db5c0',
+          'display_name': 'Highest dividend yield',
+          'display_description': 'Stocks with dividend yield above 5%',
+          'hide_from_search': null,
+          'icon_emoji': '💡',
+          'icon_url': '',
+          'sort_by': 'dividend_yield',
+          'sort_direction': 'DESC',
+          'filters': [],
+          'is_preset': true,
+          'columns': [
+            'sparkline',
+            'dividend_yield',
+            'price',
+            'todays_volume',
+            'market_cap',
+          ],
+        };
 
-      final preset = RobinhoodScreenerPreset.fromJson(json);
+        final preset = RobinhoodScreenerPreset.fromJson(json);
 
-      expect(preset.name, 'Highest dividend yield');
-      expect(preset.description, 'Stocks with dividend yield above 5%');
-      expect(preset.category, 'Dividends');
-      expect(preset.criteria.any((c) => c.displayLabel == 'Div Yield ≥ 5.0%'),
-          isTrue);
-      expect(preset.sampleSymbols, contains('JNJ'));
-      expect(preset.sampleSymbols, contains('KO'));
-    });
+        expect(preset.name, 'Highest dividend yield');
+        expect(preset.description, 'Stocks with dividend yield above 5%');
+        expect(preset.category, 'Dividends');
+        expect(
+          preset.criteria.any((c) => c.displayLabel == 'Div Yield ≥ 5.0%'),
+          isTrue,
+        );
+        expect(preset.sampleSymbols, contains('JNJ'));
+        expect(preset.sampleSymbols, contains('KO'));
+      },
+    );
 
     test('serializes to JSON correctly', () {
       const preset = RobinhoodScreenerPreset(
@@ -235,8 +241,11 @@ void main() {
       expect(screener.id, 'screener_equities_core');
       expect(screener.name, 'US Equities Core Screener');
       expect(screener.filterCount, 12);
-      expect(screener.availableFilters,
-          ['market_cap', 'pe_ratio', 'dividend_yield']);
+      expect(screener.availableFilters, [
+        'market_cap',
+        'pe_ratio',
+        'dividend_yield',
+      ]);
     });
   });
 
@@ -250,26 +259,30 @@ void main() {
       expect(response['results'], isA<List>());
 
       final presets = (response['results'] as List)
-          .map((p) =>
-              RobinhoodScreenerPreset.fromJson(p as Map<String, dynamic>))
+          .map(
+            (p) => RobinhoodScreenerPreset.fromJson(p as Map<String, dynamic>),
+          )
           .toList();
 
       expect(presets.length, greaterThanOrEqualTo(5));
 
-      final jumpsPreset =
-          presets.firstWhere((p) => p.name == 'Daily price jumps');
+      final jumpsPreset = presets.firstWhere(
+        (p) => p.name == 'Daily price jumps',
+      );
       expect(jumpsPreset.category, 'Movers');
       expect(jumpsPreset.sampleSymbols, contains('NVDA'));
       expect(jumpsPreset.sampleSymbols, contains('TSLA'));
 
-      final dividendPreset =
-          presets.firstWhere((p) => p.name == 'Highest dividend yield');
+      final dividendPreset = presets.firstWhere(
+        (p) => p.name == 'Highest dividend yield',
+      );
       expect(dividendPreset.category, 'Dividends');
       expect(dividendPreset.sampleSymbols, contains('JNJ'));
       expect(dividendPreset.sampleSymbols, contains('KO'));
 
-      final ivPreset =
-          presets.firstWhere((p) => p.name == 'Highest implied volatility');
+      final ivPreset = presets.firstWhere(
+        (p) => p.name == 'Highest implied volatility',
+      );
       expect(ivPreset.category, 'Volatility');
       expect(ivPreset.sampleSymbols, contains('MSTR'));
 
@@ -278,8 +291,9 @@ void main() {
       expect(techPreset.sampleSymbols, contains('AAPL'));
       expect(techPreset.sampleSymbols, contains('NVDA'));
 
-      final shortSqueezePreset =
-          presets.firstWhere((p) => p.id == 'high-short-squeeze');
+      final shortSqueezePreset = presets.firstWhere(
+        (p) => p.id == 'high-short-squeeze',
+      );
       expect(shortSqueezePreset.category, 'Short Squeeze');
       expect(shortSqueezePreset.sampleSymbols, contains('GME'));
     });

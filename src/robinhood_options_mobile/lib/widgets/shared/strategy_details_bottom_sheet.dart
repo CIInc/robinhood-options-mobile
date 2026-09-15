@@ -15,8 +15,11 @@ class StrategyDetailsBottomSheet extends StatelessWidget {
   });
 
   static void show(
-      BuildContext context, TradeStrategyTemplate template, VoidCallback onLoad,
-      {VoidCallback? onSearch}) {
+    BuildContext context,
+    TradeStrategyTemplate template,
+    VoidCallback onLoad, {
+    VoidCallback? onSearch,
+  }) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -64,9 +67,9 @@ class StrategyDetailsBottomSheet extends StatelessWidget {
         final diffs = template.config.getDifferences(currentConfig);
         if (diffs.isEmpty) {
           Navigator.pop(context); // Close sheet
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('No changes to apply.')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('No changes to apply.')));
           return;
         }
 
@@ -107,39 +110,46 @@ class StrategyDetailsBottomSheet extends StatelessWidget {
                                     .withValues(alpha: 0.3),
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .outlineVariant
-                                        .withValues(alpha: 0.5)),
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .outlineVariant
+                                      .withValues(alpha: 0.5),
+                                ),
                               ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(key,
-                                      style: TextStyle(
-                                          fontWeight: FontWeight.w600,
-                                          fontSize: 13,
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .onSurface)),
+                                  Text(
+                                    key,
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 13,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurface,
+                                    ),
+                                  ),
                                   const SizedBox(height: 8),
                                   ...changes.map((change) {
                                     final parts = change.split(': ');
                                     if (parts.length != 2) return Text(change);
 
                                     final indicatorKey = parts[0];
-                                    final transition = parts[
-                                        1]; // true -> false or false -> true
+                                    final transition =
+                                        parts[1]; // true -> false or false -> true
 
-                                    final isEnabling =
-                                        transition.contains('false -> true');
+                                    final isEnabling = transition.contains(
+                                      'false -> true',
+                                    );
                                     final prettyName =
                                         _formatIndicatorNameStatic(
-                                            indicatorKey);
+                                          indicatorKey,
+                                        );
 
                                     return Padding(
-                                      padding:
-                                          const EdgeInsets.only(bottom: 4.0),
+                                      padding: const EdgeInsets.only(
+                                        bottom: 4.0,
+                                      ),
                                       child: Row(
                                         children: [
                                           Icon(
@@ -157,25 +167,29 @@ class StrategyDetailsBottomSheet extends StatelessWidget {
                                               prettyName,
                                               style: TextStyle(
                                                 fontSize: 12,
-                                                color: Theme.of(context)
-                                                    .colorScheme
-                                                    .onSurfaceVariant,
+                                                color: Theme.of(
+                                                  context,
+                                                ).colorScheme.onSurfaceVariant,
                                                 decoration: isEnabling
                                                     ? null
                                                     : TextDecoration
-                                                        .lineThrough,
+                                                          .lineThrough,
                                               ),
                                             ),
                                           ),
                                           Container(
                                             padding: const EdgeInsets.symmetric(
-                                                horizontal: 6, vertical: 2),
+                                              horizontal: 6,
+                                              vertical: 2,
+                                            ),
                                             decoration: BoxDecoration(
                                               color: isEnabling
-                                                  ? Colors.green
-                                                      .withValues(alpha: 0.1)
-                                                  : Colors.red
-                                                      .withValues(alpha: 0.1),
+                                                  ? Colors.green.withValues(
+                                                      alpha: 0.1,
+                                                    )
+                                                  : Colors.red.withValues(
+                                                      alpha: 0.1,
+                                                    ),
                                               borderRadius:
                                                   BorderRadius.circular(4),
                                             ),
@@ -220,21 +234,25 @@ class StrategyDetailsBottomSheet extends StatelessWidget {
                                   .withValues(alpha: 0.3),
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .outlineVariant
-                                      .withValues(alpha: 0.5)),
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .outlineVariant
+                                    .withValues(alpha: 0.5),
+                              ),
                             ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(key,
-                                    style: TextStyle(
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 13,
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onSurface)),
+                                Text(
+                                  key,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 13,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurface,
+                                  ),
+                                ),
                                 const SizedBox(height: 6),
                                 Row(
                                   children: [
@@ -247,15 +265,16 @@ class StrategyDetailsBottomSheet extends StatelessWidget {
                                                 .colorScheme
                                                 .errorContainer
                                                 .withValues(alpha: 0.2),
-                                            borderRadius:
-                                                BorderRadius.circular(6),
+                                            borderRadius: BorderRadius.circular(
+                                              6,
+                                            ),
                                           ),
                                           child: Text(
                                             fromVal,
                                             style: TextStyle(
-                                              color: Theme.of(context)
-                                                  .colorScheme
-                                                  .error,
+                                              color: Theme.of(
+                                                context,
+                                              ).colorScheme.error,
                                               decoration:
                                                   TextDecoration.lineThrough,
                                               fontSize: 12,
@@ -268,13 +287,14 @@ class StrategyDetailsBottomSheet extends StatelessWidget {
                                       ),
                                       Padding(
                                         padding: const EdgeInsets.symmetric(
-                                            horizontal: 8.0),
+                                          horizontal: 8.0,
+                                        ),
                                         child: Icon(
                                           Icons.arrow_forward_rounded,
                                           size: 16,
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .onSurfaceVariant,
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.onSurfaceVariant,
                                         ),
                                       ),
                                     ],
@@ -286,15 +306,16 @@ class StrategyDetailsBottomSheet extends StatelessWidget {
                                               .colorScheme
                                               .primaryContainer
                                               .withValues(alpha: 0.2),
-                                          borderRadius:
-                                              BorderRadius.circular(6),
+                                          borderRadius: BorderRadius.circular(
+                                            6,
+                                          ),
                                         ),
                                         child: Text(
                                           toVal,
                                           style: TextStyle(
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .primary,
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.primary,
                                             fontWeight: FontWeight.bold,
                                             fontSize: 12,
                                           ),
@@ -370,18 +391,21 @@ class StrategyDetailsBottomSheet extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: isDefault
                             ? Colors.amber.withValues(alpha: 0.1)
-                            : colorScheme.primaryContainer
-                                .withValues(alpha: 0.3),
+                            : colorScheme.primaryContainer.withValues(
+                                alpha: 0.3,
+                              ),
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
-                            color: isDefault
-                                ? Colors.amber.withValues(alpha: 0.3)
-                                : colorScheme.primary.withValues(alpha: 0.1)),
+                          color: isDefault
+                              ? Colors.amber.withValues(alpha: 0.3)
+                              : colorScheme.primary.withValues(alpha: 0.1),
+                        ),
                       ),
                       child: Icon(
                         isDefault ? Icons.verified_rounded : Icons.bookmark,
-                        color:
-                            isDefault ? Colors.amber[800] : colorScheme.primary,
+                        color: isDefault
+                            ? Colors.amber[800]
+                            : colorScheme.primary,
                         size: 32,
                       ),
                     ),
@@ -394,12 +418,15 @@ class StrategyDetailsBottomSheet extends StatelessWidget {
                             Container(
                               margin: const EdgeInsets.only(bottom: 6),
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 2),
+                                horizontal: 8,
+                                vertical: 2,
+                              ),
                               decoration: BoxDecoration(
                                 color: Colors.amber.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(4),
                                 border: Border.all(
-                                    color: Colors.amber.withValues(alpha: 0.3)),
+                                  color: Colors.amber.withValues(alpha: 0.3),
+                                ),
                               ),
                               child: Text(
                                 'SYSTEM STRATEGY',
@@ -413,9 +440,7 @@ class StrategyDetailsBottomSheet extends StatelessWidget {
                             ),
                           Text(
                             template.name,
-                            style: Theme.of(context)
-                                .textTheme
-                                .headlineSmall
+                            style: Theme.of(context).textTheme.headlineSmall
                                 ?.copyWith(
                                   fontWeight: FontWeight.bold,
                                   height: 1.1,
@@ -424,12 +449,8 @@ class StrategyDetailsBottomSheet extends StatelessWidget {
                           const SizedBox(height: 8),
                           Text(
                             template.description,
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodyMedium
-                                ?.copyWith(
-                                  color: colorScheme.onSurfaceVariant,
-                                ),
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(color: colorScheme.onSurfaceVariant),
                           ),
                         ],
                       ),
@@ -448,55 +469,61 @@ class StrategyDetailsBottomSheet extends StatelessWidget {
               const SizedBox(height: 24),
 
               // Key Metrics Grid
-              LayoutBuilder(builder: (context, constraints) {
-                final width = (constraints.maxWidth - 12) / 2;
-                return Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
-                  children: [
-                    SizedBox(
-                      width: width,
-                      child: _buildDetailMetric(
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final width = (constraints.maxWidth - 12) / 2;
+                  return Wrap(
+                    spacing: 12,
+                    runSpacing: 12,
+                    children: [
+                      SizedBox(
+                        width: width,
+                        child: _buildDetailMetric(
                           context,
                           "Take Profit",
                           "${config.takeProfitPercent}%",
                           Icons.trending_up,
                           Colors.green,
-                          valueSize: 16),
-                    ),
-                    SizedBox(
-                      width: width,
-                      child: _buildDetailMetric(
+                          valueSize: 16,
+                        ),
+                      ),
+                      SizedBox(
+                        width: width,
+                        child: _buildDetailMetric(
                           context,
                           "Stop Loss",
                           "${config.stopLossPercent}%",
                           Icons.trending_down,
                           Colors.red,
-                          valueSize: 16),
-                    ),
-                    SizedBox(
-                      width: width,
-                      child: _buildDetailMetric(
+                          valueSize: 16,
+                        ),
+                      ),
+                      SizedBox(
+                        width: width,
+                        child: _buildDetailMetric(
                           context,
                           "Risk / Trade",
                           "${(config.riskPerTrade * 100).toStringAsFixed(1)}%",
                           Icons.shield_outlined,
                           Colors.orange,
-                          valueSize: 16),
-                    ),
-                    SizedBox(
-                      width: width,
-                      child: _buildDetailMetric(
+                          valueSize: 16,
+                        ),
+                      ),
+                      SizedBox(
+                        width: width,
+                        child: _buildDetailMetric(
                           context,
                           "Timeframe",
                           config.interval.toUpperCase(),
                           Icons.timer_outlined,
                           colorScheme.primary,
-                          valueSize: 16),
-                    ),
-                  ],
-                );
-              }),
+                          valueSize: 16,
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
               const SizedBox(height: 32),
 
               // Entry Rules
@@ -515,19 +542,23 @@ class StrategyDetailsBottomSheet extends StatelessWidget {
                   ),
                   ...config.enabledIndicators.entries
                       .where((e) => e.value)
-                      .map((e) => _buildRuleChip(
-                            context,
-                            _formatIndicatorName(e.key),
-                            Icons.check_circle_outline,
-                            isAccent: false,
-                            tooltip: config.indicatorReasons[e.key],
-                          )),
-                  ...config.customIndicators.map((c) => _buildRuleChip(
-                        context,
-                        c.name,
-                        Icons.auto_fix_high,
-                        isAccent: false,
-                      )),
+                      .map(
+                        (e) => _buildRuleChip(
+                          context,
+                          _formatIndicatorName(e.key),
+                          Icons.check_circle_outline,
+                          isAccent: false,
+                          tooltip: config.indicatorReasons[e.key],
+                        ),
+                      ),
+                  ...config.customIndicators.map(
+                    (c) => _buildRuleChip(
+                      context,
+                      c.name,
+                      Icons.auto_fix_high,
+                      isAccent: false,
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 24),
@@ -569,9 +600,12 @@ class StrategyDetailsBottomSheet extends StatelessWidget {
                       !config.timeBasedExitEnabled &&
                       !config.marketCloseExitEnabled &&
                       !config.enablePartialExits)
-                    _buildRuleChip(context, "Standard TP/SL only",
-                        Icons.check_box_outline_blank,
-                        isAccent: false),
+                    _buildRuleChip(
+                      context,
+                      "Standard TP/SL only",
+                      Icons.check_box_outline_blank,
+                      isAccent: false,
+                    ),
                 ],
               ),
               const SizedBox(height: 24),
@@ -586,12 +620,12 @@ class StrategyDetailsBottomSheet extends StatelessWidget {
                 runSpacing: 8,
                 children: [
                   if (config.symbolFilter.isNotEmpty) ...[
-                    ...config.symbolFilter.take(20).map((s) => _buildRuleChip(
-                          context,
-                          s,
-                          null,
-                          isAccent: false,
-                        )),
+                    ...config.symbolFilter
+                        .take(20)
+                        .map(
+                          (s) =>
+                              _buildRuleChip(context, s, null, isAccent: false),
+                        ),
                     if (config.symbolFilter.length > 20)
                       _buildRuleChip(
                         context,
@@ -663,8 +697,13 @@ class StrategyDetailsBottomSheet extends StatelessWidget {
     );
   }
 
-  Widget _buildRuleChip(BuildContext context, String label, IconData? icon,
-      {bool isAccent = true, String? tooltip}) {
+  Widget _buildRuleChip(
+    BuildContext context,
+    String label,
+    IconData? icon, {
+    bool isAccent = true,
+    String? tooltip,
+  }) {
     final colorScheme = Theme.of(context).colorScheme;
     // Use slightly different colors/styles
     final bg = isAccent
@@ -702,9 +741,12 @@ class StrategyDetailsBottomSheet extends StatelessWidget {
           ),
           if (tooltip != null) ...[
             const SizedBox(width: 6),
-            Icon(Icons.info_outline_rounded,
-                size: 14, color: fg.withValues(alpha: 0.6)),
-          ]
+            Icon(
+              Icons.info_outline_rounded,
+              size: 14,
+              color: fg.withValues(alpha: 0.6),
+            ),
+          ],
         ],
       ),
     );
@@ -747,22 +789,26 @@ class StrategyDetailsBottomSheet extends StatelessWidget {
     return names[key] ?? key;
   }
 
-  Widget _buildDetailMetric(BuildContext context, String label, String value,
-      IconData icon, Color color,
-      {double valueSize = 13}) {
+  Widget _buildDetailMetric(
+    BuildContext context,
+    String label,
+    String value,
+    IconData icon,
+    Color color, {
+    double valueSize = 13,
+  }) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Theme.of(context)
-            .colorScheme
-            .surfaceContainerHighest
-            .withValues(alpha: 0.3),
+        color: Theme.of(
+          context,
+        ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-            color: Theme.of(context)
-                .colorScheme
-                .outlineVariant
-                .withValues(alpha: 0.5)),
+          color: Theme.of(
+            context,
+          ).colorScheme.outlineVariant.withValues(alpha: 0.5),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

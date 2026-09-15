@@ -96,7 +96,7 @@ class _FuturesTradingSettingsWidgetState
     'ZS',
     '6E',
     'BTC',
-    'ETH'
+    'ETH',
   ];
 
   @override
@@ -116,24 +116,26 @@ class _FuturesTradingSettingsWidgetState
       });
     }
 
-    final provider =
-        Provider.of<FuturesAutoTradingProvider>(context, listen: false);
+    final provider = Provider.of<FuturesAutoTradingProvider>(
+      context,
+      listen: false,
+    );
     final config = widget.user.futuresTradingConfig ?? provider.config;
 
     _selectedTemplateId = config.strategyTemplateId;
     _contractsController.text = config.strategyConfig.contractIds.join(',');
-    _maxContractsController.text =
-        config.strategyConfig.maxContracts.toString();
-    _maxNotionalController.text =
-        config.strategyConfig.maxNotional.toStringAsFixed(0);
-    _maxDailyLossController.text =
-        config.strategyConfig.maxDailyLoss.toStringAsFixed(0);
-    _tradeQuantityController.text =
-        config.strategyConfig.tradeQuantity.toString();
+    _maxContractsController.text = config.strategyConfig.maxContracts
+        .toString();
+    _maxNotionalController.text = config.strategyConfig.maxNotional
+        .toStringAsFixed(0);
+    _maxDailyLossController.text = config.strategyConfig.maxDailyLoss
+        .toStringAsFixed(0);
+    _tradeQuantityController.text = config.strategyConfig.tradeQuantity
+        .toString();
     _checkIntervalController.text = config.checkIntervalMinutes.toString();
     _cooldownController.text = config.autoTradeCooldownMinutes.toString();
-    _minSignalStrengthController.text =
-        config.strategyConfig.minSignalStrength.toStringAsFixed(0);
+    _minSignalStrengthController.text = config.strategyConfig.minSignalStrength
+        .toStringAsFixed(0);
     _paperTradingMode = config.paperTradingMode;
     _requireApproval = config.requireApproval;
     _autoTradeEnabled = config.autoTradeEnabled;
@@ -157,10 +159,12 @@ class _FuturesTradingSettingsWidgetState
 
     _stopLossController.text = config.strategyConfig.stopLossPct.toString();
     _takeProfitController.text = config.strategyConfig.takeProfitPct.toString();
-    _trailingStopAtrController.text =
-        config.strategyConfig.trailingStopAtrMultiplier.toString();
-    _autoExitBufferController.text =
-        config.strategyConfig.autoExitBufferMinutes.toString();
+    _trailingStopAtrController.text = config
+        .strategyConfig
+        .trailingStopAtrMultiplier
+        .toString();
+    _autoExitBufferController.text = config.strategyConfig.autoExitBufferMinutes
+        .toString();
     _trailingStopEnabled = config.strategyConfig.trailingStopEnabled;
     _autoExitEnabled = config.strategyConfig.autoExitEnabled;
     _allowContractRollover = config.strategyConfig.allowContractRollover;
@@ -247,8 +251,9 @@ class _FuturesTradingSettingsWidgetState
     required IconData icon,
     String? helperText,
     String? hint,
-    TextInputType keyboardType =
-        const TextInputType.numberWithOptions(decimal: true),
+    TextInputType keyboardType = const TextInputType.numberWithOptions(
+      decimal: true,
+    ),
     String? suffixText,
     double? min,
     double? max,
@@ -266,13 +271,12 @@ class _FuturesTradingSettingsWidgetState
         helperText: helperText,
         prefixIcon: Icon(icon, size: 20),
         suffixText: suffixText,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide:
-              BorderSide(color: colorScheme.outline.withValues(alpha: 0.3)),
+          borderSide: BorderSide(
+            color: colorScheme.outline.withValues(alpha: 0.3),
+          ),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -280,8 +284,10 @@ class _FuturesTradingSettingsWidgetState
         ),
         filled: true,
         fillColor: colorScheme.surfaceContainerHighest.withValues(alpha: 0.2),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 12,
+        ),
       ),
       validator: (value) {
         if (value == null || value.isEmpty) return 'Required';
@@ -327,18 +333,28 @@ class _FuturesTradingSettingsWidgetState
           SwitchListTile(
             value: value,
             onChanged: onChanged,
-            title: Text(title,
-                style: theme.textTheme.titleMedium
-                    ?.copyWith(fontWeight: FontWeight.bold)),
-            subtitle: Text(subtitle,
-                style: theme.textTheme.bodySmall
-                    ?.copyWith(color: colorScheme.onSurfaceVariant)),
+            title: Text(
+              title,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            subtitle: Text(
+              subtitle,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
             secondary: icon != null
-                ? Icon(icon,
-                    color: value ? colorScheme.primary : colorScheme.outline)
+                ? Icon(
+                    icon,
+                    color: value ? colorScheme.primary : colorScheme.outline,
+                  )
                 : null,
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 4,
+            ),
           ),
           if (value && extraContent != null)
             Padding(
@@ -359,8 +375,8 @@ class _FuturesTradingSettingsWidgetState
       _maxContractsController.text = config.maxContracts.toString();
       _maxNotionalController.text = config.maxNotional.toStringAsFixed(0);
       _maxDailyLossController.text = config.maxDailyLoss.toStringAsFixed(0);
-      _minSignalStrengthController.text =
-          config.minSignalStrength.toStringAsFixed(0);
+      _minSignalStrengthController.text = config.minSignalStrength
+          .toStringAsFixed(0);
       _enforceWindow = config.sessionRules.enforceTradingWindow;
       _allowOvernight = config.sessionRules.allowOvernight;
       _allowWeekend = config.sessionRules.allowWeekend;
@@ -380,8 +396,8 @@ class _FuturesTradingSettingsWidgetState
 
       _stopLossController.text = config.stopLossPct.toString();
       _takeProfitController.text = config.takeProfitPct.toString();
-      _trailingStopAtrController.text =
-          config.trailingStopAtrMultiplier.toString();
+      _trailingStopAtrController.text = config.trailingStopAtrMultiplier
+          .toString();
       _autoExitBufferController.text = config.autoExitBufferMinutes.toString();
       _trailingStopEnabled = config.trailingStopEnabled;
       _autoExitEnabled = config.autoExitEnabled;
@@ -486,8 +502,10 @@ class _FuturesTradingSettingsWidgetState
 
   Future<void> _saveConfig() async {
     if (!_formKey.currentState!.validate()) return;
-    final provider =
-        Provider.of<FuturesAutoTradingProvider>(context, listen: false);
+    final provider = Provider.of<FuturesAutoTradingProvider>(
+      context,
+      listen: false,
+    );
     await provider.updateConfig(_buildConfig(), widget.userDocRef);
   }
 
@@ -706,11 +724,7 @@ class _FuturesTradingSettingsWidgetState
                       ),
                     ),
                     if (provider.isAutoTrading)
-                      const Positioned(
-                        top: 4,
-                        right: 4,
-                        child: _TradingDot(),
-                      ),
+                      const Positioned(top: 4, right: 4, child: _TradingDot()),
                   ],
                 ),
                 const SizedBox(width: 16),
@@ -746,7 +760,8 @@ class _FuturesTradingSettingsWidgetState
                         builder: (context) => AlertDialog(
                           title: const Text('Enable Real Trading?'),
                           content: const Text(
-                              'You are about to enable automated trading with REAL MONEY. Please ensure your risk settings are correct.'),
+                            'You are about to enable automated trading with REAL MONEY. Please ensure your risk settings are correct.',
+                          ),
                           actions: [
                             TextButton(
                               onPressed: () => Navigator.pop(context, false),
@@ -807,7 +822,9 @@ class _FuturesTradingSettingsWidgetState
                   children: [
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 12),
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
                       decoration: BoxDecoration(
                         color: colorScheme.errorContainer,
                         borderRadius: BorderRadius.circular(12),
@@ -817,8 +834,11 @@ class _FuturesTradingSettingsWidgetState
                       ),
                       child: Row(
                         children: [
-                          Icon(Icons.warning_amber_rounded,
-                              color: colorScheme.error, size: 24),
+                          Icon(
+                            Icons.warning_amber_rounded,
+                            color: colorScheme.error,
+                            size: 24,
+                          ),
                           const SizedBox(width: 12),
                           Expanded(
                             child: Column(
@@ -888,7 +908,7 @@ class _FuturesTradingSettingsWidgetState
                                 fontWeight: FontWeight.bold,
                                 color: colorScheme.primary,
                                 fontFeatures: const [
-                                  FontFeature.tabularFigures()
+                                  FontFeature.tabularFigures(),
                                 ],
                               ),
                             ),
@@ -905,10 +925,11 @@ class _FuturesTradingSettingsWidgetState
                               style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
-                                color:
-                                    colorScheme.primary.withValues(alpha: 0.8),
+                                color: colorScheme.primary.withValues(
+                                  alpha: 0.8,
+                                ),
                                 fontFeatures: const [
-                                  FontFeature.tabularFigures()
+                                  FontFeature.tabularFigures(),
                                 ],
                               ),
                             ),
@@ -920,14 +941,16 @@ class _FuturesTradingSettingsWidgetState
                     ClipRRect(
                       borderRadius: BorderRadius.circular(4),
                       child: LinearProgressIndicator(
-                        value: 1.0 -
+                        value:
+                            1.0 -
                             (provider.autoTradeCountdownSeconds /
                                 (provider.config.checkIntervalMinutes * 60)),
                         minHeight: 6,
                         backgroundColor: colorScheme.surfaceContainerHighest
                             .withValues(alpha: 0.5),
-                        valueColor:
-                            AlwaysStoppedAnimation<Color>(colorScheme.primary),
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          colorScheme.primary,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -937,7 +960,9 @@ class _FuturesTradingSettingsWidgetState
                           child: FilledButton.icon(
                             onPressed: () {
                               provider.updateAutoTradeCountdown(
-                                  DateTime.now(), 0);
+                                DateTime.now(),
+                                0,
+                              );
                             },
                             icon: const Icon(Icons.play_arrow, size: 16),
                             label: const Text('Run Now'),
@@ -951,7 +976,8 @@ class _FuturesTradingSettingsWidgetState
                           child: FilledButton.icon(
                             onPressed: () {
                               provider.activateEmergencyStop(
-                                  userDocRef: widget.userDocRef);
+                                userDocRef: widget.userDocRef,
+                              );
                             },
                             icon: const Icon(Icons.stop, size: 16),
                             label: const Text('Stop'),
@@ -973,8 +999,12 @@ class _FuturesTradingSettingsWidgetState
     );
   }
 
-  Widget _buildSummaryItem(String label, String value, IconData icon,
-      {Color? color}) {
+  Widget _buildSummaryItem(
+    String label,
+    String value,
+    IconData icon, {
+    Color? color,
+  }) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     return Container(
@@ -1018,8 +1048,9 @@ class _FuturesTradingSettingsWidgetState
           decoration: BoxDecoration(
             color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(12),
-            border:
-                Border.all(color: colorScheme.outline.withValues(alpha: 0.1)),
+            border: Border.all(
+              color: colorScheme.outline.withValues(alpha: 0.1),
+            ),
           ),
           child: provider.activityLog.isEmpty
               ? Center(
@@ -1062,8 +1093,9 @@ class _FuturesTradingSettingsWidgetState
 
     var displayTemplates = List<FuturesStrategyTemplate>.from(templates);
     if (_selectedTemplateId != null) {
-      final selectedIndex =
-          displayTemplates.indexWhere((t) => t.id == _selectedTemplateId);
+      final selectedIndex = displayTemplates.indexWhere(
+        (t) => t.id == _selectedTemplateId,
+      );
       if (selectedIndex != -1) {
         final selectedTemplate = displayTemplates.removeAt(selectedIndex);
         displayTemplates.insert(0, selectedTemplate);
@@ -1083,8 +1115,11 @@ class _FuturesTradingSettingsWidgetState
                   color: colorScheme.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(Icons.bolt_rounded,
-                    size: 20, color: colorScheme.primary),
+                child: Icon(
+                  Icons.bolt_rounded,
+                  size: 20,
+                  color: colorScheme.primary,
+                ),
               ),
               const SizedBox(width: 12),
               Text(
@@ -1132,7 +1167,9 @@ class _FuturesTradingSettingsWidgetState
   }
 
   void _showTemplateDetailsSheet(
-      BuildContext context, FuturesStrategyTemplate template) {
+    BuildContext context,
+    FuturesStrategyTemplate template,
+  ) {
     final colorScheme = Theme.of(context).colorScheme;
     showModalBottomSheet(
       context: context,
@@ -1151,9 +1188,9 @@ class _FuturesTradingSettingsWidgetState
             Text(
               template.name,
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: colorScheme.onSurface,
-                  ),
+                fontWeight: FontWeight.bold,
+                color: colorScheme.onSurface,
+              ),
             ),
             const SizedBox(height: 8),
             Text(
@@ -1170,19 +1207,28 @@ class _FuturesTradingSettingsWidgetState
             Text(
               'Configuration',
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: colorScheme.onSurface,
-                  ),
+                fontWeight: FontWeight.bold,
+                color: colorScheme.onSurface,
+              ),
             ),
             const SizedBox(height: 12),
             _buildDetailCard(context, [
               _buildDetailRow(context, 'Interval', template.config.interval),
-              _buildDetailRow(context, 'Trade Quantity',
-                  template.config.tradeQuantity.toString()),
-              _buildDetailRow(context, 'Max Contracts',
-                  template.config.maxContracts.toString()),
-              _buildDetailRow(context, 'Min Signal Strength',
-                  '${template.config.minSignalStrength.toStringAsFixed(0)}%'),
+              _buildDetailRow(
+                context,
+                'Trade Quantity',
+                template.config.tradeQuantity.toString(),
+              ),
+              _buildDetailRow(
+                context,
+                'Max Contracts',
+                template.config.maxContracts.toString(),
+              ),
+              _buildDetailRow(
+                context,
+                'Min Signal Strength',
+                '${template.config.minSignalStrength.toStringAsFixed(0)}%',
+              ),
             ]),
             const SizedBox(height: 16),
 
@@ -1190,22 +1236,34 @@ class _FuturesTradingSettingsWidgetState
             Text(
               'Risk Management',
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: colorScheme.onSurface,
-                  ),
+                fontWeight: FontWeight.bold,
+                color: colorScheme.onSurface,
+              ),
             ),
             const SizedBox(height: 12),
             _buildDetailCard(context, [
-              _buildDetailRow(context, 'Take Profit',
-                  '${template.config.takeProfitPct.toStringAsFixed(1)}%',
-                  color: Colors.green),
-              _buildDetailRow(context, 'Stop Loss',
-                  '${template.config.stopLossPct.toStringAsFixed(1)}%',
-                  color: Colors.red),
-              _buildDetailRow(context, 'Trailing Stop',
-                  template.config.trailingStopEnabled ? 'Enabled' : 'Disabled'),
-              _buildDetailRow(context, 'Max Notional',
-                  '\$${template.config.maxNotional.toStringAsFixed(0)}'),
+              _buildDetailRow(
+                context,
+                'Take Profit',
+                '${template.config.takeProfitPct.toStringAsFixed(1)}%',
+                color: Colors.green,
+              ),
+              _buildDetailRow(
+                context,
+                'Stop Loss',
+                '${template.config.stopLossPct.toStringAsFixed(1)}%',
+                color: Colors.red,
+              ),
+              _buildDetailRow(
+                context,
+                'Trailing Stop',
+                template.config.trailingStopEnabled ? 'Enabled' : 'Disabled',
+              ),
+              _buildDetailRow(
+                context,
+                'Max Notional',
+                '\$${template.config.maxNotional.toStringAsFixed(0)}',
+              ),
             ]),
             const SizedBox(height: 16),
 
@@ -1214,9 +1272,9 @@ class _FuturesTradingSettingsWidgetState
               Text(
                 'Selected Contracts',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: colorScheme.onSurface,
-                    ),
+                  fontWeight: FontWeight.bold,
+                  color: colorScheme.onSurface,
+                ),
               ),
               const SizedBox(height: 12),
               Wrap(
@@ -1225,8 +1283,9 @@ class _FuturesTradingSettingsWidgetState
                 children: template.config.contractIds.map((contract) {
                   return Chip(
                     label: Text(contract),
-                    backgroundColor:
-                        colorScheme.primaryContainer.withValues(alpha: 0.3),
+                    backgroundColor: colorScheme.primaryContainer.withValues(
+                      alpha: 0.3,
+                    ),
                     side: BorderSide(
                       color: colorScheme.primary.withValues(alpha: 0.3),
                     ),
@@ -1241,9 +1300,9 @@ class _FuturesTradingSettingsWidgetState
               Text(
                 'Enabled Indicators',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: colorScheme.onSurface,
-                    ),
+                  fontWeight: FontWeight.bold,
+                  color: colorScheme.onSurface,
+                ),
               ),
               const SizedBox(height: 12),
               Wrap(
@@ -1252,13 +1311,16 @@ class _FuturesTradingSettingsWidgetState
                 children: template.config.enabledIndicators.entries
                     .where((e) => e.value)
                     .map((entry) {
-                  return Chip(
-                    label:
-                        Text(entry.key, style: const TextStyle(fontSize: 12)),
-                    backgroundColor: colorScheme.surfaceContainerHighest
-                        .withValues(alpha: 0.5),
-                  );
-                }).toList(),
+                      return Chip(
+                        label: Text(
+                          entry.key,
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                        backgroundColor: colorScheme.surfaceContainerHighest
+                            .withValues(alpha: 0.5),
+                      );
+                    })
+                    .toList(),
               ),
               const SizedBox(height: 24),
             ],
@@ -1291,7 +1353,9 @@ class _FuturesTradingSettingsWidgetState
   }
 
   void _confirmAndApplyTemplate(
-      BuildContext context, FuturesStrategyTemplate template) {
+    BuildContext context,
+    FuturesStrategyTemplate template,
+  ) {
     // Get current config to show what will change
     final currentTradingConfig = _buildConfig();
     final currentConfig = currentTradingConfig.strategyConfig;
@@ -1308,22 +1372,25 @@ class _FuturesTradingSettingsWidgetState
       significantChanges.add('Interval: ${newConfig.interval}');
     }
     if (currentConfig.takeProfitPct != newConfig.takeProfitPct) {
-      significantChanges
-          .add('Take Profit: ${newConfig.takeProfitPct.toStringAsFixed(1)}%');
+      significantChanges.add(
+        'Take Profit: ${newConfig.takeProfitPct.toStringAsFixed(1)}%',
+      );
     }
     if (currentConfig.stopLossPct != newConfig.stopLossPct) {
-      significantChanges
-          .add('Stop Loss: ${newConfig.stopLossPct.toStringAsFixed(1)}%');
+      significantChanges.add(
+        'Stop Loss: ${newConfig.stopLossPct.toStringAsFixed(1)}%',
+      );
     }
     if (currentConfig.minSignalStrength != newConfig.minSignalStrength) {
       significantChanges.add(
-          'Min Signal: ${newConfig.minSignalStrength.toStringAsFixed(0)}%');
+        'Min Signal: ${newConfig.minSignalStrength.toStringAsFixed(0)}%',
+      );
     }
 
     if (significantChanges.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No changes to apply.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('No changes to apply.')));
       return;
     }
 
@@ -1349,12 +1416,13 @@ class _FuturesTradingSettingsWidgetState
                       padding: const EdgeInsets.only(bottom: 8),
                       child: Row(
                         children: [
-                          Icon(Icons.arrow_forward,
-                              size: 14,
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .primary
-                                  .withValues(alpha: 0.6)),
+                          Icon(
+                            Icons.arrow_forward,
+                            size: 14,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.primary.withValues(alpha: 0.6),
+                          ),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
@@ -1400,9 +1468,7 @@ class _FuturesTradingSettingsWidgetState
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(
-          color: colorScheme.outline.withValues(alpha: 0.1),
-        ),
+        side: BorderSide(color: colorScheme.outline.withValues(alpha: 0.1)),
       ),
       color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
       child: Padding(
@@ -1423,8 +1489,12 @@ class _FuturesTradingSettingsWidgetState
     );
   }
 
-  Widget _buildDetailRow(BuildContext context, String label, String value,
-      {Color? color}) {
+  Widget _buildDetailRow(
+    BuildContext context,
+    String label,
+    String value, {
+    Color? color,
+  }) {
     final colorScheme = Theme.of(context).colorScheme;
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1450,7 +1520,10 @@ class _FuturesTradingSettingsWidgetState
   }
 
   Widget _buildTemplateCard(
-      FuturesStrategyTemplate template, bool isSelected, bool isDefault) {
+    FuturesStrategyTemplate template,
+    bool isSelected,
+    bool isDefault,
+  ) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     return Padding(
@@ -1490,8 +1563,9 @@ class _FuturesTradingSettingsWidgetState
                       decoration: BoxDecoration(
                         color: isSelected
                             ? colorScheme.primary.withValues(alpha: 0.2)
-                            : colorScheme.surfaceContainerHighest
-                                .withValues(alpha: 0.5),
+                            : colorScheme.surfaceContainerHighest.withValues(
+                                alpha: 0.5,
+                              ),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Icon(
@@ -1521,21 +1595,27 @@ class _FuturesTradingSettingsWidgetState
                                 ),
                               ),
                               if (isSelected)
-                                Icon(Icons.check_circle_rounded,
-                                    color: colorScheme.primary, size: 18),
+                                Icon(
+                                  Icons.check_circle_rounded,
+                                  color: colorScheme.primary,
+                                  size: 18,
+                                ),
                             ],
                           ),
                           if (isDefault) ...[
                             const SizedBox(height: 6),
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 3),
+                                horizontal: 8,
+                                vertical: 3,
+                              ),
                               decoration: BoxDecoration(
                                 color: Colors.amber.withValues(alpha: 0.15),
                                 borderRadius: BorderRadius.circular(6),
                                 border: Border.all(
-                                    color: Colors.amber.withValues(alpha: 0.5),
-                                    width: 1),
+                                  color: Colors.amber.withValues(alpha: 0.5),
+                                  width: 1,
+                                ),
                               ),
                               child: Text(
                                 'SYSTEM',
@@ -1622,16 +1702,20 @@ class _FuturesTradingSettingsWidgetState
                   child: Row(
                     children: [
                       _buildFeatureChip(
-                          context,
-                          Icons.show_chart_rounded,
-                          template.config.contractIds.isEmpty
-                              ? "All Mapped"
-                              : (template.config.contractIds.length > 3
+                        context,
+                        Icons.show_chart_rounded,
+                        template.config.contractIds.isEmpty
+                            ? "All Mapped"
+                            : (template.config.contractIds.length > 3
                                   ? "${template.config.contractIds.take(3).join(', ')} +${template.config.contractIds.length - 3}"
-                                  : template.config.contractIds.join(', '))),
+                                  : template.config.contractIds.join(', ')),
+                      ),
                       const SizedBox(width: 8),
-                      _buildFeatureChip(context, Icons.layers_outlined,
-                          _getIndicatorsSummary(template.config)),
+                      _buildFeatureChip(
+                        context,
+                        Icons.layers_outlined,
+                        _getIndicatorsSummary(template.config),
+                      ),
                     ],
                   ),
                 ),
@@ -1644,8 +1728,12 @@ class _FuturesTradingSettingsWidgetState
   }
 
   Widget _buildStatBadge(
-      BuildContext context, String label, String value, Color color,
-      {IconData? icon}) {
+    BuildContext context,
+    String label,
+    String value,
+    Color color, {
+    IconData? icon,
+  }) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
@@ -1687,10 +1775,9 @@ class _FuturesTradingSettingsWidgetState
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: Theme.of(context)
-            .colorScheme
-            .surfaceContainerHighest
-            .withValues(alpha: 0.5),
+        color: Theme.of(
+          context,
+        ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(6),
         border: Border.all(
           color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
@@ -1699,8 +1786,11 @@ class _FuturesTradingSettingsWidgetState
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon,
-              size: 13, color: Theme.of(context).colorScheme.onSurfaceVariant),
+          Icon(
+            icon,
+            size: 13,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
           const SizedBox(width: 4),
           Flexible(
             child: Text(
@@ -1865,8 +1955,9 @@ class _FuturesTradingSettingsWidgetState
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children:
-                currentSymbols.map((s) => _buildInstrumentBadge(s)).toList(),
+            children: currentSymbols
+                .map((s) => _buildInstrumentBadge(s))
+                .toList(),
           ),
         ] else
           Container(
@@ -2157,37 +2248,40 @@ class _FuturesTradingSettingsWidgetState
       title: 'Pending Approvals',
       icon: Icons.pending_actions,
       children: [
-        ...provider.pendingOrders.map((order) => Card(
-              margin: const EdgeInsets.only(bottom: 8),
-              child: ListTile(
-                title: Text(
-                    '${order['symbol'] ?? order['contractId'] ?? 'Contract'} ${order['action'] ?? order['side'] ?? ''}'
-                        .trim()),
-                subtitle: Text(
-                  'Qty: ${order['quantity'] ?? '?'} @ ${order['price'] ?? '?'}'
-                  '${(order['reason'] ?? (order['proposal'] as Map?)?['reason']) != null ? '\nReason: ${order['reason'] ?? (order['proposal'] as Map?)?['reason']}' : ''}',
-                ),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.close, color: Colors.red),
-                      onPressed: () =>
-                          provider.rejectPendingOrder(order, widget.userDocRef),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.check, color: Colors.green),
-                      onPressed: () => provider.approvePendingOrder(
-                        order: order,
-                        context: context,
-                        brokerageService: widget.service,
-                        userDocRef: widget.userDocRef,
-                      ),
-                    ),
-                  ],
-                ),
+        ...provider.pendingOrders.map(
+          (order) => Card(
+            margin: const EdgeInsets.only(bottom: 8),
+            child: ListTile(
+              title: Text(
+                '${order['symbol'] ?? order['contractId'] ?? 'Contract'} ${order['action'] ?? order['side'] ?? ''}'
+                    .trim(),
               ),
-            )),
+              subtitle: Text(
+                'Qty: ${order['quantity'] ?? '?'} @ ${order['price'] ?? '?'}'
+                '${(order['reason'] ?? (order['proposal'] as Map?)?['reason']) != null ? '\nReason: ${order['reason'] ?? (order['proposal'] as Map?)?['reason']}' : ''}',
+              ),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.red),
+                    onPressed: () =>
+                        provider.rejectPendingOrder(order, widget.userDocRef),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.check, color: Colors.green),
+                    onPressed: () => provider.approvePendingOrder(
+                      order: order,
+                      context: context,
+                      brokerageService: widget.service,
+                      userDocRef: widget.userDocRef,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
       ],
     );
   }
@@ -2275,8 +2369,9 @@ class _TradingDotState extends State<_TradingDot>
   void initState() {
     super.initState();
     _controller = AnimationController(
-        duration: const Duration(milliseconds: 1500), vsync: this)
-      ..repeat(reverse: true);
+      duration: const Duration(milliseconds: 1500),
+      vsync: this,
+    )..repeat(reverse: true);
     _animation = Tween<double>(begin: 0.3, end: 1.0).animate(_controller);
   }
 

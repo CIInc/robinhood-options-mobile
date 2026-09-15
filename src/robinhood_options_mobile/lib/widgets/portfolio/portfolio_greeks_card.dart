@@ -28,8 +28,10 @@ class PortfolioGreeksCard extends StatelessWidget {
                   children: [
                     Text('Portfolio Greeks', style: theme.textTheme.titleLarge),
                     const SizedBox(height: 2),
-                    Text('Net sensitivity across priced option positions',
-                        style: theme.textTheme.bodySmall),
+                    Text(
+                      'Net sensitivity across priced option positions',
+                      style: theme.textTheme.bodySmall,
+                    ),
                   ],
                 ),
               ),
@@ -37,8 +39,10 @@ class PortfolioGreeksCard extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           if (!hasData)
-            Text('Greeks need priced option holdings.',
-                style: theme.textTheme.bodyMedium)
+            Text(
+              'Greeks need priced option holdings.',
+              style: theme.textTheme.bodyMedium,
+            )
           else
             LayoutBuilder(
               builder: (context, constraints) {
@@ -57,8 +61,12 @@ class PortfolioGreeksCard extends StatelessWidget {
                     ])
                       SizedBox(
                         width: tileWidth,
-                        child: _greekTile(context, entry.key, entry.value,
-                            greeks[entry.key]!),
+                        child: _greekTile(
+                          context,
+                          entry.key,
+                          entry.value,
+                          greeks[entry.key]!,
+                        ),
                       ),
                   ],
                 );
@@ -67,8 +75,9 @@ class PortfolioGreeksCard extends StatelessWidget {
           const SizedBox(height: 10),
           Text(
             '${greeks['pricedContracts']!.toStringAsFixed(0)} contracts with usable Greek data · per \$1 move for Delta/Gamma',
-            style: theme.textTheme.labelSmall
-                ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
           ),
         ],
       ),
@@ -76,7 +85,11 @@ class PortfolioGreeksCard extends StatelessWidget {
   }
 
   Widget _greekTile(
-      BuildContext context, String key, String label, double value) {
+    BuildContext context,
+    String key,
+    String label,
+    double value,
+  ) {
     final theme = Theme.of(context);
     final color = value < 0 ? theme.colorScheme.error : Colors.green;
     return Semantics(
@@ -97,8 +110,10 @@ class PortfolioGreeksCard extends StatelessWidget {
             const SizedBox(height: 3),
             Text(
               '${value >= 0 ? '+' : ''}${value.toStringAsFixed(2)}',
-              style: theme.textTheme.titleMedium
-                  ?.copyWith(color: color, fontWeight: FontWeight.bold),
+              style: theme.textTheme.titleMedium?.copyWith(
+                color: color,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ],
         ),

@@ -65,27 +65,25 @@ class _OptionsFlowNotificationsPageState
                       child: Icon(
                         Icons.notifications_none_rounded,
                         size: 48,
-                        color: Theme.of(context)
-                            .colorScheme
-                            .primary
-                            .withValues(alpha: 0.5),
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.primary.withValues(alpha: 0.5),
                       ),
                     ),
                     const SizedBox(height: 24),
                     Text(
                       'No flow alerts yet',
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       'Alerts will appear here when institutional flow matches your criteria.',
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color:
-                                Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
                     ),
                   ],
                 ),
@@ -152,7 +150,9 @@ class _OptionsFlowNotificationsPageState
                             ),
                             filled: true,
                             contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 0),
+                              horizontal: 16,
+                              vertical: 0,
+                            ),
                             fillColor: Theme.of(context)
                                 .colorScheme
                                 .surfaceContainerHighest
@@ -190,12 +190,12 @@ class _OptionsFlowNotificationsPageState
                     ? Center(
                         child: Text(
                           'No alerts found',
-                          style:
-                              Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurfaceVariant,
-                                  ),
+                          style: Theme.of(context).textTheme.bodyLarge
+                              ?.copyWith(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
+                              ),
                         ),
                       )
                     : ListView.separated(
@@ -207,12 +207,12 @@ class _OptionsFlowNotificationsPageState
                           final notification = filteredNotifications[index];
                           final sentimentColor =
                               notification.sentiment == 'bullish'
-                                  ? Colors.green
-                                  : (notification.sentiment == 'bearish'
-                                      ? Colors.red
-                                      : Theme.of(context)
-                                          .colorScheme
-                                          .onSurfaceVariant);
+                              ? Colors.green
+                              : (notification.sentiment == 'bearish'
+                                    ? Colors.red
+                                    : Theme.of(
+                                        context,
+                                      ).colorScheme.onSurfaceVariant);
                           final subtitleParts = <String>[];
                           if (notification.premium != null) {
                             subtitleParts.add(
@@ -225,12 +225,14 @@ class _OptionsFlowNotificationsPageState
                             );
                           }
                           if (notification.expirationDate != null) {
-                            subtitleParts
-                                .add('Exp: ${notification.expirationDate}');
+                            subtitleParts.add(
+                              'Exp: ${notification.expirationDate}',
+                            );
                           }
                           if (notification.flags.isNotEmpty) {
-                            subtitleParts
-                                .add('Flags: ${notification.flags.join(', ')}');
+                            subtitleParts.add(
+                              'Flags: ${notification.flags.join(', ')}',
+                            );
                           }
 
                           return Card(
@@ -242,9 +244,9 @@ class _OptionsFlowNotificationsPageState
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                               side: BorderSide(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .outlineVariant,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.outlineVariant,
                               ),
                             ),
                             child: ListTile(
@@ -273,10 +275,12 @@ class _OptionsFlowNotificationsPageState
                                   if (subtitleParts.isNotEmpty)
                                     Text(subtitleParts.join(' | ')),
                                   Text(
-                                    DateFormat('MMM d, h:mm a')
-                                        .format(notification.timestamp),
-                                    style:
-                                        Theme.of(context).textTheme.bodySmall,
+                                    DateFormat(
+                                      'MMM d, h:mm a',
+                                    ).format(notification.timestamp),
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.bodySmall,
                                   ),
                                 ],
                               ),

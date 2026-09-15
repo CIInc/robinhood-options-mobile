@@ -24,15 +24,15 @@ class OptionPositionStore extends ChangeNotifier {
 
   double get equity => _items.isNotEmpty
       ? _items
-          // Exclude short positions from equity calculation.
-          // .where((e) => e.direction == 'debit')
-          .map((e) => e.direction == 'debit' ? e.marketValue : -e.marketValue)
-          /*
+            // Exclude short positions from equity calculation.
+            // .where((e) => e.direction == 'debit')
+            .map((e) => e.direction == 'debit' ? e.marketValue : -e.marketValue)
+            /*
               e.legs.first.positionType == "long"
               ? e.marketValue
               : e.marketValue)
               */
-          .reduce((a, b) => a + b)
+            .reduce((a, b) => a + b)
       : 0;
 
   List<String> get symbols => _items.map((e) => e.symbol).toSet().toList();
@@ -56,7 +56,8 @@ class OptionPositionStore extends ChangeNotifier {
 
   bool update(OptionAggregatePosition item) {
     var index = _items.indexWhere(
-        (element) => element.id == item.id && element.account == item.account);
+      (element) => element.id == item.id && element.account == item.account,
+    );
     if (index == -1) {
       return false;
     }
@@ -76,8 +77,9 @@ class OptionPositionStore extends ChangeNotifier {
       if (a.legs.isEmpty || a.legs.first.expirationDate == null) {
         return 0;
       }
-      int comp =
-          a.legs.first.expirationDate!.compareTo(b.legs.first.expirationDate!);
+      int comp = a.legs.first.expirationDate!.compareTo(
+        b.legs.first.expirationDate!,
+      );
       if (comp != 0) return comp;
       return a.legs.first.strikePrice!.compareTo(b.legs.first.strikePrice!);
     });

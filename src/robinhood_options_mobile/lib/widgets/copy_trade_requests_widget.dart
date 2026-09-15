@@ -80,7 +80,7 @@ class _CopyTradeRequestsWidgetState extends State<CopyTradeRequestsWidget>
                     tooltip: 'Reject Selected',
                     onPressed: () => _batchReject(context, provider),
                   ),
-                ]
+                ],
               ],
             )
           : AppBar(
@@ -104,10 +104,12 @@ class _CopyTradeRequestsWidgetState extends State<CopyTradeRequestsWidget>
           }
 
           final allRequests = snapshot.data ?? [];
-          final pendingRequests =
-              allRequests.where((r) => r.status == 'pending_approval').toList();
-          final historyRequests =
-              allRequests.where((r) => r.status != 'pending_approval').toList();
+          final pendingRequests = allRequests
+              .where((r) => r.status == 'pending_approval')
+              .toList();
+          final historyRequests = allRequests
+              .where((r) => r.status != 'pending_approval')
+              .toList();
 
           return TabBarView(
             controller: _tabController,
@@ -121,8 +123,11 @@ class _CopyTradeRequestsWidgetState extends State<CopyTradeRequestsWidget>
     );
   }
 
-  Widget _buildRequestList(BuildContext context, List<CopyTradeRecord> requests,
-      {required bool isPending}) {
+  Widget _buildRequestList(
+    BuildContext context,
+    List<CopyTradeRecord> requests, {
+    required bool isPending,
+  }) {
     if (requests.isEmpty) {
       return Center(
         child: Text(
@@ -140,10 +145,9 @@ class _CopyTradeRequestsWidgetState extends State<CopyTradeRequestsWidget>
 
         return Card(
           color: isSelected
-              ? Theme.of(context)
-                  .colorScheme
-                  .primaryContainer
-                  .withValues(alpha: 0.2)
+              ? Theme.of(
+                  context,
+                ).colorScheme.primaryContainer.withValues(alpha: 0.2)
               : null,
           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: InkWell(
@@ -191,7 +195,9 @@ class _CopyTradeRequestsWidgetState extends State<CopyTradeRequestsWidget>
                               padding: const EdgeInsets.only(right: 8.0),
                               child: Container(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 8, vertical: 4),
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
                                 decoration: BoxDecoration(
                                   color: Colors.purple.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(12),
@@ -220,10 +226,12 @@ class _CopyTradeRequestsWidgetState extends State<CopyTradeRequestsWidget>
                   if (request.orderType == 'option' &&
                       request.legs != null) ...[
                     const SizedBox(height: 4),
-                    ...request.legs!.map((leg) => Text(
-                          '${leg.optionType?.toUpperCase()} ${DateFormat('MM/dd').format(leg.expirationDate!)} \$${leg.strikePrice}',
-                          style: const TextStyle(color: Colors.grey),
-                        )),
+                    ...request.legs!.map(
+                      (leg) => Text(
+                        '${leg.optionType?.toUpperCase()} ${DateFormat('MM/dd').format(leg.expirationDate!)} \$${leg.strikePrice}',
+                        style: const TextStyle(color: Colors.grey),
+                      ),
+                    ),
                   ],
                   const SizedBox(height: 8),
                   Text(
@@ -296,40 +304,49 @@ class _CopyTradeRequestsWidgetState extends State<CopyTradeRequestsWidget>
       ),
       child: Text(
         label,
-        style:
-            TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.bold),
+        style: TextStyle(
+          color: color,
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+        ),
       ),
     );
   }
 
   Future<void> _approveRequest(
-      BuildContext context, CopyTradeRecord request) async {
+    BuildContext context,
+    CopyTradeRecord request,
+  ) async {
     try {
       // RiskGuard Check
       final accountStore = Provider.of<AccountStore>(context, listen: false);
-      final agenticProvider =
-          Provider.of<AgenticTradingProvider>(context, listen: false);
+      final agenticProvider = Provider.of<AgenticTradingProvider>(
+        context,
+        listen: false,
+      );
       final portfolioState = <String, dynamic>{};
       if (accountStore.items.isNotEmpty) {
-        final buyingPower = accountStore.items[0].buyingPower ??
+        final buyingPower =
+            accountStore.items[0].buyingPower ??
             accountStore.items[0].portfolioCash ??
             0.0;
         portfolioState['buyingPower'] = buyingPower;
         portfolioState['cashAvailable'] = accountStore.items[0].portfolioCash;
       }
 
-      final riskResult =
-          await FirebaseFunctions.instance.httpsCallable('riskguardTask').call({
-        'proposal': {
-          'symbol': request.symbol,
-          'quantity': request.copiedQuantity,
-          'price': request.price,
-          'action': request.side.toUpperCase(),
-          'multiplier': request.orderType == 'option' ? 100 : 1,
-        },
-        'portfolioState': portfolioState,
-        'config': agenticProvider.config,
-      });
+      final riskResult = await FirebaseFunctions.instance
+          .httpsCallable('riskguardTask')
+          .call({
+            'proposal': {
+              'symbol': request.symbol,
+              'quantity': request.copiedQuantity,
+              'price': request.price,
+              'action': request.side.toUpperCase(),
+              'multiplier': request.orderType == 'option' ? 100 : 1,
+            },
+            'portfolioState': portfolioState,
+            'config': agenticProvider.config,
+          });
 
       if (riskResult.data['approved'] == false) {
         if (!context.mounted) return;
@@ -338,7 +355,8 @@ class _CopyTradeRequestsWidgetState extends State<CopyTradeRequestsWidget>
           builder: (context) => AlertDialog(
             title: const Text('RiskGuard Warning'),
             content: Text(
-                riskResult.data['reason'] ?? 'Trade rejected by RiskGuard.'),
+              riskResult.data['reason'] ?? 'Trade rejected by RiskGuard.',
+            ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context, false),
@@ -360,40 +378,44 @@ class _CopyTradeRequestsWidgetState extends State<CopyTradeRequestsWidget>
       final provider = Provider.of<CopyTradingProvider>(context, listen: false);
       await provider.approveRequest(request);
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Request approved')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Request approved')));
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error approving request: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error approving request: $e')));
       }
     }
   }
 
   Future<void> _rejectRequest(
-      BuildContext context, CopyTradeRecord request) async {
+    BuildContext context,
+    CopyTradeRecord request,
+  ) async {
     try {
       final provider = Provider.of<CopyTradingProvider>(context, listen: false);
       await provider.rejectRequest(request);
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Request rejected')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Request rejected')));
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error rejecting request: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error rejecting request: $e')));
       }
     }
   }
 
   Future<void> _batchApprove(
-      BuildContext context, CopyTradingProvider provider) async {
+    BuildContext context,
+    CopyTradingProvider provider,
+  ) async {
     final selectedIds = _selectedRequestIds.toList();
     _clearSelection(); // Clear selection immediately
 
@@ -401,12 +423,15 @@ class _CopyTradeRequestsWidgetState extends State<CopyTradeRequestsWidget>
     try {
       // Fetch current requests to get objects
       final requests = await provider.getRequests().first;
-      final selectedRequests =
-          requests.where((r) => selectedIds.contains(r.id)).toList();
+      final selectedRequests = requests
+          .where((r) => selectedIds.contains(r.id))
+          .toList();
 
       final accountStore = Provider.of<AccountStore>(context, listen: false);
-      final agenticProvider =
-          Provider.of<AgenticTradingProvider>(context, listen: false);
+      final agenticProvider = Provider.of<AgenticTradingProvider>(
+        context,
+        listen: false,
+      );
       final portfolioState = <String, dynamic>{};
       if (accountStore.items.isNotEmpty) {
         final buyingPower = accountStore.items[0].buyingPower ?? 0.0;
@@ -421,16 +446,16 @@ class _CopyTradeRequestsWidgetState extends State<CopyTradeRequestsWidget>
           final riskResult = await FirebaseFunctions.instance
               .httpsCallable('riskguardTask')
               .call({
-            'proposal': {
-              'symbol': request.symbol,
-              'quantity': request.copiedQuantity,
-              'price': request.price,
-              'action': request.side.toUpperCase(),
-              'multiplier': request.orderType == 'option' ? 100 : 1,
-            },
-            'portfolioState': portfolioState,
-            'config': agenticProvider.config,
-          });
+                'proposal': {
+                  'symbol': request.symbol,
+                  'quantity': request.copiedQuantity,
+                  'price': request.price,
+                  'action': request.side.toUpperCase(),
+                  'multiplier': request.orderType == 'option' ? 100 : 1,
+                },
+                'portfolioState': portfolioState,
+                'config': agenticProvider.config,
+              });
 
           if (riskResult.data['approved'] == false) {
             if (!context.mounted) break;
@@ -438,8 +463,9 @@ class _CopyTradeRequestsWidgetState extends State<CopyTradeRequestsWidget>
               context: context,
               builder: (context) => AlertDialog(
                 title: Text('RiskGuard Warning: ${request.symbol}'),
-                content: Text(riskResult.data['reason'] ??
-                    'Trade rejected by RiskGuard.'),
+                content: Text(
+                  riskResult.data['reason'] ?? 'Trade rejected by RiskGuard.',
+                ),
                 actions: [
                   TextButton(
                     onPressed: () => Navigator.pop(context, false),
@@ -481,15 +507,18 @@ class _CopyTradeRequestsWidgetState extends State<CopyTradeRequestsWidget>
   }
 
   Future<void> _batchReject(
-      BuildContext context, CopyTradingProvider provider) async {
+    BuildContext context,
+    CopyTradingProvider provider,
+  ) async {
     final selectedIds = _selectedRequestIds.toList();
     _clearSelection();
 
     int successCount = 0;
     try {
       final requests = await provider.getRequests().first;
-      final selectedRequests =
-          requests.where((r) => selectedIds.contains(r.id)).toList();
+      final selectedRequests = requests
+          .where((r) => selectedIds.contains(r.id))
+          .toList();
 
       for (final request in selectedRequests) {
         await provider.rejectRequest(request);

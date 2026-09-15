@@ -50,8 +50,9 @@ class _BacktestOptimizationTabState extends State<BacktestOptimizationTab>
   final _stopLossStep = TextEditingController(text: '2');
 
   final _rsiPeriodStart = TextEditingController(text: '14');
-  final _rsiPeriodEnd =
-      TextEditingController(text: '14'); // Default single value
+  final _rsiPeriodEnd = TextEditingController(
+    text: '14',
+  ); // Default single value
   final _rsiPeriodStep = TextEditingController(text: '2');
 
   bool _isOptimizing = false;
@@ -198,7 +199,10 @@ class _BacktestOptimizationTabState extends State<BacktestOptimizationTab>
             const SizedBox(height: 16),
             _buildSectionHeader('Take Profit (%)'),
             _buildRangeInputs(
-                _takeProfitStart, _takeProfitEnd, _takeProfitStep),
+              _takeProfitStart,
+              _takeProfitEnd,
+              _takeProfitStep,
+            ),
             const SizedBox(height: 16),
             _buildSectionHeader('Stop Loss (%)'),
             _buildRangeInputs(_stopLossStart, _stopLossEnd, _stopLossStep),
@@ -209,10 +213,9 @@ class _BacktestOptimizationTabState extends State<BacktestOptimizationTab>
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Theme.of(context)
-                    .colorScheme
-                    .primaryContainer
-                    .withValues(alpha: 0.3),
+                color: Theme.of(
+                  context,
+                ).colorScheme.primaryContainer.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
                   color: Theme.of(context).brightness == Brightness.dark
@@ -223,8 +226,10 @@ class _BacktestOptimizationTabState extends State<BacktestOptimizationTab>
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Estimated Tests:',
-                      style: TextStyle(fontWeight: FontWeight.bold)),
+                  const Text(
+                    'Estimated Tests:',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
                   Text(
                     '$_estimatedCombinations',
                     style: TextStyle(
@@ -267,27 +272,35 @@ class _BacktestOptimizationTabState extends State<BacktestOptimizationTab>
                           ),
                           const SizedBox(width: 12),
                           Text(
-                              'Stop Optimization ${(_progress * 100).toStringAsFixed(0)}%'),
+                            'Stop Optimization ${(_progress * 100).toStringAsFixed(0)}%',
+                          ),
                         ],
                       )
                     : Text(
-                        'Start Optimization ($_estimatedCombinations Tests)'),
+                        'Start Optimization ($_estimatedCombinations Tests)',
+                      ),
               ),
             ),
             if (_statusMessage.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(top: 8.0),
-                child: Text(_statusMessage,
-                    style: const TextStyle(color: Colors.amber)),
+                child: Text(
+                  _statusMessage,
+                  style: const TextStyle(color: Colors.amber),
+                ),
               ),
             if (_optimizationResults.isNotEmpty) ...[
               const SizedBox(height: 24),
               const Divider(),
               const SizedBox(height: 16),
-              Text('Top Results',
-                  key: _resultsKey,
-                  style: const TextStyle(
-                      fontSize: 18, fontWeight: FontWeight.bold)),
+              Text(
+                'Top Results',
+                key: _resultsKey,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               const SizedBox(height: 8),
               _buildResultsList(),
             ],
@@ -312,22 +325,28 @@ class _BacktestOptimizationTabState extends State<BacktestOptimizationTab>
     return Row(
       children: [
         Expanded(
-            child: _buildTextField(
-                controller: start,
-                label: 'Start',
-                keyboardType: TextInputType.number)),
+          child: _buildTextField(
+            controller: start,
+            label: 'Start',
+            keyboardType: TextInputType.number,
+          ),
+        ),
         const SizedBox(width: 12),
         Expanded(
-            child: _buildTextField(
-                controller: end,
-                label: 'End',
-                keyboardType: TextInputType.number)),
+          child: _buildTextField(
+            controller: end,
+            label: 'End',
+            keyboardType: TextInputType.number,
+          ),
+        ),
         const SizedBox(width: 12),
         Expanded(
-            child: _buildTextField(
-                controller: step,
-                label: 'Step',
-                keyboardType: TextInputType.number)),
+          child: _buildTextField(
+            controller: step,
+            label: 'Step',
+            keyboardType: TextInputType.number,
+          ),
+        ),
       ],
     );
   }
@@ -344,8 +363,10 @@ class _BacktestOptimizationTabState extends State<BacktestOptimizationTab>
         labelText: label,
         hintText: hint,
         border: const OutlineInputBorder(),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 12,
+          vertical: 12,
+        ),
         isDense: true,
       ),
       keyboardType: keyboardType,
@@ -386,9 +407,13 @@ class _BacktestOptimizationTabState extends State<BacktestOptimizationTab>
                   : Colors.grey.shade200,
               foregroundColor: isTopRank ? Colors.white : Colors.black87,
               radius: 14,
-              child: Text('${index + 1}',
-                  style: const TextStyle(
-                      fontSize: 12, fontWeight: FontWeight.bold)),
+              child: Text(
+                '${index + 1}',
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
             title: Row(
               children: [
@@ -411,23 +436,35 @@ class _BacktestOptimizationTabState extends State<BacktestOptimizationTab>
             ),
             subtitle: Row(
               children: [
-                Icon(Icons.history,
-                    size: 14, color: Theme.of(context).hintColor),
+                Icon(
+                  Icons.history,
+                  size: 14,
+                  color: Theme.of(context).hintColor,
+                ),
                 const SizedBox(width: 4),
-                Text('${result.totalTrades}',
-                    style: const TextStyle(fontSize: 12)),
+                Text(
+                  '${result.totalTrades}',
+                  style: const TextStyle(fontSize: 12),
+                ),
                 const SizedBox(width: 12),
-                Icon(Icons.check_circle_outline,
-                    size: 14, color: Theme.of(context).hintColor),
+                Icon(
+                  Icons.check_circle_outline,
+                  size: 14,
+                  color: Theme.of(context).hintColor,
+                ),
                 const SizedBox(width: 4),
-                Text('${(result.winRate * 100).toStringAsFixed(0)}%',
-                    style: const TextStyle(fontSize: 12)),
+                Text(
+                  '${(result.winRate * 100).toStringAsFixed(0)}%',
+                  style: const TextStyle(fontSize: 12),
+                ),
                 if (result.sharpeRatio > 0) ...[
                   const SizedBox(width: 12),
                   const Icon(Icons.show_chart, size: 14, color: Colors.blue),
                   const SizedBox(width: 4),
-                  Text(result.sharpeRatio.toStringAsFixed(2),
-                      style: const TextStyle(fontSize: 12)),
+                  Text(
+                    result.sharpeRatio.toStringAsFixed(2),
+                    style: const TextStyle(fontSize: 12),
+                  ),
                 ],
               ],
             ),
@@ -439,18 +476,28 @@ class _BacktestOptimizationTabState extends State<BacktestOptimizationTab>
                   children: [
                     const Divider(),
                     const SizedBox(height: 8),
-                    const Text('Parameters',
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 13)),
+                    const Text(
+                      'Parameters',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
                     const SizedBox(height: 4),
                     Wrap(
                       spacing: 12,
                       runSpacing: 4,
                       children: [
-                        _buildParamTag(context, 'Take Profit',
-                            '${config.takeProfitPercent}%'),
                         _buildParamTag(
-                            context, 'Stop Loss', '${config.stopLossPercent}%'),
+                          context,
+                          'Take Profit',
+                          '${config.takeProfitPercent}%',
+                        ),
+                        _buildParamTag(
+                          context,
+                          'Stop Loss',
+                          '${config.stopLossPercent}%',
+                        ),
                         _buildParamTag(context, 'RSI', '${config.rsiPeriod}'),
                       ],
                     ),
@@ -471,7 +518,7 @@ class _BacktestOptimizationTabState extends State<BacktestOptimizationTab>
                           }
                         },
                       ),
-                    )
+                    ),
                   ],
                 ),
               ),
@@ -492,12 +539,14 @@ class _BacktestOptimizationTabState extends State<BacktestOptimizationTab>
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text('$label: ',
-              style:
-                  TextStyle(fontSize: 12, color: Theme.of(context).hintColor)),
-          Text(value,
-              style:
-                  const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+          Text(
+            '$label: ',
+            style: TextStyle(fontSize: 12, color: Theme.of(context).hintColor),
+          ),
+          Text(
+            value,
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+          ),
         ],
       ),
     );
@@ -556,14 +605,17 @@ class _BacktestOptimizationTabState extends State<BacktestOptimizationTab>
           builder: (ctx) => AlertDialog(
             title: const Text('Warning'),
             content: Text(
-                'You are about to run ${combinations.length} backtests. This may take a while. Continue?'),
+              'You are about to run ${combinations.length} backtests. This may take a while. Continue?',
+            ),
             actions: [
               TextButton(
-                  onPressed: () => Navigator.pop(ctx, false),
-                  child: const Text('Cancel')),
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Cancel'),
+              ),
               TextButton(
-                  onPressed: () => Navigator.pop(ctx, true),
-                  child: const Text('Continue')),
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('Continue'),
+              ),
             ],
           ),
         );
@@ -592,10 +644,12 @@ class _BacktestOptimizationTabState extends State<BacktestOptimizationTab>
         List<Future<BacktestResult?>> batchFutures = [];
 
         for (final combo in batch) {
-          batchFutures.add(_runSingleBacktest(combo).catchError((e) {
-            lastError = e.toString();
-            return null;
-          }));
+          batchFutures.add(
+            _runSingleBacktest(combo).catchError((e) {
+              lastError = e.toString();
+              return null;
+            }),
+          );
         }
 
         final results = await Future.wait(batchFutures);
@@ -611,8 +665,9 @@ class _BacktestOptimizationTabState extends State<BacktestOptimizationTab>
             }
           }
           // Sort by net profit descending
-          _optimizationResults
-              .sort((a, b) => b.totalReturn.compareTo(a.totalReturn));
+          _optimizationResults.sort(
+            (a, b) => b.totalReturn.compareTo(a.totalReturn),
+          );
           completed += results.length;
           _progress = completed / combinations.length;
           _statusMessage =
@@ -647,7 +702,8 @@ class _BacktestOptimizationTabState extends State<BacktestOptimizationTab>
   }
 
   Future<BacktestResult?> _runSingleBacktest(
-      Map<String, dynamic> params) async {
+    Map<String, dynamic> params,
+  ) async {
     try {
       // Get base config from Run tab or use defaults
       TradeStrategyConfig baseConfig;

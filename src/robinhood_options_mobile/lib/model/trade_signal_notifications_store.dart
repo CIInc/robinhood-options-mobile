@@ -36,16 +36,16 @@ class TradeSignalNotificationsStore extends ChangeNotifier {
         .limit(100) // Limit to last 100 notifications
         .snapshots()
         .listen((snapshot) {
-      _notifications.clear();
-      for (var doc in snapshot.docs) {
-        try {
-          _notifications.add(TradeSignalNotification.fromDocument(doc));
-        } catch (e) {
-          debugPrint('Error parsing notification ${doc.id}: $e');
-        }
-      }
-      notifyListeners();
-    });
+          _notifications.clear();
+          for (var doc in snapshot.docs) {
+            try {
+              _notifications.add(TradeSignalNotification.fromDocument(doc));
+            } catch (e) {
+              debugPrint('Error parsing notification ${doc.id}: $e');
+            }
+          }
+          notifyListeners();
+        });
   }
 
   Future<void> markAsRead(String notificationId) async {

@@ -58,7 +58,7 @@ class CsvImportService {
             headers = row;
             headerMap = {
               for (var j = 0; j < headers.length; j++)
-                headers[j].toString().trim(): j
+                headers[j].toString().trim(): j,
             };
             dataStartRow = i + 1;
             break;
@@ -68,7 +68,7 @@ class CsvImportService {
             headers = row;
             headerMap = {
               for (var j = 0; j < headers.length; j++)
-                headers[j].toString().trim(): j
+                headers[j].toString().trim(): j,
             };
             dataStartRow = i + 1;
             break;
@@ -81,7 +81,7 @@ class CsvImportService {
             headers = fields.first;
             headerMap = {
               for (var i = 0; i < headers.length; i++)
-                headers[i].toString().trim(): i
+                headers[i].toString().trim(): i,
             };
           }
         }
@@ -98,7 +98,8 @@ class CsvImportService {
             !headerMap.containsKey('Average Cost Basis')) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-                content: Text('Invalid CSV format - missing required columns')),
+              content: Text('Invalid CSV format - missing required columns'),
+            ),
           );
           return;
         }
@@ -124,23 +125,26 @@ class CsvImportService {
 
           double quantity = double.tryParse(quantityStr) ?? 0;
 
-          String costBasisStr =
-              _cleanCurrency(row[headerMap['Average Cost Basis']!].toString());
+          String costBasisStr = _cleanCurrency(
+            row[headerMap['Average Cost Basis']!].toString(),
+          );
           double averageCost = double.tryParse(costBasisStr) ?? 0;
 
           // Last Price Parsing
           double lastPrice = 0;
           if (headerMap.containsKey('Last Price')) {
-            String lpStr =
-                _cleanCurrency(row[headerMap['Last Price']!].toString());
+            String lpStr = _cleanCurrency(
+              row[headerMap['Last Price']!].toString(),
+            );
             lastPrice = double.tryParse(lpStr) ?? 0;
           }
 
           // Last Price Change Parsing (for previous close calculation)
           double lastPriceChange = 0;
           if (headerMap.containsKey('Last Price Change')) {
-            String lpcStr =
-                _cleanCurrency(row[headerMap['Last Price Change']!].toString());
+            String lpcStr = _cleanCurrency(
+              row[headerMap['Last Price Change']!].toString(),
+            );
             lastPriceChange = double.tryParse(lpcStr) ?? 0;
           }
 
@@ -158,29 +162,44 @@ class CsvImportService {
 
           if (match != null) {
             importedOptions++;
-            await _importOption(context, cleanSymbol, match, quantity,
-                averageCost, lastPrice, previousClose);
+            await _importOption(
+              context,
+              cleanSymbol,
+              match,
+              quantity,
+              averageCost,
+              lastPrice,
+              previousClose,
+            );
           } else {
             // Filter out Cash
             if (cleanSymbol.contains('**')) continue;
 
             importedStocks++;
-            await _importStock(context, cleanSymbol, quantity, averageCost,
-                lastPrice, previousClose);
+            await _importStock(
+              context,
+              cleanSymbol,
+              quantity,
+              averageCost,
+              lastPrice,
+              previousClose,
+            );
           }
         }
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content: Text(
-                  'Imported $importedStocks stocks and $importedOptions options.')),
+            content: Text(
+              'Imported $importedStocks stocks and $importedOptions options.',
+            ),
+          ),
         );
       }
     } catch (e) {
       debugPrint('Error importing CSV: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error importing CSV: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error importing CSV: $e')));
     }
   }
 
@@ -189,10 +208,11 @@ class CsvImportService {
   }
 
   static Future<void> _importHistory(
-      BuildContext context,
-      List<List<dynamic>> fields,
-      Map<String, int> headerMap,
-      int dataStartRow) async {
+    BuildContext context,
+    List<List<dynamic>> fields,
+    Map<String, int> headerMap,
+    int dataStartRow,
+  ) async {
     int importedOrders = 0;
 
     for (int i = dataStartRow; i < fields.length; i++) {
@@ -224,9 +244,14 @@ class CsvImportService {
         List<String> parts = dateStr.split('/');
         if (parts.length == 3) {
           date = DateTime(
-              int.parse(parts[2]), int.parse(parts[0]), int.parse(parts[1]));
+            int.parse(parts[2]),
+            int.parse(parts[0]),
+            int.parse(parts[1]),
+          );
         }
-      } catch (e) {/* ignore */}
+      } catch (e) {
+        /* ignore */
+      }
 
       String quantityStr = row[headerMap['Quantity']!].toString();
       double quantity = double.tryParse(quantityStr) ?? 0;
@@ -257,22 +282,42 @@ class CsvImportService {
         _importDividend(context, cleanSymbol, date, amount);
       } else if (isOption && match != null) {
         await _importOptionOrder(
-            context, cleanSymbol, match, date, action, quantity, price, amount);
+          context,
+          cleanSymbol,
+          match,
+          date,
+          action,
+          quantity,
+          price,
+          amount,
+        );
       } else {
         await _importStockOrder(
-            context, cleanSymbol, date, action, quantity, price, amount);
+          context,
+          cleanSymbol,
+          date,
+          action,
+          quantity,
+          price,
+          amount,
+        );
       }
       importedOrders++;
     }
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-          content: Text('Imported $importedOrders transactions from history.')),
+        content: Text('Imported $importedOrders transactions from history.'),
+      ),
     );
   }
 
   static void _importDividend(
-      BuildContext context, String symbol, DateTime? date, double amount) {
+    BuildContext context,
+    String symbol,
+    DateTime? date,
+    double amount,
+  ) {
     var store = Provider.of<DividendStore>(context, listen: false);
 
     var dividend = {
@@ -292,13 +337,14 @@ class CsvImportService {
   }
 
   static Future<void> _importStockOrder(
-      BuildContext context,
-      String symbol,
-      DateTime? date,
-      String action,
-      double quantity,
-      double price,
-      double amount) async {
+    BuildContext context,
+    String symbol,
+    DateTime? date,
+    String action,
+    double quantity,
+    double price,
+    double amount,
+  ) async {
     var store = Provider.of<InstrumentOrderStore>(context, listen: false);
 
     String side = 'buy'; // Default
@@ -327,71 +373,73 @@ class CsvImportService {
     }
 
     InstrumentOrder order = InstrumentOrder(
-        'manual_order_${symbol}_${date?.millisecondsSinceEpoch}', // id
-        null, // refId
-        'manual_url', // url
-        'manual_account', // account
-        'manual_pos_url', // position
-        null, // cancel
-        'manual_inst_url_$symbol', // instrument
-        'manual_inst_id_$symbol', // instrumentId
-        quantity.abs(), // cumulativeQuantity
-        price, // averagePrice
-        fees, // fees
-        'filled', // state
-        null, // pendingCancelOpenAgent
-        'market', // type (unknown)
-        side, // side
-        'gfd', // timeInForce
-        'immediate', // trigger
-        price, // price
-        null, // stopPrice
-        quantity.abs(), // quantity
-        null, // rejectReason
-        date ?? DateTime.now(), // createdAt
-        date ?? DateTime.now(), // updatedAt
-        null // trailingPeg
-        );
+      'manual_order_${symbol}_${date?.millisecondsSinceEpoch}', // id
+      null, // refId
+      'manual_url', // url
+      'manual_account', // account
+      'manual_pos_url', // position
+      null, // cancel
+      'manual_inst_url_$symbol', // instrument
+      'manual_inst_id_$symbol', // instrumentId
+      quantity.abs(), // cumulativeQuantity
+      price, // averagePrice
+      fees, // fees
+      'filled', // state
+      null, // pendingCancelOpenAgent
+      'market', // type (unknown)
+      side, // side
+      'gfd', // timeInForce
+      'immediate', // trigger
+      price, // price
+      null, // stopPrice
+      quantity.abs(), // quantity
+      null, // rejectReason
+      date ?? DateTime.now(), // createdAt
+      date ?? DateTime.now(), // updatedAt
+      null, // trailingPeg
+    );
 
     // Create Dummy Instrument if needed?
     final firestoreService = FirestoreService();
     var instrument = await firestoreService.getInstrument(symbol: symbol);
 
     instrument ??= Instrument(
-        id: 'manual_$symbol',
-        url: 'manual_inst_$symbol',
-        quote: 'manual_quote_$symbol',
-        fundamentals: 'manual_fundamentals_$symbol',
-        splits: 'manual_splits_$symbol',
-        state: 'active',
-        market: 'manual_market_$symbol',
-        name: symbol,
-        tradeable: true,
-        tradability: 'tradable',
-        symbol: symbol,
-        bloombergUnique: 'manual_$symbol',
-        country: 'US',
-        type: 'stock',
-        rhsTradability: 'tradable',
-        fractionalTradability: 'tradable',
-        isSpac: false,
-        isTest: false,
-        ipoAccessSupportsDsp: false,
-        dateCreated: DateTime.now());
+      id: 'manual_$symbol',
+      url: 'manual_inst_$symbol',
+      quote: 'manual_quote_$symbol',
+      fundamentals: 'manual_fundamentals_$symbol',
+      splits: 'manual_splits_$symbol',
+      state: 'active',
+      market: 'manual_market_$symbol',
+      name: symbol,
+      tradeable: true,
+      tradability: 'tradable',
+      symbol: symbol,
+      bloombergUnique: 'manual_$symbol',
+      country: 'US',
+      type: 'stock',
+      rhsTradability: 'tradable',
+      fractionalTradability: 'tradable',
+      isSpac: false,
+      isTest: false,
+      ipoAccessSupportsDsp: false,
+      dateCreated: DateTime.now(),
+    );
     order.instrumentObj = instrument;
 
     store.add(order);
   }
 
   static Future<void> _importOptionOrder(
-      BuildContext context,
-      String occSymbol,
-      Match match,
-      DateTime? date,
-      String action,
-      double quantity,
-      double price,
-      double amount) async {
+    BuildContext context,
+    String occSymbol,
+    Match match,
+    DateTime? date,
+    String action,
+    double quantity,
+    double price,
+    double amount,
+  ) async {
     var store = Provider.of<OptionOrderStore>(context, listen: false);
 
     String symbol = match.group(1)!;
@@ -431,12 +479,12 @@ class CsvImportService {
       amount.abs() /
           100 /
           quantity.abs(), // premium (per share?) No, premium is usually total?
+
       // OptionOrder premium usually is total price?
       // In RH API "premium" field is usually price * quantity * 100? No.
       // checking Model... premium, processedPremium, price.
       // price is limit price.
       // processedPremium is total amount exchanged.
-
       amount.abs(), // processedPremium
       price, // price
       quantity.abs(), // processedQuantity
@@ -458,12 +506,13 @@ class CsvImportService {
   }
 
   static Future<void> _importStock(
-      BuildContext context,
-      String symbol,
-      double quantity,
-      double averageCost,
-      double lastPrice,
-      double previousClose) async {
+    BuildContext context,
+    String symbol,
+    double quantity,
+    double averageCost,
+    double lastPrice,
+    double previousClose,
+  ) async {
     var store = Provider.of<InstrumentPositionStore>(context, listen: false);
 
     Quote quote = Quote(
@@ -486,34 +535,35 @@ class CsvImportService {
     var instrument = await firestoreService.getInstrument(symbol: symbol);
 
     instrument ??= Instrument(
-        id: 'manual_$symbol',
-        url: 'manual_inst_$symbol',
-        quote: 'manual_quote_$symbol',
-        fundamentals: 'manual_fundamentals_$symbol',
-        splits: 'manual_splits_$symbol',
-        state: 'active',
-        market: 'manual_market_$symbol',
-        simpleName: symbol,
-        name: symbol,
-        tradeable: true,
-        tradability: 'tradable',
-        symbol: symbol,
-        bloombergUnique: 'manual_bloomberg_$symbol',
-        marginInitialRatio: 0,
-        maintenanceRatio: 0,
-        country: 'US',
-        dayTradeRatio: 0,
-        listDate: DateTime.now(),
-        minTickSize: null,
-        type: 'stock',
-        tradeableChainId: 'manual',
-        rhsTradability: 'tradable',
-        fractionalTradability: 'tradable',
-        isSpac: false,
-        isTest: false,
-        ipoAccessSupportsDsp: false,
-        dateCreated: DateTime.now(),
-        quoteObj: quote);
+      id: 'manual_$symbol',
+      url: 'manual_inst_$symbol',
+      quote: 'manual_quote_$symbol',
+      fundamentals: 'manual_fundamentals_$symbol',
+      splits: 'manual_splits_$symbol',
+      state: 'active',
+      market: 'manual_market_$symbol',
+      simpleName: symbol,
+      name: symbol,
+      tradeable: true,
+      tradability: 'tradable',
+      symbol: symbol,
+      bloombergUnique: 'manual_bloomberg_$symbol',
+      marginInitialRatio: 0,
+      maintenanceRatio: 0,
+      country: 'US',
+      dayTradeRatio: 0,
+      listDate: DateTime.now(),
+      minTickSize: null,
+      type: 'stock',
+      tradeableChainId: 'manual',
+      rhsTradability: 'tradable',
+      fractionalTradability: 'tradable',
+      isSpac: false,
+      isTest: false,
+      ipoAccessSupportsDsp: false,
+      dateCreated: DateTime.now(),
+      quoteObj: quote,
+    );
 
     // Positional arguments for InstrumentPosition
     InstrumentPosition position = InstrumentPosition(
@@ -545,13 +595,14 @@ class CsvImportService {
   }
 
   static Future<void> _importOption(
-      BuildContext context,
-      String occSymbol,
-      Match match,
-      double quantity,
-      double averageCost,
-      double lastPrice,
-      double previousClose) async {
+    BuildContext context,
+    String occSymbol,
+    Match match,
+    double quantity,
+    double averageCost,
+    double lastPrice,
+    double previousClose,
+  ) async {
     var store = Provider.of<OptionPositionStore>(context, listen: false);
 
     String symbol = match.group(1)!;
@@ -573,76 +624,76 @@ class CsvImportService {
 
     // Positional for OptionMarketData
     OptionMarketData marketData = OptionMarketData(
-        lastPrice, // adjustedMarkPrice
-        0, // askPrice
-        0, // askSize
-        0, // bidPrice
-        0, // bidSize
-        averageCost, // breakEvenPrice
-        0, // highPrice
-        'manual_opt_inst_$occSymbol', // instrument
-        'manual_opt_inst_id_$occSymbol', // instrumentId
-        lastPrice, // lastTradePrice
-        0, // lastTradeSize
-        0, // lowPrice
-        lastPrice, // markPrice
-        0, // openInterest
-        null, // previousCloseDate
-        previousClose, // previousClosePrice
-        0, // volume
-        symbol, // symbol
-        occSymbol, // occSymbol
-        0, // chanceOfProfitLong
-        0, // chanceOfProfitShort
-        0, // delta
-        0, // gamma
-        0, // impliedVolatility
-        0, // rho
-        0, // theta
-        0, // vega
-        0, // highFillRateBuyPrice
-        0, // highFillRateSellPrice
-        0, // lowFillRateBuyPrice
-        0, // lowFillRateSellPrice
-        DateTime.now() // updatedAt
-        );
+      lastPrice, // adjustedMarkPrice
+      0, // askPrice
+      0, // askSize
+      0, // bidPrice
+      0, // bidSize
+      averageCost, // breakEvenPrice
+      0, // highPrice
+      'manual_opt_inst_$occSymbol', // instrument
+      'manual_opt_inst_id_$occSymbol', // instrumentId
+      lastPrice, // lastTradePrice
+      0, // lastTradeSize
+      0, // lowPrice
+      lastPrice, // markPrice
+      0, // openInterest
+      null, // previousCloseDate
+      previousClose, // previousClosePrice
+      0, // volume
+      symbol, // symbol
+      occSymbol, // occSymbol
+      0, // chanceOfProfitLong
+      0, // chanceOfProfitShort
+      0, // delta
+      0, // gamma
+      0, // impliedVolatility
+      0, // rho
+      0, // theta
+      0, // vega
+      0, // highFillRateBuyPrice
+      0, // highFillRateSellPrice
+      0, // lowFillRateBuyPrice
+      0, // lowFillRateSellPrice
+      DateTime.now(), // updatedAt
+    );
 
     // Positional for OptionInstrument
     OptionInstrument optInstrument = OptionInstrument(
-        'manual_chain', // chainId
-        'manual_chain_symbol', // chainSymbol
-        DateTime.now(), // createdAt
-        expirationDate, // expirationDate
-        'manual_opt_inst_id_$occSymbol', // id
-        DateTime.now(), // issueDate
-        const MinTicks(0.01, 0.01, 0.0), // minTicks
-        'tradable', // rhsTradability
-        'active', // state
-        strike, // strikePrice
-        'tradable', // tradability
-        optionType, // type
-        DateTime.now(), // updatedAt
-        'manual_opt_inst_$occSymbol', // url
-        null, // selloutDateTime
-        'none', // longStrategyCode
-        'none' // shortStrategyCode
-        );
+      'manual_chain', // chainId
+      'manual_chain_symbol', // chainSymbol
+      DateTime.now(), // createdAt
+      expirationDate, // expirationDate
+      'manual_opt_inst_id_$occSymbol', // id
+      DateTime.now(), // issueDate
+      const MinTicks(0.01, 0.01, 0.0), // minTicks
+      'tradable', // rhsTradability
+      'active', // state
+      strike, // strikePrice
+      'tradable', // tradability
+      optionType, // type
+      DateTime.now(), // updatedAt
+      'manual_opt_inst_$occSymbol', // url
+      null, // selloutDateTime
+      'none', // longStrategyCode
+      'none', // shortStrategyCode
+    );
     optInstrument.optionMarketData = marketData;
 
     // Positional for OptionLeg
     OptionLeg leg = OptionLeg(
-        'manual_leg_$occSymbol', // id
-        'manual_pos', // position
-        direction == 'debit' ? 'long' : 'short', // positionType
-        'manual_opt_inst_$occSymbol', // option
-        'open', // positionEffect
-        1, // ratioQuantity
-        direction == 'debit' ? 'long' : 'short', // side
-        expirationDate, // expirationDate
-        strike, // strikePrice
-        optionType, // optionType
-        [] // executions
-        );
+      'manual_leg_$occSymbol', // id
+      'manual_pos', // position
+      direction == 'debit' ? 'long' : 'short', // positionType
+      'manual_opt_inst_$occSymbol', // option
+      'open', // positionEffect
+      1, // ratioQuantity
+      direction == 'debit' ? 'long' : 'short', // side
+      expirationDate, // expirationDate
+      strike, // strikePrice
+      optionType, // optionType
+      [], // executions
+    );
 
     // Positional for OptionAggregatePosition
     OptionAggregatePosition position = OptionAggregatePosition(
@@ -669,26 +720,27 @@ class CsvImportService {
     var instrument = await firestoreService.getInstrument(symbol: symbol);
 
     instrument ??= Instrument(
-        id: 'manual_$symbol',
-        url: 'manual_inst_$symbol',
-        quote: 'manual_quote_$symbol',
-        fundamentals: 'manual_fundamentals_$symbol',
-        splits: 'manual_splits_$symbol',
-        state: 'active',
-        market: 'manual_market_$symbol',
-        name: symbol,
-        tradeable: true,
-        tradability: 'tradable',
-        symbol: symbol,
-        bloombergUnique: 'manual_bloomberg_$symbol',
-        country: 'US',
-        type: 'stock',
-        rhsTradability: 'tradable',
-        fractionalTradability: 'tradable',
-        isSpac: false,
-        isTest: false,
-        ipoAccessSupportsDsp: false,
-        dateCreated: DateTime.now());
+      id: 'manual_$symbol',
+      url: 'manual_inst_$symbol',
+      quote: 'manual_quote_$symbol',
+      fundamentals: 'manual_fundamentals_$symbol',
+      splits: 'manual_splits_$symbol',
+      state: 'active',
+      market: 'manual_market_$symbol',
+      name: symbol,
+      tradeable: true,
+      tradability: 'tradable',
+      symbol: symbol,
+      bloombergUnique: 'manual_bloomberg_$symbol',
+      country: 'US',
+      type: 'stock',
+      rhsTradability: 'tradable',
+      fractionalTradability: 'tradable',
+      isSpac: false,
+      isTest: false,
+      ipoAccessSupportsDsp: false,
+      dateCreated: DateTime.now(),
+    );
     position.instrumentObj = instrument;
 
     store.add(position);

@@ -129,19 +129,25 @@ class _NewsIntelligenceWidgetState extends State<NewsIntelligenceWidget> {
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.auto_awesome,
-                        color: Colors.amber, size: 20),
+                    const Icon(
+                      Icons.auto_awesome,
+                      color: Colors.amber,
+                      size: 20,
+                    ),
                     const SizedBox(width: 8),
                     Text(
                       'AI News Sentiment',
-                      style: theme.textTheme.titleMedium
-                          ?.copyWith(fontWeight: FontWeight.bold),
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ],
                 ),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: data.impactRating.color.withAlpha(40),
                     borderRadius: BorderRadius.circular(12),
@@ -177,8 +183,9 @@ class _NewsIntelligenceWidgetState extends State<NewsIntelligenceWidget> {
                     ),
                     Text(
                       '${data.overallSentiment.toInt()}',
-                      style: theme.textTheme.titleLarge
-                          ?.copyWith(fontWeight: FontWeight.bold),
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ],
                 ),
@@ -189,7 +196,9 @@ class _NewsIntelligenceWidgetState extends State<NewsIntelligenceWidget> {
                     children: [
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 4),
+                          horizontal: 12,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: scoreColor.withAlpha(35),
                           borderRadius: BorderRadius.circular(8),
@@ -222,23 +231,28 @@ class _NewsIntelligenceWidgetState extends State<NewsIntelligenceWidget> {
             ),
             if (data.keyTakeaways.isNotEmpty) ...[
               const SizedBox(height: 12),
-              ...data.keyTakeaways.map((t) => Padding(
-                    padding: const EdgeInsets.only(bottom: 4.0),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('• ',
-                            style: TextStyle(fontWeight: FontWeight.bold)),
-                        Expanded(
-                          child: Text(
-                            t,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant),
+              ...data.keyTakeaways.map(
+                (t) => Padding(
+                  padding: const EdgeInsets.only(bottom: 4.0),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        '• ',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      Expanded(
+                        child: Text(
+                          t,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
                           ),
                         ),
-                      ],
-                    ),
-                  )),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ],
           ],
         ),
@@ -253,8 +267,8 @@ class _NewsIntelligenceWidgetState extends State<NewsIntelligenceWidget> {
     final color = isBullish
         ? Colors.green
         : isBearish
-            ? Colors.red
-            : Colors.grey;
+        ? Colors.red
+        : Colors.grey;
     final move = prediction.expectedMovePercent.toStringAsFixed(1);
 
     return Card(
@@ -269,10 +283,9 @@ class _NewsIntelligenceWidgetState extends State<NewsIntelligenceWidget> {
                 const SizedBox(width: 8),
                 Text(
                   'Expected Event Impact',
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleMedium
-                      ?.copyWith(fontWeight: FontWeight.bold),
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ],
             ),
@@ -296,17 +309,20 @@ class _NewsIntelligenceWidgetState extends State<NewsIntelligenceWidget> {
             ),
             if (prediction.drivers.isNotEmpty) ...[
               const SizedBox(height: 10),
-              Text('Drivers',
-                  style: Theme.of(context)
-                      .textTheme
-                      .labelLarge
-                      ?.copyWith(fontWeight: FontWeight.bold)),
-              ...prediction.drivers.map((driver) => Text(
-                    '\u2022 $driver',
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.bodySmall,
-                  )),
+              Text(
+                'Drivers',
+                style: Theme.of(
+                  context,
+                ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.bold),
+              ),
+              ...prediction.drivers.map(
+                (driver) => Text(
+                  '\u2022 $driver',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ),
             ],
           ],
         ),
@@ -320,17 +336,17 @@ class _NewsIntelligenceWidgetState extends State<NewsIntelligenceWidget> {
       children: [
         Text(
           'Catalysts & Drivers',
-          style: Theme.of(context)
-              .textTheme
-              .titleMedium
-              ?.copyWith(fontWeight: FontWeight.bold),
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 8),
         if (data.bullishCatalysts.isNotEmpty) ...[
           Card(
             color: Colors.green.withAlpha(20),
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
             child: Padding(
               padding: const EdgeInsets.all(12.0),
               child: Column(
@@ -343,29 +359,37 @@ class _NewsIntelligenceWidgetState extends State<NewsIntelligenceWidget> {
                       Text(
                         'Bullish Catalysts',
                         style: TextStyle(
-                            color: Colors.green, fontWeight: FontWeight.bold),
+                          color: Colors.green,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 8),
-                  ...data.bullishCatalysts.map((c) => Padding(
-                        padding: const EdgeInsets.only(bottom: 6.0),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text('+',
-                                style: TextStyle(
-                                    color: Colors.green,
-                                    fontWeight: FontWeight.bold)),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(c,
-                                  style:
-                                      Theme.of(context).textTheme.bodyMedium),
+                  ...data.bullishCatalysts.map(
+                    (c) => Padding(
+                      padding: const EdgeInsets.only(bottom: 6.0),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            '+',
+                            style: TextStyle(
+                              color: Colors.green,
+                              fontWeight: FontWeight.bold,
                             ),
-                          ],
-                        ),
-                      )),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              c,
+                              style: Theme.of(context).textTheme.bodyMedium,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -375,8 +399,9 @@ class _NewsIntelligenceWidgetState extends State<NewsIntelligenceWidget> {
         if (data.bearishCatalysts.isNotEmpty) ...[
           Card(
             color: Colors.red.withAlpha(20),
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
             child: Padding(
               padding: const EdgeInsets.all(12.0),
               child: Column(
@@ -389,29 +414,37 @@ class _NewsIntelligenceWidgetState extends State<NewsIntelligenceWidget> {
                       Text(
                         'Bearish Risks',
                         style: TextStyle(
-                            color: Colors.red, fontWeight: FontWeight.bold),
+                          color: Colors.red,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 8),
-                  ...data.bearishCatalysts.map((c) => Padding(
-                        padding: const EdgeInsets.only(bottom: 6.0),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text('−',
-                                style: TextStyle(
-                                    color: Colors.red,
-                                    fontWeight: FontWeight.bold)),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(c,
-                                  style:
-                                      Theme.of(context).textTheme.bodyMedium),
+                  ...data.bearishCatalysts.map(
+                    (c) => Padding(
+                      padding: const EdgeInsets.only(bottom: 6.0),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            '−',
+                            style: TextStyle(
+                              color: Colors.red,
+                              fontWeight: FontWeight.bold,
                             ),
-                          ],
-                        ),
-                      )),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              c,
+                              style: Theme.of(context).textTheme.bodyMedium,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -433,10 +466,9 @@ class _NewsIntelligenceWidgetState extends State<NewsIntelligenceWidget> {
       children: [
         Text(
           'Breaking News & Analysis (${data.articles.length})',
-          style: Theme.of(context)
-              .textTheme
-              .titleMedium
-              ?.copyWith(fontWeight: FontWeight.bold),
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 8),
         ListView.separated(
@@ -448,15 +480,18 @@ class _NewsIntelligenceWidgetState extends State<NewsIntelligenceWidget> {
             final article = data.articles[index];
             return Card(
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
+                borderRadius: BorderRadius.circular(12),
+              ),
               child: InkWell(
                 borderRadius: BorderRadius.circular(12),
                 onTap: article.url.isNotEmpty
                     ? () async {
                         final uri = Uri.tryParse(article.url);
                         if (uri != null && await canLaunchUrl(uri)) {
-                          await launchUrl(uri,
-                              mode: LaunchMode.externalApplication);
+                          await launchUrl(
+                            uri,
+                            mode: LaunchMode.externalApplication,
+                          );
                         }
                       }
                     : null,
@@ -471,11 +506,15 @@ class _NewsIntelligenceWidgetState extends State<NewsIntelligenceWidget> {
                           Text(
                             article.source,
                             style: const TextStyle(
-                                fontWeight: FontWeight.bold, fontSize: 12),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
                           ),
                           Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 2),
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
                               color: article.sentimentLabel.color.withAlpha(35),
                               borderRadius: BorderRadius.circular(6),
@@ -495,7 +534,9 @@ class _NewsIntelligenceWidgetState extends State<NewsIntelligenceWidget> {
                       Text(
                         article.title,
                         style: const TextStyle(
-                            fontSize: 15, fontWeight: FontWeight.w600),
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                       if (article.summary.isNotEmpty) ...[
                         const SizedBox(height: 4),

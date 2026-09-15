@@ -26,8 +26,8 @@ void main() {
               'quantity': '100',
               'settlement_date': '2026-03-20',
               'timestamp': '2026-03-15T14:30:00Z',
-            }
-          ]
+            },
+          ],
         },
         {
           'id': 'leg_2',
@@ -47,9 +47,9 @@ void main() {
               'quantity': '1',
               'settlement_date': '2026-03-20',
               'timestamp': '2026-03-15T14:30:00Z',
-            }
-          ]
-        }
+            },
+          ],
+        },
       ],
       'price': '176.50',
       'quantity': '1.0',
@@ -135,8 +135,10 @@ void main() {
       expect(roundtrip.state, order.state);
       expect(roundtrip.legs.length, order.legs.length);
       expect(roundtrip.legs[1].strikePrice, order.legs[1].strikePrice);
-      expect(roundtrip.legs[0].executions.first.price,
-          order.legs[0].executions.first.price);
+      expect(
+        roundtrip.legs[0].executions.first.price,
+        order.legs[0].executions.first.price,
+      );
     });
 
     test('toCsvRow exports correct fields', () {
@@ -151,21 +153,23 @@ void main() {
       expect(csvRow, contains(176.5));
     });
 
-    test('detects custom strategy and cancellable state when queued/confirmed',
-        () {
-      final pendingJson = Map<String, dynamic>.from(sampleJson);
-      pendingJson['state'] = 'confirmed';
-      pendingJson['opening_strategy'] = null;
-      pendingJson['cancel_url'] =
-          'https://api.robinhood.com/combo/orders/combo_123/cancel/';
+    test(
+      'detects custom strategy and cancellable state when queued/confirmed',
+      () {
+        final pendingJson = Map<String, dynamic>.from(sampleJson);
+        pendingJson['state'] = 'confirmed';
+        pendingJson['opening_strategy'] = null;
+        pendingJson['cancel_url'] =
+            'https://api.robinhood.com/combo/orders/combo_123/cancel/';
 
-      final pendingOrder = ComboOrder.fromJson(pendingJson);
-      expect(pendingOrder.isOpen, isTrue);
-      expect(pendingOrder.isFilled, isFalse);
-      expect(pendingOrder.isCancelable, isTrue);
-      expect(pendingOrder.canCancel, isTrue);
-      expect(pendingOrder.packageTypeDisplay, 'Covered Call');
-    });
+        final pendingOrder = ComboOrder.fromJson(pendingJson);
+        expect(pendingOrder.isOpen, isTrue);
+        expect(pendingOrder.isFilled, isFalse);
+        expect(pendingOrder.isCancelable, isTrue);
+        expect(pendingOrder.canCancel, isTrue);
+        expect(pendingOrder.packageTypeDisplay, 'Covered Call');
+      },
+    );
 
     test('synthesizes collar package correctly', () {
       final collar = ComboOrder(

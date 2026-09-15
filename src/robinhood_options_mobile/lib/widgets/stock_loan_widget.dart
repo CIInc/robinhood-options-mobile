@@ -52,7 +52,8 @@ class _StockLoanWidgetState extends State<StockLoanWidget>
       vsync: this,
       initialIndex: widget.initialTabIndex.clamp(0, 1),
     );
-    final uninvested = widget.account?.portfolioCash ??
+    final uninvested =
+        widget.account?.portfolioCash ??
         widget.account?.buyingPower ??
         widget.portfolio?.withdrawableAmount ??
         10000.0;
@@ -68,7 +69,8 @@ class _StockLoanWidgetState extends State<StockLoanWidget>
 
   void _loadData() {
     final accountNumber = widget.account?.accountNumber;
-    final uninvested = widget.account?.portfolioCash ??
+    final uninvested =
+        widget.account?.portfolioCash ??
         widget.account?.buyingPower ??
         widget.portfolio?.withdrawableAmount ??
         0.0;
@@ -78,13 +80,12 @@ class _StockLoanWidgetState extends State<StockLoanWidget>
       final eligibilityFuture = _fetchEligibility();
       _futurePayments = paymentsFuture;
       _futureEligibility = eligibilityFuture;
-      _futureSlipData = Future.wait([
-        paymentsFuture,
-        eligibilityFuture,
-      ]).then((results) => (
-            results[0] as List<StockLoanPayment>,
-            results[1] as SlipEligibility,
-          ));
+      _futureSlipData = Future.wait([paymentsFuture, eligibilityFuture]).then(
+        (results) => (
+          results[0] as List<StockLoanPayment>,
+          results[1] as SlipEligibility,
+        ),
+      );
       _futureSweeps = _fetchSweeps(uninvested);
     });
   }
@@ -93,12 +94,15 @@ class _StockLoanWidgetState extends State<StockLoanWidget>
     try {
       if (widget.service is RobinhoodService) {
         return await (widget.service as RobinhoodService)
-            .getStockLoanPaymentsModel(widget.brokerageUser,
-                accountNumber: accountNumber);
+            .getStockLoanPaymentsModel(
+              widget.brokerageUser,
+              accountNumber: accountNumber,
+            );
       }
       final raw = await widget.service.getStockLoanPayments(
-          widget.brokerageUser,
-          accountNumber: accountNumber);
+        widget.brokerageUser,
+        accountNumber: accountNumber,
+      );
       return raw.map((item) => StockLoanPayment.fromJson(item)).toList();
     } catch (e) {
       debugPrint('Error fetching stock loan payments: $e');
@@ -124,8 +128,10 @@ class _StockLoanWidgetState extends State<StockLoanWidget>
     try {
       if (widget.service is RobinhoodService) {
         return await (widget.service as RobinhoodService)
-            .getSweepsInterestModel(widget.brokerageUser,
-                uninvestedCash: uninvestedCash);
+            .getSweepsInterestModel(
+              widget.brokerageUser,
+              uninvestedCash: uninvestedCash,
+            );
       }
       final raw = await widget.service.getSweepsInterest(widget.brokerageUser);
       return SweepsInterest.fromJson(raw, uninvestedCash: uninvestedCash);
@@ -156,8 +162,10 @@ class _StockLoanWidgetState extends State<StockLoanWidget>
             Text(
               'Securities Income Program$acctLabel',
               overflow: TextOverflow.ellipsis,
-              style:
-                  TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant),
+              style: TextStyle(
+                fontSize: 12,
+                color: colorScheme.onSurfaceVariant,
+              ),
             ),
           ],
         ),
@@ -170,10 +178,7 @@ class _StockLoanWidgetState extends State<StockLoanWidget>
               icon: Icon(Icons.currency_exchange),
               text: 'Securities Lending (SLIP)',
             ),
-            Tab(
-              icon: Icon(Icons.savings_outlined),
-              text: 'Cash Sweeps & APY',
-            ),
+            Tab(icon: Icon(Icons.savings_outlined), text: 'Cash Sweeps & APY'),
           ],
         ),
       ),
@@ -188,10 +193,7 @@ class _StockLoanWidgetState extends State<StockLoanWidget>
         },
         child: TabBarView(
           controller: _tabController,
-          children: [
-            _buildSlipTab(context),
-            _buildSweepsTab(context),
-          ],
+          children: [_buildSlipTab(context), _buildSweepsTab(context)],
         ),
       ),
     );
@@ -229,8 +231,11 @@ class _StockLoanWidgetState extends State<StockLoanWidget>
     );
   }
 
-  Widget _buildSlipHeroCard(BuildContext context, SlipEligibility eligibility,
-      List<StockLoanPayment> payments) {
+  Widget _buildSlipHeroCard(
+    BuildContext context,
+    SlipEligibility eligibility,
+    List<StockLoanPayment> payments,
+  ) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
@@ -264,7 +269,9 @@ class _StockLoanWidgetState extends State<StockLoanWidget>
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: eligibility.statusColor.withValues(alpha: 0.15),
+                          color: eligibility.statusColor.withValues(
+                            alpha: 0.15,
+                          ),
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
@@ -308,8 +315,10 @@ class _StockLoanWidgetState extends State<StockLoanWidget>
                 ),
                 const SizedBox(width: 8),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: eligibility.isEnrolled
                         ? Colors.green.withValues(alpha: 0.12)
@@ -391,8 +400,11 @@ class _StockLoanWidgetState extends State<StockLoanWidget>
     );
   }
 
-  Widget _buildLoanedSecuritiesSection(BuildContext context,
-      SlipEligibility eligibility, List<StockLoanPayment> payments) {
+  Widget _buildLoanedSecuritiesSection(
+    BuildContext context,
+    SlipEligibility eligibility,
+    List<StockLoanPayment> payments,
+  ) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
@@ -403,7 +415,9 @@ class _StockLoanWidgetState extends State<StockLoanWidget>
     }
 
     final totalCollateral = activePositions.fold<double>(
-        0.0, (sum, p) => sum + p.collateralAmount);
+      0.0,
+      (sum, p) => sum + p.collateralAmount,
+    );
 
     return Card(
       elevation: 0,
@@ -422,8 +436,11 @@ class _StockLoanWidgetState extends State<StockLoanWidget>
                 Expanded(
                   child: Row(
                     children: [
-                      Icon(Icons.inventory_2_outlined,
-                          size: 18, color: colorScheme.primary),
+                      Icon(
+                        Icons.inventory_2_outlined,
+                        size: 18,
+                        color: colorScheme.primary,
+                      ),
                       const SizedBox(width: 8),
                       const Flexible(
                         child: Text(
@@ -431,7 +448,9 @@ class _StockLoanWidgetState extends State<StockLoanWidget>
                           overflow: TextOverflow.ellipsis,
                           maxLines: 1,
                           style: TextStyle(
-                              fontSize: 15, fontWeight: FontWeight.bold),
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ],
@@ -441,15 +460,19 @@ class _StockLoanWidgetState extends State<StockLoanWidget>
                 Text(
                   '${activePositions.length} Symbols',
                   style: TextStyle(
-                      fontSize: 12, color: colorScheme.onSurfaceVariant),
+                    fontSize: 12,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ],
             ),
             const SizedBox(height: 4),
             Text(
               'Robinhood holds 102% cash collateral at a third-party bank to protect loaned shares.',
-              style:
-                  TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant),
+              style: TextStyle(
+                fontSize: 12,
+                color: colorScheme.onSurfaceVariant,
+              ),
             ),
             const SizedBox(height: 12),
             if (activePositions.isEmpty)
@@ -528,7 +551,9 @@ class _StockLoanWidgetState extends State<StockLoanWidget>
                 Text(
                   '${position.formattedQuantity} shares on loan',
                   style: const TextStyle(
-                      fontSize: 13, fontWeight: FontWeight.w600),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
                 Text(
                   'Collateral: ${position.formattedCollateralAmount}',
@@ -566,7 +591,9 @@ class _StockLoanWidgetState extends State<StockLoanWidget>
   }
 
   Widget _buildPaymentHistorySection(
-      BuildContext context, List<StockLoanPayment> payments) {
+    BuildContext context,
+    List<StockLoanPayment> payments,
+  ) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
@@ -606,7 +633,9 @@ class _StockLoanWidgetState extends State<StockLoanWidget>
                           overflow: TextOverflow.ellipsis,
                           maxLines: 1,
                           style: TextStyle(
-                              fontSize: 15, fontWeight: FontWeight.bold),
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ],
@@ -616,7 +645,9 @@ class _StockLoanWidgetState extends State<StockLoanWidget>
                 Text(
                   '${filtered.length} Payouts',
                   style: TextStyle(
-                      fontSize: 12, color: colorScheme.onSurfaceVariant),
+                    fontSize: 12,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ],
             ),
@@ -627,8 +658,9 @@ class _StockLoanWidgetState extends State<StockLoanWidget>
                 prefixIcon: const Icon(Icons.search, size: 18),
                 isDense: true,
                 filled: true,
-                fillColor:
-                    colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                fillColor: colorScheme.surfaceContainerHighest.withValues(
+                  alpha: 0.3,
+                ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
                   borderSide: BorderSide.none,
@@ -649,7 +681,9 @@ class _StockLoanWidgetState extends State<StockLoanWidget>
                   child: Text(
                     'No stock loan payment records found.',
                     style: TextStyle(
-                        fontSize: 13, color: colorScheme.onSurfaceVariant),
+                      fontSize: 13,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ),
               )
@@ -687,10 +721,7 @@ class _StockLoanWidgetState extends State<StockLoanWidget>
           children: [
             Text(
               payment.formattedAmount,
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 15,
-              ),
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
             ),
             const SizedBox(width: 8),
             Container(
@@ -746,26 +777,28 @@ class _StockLoanWidgetState extends State<StockLoanWidget>
                     style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 4),
-                  ...payment.positions.map((pos) => Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 2),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              '${pos.symbol} • ${pos.formattedQuantity} shs',
-                              style: const TextStyle(fontSize: 12),
+                  ...payment.positions.map(
+                    (pos) => Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 2),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            '${pos.symbol} • ${pos.formattedQuantity} shs',
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                          Text(
+                            '+${pos.formattedInterestEarned} (${pos.formattedBorrowRate})',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Colors.green,
+                              fontWeight: FontWeight.w600,
                             ),
-                            Text(
-                              '+${pos.formattedInterestEarned} (${pos.formattedBorrowRate})',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: Colors.green,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      )),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ],
               ],
             ),
@@ -792,8 +825,11 @@ class _StockLoanWidgetState extends State<StockLoanWidget>
           children: [
             Row(
               children: [
-                Icon(Icons.shield_outlined,
-                    size: 18, color: colorScheme.primary),
+                Icon(
+                  Icons.shield_outlined,
+                  size: 18,
+                  color: colorScheme.primary,
+                ),
                 const SizedBox(width: 8),
                 const Expanded(
                   child: Text(
@@ -928,13 +964,16 @@ class _StockLoanWidgetState extends State<StockLoanWidget>
                 ),
                 const SizedBox(width: 8),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.green.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(20),
-                    border:
-                        Border.all(color: Colors.green.withValues(alpha: 0.3)),
+                    border: Border.all(
+                      color: Colors.green.withValues(alpha: 0.3),
+                    ),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -991,7 +1030,9 @@ class _StockLoanWidgetState extends State<StockLoanWidget>
   }
 
   Widget _buildSweepsComparisonCard(
-      BuildContext context, SweepsInterest sweeps) {
+    BuildContext context,
+    SweepsInterest sweeps,
+  ) {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Card(
@@ -1007,8 +1048,11 @@ class _StockLoanWidgetState extends State<StockLoanWidget>
           children: [
             Row(
               children: [
-                Icon(Icons.compare_arrows,
-                    size: 18, color: colorScheme.primary),
+                Icon(
+                  Icons.compare_arrows,
+                  size: 18,
+                  color: colorScheme.primary,
+                ),
                 const SizedBox(width: 8),
                 const Expanded(
                   child: Text(
@@ -1027,8 +1071,9 @@ class _StockLoanWidgetState extends State<StockLoanWidget>
                   child: Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: colorScheme.surfaceContainerHighest
-                          .withValues(alpha: 0.3),
+                      color: colorScheme.surfaceContainerHighest.withValues(
+                        alpha: 0.3,
+                      ),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: colorScheme.outlineVariant),
                     ),
@@ -1127,7 +1172,9 @@ class _StockLoanWidgetState extends State<StockLoanWidget>
   }
 
   Widget _buildYieldCalculatorCard(
-      BuildContext context, SweepsInterest sweeps) {
+    BuildContext context,
+    SweepsInterest sweeps,
+  ) {
     final colorScheme = Theme.of(context).colorScheme;
 
     final goldEarnings = _calculatorCash * sweeps.goldApy;
@@ -1151,8 +1198,11 @@ class _StockLoanWidgetState extends State<StockLoanWidget>
                 Expanded(
                   child: Row(
                     children: [
-                      Icon(Icons.calculate_outlined,
-                          size: 18, color: colorScheme.primary),
+                      Icon(
+                        Icons.calculate_outlined,
+                        size: 18,
+                        color: colorScheme.primary,
+                      ),
                       const SizedBox(width: 8),
                       const Flexible(
                         child: Text(
@@ -1160,7 +1210,9 @@ class _StockLoanWidgetState extends State<StockLoanWidget>
                           overflow: TextOverflow.ellipsis,
                           maxLines: 1,
                           style: TextStyle(
-                              fontSize: 15, fontWeight: FontWeight.bold),
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ],
@@ -1193,15 +1245,27 @@ class _StockLoanWidgetState extends State<StockLoanWidget>
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('\$500',
-                    style: TextStyle(
-                        fontSize: 11, color: colorScheme.onSurfaceVariant)),
-                Text('\$50,000',
-                    style: TextStyle(
-                        fontSize: 11, color: colorScheme.onSurfaceVariant)),
-                Text('\$100,000',
-                    style: TextStyle(
-                        fontSize: 11, color: colorScheme.onSurfaceVariant)),
+                Text(
+                  '\$500',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                Text(
+                  '\$50,000',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                Text(
+                  '\$100,000',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 16),
@@ -1255,7 +1319,9 @@ class _StockLoanWidgetState extends State<StockLoanWidget>
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                color: colorScheme.surfaceContainerHighest.withValues(
+                  alpha: 0.3,
+                ),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Row(
@@ -1306,8 +1372,11 @@ class _StockLoanWidgetState extends State<StockLoanWidget>
           children: [
             Row(
               children: [
-                Icon(Icons.account_balance,
-                    size: 18, color: colorScheme.primary),
+                Icon(
+                  Icons.account_balance,
+                  size: 18,
+                  color: colorScheme.primary,
+                ),
                 const SizedBox(width: 8),
                 const Expanded(
                   child: Text(
@@ -1322,38 +1391,53 @@ class _StockLoanWidgetState extends State<StockLoanWidget>
             const SizedBox(height: 4),
             Text(
               'Uninvested cash is automatically swept across partner banks providing up to ${sweeps.formattedFdicInsuranceLimit} in total FDIC insurance coverage.',
-              style:
-                  TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant),
+              style: TextStyle(
+                fontSize: 12,
+                color: colorScheme.onSurfaceVariant,
+              ),
             ),
             const SizedBox(height: 12),
             Wrap(
               spacing: 8,
               runSpacing: 8,
               children: sweeps.partnerBanks
-                  .map((bank) => Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: colorScheme.surfaceContainerHighest
-                              .withValues(alpha: 0.4),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                              color: colorScheme.outlineVariant.withValues(alpha: 0.5)),
+                  .map(
+                    (bank) => Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: colorScheme.surfaceContainerHighest.withValues(
+                          alpha: 0.4,
                         ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.check,
-                                size: 12, color: Colors.green),
-                            const SizedBox(width: 4),
-                            Text(
-                              bank,
-                              style: const TextStyle(
-                                  fontSize: 11, fontWeight: FontWeight.w500),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: colorScheme.outlineVariant.withValues(
+                            alpha: 0.5,
+                          ),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.check,
+                            size: 12,
+                            color: Colors.green,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            bank,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
                             ),
-                          ],
-                        ),
-                      ))
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
                   .toList(),
             ),
           ],

@@ -50,7 +50,8 @@ class PnlBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(6),
         border: Border.all(color: borderColor),
       ),
-      child: child ??
+      child:
+          child ??
           Text(
             text ?? '',
             style: TextStyle(

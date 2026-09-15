@@ -66,33 +66,47 @@ class RetirementContribution {
       }
     }
 
-    final parsedYear = int.tryParse(json['year']?.toString() ??
-            json['tax_year']?.toString() ??
-            DateTime.now().year.toString()) ??
+    final parsedYear =
+        int.tryParse(
+          json['year']?.toString() ??
+              json['tax_year']?.toString() ??
+              DateTime.now().year.toString(),
+        ) ??
         DateTime.now().year;
 
     final defaultLimit = kIrsIraLimits[parsedYear] ?? 7000.0;
-    final defaultCatchUpLimit = kIrsIraCatchUpLimits[parsedYear] ?? (defaultLimit + 1000.0);
+    final defaultCatchUpLimit =
+        kIrsIraCatchUpLimits[parsedYear] ?? (defaultLimit + 1000.0);
 
-    final contribAmt = parseDouble(json['contribution_amount'] ??
-            json['total_contributions'] ??
-            json['amount'] ??
-            json['contributions']) ??
+    final contribAmt =
+        parseDouble(
+          json['contribution_amount'] ??
+              json['total_contributions'] ??
+              json['amount'] ??
+              json['contributions'],
+        ) ??
         0.0;
-    final matchAmt = parseDouble(
-            json['match_amount'] ?? json['total_match'] ?? json['match']) ??
+    final matchAmt =
+        parseDouble(
+          json['match_amount'] ?? json['total_match'] ?? json['match'],
+        ) ??
         0.0;
     final rate = parseDouble(json['match_rate'] ?? json['rate']) ?? 0.01;
     final direct = parseDouble(json['direct_contributions']) ?? contribAmt;
-    final rollover = parseDouble(json['rollover_contributions'] ?? json['rollover']) ?? 0.0;
+    final rollover =
+        parseDouble(json['rollover_contributions'] ?? json['rollover']) ?? 0.0;
     final conv = parseDouble(json['conversions'] ?? json['conversion']) ?? 0.0;
 
-    final customLimit = parseDouble(json['limit'] ?? json['contribution_limit']) ?? defaultLimit;
-    final customCatchUp = parseDouble(json['catch_up_limit']) ?? defaultCatchUpLimit;
+    final customLimit =
+        parseDouble(json['limit'] ?? json['contribution_limit']) ??
+        defaultLimit;
+    final customCatchUp =
+        parseDouble(json['catch_up_limit']) ?? defaultCatchUpLimit;
 
     return RetirementContribution(
       year: parsedYear,
-      accountType: (json['account_type'] ?? json['type'] ?? 'ira_roth').toString(),
+      accountType: (json['account_type'] ?? json['type'] ?? 'ira_roth')
+          .toString(),
       contributionAmount: contribAmt,
       matchAmount: matchAmt,
       matchRate: rate,
@@ -107,12 +121,16 @@ class RetirementContribution {
     );
   }
 
-  double get remainingLimit => (limit - contributionAmount).clamp(0.0, double.infinity);
-  double get remainingCatchUpLimit => (catchUpLimit - contributionAmount).clamp(0.0, double.infinity);
+  double get remainingLimit =>
+      (limit - contributionAmount).clamp(0.0, double.infinity);
+  double get remainingCatchUpLimit =>
+      (catchUpLimit - contributionAmount).clamp(0.0, double.infinity);
 
-  double get progressPercentage => limit > 0 ? (contributionAmount / limit).clamp(0.0, 1.0) : 0.0;
-  double get catchUpProgressPercentage =>
-      catchUpLimit > 0 ? (contributionAmount / catchUpLimit).clamp(0.0, 1.0) : 0.0;
+  double get progressPercentage =>
+      limit > 0 ? (contributionAmount / limit).clamp(0.0, 1.0) : 0.0;
+  double get catchUpProgressPercentage => catchUpLimit > 0
+      ? (contributionAmount / catchUpLimit).clamp(0.0, 1.0)
+      : 0.0;
 
   bool get isMaxedOut => contributionAmount >= limit;
   bool get isTraditional => accountType.toLowerCase().contains('traditional');
@@ -124,7 +142,8 @@ class RetirementContribution {
     return 'IRA';
   }
 
-  String get formattedContribution => _currencyFormat.format(contributionAmount);
+  String get formattedContribution =>
+      _currencyFormat.format(contributionAmount);
   String get formattedMatch => _currencyFormat.format(matchAmount);
   String get formattedLimit => _currencyFormat.format(limit);
   String get formattedCatchUpLimit => _currencyFormat.format(catchUpLimit);
@@ -179,8 +198,13 @@ class RetirementHistory {
       rawList = json;
     } else if (json is Map) {
       rawList = json['results'] ?? json['history'] ?? json['contributions'];
-      totalContrib = parseDouble(json['total_contributions'] ?? json['total_contribution']) ?? 0.0;
-      totalMatchAmt = parseDouble(json['total_match'] ?? json['total_match_amount']) ?? 0.0;
+      totalContrib =
+          parseDouble(
+            json['total_contributions'] ?? json['total_contribution'],
+          ) ??
+          0.0;
+      totalMatchAmt =
+          parseDouble(json['total_match'] ?? json['total_match_amount']) ?? 0.0;
     }
 
     if (rawList is List) {
@@ -199,7 +223,9 @@ class RetirementHistory {
     // Sort by year descending
     items.sort((a, b) => b.year.compareTo(a.year));
 
-    final acctId = json is Map ? (json['account_id'] ?? json['account'] ?? '').toString() : null;
+    final acctId = json is Map
+        ? (json['account_id'] ?? json['account'] ?? '').toString()
+        : null;
     final acctNum = json is Map ? json['account_number']?.toString() : null;
 
     return RetirementHistory(
@@ -224,7 +250,8 @@ class RetirementHistory {
     return contributionForYear(now);
   }
 
-  String get formattedTotalContributions => _currencyFormat.format(totalContributions);
+  String get formattedTotalContributions =>
+      _currencyFormat.format(totalContributions);
   String get formattedTotalMatch => _currencyFormat.format(totalMatch);
 
   Map<String, dynamic> toJson() {

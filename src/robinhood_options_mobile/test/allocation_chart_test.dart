@@ -28,8 +28,9 @@ void main() {
 
   group('PieChart.makeShades Tests', () {
     test('generates expected count of shades without fading to pure white', () {
-      final defaultColor =
-          charts.ColorUtil.fromDartColor(const Color(0xFF1E88E5));
+      final defaultColor = charts.ColorUtil.fromDartColor(
+        const Color(0xFF1E88E5),
+      );
       const shadeCount = 10;
       final shades = PieChart.makeShades(defaultColor, shadeCount);
 
@@ -39,14 +40,18 @@ void main() {
       // None of the generated shades should be pure white (255, 255, 255)
       for (final shade in shades) {
         final isPureWhite = shade.r == 255 && shade.g == 255 && shade.b == 255;
-        expect(isPureWhite, isFalse,
-            reason: 'Generated shade should not wash out to pure white');
+        expect(
+          isPureWhite,
+          isFalse,
+          reason: 'Generated shade should not wash out to pure white',
+        );
       }
     });
 
     test('maintains color differentiation across steps', () {
-      final defaultColor =
-          charts.ColorUtil.fromDartColor(const Color(0xFF43A047));
+      final defaultColor = charts.ColorUtil.fromDartColor(
+        const Color(0xFF43A047),
+      );
       final shades = PieChart.makeShades(defaultColor, 6);
 
       // Verify consecutive shades are not identical
@@ -61,8 +66,9 @@ void main() {
   });
 
   group('PieChart Widget Rendering Tests', () {
-    testWidgets('renders PieChart with series data without errors',
-        (WidgetTester tester) async {
+    testWidgets('renders PieChart with series data without errors', (
+      WidgetTester tester,
+    ) async {
       final data = [
         PieChartData('Stocks', 60000.0, shortLabel: 'Stocks'),
         PieChartData('Options', 25000.0, shortLabel: 'Options'),
@@ -77,7 +83,7 @@ void main() {
           data: data,
           labelAccessorFn: (PieChartData row, _) => row.shortLabel ?? row.label,
           colorFn: (_, index) => charts.MaterialPalette.blue.shadeDefault,
-        )
+        ),
       ];
 
       await tester.pumpWidget(
@@ -86,11 +92,7 @@ void main() {
             body: SizedBox(
               height: 250,
               width: 250,
-              child: PieChart(
-                series,
-                animate: false,
-                onSelected: (_) {},
-              ),
+              child: PieChart(series, animate: false, onSelected: (_) {}),
             ),
           ),
         ),
@@ -102,20 +104,32 @@ void main() {
 
   group('AllocationWidget.formatCenterTitle Tests', () {
     test('formats Sector titles cleanly for center of chart', () {
-      expect(AllocationWidget.formatCenterTitle('Information Technology'),
-          'Information Tech');
-      expect(AllocationWidget.formatCenterTitle('Communication Services'),
-          'Comm Services');
-      expect(AllocationWidget.formatCenterTitle('Consumer Discretionary'),
-          'Cons Discretionary');
-      expect(AllocationWidget.formatCenterTitle('Consumer Staples'),
-          'Cons Staples');
-      expect(AllocationWidget.formatCenterTitle('Financial Services'),
-          'Financial Services');
+      expect(
+        AllocationWidget.formatCenterTitle('Information Technology'),
+        'Information Tech',
+      );
+      expect(
+        AllocationWidget.formatCenterTitle('Communication Services'),
+        'Comm Services',
+      );
+      expect(
+        AllocationWidget.formatCenterTitle('Consumer Discretionary'),
+        'Cons Discretionary',
+      );
+      expect(
+        AllocationWidget.formatCenterTitle('Consumer Staples'),
+        'Cons Staples',
+      );
+      expect(
+        AllocationWidget.formatCenterTitle('Financial Services'),
+        'Financial Services',
+      );
       expect(AllocationWidget.formatCenterTitle('Health Care'), 'Health Care');
       expect(AllocationWidget.formatCenterTitle('Healthcare'), 'Health Care');
       expect(
-          AllocationWidget.formatCenterTitle('Basic Materials'), 'Materials');
+        AllocationWidget.formatCenterTitle('Basic Materials'),
+        'Materials',
+      );
       expect(AllocationWidget.formatCenterTitle('Real Estate'), 'Real Estate');
       expect(AllocationWidget.formatCenterTitle('Energy'), 'Energy');
       expect(AllocationWidget.formatCenterTitle('Utilities'), 'Utilities');
@@ -124,17 +138,20 @@ void main() {
     test('formats long Industry titles cleanly for center of chart', () {
       expect(
         AllocationWidget.formatCenterTitle(
-            'Semiconductor & Semiconductor Equipment'),
+          'Semiconductor & Semiconductor Equipment',
+        ),
         'Semiconductors',
       );
       expect(
         AllocationWidget.formatCenterTitle(
-            'Pharmaceuticals, Biotechnology & Life Sciences'),
+          'Pharmaceuticals, Biotechnology & Life Sciences',
+        ),
         'Pharma & Biotech',
       );
       expect(
         AllocationWidget.formatCenterTitle(
-            'Technology Hardware, Storage & Peripherals'),
+          'Technology Hardware, Storage & Peripherals',
+        ),
         'Tech Hardware',
       );
       expect(
@@ -159,7 +176,8 @@ void main() {
       );
       expect(
         AllocationWidget.formatCenterTitle(
-            'Electronic Equipment, Instruments & Components'),
+          'Electronic Equipment, Instruments & Components',
+        ),
         'Electronic Equip.',
       );
       expect(
@@ -172,7 +190,8 @@ void main() {
       );
       expect(
         AllocationWidget.formatCenterTitle(
-            'Equity Real Estate Investment Trusts (REITs)'),
+          'Equity Real Estate Investment Trusts (REITs)',
+        ),
         'Equity REITs',
       );
       expect(
@@ -197,7 +216,8 @@ void main() {
       // Strips trailing percentage
       expect(
         AllocationWidget.formatCenterTitle(
-            'Semiconductor & Semiconductor Equipment 35%'),
+          'Semiconductor & Semiconductor Equipment 35%',
+        ),
         'Semiconductors',
       );
 

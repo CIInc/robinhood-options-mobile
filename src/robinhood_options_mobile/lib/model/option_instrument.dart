@@ -8,10 +8,10 @@ class MinTicks {
   final double? cutoffPrice;
   const MinTicks(this.aboveTick, this.belowTick, this.cutoffPrice);
   Map<String, dynamic> toJson() => {
-        'above_tick': aboveTick,
-        'below_tick': belowTick,
-        'cutoff_price': cutoffPrice
-      };
+    'above_tick': aboveTick,
+    'below_tick': belowTick,
+    'cutoff_price': cutoffPrice,
+  };
 }
 
 //@immutable
@@ -38,87 +38,89 @@ class OptionInstrument {
   OptionMarketData? optionMarketData;
 
   OptionInstrument(
-      this.chainId,
-      this.chainSymbol,
-      this.createdAt,
-      this.expirationDate,
-      this.id,
-      this.issueDate,
-      this.minTicks,
-      this.rhsTradability,
-      this.state,
-      this.strikePrice,
-      this.tradability,
-      this.type,
-      this.updatedAt,
-      this.url,
-      this.selloutDateTime,
-      this.longStrategyCode,
-      this.shortStrategyCode);
+    this.chainId,
+    this.chainSymbol,
+    this.createdAt,
+    this.expirationDate,
+    this.id,
+    this.issueDate,
+    this.minTicks,
+    this.rhsTradability,
+    this.state,
+    this.strikePrice,
+    this.tradability,
+    this.type,
+    this.updatedAt,
+    this.url,
+    this.selloutDateTime,
+    this.longStrategyCode,
+    this.shortStrategyCode,
+  );
 
   OptionInstrument.fromJson(dynamic json)
-      : chainId = json['chain_id'],
-        chainSymbol = json['chain_symbol'],
-        createdAt = json['created_at'] != null
-            ? DateTime.tryParse(json['created_at'])
+    : chainId = json['chain_id'],
+      chainSymbol = json['chain_symbol'],
+      createdAt = json['created_at'] != null
+          ? DateTime.tryParse(json['created_at'])
+          : null,
+      expirationDate = json['expiration_date'] != null
+          ? DateTime.tryParse(json['expiration_date'])
+          : null,
+      id = json['id'],
+      issueDate = json['issue_date'] != null
+          ? DateTime.tryParse(json['issue_date'])
+          : null,
+      minTicks = MinTicks(
+        json['min_ticks']['above_tick'] != null
+            ? double.tryParse(json['min_ticks']['above_tick'].toString())
             : null,
-        expirationDate = json['expiration_date'] != null
-            ? DateTime.tryParse(json['expiration_date'])
+        json['min_ticks']['below_tick'] != null
+            ? double.tryParse(json['min_ticks']['below_tick'].toString())
             : null,
-        id = json['id'],
-        issueDate = json['issue_date'] != null
-            ? DateTime.tryParse(json['issue_date'])
+        json['min_ticks']['cutoff_price'] != null
+            ? double.tryParse(json['min_ticks']['cutoff_price'].toString())
             : null,
-        minTicks = MinTicks(
-            json['min_ticks']['above_tick'] != null
-                ? double.tryParse(json['min_ticks']['above_tick'].toString())
-                : null,
-            json['min_ticks']['below_tick'] != null
-                ? double.tryParse(json['min_ticks']['below_tick'].toString())
-                : null,
-            json['min_ticks']['cutoff_price'] != null
-                ? double.tryParse(json['min_ticks']['cutoff_price'].toString())
-                : null),
-        rhsTradability = json['rhs_tradability'],
-        state = json['state'],
-        strikePrice = json['strike_price'] != null
-            ? double.tryParse(json['strike_price'].toString())
-            : null,
-        tradability = json['tradability'],
-        type = json['type'],
-        updatedAt = json['updated_at'] != null
-            ? DateTime.tryParse(json['updated_at'])
-            : null,
-        url = json['url'],
-        selloutDateTime = json['sellout_datetime'] != null
-            ? DateTime.tryParse(json['sellout_datetime'])
-            : null,
-        longStrategyCode = json['long_strategy_code'],
-        shortStrategyCode = json['short_strategy_code'],
-        optionMarketData = json['option_market_data'] != null
-            ? OptionMarketData.fromJson(json['option_market_data'])
-            : null;
+      ),
+      rhsTradability = json['rhs_tradability'],
+      state = json['state'],
+      strikePrice = json['strike_price'] != null
+          ? double.tryParse(json['strike_price'].toString())
+          : null,
+      tradability = json['tradability'],
+      type = json['type'],
+      updatedAt = json['updated_at'] != null
+          ? DateTime.tryParse(json['updated_at'])
+          : null,
+      url = json['url'],
+      selloutDateTime = json['sellout_datetime'] != null
+          ? DateTime.tryParse(json['sellout_datetime'])
+          : null,
+      longStrategyCode = json['long_strategy_code'],
+      shortStrategyCode = json['short_strategy_code'],
+      optionMarketData = json['option_market_data'] != null
+          ? OptionMarketData.fromJson(json['option_market_data'])
+          : null;
 
   Map<String, dynamic> toJson() => {
-        'chain_id': chainId,
-        'chain_symbol': chainSymbol,
-        'created_at': createdAt?.toIso8601String(),
-        'expiration_date': expirationDate?.toIso8601String(),
-        'id': id,
-        'issue_date': issueDate?.toIso8601String(),
-        'min_ticks': minTicks.toJson(),
-        'rhs_tradability': rhsTradability,
-        'state': state,
-        'strike_price': strikePrice?.toString(),
-        'tradability': tradability,
-        'type': type,
-        'updated_at': updatedAt?.toIso8601String(),
-        'url': url,
-        'sellout_datetime': selloutDateTime?.toIso8601String(),
-        'long_strategy_code': longStrategyCode,
-        'short_strategy_code': shortStrategyCode,
-        'option_market_data': optionMarketData?.toJson(),
-      };
+    'chain_id': chainId,
+    'chain_symbol': chainSymbol,
+    'created_at': createdAt?.toIso8601String(),
+    'expiration_date': expirationDate?.toIso8601String(),
+    'id': id,
+    'issue_date': issueDate?.toIso8601String(),
+    'min_ticks': minTicks.toJson(),
+    'rhs_tradability': rhsTradability,
+    'state': state,
+    'strike_price': strikePrice?.toString(),
+    'tradability': tradability,
+    'type': type,
+    'updated_at': updatedAt?.toIso8601String(),
+    'url': url,
+    'sellout_datetime': selloutDateTime?.toIso8601String(),
+    'long_strategy_code': longStrategyCode,
+    'short_strategy_code': shortStrategyCode,
+    'option_market_data': optionMarketData?.toJson(),
+  };
 
   // toMarkdownTable generates a markdown table from a list of OptionInstrument populating the table with all the daya including the properties of OptionMarketData.
 
