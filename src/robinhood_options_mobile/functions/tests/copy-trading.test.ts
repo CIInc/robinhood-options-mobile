@@ -161,7 +161,6 @@ describe("Copy Trading N+1 query benchmark/test", () => {
     await (onInstrumentOrderCreated as any)(event);
 
     expect(mockCopyTradesAdd).toHaveBeenCalledTimes(4); // 4 copying members
-    console.log(`Instrument order - Source user lookups: ${sourceUserGetCount}, Target user lookups: ${targetUserGetCount}`);
     // Source user lookups should be at most 1 (optimized from N=4)
     expect(sourceUserGetCount).toBeLessThanOrEqual(1);
   });
@@ -185,7 +184,6 @@ describe("Copy Trading N+1 query benchmark/test", () => {
     await (onOptionOrderCreated as any)(event);
 
     expect(mockCopyTradesAdd).toHaveBeenCalledTimes(4); // 4 copying members
-    console.log(`Option order - Source user lookups: ${sourceUserGetCount}, Target user lookups: ${targetUserGetCount}`);
     // Source user lookups should be at most 1 (optimized from N=4)
     expect(sourceUserGetCount).toBeLessThanOrEqual(1);
   });
