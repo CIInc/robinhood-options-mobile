@@ -3,9 +3,24 @@
 All notable changes to this project will be documented in this file.
 
 ## [0.45.0] - 2026-09-14
-**Corporate Action Split Adjustments, Cash-in-Lieu Tracking, Securities Lending (SLIP), High-Yield Cash Sweeps, Banking/ACH Transfers & Tax Documents**
+**Corporate Action Split Adjustments, Cash-in-Lieu Tracking, Securities Lending (SLIP), High-Yield Cash Sweeps, Banking/ACH Transfers, Tax Documents & Shareholder Say Q&A Engagement**
 
 ### Added
+- **Shareholder Say Q&A Engagement:**
+  - Integrated Robinhood and Say Technologies verified shareholder Q&A endpoints (`/instruments/{id}/qa/events-section/`, `/qa/events/{id}/questions/{id}/upvote/`, and `/qa/events/{id}/questions/`).
+  - Created domain models in `lib/model/shareholder_qa_event.dart`: `ShareholderAnswer`, `ShareholderQuestion`, `ShareholderQaEvent`, and `ShareholderQaSection` with JSON serialization, verified shareholder indicators, compact vote/share formatting, event status getters, and video timestamp conversion.
+  - Extended `IBrokerageService` with `getShareholderQaEvents`, `getShareholderQaSectionModel`, `upvoteQuestion`, and `submitQuestion`. Implemented live Bonfire network fetching in `RobinhoodService`, rich interactive simulation for AAPL, TSLA, NVDA (with executive answers from Tim Cook, Elon Musk, Jensen Huang) and dynamic procedural fallback in `DemoService`, plus concrete stubs across `PaperService`, `FidelityService`, `SchwabService`, and `PlaidService`.
+  - Built `ShareholderQaWidget` (`lib/widgets/shareholder_qa_widget.dart`):
+    - Full-featured dashboard featuring verified shareholder ownership badges and voting weight calculation.
+    - Status indicators (`Open for Voting`, `Upcoming`, `Concluded`).
+    - Filter chips (`Top (Shares)`, `Most Votes`, `Answered`, `My Votes`) and instant question/answer keyword search.
+    - Ranked question cards with interactive share-weighted upvote toggling and optimistic UI updates.
+    - Executive answer quote callouts with speaker name, executive title, and timestamp links.
+    - Modal bottom sheet with character-validated input for submitting verified shareholder questions.
+  - Built embeddable `ShareholderQaCard` widget inside `InstrumentWidget` under the stock's Financials section, providing a preview of the active event and top question with one-tap drilldown.
+  - Integrated navigation entry points in `UserWidget` under "Profile & Community" and feature badge in `UserInfoWidget`.
+  - Added unit tests in `test/shareholder_qa_test.dart` and widget tests in `test/shareholder_qa_widget_test.dart`.
+  - Added comprehensive feature documentation in `docs/shareholder-say-qa.md` and indexed in `docs/index.md`.
 - **Corporate Action Split Adjustments & Cash-in-Lieu Tracking:**
   - Integrated Robinhood's corporate action stock split payment endpoint (`/corp_actions/v2/split_payments/`) and instrument split history (`/instruments/{id}/splits/`).
   - Created `Split`, `SplitPayment`, and `CorporateActionSplitsSummary` domain models in `lib/model/split.dart` with forward/reverse split ratio formatting (e.g., `10:1 Forward Split`, `1:25 Reverse Split`), cost basis adjustment factors, fractional share cash-in-lieu calculation, and JSON serialization.

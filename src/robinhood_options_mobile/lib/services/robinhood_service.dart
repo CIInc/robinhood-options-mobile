@@ -57,6 +57,7 @@ import 'package:robinhood_options_mobile/model/user_info.dart';
 import 'package:robinhood_options_mobile/model/watchlist.dart';
 import 'package:robinhood_options_mobile/model/watchlist_item.dart';
 import 'package:robinhood_options_mobile/model/instrument_buying_power.dart';
+import 'package:robinhood_options_mobile/model/shareholder_qa_event.dart';
 import 'package:robinhood_options_mobile/model/option_collateral.dart';
 import 'package:robinhood_options_mobile/model/split.dart';
 import 'package:robinhood_options_mobile/model/stock_loan.dart';
@@ -5768,11 +5769,67 @@ WATCHLIST
 
   /// Fetches shareholder question & answer events for earnings calls via Say Technologies
   /// https://bonfire.robinhood.com/instruments/{instrument_id}/qa/events-section/
+  @override
   Future<dynamic> getShareholderQaEvents(
       BrokerageUser user, String instrumentId) async {
-    var url =
-        "$robinHoodBonfireEndpoint/instruments/$instrumentId/qa/events-section/";
-    return await getJson(user, url);
+    try {
+      var url =
+          "$robinHoodBonfireEndpoint/instruments/$instrumentId/qa/events-section/";
+      return await getJson(user, url);
+    } catch (e) {
+      debugPrint("Error fetching shareholder QA events for $instrumentId: $e");
+      return null;
+    }
+  }
+
+  @override
+  Future<ShareholderQaSection?> getShareholderQaSectionModel(
+      BrokerageUser user, String instrumentId,
+      {String? symbol}) async {
+    final raw = await getShareholderQaEvents(user, instrumentId);
+    if (raw == null) return null;
+    return ShareholderQaSection.fromJson(raw,
+        instrumentId: instrumentId, symbol: symbol);
+  }
+
+  @override
+  Future<bool> upvoteQuestion(BrokerageUser user, String instrumentId,
+      String eventId, String questionId) async {
+    try {
+      var url =
+          "$robinHoodBonfireEndpoint/instruments/$instrumentId/qa/events/$eventId/questions/$questionId/upvote/";
+      if (user.oauth2Client == null) return false;
+      final res = await user.oauth2Client!.post(Uri.parse(url));
+      return res.statusCode == 200 || res.statusCode == 201 || res.statusCode == 204;
+    } catch (e) {
+      debugPrint("Error upvoting question $questionId: $e");
+      return false;
+    }
+  }
+
+  @override
+  Future<ShareholderQuestion?> submitQuestion(BrokerageUser user,
+      String instrumentId, String eventId, String questionText) async {
+    try {
+      var url =
+          "$robinHoodBonfireEndpoint/instruments/$instrumentId/qa/events/$eventId/questions/";
+      if (user.oauth2Client == null) return null;
+      final res = await user.oauth2Client!.post(
+        Uri.parse(url),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'text': questionText}),
+      );
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        final decoded = jsonDecode(res.body);
+        if (decoded is Map<String, dynamic>) {
+          return ShareholderQuestion.fromJson(decoded, defaultEventId: eventId);
+        }
+      }
+      return null;
+    } catch (e) {
+      debugPrint("Error submitting question for event $eventId: $e");
+      return null;
+    }
   }
 
   /*

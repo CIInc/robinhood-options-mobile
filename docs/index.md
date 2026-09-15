@@ -63,6 +63,7 @@
 - **[Tax Documents, Account Statements & ADR Fees](tax-documents-and-statements.md):** Download Form 1099 tax documents, monthly account statements, trade confirmations, and track ADR pass-through fees and foreign tax withholding (`/documents/`, `/corp_actions/adr_fees/`, `/tax_info/`).
 - **[Corporate Action Splits & Cash-in-Lieu Tracking](corporate-actions-and-stock-splits.md):** Comprehensive tracking of stock splits, reverse splits, adjusted cost basis, and fractional share cash-in-lieu payments with tax reporting transparency (`/corp_actions/v2/split_payments/`).
 - **[Robinhood Curated Screener Presets and Legend Service Support](screener-presets-and-legend-layouts.md):** Server-side screener presets (`/screeners/presets/`, `/screeners`) and retained desktop Robinhood Legend workspace service support (`/hippo/bw/layouts`); Legend UI is deferred.
+- **[Shareholder Say Q&A Engagement](shareholder-say-qa.md):** Verified shareholder Q&A viewing, question submission, and share-weighted voting for upcoming earnings calls and shareholder meetings via Say Technologies (`/instruments/{id}/qa/events-section/`).
 
 - **[Short Float & Live Borrow Availability](short-interest.md):** Real-time short interest (`pc_freefloat`, days to cover, shares short), borrow availability, borrow fee rates, and short squeeze risk modeling.
 - **[Retail Order Flow & Robinhood Sentiment](retail-order-flow.md):** First-party Robinhood customer order flow dynamics, net buy/sell ratios, volume trends, and historical daily sentiment tracking.

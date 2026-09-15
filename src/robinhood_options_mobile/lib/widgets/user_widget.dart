@@ -39,6 +39,7 @@ import 'package:robinhood_options_mobile/widgets/stock_loan_widget.dart';
 import 'package:robinhood_options_mobile/widgets/banking_widget.dart';
 import 'package:robinhood_options_mobile/widgets/tax_documents_widget.dart';
 import 'package:robinhood_options_mobile/widgets/corporate_actions_widget.dart';
+import 'package:robinhood_options_mobile/widgets/shareholder_qa_widget.dart';
 
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
@@ -1430,6 +1431,45 @@ class _UserWidgetState extends State<UserWidget> {
                                               ),
                                             ),
                                           );
+                                        }
+                                      },
+                                    ),
+                                    // Shareholder Q&A (Say Technologies)
+                                    ListTile(
+                                      leading: CircleAvatar(
+                                        backgroundColor: Theme.of(context)
+                                            .colorScheme
+                                            .secondaryContainer,
+                                        foregroundColor: Theme.of(context)
+                                            .colorScheme
+                                            .onSecondaryContainer,
+                                        child: const Icon(
+                                            Icons.how_to_vote_outlined),
+                                      ),
+                                      title: const Text('Shareholder Q&A (Say)'),
+                                      subtitle: const Text(
+                                          'Participate in verified earnings calls & shareholder questions'),
+                                      trailing: const Icon(Icons.chevron_right),
+                                      onTap: () async {
+                                        if (widget.brokerageUser != null &&
+                                            widget.service != null) {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) =>
+                                                  ShareholderQaWidget(
+                                                brokerageUser:
+                                                    widget.brokerageUser!,
+                                                service: widget.service!,
+                                              ),
+                                            ),
+                                          );
+                                        } else {
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(const SnackBar(
+                                            content: Text(
+                                                'Please link a brokerage account to participate in shareholder Q&A.'),
+                                          ));
                                         }
                                       },
                                     ),

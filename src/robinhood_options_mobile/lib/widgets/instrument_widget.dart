@@ -68,6 +68,7 @@ import 'package:robinhood_options_mobile/model/instrument_buying_power.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_buying_power_widget.dart';
 import 'package:robinhood_options_mobile/model/instrument_historical_position.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_historical_positions_widget.dart';
+import 'package:robinhood_options_mobile/widgets/shareholder_qa_widget.dart';
 import 'package:url_launcher/url_launcher.dart';
 //import 'package:charts_flutter/flutter.dart' as charts;
 
@@ -2878,6 +2879,15 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           instrument.earningsObj!.isNotEmpty) ...[
         const SliverToBoxAdapter(child: SizedBox(height: 8.0)),
         _buildEarningsWidget(instrument),
+      ],
+      if (instrument.type == 'stock' || instrument.type.isEmpty) ...[
+        SliverToBoxAdapter(
+          child: ShareholderQaCard(
+            brokerageUser: widget.brokerageUser,
+            service: widget.service,
+            instrument: instrument,
+          ),
+        ),
       ],
       if (instrument.dividendsObj != null &&
           instrument.dividendsObj!.isNotEmpty) ...[

@@ -53,6 +53,7 @@ import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 import 'package:robinhood_options_mobile/services/yahoo_service.dart';
 import 'package:robinhood_options_mobile/model/banking.dart';
+import 'package:robinhood_options_mobile/model/shareholder_qa_event.dart';
 import 'package:robinhood_options_mobile/model/split.dart';
 import 'package:robinhood_options_mobile/model/tax_document.dart';
 
@@ -5025,5 +5026,422 @@ class DemoService implements IBrokerageService {
       BrokerageUser user) async {
     final payments = await getSplitPaymentsModel(user);
     return CorporateActionSplitsSummary.fromPayments(payments);
+  }
+
+  /*
+  SHAREHOLDER ENGAGEMENT & SAY TECHNOLOGIES Q&A (DEMO DATA)
+  */
+
+  static final Map<String, Map<String, dynamic>> _demoQaData = {
+    'AAPL': {
+      'id': 'qa_event_aapl_q3_2026',
+      'title': 'Apple Inc. Q3 2026 Earnings Call & Shareholder Q&A',
+      'event_type': 'earnings',
+      'status': 'active',
+      'company_name': 'Apple Inc.',
+      'symbol': 'AAPL',
+      'instrument_id': 'inst_aapl_03',
+      'start_time': '2026-10-22T21:00:00Z',
+      'end_time': '2026-10-22T22:00:00Z',
+      'event_date': '2026-10-22T21:00:00Z',
+      'submission_deadline': '2026-10-22T16:00:00Z',
+      'voting_deadline': '2026-10-22T19:00:00Z',
+      'description':
+          'Verified Apple shareholders can submit and vote on top questions for Tim Cook and the executive leadership team ahead of the Q3 2026 earnings conference call.',
+      'banner_url':
+          'https://images.robinhood.com/say/apple_earnings_q3_2026.png',
+      'webcast_url': 'https://investor.apple.com/earnings-call',
+      'total_questions_count': 4,
+      'total_votes_count': 18450,
+      'total_shares_represented': 14850200.0,
+      'user_shares_represented': 45.0,
+      'is_user_verified': true,
+      'questions': [
+        {
+          'id': 'q_aapl_01',
+          'event_id': 'qa_event_aapl_q3_2026',
+          'text':
+              'How is Apple Intelligence driving upgrade supercycles and expanding high-margin Services revenue globally?',
+          'status': 'answered',
+          'author_display_name': 'Alex M. (Verified Shareholder)',
+          'is_verified_shareholder': true,
+          'votes_count': 6420,
+          'shares_represented': 5420000.0,
+          'percentage_of_total_shares': 36.5,
+          'is_user_voted': true,
+          'created_at': '2026-10-15T14:20:00Z',
+          'answer': {
+            'id': 'ans_aapl_01',
+            'answer_text':
+                'We are seeing exceptional customer engagement with Apple Intelligence on iPhone and Mac. On-device intelligence alongside Private Cloud Compute provides unmatched privacy while creating substantial value across Services subscriptions.',
+            'answered_by': 'Tim Cook',
+            'answered_by_title': 'Chief Executive Officer',
+            'answered_at': '2026-10-22T21:24:00Z',
+            'video_timestamp_seconds': 1440,
+            'source_url': 'https://investor.apple.com/earnings-call',
+          },
+        },
+        {
+          'id': 'q_aapl_02',
+          'event_id': 'qa_event_aapl_q3_2026',
+          'text':
+              'What is Apple\'s capital return and share repurchase outlook for FY2027 given our ongoing net-cash neutral goal?',
+          'status': 'answered',
+          'author_display_name': 'Sarah K. (Verified Shareholder)',
+          'is_verified_shareholder': true,
+          'votes_count': 4810,
+          'shares_represented': 3910000.0,
+          'percentage_of_total_shares': 26.3,
+          'is_user_voted': false,
+          'created_at': '2026-10-16T11:05:00Z',
+          'answer': {
+            'id': 'ans_aapl_02',
+            'answer_text':
+                'Our commitment to returning cash to shareholders remains unwavering. We generated record operating cash flow and returned over \$25 billion during the quarter through repurchases and dividends.',
+            'answered_by': 'Luca Maestri',
+            'answered_by_title': 'Chief Financial Officer',
+            'answered_at': '2026-10-22T21:38:00Z',
+            'video_timestamp_seconds': 2280,
+            'source_url': 'https://investor.apple.com/earnings-call',
+          },
+        },
+        {
+          'id': 'q_aapl_03',
+          'event_id': 'qa_event_aapl_q3_2026',
+          'text':
+              'Are there plans to introduce VisionOS ecosystem features tailored for enterprise productivity and spatial telepresence?',
+          'status': 'approved',
+          'author_display_name': 'David R. (Verified Shareholder)',
+          'is_verified_shareholder': true,
+          'votes_count': 3890,
+          'shares_represented': 3120000.0,
+          'percentage_of_total_shares': 21.0,
+          'is_user_voted': false,
+          'created_at': '2026-10-17T09:15:00Z',
+        },
+        {
+          'id': 'q_aapl_04',
+          'event_id': 'qa_event_aapl_q3_2026',
+          'text':
+              'What is Apple\'s stance on developer ecosystem commission tiers following international DMA regulatory developments?',
+          'status': 'approved',
+          'author_display_name': 'Elena T. (Verified Shareholder)',
+          'is_verified_shareholder': true,
+          'votes_count': 3330,
+          'shares_represented': 2400200.0,
+          'percentage_of_total_shares': 16.2,
+          'is_user_voted': false,
+          'created_at': '2026-10-18T18:45:00Z',
+        },
+      ],
+    },
+    'TSLA': {
+      'id': 'qa_event_tsla_q3_2026',
+      'title': 'Tesla, Inc. Q3 2026 Financial Results & Q&A Webcast',
+      'event_type': 'earnings',
+      'status': 'active',
+      'company_name': 'Tesla, Inc.',
+      'symbol': 'TSLA',
+      'instrument_id': 'inst_tsla_02',
+      'start_time': '2026-10-28T21:30:00Z',
+      'end_time': '2026-10-28T22:45:00Z',
+      'event_date': '2026-10-28T21:30:00Z',
+      'submission_deadline': '2026-10-28T17:00:00Z',
+      'voting_deadline': '2026-10-28T20:00:00Z',
+      'description':
+          'Tesla leadership addresses institutional and retail shareholder questions regarding autonomous driving, Cybercab deployment, and Megapack margins.',
+      'banner_url':
+          'https://images.robinhood.com/say/tesla_earnings_q3_2026.png',
+      'webcast_url': 'https://ir.tesla.com/earnings',
+      'total_questions_count': 3,
+      'total_votes_count': 31200,
+      'total_shares_represented': 28400000.0,
+      'user_shares_represented': 25.0,
+      'is_user_verified': true,
+      'questions': [
+        {
+          'id': 'q_tsla_01',
+          'event_id': 'qa_event_tsla_q3_2026',
+          'text':
+              'What is the regulatory timeline and city rollout schedule for unsupervised FSD Cybercab rides in 2027?',
+          'status': 'answered',
+          'author_display_name': 'Jordan P. (Verified Shareholder)',
+          'is_verified_shareholder': true,
+          'votes_count': 14200,
+          'shares_represented': 13500000.0,
+          'percentage_of_total_shares': 47.5,
+          'is_user_voted': true,
+          'created_at': '2026-10-20T10:00:00Z',
+          'answer': {
+            'id': 'ans_tsla_01',
+            'answer_text':
+                'We anticipate commencing initial driverless commercial rides in Texas and California next year, subject to state regulatory approvals. Hardware 4 inference safety metrics now exceed human driver reliability by over tenfold.',
+            'answered_by': 'Elon Musk',
+            'answered_by_title': 'Technoking & CEO',
+            'answered_at': '2026-10-28T21:40:00Z',
+            'video_timestamp_seconds': 1200,
+            'source_url': 'https://ir.tesla.com/earnings',
+          },
+        },
+        {
+          'id': 'q_tsla_02',
+          'event_id': 'qa_event_tsla_q3_2026',
+          'text':
+              'What are the annual run-rate capacity and margin projections for the Lathrop and Shanghai Megapack factories?',
+          'status': 'approved',
+          'author_display_name': 'Marcus L. (Verified Shareholder)',
+          'is_verified_shareholder': true,
+          'votes_count': 9800,
+          'shares_represented': 8900000.0,
+          'percentage_of_total_shares': 31.3,
+          'is_user_voted': false,
+          'created_at': '2026-10-21T12:30:00Z',
+        },
+        {
+          'id': 'q_tsla_03',
+          'event_id': 'qa_event_tsla_q3_2026',
+          'text':
+              'How many Optimus units are currently performing useful tasks in factory lines, and what is the expected external release date?',
+          'status': 'approved',
+          'author_display_name': 'Claire V. (Verified Shareholder)',
+          'is_verified_shareholder': true,
+          'votes_count': 7200,
+          'shares_represented': 6000000.0,
+          'percentage_of_total_shares': 21.2,
+          'is_user_voted': false,
+          'created_at': '2026-10-22T15:00:00Z',
+        },
+      ],
+    },
+    'NVDA': {
+      'id': 'qa_event_nvda_q3_2027',
+      'title': 'NVIDIA Corp. Q3 FY27 Financial Results Shareholder Q&A',
+      'event_type': 'earnings',
+      'status': 'active',
+      'company_name': 'NVIDIA Corporation',
+      'symbol': 'NVDA',
+      'instrument_id': 'inst_nvda_01',
+      'start_time': '2026-11-19T22:00:00Z',
+      'end_time': '2026-11-19T23:00:00Z',
+      'event_date': '2026-11-19T22:00:00Z',
+      'submission_deadline': '2026-11-19T17:00:00Z',
+      'voting_deadline': '2026-11-19T20:00:00Z',
+      'description':
+          'Shareholder questions regarding Blackwell Ultra demand ramp, data center networking, and sovereign AI computing partnerships.',
+      'banner_url':
+          'https://images.robinhood.com/say/nvidia_earnings_q3_2027.png',
+      'webcast_url': 'https://investor.nvidia.com',
+      'total_questions_count': 2,
+      'total_votes_count': 12400,
+      'total_shares_represented': 9800000.0,
+      'user_shares_represented': 20.0,
+      'is_user_verified': true,
+      'questions': [
+        {
+          'id': 'q_nvda_01',
+          'event_id': 'qa_event_nvda_q3_2027',
+          'text':
+              'How are supply chain allocations and packaging constraints evolving for next-generation architecture ramps?',
+          'status': 'answered',
+          'author_display_name': 'Brian H. (Verified Shareholder)',
+          'is_verified_shareholder': true,
+          'votes_count': 7100,
+          'shares_represented': 5600000.0,
+          'percentage_of_total_shares': 57.1,
+          'is_user_voted': true,
+          'created_at': '2026-11-10T14:00:00Z',
+          'answer': {
+            'id': 'ans_nvda_01',
+            'answer_text':
+                'Blackwell demand is extraordinary. CoWoS packaging yields have accelerated with our foundry partners, and production shipments are scaling rapidly across cloud providers and enterprise AI customers.',
+            'answered_by': 'Jensen Huang',
+            'answered_by_title': 'President and CEO',
+            'answered_at': '2026-11-19T22:15:00Z',
+            'video_timestamp_seconds': 900,
+            'source_url': 'https://investor.nvidia.com',
+          },
+        },
+        {
+          'id': 'q_nvda_02',
+          'event_id': 'qa_event_nvda_q3_2027',
+          'text':
+              'What percentage of total Data Center revenue is now represented by Spectrum-X Ethernet and NVLink networking?',
+          'status': 'approved',
+          'author_display_name': 'Rachel W. (Verified Shareholder)',
+          'is_verified_shareholder': true,
+          'votes_count': 5300,
+          'shares_represented': 4200000.0,
+          'percentage_of_total_shares': 42.9,
+          'is_user_voted': false,
+          'created_at': '2026-11-12T16:30:00Z',
+        },
+      ],
+    },
+  };
+
+  @override
+  Future<dynamic> getShareholderQaEvents(
+      BrokerageUser user, String instrumentId) async {
+    final upperId = instrumentId.toUpperCase();
+    // Check if matching instrumentId or symbol exists in demo data
+    for (final entry in _demoQaData.entries) {
+      final data = entry.value;
+      if (data['instrument_id'] == instrumentId ||
+          data['symbol'] == upperId ||
+          upperId.contains(entry.key)) {
+        return {'events': [data]};
+      }
+    }
+
+    // Default plausible Q&A event for any other stock symbol
+    String cleanSym = instrumentId.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '').toUpperCase();
+    cleanSym = cleanSym.replaceAll('INST', '');
+    final symbol = cleanSym.isNotEmpty ? (cleanSym.length <= 5 ? cleanSym : cleanSym.substring(0, 4)) : 'STOCK';
+    return {
+      'events': [
+        {
+          'id': 'qa_event_${symbol.toLowerCase()}_q3_2026',
+          'title': '$symbol Q3 2026 Earnings Call & Shareholder Q&A',
+          'event_type': 'earnings',
+          'status': 'active',
+          'company_name': '$symbol Inc.',
+          'symbol': symbol,
+          'instrument_id': instrumentId,
+          'start_time': '2026-11-15T21:00:00Z',
+          'end_time': '2026-11-15T22:00:00Z',
+          'event_date': '2026-11-15T21:00:00Z',
+          'submission_deadline': '2026-11-15T16:00:00Z',
+          'voting_deadline': '2026-11-15T19:00:00Z',
+          'description':
+              'Verified $symbol shareholders can review management updates, vote on questions, and submit inquiries for the upcoming conference call.',
+          'banner_url': null,
+          'webcast_url': 'https://investor.$symbol.com',
+          'total_questions_count': 2,
+          'total_votes_count': 2450,
+          'total_shares_represented': 1850000.0,
+          'user_shares_represented': 10.0,
+          'is_user_verified': true,
+          'questions': [
+            {
+              'id': 'q_${symbol.toLowerCase()}_01',
+              'event_id': 'qa_event_${symbol.toLowerCase()}_q3_2026',
+              'text':
+                  'What are management\'s key growth priorities and free cash flow targets for the upcoming fiscal year?',
+              'status': 'answered',
+              'author_display_name': 'Verified Shareholder',
+              'is_verified_shareholder': true,
+              'votes_count': 1420,
+              'shares_represented': 1100000.0,
+              'percentage_of_total_shares': 59.5,
+              'is_user_voted': true,
+              'created_at': '2026-11-05T12:00:00Z',
+              'answer': {
+                'id': 'ans_${symbol.toLowerCase()}_01',
+                'answer_text':
+                    'Our focus remains on operational discipline, disciplined capital reinvestment, and expanding operating margins across core business lines.',
+                'answered_by': 'Executive Leadership',
+                'answered_by_title': 'Executive Team',
+                'answered_at': '2026-11-15T21:20:00Z',
+                'video_timestamp_seconds': 720,
+              },
+            },
+            {
+              'id': 'q_${symbol.toLowerCase()}_02',
+              'event_id': 'qa_event_${symbol.toLowerCase()}_q3_2026',
+              'text':
+                  'How is the company navigating current macro interest rate dynamics and supply chain efficiency?',
+              'status': 'approved',
+              'author_display_name': 'Verified Shareholder',
+              'is_verified_shareholder': true,
+              'votes_count': 1030,
+              'shares_represented': 750000.0,
+              'percentage_of_total_shares': 40.5,
+              'is_user_voted': false,
+              'created_at': '2026-11-06T15:30:00Z',
+            },
+          ],
+        }
+      ]
+    };
+  }
+
+  @override
+  Future<ShareholderQaSection?> getShareholderQaSectionModel(
+      BrokerageUser user, String instrumentId,
+      {String? symbol}) async {
+    final raw = await getShareholderQaEvents(user, symbol ?? instrumentId);
+    if (raw == null) return null;
+    return ShareholderQaSection.fromJson(raw,
+        instrumentId: instrumentId, symbol: symbol);
+  }
+
+  @override
+  Future<bool> upvoteQuestion(BrokerageUser user, String instrumentId,
+      String eventId, String questionId) async {
+    final upperId = instrumentId.toUpperCase();
+    for (final event in _demoQaData.values) {
+      if (event['id'] == eventId ||
+          event['instrument_id'] == instrumentId ||
+          upperId.contains(event['symbol'] as String)) {
+        final questions = event['questions'] as List<dynamic>?;
+        if (questions != null) {
+          for (final q in questions) {
+            if (q is Map<String, dynamic> && q['id'] == questionId) {
+              final currentVoted = q['is_user_voted'] == true;
+              final userShares = (event['user_shares_represented'] as num?)?.toDouble() ?? 10.0;
+              final currentVotes = (q['votes_count'] as num?)?.toInt() ?? 0;
+              final currentShares = (q['shares_represented'] as num?)?.toDouble() ?? 0.0;
+
+              if (currentVoted) {
+                q['is_user_voted'] = false;
+                q['votes_count'] = currentVotes > 0 ? currentVotes - 1 : 0;
+                q['shares_represented'] = currentShares >= userShares ? currentShares - userShares : 0.0;
+              } else {
+                q['is_user_voted'] = true;
+                q['votes_count'] = currentVotes + 1;
+                q['shares_represented'] = currentShares + userShares;
+              }
+              return true;
+            }
+          }
+        }
+      }
+    }
+    return true;
+  }
+
+  @override
+  Future<ShareholderQuestion?> submitQuestion(BrokerageUser user,
+      String instrumentId, String eventId, String questionText) async {
+    final newId = 'q_user_${DateTime.now().millisecondsSinceEpoch}';
+    final newQuestion = {
+      'id': newId,
+      'event_id': eventId,
+      'text': questionText,
+      'status': 'approved',
+      'author_display_name': 'You (Verified Shareholder)',
+      'is_verified_shareholder': true,
+      'votes_count': 1,
+      'shares_represented': 45.0,
+      'percentage_of_total_shares': 0.1,
+      'is_user_voted': true,
+      'created_at': DateTime.now().toIso8601String(),
+    };
+
+    final upperId = instrumentId.toUpperCase();
+    for (final event in _demoQaData.values) {
+      if (event['id'] == eventId ||
+          event['instrument_id'] == instrumentId ||
+          upperId.contains(event['symbol'] as String)) {
+        final questions = event['questions'] as List<dynamic>?;
+        if (questions != null) {
+          questions.insert(0, newQuestion);
+          event['total_questions_count'] =
+              ((event['total_questions_count'] as num?)?.toInt() ?? questions.length - 1) + 1;
+          return ShareholderQuestion.fromJson(newQuestion);
+        }
+      }
+    }
+    return ShareholderQuestion.fromJson(newQuestion, defaultEventId: eventId);
   }
 }

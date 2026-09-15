@@ -42,6 +42,7 @@ import 'package:robinhood_options_mobile/model/portfolio_store.dart';
 import 'package:robinhood_options_mobile/model/quote.dart';
 import 'package:robinhood_options_mobile/model/quote_store.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
+import 'package:robinhood_options_mobile/model/shareholder_qa_event.dart';
 import 'package:robinhood_options_mobile/model/split.dart';
 import 'package:robinhood_options_mobile/model/tax_document.dart';
 import 'package:robinhood_options_mobile/model/user_info.dart';
@@ -582,6 +583,35 @@ abstract class IBrokerageService {
       BrokerageUser user) async {
     final payments = await getSplitPaymentsModel(user);
     return CorporateActionSplitsSummary.fromPayments(payments);
+  }
+
+  /// Fetches shareholder question & answer events for earnings calls via Say Technologies
+  /// https://bonfire.robinhood.com/instruments/{instrument_id}/qa/events-section/
+  Future<dynamic> getShareholderQaEvents(
+      BrokerageUser user, String instrumentId) async {
+    return null;
+  }
+
+  /// Fetches typed ShareholderQaSection model
+  Future<ShareholderQaSection?> getShareholderQaSectionModel(
+      BrokerageUser user, String instrumentId,
+      {String? symbol}) async {
+    final raw = await getShareholderQaEvents(user, instrumentId);
+    if (raw == null) return null;
+    return ShareholderQaSection.fromJson(raw,
+        instrumentId: instrumentId, symbol: symbol);
+  }
+
+  /// Upvotes or toggles a vote on a shareholder question
+  Future<bool> upvoteQuestion(BrokerageUser user, String instrumentId,
+      String eventId, String questionId) async {
+    return false;
+  }
+
+  /// Submits a verified shareholder question for an active Q&A event
+  Future<ShareholderQuestion?> submitQuestion(BrokerageUser user,
+      String instrumentId, String eventId, String questionText) async {
+    return null;
   }
 }
 
