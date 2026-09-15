@@ -125,8 +125,13 @@ export async function handleAlphaTask(marketData: any,
       .filter(([, v]) => v === true)
       .map(([k]) => k) :
     [];
-  const gexEnabled = enabledIndicatorKeys.includes("gammaExposure") ||
+  const isReasoningMode = config?.tradingMode === "reasoning";
+  const gexEnabled = isReasoningMode ||
+    enabledIndicatorKeys.includes("gammaExposure") ||
     enabledIndicatorKeys.length === 0; // also fetch if all indicators active
+
+  const currentSpot = closes.length > 0 ?
+    closes[closes.length - 1] : marketData?.currentPrice;
 
   const [marketIndexData, macroAssessment, gexData] = await Promise.all([
     getSharedMarketIndexData(
@@ -137,7 +142,7 @@ export async function handleAlphaTask(marketData: any,
     getSharedMacroAssessment(),
     gexEnabled ? fetchGammaExposure(
       symbol,
-      undefined,
+      currentSpot,
       undefined,
       undefined,
       config?.gexCacheOnly === true

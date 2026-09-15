@@ -514,8 +514,43 @@ export function computeGammaExposure(
     }
   }
 
-  const plusGex = callWall;
-  const cotmp = putWall;
+  const plusGex = callWall || maxGammaStrike ||
+    (spotPrice > 0 ? Math.round(spotPrice * 1.05 * 100) / 100 : null);
+  const cotmp = putWall || maxGammaStrike ||
+    (spotPrice > 0 ? Math.round(spotPrice * 0.95 * 100) / 100 : null);
+
+  // Robust structural fallbacks if no zero-crossings exist in the options chain
+  if (pTrans === null) {
+    if (totalNetGEX >= 0) {
+      // In net long gamma regime, structural support is provided at COTMP/putWall
+      pTrans = cotmp || (spotPrice > 0 ?
+        Math.round(spotPrice * 0.98 * 100) / 100 : null);
+    } else {
+      // In net short gamma regime, positive transition is above spot
+      pTrans = plusGex || (spotPrice > 0 ?
+        Math.round(spotPrice * 1.02 * 100) / 100 : null);
+    }
+  }
+
+  if (nTrans === null) {
+    if (totalNetGEX >= 0) {
+      nTrans = pTrans !== null ?
+        Math.round(pTrans * 0.95 * 100) / 100 :
+        (spotPrice > 0 ? Math.round(spotPrice * 0.93 * 100) / 100 : null);
+    } else {
+      nTrans = cotmp || (spotPrice > 0 ?
+        Math.round(spotPrice * 0.95 * 100) / 100 : null);
+    }
+  }
+
+  // Ensure Rule 4 compatibility: pTrans sits above nTrans
+  if (pTrans !== null && nTrans !== null && pTrans <= nTrans) {
+    if (totalNetGEX >= 0) {
+      nTrans = Math.round(pTrans * 0.95 * 100) / 100;
+    } else {
+      pTrans = Math.round(nTrans * 1.05 * 100) / 100;
+    }
+  }
 
   return {
     symbol,

@@ -152,6 +152,30 @@ describe("Gamma Exposure (GEX) Data Validation", () => {
     expect(result.signal).toBe("HOLD");
     expect(result.reason).toContain("neutral dealer positioning");
   });
+
+  it("should provide non-null structural level fallbacks when chain has no zero crossings", () => {
+    // Mock chain with only calls (all strikes positive net GEX)
+    const allCallsChain = {
+      options: [
+        {
+          calls: [
+            { strike: 100, impliedVolatility: 0.25, openInterest: 2000 },
+            { strike: 105, impliedVolatility: 0.22, openInterest: 5000 },
+            { strike: 110, impliedVolatility: 0.20, openInterest: 3000 },
+          ],
+          puts: [],
+        },
+      ],
+    };
+
+    const gexData = computeGammaExposure("AAPL", 102, allCallsChain);
+    expect(gexData.gammaFlip).toBeNull(); // No crossing
+    expect(gexData.pTrans).not.toBeNull();
+    expect(gexData.nTrans).not.toBeNull();
+    expect(gexData.plusGex).not.toBeNull();
+    expect(gexData.cotmp).not.toBeNull();
+    expect(gexData.pTrans!).toBeGreaterThan(gexData.nTrans!);
+  });
 });
 
 describe("Gamma Exposure symbol selection", () => {

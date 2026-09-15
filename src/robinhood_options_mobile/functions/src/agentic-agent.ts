@@ -74,14 +74,24 @@ export async function handleAgenticDecision(
     Reason: ${macroAssessment.reason}
   ` : "N/A";
 
+  const totalOI = gexData?.gexByStrike ?
+    gexData.gexByStrike.reduce(
+      (sum: number, s: any) => sum + (s.callOI || 0) + (s.putOI || 0),
+      0
+    ) :
+    0;
+
   const gexSummary = gexData ? `
+    Total Call GEX: $${(gexData.totalCallGEX / 1e6).toFixed(2)}M
+    Total Put GEX: $${(gexData.totalPutGEX / 1e6).toFixed(2)}M
     Total Net GEX: $${(gexData.totalNetGEX / 1e6).toFixed(2)}M
+    Total Open Interest: ${totalOI.toLocaleString()} contracts
     Dealer Positioning: ${gexData.dealerPositioning}
-    pTrans: $${gexData.pTrans?.toFixed(2) || "N/A"}
-    nTrans: $${gexData.nTrans?.toFixed(2) || "N/A"}
-    +GEX (T1): $${gexData.plusGex?.toFixed(2) || "N/A"}
-    COTMP: $${gexData.cotmp?.toFixed(2) || "N/A"}
-  ` : "N/A";
+    pTrans: ${gexData.pTrans != null ? `$${gexData.pTrans.toFixed(2)}` : "N/A"}
+    nTrans: ${gexData.nTrans != null ? `$${gexData.nTrans.toFixed(2)}` : "N/A"}
+    +GEX (T1): ${gexData.plusGex != null ? `$${gexData.plusGex.toFixed(2)}` : "N/A"}
+    COTMP: ${gexData.cotmp != null ? `$${gexData.cotmp.toFixed(2)}` : "N/A"}
+  ` : "N/A (Options/GEX chain data not available for this instrument)";
 
   const portfolioSummary = `
     Buying Power: $${portfolioState.buyingPower?.toFixed(2) || "0.00"}
@@ -145,8 +155,16 @@ Ensure the "status" is "approved" only if you want to execute a
 trade (BUY/SELL).
 Otherwise, set status to "rejected" and signal to "HOLD".
 
-If quantitative data like pTrans is missing ("N/A"), default to "HOLD" 
-and explain that data is insufficient.
+When GEX Structural Levels are provided:
+- Apply the 11 Rules of GEX Options Trading in conjunction with Deterministic Algo Feedback, Market Context, and Macro Assessment.
+- CONFIRMED: GEX structural rules pass and technicals confirm -> BUY.
+- PENDING: GEX rules pass, but spot is inside watchdog buffer -> HOLD.
+- BLOCKED: Critical risk or negative gamma rules fail -> HOLD or SELL.
+
+When GEX Structural Levels are NOT provided ("N/A") (e.g., no active options chain or GEX unavailable):
+- Do NOT reject or default to "HOLD" merely because GEX is N/A.
+- Instead, perform the analysis using the Deterministic Algo Feedback, Technical Indicators (SMA, RSI, Volume), and Macro Assessment.
+- If the technical indicators and macro regime are strongly bullish and aligned, you may issue a BUY signal based on technical and macro strength, noting that GEX was unavailable.
 
 Output ONLY the JSON.
 `;
