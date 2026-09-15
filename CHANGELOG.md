@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.46.0] - 2026-09-15
+**Investor Groups 2.0: Group Activity Feed, Real-Time Trade Stream, Member Filtering, Trade Inspection & Privacy Controls**
+
+### Added
+- **Group Activity Feed ([#78](https://github.com/CIInc/robinhood-options-mobile/issues/78), [Tracking: #113](https://github.com/CIInc/robinhood-options-mobile/issues/113)):**
+  - Created domain models `GroupActivity` and `GroupActivityPrivacySettings` (`lib/model/group_activity.dart`) supporting multiple event types (`trade`, `order`, `memberJoined`, `memberLeft`, `watchlistUpdated`, `milestone`), trade metrics (side, symbol, quantity, price, orderType, assetType), option contract details (strike, expiration, option type), and privacy flags (`hideAmounts`, `isAnonymous`).
+  - Added Firestore service methods (`lib/services/firestore_service.dart`):
+    - `getGroupActivitiesStream`: Real-time Firestore stream with member and type filtering.
+    - `recordGroupActivity`: Persist activity events to `investor_groups/{groupId}/activities`.
+    - `getUserGroupPrivacySettings` & `updateUserGroupPrivacySettings`: Manage per-group member privacy preferences in `investor_groups/{groupId}/member_privacy/{userId}`.
+    - `broadcastTradeActivity`: Automatically broadcast member trade events respecting `shareTrades`, `showTradeAmounts`, and `anonymous` settings.
+  - Built `InvestorGroupActivityFeedWidget` (`lib/widgets/investor_group_activity_feed_widget.dart`):
+    - Real-time streaming timeline with relative timestamps and color-coded action badges (Buy/Sell, Stock, Option, Crypto).
+    - Filter bar with activity type chips (`All`, `Trades`, `Watchlists`, `Members`) and member dropdown.
+    - Interactive trade details modal bottom sheet (`_showActivityDetailSheet`) with full breakdown, option contract metadata, and direct "Copy Trade" / "View Instrument" actions.
+    - Member Privacy Controls dialog (`_showPrivacySettingsDialog`) enabling users to toggle trade sharing, amount visibility, and anonymity per group.
+  - Integrated `_buildActivityFeedCard` into `InvestorGroupDetailWidget` (`lib/widgets/investor_group_detail_widget.dart`) card hub with real-time activity count badges and recent trade preview.
+  - Added comprehensive test suites:
+    - `test/investor_group_activity_test.dart`: 11 unit tests verifying serialization, option calculations, privacy masking, and FakeFirebaseFirestore integration.
+    - `test/investor_group_activity_widget_test.dart`: 4 widget tests verifying feed rendering, empty states, detail sheet interactions, and privacy controls modal.
+
 ## [0.45.0] - 2026-09-14
 **Multi-Account & Retirement Expansion, Corporate Action Split Adjustments, Cash-in-Lieu Tracking, Securities Lending (SLIP), High-Yield Cash Sweeps, Banking/ACH Transfers, Tax Documents & Shareholder Say Q&A Engagement**
 

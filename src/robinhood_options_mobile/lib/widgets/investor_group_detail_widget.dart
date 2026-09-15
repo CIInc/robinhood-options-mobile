@@ -16,6 +16,8 @@ import 'package:robinhood_options_mobile/widgets/investor_group_chat_widget.dart
 import 'package:robinhood_options_mobile/widgets/investor_group_manage_members_widget.dart';
 import 'package:robinhood_options_mobile/widgets/investor_group_performance_analytics_widget.dart';
 import 'package:robinhood_options_mobile/widgets/group_watchlists_widget.dart';
+import 'package:robinhood_options_mobile/model/group_activity.dart';
+import 'package:robinhood_options_mobile/widgets/investor_group_activity_feed_widget.dart';
 import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -227,6 +229,8 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
               _buildOverviewCard(group, isMember),
               const SizedBox(height: 16),
               _buildPerformanceCard(group),
+              const SizedBox(height: 16),
+              _buildActivityFeedCard(group, isMember),
               const SizedBox(height: 16),
               _buildWatchlistsCard(group, isMember),
               const SizedBox(height: 16),
@@ -703,7 +707,145 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
     );
   }
 
+  Widget _buildActivityFeedCard(InvestorGroup group, bool isMember) {
+    return Card(
+      elevation: 0,
+      shadowColor: Colors.black.withOpacity(0.1),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: _getCardBorderColor(), width: 1),
+      ),
+      child: InkWell(
+        onTap: () {
+          HapticFeedback.lightImpact();
+          _trackEvent('activity_feed_card_tapped');
+          _navigateToActivityFeed(group);
+        },
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: StreamBuilder<List<GroupActivity>>(
+            stream: widget.firestoreService
+                .getGroupActivitiesStream(widget.groupId, limit: 3),
+            builder: (context, snapshot) {
+              final activities = snapshot.data ?? [];
+              final hasData = activities.isNotEmpty;
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Flexible(
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.deepOrange
+                                    .withOpacity(_isDarkTheme ? 0.15 : 0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(Icons.dynamic_feed,
+                                  color: Colors.deepOrange, size: 24),
+                            ),
+                            const SizedBox(width: 12),
+                            Flexible(
+                              child: Text(
+                                'Activity Feed',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleMedium
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (hasData)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.deepOrange
+                                .withOpacity(_isDarkTheme ? 0.2 : 0.15),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            '${activities.length}',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              color: Colors.deepOrange,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                      const SizedBox(width: 8),
+                      Icon(Icons.arrow_forward_ios,
+                          size: 16, color: _getTertiaryTextColor()),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  if (hasData) ...[
+                    Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 12,
+                          backgroundColor:
+                              Theme.of(context).primaryColor.withOpacity(0.15),
+                          child: Text(
+                            activities.first.userName.isNotEmpty
+                                ? activities.first.userName[0].toUpperCase()
+                                : 'M',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).primaryColor,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            activities.first.title,
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: activities.first.isBuy
+                                  ? Colors.green
+                                  : activities.first.isSell
+                                      ? Colors.red
+                                      : null,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ] else
+                    Text(
+                      'Real-time feed of member trades and group actions',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: _getSecondaryTextColor(),
+                          ),
+                    ),
+                ],
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildWatchlistsCard(InvestorGroup group, bool isMember) {
+
     if (!isMember) {
       return Card(
         elevation: 0,
@@ -1373,6 +1515,23 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
             analytics: widget.analytics,
             observer: widget.observer,
           ),
+        ),
+      ),
+    );
+  }
+
+  void _navigateToActivityFeed(InvestorGroup group) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => InvestorGroupActivityFeedWidget(
+          groupId: group.id,
+          group: group,
+          firestoreService: widget.firestoreService,
+          service: widget.service,
+          brokerageUser: widget.brokerageUser,
+          analytics: widget.analytics,
+          observer: widget.observer,
         ),
       ),
     );

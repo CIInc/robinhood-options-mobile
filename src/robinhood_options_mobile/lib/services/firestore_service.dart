@@ -24,6 +24,7 @@ import 'package:robinhood_options_mobile/model/group_message.dart';
 import 'package:robinhood_options_mobile/model/instrument_note.dart';
 import 'package:robinhood_options_mobile/model/whale_watch.dart';
 import 'package:robinhood_options_mobile/model/trading_psychology_model.dart';
+import 'package:robinhood_options_mobile/model/group_activity.dart';
 
 class FirestoreService {
   final FirebaseFirestore _db;
@@ -1207,7 +1208,235 @@ class FirestoreService {
     }
   }
 
+  /// Group Activity Feed Methods
+
+  /// Stream group activities
+  Stream<List<GroupActivity>> getGroupActivitiesStream(
+    String groupId, {
+    String? memberId,
+    GroupActivityType? type,
+    int limit = 50,
+  }) {
+    Query query = investorGroupCollection
+        .doc(groupId)
+        .collection('activities')
+        .orderBy('timestamp', descending: true);
+
+    if (memberId != null && memberId.isNotEmpty) {
+      query = query.where('userId', isEqualTo: memberId);
+    }
+    if (type != null) {
+      query = query.where('type', isEqualTo: type.name);
+    }
+    query = query.limit(limit);
+
+    return query.snapshots().map((snapshot) =>
+        snapshot.docs.map((doc) => GroupActivity.fromDocument(doc)).toList());
+  }
+
+  /// Record a group activity
+  Future<DocumentReference> recordGroupActivity(
+      String groupId, GroupActivity activity) async {
+    try {
+      final docRef = await investorGroupCollection
+          .doc(groupId)
+          .collection('activities')
+          .add(activity.toJson());
+      debugPrint("Activity recorded in group $groupId: ${activity.title}");
+      return docRef;
+    } on FirebaseException catch (e) {
+      debugPrint('Failed to record group activity: ${e.message}');
+      rethrow;
+    }
+  }
+
+  /// Get user privacy settings for a group
+  Future<GroupActivityPrivacySettings> getUserGroupPrivacySettings(
+      String groupId, String userId) async {
+    try {
+      final doc = await investorGroupCollection
+          .doc(groupId)
+          .collection('member_privacy')
+          .doc(userId)
+          .get();
+      if (doc.exists && doc.data() != null) {
+        return GroupActivityPrivacySettings.fromJson(
+            Map<String, dynamic>.from(doc.data() as Map));
+      }
+      return const GroupActivityPrivacySettings();
+    } catch (e) {
+      debugPrint('Failed to load user group privacy settings: $e');
+      return const GroupActivityPrivacySettings();
+    }
+  }
+
+  /// Update user privacy settings for a group
+  Future<void> updateUserGroupPrivacySettings(
+      String groupId, String userId, GroupActivityPrivacySettings settings) async {
+    try {
+      await investorGroupCollection
+          .doc(groupId)
+          .collection('member_privacy')
+          .doc(userId)
+          .set(settings.toJson(), SetOptions(merge: true));
+      debugPrint("Privacy settings updated for user $userId in group $groupId");
+    } on FirebaseException catch (e) {
+      debugPrint('Failed to update user group privacy settings: ${e.message}');
+      rethrow;
+    }
+  }
+
+  /// Broadcast a member trade to the group activity feed respecting privacy settings
+  Future<DocumentReference?> broadcastTradeActivity({
+    required String groupId,
+    required String userId,
+    required String userName,
+    String? userPhotoUrl,
+    required String symbol,
+    required String side,
+    required double quantity,
+    required double price,
+    String? orderType,
+    String? assetType,
+    Map<String, dynamic>? details,
+  }) async {
+    try {
+      final privacy = await getUserGroupPrivacySettings(groupId, userId);
+      if (!privacy.shareTrades) {
+        debugPrint("Trade not shared to group $groupId due to user privacy setting");
+        return null;
+      }
+
+      final orderState = details?['state']?.toString();
+      final isPending =
+          orderState != null && orderState.toLowerCase() != 'filled';
+      final verb = _formatTradeVerb(side, state: orderState);
+      final title = privacy.anonymous
+          ? 'A member $verb $symbol'
+          : '$userName $verb $symbol';
+
+      final activity = GroupActivity(
+        id: '',
+        groupId: groupId,
+        userId: userId,
+        userName: userName,
+        userPhotoUrl: privacy.anonymous ? null : userPhotoUrl,
+        type: isPending ? GroupActivityType.order : GroupActivityType.trade,
+        title: title,
+        timestamp: DateTime.now(),
+        symbol: symbol,
+        side: side,
+        quantity: quantity,
+        price: price,
+        orderType: orderType,
+        assetType: assetType,
+        details: details,
+        isAnonymous: privacy.anonymous,
+        hideAmounts: !privacy.showTradeAmounts,
+      );
+
+      return await recordGroupActivity(groupId, activity);
+    } catch (e) {
+      debugPrint('Failed to broadcast trade activity: $e');
+      return null;
+    }
+  }
+
+  /// Share recent user orders (stocks, options, crypto) to a group activity feed
+  Future<int> shareRecentTradesToGroup({
+    required String groupId,
+    required String userId,
+    required String userName,
+    String? userPhotoUrl,
+    required List<GroupActivity> activities,
+  }) async {
+    try {
+      final privacy = await getUserGroupPrivacySettings(groupId, userId);
+      if (!privacy.shareTrades) {
+        debugPrint(
+            "Trades not shared to group $groupId due to user privacy setting");
+        return 0;
+      }
+
+      // Check existing activities to avoid duplicates by orderId
+      final existingDocs = await investorGroupCollection
+          .doc(groupId)
+          .collection('activities')
+          .where('userId', isEqualTo: userId)
+          .get();
+
+      final existingOrderIds = existingDocs.docs
+          .map((d) {
+            final data = d.data();
+            final details = data['details'];
+            if (details is Map && details['orderId'] != null) {
+              return details['orderId'].toString();
+            }
+            return null;
+          })
+          .whereType<String>()
+          .toSet();
+
+      int count = 0;
+      for (final rawActivity in activities) {
+        final orderId = rawActivity.details?['orderId']?.toString();
+        if (orderId != null && existingOrderIds.contains(orderId)) {
+          continue;
+        }
+
+        final orderState = rawActivity.details?['state']?.toString();
+        final isPending =
+            orderState != null && orderState.toLowerCase() != 'filled';
+        final verb = _formatTradeVerb(rawActivity.side, state: orderState);
+        final title = privacy.anonymous
+            ? 'A member $verb ${rawActivity.symbol}'
+            : '$userName $verb ${rawActivity.symbol}';
+
+        final activity = rawActivity.copyWith(
+          groupId: groupId,
+          userId: userId,
+          userName: userName,
+          userPhotoUrl: privacy.anonymous ? null : userPhotoUrl,
+          type: isPending ? GroupActivityType.order : rawActivity.type,
+          title: title,
+          isAnonymous: privacy.anonymous,
+          hideAmounts: !privacy.showTradeAmounts,
+        );
+
+        await recordGroupActivity(groupId, activity);
+        count++;
+      }
+      debugPrint("Shared $count recent trades to group $groupId");
+      return count;
+    } catch (e) {
+      debugPrint('Failed to share recent trades to group: $e');
+      return 0;
+    }
+  }
+
+  static String _formatTradeVerb(String? side, {String? state}) {
+    final s = side?.toLowerCase().trim();
+    final isPending = state != null && state.toLowerCase() != 'filled';
+    if (isPending) {
+      if (s == 'sell' || s == 'sold') {
+        return 'placed a sell order for';
+      }
+      if (s == 'buy' || s == 'bought') {
+        return 'placed a buy order for';
+      }
+      return 'placed an order for';
+    }
+    if (s == 'sell' || s == 'sold') {
+      return 'sold';
+    }
+    if (s == 'buy' || s == 'bought') {
+      return 'bought';
+    }
+    return 'traded';
+  }
+
   /// Group Performance Analytics Methods
+
 
   Future<Map<String, dynamic>> getGroupPerformanceAnalytics(
     String groupId,

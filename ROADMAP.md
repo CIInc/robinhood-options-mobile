@@ -42,12 +42,12 @@ This document outlines the planned features and enhancements for RealizeAlpha.
 ### Quick Stats
 - **Completed Features**: 16 major categories (120+ items)
 - **Planned Enhancements**: 24+ categories (195+ items)
-- **Open GitHub Issues**: 46 active issues (30 feature & tracking epics + 16 enhancement/maintenance issues)
+- **Open GitHub Issues**: 47 active issues (31 feature & tracking epics + 16 enhancement/maintenance issues)
 - **Focus Areas**: Advanced trading strategies, brokerage integrations, security, social features, AI coaching, quantitative research, behavioral finance, frontier tech
 
 ### Key Highlights
 - ✅ **Recently Completed**: AI Trading Coach & Behavioral Finance (Trading Psychology Score, Cognitive Bias Detection & Antidotes, Emotion Tracking & Journaling, Personalized Pattern Analysis), Forex currency pairs trading, Carry Trade Optimizer, multi-asset portfolio allocation (Stocks, Options, Crypto, Forex, Futures, Fixed Income, Cash), Pattern Day Trader (PDT) Protection & Counter (FINRA Rule 4210 rolling 5-day counter & Action Center alerts), and Robinhood Market Intelligence (short interest, retail flow, insider activity, hedge funds, and curated screener presets).
-- 🔥 **In Progress**: Schwab multi-account support and Robinhood Native API Expansion.
+- 🔥 **In Progress**: Schwab API expansion (Market Data, Order Previews & WebSocket Streamer) and Robinhood Native API Expansion.
 - 🚀 **Next Milestone**: **Robinhood Market Data & Institutional Intelligence** (v0.43.0).
 - **Focus Areas**: Institutional-grade options analytics (GEX), AI-powered trade orchestration, and multi-brokerage expansion.
 - 🎯 **2026 Priorities**: 
@@ -346,6 +346,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 
 ### v0.46.0 (Q4 2026 - November)
 **Investor Groups 2.0 & Collaborative Analytics**
+- ✅ **Group Activity Feed:** Real-time feed of member trades and actions with member/type filtering, trade details sheet, and privacy controls ([#78](https://github.com/CIInc/robinhood-options-mobile/issues/78), [Tracking: #113](https://github.com/CIInc/robinhood-options-mobile/issues/113))
 - Group chat (real-time messaging) ([Tracking: #113](https://github.com/CIInc/robinhood-options-mobile/issues/113))
 - Performance leaderboards & shared analysis boards.
 - Verified track records for public group leaders.
@@ -845,7 +846,7 @@ Q3 launches the social/community ecosystem. Investor Groups already exist (✅),
 #### Investor Groups ([Tracking: #113](https://github.com/CIInc/robinhood-options-mobile/issues/113))
 - [x] **Group Chat**: Real-time messaging within groups ([#76](https://github.com/CIInc/robinhood-options-mobile/issues/76)) - **Large** (3-4 weeks)
 - [x] **Performance Analytics**: Group leaderboards and performance tracking ([#77](https://github.com/CIInc/robinhood-options-mobile/issues/77)) - **Medium** (2-3 weeks)
-- [ ] **Activity Feed**: Real-time feed of member trades ([#78](https://github.com/CIInc/robinhood-options-mobile/issues/78)) - **Medium** (2-3 weeks)
+- [x] **Activity Feed**: Real-time feed of member trades ([#78](https://github.com/CIInc/robinhood-options-mobile/issues/78)) - **Medium** (2-3 weeks)
 - [x] **Shared Watchlists**: Collaborative watchlists for groups ([#79](https://github.com/CIInc/robinhood-options-mobile/issues/79)) - **Small** (1-2 weeks)
 - [ ] **Public Leaderboards**: Ranked lists of top-performing public investor groups and strategies - **Medium** (2-3 weeks)
 - [ ] **Verified Track Records**: Cryptographic proof of historical performance for public profiles - **Medium** (3-4 weeks)
@@ -903,10 +904,30 @@ Technical debt accumulation slows velocity. Investing in testing, CI/CD, and sec
 - [ ] **Security Audit & Infrastructure Roadmap** ([#135](https://github.com/CIInc/robinhood-options-mobile/issues/135)): Third-party security assessment, enterprise MCP hub, and zero-knowledge portfolio sharing
 
 #### Data & Integration
-- [x] **Schwab Integration**: Full portfolio and trading support ([#91](https://github.com/CIInc/robinhood-options-mobile/issues/91), [#93](https://github.com/CIInc/robinhood-options-mobile/issues/93), [#122](https://github.com/CIInc/robinhood-options-mobile/issues/122))
+- [ ] **Schwab Integration Expansion & Real-Time Streaming** ([#91](https://github.com/CIInc/robinhood-options-mobile/issues/91), [#93](https://github.com/CIInc/robinhood-options-mobile/issues/93), [#122](https://github.com/CIInc/robinhood-options-mobile/issues/122), [#145](https://github.com/CIInc/robinhood-options-mobile/issues/145)):
     - [x] Schwab Auth & Portfolio Sync (Phase 1)
     - [x] Schwab Options Order Placement (Phase 2, v0.37.5) - [Tracking: #138](https://github.com/CIInc/robinhood-options-mobile/issues/138)
     - [x] Schwab Multi-Account Support (Phase 3): Preserve Schwab account hash IDs and route orders to the selected account
+    - [ ] **Schwab Market Data Parity** ([#93](https://github.com/CIInc/robinhood-options-mobile/issues/93)):
+        - [ ] Real-time quote retrieval (`GET /marketdata/v1/quotes`) replacing stubbed `getQuote`/`refreshQuote`
+        - [ ] Historical OHLCV price candles (`GET /marketdata/v1/pricehistory`) for interactive charts and backtesting
+        - [ ] Fundamental equity data (`GET /marketdata/v1/instruments?projection=fundamental`) for market cap, PE, EPS, dividend yields
+        - [ ] Market Movers index data (`GET /marketdata/v1/movers/{index}`) for `$DJI`, `$COMPX`, `$SPX`
+        - [ ] Market operating hours and trading session status (`GET /marketdata/v1/markets`)
+        - [ ] Options expiration chains (`GET /marketdata/v1/expirationchain`) for fast expiration selectors
+    - [ ] **Schwab Advanced Trading & Execution** ([#122](https://github.com/CIInc/robinhood-options-mobile/issues/122)):
+        - [ ] Order preview and margin validation (`POST /trader/v1/accounts/{accountNumber}/previewOrder`) for pre-trade buying power and commission check
+        - [ ] In-flight order replacement and modification (`PUT /trader/v1/accounts/{accountNumber}/orders/{orderId}`)
+        - [ ] Multi-leg strategy options chains (`GET /marketdata/v1/chains?strategy=...`)
+    - [ ] **Schwab Account Activity & Transactions** ([#91](https://github.com/CIInc/robinhood-options-mobile/issues/91)):
+        - [ ] Historical trade transactions, dividends, and cash movements (`GET /trader/v1/accounts/{accountNumber}/transactions`) for realized P&L and dividend tracking
+        - [ ] User preferences synchronization (`GET /trader/v1/userPreference`)
+    - [ ] **Schwab Real-Time WebSocket Streamer** ([#145](https://github.com/CIInc/robinhood-options-mobile/issues/145)):
+        - [ ] Streamer authentication and session handshake via `GET /trader/v1/userPreference` (`wss://streamer-api.schwab.com/ws`)
+        - [ ] Sub-second streaming quotes (`LEVELONE_EQUITIES`) and options Greeks (`LEVELONE_OPTIONS`)
+        - [ ] Real-time account and order activity notifications (`ACCT_ACTIVITY`)
+        - [ ] Streaming chart candle updates (`CHART_EQUITY`)
+        - [ ] Streaming futures (`LEVELONE_FUTURES`) and forex (`LEVELONE_FOREX`) feeds
 - [x] **Robinhood Native Multi-Account & Retirement Support**:
     - [x] IRA Traditional & Roth Account support (`ira_traditional`, `ira_roth`) with contribution tracking
     - [x] Connected Agents & External Tokens management (`/oauth2/list_external_tokens/`)
