@@ -20,6 +20,13 @@ This document explains how to set up the necessary secrets for the GitHub Action
 | `IOS_PROVISIONING_PROFILE_BASE64` | Base64 encoded `.mobileprovision` for the Main App. |
 | `IOS_WIDGET_PROVISIONING_PROFILE_BASE64` | Base64 encoded `.mobileprovision` for the Widget Extension. |
 | `IOS_EXPORT_OPTIONS_PLIST` | The raw content of your `ExportOptions.plist`. |
+| `APP_STORE_CONNECT_API_KEY_ID` | Key ID for the App Store Connect API key (App Manager role). |
+| `APP_STORE_CONNECT_API_ISSUER_ID` | Issuer ID for the App Store Connect API key. |
+| `APP_STORE_CONNECT_API_PRIVATE_KEY` | Contents of the `.p8` private key file for App Store Connect API. |
+| `APP_STORE_CONNECT_USERNAME` | (Optional fallback) Apple ID username for `altool`. |
+| `APP_STORE_CONNECT_PASSWORD` | (Optional fallback) App-specific password for `altool`. |
+
+When API Key secrets are configured, the CD workflow uploads the iOS IPA to TestFlight via `apple-actions/upload-testflight-build` and sets the build's Test Details ("What to Test") from the version notes in `ROADMAP.md`. If API Key secrets are absent, it falls back to `xcrun altool`.
 
 ### How to encode iOS secrets
 
@@ -69,8 +76,10 @@ The easiest way for Flutter developers to generate a valid `ExportOptions.plist`
 
 When `pubspec.yaml` contains a version that does not already have a Git tag,
 the CD workflow publishes the generated App Bundle as a completed release on
-the Google Play internal track. A Play publication failure fails the Android
-build job so a GitHub release is not created for an unpublished Android build.
+the Google Play internal track, including localized release notes (`whatsnew-en-US`)
+automatically formatted and truncated to adhere to Google Play's 500-character limit.
+A Play publication failure fails the Android build job so a GitHub release is not
+created for an unpublished Android build.
 
 ### How to encode Android secrets
 
