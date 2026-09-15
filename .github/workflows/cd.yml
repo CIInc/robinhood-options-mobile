@@ -242,6 +242,9 @@ jobs:
     if: needs.check_version.outputs.new_version == 'true'
     runs-on: macos-latest # Uses latest available macOS runner
     timeout-minutes: 60
+    env:
+      APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+      APP_STORE_CONNECT_API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
     defaults:
       run:
         working-directory: src/robinhood_options_mobile
@@ -382,7 +385,7 @@ jobs:
           echo "ipa_path=$IPA_PATH" >> $GITHUB_OUTPUT
 
       - name: Upload to TestFlight with Test Details (API Key)
-        if: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID != '' && secrets.APP_STORE_CONNECT_API_ISSUER_ID != '' }}
+        if: env.APP_STORE_CONNECT_API_KEY_ID != '' && env.APP_STORE_CONNECT_API_ISSUER_ID != ''
         uses: apple-actions/upload-testflight-build@v5
         with:
           app-path: src/robinhood_options_mobile/${{ steps.resolve_ipa.outputs.ipa_path }}
@@ -392,7 +395,7 @@ jobs:
           release-notes: ${{ needs.check_version.outputs.release_notes }}
 
       - name: Upload to App Store (Legacy Username/Password fallback)
-        if: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID == '' || secrets.APP_STORE_CONNECT_API_ISSUER_ID == '' }}
+        if: env.APP_STORE_CONNECT_API_KEY_ID == '' || env.APP_STORE_CONNECT_API_ISSUER_ID == ''
         run: |
           echo "Using Username/Password for authentication"
           xcrun altool --upload-app --type ios -f build/ios/ipa/*.ipa --username "${{ secrets.APP_STORE_CONNECT_USERNAME }}" --password "${{ secrets.APP_STORE_CONNECT_PASSWORD }}"
