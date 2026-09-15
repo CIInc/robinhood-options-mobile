@@ -483,5 +483,62 @@ void main() {
       expect(cat1.hashCode, equals(cat2.hashCode));
       expect(cat1 == cat3, isFalse);
     });
+
+    testWidgets('Activity badge reflects order count and is displayed correctly',
+        (WidgetTester tester) async {
+      final categoriesWithActivityBadge = [
+        const InstrumentCategory(
+          key: 'Overview',
+          label: 'Overview',
+          icon: Icons.dashboard_outlined,
+          selectedIcon: Icons.dashboard,
+        ),
+        const InstrumentCategory(
+          key: 'Activity',
+          label: 'Activity',
+          icon: Icons.receipt_long_outlined,
+          selectedIcon: Icons.receipt_long,
+          badge: '3',
+        ),
+        const InstrumentCategory(
+          key: 'All',
+          label: 'All',
+          icon: Icons.view_agenda_outlined,
+          selectedIcon: Icons.view_agenda,
+        ),
+      ];
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: CustomScrollView(
+              slivers: [
+                SliverPersistentHeader(
+                  pinned: true,
+                  delegate: InstrumentCategoryHeaderDelegate(
+                    selectedCategory: 'All',
+                    onCategorySelected: (_) {},
+                    categories: categoriesWithActivityBadge,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      // Verify 'All' is selected
+      final allChip = tester.widget<FilterChip>(
+        find.ancestor(
+          of: find.text('All'),
+          matching: find.byType(FilterChip),
+        ),
+      );
+      expect(allChip.selected, isTrue);
+
+      // Verify Activity badge shows '3'
+      expect(find.text('3'), findsOneWidget);
+    });
   });
 }
+

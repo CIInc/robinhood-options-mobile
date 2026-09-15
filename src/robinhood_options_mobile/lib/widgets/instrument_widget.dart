@@ -414,11 +414,19 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       final stockStore =
           Provider.of<InstrumentPositionStore>(context, listen: false);
       final optStore = Provider.of<OptionPositionStore>(context, listen: false);
+      final comboStore = Provider.of<ComboOrderStore>(context, listen: false);
       hasPosition =
           stockStore.items.any((e) => e.instrument == instrument.url) ||
               optStore.items.any((e) => e.symbol == instrument.symbol);
+      final comboCount = comboStore.items.where((order) =>
+          order.primarySymbol.toUpperCase() ==
+              instrument.symbol.toUpperCase() ||
+          order.legs.any((l) =>
+              l.symbol != null &&
+              l.symbol!.toUpperCase() == instrument.symbol.toUpperCase())).length;
       orderCount = (instrument.positionOrders?.length ?? 0) +
-          (instrument.optionOrders?.length ?? 0);
+          (instrument.optionOrders?.length ?? 0) +
+          comboCount;
     }
 
     if (hasPosition) {
@@ -1861,11 +1869,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           _buildHistoricalPositionsSliver(instrument),
           _buildStockOrdersSliver(instrument),
           _buildOptionOrdersSliver(instrument),
-          if (instrument.dividendsObj != null &&
-              instrument.dividendsObj!.isNotEmpty) ...[
-            const SliverToBoxAdapter(child: SizedBox(height: 8.0)),
-            _buildDividendsWidget(instrument),
-          ],
+          _buildComboOrdersSliver(instrument),
           // 2. Market Overview
           _buildMarketQuoteSliver(instrument),
           _buildBuyingPowerSliver(instrument),
@@ -2377,14 +2381,15 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
   Widget _buildActivityEmptyStateSliver(Instrument instrument) {
     final isPaper = widget.brokerageUser.source == BrokerageSource.paper;
-    return Consumer4<InstrumentPositionStore, OptionPositionStore,
-        InstrumentOrderStore, PaperTradingStore>(
-      builder:
-          (context, stockStore, optionStore, orderStore, paperStore, child) {
+    return Consumer5<InstrumentPositionStore, OptionPositionStore,
+        InstrumentOrderStore, PaperTradingStore, ComboOrderStore>(
+      builder: (context, stockStore, optionStore, orderStore, paperStore,
+          comboStore, child) {
         bool hasStockPos = false;
         bool hasOptPos = false;
         bool hasStockOrders = false;
         bool hasOptOrders = false;
+        bool hasComboOrders = false;
 
         if (isPaper) {
           hasStockPos = paperStore.positions
@@ -2404,6 +2409,12 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               instrument.positionOrders!.isNotEmpty);
           hasOptOrders = (instrument.optionOrders != null &&
               instrument.optionOrders!.isNotEmpty);
+          hasComboOrders = comboStore.items.any((order) =>
+              order.primarySymbol.toUpperCase() ==
+                  instrument.symbol.toUpperCase() ||
+              order.legs.any((l) =>
+                  l.symbol != null &&
+                  l.symbol!.toUpperCase() == instrument.symbol.toUpperCase()));
         }
 
         final hasDividends = instrument.dividendsObj != null &&
@@ -2413,6 +2424,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             hasOptPos ||
             hasStockOrders ||
             hasOptOrders ||
+            hasComboOrders ||
             hasDividends) {
           return const SliverToBoxAdapter(child: SizedBox.shrink());
         }
