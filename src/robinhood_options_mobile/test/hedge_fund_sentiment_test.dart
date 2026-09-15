@@ -55,7 +55,7 @@ void main() {
             },
           ],
           'updated_at': '2026-08-15T16:00:00Z',
-        }
+        },
       };
 
       final txJson = {
@@ -102,8 +102,8 @@ void main() {
               'value': 337500000.0,
               'portfolio_percent': 0.45,
             },
-          ]
-        }
+          ],
+        },
       };
 
       final summary = HedgeFundSummary.fromResponses(
@@ -190,10 +190,14 @@ void main() {
     final user = BrokerageUser(BrokerageSource.demo, 'demo_user', null, null);
 
     test('returns realistic hedge fund data for AAPL', () async {
-      final summaryRes =
-          await demoService.getHedgeFundSummary(user, 'inst_aapl_01');
-      final txRes =
-          await demoService.getHedgeFundTransactions(user, 'inst_aapl_01');
+      final summaryRes = await demoService.getHedgeFundSummary(
+        user,
+        'inst_aapl_01',
+      );
+      final txRes = await demoService.getHedgeFundTransactions(
+        user,
+        'inst_aapl_01',
+      );
 
       expect(summaryRes, isNotNull);
       expect(txRes, isNotNull);
@@ -206,58 +210,75 @@ void main() {
       expect(summary.symbol, 'AAPL');
       expect(summary.isBullish, isTrue);
       expect(
-          summary.transactions.any((t) => t.managerName.contains('Berkshire')),
-          isTrue);
+        summary.transactions.any((t) => t.managerName.contains('Berkshire')),
+        isTrue,
+      );
       expect(summary.quarterlySummary.length, greaterThanOrEqualTo(2));
     });
 
     test(
-        'returns realistic hedge fund data for GME (institutional accumulation)',
-        () async {
-      final summaryRes =
-          await demoService.getHedgeFundSummary(user, 'inst_gme_01');
-      final txRes =
-          await demoService.getHedgeFundTransactions(user, 'inst_gme_01');
+      'returns realistic hedge fund data for GME (institutional accumulation)',
+      () async {
+        final summaryRes = await demoService.getHedgeFundSummary(
+          user,
+          'inst_gme_01',
+        );
+        final txRes = await demoService.getHedgeFundTransactions(
+          user,
+          'inst_gme_01',
+        );
 
-      expect(summaryRes, isNotNull);
-      expect(txRes, isNotNull);
+        expect(summaryRes, isNotNull);
+        expect(txRes, isNotNull);
 
-      final summary = HedgeFundSummary.fromResponses(
-        summaryResponse: summaryRes,
-        transactionsResponse: txRes,
-      );
+        final summary = HedgeFundSummary.fromResponses(
+          summaryResponse: summaryRes,
+          transactionsResponse: txRes,
+        );
 
-      expect(summary.symbol, 'GME');
-      expect(summary.isBullish, isTrue);
-      expect(
-          summary.transactions
-              .any((t) => t.managerName.contains('RC Ventures')),
-          isTrue);
-      expect(summary.buyingManagersCount,
-          greaterThan(summary.sellingManagersCount));
-    });
+        expect(summary.symbol, 'GME');
+        expect(summary.isBullish, isTrue);
+        expect(
+          summary.transactions.any(
+            (t) => t.managerName.contains('RC Ventures'),
+          ),
+          isTrue,
+        );
+        expect(
+          summary.buyingManagersCount,
+          greaterThan(summary.sellingManagersCount),
+        );
+      },
+    );
 
     test(
-        'returns realistic hedge fund data for TSLA (institutional distribution)',
-        () async {
-      final summaryRes =
-          await demoService.getHedgeFundSummary(user, 'inst_tsla_01');
-      final txRes =
-          await demoService.getHedgeFundTransactions(user, 'inst_tsla_01');
+      'returns realistic hedge fund data for TSLA (institutional distribution)',
+      () async {
+        final summaryRes = await demoService.getHedgeFundSummary(
+          user,
+          'inst_tsla_01',
+        );
+        final txRes = await demoService.getHedgeFundTransactions(
+          user,
+          'inst_tsla_01',
+        );
 
-      expect(summaryRes, isNotNull);
-      expect(txRes, isNotNull);
+        expect(summaryRes, isNotNull);
+        expect(txRes, isNotNull);
 
-      final summary = HedgeFundSummary.fromResponses(
-        summaryResponse: summaryRes,
-        transactionsResponse: txRes,
-      );
+        final summary = HedgeFundSummary.fromResponses(
+          summaryResponse: summaryRes,
+          transactionsResponse: txRes,
+        );
 
-      expect(summary.symbol, 'TSLA');
-      expect(summary.isBearish, isTrue);
-      expect(summary.sentimentBadge, 'Distribution');
-      expect(summary.transactions.any((t) => t.managerName.contains('ARK')),
-          isTrue);
-    });
+        expect(summary.symbol, 'TSLA');
+        expect(summary.isBearish, isTrue);
+        expect(summary.sentimentBadge, 'Distribution');
+        expect(
+          summary.transactions.any((t) => t.managerName.contains('ARK')),
+          isTrue,
+        );
+      },
+    );
   });
 }

@@ -64,10 +64,7 @@ void main() {
     });
 
     test('recognizes IRA from type field fallback', () {
-      final json = {
-        'account_number': 'IRA_FALLBACK',
-        'type': 'ira_roth',
-      };
+      final json = {'account_number': 'IRA_FALLBACK', 'type': 'ira_roth'};
 
       final account = Account.fromJson(json);
       expect(account.isRetirement, isTrue);
@@ -88,18 +85,21 @@ void main() {
       expect(unified.isMarginAccount, isTrue);
     });
 
-    test('IRA account returns isMarginAccount = false even if type is margin', () {
-      const unified = UnifiedAccount(
-        accountNumber: 'ROTH7890',
-        accountType: 'margin',
-        brokerageAccountType: 'ira_roth',
-        marginHealth: MarginHealth(borrowedAmount: 500.0),
-      );
+    test(
+      'IRA account returns isMarginAccount = false even if type is margin',
+      () {
+        const unified = UnifiedAccount(
+          accountNumber: 'ROTH7890',
+          accountType: 'margin',
+          brokerageAccountType: 'ira_roth',
+          marginHealth: MarginHealth(borrowedAmount: 500.0),
+        );
 
-      expect(unified.isRetirement, isTrue);
-      // IRS regulation: IRAs cannot have margin borrowing
-      expect(unified.isMarginAccount, isFalse);
-    });
+        expect(unified.isRetirement, isTrue);
+        // IRS regulation: IRAs cannot have margin borrowing
+        expect(unified.isMarginAccount, isFalse);
+      },
+    );
   });
 
   group('AccountStore Multi-Account Categorization Tests', () {
@@ -154,19 +154,16 @@ void main() {
       expect(store.brokerageAccounts.first.accountNumber, 'ACCT_BROKERAGE_1');
 
       expect(store.retirementAccounts.length, 2);
-      expect(store.retirementAccounts.map((a) => a.accountNumber),
-          containsAll(['ACCT_ROTH_1', 'ACCT_TRAD_1']));
+      expect(
+        store.retirementAccounts.map((a) => a.accountNumber),
+        containsAll(['ACCT_ROTH_1', 'ACCT_TRAD_1']),
+      );
     });
 
     test('DemoService returns both individual and Roth IRA accounts', () async {
       final service = DemoService();
       final store = AccountStore();
-      final user = BrokerageUser(
-        BrokerageSource.demo,
-        'demo_user',
-        null,
-        null,
-      );
+      final user = BrokerageUser(BrokerageSource.demo, 'demo_user', null, null);
 
       final accounts = await service.getAccounts(user, store, null, null);
 

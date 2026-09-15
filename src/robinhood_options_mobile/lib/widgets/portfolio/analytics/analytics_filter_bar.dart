@@ -121,8 +121,10 @@ class BenchmarkMenuButton extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('vs ${controller.selectedBenchmark}',
-                style: theme.textTheme.labelLarge),
+            Text(
+              'vs ${controller.selectedBenchmark}',
+              style: theme.textTheme.labelLarge,
+            ),
             const Icon(Icons.arrow_drop_down),
           ],
         ),
@@ -154,7 +156,9 @@ class BenchmarkMenuButton extends StatelessWidget {
           ),
           TextButton(
             onPressed: () => Navigator.pop(
-                context, textController.text.trim().toUpperCase()),
+              context,
+              textController.text.trim().toUpperCase(),
+            ),
             child: const Text('Add'),
           ),
         ],

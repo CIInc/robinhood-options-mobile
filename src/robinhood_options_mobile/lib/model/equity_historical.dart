@@ -14,26 +14,27 @@ class EquityHistorical {
   final String session;
 
   EquityHistorical(
-      this.adjustedOpenEquity,
-      this.adjustedCloseEquity,
-      this.openEquity,
-      this.closeEquity,
-      this.openMarketValue,
-      this.closeMarketValue,
-      this.beginsAt,
-      this.netReturn,
-      this.session);
+    this.adjustedOpenEquity,
+    this.adjustedCloseEquity,
+    this.openEquity,
+    this.closeEquity,
+    this.openMarketValue,
+    this.closeMarketValue,
+    this.beginsAt,
+    this.netReturn,
+    this.session,
+  );
 
   EquityHistorical.fromJson(dynamic json)
-      : adjustedOpenEquity = parseDouble(json['adjusted_open_equity']),
-        adjustedCloseEquity = parseDouble(json['adjusted_close_equity']),
-        openEquity = parseDouble(json['open_equity']),
-        closeEquity = parseDouble(json['close_equity']),
-        openMarketValue = parseDouble(json['open_market_value']),
-        closeMarketValue = parseDouble(json['close_market_value']),
-        beginsAt = DateTime.tryParse(json['begins_at'] ?? ''),
-        netReturn = parseDouble(json['net_return']),
-        session = json['session'];
+    : adjustedOpenEquity = parseDouble(json['adjusted_open_equity']),
+      adjustedCloseEquity = parseDouble(json['adjusted_close_equity']),
+      openEquity = parseDouble(json['open_equity']),
+      closeEquity = parseDouble(json['close_equity']),
+      openMarketValue = parseDouble(json['open_market_value']),
+      closeMarketValue = parseDouble(json['close_market_value']),
+      beginsAt = DateTime.tryParse(json['begins_at'] ?? ''),
+      netReturn = parseDouble(json['net_return']),
+      session = json['session'];
 
   /*
 {
@@ -98,19 +99,23 @@ class EquityHistorical {
 }
   */
   EquityHistorical.fromPerformanceJson(dynamic json)
-      : adjustedOpenEquity = parseDouble(json['primary_value']['value']
+    : adjustedOpenEquity = parseDouble(
+        json['primary_value']['value']
             ?.replaceAll('\$', '')
-            ?.replaceAll(',', '')),
-        adjustedCloseEquity = parseDouble(json['primary_value']['value']
+            ?.replaceAll(',', ''),
+      ),
+      adjustedCloseEquity = parseDouble(
+        json['primary_value']['value']
             ?.replaceAll('\$', '')
-            ?.replaceAll(',', '')),
-        openEquity = 0,
-        closeEquity = 0,
-        openMarketValue = 0,
-        closeMarketValue = 0,
-        beginsAt = null,
-        netReturn = parseDouble(json['secondary_value']['main']['value']),
-        session = json['label']['value'] {
+            ?.replaceAll(',', ''),
+      ),
+      openEquity = 0,
+      closeEquity = 0,
+      openMarketValue = 0,
+      closeMarketValue = 0,
+      beginsAt = null,
+      netReturn = parseDouble(json['secondary_value']['main']['value']),
+      session = json['label']['value'] {
     // For chart span: ytd
     // beginsAt ??= DateFormat('HH:mm MMM d, yyyy').tryParseLoose(json['label']['value']);
     // For chart span: ytd, 3m
@@ -118,19 +123,16 @@ class EquityHistorical {
 
     beginsAt = DateFormat('MMM d, yyyy').tryParse(json['label']['value']);
     if (beginsAt != null) {
-      beginsAt = DateTime(
-        beginsAt!.year,
-        beginsAt!.month,
-        beginsAt!.day,
-      );
+      beginsAt = DateTime(beginsAt!.year, beginsAt!.month, beginsAt!.day);
       return;
     }
 
     final now = DateTime.now();
 
     // For chart span: week
-    beginsAt =
-        DateFormat('h:mm a, MMM d').tryParseLoose(json['label']['value']);
+    beginsAt = DateFormat(
+      'h:mm a, MMM d',
+    ).tryParseLoose(json['label']['value']);
     if (beginsAt != null) {
       beginsAt = DateTime(
         now.year,
@@ -143,10 +145,12 @@ class EquityHistorical {
 
       // If beginsAt is in the future, subtract one year
       // e.g. on Jan 9 2026, received "value" -> "11:00 PM, Dec 9" for Dec 9 2025
-      if (beginsAt!.isAfter(now
-          .toUtc()
-          .add(Duration(hours: _getEasternOffset(now.month, now.day)))
-          .add(const Duration(days: 1)))) {
+      if (beginsAt!.isAfter(
+        now
+            .toUtc()
+            .add(Duration(hours: _getEasternOffset(now.month, now.day)))
+            .add(const Duration(days: 1)),
+      )) {
         // .add(const Duration(days: 1))
         beginsAt = DateTime(
           beginsAt!.year - 1,

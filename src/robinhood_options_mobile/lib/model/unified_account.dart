@@ -4,13 +4,7 @@ import 'package:robinhood_options_mobile/model/portfolio.dart';
 import 'package:robinhood_options_mobile/utils/json.dart';
 
 /// Status of account margin risk and distance to maintenance liquidation.
-enum MarginHealthStatus {
-  healthy,
-  warning,
-  critical,
-  marginCall,
-  unleveraged,
-}
+enum MarginHealthStatus { healthy, warning, critical, marginCall, unleveraged }
 
 /// Detailed margin health and maintenance buffer breakdown.
 class MarginHealth {
@@ -97,8 +91,8 @@ class MarginHealth {
     final Map<String, dynamic> parent = parentJson is Map<String, dynamic>
         ? parentJson
         : (parentJson is Map
-            ? Map<String, dynamic>.from(parentJson)
-            : <String, dynamic>{});
+              ? Map<String, dynamic>.from(parentJson)
+              : <String, dynamic>{});
 
     // If data itself contains 'margin_health', then data is the root payload
     final marginHealthMap = data['margin_health'] is Map
@@ -108,61 +102,75 @@ class MarginHealth {
         ? data['equities']
         : (parent['equities'] is Map ? parent['equities'] : null);
 
-    final borrowed = parseDouble(data['levered_amount'] ??
-            parent['levered_amount'] ??
-            data['borrowed_amount'] ??
-            parent['borrowed_amount'] ??
-            data['margin_used'] ??
-            parent['margin_used'] ??
-            data['settled_amount_borrowed'] ??
-            parent['settled_amount_borrowed'] ??
-            marginHealthMap['borrowed_amount']) ??
+    final borrowed =
+        parseDouble(
+          data['levered_amount'] ??
+              parent['levered_amount'] ??
+              data['borrowed_amount'] ??
+              parent['borrowed_amount'] ??
+              data['margin_used'] ??
+              parent['margin_used'] ??
+              data['settled_amount_borrowed'] ??
+              parent['settled_amount_borrowed'] ??
+              marginHealthMap['borrowed_amount'],
+        ) ??
         0.0;
 
-    final equity = parseDouble(data['portfolio_equity'] ??
-            parent['portfolio_equity'] ??
-            data['total_equity'] ??
-            parent['total_equity'] ??
-            data['equity'] ??
-            parent['equity'] ??
-            (equitiesMap != null ? equitiesMap['equity'] : null) ??
-            marginHealthMap['portfolio_equity'] ??
-            marginHealthMap['equity']) ??
+    final equity =
+        parseDouble(
+          data['portfolio_equity'] ??
+              parent['portfolio_equity'] ??
+              data['total_equity'] ??
+              parent['total_equity'] ??
+              data['equity'] ??
+              parent['equity'] ??
+              (equitiesMap != null ? equitiesMap['equity'] : null) ??
+              marginHealthMap['portfolio_equity'] ??
+              marginHealthMap['equity'],
+        ) ??
         0.0;
 
-    final maintenance = parseDouble(
-            (equitiesMap != null ? equitiesMap['margin_maintenance'] : null) ??
-                data['margin_maintenance'] ??
-                parent['margin_maintenance'] ??
-                data['maintenance_requirement'] ??
-                parent['maintenance_requirement'] ??
-                data['total_margin_maintenance'] ??
-                parent['total_margin_maintenance'] ??
-                data['excess_maintenance'] ??
-                parent['excess_maintenance'] ??
-                marginHealthMap['maintenance_requirement']) ??
+    final maintenance =
+        parseDouble(
+          (equitiesMap != null ? equitiesMap['margin_maintenance'] : null) ??
+              data['margin_maintenance'] ??
+              parent['margin_maintenance'] ??
+              data['maintenance_requirement'] ??
+              parent['maintenance_requirement'] ??
+              data['total_margin_maintenance'] ??
+              parent['total_margin_maintenance'] ??
+              data['excess_maintenance'] ??
+              parent['excess_maintenance'] ??
+              marginHealthMap['maintenance_requirement'],
+        ) ??
         0.0;
 
-    final limit = parseDouble(
-            (equitiesMap != null ? equitiesMap['total_margin'] : null) ??
-                data['margin_limit'] ??
-                parent['margin_limit'] ??
-                data['borrow_limit'] ??
-                parent['borrow_limit'] ??
-                marginHealthMap['margin_limit']) ??
+    final limit =
+        parseDouble(
+          (equitiesMap != null ? equitiesMap['total_margin'] : null) ??
+              data['margin_limit'] ??
+              parent['margin_limit'] ??
+              data['borrow_limit'] ??
+              parent['borrow_limit'] ??
+              marginHealthMap['margin_limit'],
+        ) ??
         0.0;
 
-    final callAmt = parseDouble(data['margin_call_amount'] ??
-            parent['margin_call_amount'] ??
-            data['margin_call_deficit'] ??
-            parent['margin_call_deficit'] ??
-            data['deficit'] ??
-            parent['deficit'] ??
-            marginHealthMap['margin_call_amount'] ??
-            marginHealthMap['margin_call_deficit']) ??
+    final callAmt =
+        parseDouble(
+          data['margin_call_amount'] ??
+              parent['margin_call_amount'] ??
+              data['margin_call_deficit'] ??
+              parent['margin_call_deficit'] ??
+              data['deficit'] ??
+              parent['deficit'] ??
+              marginHealthMap['margin_call_amount'] ??
+              marginHealthMap['margin_call_deficit'],
+        ) ??
         0.0;
 
-    final nearMarginCall = data['near_margin_call'] == true ||
+    final nearMarginCall =
+        data['near_margin_call'] == true ||
         parent['near_margin_call'] == true ||
         marginHealthMap['near_margin_call'] == true;
 
@@ -171,37 +179,51 @@ class MarginHealth {
     if (data['margin_buffer_percentage'] != null ||
         parent['margin_buffer_percentage'] != null ||
         marginHealthMap['margin_buffer_percentage'] != null) {
-      bufferPct = parseDouble(marginHealthMap['margin_buffer_percentage'] ??
-              data['margin_buffer_percentage'] ??
-              parent['margin_buffer_percentage']) ??
+      bufferPct =
+          parseDouble(
+            marginHealthMap['margin_buffer_percentage'] ??
+                data['margin_buffer_percentage'] ??
+                parent['margin_buffer_percentage'],
+          ) ??
           0.0;
     } else if (data['buffer_percentage'] != null ||
         parent['buffer_percentage'] != null ||
         marginHealthMap['buffer_percentage'] != null) {
-      bufferPct = parseDouble(marginHealthMap['buffer_percentage'] ??
-              data['buffer_percentage'] ??
-              parent['buffer_percentage']) ??
+      bufferPct =
+          parseDouble(
+            marginHealthMap['buffer_percentage'] ??
+                data['buffer_percentage'] ??
+                parent['buffer_percentage'],
+          ) ??
           0.0;
     } else if (data['margin_buffer_ratio'] != null ||
         parent['margin_buffer_ratio'] != null ||
         marginHealthMap['margin_buffer_ratio'] != null) {
-      bufferPct = parseDouble(marginHealthMap['margin_buffer_ratio'] ??
-              data['margin_buffer_ratio'] ??
-              parent['margin_buffer_ratio']) ??
+      bufferPct =
+          parseDouble(
+            marginHealthMap['margin_buffer_ratio'] ??
+                data['margin_buffer_ratio'] ??
+                parent['margin_buffer_ratio'],
+          ) ??
           0.0;
     } else if (marginHealthMap['margin_buffer_amount'] != null ||
         data['margin_buffer_amount'] != null ||
         parent['margin_buffer_amount'] != null) {
       // In Robinhood phoenix API, margin_buffer_amount has dollar buffer, margin_buffer has the ratio (e.g. "1.0000")
-      bufferPct = parseDouble(marginHealthMap['margin_buffer'] ??
-              data['margin_buffer'] ??
-              parent['margin_buffer']) ??
+      bufferPct =
+          parseDouble(
+            marginHealthMap['margin_buffer'] ??
+                data['margin_buffer'] ??
+                parent['margin_buffer'],
+          ) ??
           0.0;
     } else {
       // If no percentage or buffer_amount field, check if margin_buffer is a decimal ratio <= 1.0
-      final raw = parseDouble(marginHealthMap['margin_buffer'] ??
-          data['margin_buffer'] ??
-          parent['margin_buffer']);
+      final raw = parseDouble(
+        marginHealthMap['margin_buffer'] ??
+            data['margin_buffer'] ??
+            parent['margin_buffer'],
+      );
       if (raw != null && raw <= 1.0) {
         bufferPct = raw;
       }
@@ -213,19 +235,24 @@ class MarginHealth {
     }
 
     // Margin buffer in dollars:
-    double buffer = parseDouble(marginHealthMap['margin_buffer_amount'] ??
-            data['margin_buffer_amount'] ??
-            parent['margin_buffer_amount'] ??
-            marginHealthMap['buffer_amount'] ??
-            data['buffer_amount'] ??
-            parent['buffer_amount']) ??
+    double buffer =
+        parseDouble(
+          marginHealthMap['margin_buffer_amount'] ??
+              data['margin_buffer_amount'] ??
+              parent['margin_buffer_amount'] ??
+              marginHealthMap['buffer_amount'] ??
+              data['buffer_amount'] ??
+              parent['buffer_amount'],
+        ) ??
         0.0;
 
     // If dollar buffer was not directly in margin_buffer_amount:
     if (buffer == 0.0) {
-      final rawBuffer = parseDouble(marginHealthMap['margin_buffer'] ??
-          data['margin_buffer'] ??
-          parent['margin_buffer']);
+      final rawBuffer = parseDouble(
+        marginHealthMap['margin_buffer'] ??
+            data['margin_buffer'] ??
+            parent['margin_buffer'],
+      );
       if (rawBuffer != null &&
           (rawBuffer > 100.0 ||
               (data['margin_buffer_percentage'] != null && rawBuffer > 1.0))) {
@@ -242,11 +269,14 @@ class MarginHealth {
       bufferPct = (buffer / equity).clamp(0.0, 1.0);
     }
 
-    double leverage = parseDouble(data['leverage_ratio'] ??
-            parent['leverage_ratio'] ??
-            data['leverage'] ??
-            parent['leverage'] ??
-            marginHealthMap['leverage_ratio']) ??
+    double leverage =
+        parseDouble(
+          data['leverage_ratio'] ??
+              parent['leverage_ratio'] ??
+              data['leverage'] ??
+              parent['leverage'] ??
+              marginHealthMap['leverage_ratio'],
+        ) ??
         1.0;
     if (leverage == 1.0 && equity > 0 && borrowed > 0) {
       leverage = (equity + borrowed) / equity;
@@ -254,18 +284,19 @@ class MarginHealth {
 
     // Status classification:
     // Check margin_health_state, status, state
-    final rawStatus = (marginHealthMap['margin_health_state'] ??
-            marginHealthMap['status'] ??
-            marginHealthMap['state'] ??
-            data['margin_health_state'] ??
-            parent['margin_health_state'] ??
-            data['status'] ??
-            parent['status'] ??
-            data['state'] ??
-            parent['state'] ??
-            '')
-        .toString()
-        .toLowerCase();
+    final rawStatus =
+        (marginHealthMap['margin_health_state'] ??
+                marginHealthMap['status'] ??
+                marginHealthMap['state'] ??
+                data['margin_health_state'] ??
+                parent['margin_health_state'] ??
+                data['status'] ??
+                parent['status'] ??
+                data['state'] ??
+                parent['state'] ??
+                '')
+            .toString()
+            .toLowerCase();
 
     MarginHealthStatus parsedStatus;
     if (callAmt > 0 || rawStatus == 'margin_call' || rawStatus == 'call') {
@@ -346,44 +377,59 @@ class CollateralAllocations {
     final Map<String, dynamic> parent = parentJson is Map<String, dynamic>
         ? parentJson
         : (parentJson is Map
-            ? Map<String, dynamic>.from(parentJson)
-            : <String, dynamic>{});
+              ? Map<String, dynamic>.from(parentJson)
+              : <String, dynamic>{});
 
     final colMap = data['collateral'] is Map
         ? data['collateral']
         : (parent['collateral'] is Map ? parent['collateral'] : data);
 
-    final cashOptions = parseDouble(colMap['cash_held_for_options'] ??
-            colMap['cash_held_for_options_collateral'] ??
-            data['cash_held_for_options_collateral'] ??
-            parent['cash_held_for_options_collateral']) ??
+    final cashOptions =
+        parseDouble(
+          colMap['cash_held_for_options'] ??
+              colMap['cash_held_for_options_collateral'] ??
+              data['cash_held_for_options_collateral'] ??
+              parent['cash_held_for_options_collateral'],
+        ) ??
         0.0;
-    final equityOptions = parseDouble(colMap['equity_held_for_options'] ??
-            colMap['stock_held_for_options_collateral'] ??
-            data['cash_held_for_equity_orders'] ??
-            parent['cash_held_for_equity_orders'] ??
-            data['stock_held_for_options_collateral'] ??
-            parent['stock_held_for_options_collateral']) ??
+    final equityOptions =
+        parseDouble(
+          colMap['equity_held_for_options'] ??
+              colMap['stock_held_for_options_collateral'] ??
+              data['cash_held_for_equity_orders'] ??
+              parent['cash_held_for_equity_orders'] ??
+              data['stock_held_for_options_collateral'] ??
+              parent['stock_held_for_options_collateral'],
+        ) ??
         0.0;
-    final cryptoOrders = parseDouble(colMap['crypto_held_for_orders'] ??
-            colMap['crypto_collateral'] ??
-            data['cash_held_for_currency_orders'] ??
-            parent['cash_held_for_currency_orders']) ??
+    final cryptoOrders =
+        parseDouble(
+          colMap['crypto_held_for_orders'] ??
+              colMap['crypto_collateral'] ??
+              data['cash_held_for_currency_orders'] ??
+              parent['cash_held_for_currency_orders'],
+        ) ??
         0.0;
-    final pendingOrders = parseDouble(colMap['pending_order_holds'] ??
-            colMap['cash_held_for_orders'] ??
-            data['cash_held_for_orders'] ??
-            parent['cash_held_for_orders'] ??
-            data['cash_held_for_restrictions'] ??
-            parent['cash_held_for_restrictions'] ??
-            data['cash_held_for_dividends'] ??
-            parent['cash_held_for_dividends']) ??
+    final pendingOrders =
+        parseDouble(
+          colMap['pending_order_holds'] ??
+              colMap['cash_held_for_orders'] ??
+              data['cash_held_for_orders'] ??
+              parent['cash_held_for_orders'] ??
+              data['cash_held_for_restrictions'] ??
+              parent['cash_held_for_restrictions'] ??
+              data['cash_held_for_dividends'] ??
+              parent['cash_held_for_dividends'],
+        ) ??
         0.0;
 
-    double total = parseDouble(colMap['total_collateral_held'] ??
-            colMap['total_collateral_hold'] ??
-            data['total_collateral_held'] ??
-            parent['total_collateral_held']) ??
+    double total =
+        parseDouble(
+          colMap['total_collateral_held'] ??
+              colMap['total_collateral_hold'] ??
+              data['total_collateral_held'] ??
+              parent['total_collateral_held'],
+        ) ??
         0.0;
     if (total == 0.0) {
       total = cashOptions + equityOptions + cryptoOrders + pendingOrders;
@@ -482,42 +528,58 @@ class UnifiedAccount {
     final equitiesMap = data['equities'] is Map ? data['equities'] : null;
     final cryptoMap = data['crypto'] is Map ? data['crypto'] : null;
 
-    final acctNum = (data['account_number'] ??
-            data['account'] ??
-            (equitiesMap != null
-                ? (equitiesMap['rhs_account_number'] ??
-                    equitiesMap['apex_account_number'])
-                : null) ??
-            '')
-        .toString();
+    final acctNum =
+        (data['account_number'] ??
+                data['account'] ??
+                (equitiesMap != null
+                    ? (equitiesMap['rhs_account_number'] ??
+                          equitiesMap['apex_account_number'])
+                    : null) ??
+                '')
+            .toString();
     final type = (data['account_type'] ?? data['type'] ?? 'margin').toString();
     final brokerageType = data['brokerage_account_type']?.toString();
 
     final bp =
         parseDouble(data['account_buying_power'] ?? data['buying_power']) ??
-            0.0;
-    final optBp = parseDouble(data['options_buying_power'] ??
-            data['option_buying_power'] ??
-            data['buying_power']) ??
+        0.0;
+    final optBp =
+        parseDouble(
+          data['options_buying_power'] ??
+              data['option_buying_power'] ??
+              data['buying_power'],
+        ) ??
         bp;
-    final cryptoBp = parseDouble(data['crypto_buying_power'] ??
-            data['cash_available_for_crypto'] ??
-            data['buying_power']) ??
+    final cryptoBp =
+        parseDouble(
+          data['crypto_buying_power'] ??
+              data['cash_available_for_crypto'] ??
+              data['buying_power'],
+        ) ??
         bp;
-    final withdrawable = parseDouble(data['withdrawable_cash'] ??
-            data['cash_available_for_withdrawal'] ??
-            data['withdrawable_amount']) ??
+    final withdrawable =
+        parseDouble(
+          data['withdrawable_cash'] ??
+              data['cash_available_for_withdrawal'] ??
+              data['withdrawable_amount'],
+        ) ??
         0.0;
     final uninvested = parseDouble(data['uninvested_cash']) ?? 0.0;
     final unsettled =
         parseDouble(data['unsettled_funds'] ?? data['unsettled_debit']) ?? 0.0;
 
-    final totalEq = parseDouble(data['total_equity'] ??
-            data['portfolio_equity'] ??
-            (equitiesMap != null ? equitiesMap['equity'] : null)) ??
+    final totalEq =
+        parseDouble(
+          data['total_equity'] ??
+              data['portfolio_equity'] ??
+              (equitiesMap != null ? equitiesMap['equity'] : null),
+        ) ??
         0.0;
-    final totalMv = parseDouble(data['total_market_value'] ??
-            (equitiesMap != null ? equitiesMap['market_value'] : null)) ??
+    final totalMv =
+        parseDouble(
+          data['total_market_value'] ??
+              (equitiesMap != null ? equitiesMap['market_value'] : null),
+        ) ??
         0.0;
     final cryptoEq =
         parseDouble(cryptoMap != null ? cryptoMap['equity'] : null) ?? 0.0;
@@ -533,16 +595,20 @@ class UnifiedAccount {
     // Parse CollateralAllocations
     CollateralAllocations parsedCollateral;
     if (data['collateral'] != null) {
-      parsedCollateral =
-          CollateralAllocations.fromJson(data['collateral'], data);
+      parsedCollateral = CollateralAllocations.fromJson(
+        data['collateral'],
+        data,
+      );
     } else {
       parsedCollateral = CollateralAllocations.fromJson(data);
     }
 
     final dtRatio = parseDouble(data['day_trade_ratio']);
-    final dtBp = parseDouble(data['day_trade_buying_power'] ??
-        data['day_trading_buying_power'] ??
-        data['day_trades_buying_power']);
+    final dtBp = parseDouble(
+      data['day_trade_buying_power'] ??
+          data['day_trading_buying_power'] ??
+          data['day_trades_buying_power'],
+    );
     final updated = data['updated_at'] != null
         ? DateTime.tryParse(data['updated_at'].toString())
         : null;
@@ -571,7 +637,9 @@ class UnifiedAccount {
   /// Constructs a UnifiedAccount from existing standard Account and Portfolio models
   /// as a reliable client-side fallback when offline or for legacy endpoints.
   factory UnifiedAccount.fromAccountAndPortfolio(
-      Account? account, Portfolio? portfolio) {
+    Account? account,
+    Portfolio? portfolio,
+  ) {
     if (account == null) {
       return const UnifiedAccount(accountNumber: '');
     }
@@ -579,8 +647,10 @@ class UnifiedAccount {
     final equity = portfolio?.equity ?? account.portfolioCash ?? 0.0;
     final borrowed = account.settledAmountBorrowed ?? 0.0;
     final maintenance = portfolio?.excessMaintenance != null && equity > 0
-        ? (equity - (portfolio?.excessMaintenance ?? 0.0))
-            .clamp(0.0, double.infinity)
+        ? (equity - (portfolio?.excessMaintenance ?? 0.0)).clamp(
+            0.0,
+            double.infinity,
+          )
         : 0.0;
     final buffer = portfolio?.excessMaintenance ?? (equity > 0 ? equity : 0.0);
     final bufferPct = equity > 0 ? (buffer / equity).clamp(0.0, 1.0) : 1.0;

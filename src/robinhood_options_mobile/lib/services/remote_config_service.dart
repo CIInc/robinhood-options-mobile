@@ -5,7 +5,7 @@ class RemoteConfigService {
   final FirebaseRemoteConfig _remoteConfig;
 
   RemoteConfigService({FirebaseRemoteConfig? remoteConfig})
-      : _remoteConfig = remoteConfig ?? FirebaseRemoteConfig.instance;
+    : _remoteConfig = remoteConfig ?? FirebaseRemoteConfig.instance;
 
   static late final RemoteConfigService _instance;
   static RemoteConfigService get instance => _instance;
@@ -19,11 +19,14 @@ class RemoteConfigService {
   }
 
   Future<void> _initConfig() async {
-    await _remoteConfig.setConfigSettings(RemoteConfigSettings(
-      fetchTimeout: const Duration(minutes: 1),
-      minimumFetchInterval:
-          kDebugMode ? const Duration(minutes: 5) : const Duration(hours: 12),
-    ));
+    await _remoteConfig.setConfigSettings(
+      RemoteConfigSettings(
+        fetchTimeout: const Duration(minutes: 1),
+        minimumFetchInterval: kDebugMode
+            ? const Duration(minutes: 5)
+            : const Duration(hours: 12),
+      ),
+    );
 
     await _remoteConfig.setDefaults(const {
       'min_app_version': '0.0.0',

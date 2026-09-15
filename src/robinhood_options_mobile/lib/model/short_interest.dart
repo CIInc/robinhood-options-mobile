@@ -18,7 +18,7 @@ class ShortInterest {
   final String instrumentId;
   final String? symbol;
   final double?
-      pcFreeFloat; // Free float shorted as decimal (0.154) or pct (15.4)
+  pcFreeFloat; // Free float shorted as decimal (0.154) or pct (15.4)
   final bool isPercentage;
   final num? sharesShort;
   final num? sharesShortPrior;
@@ -68,11 +68,13 @@ class ShortInterest {
     return pcFreeFloat;
   }
 
-  factory ShortInterest.fromJson(Map<String, dynamic> json,
-      {String? fallbackInstrumentId,
-      String? fallbackSymbol,
-      num? fallbackAverageDailyVolume,
-      num? fallbackFreeFloat}) {
+  factory ShortInterest.fromJson(
+    Map<String, dynamic> json, {
+    String? fallbackInstrumentId,
+    String? fallbackSymbol,
+    num? fallbackAverageDailyVolume,
+    num? fallbackFreeFloat,
+  }) {
     Map<String, dynamic> data = json;
 
     // 1. Unwrap Robinhood marketdata response structure:
@@ -147,20 +149,26 @@ class ShortInterest {
     }
 
     // 3. Fallbacks for flat format
-    rawPcFloat ??= _parseDouble(data['pc_freefloat'] ??
-        data['pc_free_float'] ??
-        data['free_float_percentage'] ??
-        data['short_percent_of_float'] ??
-        data['short_float_pct']);
+    rawPcFloat ??= _parseDouble(
+      data['pc_freefloat'] ??
+          data['pc_free_float'] ??
+          data['free_float_percentage'] ??
+          data['short_percent_of_float'] ??
+          data['short_float_pct'],
+    );
 
-    shares ??= _parseNum(data['shares_short'] ??
-        data['current_shares_short'] ??
-        data['short_interest'] ??
-        data['shares']);
+    shares ??= _parseNum(
+      data['shares_short'] ??
+          data['current_shares_short'] ??
+          data['short_interest'] ??
+          data['shares'],
+    );
 
-    priorShares ??= _parseNum(data['shares_short_prior'] ??
-        data['prior_shares_short'] ??
-        data['previous_shares_short']);
+    priorShares ??= _parseNum(
+      data['shares_short_prior'] ??
+          data['prior_shares_short'] ??
+          data['previous_shares_short'],
+    );
 
     sharesUpper ??= _parseNum(data['shares_upper_bound']);
     sharesLower ??= _parseNum(data['shares_lower_bound']);
@@ -178,14 +186,17 @@ class ShortInterest {
       }
     }
 
-    num? change =
-        _parseNum(data['short_interest_change'] ?? data['shares_short_change']);
+    num? change = _parseNum(
+      data['short_interest_change'] ?? data['shares_short_change'],
+    );
     if (change == null && shares != null && priorShares != null) {
       change = shares - priorShares;
     }
 
-    double? changePct = _parseDouble(data['short_interest_change_pct'] ??
-        data['short_interest_change_percent']);
+    double? changePct = _parseDouble(
+      data['short_interest_change_pct'] ??
+          data['short_interest_change_percent'],
+    );
     if (changePct == null &&
         change != null &&
         priorShares != null &&
@@ -193,19 +204,22 @@ class ShortInterest {
       changePct = change / priorShares;
     }
 
-    double? dtc = _parseDouble(data['days_to_cover'] ??
-        data['short_ratio'] ??
-        data['days_to_cover_ratio']);
+    double? dtc = _parseDouble(
+      data['days_to_cover'] ??
+          data['short_ratio'] ??
+          data['days_to_cover_ratio'],
+    );
 
     num? adv =
         _parseNum(data['average_daily_volume'] ?? data['avg_daily_volume']) ??
-            fallbackAverageDailyVolume;
+        fallbackAverageDailyVolume;
 
     if (dtc == null && shares != null && adv != null && adv > 0) {
       dtc = shares / adv;
     }
 
-    num? ff = _parseNum(data['free_float'] ?? data['shares_free_float']) ??
+    num? ff =
+        _parseNum(data['free_float'] ?? data['shares_free_float']) ??
         fallbackFreeFloat;
 
     if (ff == null && shares != null && rawPcFloat != null && rawPcFloat > 0) {
@@ -283,8 +297,10 @@ class ShortingAvailability {
     return borrowFeeRate;
   }
 
-  factory ShortingAvailability.fromJson(Map<String, dynamic> json,
-      {String? fallbackInstrumentId}) {
+  factory ShortingAvailability.fromJson(
+    Map<String, dynamic> json, {
+    String? fallbackInstrumentId,
+  }) {
     final id =
         (json['instrument_id'] ?? json['id'] ?? fallbackInstrumentId ?? '')
             .toString();
@@ -303,12 +319,14 @@ class ShortingAvailability {
       inventoryVal = 'HIGH';
     }
 
-    final canShortVal = json['can_short'] ??
+    final canShortVal =
+        json['can_short'] ??
         json['shortable'] ??
         (rawInventoryRange != null ? rawInventoryRange != '0' : true);
 
     // Parse fee which can be string "0.0000" or num in Robinhood's response
-    final rawFee = json['fee'] ??
+    final rawFee =
+        json['fee'] ??
         json['borrow_fee_rate'] ??
         json['borrow_rate'] ??
         json['fee_rate'] ??
@@ -324,29 +342,35 @@ class ShortingAvailability {
       }
     }
 
-    final isLowInventory = inventoryVal == 'LOW' ||
+    final isLowInventory =
+        inventoryVal == 'LOW' ||
         inventoryVal == '<10K' ||
         inventoryVal == '<10k' ||
         inventoryVal == '0';
 
-    final hardToBorrow = (json['is_hard_to_borrow'] ??
-            json['hard_to_borrow'] ??
-            (isLowInventory || (feeRate != null && feeRate > 0.05))) as bool? ??
+    final hardToBorrow =
+        (json['is_hard_to_borrow'] ??
+                json['hard_to_borrow'] ??
+                (isLowInventory || (feeRate != null && feeRate > 0.05)))
+            as bool? ??
         false;
 
     final reason = json['hard_to_borrow_reason']?.toString();
 
-    final marginReq = (json['margin_requirement'] ??
-        json['maintenance_margin'] ??
-        json['initial_margin']) as num?;
+    final marginReq =
+        (json['margin_requirement'] ??
+                json['maintenance_margin'] ??
+                json['initial_margin'])
+            as num?;
 
     final locate = (json['locate_required'] ?? false) as bool;
 
     DateTime? updated;
-    final updatedStr = (json['updated_at'] ??
-            json['fee_timestamp'] ??
-            json['inventory_timestamp'])
-        ?.toString();
+    final updatedStr =
+        (json['updated_at'] ??
+                json['fee_timestamp'] ??
+                json['inventory_timestamp'])
+            ?.toString();
     if (updatedStr != null && updatedStr.isNotEmpty) {
       try {
         updated = DateTime.parse(updatedStr);
@@ -519,7 +543,8 @@ class ShortInterestSummary {
 
     // Borrow scarcity scoring
     final inventory = (availability?.inventory ?? '').toUpperCase();
-    final isLowInventory = inventory == 'LOW' ||
+    final isLowInventory =
+        inventory == 'LOW' ||
         inventory == '<10K' ||
         inventory == '<100K' ||
         inventory == '0';

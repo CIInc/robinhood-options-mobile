@@ -27,99 +27,103 @@ void main() {
   );
 
   testWidgets(
-      'CorporateActionsWidget renders hero metrics, filter chips, and split cards',
-      (WidgetTester tester) async {
-    tester.view.physicalSize = const Size(800, 2400);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(() => tester.view.resetPhysicalSize());
+    'CorporateActionsWidget renders hero metrics, filter chips, and split cards',
+    (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(800, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() => tester.view.resetPhysicalSize());
 
-    final demoService = DemoService();
+      final demoService = DemoService();
 
-    await tester.pumpWidget(
-      MaterialApp(
-        home: CorporateActionsWidget(
-          brokerageUser: testUser,
-          service: demoService,
-          account: testAccount,
+      await tester.pumpWidget(
+        MaterialApp(
+          home: CorporateActionsWidget(
+            brokerageUser: testUser,
+            service: demoService,
+            account: testAccount,
+          ),
         ),
-      ),
-    );
+      );
 
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 500));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
 
-    // Verify AppBar title
-    expect(find.text('Corporate Actions & Splits'), findsOneWidget);
+      // Verify AppBar title
+      expect(find.text('Corporate Actions & Splits'), findsOneWidget);
 
-    // Verify Hero Metrics
-    expect(find.text('Stock Split Adjustments'), findsOneWidget);
-    expect(find.text('Total Splits'), findsOneWidget);
-    expect(find.text('5'), findsOneWidget);
-    expect(find.text('Cash-in-Lieu'), findsWidgets);
-    expect(find.text('\$32.65'), findsOneWidget);
-    expect(find.text('Fwd / Rev'), findsOneWidget);
-    expect(find.text('4 / 1'), findsOneWidget);
+      // Verify Hero Metrics
+      expect(find.text('Stock Split Adjustments'), findsOneWidget);
+      expect(find.text('Total Splits'), findsOneWidget);
+      expect(find.text('5'), findsOneWidget);
+      expect(find.text('Cash-in-Lieu'), findsWidgets);
+      expect(find.text('\$32.65'), findsOneWidget);
+      expect(find.text('Fwd / Rev'), findsOneWidget);
+      expect(find.text('4 / 1'), findsOneWidget);
 
-    // Verify Filter Chips
-    expect(find.text('All (5)'), findsOneWidget);
-    expect(find.text('Forward (4)'), findsOneWidget);
-    expect(find.text('Reverse (1)'), findsOneWidget);
-    expect(find.text('With Cash-in-Lieu'), findsOneWidget);
+      // Verify Filter Chips
+      expect(find.text('All (5)'), findsOneWidget);
+      expect(find.text('Forward (4)'), findsOneWidget);
+      expect(find.text('Reverse (1)'), findsOneWidget);
+      expect(find.text('With Cash-in-Lieu'), findsOneWidget);
 
-    // Verify split cards
-    expect(find.text('NVDA'), findsOneWidget);
-    expect(find.text('10:1 Split'), findsOneWidget);
-    expect(find.text('TSLA'), findsOneWidget);
-    expect(find.text('3:1 Split'), findsOneWidget);
-    expect(find.text('AAPL'), findsOneWidget);
-    expect(find.text('4:1 Split'), findsOneWidget);
-    expect(find.text('BIOR'), findsOneWidget);
-    expect(find.text('1:25 Rev Split'), findsOneWidget);
-    expect(find.text('AMZN'), findsOneWidget);
-    expect(find.text('20:1 Split'), findsOneWidget);
-  });
+      // Verify split cards
+      expect(find.text('NVDA'), findsOneWidget);
+      expect(find.text('10:1 Split'), findsOneWidget);
+      expect(find.text('TSLA'), findsOneWidget);
+      expect(find.text('3:1 Split'), findsOneWidget);
+      expect(find.text('AAPL'), findsOneWidget);
+      expect(find.text('4:1 Split'), findsOneWidget);
+      expect(find.text('BIOR'), findsOneWidget);
+      expect(find.text('1:25 Rev Split'), findsOneWidget);
+      expect(find.text('AMZN'), findsOneWidget);
+      expect(find.text('20:1 Split'), findsOneWidget);
+    },
+  );
 
-  testWidgets('CorporateActionsWidget filters by Reverse Splits and Cash-in-Lieu',
-      (WidgetTester tester) async {
-    tester.view.physicalSize = const Size(800, 2400);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(() => tester.view.resetPhysicalSize());
+  testWidgets(
+    'CorporateActionsWidget filters by Reverse Splits and Cash-in-Lieu',
+    (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(800, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() => tester.view.resetPhysicalSize());
 
-    final demoService = DemoService();
+      final demoService = DemoService();
 
-    await tester.pumpWidget(
-      MaterialApp(
-        home: CorporateActionsWidget(
-          brokerageUser: testUser,
-          service: demoService,
-          account: testAccount,
+      await tester.pumpWidget(
+        MaterialApp(
+          home: CorporateActionsWidget(
+            brokerageUser: testUser,
+            service: demoService,
+            account: testAccount,
+          ),
         ),
-      ),
-    );
+      );
 
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 500));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
 
-    // Filter to Reverse only
-    await tester.tap(find.text('Reverse (1)'));
-    await tester.pumpAndSettle();
+      // Filter to Reverse only
+      await tester.tap(find.text('Reverse (1)'));
+      await tester.pumpAndSettle();
 
-    expect(find.text('BIOR'), findsOneWidget);
-    expect(find.text('NVDA'), findsNothing);
-    expect(find.text('TSLA'), findsNothing);
+      expect(find.text('BIOR'), findsOneWidget);
+      expect(find.text('NVDA'), findsNothing);
+      expect(find.text('TSLA'), findsNothing);
 
-    // Filter to With Cash-in-Lieu
-    await tester.tap(find.text('With Cash-in-Lieu'));
-    await tester.pumpAndSettle();
+      // Filter to With Cash-in-Lieu
+      await tester.tap(find.text('With Cash-in-Lieu'));
+      await tester.pumpAndSettle();
 
-    expect(find.text('NVDA'), findsOneWidget);
-    expect(find.text('BIOR'), findsOneWidget);
-    expect(find.text('TSLA'), findsNothing);
-    expect(find.text('AAPL'), findsNothing);
-  });
+      expect(find.text('NVDA'), findsOneWidget);
+      expect(find.text('BIOR'), findsOneWidget);
+      expect(find.text('TSLA'), findsNothing);
+      expect(find.text('AAPL'), findsNothing);
+    },
+  );
 
-  testWidgets('CorporateActionsWidget searches by symbol',
-      (WidgetTester tester) async {
+  testWidgets('CorporateActionsWidget searches by symbol', (
+    WidgetTester tester,
+  ) async {
     tester.view.physicalSize = const Size(800, 2400);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(() => tester.view.resetPhysicalSize());
@@ -149,8 +153,9 @@ void main() {
     expect(find.widgetWithText(Card, 'BIOR'), findsNothing);
   });
 
-  testWidgets('CorporateActionsWidget opens details bottom sheet on card tap',
-      (WidgetTester tester) async {
+  testWidgets('CorporateActionsWidget opens details bottom sheet on card tap', (
+    WidgetTester tester,
+  ) async {
     tester.view.physicalSize = const Size(800, 2400);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(() => tester.view.resetPhysicalSize());
@@ -188,8 +193,9 @@ void main() {
     expect(find.text('Tax & Basis Reporting'), findsOneWidget);
   });
 
-  testWidgets('CorporateActionsWidget opens info dialog from AppBar',
-      (WidgetTester tester) async {
+  testWidgets('CorporateActionsWidget opens info dialog from AppBar', (
+    WidgetTester tester,
+  ) async {
     tester.view.physicalSize = const Size(800, 2400);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(() => tester.view.resetPhysicalSize());
@@ -224,35 +230,36 @@ void main() {
   });
 
   testWidgets(
-      'CorporateActionsWidget bottom sheet renders without overflow on narrow screens',
-      (WidgetTester tester) async {
-    // Set a compact mobile screen width (320px) to verify no RenderFlex overflow
-    tester.view.physicalSize = const Size(320, 800);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(() => tester.view.resetPhysicalSize());
+    'CorporateActionsWidget bottom sheet renders without overflow on narrow screens',
+    (WidgetTester tester) async {
+      // Set a compact mobile screen width (320px) to verify no RenderFlex overflow
+      tester.view.physicalSize = const Size(320, 800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() => tester.view.resetPhysicalSize());
 
-    final demoService = DemoService();
+      final demoService = DemoService();
 
-    await tester.pumpWidget(
-      MaterialApp(
-        home: CorporateActionsWidget(
-          brokerageUser: testUser,
-          service: demoService,
-          account: testAccount,
+      await tester.pumpWidget(
+        MaterialApp(
+          home: CorporateActionsWidget(
+            brokerageUser: testUser,
+            service: demoService,
+            account: testAccount,
+          ),
         ),
-      ),
-    );
+      );
 
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 500));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
 
-    // Tap on card to open bottom sheet
-    await tester.tap(find.text('NVDA'));
-    await tester.pumpAndSettle();
+      // Tap on card to open bottom sheet
+      await tester.tap(find.text('NVDA'));
+      await tester.pumpAndSettle();
 
-    // Verify Audit Record ID is shown without throwing layout overflow exception
-    expect(find.text('Audit Record ID'), findsOneWidget);
-    expect(find.text('split_pay_nvda_2024'), findsOneWidget);
-    expect(tester.takeException(), isNull);
-  });
+      // Verify Audit Record ID is shown without throwing layout overflow exception
+      expect(find.text('Audit Record ID'), findsOneWidget);
+      expect(find.text('split_pay_nvda_2024'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
 }

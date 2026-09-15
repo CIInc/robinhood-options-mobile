@@ -13,12 +13,13 @@ import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 class FakeFirestoreService extends Fake implements FirestoreService {
   final FirebaseFirestore _firestore = FakeFirebaseFirestore();
   @override
-  CollectionReference<app_user.User> get userCollection =>
-      _firestore.collection('user').withConverter<app_user.User>(
-            fromFirestore: (snapshot, _) =>
-                app_user.User.fromJson(snapshot.data()!),
-            toFirestore: (user, _) => user.toJson(),
-          );
+  CollectionReference<app_user.User> get userCollection => _firestore
+      .collection('user')
+      .withConverter<app_user.User>(
+        fromFirestore: (snapshot, _) =>
+            app_user.User.fromJson(snapshot.data()!),
+        toFirestore: (user, _) => user.toJson(),
+      );
 }
 
 class FakeFirebaseAuth extends Fake implements FirebaseAuth {
@@ -50,8 +51,9 @@ void main() {
     }
   });
 
-  testWidgets('CopyTradeSettingsWidget renders correctly',
-      (WidgetTester tester) async {
+  testWidgets('CopyTradeSettingsWidget renders correctly', (
+    WidgetTester tester,
+  ) async {
     // Set a large screen size to avoid scrolling issues
     tester.view.physicalSize = const Size(800, 2000);
     tester.view.devicePixelRatio = 1.0;

@@ -19,20 +19,22 @@ class BarChart extends StatefulWidget {
   final List<String>? hiddenSeries;
   final void Function(dynamic) onSelected;
 
-  const BarChart(this.seriesList,
-      {super.key,
-      this.animate = true,
-      this.vertical = false,
-      this.barGroupingType = charts.BarGroupingType.grouped,
-      this.renderer,
-      this.customSeriesRenderers,
-      this.behaviors,
-      this.domainAxis,
-      this.primaryMeasureAxis,
-      this.secondaryMeasureAxis,
-      required this.onSelected,
-      //this.staticNumericTicks,
-      this.hiddenSeries});
+  const BarChart(
+    this.seriesList, {
+    super.key,
+    this.animate = true,
+    this.vertical = false,
+    this.barGroupingType = charts.BarGroupingType.grouped,
+    this.renderer,
+    this.customSeriesRenderers,
+    this.behaviors,
+    this.domainAxis,
+    this.primaryMeasureAxis,
+    this.secondaryMeasureAxis,
+    required this.onSelected,
+    //this.staticNumericTicks,
+    this.hiddenSeries,
+  });
 
   // We need a Stateful widget to build the selection details with the current
   // selection as the state.
@@ -56,10 +58,12 @@ class BarChartState extends State<BarChart> {
       customSeriesRenderers: widget.customSeriesRenderers ?? [],
       selectionModels: [
         charts.SelectionModelConfig(
-            type: charts.SelectionModelType.info,
-            changedListener: _onSelectionChanged)
+          type: charts.SelectionModelType.info,
+          changedListener: _onSelectionChanged,
+        ),
       ],
-      behaviors: widget.behaviors ??
+      behaviors:
+          widget.behaviors ??
           [
             // charts.SelectNearest(eventTrigger: charts.SelectionTrigger.tap),
             // charts.LinePointHighlighter(

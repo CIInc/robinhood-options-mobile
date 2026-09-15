@@ -35,10 +35,11 @@ void main() {
       'BULLISH',
     ]);
 
-    expect(
-      recommendations.map((entry) => entry.key),
-      ['Golden Sweep', '0DTE', 'BULLISH'],
-    );
+    expect(recommendations.map((entry) => entry.key), [
+      'Golden Sweep',
+      '0DTE',
+      'BULLISH',
+    ]);
   });
 
   testWidgets('flag opens structured guidance sheet', (tester) async {

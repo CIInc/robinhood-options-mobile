@@ -77,9 +77,11 @@ class _AutoTradeStatusBadgeWidgetState extends State<AutoTradeStatusBadgeWidget>
       context: context,
       builder: (context) => AlertDialog(
         title: Text(isEmergencyStop ? 'Resume Trading?' : 'Emergency Stop?'),
-        content: Text(isEmergencyStop
-            ? 'This will deactivate the emergency stop and allow auto-trading to resume.'
-            : 'This will immediately halt all automated trading activities.'),
+        content: Text(
+          isEmergencyStop
+              ? 'This will deactivate the emergency stop and allow auto-trading to resume.'
+              : 'This will immediately halt all automated trading activities.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -351,7 +353,7 @@ class _AutoTradeStatusBadgeWidgetState extends State<AutoTradeStatusBadgeWidget>
                           color: status.color.withValues(alpha: 0.2),
                           blurRadius: 6,
                           spreadRadius: 1,
-                        )
+                        ),
                       ]
                     : null,
               ),
@@ -390,10 +392,10 @@ class _AutoTradeStatusBadgeWidgetState extends State<AutoTradeStatusBadgeWidget>
                               MaterialPageRoute(
                                 builder: (context) =>
                                     AgenticTradingSettingsWidget(
-                                  user: widget.user!,
-                                  userDocRef: widget.userDocRef!,
-                                  service: widget.service,
-                                ),
+                                      user: widget.user!,
+                                      userDocRef: widget.userDocRef!,
+                                      service: widget.service,
+                                    ),
                               ),
                             );
                           }
@@ -479,9 +481,10 @@ class _AutoTradeStatusBadgeWidgetState extends State<AutoTradeStatusBadgeWidget>
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
                         color: status.color.withValues(
-                            alpha: (isAutoTrading || isEmergencyStop)
-                                ? _opacityAnimation.value
-                                : 0.3),
+                          alpha: (isAutoTrading || isEmergencyStop)
+                              ? _opacityAnimation.value
+                              : 0.3,
+                        ),
                         width: 1,
                       ),
                       boxShadow: (isAutoTrading || isEmergencyStop)
@@ -490,7 +493,7 @@ class _AutoTradeStatusBadgeWidgetState extends State<AutoTradeStatusBadgeWidget>
                                 color: status.color.withValues(alpha: 0.2),
                                 blurRadius: 8,
                                 spreadRadius: 1,
-                              )
+                              ),
                             ]
                           : [],
                     ),
@@ -507,8 +510,9 @@ class _AutoTradeStatusBadgeWidgetState extends State<AutoTradeStatusBadgeWidget>
                             height: 12,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              valueColor:
-                                  AlwaysStoppedAnimation<Color>(status.color),
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                status.color,
+                              ),
                             ),
                           )
                         else if (status.title == 'Auto On')
@@ -517,25 +521,25 @@ class _AutoTradeStatusBadgeWidgetState extends State<AutoTradeStatusBadgeWidget>
                             height: 14,
                             child: TweenAnimationBuilder<double>(
                               tween: Tween<double>(
-                                  begin: 0, end: progressValue ?? 0),
+                                begin: 0,
+                                end: progressValue ?? 0,
+                              ),
                               duration: const Duration(milliseconds: 1000),
                               builder: (context, value, _) =>
                                   CircularProgressIndicator(
-                                value: value,
-                                strokeWidth: 2,
-                                backgroundColor:
-                                    status.color.withValues(alpha: 0.2),
-                                valueColor:
-                                    AlwaysStoppedAnimation<Color>(status.color),
-                              ),
+                                    value: value,
+                                    strokeWidth: 2,
+                                    backgroundColor: status.color.withValues(
+                                      alpha: 0.2,
+                                    ),
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      status.color,
+                                    ),
+                                  ),
                             ),
                           )
                         else
-                          Icon(
-                            status.icon,
-                            size: 14,
-                            color: status.color,
-                          ),
+                          Icon(status.icon, size: 14, color: status.color),
                         const SizedBox(width: 8),
                         Column(
                           mainAxisSize: MainAxisSize.min,
@@ -565,7 +569,7 @@ class _AutoTradeStatusBadgeWidgetState extends State<AutoTradeStatusBadgeWidget>
                                   fontWeight: FontWeight.w700,
                                   color: status.color,
                                   fontFeatures: const [
-                                    FontFeature.tabularFigures()
+                                    FontFeature.tabularFigures(),
                                   ],
                                   height: 1.0,
                                 ),
@@ -586,7 +590,9 @@ class _AutoTradeStatusBadgeWidgetState extends State<AutoTradeStatusBadgeWidget>
   }
 
   _StatusAttributes _getStatusAttributes(
-      BuildContext context, AgenticTradingProvider provider) {
+    BuildContext context,
+    AgenticTradingProvider provider,
+  ) {
     final isLight = Theme.of(context).brightness == Brightness.light;
     final isAutoTrading = provider.showAutoTradingVisual;
     final emergencyStop = provider.emergencyStopActivated;

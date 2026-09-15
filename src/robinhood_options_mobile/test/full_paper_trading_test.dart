@@ -33,18 +33,21 @@ class MockFirebasePlatform extends FirebasePlatform {
   @override
   FirebaseAppPlatform app([String name = defaultFirebaseAppName]) {
     return FirebaseAppPlatform(
-        name,
-        const FirebaseOptions(
-          apiKey: 'fakeApiKey',
-          appId: 'fakeAppId',
-          messagingSenderId: 'fakeSenderId',
-          projectId: 'fakeProjectId',
-        ));
+      name,
+      const FirebaseOptions(
+        apiKey: 'fakeApiKey',
+        appId: 'fakeAppId',
+        messagingSenderId: 'fakeSenderId',
+        projectId: 'fakeProjectId',
+      ),
+    );
   }
 
   @override
-  Future<FirebaseAppPlatform> initializeApp(
-      {String? name, FirebaseOptions? options}) async {
+  Future<FirebaseAppPlatform> initializeApp({
+    String? name,
+    FirebaseOptions? options,
+  }) async {
     return FirebaseAppPlatform(
       name ?? defaultFirebaseAppName,
       options ??
@@ -191,14 +194,16 @@ class FakePaperTradingStore extends ChangeNotifier
   double coveredCallShares(String symbol) => 0.0;
 
   @override
-  List<OptionAggregatePosition> processExpiredOptions(
-          {required Map<String, double> underlyingPrices, DateTime? now}) =>
-      [];
+  List<OptionAggregatePosition> processExpiredOptions({
+    required Map<String, double> underlyingPrices,
+    DateTime? now,
+  }) => [];
 
   @override
-  Future<bool> processMarginCalls(
-          {required Map<String, double> stockPrices, bool? marketOpen}) async =>
-      false;
+  Future<bool> processMarginCalls({
+    required Map<String, double> stockPrices,
+    bool? marketOpen,
+  }) async => false;
 
   @override
   List<PendingPaperOrder> get pendingOrders => [];
@@ -293,8 +298,12 @@ class FakePaperTradingStore extends ChangeNotifier
   }) async {}
 
   @override
-  Future<void> refreshQuotes(IBrokerageService service, QuoteStore quoteStore,
-      OptionInstrumentStore optionInstrumentStore, BrokerageUser user) async {}
+  Future<void> refreshQuotes(
+    IBrokerageService service,
+    QuoteStore quoteStore,
+    OptionInstrumentStore optionInstrumentStore,
+    BrokerageUser user,
+  ) async {}
 }
 
 void main() {
@@ -316,38 +325,40 @@ void main() {
     final mockObserver = MockObserver();
 
     final instrument = Instrument(
-        id: 'id',
-        url: 'https://api.robinhood.com/instruments/test/',
-        quote: 'quote',
-        fundamentals: 'fundamentals',
-        splits: 'splits',
-        state: 'active',
-        market: 'market',
-        name: 'Apple Inc.',
-        tradeable: true,
-        tradability: 'tradable',
+      id: 'id',
+      url: 'https://api.robinhood.com/instruments/test/',
+      quote: 'quote',
+      fundamentals: 'fundamentals',
+      splits: 'splits',
+      state: 'active',
+      market: 'market',
+      name: 'Apple Inc.',
+      tradeable: true,
+      tradability: 'tradable',
+      symbol: 'AAPL',
+      bloombergUnique: 'bloombergUnique',
+      country: 'US',
+      type: 'stock',
+      rhsTradability: 'tradable',
+      fractionalTradability: 'tradable',
+      isSpac: false,
+      isTest: false,
+      ipoAccessSupportsDsp: false,
+      quoteObj: Quote(
+        lastTradePrice: 150.0,
+        lastExtendedHoursTradePrice: 150.0,
+        adjustedPreviousClose: 145.0,
         symbol: 'AAPL',
-        bloombergUnique: 'bloombergUnique',
-        country: 'US',
-        type: 'stock',
-        rhsTradability: 'tradable',
-        fractionalTradability: 'tradable',
-        isSpac: false,
-        isTest: false,
-        ipoAccessSupportsDsp: false,
-        quoteObj: Quote(
-            lastTradePrice: 150.0,
-            lastExtendedHoursTradePrice: 150.0,
-            adjustedPreviousClose: 145.0,
-            symbol: 'AAPL',
-            askSize: 100,
-            bidSize: 100,
-            tradingHalted: false,
-            hasTraded: true,
-            lastTradePriceSource: 'consolidated',
-            instrument: 'https://api.robinhood.com/instruments/id/',
-            instrumentId: 'id'),
-        dateCreated: DateTime.now());
+        askSize: 100,
+        bidSize: 100,
+        tradingHalted: false,
+        hasTraded: true,
+        lastTradePriceSource: 'consolidated',
+        instrument: 'https://api.robinhood.com/instruments/id/',
+        instrumentId: 'id',
+      ),
+      dateCreated: DateTime.now(),
+    );
 
     /*
     final optionInstrument = OptionInstrument(
@@ -375,12 +386,15 @@ void main() {
       MultiProvider(
         providers: [
           ChangeNotifierProvider<PaperTradingStore>.value(
-              value: fakePaperStore),
+            value: fakePaperStore,
+          ),
           ChangeNotifierProvider<AccountStore>.value(value: AccountStore()),
           ChangeNotifierProvider<OrderTemplateStore>.value(
-              value: MockOrderTemplateStore()),
+            value: MockOrderTemplateStore(),
+          ),
           Provider<AgenticTradingProvider>.value(
-              value: MockAgenticTradingProvider()),
+            value: MockAgenticTradingProvider(),
+          ),
         ],
         child: MaterialApp(
           home: Builder(
@@ -423,15 +437,19 @@ void main() {
     await tester.tap(find.byType(SwitchListTile));
     await tester.pumpAndSettle();
 
-    expect((tester.widget(find.byType(SwitchListTile)) as SwitchListTile).value,
-        isTrue,
-        reason: "Paper Trade switch should be ON");
+    expect(
+      (tester.widget(find.byType(SwitchListTile)) as SwitchListTile).value,
+      isTrue,
+      reason: "Paper Trade switch should be ON",
+    );
 
     await tester.enterText(find.widgetWithText(TextFormField, 'Shares'), '10');
     await tester.pump();
 
     await tester.drag(
-        find.byType(SingleChildScrollView), const Offset(0, -500));
+      find.byType(SingleChildScrollView),
+      const Offset(0, -500),
+    );
     await tester.pumpAndSettle();
 
     // Tap Preview Order to see the Slider
@@ -440,18 +458,26 @@ void main() {
 
     // Scroll down in Preview
     await tester.drag(
-        find.byType(SingleChildScrollView), const Offset(0, -500));
+      find.byType(SingleChildScrollView),
+      const Offset(0, -500),
+    );
     await tester.pumpAndSettle();
 
-    expect(find.text('Preview Order'), findsNothing,
-        reason: "Should have switched to Preview mode");
+    expect(
+      find.text('Preview Order'),
+      findsNothing,
+      reason: "Should have switched to Preview mode",
+    );
 
     expect(find.text('Slide to Buy'), findsOneWidget);
     //final sliderFinder = find.byIcon(Icons.arrow_forward);
 
     // Bypass gesture and call onConfirmed directly
-    final dynamic sliderWidget = tester.widget(find.byWidgetPredicate(
-        (w) => w.runtimeType.toString() == 'SlideToConfirm'));
+    final dynamic sliderWidget = tester.widget(
+      find.byWidgetPredicate(
+        (w) => w.runtimeType.toString() == 'SlideToConfirm',
+      ),
+    );
     sliderWidget.onConfirmed();
 
     await tester.pump();
@@ -462,8 +488,11 @@ void main() {
       debugPrint("TEST FAILURE: Found Error SnackBar");
     }
 
-    expect(find.text("Paper order filled!"), findsOneWidget,
-        reason: "Success snackbar not found (Stock)");
+    expect(
+      find.text("Paper order filled!"),
+      findsOneWidget,
+      reason: "Success snackbar not found (Stock)",
+    );
 
     expect(fakePaperStore.executedStock, isTrue);
   });
@@ -475,70 +504,75 @@ void main() {
     final mockObserver = MockObserver();
 
     final optionInstrument = OptionInstrument(
-        'chain_id',
-        'AAPL',
-        DateTime.now(),
-        DateTime.now().add(const Duration(days: 30)),
-        'opt_id',
-        DateTime.now(),
-        const MinTicks(0.01, 0.01, 0.0),
-        'tradable',
-        'active',
-        150.0,
-        'tradable',
-        'call',
-        DateTime.now(),
-        'https://api.robinhood.com/options/test/',
-        null,
-        'long',
-        'short');
+      'chain_id',
+      'AAPL',
+      DateTime.now(),
+      DateTime.now().add(const Duration(days: 30)),
+      'opt_id',
+      DateTime.now(),
+      const MinTicks(0.01, 0.01, 0.0),
+      'tradable',
+      'active',
+      150.0,
+      'tradable',
+      'call',
+      DateTime.now(),
+      'https://api.robinhood.com/options/test/',
+      null,
+      'long',
+      'short',
+    );
 
     // Assign market data so markPrice is available
     optionInstrument.optionMarketData = OptionMarketData(
-        150.0,
-        150.1,
-        100,
-        149.9,
-        100,
-        155.0,
-        152.0,
-        'url',
-        'id',
-        150.0,
-        10,
-        148.0,
-        150.0,
-        500,
-        DateTime(2023, 1, 1),
-        145.0,
-        1000,
-        'AAPL',
-        'occ',
-        0.5,
-        0.5,
-        0.5,
-        0.1,
-        0.2,
-        0.01,
-        -0.05,
-        0.1,
-        150.1,
-        149.9,
-        150.0,
-        150.0,
-        null);
+      150.0,
+      150.1,
+      100,
+      149.9,
+      100,
+      155.0,
+      152.0,
+      'url',
+      'id',
+      150.0,
+      10,
+      148.0,
+      150.0,
+      500,
+      DateTime(2023, 1, 1),
+      145.0,
+      1000,
+      'AAPL',
+      'occ',
+      0.5,
+      0.5,
+      0.5,
+      0.1,
+      0.2,
+      0.01,
+      -0.05,
+      0.1,
+      150.1,
+      149.9,
+      150.0,
+      150.0,
+      null,
+    );
 
     // 2. Test Option Trading
     await tester.pumpWidget(
       MultiProvider(
         providers: [
           ChangeNotifierProvider<PaperTradingStore>.value(
-              value: fakePaperStore),
+            value: fakePaperStore,
+          ),
           ChangeNotifierProvider<AccountStore>.value(value: AccountStore()),
           ChangeNotifierProvider<OrderTemplateStore>.value(
-              value: MockOrderTemplateStore()),
+            value: MockOrderTemplateStore(),
+          ),
           Provider<AgenticTradingProvider>.value(
-              value: MockAgenticTradingProvider()),
+            value: MockAgenticTradingProvider(),
+          ),
         ],
         child: MaterialApp(
           home: Builder(
@@ -581,11 +615,15 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.enterText(
-        find.widgetWithText(TextFormField, 'Contracts'), '1');
+      find.widgetWithText(TextFormField, 'Contracts'),
+      '1',
+    );
     await tester.pump();
 
     await tester.drag(
-        find.byType(SingleChildScrollView), const Offset(0, -500));
+      find.byType(SingleChildScrollView),
+      const Offset(0, -500),
+    );
     await tester.pumpAndSettle();
 
     // Tap Preview Order
@@ -594,21 +632,29 @@ void main() {
 
     // Scroll down in Preview
     await tester.drag(
-        find.byType(SingleChildScrollView), const Offset(0, -500));
+      find.byType(SingleChildScrollView),
+      const Offset(0, -500),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('Slide to Buy'), findsOneWidget);
     //final optionSliderFinder = find.byIcon(Icons.arrow_forward);
     // Bypass gesture
-    final dynamic optionSliderWidget = tester.widget(find.byWidgetPredicate(
-        (w) => w.runtimeType.toString() == 'SlideToConfirm'));
+    final dynamic optionSliderWidget = tester.widget(
+      find.byWidgetPredicate(
+        (w) => w.runtimeType.toString() == 'SlideToConfirm',
+      ),
+    );
     optionSliderWidget.onConfirmed();
 
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
 
-    expect(find.text("Paper order filled!"), findsOneWidget,
-        reason: "Success snackbar not found (Option)");
+    expect(
+      find.text("Paper order filled!"),
+      findsOneWidget,
+      reason: "Success snackbar not found (Option)",
+    );
 
     expect(fakePaperStore.executedOption, isTrue);
   });

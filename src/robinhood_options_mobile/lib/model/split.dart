@@ -50,14 +50,14 @@ class Split {
   }
 
   Map<String, dynamic> toJson() => {
-        if (id != null) 'id': id,
-        if (instrument != null) 'instrument': instrument,
-        if (url != null) 'url': url,
-        if (executionDate != null)
-          'execution_date': executionDate!.toIso8601String(),
-        'multiplier': multiplier,
-        'divisor': divisor,
-      };
+    if (id != null) 'id': id,
+    if (instrument != null) 'instrument': instrument,
+    if (url != null) 'url': url,
+    if (executionDate != null)
+      'execution_date': executionDate!.toIso8601String(),
+    'multiplier': multiplier,
+    'divisor': divisor,
+  };
 
   double get effectiveMultiplier =>
       (divisor > 0 ? multiplier / divisor : multiplier);
@@ -156,17 +156,19 @@ class SplitPaymentSplit {
 
     final mult = parseDouble(json['multiplier']) ?? 1.0;
     final div = parseDouble(json['divisor']) ?? 1.0;
-    final dir = json['direction']?.toString() ??
-        (mult >= div ? 'forward' : 'reverse');
+    final dir =
+        json['direction']?.toString() ?? (mult >= div ? 'forward' : 'reverse');
 
     return SplitPaymentSplit(
       id: json['id']?.toString() ?? '',
-      oldInstrumentId: json['old_instrument_id']?.toString() ??
+      oldInstrumentId:
+          json['old_instrument_id']?.toString() ??
           json['equity_instrument_id']?.toString() ??
           json['instrument_id']?.toString() ??
           json['instrument']?.toString() ??
           '',
-      newInstrumentId: json['new_instrument_id']?.toString() ??
+      newInstrumentId:
+          json['new_instrument_id']?.toString() ??
           json['instrument_id']?.toString() ??
           json['instrument']?.toString() ??
           '',
@@ -180,18 +182,18 @@ class SplitPaymentSplit {
   }
 
   Map<String, dynamic> toJson() => {
-        if (id.isNotEmpty) 'id': id,
-        if (oldInstrumentId.isNotEmpty) 'old_instrument_id': oldInstrumentId,
-        if (newInstrumentId.isNotEmpty) 'new_instrument_id': newInstrumentId,
-        if (effectiveDate != null)
-          'effective_date':
-              "${effectiveDate!.year.toString().padLeft(4, '0')}-${effectiveDate!.month.toString().padLeft(2, '0')}-${effectiveDate!.day.toString().padLeft(2, '0')}",
-        'multiplier': multiplier,
-        'divisor': divisor,
-        'direction': direction,
-        if (updatedAt != null) 'updated_at': updatedAt!.toIso8601String(),
-        if (url != null) 'url': url,
-      };
+    if (id.isNotEmpty) 'id': id,
+    if (oldInstrumentId.isNotEmpty) 'old_instrument_id': oldInstrumentId,
+    if (newInstrumentId.isNotEmpty) 'new_instrument_id': newInstrumentId,
+    if (effectiveDate != null)
+      'effective_date':
+          "${effectiveDate!.year.toString().padLeft(4, '0')}-${effectiveDate!.month.toString().padLeft(2, '0')}-${effectiveDate!.day.toString().padLeft(2, '0')}",
+    'multiplier': multiplier,
+    'divisor': divisor,
+    'direction': direction,
+    if (updatedAt != null) 'updated_at': updatedAt!.toIso8601String(),
+    if (url != null) 'url': url,
+  };
 
   @override
   String toString() => url ?? (id.isNotEmpty ? id : super.toString());
@@ -213,8 +215,15 @@ class SplitPaymentSplit {
   }
 
   @override
-  int get hashCode => Object.hash(id, oldInstrumentId, newInstrumentId,
-      multiplier, divisor, direction, effectiveDate);
+  int get hashCode => Object.hash(
+    id,
+    oldInstrumentId,
+    newInstrumentId,
+    multiplier,
+    divisor,
+    direction,
+    effectiveDate,
+  );
 }
 
 /// Represents a corporate action stock split payment and account adjustment.
@@ -257,10 +266,12 @@ class SplitPayment {
     this.split,
   });
 
-  String get oldInstrumentId =>
-      split?.oldInstrumentId.isNotEmpty == true ? split!.oldInstrumentId : instrumentId;
-  String get newInstrumentId =>
-      split?.newInstrumentId.isNotEmpty == true ? split!.newInstrumentId : instrumentId;
+  String get oldInstrumentId => split?.oldInstrumentId.isNotEmpty == true
+      ? split!.oldInstrumentId
+      : instrumentId;
+  String get newInstrumentId => split?.newInstrumentId.isNotEmpty == true
+      ? split!.newInstrumentId
+      : instrumentId;
   String? get splitUrl => split?.url;
 
   SplitPayment copyWith({
@@ -320,9 +331,8 @@ class SplitPayment {
     }
 
     final id = json['id']?.toString() ?? '';
-    final accountNumber = json['account_number']?.toString() ??
-        json['account']?.toString() ??
-        '';
+    final accountNumber =
+        json['account_number']?.toString() ?? json['account']?.toString() ?? '';
 
     SplitPaymentSplit? splitObj;
     if (json['split'] != null) {
@@ -333,13 +343,15 @@ class SplitPayment {
       splitObj = SplitPaymentSplit.fromJson(json['split_id']);
     }
 
-    var instrumentId = json['instrument_id']?.toString() ??
+    var instrumentId =
+        json['instrument_id']?.toString() ??
         json['instrument']?.toString() ??
         json['equity_instrument_id']?.toString() ??
         '';
     if (instrumentId.contains('/instruments/')) {
-      final match =
-          RegExp(r'/instruments/([a-zA-Z0-9-]+)/?').firstMatch(instrumentId);
+      final match = RegExp(
+        r'/instruments/([a-zA-Z0-9-]+)/?',
+      ).firstMatch(instrumentId);
       if (match != null) {
         instrumentId = match.group(1)!;
       }
@@ -352,19 +364,22 @@ class SplitPayment {
       } else if (splitObj.newInstrumentId.isNotEmpty) {
         instrumentId = splitObj.newInstrumentId;
       } else if (splitObj.url != null) {
-        final match =
-            RegExp(r'/instruments/([a-zA-Z0-9-]+)/?').firstMatch(splitObj.url!);
+        final match = RegExp(
+          r'/instruments/([a-zA-Z0-9-]+)/?',
+        ).firstMatch(splitObj.url!);
         if (match != null) {
           instrumentId = match.group(1)!;
         }
       }
     }
 
-    var symbol = json['symbol']?.toString().toUpperCase() ??
+    var symbol =
+        json['symbol']?.toString().toUpperCase() ??
         json['ticker']?.toString().toUpperCase() ??
         '';
 
-    var description = json['description']?.toString() ??
+    var description =
+        json['description']?.toString() ??
         json['details']?.toString() ??
         json['simple_name']?.toString() ??
         json['name']?.toString();
@@ -377,8 +392,8 @@ class SplitPayment {
       if (instrumentId.isEmpty && instMap['id'] != null) {
         instrumentId = instMap['id'].toString();
       }
-      description ??= instMap['simple_name']?.toString() ??
-          instMap['name']?.toString();
+      description ??=
+          instMap['simple_name']?.toString() ?? instMap['name']?.toString();
     }
     if (json['split'] is Map) {
       final splitMap = json['split'] as Map;
@@ -388,22 +403,26 @@ class SplitPayment {
       if (instrumentId.isEmpty && splitMap['instrument'] != null) {
         instrumentId = splitMap['instrument'].toString();
       }
-      description ??= splitMap['description']?.toString() ??
+      description ??=
+          splitMap['description']?.toString() ??
           splitMap['simple_name']?.toString();
     }
 
-    final actionType = json['action_type']?.toString() ??
+    final actionType =
+        json['action_type']?.toString() ??
         json['type']?.toString() ??
         'stock_split';
 
-    final oldShares = parseDouble(json['old_shares']) ??
+    final oldShares =
+        parseDouble(json['old_shares']) ??
         parseDouble(json['pre_split_shares']) ??
         parseDouble(json['shares_held']) ??
         parseDouble(json['original_shares']) ??
         parseDouble(json['prior_shares']) ??
         parseDouble(json['pre_split_position']) ??
         0.0;
-    final newShares = parseDouble(json['new_shares']) ??
+    final newShares =
+        parseDouble(json['new_shares']) ??
         parseDouble(json['post_split_shares']) ??
         parseDouble(json['resulting_shares']) ??
         parseDouble(json['adjusted_shares']) ??
@@ -411,17 +430,20 @@ class SplitPayment {
         parseDouble(json['post_split_position']) ??
         0.0;
 
-    var mult = parseDouble(json['multiplier']) ??
+    var mult =
+        parseDouble(json['multiplier']) ??
         parseDouble(json['split_multiplier']) ??
         parseDouble(json['to_factor']) ??
         parseDouble(json['numerator']);
-    var div = parseDouble(json['divisor']) ??
+    var div =
+        parseDouble(json['divisor']) ??
         parseDouble(json['split_divisor']) ??
         parseDouble(json['from_factor']) ??
         parseDouble(json['denominator']);
 
     // Check if ratio is provided as a string like "10:1", "1:25", "10/1"
-    final ratioStr = json['ratio']?.toString() ??
+    final ratioStr =
+        json['ratio']?.toString() ??
         json['split_ratio']?.toString() ??
         json['rate']?.toString();
     if (ratioStr != null && ratioStr.isNotEmpty) {
@@ -465,17 +487,18 @@ class SplitPayment {
 
     mult ??= 1.0;
     div ??= 1.0;
-    final cashInLieu = parseDouble(json['cash_in_lieu']) ??
+    final cashInLieu =
+        parseDouble(json['cash_in_lieu']) ??
         parseDouble(json['cash_in_lieu_amount']) ??
         parseDouble(json['cil_amount']) ??
         parseDouble(json['amount']) ??
         0.0;
-    final currencyCode = json['currency_code']?.toString() ??
+    final currencyCode =
+        json['currency_code']?.toString() ??
         json['cash_in_lieu_currency']?.toString() ??
         'USD';
-    final state = json['state']?.toString() ??
-        json['status']?.toString() ??
-        'settled';
+    final state =
+        json['state']?.toString() ?? json['status']?.toString() ?? 'settled';
 
     DateTime? execDate;
     if (json['execution_date'] != null) {
@@ -519,41 +542,44 @@ class SplitPayment {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'account_number': accountNumber,
-        'instrument_id': instrumentId,
-        'symbol': symbol,
-        'action_type': actionType,
-        'multiplier': multiplier,
-        'divisor': divisor,
-        'old_shares': oldShares,
-        'new_shares': newShares,
-        'cash_in_lieu': cashInLieu,
-        'currency_code': currencyCode,
-        'state': state,
-        if (executionDate != null)
-          'execution_date': executionDate!.toIso8601String(),
-        if (paymentDate != null)
-          'payment_date': paymentDate!.toIso8601String(),
-        if (description != null) 'description': description,
-        if (split != null)
-          'split': split!.url != null && split!.id.isEmpty
-              ? split!.url
-              : split!.toJson(),
-      };
+    'id': id,
+    'account_number': accountNumber,
+    'instrument_id': instrumentId,
+    'symbol': symbol,
+    'action_type': actionType,
+    'multiplier': multiplier,
+    'divisor': divisor,
+    'old_shares': oldShares,
+    'new_shares': newShares,
+    'cash_in_lieu': cashInLieu,
+    'currency_code': currencyCode,
+    'state': state,
+    if (executionDate != null)
+      'execution_date': executionDate!.toIso8601String(),
+    if (paymentDate != null) 'payment_date': paymentDate!.toIso8601String(),
+    if (description != null) 'description': description,
+    if (split != null)
+      'split': split!.url != null && split!.id.isEmpty
+          ? split!.url
+          : split!.toJson(),
+  };
 
   String get displaySymbol {
     if (symbol.isNotEmpty) return symbol;
     if (description != null && description!.isNotEmpty) {
       final parts = description!.trim().split(' ');
-      if (parts.isNotEmpty && parts.first.isNotEmpty && parts.first.length <= 5) {
+      if (parts.isNotEmpty &&
+          parts.first.isNotEmpty &&
+          parts.first.length <= 5) {
         return parts.first.toUpperCase();
       }
       return description!;
     }
     final shortId = shortInstrumentId;
     if (shortId.isNotEmpty) {
-      return shortId.length > 8 ? shortId.substring(0, 8).toUpperCase() : shortId.toUpperCase();
+      return shortId.length > 8
+          ? shortId.substring(0, 8).toUpperCase()
+          : shortId.toUpperCase();
     }
     return 'Stock';
   }
@@ -561,18 +587,24 @@ class SplitPayment {
   String get shortInstrumentId {
     if (instrumentId.isEmpty) return '';
     if (instrumentId.contains('/')) {
-      final segments =
-          instrumentId.split('/').where((s) => s.isNotEmpty).toList();
+      final segments = instrumentId
+          .split('/')
+          .where((s) => s.isNotEmpty)
+          .toList();
       if (segments.isNotEmpty) return segments.last;
     }
     return instrumentId;
   }
 
   double get effectiveMultiplier {
-    if (divisor > 0 && multiplier > 0 && (multiplier != 1.0 || divisor != 1.0)) {
+    if (divisor > 0 &&
+        multiplier > 0 &&
+        (multiplier != 1.0 || divisor != 1.0)) {
       return multiplier / divisor;
     }
-    if (oldShares > 0 && newShares > 0 && (newShares - oldShares).abs() > 0.0001) {
+    if (oldShares > 0 &&
+        newShares > 0 &&
+        (newShares - oldShares).abs() > 0.0001) {
       return newShares / oldShares;
     }
     return (divisor > 0 ? multiplier / divisor : multiplier);
@@ -595,7 +627,9 @@ class SplitPayment {
   double get sharesDelta => newShares - oldShares;
 
   String get formattedRatio {
-    if (multiplier > 0 && divisor > 0 && (multiplier != 1.0 || divisor != 1.0)) {
+    if (multiplier > 0 &&
+        divisor > 0 &&
+        (multiplier != 1.0 || divisor != 1.0)) {
       if (multiplier > divisor) {
         final ratio = multiplier / divisor;
         if ((ratio - ratio.round()).abs() < 0.001) {
@@ -627,7 +661,9 @@ class SplitPayment {
   }
 
   String get shortRatioBadge {
-    if (multiplier > 0 && divisor > 0 && (multiplier != 1.0 || divisor != 1.0)) {
+    if (multiplier > 0 &&
+        divisor > 0 &&
+        (multiplier != 1.0 || divisor != 1.0)) {
       if (multiplier > divisor) {
         final ratio = multiplier / divisor;
         if ((ratio - ratio.round()).abs() < 0.001) {
@@ -659,7 +695,9 @@ class SplitPayment {
   }
 
   String get formattedSplitRatio {
-    if (multiplier > 0 && divisor > 0 && (multiplier != 1.0 || divisor != 1.0)) {
+    if (multiplier > 0 &&
+        divisor > 0 &&
+        (multiplier != 1.0 || divisor != 1.0)) {
       if (multiplier % 1 == 0 && divisor % 1 == 0) {
         return '${multiplier.toInt()}:${divisor.toInt()}';
       }
@@ -703,7 +741,10 @@ class SplitPayment {
     if (shares % 1 == 0) {
       return shares.toInt().toString();
     }
-    return shares.toStringAsFixed(4).replaceAll(RegExp(r'0+$'), '').replaceAll(RegExp(r'\.$'), '');
+    return shares
+        .toStringAsFixed(4)
+        .replaceAll(RegExp(r'0+$'), '')
+        .replaceAll(RegExp(r'\.$'), '');
   }
 }
 
@@ -724,7 +765,9 @@ class CorporateActionSplitsSummary {
     this.symbolsAffected = const [],
   });
 
-  factory CorporateActionSplitsSummary.fromPayments(List<SplitPayment> payments) {
+  factory CorporateActionSplitsSummary.fromPayments(
+    List<SplitPayment> payments,
+  ) {
     int forwardCount = 0;
     int reverseCount = 0;
     double cashInLieuSum = 0.0;

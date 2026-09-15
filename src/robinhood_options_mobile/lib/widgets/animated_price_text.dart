@@ -53,22 +53,25 @@ class _AnimatedPriceTextState extends State<AnimatedPriceText>
       final defaultUpColor = brightness == Brightness.light
           ? Colors.green
           : Colors.lightGreenAccent;
-      final defaultDownColor =
-          brightness == Brightness.light ? Colors.red : Colors.redAccent;
+      final defaultDownColor = brightness == Brightness.light
+          ? Colors.red
+          : Colors.redAccent;
 
       if (widget.price > oldWidget.price) {
         targetColor = widget.flashColorUp ?? defaultUpColor;
       } else if (widget.price < oldWidget.price) {
         targetColor = widget.flashColorDown ?? defaultDownColor;
       } else {
-        targetColor = widget.style?.color ??
+        targetColor =
+            widget.style?.color ??
             DefaultTextStyle.of(context).style.color ??
             Theme.of(context).textTheme.bodyMedium?.color ??
             Colors.black;
       }
 
       // Resolve the end color (original text color)
-      final endColor = widget.style?.color ??
+      final endColor =
+          widget.style?.color ??
           DefaultTextStyle.of(context).style.color ??
           Theme.of(context).textTheme.bodyMedium?.color;
 

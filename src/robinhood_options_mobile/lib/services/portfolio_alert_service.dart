@@ -44,7 +44,8 @@ class PortfolioAlertService {
     final alerts = <PortfolioAlert>[];
 
     alerts.addAll(
-        _marginHealthAlerts(account, unifiedAccount, totalEquity, marginCalls));
+      _marginHealthAlerts(account, unifiedAccount, totalEquity, marginCalls),
+    );
     alerts.addAll(_pdtAlerts(account, totalEquity, dayTradeSummary));
     alerts.addAll(_taxAlerts(instrumentPositions, optionPositions));
     alerts.addAll(_concentrationAlerts(instrumentPositions, optionPositions));
@@ -218,13 +219,15 @@ class PortfolioAlertService {
   ) {
     final suggestions =
         TaxOptimizationService.calculateTaxHarvestingOpportunities(
-      instrumentPositions: instrumentPositions,
-      optionPositions: optionPositions,
-    );
+          instrumentPositions: instrumentPositions,
+          optionPositions: optionPositions,
+        );
     if (suggestions.isEmpty) return const [];
 
     final totalLoss = suggestions.fold<double>(
-        0, (sum, suggestion) => sum + suggestion.estimatedLoss);
+      0,
+      (sum, suggestion) => sum + suggestion.estimatedLoss,
+    );
     final urgency = TaxOptimizationService.getSeasonalityUrgency();
 
     // Match the existing card's smart-visibility thresholds so the Action
@@ -240,7 +243,8 @@ class PortfolioAlertService {
             ? PortfolioAlertSeverity.critical
             : PortfolioAlertSeverity.warning,
         icon: Icons.savings_outlined,
-        title: '${suggestions.length} tax-loss '
+        title:
+            '${suggestions.length} tax-loss '
             '${suggestions.length == 1 ? 'opportunity' : 'opportunities'}',
         detail: urgency > 0
             ? 'Harvest before year-end to offset realized gains.'
@@ -292,7 +296,9 @@ class PortfolioAlertService {
   }
 
   static List<PortfolioAlert> _cashAlerts(
-      Account? account, double? totalEquity) {
+    Account? account,
+    double? totalEquity,
+  ) {
     final cash = account?.portfolioCash;
     if (cash == null || totalEquity == null || totalEquity <= 0) {
       return const [];
@@ -315,14 +321,21 @@ class PortfolioAlertService {
   }
 
   static List<PortfolioAlert> _moverAlerts(
-      List<InstrumentPosition> instrumentPositions) {
-    final movers = instrumentPositions
-        .where((position) =>
-            position.instrumentObj?.quoteObj?.adjustedPreviousClose != null &&
-            position.marketValue > 0 &&
-            position.gainLossPercentToday.abs() >= _notableDailyMove)
-        .toList()
-      ..sort((a, b) => b.gainLossToday.abs().compareTo(a.gainLossToday.abs()));
+    List<InstrumentPosition> instrumentPositions,
+  ) {
+    final movers =
+        instrumentPositions
+            .where(
+              (position) =>
+                  position.instrumentObj?.quoteObj?.adjustedPreviousClose !=
+                      null &&
+                  position.marketValue > 0 &&
+                  position.gainLossPercentToday.abs() >= _notableDailyMove,
+            )
+            .toList()
+          ..sort(
+            (a, b) => b.gainLossToday.abs().compareTo(a.gainLossToday.abs()),
+          );
 
     if (movers.isEmpty) return const [];
 
@@ -335,7 +348,8 @@ class PortfolioAlertService {
             ? PortfolioAlertSeverity.positive
             : PortfolioAlertSeverity.warning,
         icon: isGain ? Icons.trending_up : Icons.trending_down,
-        title: '${mover.instrumentObj!.symbol} ${isGain ? 'moved up' : 'fell'} '
+        title:
+            '${mover.instrumentObj!.symbol} ${isGain ? 'moved up' : 'fell'} '
             '${_percent.format(mover.gainLossPercentToday.abs())} today',
         detail: isGain
             ? 'Your largest contributor to today\'s gain.'
@@ -347,39 +361,46 @@ class PortfolioAlertService {
   }
 
   static List<PortfolioAlert> _analyticsAlerts(
-      Map<String, dynamic> analytics, String benchmarkSymbol) {
+    Map<String, dynamic> analytics,
+    String benchmarkSymbol,
+  ) {
     final alerts = <PortfolioAlert>[];
 
     final excessReturn = analytics['excessReturn'] as double?;
     if (excessReturn != null && excessReturn.abs() >= 0.02) {
       final trailing = excessReturn < 0;
-      alerts.add(PortfolioAlert(
-        id: 'benchmark-delta',
-        severity: trailing
-            ? PortfolioAlertSeverity.warning
-            : PortfolioAlertSeverity.positive,
-        icon: trailing ? Icons.south_east : Icons.north_east,
-        title: '${trailing ? 'Trailing' : 'Beating'} $benchmarkSymbol by '
-            '${_percent.format(excessReturn.abs())}',
-        detail: trailing
-            ? 'Review which positions are dragging on relative return.'
-            : 'Your allocation is outperforming the benchmark.',
-        target: PortfolioAlertTarget.performance,
-      ));
+      alerts.add(
+        PortfolioAlert(
+          id: 'benchmark-delta',
+          severity: trailing
+              ? PortfolioAlertSeverity.warning
+              : PortfolioAlertSeverity.positive,
+          icon: trailing ? Icons.south_east : Icons.north_east,
+          title:
+              '${trailing ? 'Trailing' : 'Beating'} $benchmarkSymbol by '
+              '${_percent.format(excessReturn.abs())}',
+          detail: trailing
+              ? 'Review which positions are dragging on relative return.'
+              : 'Your allocation is outperforming the benchmark.',
+          target: PortfolioAlertTarget.performance,
+        ),
+      );
     }
 
     final currentDrawdown = analytics['currentDrawdown'] as double?;
     if (currentDrawdown != null && currentDrawdown.abs() >= 0.10) {
-      alerts.add(PortfolioAlert(
-        id: 'drawdown',
-        severity: currentDrawdown.abs() >= 0.20
-            ? PortfolioAlertSeverity.critical
-            : PortfolioAlertSeverity.warning,
-        icon: Icons.waterfall_chart,
-        title: 'Down ${_percent.format(currentDrawdown.abs())} from peak',
-        detail: 'The portfolio has not recovered its previous high.',
-        target: PortfolioAlertTarget.risk,
-      ));
+      alerts.add(
+        PortfolioAlert(
+          id: 'drawdown',
+          severity: currentDrawdown.abs() >= 0.20
+              ? PortfolioAlertSeverity.critical
+              : PortfolioAlertSeverity.warning,
+          icon: Icons.waterfall_chart,
+          title: 'Down ${_percent.format(currentDrawdown.abs())} from peak',
+          detail: 'The portfolio has not recovered its previous high.',
+          target: PortfolioAlertTarget.risk,
+        ),
+      );
     }
 
     final volatility = analytics['volatility'] as double?;
@@ -388,17 +409,20 @@ class PortfolioAlertService {
         benchmarkVolatility != null &&
         benchmarkVolatility > 0 &&
         volatility / benchmarkVolatility >= 1.5) {
-      alerts.add(PortfolioAlert(
-        id: 'volatility',
-        severity: PortfolioAlertSeverity.warning,
-        icon: Icons.show_chart,
-        title: 'Volatility is '
-            '${(volatility / benchmarkVolatility).toStringAsFixed(1)}× '
-            '$benchmarkSymbol',
-        detail: 'Swings are materially wider than the benchmark.',
-        metric: _percent.format(volatility),
-        target: PortfolioAlertTarget.risk,
-      ));
+      alerts.add(
+        PortfolioAlert(
+          id: 'volatility',
+          severity: PortfolioAlertSeverity.warning,
+          icon: Icons.show_chart,
+          title:
+              'Volatility is '
+              '${(volatility / benchmarkVolatility).toStringAsFixed(1)}× '
+              '$benchmarkSymbol',
+          detail: 'Swings are materially wider than the benchmark.',
+          metric: _percent.format(volatility),
+          target: PortfolioAlertTarget.risk,
+        ),
+      );
     }
 
     return alerts;

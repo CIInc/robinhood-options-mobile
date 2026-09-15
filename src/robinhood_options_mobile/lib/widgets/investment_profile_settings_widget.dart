@@ -56,7 +56,8 @@ class _InvestmentProfileSettingsWidgetState
         double.tryParse(_totalPortfolioValueController.text) ?? 0.0;
     final originalVal = original?.totalPortfolioValue ?? 0.0;
 
-    final hasChanges = _selectedInvestmentGoal != original?.investmentGoals ||
+    final hasChanges =
+        _selectedInvestmentGoal != original?.investmentGoals ||
         _selectedTimeHorizon != original?.timeHorizon ||
         _selectedRiskTolerance != original?.riskTolerance ||
         (currentVal - originalVal).abs() > 0.01;
@@ -77,16 +78,19 @@ class _InvestmentProfileSettingsWidgetState
           widget.user.investmentProfile?.totalPortfolioValue?.toString() ?? '';
 
       final loadedGoal = widget.user.investmentProfile?.investmentGoals;
-      _selectedInvestmentGoal =
-          _investmentGoals.contains(loadedGoal) ? loadedGoal : null;
+      _selectedInvestmentGoal = _investmentGoals.contains(loadedGoal)
+          ? loadedGoal
+          : null;
 
       final loadedHorizon = widget.user.investmentProfile?.timeHorizon;
-      _selectedTimeHorizon =
-          _timeHorizons.contains(loadedHorizon) ? loadedHorizon : null;
+      _selectedTimeHorizon = _timeHorizons.contains(loadedHorizon)
+          ? loadedHorizon
+          : null;
 
       final loadedRisk = widget.user.investmentProfile?.riskTolerance;
-      _selectedRiskTolerance =
-          _riskTolerances.contains(loadedRisk) ? loadedRisk : null;
+      _selectedRiskTolerance = _riskTolerances.contains(loadedRisk)
+          ? loadedRisk
+          : null;
 
       _hasChanges = false;
     });
@@ -94,14 +98,22 @@ class _InvestmentProfileSettingsWidgetState
 
   void _autoImportPortfolioValue() {
     try {
-      final portfolioStore =
-          Provider.of<PortfolioStore>(context, listen: false);
-      final stockPositionStore =
-          Provider.of<InstrumentPositionStore>(context, listen: false);
-      final optionPositionStore =
-          Provider.of<OptionPositionStore>(context, listen: false);
-      final forexHoldingStore =
-          Provider.of<ForexHoldingStore>(context, listen: false);
+      final portfolioStore = Provider.of<PortfolioStore>(
+        context,
+        listen: false,
+      );
+      final stockPositionStore = Provider.of<InstrumentPositionStore>(
+        context,
+        listen: false,
+      );
+      final optionPositionStore = Provider.of<OptionPositionStore>(
+        context,
+        listen: false,
+      );
+      final forexHoldingStore = Provider.of<ForexHoldingStore>(
+        context,
+        listen: false,
+      );
 
       Account? account;
       if (widget.user.allAccounts.isNotEmpty) {
@@ -110,7 +122,8 @@ class _InvestmentProfileSettingsWidgetState
 
       double portfolioValue = 0;
       if (portfolioStore.items.isNotEmpty && account != null) {
-        portfolioValue = (account.portfolioCash ?? 0) +
+        portfolioValue =
+            (account.portfolioCash ?? 0) +
             stockPositionStore.equity +
             optionPositionStore.equity +
             forexHoldingStore.equity;
@@ -125,7 +138,8 @@ class _InvestmentProfileSettingsWidgetState
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-              'Portfolio value imported: ${formatCurrency.format(portfolioValue)}'),
+            'Portfolio value imported: ${formatCurrency.format(portfolioValue)}',
+          ),
           behavior: SnackBarBehavior.floating,
           duration: const Duration(seconds: 2),
         ),
@@ -134,7 +148,8 @@ class _InvestmentProfileSettingsWidgetState
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-              'Unable to auto-import portfolio value. Please enter manually.'),
+            'Unable to auto-import portfolio value. Please enter manually.',
+          ),
           behavior: SnackBarBehavior.floating,
           duration: Duration(seconds: 3),
         ),
@@ -162,14 +177,17 @@ class _InvestmentProfileSettingsWidgetState
         widget.user.investmentProfile!.riskTolerance = _selectedRiskTolerance;
         widget.user.investmentProfile!.totalPortfolioValue =
             _totalPortfolioValueController.text.isNotEmpty
-                ? double.tryParse(_totalPortfolioValueController.text)
-                : null;
+            ? double.tryParse(_totalPortfolioValueController.text)
+            : null;
 
         var usersCollection = widget.firestoreService.userCollection;
-        var userDocumentReference =
-            usersCollection.doc(fb_auth.FirebaseAuth.instance.currentUser!.uid);
-        await widget.firestoreService
-            .updateUser(userDocumentReference, widget.user);
+        var userDocumentReference = usersCollection.doc(
+          fb_auth.FirebaseAuth.instance.currentUser!.uid,
+        );
+        await widget.firestoreService.updateUser(
+          userDocumentReference,
+          widget.user,
+        );
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -201,14 +219,12 @@ class _InvestmentProfileSettingsWidgetState
     final colorScheme = theme.colorScheme;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Investment Profile'),
-        elevation: 0,
-      ),
+      appBar: AppBar(title: const Text('Investment Profile'), elevation: 0),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: (_isSaving || !_hasChanges) ? null : _saveSettings,
-        backgroundColor:
-            _hasChanges ? null : theme.colorScheme.surfaceContainerHighest,
+        backgroundColor: _hasChanges
+            ? null
+            : theme.colorScheme.surfaceContainerHighest,
         foregroundColor: _hasChanges ? null : theme.colorScheme.outline,
         icon: _isSaving
             ? const SizedBox(
@@ -231,7 +247,8 @@ class _InvestmentProfileSettingsWidgetState
             builder: (context) => AlertDialog(
               title: const Text('Discard Changes?'),
               content: const Text(
-                  'You have unsaved changes. Are you sure you want to leave without saving?'),
+                'You have unsaved changes. Are you sure you want to leave without saving?',
+              ),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context, false),
@@ -294,8 +311,10 @@ class _InvestmentProfileSettingsWidgetState
                   labelText: 'Investment Goal',
                   helperText: 'What are your primary investment objectives?',
                   border: const OutlineInputBorder(),
-                  prefixIcon:
-                      Icon(Icons.flag_outlined, color: colorScheme.primary),
+                  prefixIcon: Icon(
+                    Icons.flag_outlined,
+                    color: colorScheme.primary,
+                  ),
                   filled: true,
                   fillColor: colorScheme.surface,
                 ),
@@ -390,13 +409,16 @@ class _InvestmentProfileSettingsWidgetState
                             'Current total value of your investment portfolio',
                         border: const OutlineInputBorder(),
                         prefixText: '\$ ',
-                        prefixIcon: Icon(Icons.account_balance_wallet_outlined,
-                            color: colorScheme.primary),
+                        prefixIcon: Icon(
+                          Icons.account_balance_wallet_outlined,
+                          color: colorScheme.primary,
+                        ),
                         filled: true,
                         fillColor: colorScheme.surface,
                       ),
-                      keyboardType:
-                          const TextInputType.numberWithOptions(decimal: true),
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
                       validator: (value) {
                         if (value != null && value.isNotEmpty) {
                           if (double.tryParse(value) == null) {
@@ -419,7 +441,9 @@ class _InvestmentProfileSettingsWidgetState
                       label: const Text('Auto-fill'),
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 0),
+                          horizontal: 16,
+                          vertical: 0,
+                        ),
                       ),
                     ),
                   ),

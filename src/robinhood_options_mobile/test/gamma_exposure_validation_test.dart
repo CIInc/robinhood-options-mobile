@@ -62,8 +62,8 @@ void main() {
           'callGEX': 400000.0,
           'putGEX': 10000.0,
           'netGEX': 390000.0,
-        }
-      ]
+        },
+      ],
     };
 
     test('GammaExposureData should deserialize from JSON correctly', () {
@@ -178,8 +178,9 @@ void main() {
     test('future update timestamps have zero age', () {
       final now = DateTime.fromMillisecondsSinceEpoch(1717760000000);
       final json = Map<String, dynamic>.from(mockGexJson)
-        ..['updatedAt'] =
-            now.add(const Duration(minutes: 1)).millisecondsSinceEpoch;
+        ..['updatedAt'] = now
+            .add(const Duration(minutes: 1))
+            .millisecondsSinceEpoch;
 
       expect(GammaExposureData.fromJson(json).ageAt(now), Duration.zero);
     });

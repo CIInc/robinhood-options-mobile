@@ -258,7 +258,9 @@ void main() {
       final paymentsRaw = await demoService.getStockLoanPayments(testUser);
       expect(paymentsRaw, isNotEmpty);
 
-      final payments = paymentsRaw.map((p) => StockLoanPayment.fromJson(p)).toList();
+      final payments = paymentsRaw
+          .map((p) => StockLoanPayment.fromJson(p))
+          .toList();
       expect(payments.length, 3);
       expect(payments.first.amount, greaterThan(0));
       expect(payments.first.positions, isNotEmpty);
@@ -275,14 +277,17 @@ void main() {
       expect(slip.totalInterestEarnedYtd, greaterThan(0));
     });
 
-    test('returns demo cash sweeps with partner banks and 5% gold rate', () async {
-      final rawSweeps = await demoService.getSweepsInterest(testUser);
-      expect(rawSweeps, isNotNull);
+    test(
+      'returns demo cash sweeps with partner banks and 5% gold rate',
+      () async {
+        final rawSweeps = await demoService.getSweepsInterest(testUser);
+        expect(rawSweeps, isNotNull);
 
-      final sweeps = SweepsInterest.fromJson(rawSweeps);
-      expect(sweeps.isEnrolled, isTrue);
-      expect(sweeps.goldApy, 0.050);
-      expect(sweeps.partnerBanks.length, greaterThanOrEqualTo(5));
-    });
+        final sweeps = SweepsInterest.fromJson(rawSweeps);
+        expect(sweeps.isEnrolled, isTrue);
+        expect(sweeps.goldApy, 0.050);
+        expect(sweeps.partnerBanks.length, greaterThanOrEqualTo(5));
+      },
+    );
   });
 }

@@ -13,8 +13,9 @@ import 'package:robinhood_options_mobile/widgets/home/portfolio_chart_widget.dar
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
-  testWidgets('hiding balances masks portfolio historical chart values',
-      (tester) async {
+  testWidgets('hiding balances masks portfolio historical chart values', (
+    tester,
+  ) async {
     SharedPreferences.setMockInitialValues({});
     final accountStore = AccountStore();
     final historicalsStore = PortfolioHistoricalsStore()
@@ -32,8 +33,12 @@ void main() {
         child: MaterialApp(
           home: Scaffold(
             body: PortfolioChartWidget(
-              brokerageUser:
-                  BrokerageUser(BrokerageSource.demo, 'demo', null, null),
+              brokerageUser: BrokerageUser(
+                BrokerageSource.demo,
+                'demo',
+                null,
+                null,
+              ),
               chartDateSpanFilter: ChartDateSpan.day,
               chartBoundsFilter: Bounds.regular,
               onFilterChanged: (_, __) {},
@@ -83,8 +88,17 @@ PortfolioHistoricals _buildHistoricals() {
     100,
     [
       EquityHistorical(1000, 1000, 1000, 1000, 1000, 1000, start, 0, 'reg'),
-      EquityHistorical(1100, 1100, 1100, 1100, 1100, 1100,
-          start.add(const Duration(hours: 1)), 100, 'reg'),
+      EquityHistorical(
+        1100,
+        1100,
+        1100,
+        1100,
+        1100,
+        1100,
+        start.add(const Duration(hours: 1)),
+        100,
+        'reg',
+      ),
     ],
     false,
   );

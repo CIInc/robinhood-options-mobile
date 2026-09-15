@@ -101,8 +101,11 @@ class _InsightsSectionPageState extends State<InsightsSectionPage> {
             color: theme.colorScheme.tertiaryContainer,
             borderRadius: BorderRadius.circular(12),
           ),
-          child: Icon(icon,
-              size: 24, color: theme.colorScheme.onTertiaryContainer),
+          child: Icon(
+            icon,
+            size: 24,
+            color: theme.colorScheme.onTertiaryContainer,
+          ),
         ),
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
         subtitle: Padding(

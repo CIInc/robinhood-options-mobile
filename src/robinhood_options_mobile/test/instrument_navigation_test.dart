@@ -51,8 +51,9 @@ void main() {
       ),
     ];
 
-    testWidgets('renders all category chips and highlights the selected one',
-        (WidgetTester tester) async {
+    testWidgets('renders all category chips and highlights the selected one', (
+      WidgetTester tester,
+    ) async {
       String selectedCategory = 'Overview';
 
       await tester.pumpWidget(
@@ -98,8 +99,9 @@ void main() {
       expect(signalsChip.selected, isFalse);
     });
 
-    testWidgets('triggers onCategorySelected callback when chip is tapped',
-        (WidgetTester tester) async {
+    testWidgets('triggers onCategorySelected callback when chip is tapped', (
+      WidgetTester tester,
+    ) async {
       String selected = 'Overview';
 
       await tester.pumpWidget(
@@ -152,8 +154,9 @@ void main() {
       expect(overviewChip.selected, isFalse);
     });
 
-    testWidgets('switching chips scrolls back to chips when scrolled down',
-        (WidgetTester tester) async {
+    testWidgets('switching chips scrolls back to chips when scrolled down', (
+      WidgetTester tester,
+    ) async {
       String selected = 'Overview';
       final scrollController = ScrollController();
       final headerKey = GlobalKey();
@@ -184,11 +187,12 @@ void main() {
                             selected = cat;
                           });
                           if (scrollController.hasClients) {
-                            final renderObject =
-                                headerKey.currentContext?.findRenderObject();
+                            final renderObject = headerKey.currentContext
+                                ?.findRenderObject();
                             if (renderObject is RenderSliver) {
                               final targetOffset = renderObject
-                                  .constraints.precedingScrollExtent;
+                                  .constraints
+                                  .precedingScrollExtent;
                               if ((scrollController.offset - targetOffset)
                                       .abs() >
                                   2.0) {
@@ -233,8 +237,9 @@ void main() {
       expect(scrollController.offset, equals(660.0));
     });
 
-    testWidgets('verify top of content under chips with pinned header',
-        (WidgetTester tester) async {
+    testWidgets('verify top of content under chips with pinned header', (
+      WidgetTester tester,
+    ) async {
       String selected = 'Overview';
       final scrollController = ScrollController();
       final headerKey = GlobalKey();
@@ -284,9 +289,11 @@ void main() {
       final renderHeader =
           headerKey.currentContext?.findRenderObject() as RenderSliver;
       debugPrint(
-          'renderHeader.constraints.precedingScrollExtent: ${renderHeader.constraints.precedingScrollExtent}');
+        'renderHeader.constraints.precedingScrollExtent: ${renderHeader.constraints.precedingScrollExtent}',
+      );
       debugPrint(
-          'renderHeader.constraints.overlap: ${renderHeader.constraints.overlap}');
+        'renderHeader.constraints.overlap: ${renderHeader.constraints.overlap}',
+      );
 
       // Let's test scroll offsets and see when the bottom of the header matches the top of firstContentKey
       for (double offset = 580; offset <= 680; offset += 10) {
@@ -295,12 +302,14 @@ void main() {
         final chipRect = tester.getRect(find.byType(FilterChip).first);
         final contentRect = tester.getRect(find.byKey(firstContentKey));
         debugPrint(
-            'offset: $offset | chip bottom: ${chipRect.bottom} | content top: ${contentRect.top}');
+          'offset: $offset | chip bottom: ${chipRect.bottom} | content top: ${contentRect.top}',
+        );
       }
     });
 
-    testWidgets('switching chips scrolls to exact top of view under chips',
-        (WidgetTester tester) async {
+    testWidgets('switching chips scrolls to exact top of view under chips', (
+      WidgetTester tester,
+    ) async {
       String selected = 'Overview';
       final scrollController = ScrollController();
       final headerKey = GlobalKey();
@@ -336,10 +345,11 @@ void main() {
                             selected = cat;
                           });
                           if (scrollController.hasClients) {
-                            final renderObject =
-                                headerKey.currentContext?.findRenderObject();
+                            final renderObject = headerKey.currentContext
+                                ?.findRenderObject();
                             if (renderObject is RenderSliver) {
-                              final pinnedAppBarHeight = kToolbarHeight +
+                              final pinnedAppBarHeight =
+                                  kToolbarHeight +
                                   MediaQuery.paddingOf(context).top;
                               final targetOffset = math.max(
                                 0.0,
@@ -395,11 +405,13 @@ void main() {
       // Header height is 48, top is 56 (pinned app bar), so bottom is 104.
       expect(contentRect.top, equals(104.0));
       debugPrint(
-          'Chip bottom: ${chipRect.bottom}, Content top: ${contentRect.top}');
+        'Chip bottom: ${chipRect.bottom}, Content top: ${contentRect.top}',
+      );
     });
 
-    testWidgets('renders category badges when provided',
-        (WidgetTester tester) async {
+    testWidgets('renders category badges when provided', (
+      WidgetTester tester,
+    ) async {
       final categoriesWithBadges = [
         const InstrumentCategory(
           key: 'Overview',
@@ -484,61 +496,62 @@ void main() {
       expect(cat1 == cat3, isFalse);
     });
 
-    testWidgets('Activity badge reflects order count and is displayed correctly',
-        (WidgetTester tester) async {
-      final categoriesWithActivityBadge = [
-        const InstrumentCategory(
-          key: 'Overview',
-          label: 'Overview',
-          icon: Icons.dashboard_outlined,
-          selectedIcon: Icons.dashboard,
-        ),
-        const InstrumentCategory(
-          key: 'Activity',
-          label: 'Activity',
-          icon: Icons.receipt_long_outlined,
-          selectedIcon: Icons.receipt_long,
-          badge: '3',
-        ),
-        const InstrumentCategory(
-          key: 'All',
-          label: 'All',
-          icon: Icons.view_agenda_outlined,
-          selectedIcon: Icons.view_agenda,
-        ),
-      ];
+    testWidgets(
+      'Activity badge reflects order count and is displayed correctly',
+      (WidgetTester tester) async {
+        final categoriesWithActivityBadge = [
+          const InstrumentCategory(
+            key: 'Overview',
+            label: 'Overview',
+            icon: Icons.dashboard_outlined,
+            selectedIcon: Icons.dashboard,
+          ),
+          const InstrumentCategory(
+            key: 'Activity',
+            label: 'Activity',
+            icon: Icons.receipt_long_outlined,
+            selectedIcon: Icons.receipt_long,
+            badge: '3',
+          ),
+          const InstrumentCategory(
+            key: 'All',
+            label: 'All',
+            icon: Icons.view_agenda_outlined,
+            selectedIcon: Icons.view_agenda,
+          ),
+        ];
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: CustomScrollView(
-              slivers: [
-                SliverPersistentHeader(
-                  pinned: true,
-                  delegate: InstrumentCategoryHeaderDelegate(
-                    selectedCategory: 'All',
-                    onCategorySelected: (_) {},
-                    categories: categoriesWithActivityBadge,
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: CustomScrollView(
+                slivers: [
+                  SliverPersistentHeader(
+                    pinned: true,
+                    delegate: InstrumentCategoryHeaderDelegate(
+                      selectedCategory: 'All',
+                      onCategorySelected: (_) {},
+                      categories: categoriesWithActivityBadge,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
-        ),
-      );
+        );
 
-      // Verify 'All' is selected
-      final allChip = tester.widget<FilterChip>(
-        find.ancestor(
-          of: find.text('All'),
-          matching: find.byType(FilterChip),
-        ),
-      );
-      expect(allChip.selected, isTrue);
+        // Verify 'All' is selected
+        final allChip = tester.widget<FilterChip>(
+          find.ancestor(
+            of: find.text('All'),
+            matching: find.byType(FilterChip),
+          ),
+        );
+        expect(allChip.selected, isTrue);
 
-      // Verify Activity badge shows '3'
-      expect(find.text('3'), findsOneWidget);
-    });
+        // Verify Activity badge shows '3'
+        expect(find.text('3'), findsOneWidget);
+      },
+    );
   });
 }
-

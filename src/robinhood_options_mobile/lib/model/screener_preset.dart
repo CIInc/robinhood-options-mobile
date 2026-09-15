@@ -87,7 +87,8 @@ class ScreenerPresetCriterion {
         .replaceAll('_', ' ')
         .split(' ')
         .map(
-            (w) => w.isNotEmpty ? '${w[0].toUpperCase()}${w.substring(1)}' : '')
+          (w) => w.isNotEmpty ? '${w[0].toUpperCase()}${w.substring(1)}' : '',
+        )
         .join(' ');
   }
 
@@ -127,7 +128,8 @@ class ScreenerPresetCriterion {
     } else if (lower.contains('sector')) {
       return ScreenerCriterion(
         field: ScreenerField.sector,
-        textValue: textValue ??
+        textValue:
+            textValue ??
             (values != null && values!.isNotEmpty ? values!.first : null),
       );
     }
@@ -143,19 +145,20 @@ class ScreenerPresetCriterion {
       maxValue: (json['max_value'] ?? json['maximum'] ?? json['max'] as num?)
           ?.toDouble(),
       textValue: json['text_value'] as String? ?? json['value'] as String?,
-      values:
-          (json['values'] as List<dynamic>?)?.map((e) => e.toString()).toList(),
+      values: (json['values'] as List<dynamic>?)
+          ?.map((e) => e.toString())
+          .toList(),
     );
   }
 
   Map<String, dynamic> toJson() => {
-        'field': field,
-        'operator': operator,
-        if (minValue != null) 'min_value': minValue,
-        if (maxValue != null) 'max_value': maxValue,
-        if (textValue != null) 'text_value': textValue,
-        if (values != null) 'values': values,
-      };
+    'field': field,
+    'operator': operator,
+    if (minValue != null) 'min_value': minValue,
+    if (maxValue != null) 'max_value': maxValue,
+    if (textValue != null) 'text_value': textValue,
+    if (values != null) 'values': values,
+  };
 }
 
 /// Curated Robinhood screener preset representing server-side saved filter collections
@@ -202,7 +205,8 @@ class RobinhoodScreenerPreset {
       for (final size in ['255x160', '180x100', '48x64', '28x28']) {
         final entry = assetUrls![size];
         if (entry is Map) {
-          final candidate = entry['2x'] ??
+          final candidate =
+              entry['2x'] ??
               entry['1x'] ??
               entry['svg'] ??
               entry['1.5x'] ??
@@ -263,11 +267,13 @@ class RobinhoodScreenerPreset {
   }
 
   factory RobinhoodScreenerPreset.fromJson(Map<String, dynamic> json) {
-    final rawName = json['display_name'] as String? ??
+    final rawName =
+        json['display_name'] as String? ??
         json['name'] as String? ??
         json['title'] as String? ??
         '';
-    final rawDescription = json['display_description'] as String? ??
+    final rawDescription =
+        json['display_description'] as String? ??
         json['description'] as String? ??
         '';
     final sortBy = json['sort_by'] as String?;
@@ -285,40 +291,45 @@ class RobinhoodScreenerPreset {
       assetUrls = Map<String, dynamic>.from(json['asset_urls'] as Map);
     }
 
-    final columns = (json['columns'] as List<dynamic>?)
+    final columns =
+        (json['columns'] as List<dynamic>?)
             ?.map((e) => e.toString())
             .toList() ??
         const <String>[];
 
-    final isFeatured = json['is_featured'] as bool? ??
+    final isFeatured =
+        json['is_featured'] as bool? ??
         (rawName.toLowerCase().contains('jump') ||
             rawName.toLowerCase().contains('dividend') ||
             rawName.toLowerCase().contains('high') ||
             rawName.toLowerCase().contains('analyst'));
 
-    final category = json['category'] as String? ??
+    final category =
+        json['category'] as String? ??
         json['theme'] as String? ??
         _inferCategory(rawName, sortBy);
 
     List<ScreenerPresetCriterion> parsedCriteria = [];
     if (json['criteria'] != null) {
       parsedCriteria = (json['criteria'] as List<dynamic>)
-          .map((c) =>
-              ScreenerPresetCriterion.fromJson(c as Map<String, dynamic>))
+          .map(
+            (c) => ScreenerPresetCriterion.fromJson(c as Map<String, dynamic>),
+          )
           .toList();
     } else if (json['filters'] != null) {
       if (json['filters'] is List) {
         parsedCriteria = (json['filters'] as List<dynamic>)
-            .map((c) =>
-                ScreenerPresetCriterion.fromJson(c as Map<String, dynamic>))
+            .map(
+              (c) =>
+                  ScreenerPresetCriterion.fromJson(c as Map<String, dynamic>),
+            )
             .toList();
       } else if (json['filters'] is Map) {
         (json['filters'] as Map<String, dynamic>).forEach((key, val) {
           if (val is Map<String, dynamic>) {
-            parsedCriteria.add(ScreenerPresetCriterion.fromJson({
-              'field': key,
-              ...val,
-            }));
+            parsedCriteria.add(
+              ScreenerPresetCriterion.fromJson({'field': key, ...val}),
+            );
           }
         });
       }
@@ -340,8 +351,9 @@ class RobinhoodScreenerPreset {
           .map((s) => s.toString())
           .toList();
     } else if (json['symbols'] != null) {
-      symbols =
-          (json['symbols'] as List<dynamic>).map((s) => s.toString()).toList();
+      symbols = (json['symbols'] as List<dynamic>)
+          .map((s) => s.toString())
+          .toList();
     }
 
     if (symbols.isEmpty) {
@@ -421,124 +433,164 @@ class RobinhoodScreenerPreset {
     List<ScreenerPresetCriterion> list = [];
 
     if (lowerSort == 'dividend_yield' || lowerName.contains('dividend')) {
-      list.add(const ScreenerPresetCriterion(
-        field: 'dividend_yield',
-        operator: 'gte',
-        minValue: 5.0,
-      ));
-      list.add(const ScreenerPresetCriterion(
-        field: 'sort_by',
-        operator: 'sort',
-        textValue: 'Sorted by Dividend Yield (High to Low)',
-      ));
+      list.add(
+        const ScreenerPresetCriterion(
+          field: 'dividend_yield',
+          operator: 'gte',
+          minValue: 5.0,
+        ),
+      );
+      list.add(
+        const ScreenerPresetCriterion(
+          field: 'sort_by',
+          operator: 'sort',
+          textValue: 'Sorted by Dividend Yield (High to Low)',
+        ),
+      );
     } else if (lowerSort == '1d_price_change' && !isAsc) {
-      list.add(const ScreenerPresetCriterion(
-        field: '1d_price_change',
-        operator: 'sort',
-        textValue: 'Top 1-Day Price Gainers',
-      ));
-      list.add(const ScreenerPresetCriterion(
-        field: 'market_cap',
-        operator: 'gte',
-        minValue: 1000000000.0,
-      ));
+      list.add(
+        const ScreenerPresetCriterion(
+          field: '1d_price_change',
+          operator: 'sort',
+          textValue: 'Top 1-Day Price Gainers',
+        ),
+      );
+      list.add(
+        const ScreenerPresetCriterion(
+          field: 'market_cap',
+          operator: 'gte',
+          minValue: 1000000000.0,
+        ),
+      );
     } else if (lowerSort == '1d_price_change' && isAsc) {
-      list.add(const ScreenerPresetCriterion(
-        field: '1d_price_change',
-        operator: 'sort',
-        textValue: 'Top 1-Day Price Decliners',
-      ));
-      list.add(const ScreenerPresetCriterion(
-        field: 'market_cap',
-        operator: 'gte',
-        minValue: 1000000000.0,
-      ));
+      list.add(
+        const ScreenerPresetCriterion(
+          field: '1d_price_change',
+          operator: 'sort',
+          textValue: 'Top 1-Day Price Decliners',
+        ),
+      );
+      list.add(
+        const ScreenerPresetCriterion(
+          field: 'market_cap',
+          operator: 'gte',
+          minValue: 1000000000.0,
+        ),
+      );
     } else if (lowerSort == 'upcoming_earnings' ||
         lowerName.contains('earning')) {
-      list.add(const ScreenerPresetCriterion(
-        field: 'earnings_date',
-        operator: 'lte',
-        textValue: 'Reporting in Next 2 Weeks',
-      ));
-      list.add(const ScreenerPresetCriterion(
-        field: 'sort_by',
-        operator: 'sort',
-        textValue: 'Sorted by Earliest Report Date',
-      ));
+      list.add(
+        const ScreenerPresetCriterion(
+          field: 'earnings_date',
+          operator: 'lte',
+          textValue: 'Reporting in Next 2 Weeks',
+        ),
+      );
+      list.add(
+        const ScreenerPresetCriterion(
+          field: 'sort_by',
+          operator: 'sort',
+          textValue: 'Sorted by Earliest Report Date',
+        ),
+      );
     } else if (lowerName.contains('analyst') ||
         columns.contains('analyst_ratings.rating')) {
-      list.add(const ScreenerPresetCriterion(
-        field: 'analyst_rating',
-        operator: 'eq',
-        textValue: 'Consensus "Buy" Rating',
-      ));
-      list.add(const ScreenerPresetCriterion(
-        field: 'market_cap',
-        operator: 'gte',
-        minValue: 10000000000.0,
-      ));
+      list.add(
+        const ScreenerPresetCriterion(
+          field: 'analyst_rating',
+          operator: 'eq',
+          textValue: 'Consensus "Buy" Rating',
+        ),
+      );
+      list.add(
+        const ScreenerPresetCriterion(
+          field: 'market_cap',
+          operator: 'gte',
+          minValue: 10000000000.0,
+        ),
+      );
     } else if (lowerSort == 'implied_volatility' ||
         lowerName.contains('volatility')) {
-      list.add(const ScreenerPresetCriterion(
-        field: 'implied_volatility',
-        operator: 'gte',
-        textValue: 'Elevated Implied Volatility (IV)',
-      ));
-      list.add(const ScreenerPresetCriterion(
-        field: 'options',
-        operator: 'eq',
-        textValue: 'Options Tradable Underlyings',
-      ));
+      list.add(
+        const ScreenerPresetCriterion(
+          field: 'implied_volatility',
+          operator: 'gte',
+          textValue: 'Elevated Implied Volatility (IV)',
+        ),
+      );
+      list.add(
+        const ScreenerPresetCriterion(
+          field: 'options',
+          operator: 'eq',
+          textValue: 'Options Tradable Underlyings',
+        ),
+      );
     } else if (lowerSort == 'options_volume' || lowerName.contains('option')) {
-      list.add(const ScreenerPresetCriterion(
-        field: 'options_volume',
-        operator: 'gte',
-        textValue: 'Heavy Daily Options Flow',
-      ));
-      list.add(const ScreenerPresetCriterion(
-        field: 'sort_by',
-        operator: 'sort',
-        textValue: 'Sorted by Options Volume',
-      ));
+      list.add(
+        const ScreenerPresetCriterion(
+          field: 'options_volume',
+          operator: 'gte',
+          textValue: 'Heavy Daily Options Flow',
+        ),
+      );
+      list.add(
+        const ScreenerPresetCriterion(
+          field: 'sort_by',
+          operator: 'sort',
+          textValue: 'Sorted by Options Volume',
+        ),
+      );
     } else if (lowerName.contains('52-week highs') ||
         lowerName.contains('highs')) {
-      list.add(const ScreenerPresetCriterion(
-        field: '52_week_high',
-        operator: 'gte',
-        textValue: 'Broke 52-Week High Today',
-      ));
-      list.add(const ScreenerPresetCriterion(
-        field: 'market_cap',
-        operator: 'gte',
-        minValue: 5000000000.0,
-      ));
+      list.add(
+        const ScreenerPresetCriterion(
+          field: '52_week_high',
+          operator: 'gte',
+          textValue: 'Broke 52-Week High Today',
+        ),
+      );
+      list.add(
+        const ScreenerPresetCriterion(
+          field: 'market_cap',
+          operator: 'gte',
+          minValue: 5000000000.0,
+        ),
+      );
     } else if (lowerName.contains('52-week lows') ||
         lowerName.contains('lows')) {
-      list.add(const ScreenerPresetCriterion(
-        field: '52_week_low',
-        operator: 'lte',
-        textValue: 'Fell Below 52-Week Low Today',
-      ));
-      list.add(const ScreenerPresetCriterion(
-        field: 'market_cap',
-        operator: 'gte',
-        minValue: 1000000000.0,
-      ));
+      list.add(
+        const ScreenerPresetCriterion(
+          field: '52_week_low',
+          operator: 'lte',
+          textValue: 'Fell Below 52-Week Low Today',
+        ),
+      );
+      list.add(
+        const ScreenerPresetCriterion(
+          field: 'market_cap',
+          operator: 'gte',
+          minValue: 1000000000.0,
+        ),
+      );
     } else if (lowerName.contains('custom')) {
-      list.add(const ScreenerPresetCriterion(
-        field: 'custom',
-        operator: 'custom',
-        textValue: 'Build Custom Multi-Factor Screen',
-      ));
+      list.add(
+        const ScreenerPresetCriterion(
+          field: 'custom',
+          operator: 'custom',
+          textValue: 'Build Custom Multi-Factor Screen',
+        ),
+      );
     }
 
     if (list.isEmpty && sortBy != null && sortBy.isNotEmpty) {
-      list.add(ScreenerPresetCriterion(
-        field: sortBy,
-        operator: 'sort',
-        textValue:
-            'Sorted by ${ScreenerPresetCriterion.formatFieldName(sortBy)} ($sortDirection)',
-      ));
+      list.add(
+        ScreenerPresetCriterion(
+          field: sortBy,
+          operator: 'sort',
+          textValue:
+              'Sorted by ${ScreenerPresetCriterion.formatFieldName(sortBy)} ($sortDirection)',
+        ),
+      );
     }
     return list;
   }
@@ -575,23 +627,23 @@ class RobinhoodScreenerPreset {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'description': description,
-        'category': category,
-        if (iconEmoji != null) 'icon_emoji': iconEmoji,
-        if (iconUrl != null) 'icon_url': iconUrl,
-        'is_curated': isCurated,
-        'is_featured': isFeatured,
-        'hide_from_search': hideFromSearch,
-        if (sortBy != null) 'sort_by': sortBy,
-        if (sortDirection != null) 'sort_direction': sortDirection,
-        if (itemCount != null) 'item_count': itemCount,
-        if (columns.isNotEmpty) 'columns': columns,
-        if (assetUrls != null) 'asset_urls': assetUrls,
-        'sample_symbols': sampleSymbols,
-        'criteria': criteria.map((c) => c.toJson()).toList(),
-      };
+    'id': id,
+    'name': name,
+    'description': description,
+    'category': category,
+    if (iconEmoji != null) 'icon_emoji': iconEmoji,
+    if (iconUrl != null) 'icon_url': iconUrl,
+    'is_curated': isCurated,
+    'is_featured': isFeatured,
+    'hide_from_search': hideFromSearch,
+    if (sortBy != null) 'sort_by': sortBy,
+    if (sortDirection != null) 'sort_direction': sortDirection,
+    if (itemCount != null) 'item_count': itemCount,
+    if (columns.isNotEmpty) 'columns': columns,
+    if (assetUrls != null) 'asset_urls': assetUrls,
+    'sample_symbols': sampleSymbols,
+    'criteria': criteria.map((c) => c.toJson()).toList(),
+  };
 }
 
 /// Available screener collection or saved screener definition
@@ -619,9 +671,11 @@ class RobinhoodScreener {
           .toList();
     } else if (json['filters'] != null && json['filters'] is List) {
       filters = (json['filters'] as List<dynamic>)
-          .map((f) => f is Map
-              ? (f['name'] ?? f['field'] ?? '').toString()
-              : f.toString())
+          .map(
+            (f) => f is Map
+                ? (f['name'] ?? f['field'] ?? '').toString()
+                : f.toString(),
+          )
           .toList();
     }
 
@@ -635,10 +689,10 @@ class RobinhoodScreener {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        if (description != null) 'description': description,
-        'filter_count': filterCount,
-        'available_filters': availableFilters,
-      };
+    'id': id,
+    'name': name,
+    if (description != null) 'description': description,
+    'filter_count': filterCount,
+    'available_filters': availableFilters,
+  };
 }

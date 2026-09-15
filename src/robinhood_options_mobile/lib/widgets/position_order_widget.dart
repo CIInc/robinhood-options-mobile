@@ -67,21 +67,26 @@ class _PositionOrderWidgetState extends State<PositionOrderWidget> {
     var quoteStore = Provider.of<QuoteStore>(context, listen: false);
 
     if (widget.positionOrder.instrumentObj == null) {
-      var instruments = instrumentStore.items
-          .where((element) => element.url == widget.positionOrder.instrument);
+      var instruments = instrumentStore.items.where(
+        (element) => element.url == widget.positionOrder.instrument,
+      );
       if (instruments.isNotEmpty) {
         widget.positionOrder.instrumentObj = instruments.first;
       } else {
         widget.positionOrder.instrumentObj = await widget.service.getInstrument(
-            widget.brokerageUser,
-            instrumentStore,
-            widget.positionOrder.instrument);
+          widget.brokerageUser,
+          instrumentStore,
+          widget.positionOrder.instrument,
+        );
       }
     }
 
     if (widget.positionOrder.instrumentObj != null) {
-      var quote = await widget.service.getQuote(widget.brokerageUser,
-          quoteStore, widget.positionOrder.instrumentObj!.symbol);
+      var quote = await widget.service.getQuote(
+        widget.brokerageUser,
+        quoteStore,
+        widget.positionOrder.instrumentObj!.symbol,
+      );
       widget.positionOrder.instrumentObj!.quoteObj = quote;
     }
   }
@@ -89,233 +94,271 @@ class _PositionOrderWidgetState extends State<PositionOrderWidget> {
   @override
   Widget build(BuildContext context) {
     return FutureBuilder(
-        future: _dataLoadFuture,
-        builder: (context, snapshot) {
-          if (widget.positionOrder.instrumentObj != null) {
-            return Scaffold(body: _buildPage(widget.positionOrder));
-          } else if (snapshot.hasError) {
-            return Scaffold(
-                body: Center(
-                    child: Text("Error loading order: ${snapshot.error}")));
-          }
-          return const Scaffold(
-              body: Center(child: CircularProgressIndicator()));
-        });
+      future: _dataLoadFuture,
+      builder: (context, snapshot) {
+        if (widget.positionOrder.instrumentObj != null) {
+          return Scaffold(body: _buildPage(widget.positionOrder));
+        } else if (snapshot.hasError) {
+          return Scaffold(
+            body: Center(child: Text("Error loading order: ${snapshot.error}")),
+          );
+        }
+        return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      },
+    );
   }
 
   Widget _buildPage(InstrumentOrder positionOrder) {
-    return CustomScrollView(slivers: [
-      SliverAppBar(
-        centerTitle: false,
-        //title: Text(instrument.symbol), // Text('${positionOrder.symbol} \$${positionOrder.optionInstrument!.strikePrice} ${positionOrder.strategy.split('_').first} ${positionOrder.optionInstrument!.type.toUpperCase()}')
-        expandedHeight: 120.0,
-        floating: false,
-        snap: false,
-        pinned: true,
-        flexibleSpace: FlexibleSpaceBar(
-          title: SingleChildScrollView(
+    return CustomScrollView(
+      slivers: [
+        SliverAppBar(
+          centerTitle: false,
+          //title: Text(instrument.symbol), // Text('${positionOrder.symbol} \$${positionOrder.optionInstrument!.strikePrice} ${positionOrder.strategy.split('_').first} ${positionOrder.optionInstrument!.type.toUpperCase()}')
+          expandedHeight: 120.0,
+          floating: false,
+          snap: false,
+          pinned: true,
+          flexibleSpace: FlexibleSpaceBar(
+            title: SingleChildScrollView(
               child: Wrap(
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  spacing: 10,
-                  children: [
-                Text(
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 10,
+                children: [
+                  Text(
                     "${positionOrder.instrumentObj!.symbol} ${positionOrder.side} ${positionOrder.type}",
                     style: TextStyle(
-                        fontSize: 16.0,
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).appBarTheme.foregroundColor)),
-                if (positionOrder.averagePrice != null)
-                  Text(formatCurrency.format(positionOrder.averagePrice),
+                      fontSize: 16.0,
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).appBarTheme.foregroundColor,
+                    ),
+                  ),
+                  if (positionOrder.averagePrice != null)
+                    Text(
+                      formatCurrency.format(positionOrder.averagePrice),
                       style: TextStyle(
-                          fontSize: 16.0,
-                          color:
-                              Theme.of(context).appBarTheme.foregroundColor)),
-                Text(
-                  formatDate.format(positionOrder.updatedAt!),
-                  style: TextStyle(
+                        fontSize: 16.0,
+                        color: Theme.of(context).appBarTheme.foregroundColor,
+                      ),
+                    ),
+                  Text(
+                    formatDate.format(positionOrder.updatedAt!),
+                    style: TextStyle(
                       fontSize: 14.0,
-                      color: Theme.of(context)
-                          .appBarTheme
-                          .foregroundColor
-                          ?.withValues(alpha: 0.7)),
-                  textAlign: TextAlign.start,
-                )
-              ])),
-
-          /// If [titlePadding] is null, then defaults to start
-          /// padding of 72.0 pixels and bottom padding of 16.0 pixels.
-          // titlePadding: const EdgeInsetsDirectional.only(start: 6, bottom: 4),
-          // centerTitle: false,
-          // expandedTitleScale: 1.25,
-        ),
-      ),
-      if (positionOrder.instrumentObj != null) ...[
-        SliverToBoxAdapter(
-          child: _buildOverview(
-              widget.brokerageUser, positionOrder.instrumentObj!),
-        ),
-      ],
-      SliverToBoxAdapter(
-        child: Card(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              ListTile(
-                title:
-                    const Text("Order Detail", style: TextStyle(fontSize: 20)),
-                trailing: Chip(
-                  label: Text(positionOrder.state.toUpperCase()),
-                  backgroundColor: positionOrder.state == 'filled'
-                      ? Colors.green.withValues(alpha: 0.2)
-                      : (positionOrder.state == 'cancelled' ||
-                              positionOrder.state == 'rejected')
-                          ? Colors.red.withValues(alpha: 0.2)
-                          : Colors.orange.withValues(alpha: 0.2),
-                ),
+                      color: Theme.of(
+                        context,
+                      ).appBarTheme.foregroundColor?.withValues(alpha: 0.7),
+                    ),
+                    textAlign: TextAlign.start,
+                  ),
+                ],
               ),
-              const Divider(),
-              _buildSectionHeader("Execution"),
-              _buildDetailRow("Quantity",
-                  formatCompactNumber.format(positionOrder.quantity)),
-              _buildDetailRow("Cumulative Quantity",
-                  formatCompactNumber.format(positionOrder.cumulativeQuantity)),
-              _buildDetailRow(
+            ),
+
+            /// If [titlePadding] is null, then defaults to start
+            /// padding of 72.0 pixels and bottom padding of 16.0 pixels.
+            // titlePadding: const EdgeInsetsDirectional.only(start: 6, bottom: 4),
+            // centerTitle: false,
+            // expandedTitleScale: 1.25,
+          ),
+        ),
+        if (positionOrder.instrumentObj != null) ...[
+          SliverToBoxAdapter(
+            child: _buildOverview(
+              widget.brokerageUser,
+              positionOrder.instrumentObj!,
+            ),
+          ),
+        ],
+        SliverToBoxAdapter(
+          child: Card(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                ListTile(
+                  title: const Text(
+                    "Order Detail",
+                    style: TextStyle(fontSize: 20),
+                  ),
+                  trailing: Chip(
+                    label: Text(positionOrder.state.toUpperCase()),
+                    backgroundColor: positionOrder.state == 'filled'
+                        ? Colors.green.withValues(alpha: 0.2)
+                        : (positionOrder.state == 'cancelled' ||
+                              positionOrder.state == 'rejected')
+                        ? Colors.red.withValues(alpha: 0.2)
+                        : Colors.orange.withValues(alpha: 0.2),
+                  ),
+                ),
+                const Divider(),
+                _buildSectionHeader("Execution"),
+                _buildDetailRow(
+                  "Quantity",
+                  formatCompactNumber.format(positionOrder.quantity),
+                ),
+                _buildDetailRow(
+                  "Cumulative Quantity",
+                  formatCompactNumber.format(positionOrder.cumulativeQuantity),
+                ),
+                _buildDetailRow(
                   "Price",
                   positionOrder.price != null
                       ? formatCurrency.format(positionOrder.price)
-                      : ''),
-              _buildDetailRow(
+                      : '',
+                ),
+                _buildDetailRow(
                   "Average Price",
                   positionOrder.averagePrice != null
                       ? formatCurrency.format(positionOrder.averagePrice)
-                      : "-"),
-              _buildDetailRow(
+                      : "-",
+                ),
+                _buildDetailRow(
                   "Fees",
                   positionOrder.fees != null
                       ? formatCurrency.format(positionOrder.fees)
-                      : "-"),
-              const Divider(),
-              _buildSectionHeader("Order Settings"),
-              _buildDetailRow("Side", positionOrder.side),
-              _buildDetailRow("Type", positionOrder.type),
-              _buildDetailRow("Time in Force", positionOrder.timeInForce),
-              _buildDetailRow("Trigger", positionOrder.trigger),
-              if (positionOrder.trailingPeg != null) ...[
-                _buildDetailRow(
+                      : "-",
+                ),
+                const Divider(),
+                _buildSectionHeader("Order Settings"),
+                _buildDetailRow("Side", positionOrder.side),
+                _buildDetailRow("Type", positionOrder.type),
+                _buildDetailRow("Time in Force", positionOrder.timeInForce),
+                _buildDetailRow("Trigger", positionOrder.trigger),
+                if (positionOrder.trailingPeg != null) ...[
+                  _buildDetailRow(
                     "Trailing Peg Type",
                     positionOrder.trailingPeg!['type']
                             ?.toString()
                             .toLowerCase() ??
-                        ""),
-                if (positionOrder.trailingPeg!['percentage'] != null)
-                  _buildDetailRow("Trailing Peg Percentage",
-                      "${positionOrder.trailingPeg!['percentage']}%"),
-                if (positionOrder.trailingPeg!['price'] != null &&
-                    positionOrder.trailingPeg!['price']['amount'] != null)
-                  _buildDetailRow(
+                        "",
+                  ),
+                  if (positionOrder.trailingPeg!['percentage'] != null)
+                    _buildDetailRow(
+                      "Trailing Peg Percentage",
+                      "${positionOrder.trailingPeg!['percentage']}%",
+                    ),
+                  if (positionOrder.trailingPeg!['price'] != null &&
+                      positionOrder.trailingPeg!['price']['amount'] != null)
+                    _buildDetailRow(
                       "Trailing Peg Amount",
-                      formatCurrency.format(double.tryParse(
-                          positionOrder.trailingPeg!['price']['amount']))),
-              ],
-              if (positionOrder.stopPrice != null)
-                _buildDetailRow("Stop Price",
-                    formatCurrency.format(positionOrder.stopPrice)),
-              const Divider(),
-              _buildSectionHeader("Timestamps"),
-              _buildDetailRow(
-                  "Created", formatDate.format(positionOrder.createdAt!)),
-              _buildDetailRow(
-                  "Updated", formatDate.format(positionOrder.updatedAt!)),
-              if (positionOrder.rejectReason != null) ...[
+                      formatCurrency.format(
+                        double.tryParse(
+                          positionOrder.trailingPeg!['price']['amount'],
+                        ),
+                      ),
+                    ),
+                ],
+                if (positionOrder.stopPrice != null)
+                  _buildDetailRow(
+                    "Stop Price",
+                    formatCurrency.format(positionOrder.stopPrice),
+                  ),
                 const Divider(),
-                ListTile(
-                  title: const Text("Reject Reason",
-                      style: TextStyle(color: Colors.red)),
-                  subtitle: Text(positionOrder.rejectReason ?? "-"),
+                _buildSectionHeader("Timestamps"),
+                _buildDetailRow(
+                  "Created",
+                  formatDate.format(positionOrder.createdAt!),
                 ),
+                _buildDetailRow(
+                  "Updated",
+                  formatDate.format(positionOrder.updatedAt!),
+                ),
+                if (positionOrder.rejectReason != null) ...[
+                  const Divider(),
+                  ListTile(
+                    title: const Text(
+                      "Reject Reason",
+                      style: TextStyle(color: Colors.red),
+                    ),
+                    subtitle: Text(positionOrder.rejectReason ?? "-"),
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
         ),
-      ),
-      if (positionOrder.cancel != null) ...[
-        SliverToBoxAdapter(
+        if (positionOrder.cancel != null) ...[
+          SliverToBoxAdapter(
             child: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              FilledButton(
-                  onPressed: _isCancelling
-                      ? null
-                      : () async {
-                          setState(() {
-                            _isCancelling = true;
-                          });
-                          try {
-                            var response = await widget.service.cancelOrder(
-                                widget.brokerageUser, positionOrder.cancel!);
-                            if (mounted) {
-                              if (response.statusCode == 200) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                      content:
-                                          Text('Order cancelled successfully')),
-                                );
-                                Navigator.pop(context);
-                              } else {
+              padding: const EdgeInsets.all(8.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  FilledButton(
+                    onPressed: _isCancelling
+                        ? null
+                        : () async {
+                            setState(() {
+                              _isCancelling = true;
+                            });
+                            try {
+                              var response = await widget.service.cancelOrder(
+                                widget.brokerageUser,
+                                positionOrder.cancel!,
+                              );
+                              if (mounted) {
+                                if (response.statusCode == 200) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Order cancelled successfully',
+                                      ),
+                                    ),
+                                  );
+                                  Navigator.pop(context);
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        'Failed to cancel order: ${response.body}',
+                                      ),
+                                    ),
+                                  );
+                                }
+                              }
+                            } catch (e) {
+                              if (mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
-                                      content: Text(
-                                          'Failed to cancel order: ${response.body}')),
+                                    content: Text('Error cancelling order: $e'),
+                                  ),
                                 );
                               }
+                            } finally {
+                              if (mounted) {
+                                setState(() {
+                                  _isCancelling = false;
+                                });
+                              }
                             }
-                          } catch (e) {
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                    content:
-                                        Text('Error cancelling order: $e')),
-                              );
-                            }
-                          } finally {
-                            if (mounted) {
-                              setState(() {
-                                _isCancelling = false;
-                              });
-                            }
-                          }
-                        },
-                  child: _isCancelling
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2, color: Colors.white))
-                      : const Text('CANCEL')),
-              const SizedBox(width: 4),
-            ],
+                          },
+                    child: _isCancelling
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Text('CANCEL'),
+                  ),
+                  const SizedBox(width: 4),
+                ],
+              ),
+            ),
           ),
-        )),
+        ],
+        if (!kIsWeb) ...[
+          const SliverToBoxAdapter(child: SizedBox(height: 25.0)),
+          SliverToBoxAdapter(
+            child: AdBannerWidget(size: AdSize.mediumRectangle),
+          ),
+        ],
+        const SliverToBoxAdapter(child: SizedBox(height: 25.0)),
+        const SliverToBoxAdapter(child: DisclaimerWidget()),
+        const SliverToBoxAdapter(child: SizedBox(height: 25.0)),
       ],
-      if (!kIsWeb) ...[
-        const SliverToBoxAdapter(
-            child: SizedBox(
-          height: 25.0,
-        )),
-        SliverToBoxAdapter(child: AdBannerWidget(size: AdSize.mediumRectangle)),
-      ],
-      const SliverToBoxAdapter(
-          child: SizedBox(
-        height: 25.0,
-      )),
-      const SliverToBoxAdapter(child: DisclaimerWidget()),
-      const SliverToBoxAdapter(
-          child: SizedBox(
-        height: 25.0,
-      ))
-    ]);
+    );
   }
 
   Widget _buildSectionHeader(String title) {
@@ -326,7 +369,10 @@ class _PositionOrderWidgetState extends State<PositionOrderWidget> {
         child: Text(
           title,
           style: const TextStyle(
-              fontSize: 16, fontWeight: FontWeight.w600, color: Colors.grey),
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: Colors.grey,
+          ),
         ),
       ),
     );
@@ -339,9 +385,10 @@ class _PositionOrderWidgetState extends State<PositionOrderWidget> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(title, style: const TextStyle(fontSize: 16)),
-          Text(value,
-              style:
-                  const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+          Text(
+            value,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+          ),
         ],
       ),
     );
@@ -349,66 +396,71 @@ class _PositionOrderWidgetState extends State<PositionOrderWidget> {
 
   Card _buildOverview(BrokerageUser user, Instrument instrument) {
     return Card(
-        child: Column(
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        ListTile(
-          // leading: const Icon(Icons.album),
-          title: Text(instrument.simpleName ?? instrument.symbol),
-          subtitle: Text(instrument.name),
-          trailing: Wrap(
-            spacing: 8,
-            children: [
-              if (instrument.quoteObj != null &&
-                  instrument.quoteObj!.lastTradePrice != null &&
-                  instrument.quoteObj!.adjustedPreviousClose != null) ...[
-                Icon(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          ListTile(
+            // leading: const Icon(Icons.album),
+            title: Text(instrument.simpleName ?? instrument.symbol),
+            subtitle: Text(instrument.name),
+            trailing: Wrap(
+              spacing: 8,
+              children: [
+                if (instrument.quoteObj != null &&
+                    instrument.quoteObj!.lastTradePrice != null &&
+                    instrument.quoteObj!.adjustedPreviousClose != null) ...[
+                  Icon(
                     instrument.quoteObj!.changeToday > 0
                         ? Icons.trending_up
                         : (instrument.quoteObj!.changeToday < 0
-                            ? Icons.trending_down
-                            : Icons.trending_flat),
+                              ? Icons.trending_down
+                              : Icons.trending_flat),
                     color: (instrument.quoteObj!.changeToday > 0
                         ? Colors.green
                         : (instrument.quoteObj!.changeToday < 0
-                            ? Colors.red
-                            : Colors.grey))),
-                Text(
-                  formatCurrency.format(
+                              ? Colors.red
+                              : Colors.grey)),
+                  ),
+                  Text(
+                    formatCurrency.format(
                       instrument.quoteObj!.lastExtendedHoursTradePrice ??
-                          instrument.quoteObj!.lastTradePrice),
-                  style: const TextStyle(fontSize: summaryValueFontSize),
-                  textAlign: TextAlign.right,
-                ),
-              ]
-            ],
+                          instrument.quoteObj!.lastTradePrice,
+                    ),
+                    style: const TextStyle(fontSize: summaryValueFontSize),
+                    textAlign: TextAlign.right,
+                  ),
+                ],
+              ],
+            ),
           ),
-        ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: <Widget>[
-            TextButton(
-              child: const Text('VIEW STOCK'),
-              onPressed: () {
-                Navigator.push(
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: <Widget>[
+              TextButton(
+                child: const Text('VIEW STOCK'),
+                onPressed: () {
+                  Navigator.push(
                     context,
                     MaterialPageRoute(
-                        builder: (context) => InstrumentWidget(
-                              user,
-                              widget.service,
-                              instrument,
-                              analytics: widget.analytics,
-                              observer: widget.observer,
-                              generativeService: widget.generativeService,
-                              user: widget.user,
-                              userDocRef: widget.userDocRef,
-                            )));
-              },
-            ),
-            const SizedBox(width: 8),
-          ],
-        ),
-      ],
-    ));
+                      builder: (context) => InstrumentWidget(
+                        user,
+                        widget.service,
+                        instrument,
+                        analytics: widget.analytics,
+                        observer: widget.observer,
+                        generativeService: widget.generativeService,
+                        user: widget.user,
+                        userDocRef: widget.userDocRef,
+                      ),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(width: 8),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 }

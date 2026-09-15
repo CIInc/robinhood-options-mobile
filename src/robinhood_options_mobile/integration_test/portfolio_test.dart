@@ -8,8 +8,9 @@ void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   group('Portfolio Integration Tests', () {
-    testWidgets('Login and verify Portfolio Widgets',
-        (WidgetTester tester) async {
+    testWidgets('Login and verify Portfolio Widgets', (
+      WidgetTester tester,
+    ) async {
       SharedPreferences.setMockInitialValues({});
       app.main();
 
@@ -34,12 +35,16 @@ void main() {
         final scrollable = find.byType(Scrollable).first;
         try {
           // ensureVisible requires skipOffstage: false if it's offstage
-          await tester.scrollUntilVisible(openDemoBtn, 500.0,
-              scrollable: scrollable);
+          await tester.scrollUntilVisible(
+            openDemoBtn,
+            500.0,
+            scrollable: scrollable,
+          );
         } catch (e) {
           debugPrint("Scroll failed: $e, trying ensureVisible");
           await tester.ensureVisible(
-              find.text('Open Demo Account', skipOffstage: false));
+            find.text('Open Demo Account', skipOffstage: false),
+          );
         }
         for (int i = 0; i < 5; i++) {
           await tester.pump(const Duration(milliseconds: 500));
@@ -53,8 +58,10 @@ void main() {
       }
 
       // Verify Portfolio View
-      expect(find.text('Welcome to RealizeAlpha', skipOffstage: true),
-          findsNothing);
+      expect(
+        find.text('Welcome to RealizeAlpha', skipOffstage: true),
+        findsNothing,
+      );
 
       // Refresh triggers
       for (int i = 0; i < 5; i++) {

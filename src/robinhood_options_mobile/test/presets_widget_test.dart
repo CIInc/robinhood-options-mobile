@@ -25,66 +25,73 @@ class FakeFirebaseAnalyticsObserver extends Fake
 class FakeGenerativeService extends Fake implements GenerativeService {}
 
 void main() {
-  testWidgets('PresetsWidget renders curated presets tab and displays presets',
-      (WidgetTester tester) async {
-    tester.view.physicalSize = const Size(1080, 2400);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(() {
-      tester.view.resetPhysicalSize();
-      tester.view.resetDevicePixelRatio();
-    });
+  testWidgets(
+    'PresetsWidget renders curated presets tab and displays presets',
+    (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
 
-    final brokerageUser =
-        BrokerageUser(BrokerageSource.demo, 'demo_user', null, null);
-    final service = DemoService();
+      final brokerageUser = BrokerageUser(
+        BrokerageSource.demo,
+        'demo_user',
+        null,
+        null,
+      );
+      final service = DemoService();
 
-    await tester.pumpWidget(
-      MultiProvider(
-        providers: [
-          ChangeNotifierProvider<InstrumentStore>(
-            create: (_) => InstrumentStore(),
-          ),
-        ],
-        child: MaterialApp(
-          home: PresetsWidget(
-            brokerageUser,
-            service,
-            analytics: FakeFirebaseAnalytics(),
-            observer: FakeFirebaseAnalyticsObserver(),
-            generativeService: FakeGenerativeService(),
-            user: null,
-            userDocRef: null,
+      await tester.pumpWidget(
+        MultiProvider(
+          providers: [
+            ChangeNotifierProvider<InstrumentStore>(
+              create: (_) => InstrumentStore(),
+            ),
+          ],
+          child: MaterialApp(
+            home: PresetsWidget(
+              brokerageUser,
+              service,
+              analytics: FakeFirebaseAnalytics(),
+              observer: FakeFirebaseAnalyticsObserver(),
+              generativeService: FakeGenerativeService(),
+              user: null,
+              userDocRef: null,
+            ),
           ),
         ),
-      ),
-    );
+      );
 
-    await tester.pumpAndSettle();
+      await tester.pumpAndSettle();
 
-    // Verify Tab headers
-    expect(find.text('Screener Presets'), findsOneWidget);
-    expect(find.text('Curated Presets'), findsOneWidget);
-    expect(find.text('Yahoo Presets'), findsOneWidget);
+      // Verify Tab headers
+      expect(find.text('Screener Presets'), findsOneWidget);
+      expect(find.text('Curated Presets'), findsOneWidget);
+      expect(find.text('Yahoo Presets'), findsOneWidget);
 
-    // Verify Curated Presets content
-    expect(find.text('Robinhood Curated Presets'), findsOneWidget);
-    expect(find.text('Daily price jumps'), findsOneWidget);
-    expect(find.text('Highest dividend yield'), findsOneWidget);
-    expect(find.text('Highest implied volatility'), findsOneWidget);
-    expect(find.text('Highest options volume'), findsOneWidget);
+      // Verify Curated Presets content
+      expect(find.text('Robinhood Curated Presets'), findsOneWidget);
+      expect(find.text('Daily price jumps'), findsOneWidget);
+      expect(find.text('Highest dividend yield'), findsOneWidget);
+      expect(find.text('Highest implied volatility'), findsOneWidget);
+      expect(find.text('Highest options volume'), findsOneWidget);
 
-    // Verify category chips
-    expect(find.text('All'), findsOneWidget);
-    expect(find.text('Dividends'), findsWidgets);
-    expect(find.text('Movers'), findsWidgets);
+      // Verify category chips
+      expect(find.text('All'), findsOneWidget);
+      expect(find.text('Dividends'), findsWidgets);
+      expect(find.text('Movers'), findsWidgets);
 
-    // Verify sample symbol chip
-    expect(find.text('NVDA'), findsWidgets);
-    expect(find.text('JNJ'), findsWidgets);
-  });
+      // Verify sample symbol chip
+      expect(find.text('NVDA'), findsWidgets);
+      expect(find.text('JNJ'), findsWidgets);
+    },
+  );
 
-  testWidgets('PresetsWidget filters presets by search query',
-      (WidgetTester tester) async {
+  testWidgets('PresetsWidget filters presets by search query', (
+    WidgetTester tester,
+  ) async {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(() {
@@ -92,8 +99,12 @@ void main() {
       tester.view.resetDevicePixelRatio();
     });
 
-    final brokerageUser =
-        BrokerageUser(BrokerageSource.demo, 'demo_user', null, null);
+    final brokerageUser = BrokerageUser(
+      BrokerageSource.demo,
+      'demo_user',
+      null,
+      null,
+    );
     final service = DemoService();
 
     await tester.pumpWidget(
@@ -130,8 +141,9 @@ void main() {
     expect(find.text('Daily price jumps'), findsNothing);
   });
 
-  testWidgets('PresetsWidget renders cleanly on compact 320px viewport',
-      (WidgetTester tester) async {
+  testWidgets('PresetsWidget renders cleanly on compact 320px viewport', (
+    WidgetTester tester,
+  ) async {
     tester.view.physicalSize = const Size(320, 800);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(() {
@@ -139,8 +151,12 @@ void main() {
       tester.view.resetDevicePixelRatio();
     });
 
-    final brokerageUser =
-        BrokerageUser(BrokerageSource.demo, 'demo_user', null, null);
+    final brokerageUser = BrokerageUser(
+      BrokerageSource.demo,
+      'demo_user',
+      null,
+      null,
+    );
     final service = DemoService();
 
     await tester.pumpWidget(

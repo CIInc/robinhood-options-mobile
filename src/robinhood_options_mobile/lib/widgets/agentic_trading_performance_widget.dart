@@ -33,8 +33,9 @@ class _AgenticTradingPerformanceWidgetState
   late TabController _tabController;
   final DateFormat _dateFormat = DateFormat('MMM dd, yyyy HH:mm');
   final NumberFormat _currencyFormat = NumberFormat.currency(symbol: '\$');
-  final NumberFormat _percentFormat =
-      NumberFormat.decimalPercentPattern(decimalDigits: 2);
+  final NumberFormat _percentFormat = NumberFormat.decimalPercentPattern(
+    decimalDigits: 2,
+  );
   PerformanceViewMode _viewMode = PerformanceViewMode.all;
 
   @override
@@ -137,13 +138,14 @@ class _AgenticTradingPerformanceWidgetState
         children: [
           if (allHistory.isEmpty)
             Padding(
-                padding: const EdgeInsets.only(top: 60),
-                child: _buildEmptyState(
-                  'No trade history yet',
-                  'Auto-trades will appear here once executed',
-                  Icons.show_chart,
-                  colorScheme,
-                ))
+              padding: const EdgeInsets.only(top: 60),
+              child: _buildEmptyState(
+                'No trade history yet',
+                'Auto-trades will appear here once executed',
+                Icons.show_chart,
+                colorScheme,
+              ),
+            )
           else ...[
             _buildFilterChips(allHistory, colorScheme),
             const SizedBox(height: 16),
@@ -168,7 +170,7 @@ class _AgenticTradingPerformanceWidgetState
             _buildSignalPerformanceCard(stats, colorScheme),
             const SizedBox(height: 16),
             _buildSymbolPerformanceCard(stats, colorScheme),
-          ]
+          ],
         ],
       ),
     );
@@ -278,7 +280,8 @@ class _AgenticTradingPerformanceWidgetState
   }
 
   List<Map<String, dynamic>> _filterHistory(
-      List<Map<String, dynamic>> history) {
+    List<Map<String, dynamic>> history,
+  ) {
     if (_viewMode == PerformanceViewMode.paper) {
       return history.where((t) => t['paperMode'] == true).toList();
     } else if (_viewMode == PerformanceViewMode.real) {
@@ -312,11 +315,13 @@ class _AgenticTradingPerformanceWidgetState
             label: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.description,
-                    size: 16,
-                    color: _viewMode == PerformanceViewMode.paper
-                        ? colorScheme.onPrimary
-                        : Colors.blue),
+                Icon(
+                  Icons.description,
+                  size: 16,
+                  color: _viewMode == PerformanceViewMode.paper
+                      ? colorScheme.onPrimary
+                      : Colors.blue,
+                ),
                 const SizedBox(width: 4),
                 Text('Paper ($paperCount)'),
               ],
@@ -338,11 +343,13 @@ class _AgenticTradingPerformanceWidgetState
             label: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.attach_money,
-                    size: 16,
-                    color: _viewMode == PerformanceViewMode.real
-                        ? colorScheme.onPrimary
-                        : Colors.green),
+                Icon(
+                  Icons.attach_money,
+                  size: 16,
+                  color: _viewMode == PerformanceViewMode.real
+                      ? colorScheme.onPrimary
+                      : Colors.green,
+                ),
                 const SizedBox(width: 4),
                 Text('Real ($realCount)'),
               ],
@@ -646,10 +653,7 @@ class _AgenticTradingPerformanceWidgetState
         const SizedBox(height: 4),
         Text(
           label,
-          style: TextStyle(
-            fontSize: 12,
-            color: color.withValues(alpha: 0.7),
-          ),
+          style: TextStyle(fontSize: 12, color: color.withValues(alpha: 0.7)),
           textAlign: TextAlign.center,
         ),
       ],
@@ -671,10 +675,7 @@ class _AgenticTradingPerformanceWidgetState
             const SizedBox(width: 12),
             Text(
               label,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-              ),
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
             ),
           ],
         ),
@@ -703,10 +704,7 @@ class _AgenticTradingPerformanceWidgetState
           children: [
             Icon(icon, color: color, size: 20),
             const SizedBox(width: 12),
-            Text(
-              label,
-              style: const TextStyle(fontSize: 15),
-            ),
+            Text(label, style: const TextStyle(fontSize: 15)),
           ],
         ),
         Text(
@@ -766,8 +764,9 @@ class _AgenticTradingPerformanceWidgetState
                 if (timestamp != null) ...[
                   const SizedBox(height: 2),
                   Text(
-                    _dateFormat
-                        .format(DateTime.fromMillisecondsSinceEpoch(timestamp)),
+                    _dateFormat.format(
+                      DateTime.fromMillisecondsSinceEpoch(timestamp),
+                    ),
                     style: TextStyle(
                       fontSize: 11,
                       color: colorScheme.onSurface.withValues(alpha: 0.6),
@@ -802,7 +801,8 @@ class _AgenticTradingPerformanceWidgetState
     final isPaper = trade['paperMode'] as bool? ?? false;
     final isManual = trade['isManual'] as bool? ?? false;
 
-    final isExit = action == 'SELL' &&
+    final isExit =
+        action == 'SELL' &&
         reason != null &&
         (reason.contains('Take Profit') || reason.contains('Stop Loss'));
     final isTakeProfit = reason?.contains('Take Profit') ?? false;
@@ -862,8 +862,8 @@ class _AgenticTradingPerformanceWidgetState
                                   color: Colors.amber.withValues(alpha: 0.2),
                                   borderRadius: BorderRadius.circular(4),
                                   border: Border.all(
-                                      color:
-                                          Colors.amber.withValues(alpha: 0.5)),
+                                    color: Colors.amber.withValues(alpha: 0.5),
+                                  ),
                                 ),
                                 child: const Text(
                                   'MANUAL',
@@ -1017,10 +1017,12 @@ class _AgenticTradingPerformanceWidgetState
         cumulativePnL += profitLoss;
         final timestamp = _parseTimestamp(trade['timestamp']);
         if (timestamp != null) {
-          data.add(PnLData(
-            DateTime.fromMillisecondsSinceEpoch(timestamp),
-            cumulativePnL,
-          ));
+          data.add(
+            PnLData(
+              DateTime.fromMillisecondsSinceEpoch(timestamp),
+              cumulativePnL,
+            ),
+          );
         }
       }
     }
@@ -1171,10 +1173,9 @@ class _AgenticTradingPerformanceWidgetState
       return const SizedBox.shrink();
     }
 
-    final data = dailyCounts.entries
-        .map((e) => VolumeData(e.key, e.value))
-        .toList()
-      ..sort((a, b) => a.date.compareTo(b.date));
+    final data =
+        dailyCounts.entries.map((e) => VolumeData(e.key, e.value)).toList()
+          ..sort((a, b) => a.date.compareTo(b.date));
 
     final series = [
       charts.Series<VolumeData, DateTime>(
@@ -1228,10 +1229,7 @@ class _AgenticTradingPerformanceWidgetState
     );
   }
 
-  void _showTradeDetails(
-    Map<String, dynamic> trade,
-    ColorScheme colorScheme,
-  ) {
+  void _showTradeDetails(Map<String, dynamic> trade, ColorScheme colorScheme) {
     final symbol = trade['symbol'] as String? ?? 'N/A';
     final action = trade['action'] as String? ?? 'N/A';
     final quantity = trade['quantity'] as int? ?? 0;
@@ -1263,8 +1261,8 @@ class _AgenticTradingPerformanceWidgetState
     final icon = isBuy
         ? Icons.shopping_cart
         : (profitLoss != null && profitLoss >= 0
-            ? Icons.trending_up
-            : Icons.trending_down);
+              ? Icons.trending_up
+              : Icons.trending_down);
 
     showModalBottomSheet(
       context: context,
@@ -1279,8 +1277,9 @@ class _AgenticTradingPerformanceWidgetState
             return Container(
               decoration: BoxDecoration(
                 color: colorScheme.surface,
-                borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(20)),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(20),
+                ),
               ),
               child: Column(
                 children: [
@@ -1322,7 +1321,9 @@ class _AgenticTradingPerformanceWidgetState
                                     const SizedBox(width: 12),
                                     Container(
                                       padding: const EdgeInsets.symmetric(
-                                          horizontal: 10, vertical: 4),
+                                        horizontal: 10,
+                                        vertical: 4,
+                                      ),
                                       decoration: BoxDecoration(
                                         color: color.withValues(alpha: 0.15),
                                         borderRadius: BorderRadius.circular(8),
@@ -1346,12 +1347,16 @@ class _AgenticTradingPerformanceWidgetState
                                       const SizedBox(width: 8),
                                       Container(
                                         padding: const EdgeInsets.symmetric(
-                                            horizontal: 8, vertical: 4),
+                                          horizontal: 8,
+                                          vertical: 4,
+                                        ),
                                         decoration: BoxDecoration(
-                                          color: Colors.blue
-                                              .withValues(alpha: 0.15),
-                                          borderRadius:
-                                              BorderRadius.circular(8),
+                                          color: Colors.blue.withValues(
+                                            alpha: 0.15,
+                                          ),
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
                                         ),
                                         child: const Text(
                                           'PAPER',
@@ -1368,12 +1373,15 @@ class _AgenticTradingPerformanceWidgetState
                                 if (timestamp != null)
                                   Text(
                                     _dateFormat.format(
-                                        DateTime.fromMillisecondsSinceEpoch(
-                                            timestamp)),
+                                      DateTime.fromMillisecondsSinceEpoch(
+                                        timestamp,
+                                      ),
+                                    ),
                                     style: TextStyle(
                                       fontSize: 14,
-                                      color: colorScheme.onSurface
-                                          .withValues(alpha: 0.6),
+                                      color: colorScheme.onSurface.withValues(
+                                        alpha: 0.6,
+                                      ),
                                     ),
                                   ),
                               ],
@@ -1399,8 +1407,10 @@ class _AgenticTradingPerformanceWidgetState
                                 .withValues(alpha: 0.3),
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(
-                                color: colorScheme.outlineVariant
-                                    .withValues(alpha: 0.5)),
+                              color: colorScheme.outlineVariant.withValues(
+                                alpha: 0.5,
+                              ),
+                            ),
                           ),
                           child: Column(
                             children: [
@@ -1414,9 +1424,10 @@ class _AgenticTradingPerformanceWidgetState
                                     ),
                                   ),
                                   Container(
-                                      width: 1,
-                                      height: 40,
-                                      color: colorScheme.outlineVariant),
+                                    width: 1,
+                                    height: 40,
+                                    color: colorScheme.outlineVariant,
+                                  ),
                                   Expanded(
                                     child: _buildDetailMetric(
                                       'Quantity',
@@ -1425,9 +1436,10 @@ class _AgenticTradingPerformanceWidgetState
                                     ),
                                   ),
                                   Container(
-                                      width: 1,
-                                      height: 40,
-                                      color: colorScheme.outlineVariant),
+                                    width: 1,
+                                    height: 40,
+                                    color: colorScheme.outlineVariant,
+                                  ),
                                   Expanded(
                                     child: _buildDetailMetric(
                                       'Total Value',
@@ -1465,15 +1477,19 @@ class _AgenticTradingPerformanceWidgetState
                                         ),
                                         if (totalValue > 0)
                                           Container(
-                                            margin:
-                                                const EdgeInsets.only(top: 4),
+                                            margin: const EdgeInsets.only(
+                                              top: 4,
+                                            ),
                                             padding: const EdgeInsets.symmetric(
-                                                horizontal: 8, vertical: 2),
+                                              horizontal: 8,
+                                              vertical: 2,
+                                            ),
                                             decoration: BoxDecoration(
-                                              color: (profitLoss >= 0
-                                                      ? Colors.green
-                                                      : Colors.red)
-                                                  .withValues(alpha: 0.1),
+                                              color:
+                                                  (profitLoss >= 0
+                                                          ? Colors.green
+                                                          : Colors.red)
+                                                      .withValues(alpha: 0.1),
                                               borderRadius:
                                                   BorderRadius.circular(12),
                                             ),
@@ -1514,13 +1530,16 @@ class _AgenticTradingPerformanceWidgetState
                             decoration: BoxDecoration(
                               color: colorScheme.surface,
                               borderRadius: BorderRadius.circular(12),
-                              border:
-                                  Border.all(color: colorScheme.outlineVariant),
+                              border: Border.all(
+                                color: colorScheme.outlineVariant,
+                              ),
                             ),
                             child: Row(
                               children: [
-                                Icon(Icons.info_outline,
-                                    color: colorScheme.primary),
+                                Icon(
+                                  Icons.info_outline,
+                                  color: colorScheme.primary,
+                                ),
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Text(
@@ -1555,8 +1574,9 @@ class _AgenticTradingPerformanceWidgetState
                               decoration: BoxDecoration(
                                 gradient: LinearGradient(
                                   colors: [
-                                    colorScheme.primaryContainer
-                                        .withValues(alpha: 0.1),
+                                    colorScheme.primaryContainer.withValues(
+                                      alpha: 0.1,
+                                    ),
                                     colorScheme.surface,
                                   ],
                                   begin: Alignment.topLeft,
@@ -1564,8 +1584,10 @@ class _AgenticTradingPerformanceWidgetState
                                 ),
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
-                                    color: colorScheme.outlineVariant
-                                        .withValues(alpha: 0.5)),
+                                  color: colorScheme.outlineVariant.withValues(
+                                    alpha: 0.5,
+                                  ),
+                                ),
                               ),
                               child: Row(
                                 children: [
@@ -1583,12 +1605,12 @@ class _AgenticTradingPerformanceWidgetState
                                                 .withValues(alpha: 0.3),
                                             valueColor:
                                                 AlwaysStoppedAnimation<Color>(
-                                              signalStrength >= 80
-                                                  ? Colors.green
-                                                  : signalStrength >= 60
+                                                  signalStrength >= 80
+                                                      ? Colors.green
+                                                      : signalStrength >= 60
                                                       ? Colors.blue
                                                       : Colors.orange,
-                                            ),
+                                                ),
                                           ),
                                         ),
                                         Center(
@@ -1622,8 +1644,8 @@ class _AgenticTradingPerformanceWidgetState
                                           signalStrength >= 80
                                               ? 'Strong alignment across multiple indicators.'
                                               : signalStrength >= 60
-                                                  ? 'Moderate consensus among active indicators.'
-                                                  : 'Weak or mixed signals detected.',
+                                              ? 'Moderate consensus among active indicators.'
+                                              : 'Weak or mixed signals detected.',
                                           style: TextStyle(
                                             fontSize: 13,
                                             color: colorScheme.onSurface
@@ -1644,8 +1666,9 @@ class _AgenticTradingPerformanceWidgetState
                               style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
-                                color: colorScheme.onSurface
-                                    .withValues(alpha: 0.7),
+                                color: colorScheme.onSurface.withValues(
+                                  alpha: 0.7,
+                                ),
                               ),
                             ),
                             const SizedBox(height: 8),
@@ -1670,13 +1693,15 @@ class _AgenticTradingPerformanceWidgetState
 
                                 return Container(
                                   padding: const EdgeInsets.symmetric(
-                                      horizontal: 12, vertical: 6),
+                                    horizontal: 12,
+                                    vertical: 6,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: chipColor.withValues(alpha: 0.1),
                                     borderRadius: BorderRadius.circular(20),
                                     border: Border.all(
-                                        color:
-                                            chipColor.withValues(alpha: 0.3)),
+                                      color: chipColor.withValues(alpha: 0.3),
+                                    ),
                                   ),
                                   child: Row(
                                     mainAxisSize: MainAxisSize.min,
@@ -1685,8 +1710,8 @@ class _AgenticTradingPerformanceWidgetState
                                         isBullish
                                             ? Icons.arrow_upward
                                             : (isBearish
-                                                ? Icons.arrow_downward
-                                                : Icons.remove),
+                                                  ? Icons.arrow_downward
+                                                  : Icons.remove),
                                         size: 14,
                                         color: chipColor,
                                       ),
@@ -1697,7 +1722,8 @@ class _AgenticTradingPerformanceWidgetState
                                           fontSize: 12,
                                           fontWeight: FontWeight.bold,
                                           color: chipColor.withOpacity(
-                                              0.9), // use withOpacity if custom colors, or standard colorScheme
+                                            0.9,
+                                          ), // use withOpacity if custom colors, or standard colorScheme
                                         ),
                                       ),
                                     ],
@@ -1711,21 +1737,24 @@ class _AgenticTradingPerformanceWidgetState
 
                         // Raw Data Expander
                         Theme(
-                          data: Theme.of(context)
-                              .copyWith(dividerColor: Colors.transparent),
+                          data: Theme.of(
+                            context,
+                          ).copyWith(dividerColor: Colors.transparent),
                           child: ExpansionTile(
                             title: Text(
                               'Raw Trade Data',
                               style: TextStyle(
                                 fontSize: 14,
-                                color: colorScheme.onSurface
-                                    .withValues(alpha: 0.6),
+                                color: colorScheme.onSurface.withValues(
+                                  alpha: 0.6,
+                                ),
                               ),
                             ),
-                            iconColor:
-                                colorScheme.onSurface.withValues(alpha: 0.6),
-                            collapsedIconColor:
-                                colorScheme.onSurface.withValues(alpha: 0.6),
+                            iconColor: colorScheme.onSurface.withValues(
+                              alpha: 0.6,
+                            ),
+                            collapsedIconColor: colorScheme.onSurface
+                                .withValues(alpha: 0.6),
                             children: [
                               Container(
                                 padding: const EdgeInsets.all(16),
@@ -1737,16 +1766,17 @@ class _AgenticTradingPerformanceWidgetState
                                 child: Column(
                                   children: trade.entries.map((entry) {
                                     var displayValue = entry.value;
-                                    bool isComplex = displayValue is Map ||
+                                    bool isComplex =
+                                        displayValue is Map ||
                                         displayValue is List;
 
                                     // Try to parse JSON strings
                                     if (!isComplex &&
                                         displayValue is String &&
                                         (displayValue.trim().startsWith('{') ||
-                                            displayValue
-                                                .trim()
-                                                .startsWith('['))) {
+                                            displayValue.trim().startsWith(
+                                              '[',
+                                            ))) {
                                       try {
                                         displayValue = jsonDecode(displayValue);
                                         isComplex = true;
@@ -1757,8 +1787,9 @@ class _AgenticTradingPerformanceWidgetState
                                     if (isComplex) {
                                       try {
                                         valueString =
-                                            const JsonEncoder.withIndent('  ')
-                                                .convert(displayValue);
+                                            const JsonEncoder.withIndent(
+                                              '  ',
+                                            ).convert(displayValue);
                                       } catch (e) {
                                         valueString = displayValue.toString();
                                       }
@@ -1768,8 +1799,9 @@ class _AgenticTradingPerformanceWidgetState
 
                                     if (isComplex) {
                                       return Padding(
-                                        padding:
-                                            const EdgeInsets.only(bottom: 12),
+                                        padding: const EdgeInsets.only(
+                                          bottom: 12,
+                                        ),
                                         child: Column(
                                           crossAxisAlignment:
                                               CrossAxisAlignment.start,
@@ -1859,7 +1891,10 @@ class _AgenticTradingPerformanceWidgetState
   }
 
   Widget _buildDetailMetric(
-      String label, String value, ColorScheme colorScheme) {
+    String label,
+    String value,
+    ColorScheme colorScheme,
+  ) {
     return Column(
       children: [
         Text(
@@ -2006,14 +2041,20 @@ class _AgenticTradingPerformanceWidgetState
     final avgPnL = totalTrades > 0 ? totalPnL / totalTrades : 0.0;
 
     // Profit Factor = Gross Profit / Gross Loss
-    final profitFactor =
-        AnalyticsUtils.calculateProfitFactor(totalWinAmount, totalLossAmount);
+    final profitFactor = AnalyticsUtils.calculateProfitFactor(
+      totalWinAmount,
+      totalLossAmount,
+    );
 
     // Expectancy = (Avg Win * Win Rate) - (Avg Loss * Loss Rate)
     final avgWin = wins > 0 ? totalWinAmount / wins : 0.0;
     final avgLoss = losses > 0 ? totalLossAmount / losses : 0.0;
     final expectancy = AnalyticsUtils.calculateExpectancy(
-        avgWin, successRate, avgLoss, 1 - successRate);
+      avgWin,
+      successRate,
+      avgLoss,
+      1 - successRate,
+    );
 
     // Calculate Risk-Adjusted Return Metrics
     double sharpeRatio = 0.0;
@@ -2028,10 +2069,15 @@ class _AgenticTradingPerformanceWidgetState
 
       if (pnLs.length > 1) {
         // Use 0.0 risk free rate for P&L based calculations
-        sharpeRatio =
-            AnalyticsUtils.calculateSharpeRatio(pnLs, riskFreeRate: 0.0);
-        sortinoRatio = AnalyticsUtils.calculateSortinoRatio(pnLs,
-            riskFreeRate: 0.0, targetReturn: 0.0);
+        sharpeRatio = AnalyticsUtils.calculateSharpeRatio(
+          pnLs,
+          riskFreeRate: 0.0,
+        );
+        sortinoRatio = AnalyticsUtils.calculateSortinoRatio(
+          pnLs,
+          riskFreeRate: 0.0,
+          targetReturn: 0.0,
+        );
         omegaRatio = AnalyticsUtils.calculateOmegaRatio(pnLs, threshold: 0.0);
       }
     }
@@ -2118,7 +2164,7 @@ class _AgenticTradingPerformanceWidgetState
         indicatorComboStats[comboString] ??= {
           'wins': 0,
           'losses': 0,
-          'total': 0
+          'total': 0,
         };
         indicatorComboStats[comboString]!['total'] =
             indicatorComboStats[comboString]!['total']! + 1;
@@ -2173,7 +2219,7 @@ class _AgenticTradingPerformanceWidgetState
                   individualIndicatorStats[key] ??= {
                     'wins': 0,
                     'losses': 0,
-                    'total': 0
+                    'total': 0,
                   };
                   individualIndicatorStats[key]!['total'] =
                       individualIndicatorStats[key]!['total']! + 1;
@@ -2264,17 +2310,14 @@ class _AgenticTradingPerformanceWidgetState
                   child: Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color:
-                          colorScheme.primaryContainer.withValues(alpha: 0.3),
+                      color: colorScheme.primaryContainer.withValues(
+                        alpha: 0.3,
+                      ),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Column(
                       children: [
-                        Icon(
-                          Icons.speed,
-                          size: 32,
-                          color: colorScheme.primary,
-                        ),
+                        Icon(Icons.speed, size: 32, color: colorScheme.primary),
                         const SizedBox(height: 8),
                         Text(
                           'Sharpe Ratio',
@@ -2291,16 +2334,16 @@ class _AgenticTradingPerformanceWidgetState
                             color: sharpeRatio > 1
                                 ? Colors.green
                                 : sharpeRatio > 0
-                                    ? Colors.orange
-                                    : Colors.red,
+                                ? Colors.orange
+                                : Colors.red,
                           ),
                         ),
                         Text(
                           sharpeRatio > 1
                               ? 'Good'
                               : sharpeRatio > 0
-                                  ? 'Fair'
-                                  : 'Poor',
+                              ? 'Fair'
+                              : 'Poor',
                           style: TextStyle(
                             fontSize: 11,
                             color: colorScheme.onSurface.withValues(alpha: 0.6),
@@ -2315,8 +2358,9 @@ class _AgenticTradingPerformanceWidgetState
                   child: Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color:
-                          colorScheme.secondaryContainer.withValues(alpha: 0.3),
+                      color: colorScheme.secondaryContainer.withValues(
+                        alpha: 0.3,
+                      ),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Column(
@@ -2362,20 +2406,22 @@ class _AgenticTradingPerformanceWidgetState
                   child: Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: (profitFactor > 2
-                              ? Colors.green
-                              : profitFactor > 1
+                      color:
+                          (profitFactor > 2
+                                  ? Colors.green
+                                  : profitFactor > 1
                                   ? Colors.orange
                                   : Colors.red)
-                          .withValues(alpha: 0.1),
+                              .withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: (profitFactor > 2
-                                ? Colors.green
-                                : profitFactor > 1
+                        color:
+                            (profitFactor > 2
+                                    ? Colors.green
+                                    : profitFactor > 1
                                     ? Colors.orange
                                     : Colors.red)
-                            .withValues(alpha: 0.3),
+                                .withValues(alpha: 0.3),
                       ),
                     ),
                     child: Column(
@@ -2386,8 +2432,8 @@ class _AgenticTradingPerformanceWidgetState
                           color: profitFactor > 2
                               ? Colors.green
                               : profitFactor > 1
-                                  ? Colors.orange
-                                  : Colors.red,
+                              ? Colors.orange
+                              : Colors.red,
                         ),
                         const SizedBox(height: 6),
                         Text(
@@ -2407,8 +2453,8 @@ class _AgenticTradingPerformanceWidgetState
                             color: profitFactor > 2
                                 ? Colors.green
                                 : profitFactor > 1
-                                    ? Colors.orange
-                                    : Colors.red,
+                                ? Colors.orange
+                                : Colors.red,
                           ),
                         ),
                         Text(
@@ -2480,8 +2526,9 @@ class _AgenticTradingPerformanceWidgetState
                   child: Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color:
-                          colorScheme.tertiaryContainer.withValues(alpha: 0.1),
+                      color: colorScheme.tertiaryContainer.withValues(
+                        alpha: 0.1,
+                      ),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
                         color: colorScheme.tertiary.withValues(alpha: 0.3),
@@ -2528,8 +2575,9 @@ class _AgenticTradingPerformanceWidgetState
                   child: Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color:
-                          colorScheme.tertiaryContainer.withValues(alpha: 0.1),
+                      color: colorScheme.tertiaryContainer.withValues(
+                        alpha: 0.1,
+                      ),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
                         color: colorScheme.tertiary.withValues(alpha: 0.3),
@@ -2618,12 +2666,16 @@ class _AgenticTradingPerformanceWidgetState
                       color: Colors.green.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                          color: Colors.green.withValues(alpha: 0.3)),
+                        color: Colors.green.withValues(alpha: 0.3),
+                      ),
                     ),
                     child: Column(
                       children: [
-                        const Icon(Icons.local_fire_department,
-                            size: 24, color: Colors.green),
+                        const Icon(
+                          Icons.local_fire_department,
+                          size: 24,
+                          color: Colors.green,
+                        ),
                         const SizedBox(height: 6),
                         Text(
                           'Win Streak',
@@ -2660,13 +2712,17 @@ class _AgenticTradingPerformanceWidgetState
                     decoration: BoxDecoration(
                       color: Colors.red.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
-                      border:
-                          Border.all(color: Colors.red.withValues(alpha: 0.3)),
+                      border: Border.all(
+                        color: Colors.red.withValues(alpha: 0.3),
+                      ),
                     ),
                     child: Column(
                       children: [
-                        const Icon(Icons.trending_down,
-                            size: 24, color: Colors.red),
+                        const Icon(
+                          Icons.trending_down,
+                          size: 24,
+                          color: Colors.red,
+                        ),
                         const SizedBox(height: 6),
                         Text(
                           'Loss Streak',
@@ -2716,8 +2772,9 @@ class _AgenticTradingPerformanceWidgetState
                   Icon(
                     Icons.show_chart,
                     size: 24,
-                    color:
-                        maxDrawdown > 0 ? Colors.orange : colorScheme.primary,
+                    color: maxDrawdown > 0
+                        ? Colors.orange
+                        : colorScheme.primary,
                   ),
                   const SizedBox(height: 6),
                   Text(
@@ -2734,8 +2791,9 @@ class _AgenticTradingPerformanceWidgetState
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color:
-                          maxDrawdown > 0 ? Colors.orange : colorScheme.primary,
+                      color: maxDrawdown > 0
+                          ? Colors.orange
+                          : colorScheme.primary,
                     ),
                   ),
                   Text(
@@ -2823,14 +2881,15 @@ class _AgenticTradingPerformanceWidgetState
                             child: LinearProgressIndicator(
                               value: total > 0 ? winRate : 0.0,
                               minHeight: 8,
-                              backgroundColor:
-                                  Colors.red.withValues(alpha: 0.2),
+                              backgroundColor: Colors.red.withValues(
+                                alpha: 0.2,
+                              ),
                               valueColor: AlwaysStoppedAnimation<Color>(
                                 winRate >= 0.6
                                     ? Colors.green
                                     : winRate >= 0.4
-                                        ? Colors.orange
-                                        : Colors.red,
+                                    ? Colors.orange
+                                    : Colors.red,
                               ),
                             ),
                           ),
@@ -2845,12 +2904,13 @@ class _AgenticTradingPerformanceWidgetState
                               fontWeight: FontWeight.bold,
                               color: total > 0
                                   ? (winRate >= 0.6
-                                      ? Colors.green
-                                      : winRate >= 0.4
-                                          ? Colors.orange
-                                          : Colors.red)
-                                  : colorScheme.onSurface
-                                      .withValues(alpha: 0.5),
+                                        ? Colors.green
+                                        : winRate >= 0.4
+                                        ? Colors.orange
+                                        : Colors.red)
+                                  : colorScheme.onSurface.withValues(
+                                      alpha: 0.5,
+                                    ),
                             ),
                             textAlign: TextAlign.end,
                           ),
@@ -2986,14 +3046,15 @@ class _AgenticTradingPerformanceWidgetState
                             child: LinearProgressIndicator(
                               value: winRate,
                               minHeight: 8,
-                              backgroundColor:
-                                  Colors.red.withValues(alpha: 0.2),
+                              backgroundColor: Colors.red.withValues(
+                                alpha: 0.2,
+                              ),
                               valueColor: AlwaysStoppedAnimation<Color>(
                                 winRate >= 0.7
                                     ? Colors.green
                                     : winRate >= 0.5
-                                        ? Colors.orange
-                                        : Colors.red,
+                                    ? Colors.orange
+                                    : Colors.red,
                               ),
                             ),
                           ),
@@ -3009,8 +3070,8 @@ class _AgenticTradingPerformanceWidgetState
                               color: winRate >= 0.7
                                   ? Colors.green
                                   : winRate >= 0.5
-                                      ? Colors.orange
-                                      : Colors.red,
+                                  ? Colors.orange
+                                  : Colors.red,
                             ),
                             textAlign: TextAlign.end,
                           ),
@@ -3108,14 +3169,15 @@ class _AgenticTradingPerformanceWidgetState
                             child: LinearProgressIndicator(
                               value: winRate,
                               minHeight: 8,
-                              backgroundColor:
-                                  Colors.red.withValues(alpha: 0.2),
+                              backgroundColor: Colors.red.withValues(
+                                alpha: 0.2,
+                              ),
                               valueColor: AlwaysStoppedAnimation<Color>(
                                 winRate >= 0.7
                                     ? Colors.green
                                     : winRate >= 0.5
-                                        ? Colors.orange
-                                        : Colors.red,
+                                    ? Colors.orange
+                                    : Colors.red,
                               ),
                             ),
                           ),
@@ -3131,8 +3193,8 @@ class _AgenticTradingPerformanceWidgetState
                               color: winRate >= 0.7
                                   ? Colors.green
                                   : winRate >= 0.5
-                                      ? Colors.orange
-                                      : Colors.red,
+                                  ? Colors.orange
+                                  : Colors.red,
                             ),
                             textAlign: TextAlign.end,
                           ),
@@ -3155,7 +3217,7 @@ class _AgenticTradingPerformanceWidgetState
   ) {
     final individualIndicatorStats =
         stats['individualIndicatorStats'] as Map<String, Map<String, int>>? ??
-            {};
+        {};
 
     if (individualIndicatorStats.isEmpty) {
       return const SizedBox.shrink();
@@ -3238,14 +3300,15 @@ class _AgenticTradingPerformanceWidgetState
                             child: LinearProgressIndicator(
                               value: winRate,
                               minHeight: 8,
-                              backgroundColor:
-                                  Colors.red.withValues(alpha: 0.2),
+                              backgroundColor: Colors.red.withValues(
+                                alpha: 0.2,
+                              ),
                               valueColor: AlwaysStoppedAnimation<Color>(
                                 winRate >= 0.7
                                     ? Colors.green
                                     : winRate >= 0.5
-                                        ? Colors.orange
-                                        : Colors.red,
+                                    ? Colors.orange
+                                    : Colors.red,
                               ),
                             ),
                           ),
@@ -3261,8 +3324,8 @@ class _AgenticTradingPerformanceWidgetState
                               color: winRate >= 0.7
                                   ? Colors.green
                                   : winRate >= 0.5
-                                      ? Colors.orange
-                                      : Colors.red,
+                                  ? Colors.orange
+                                  : Colors.red,
                             ),
                             textAlign: TextAlign.end,
                           ),
@@ -3356,14 +3419,15 @@ class _AgenticTradingPerformanceWidgetState
                             child: LinearProgressIndicator(
                               value: winRate,
                               minHeight: 8,
-                              backgroundColor:
-                                  Colors.red.withValues(alpha: 0.2),
+                              backgroundColor: Colors.red.withValues(
+                                alpha: 0.2,
+                              ),
                               valueColor: AlwaysStoppedAnimation<Color>(
                                 winRate >= 0.6
                                     ? Colors.green
                                     : winRate >= 0.4
-                                        ? Colors.orange
-                                        : Colors.red,
+                                    ? Colors.orange
+                                    : Colors.red,
                               ),
                             ),
                           ),
@@ -3377,8 +3441,8 @@ class _AgenticTradingPerformanceWidgetState
                             color: winRate >= 0.6
                                 ? Colors.green
                                 : winRate >= 0.4
-                                    ? Colors.orange
-                                    : Colors.red,
+                                ? Colors.orange
+                                : Colors.red,
                           ),
                         ),
                       ],

@@ -94,9 +94,11 @@ class PortfolioSectionGridWidget extends StatelessWidget {
                       color: theme.colorScheme.secondaryContainer,
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: Icon(section.icon,
-                        size: 20,
-                        color: theme.colorScheme.onSecondaryContainer),
+                    child: Icon(
+                      section.icon,
+                      size: 20,
+                      color: theme.colorScheme.onSecondaryContainer,
+                    ),
                   ),
                   const Spacer(),
                   if (isFlagged)
@@ -113,8 +115,9 @@ class PortfolioSectionGridWidget extends StatelessWidget {
               const SizedBox(height: 12),
               Text(
                 section.label,
-                style: theme.textTheme.titleMedium
-                    ?.copyWith(fontWeight: FontWeight.bold),
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 2),
               Text(

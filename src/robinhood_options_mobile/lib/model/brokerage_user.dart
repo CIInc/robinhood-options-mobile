@@ -30,32 +30,37 @@ class BrokerageUser {
   UserInfo? userInfo;
   List<Account> accounts = [];
 
-  BrokerageUser(this.source, this.userName, this.credentials, this.oauth2Client,
-      {this.accounts = const []});
+  BrokerageUser(
+    this.source,
+    this.userName,
+    this.credentials,
+    this.oauth2Client, {
+    this.accounts = const [],
+  });
 
   BrokerageUser.fromJson(Map<String, dynamic> json)
-      : source = _parseSource(json['source']),
-        userName = json['userName'],
-        credentials = json['credentials'],
-        refreshEnabled = json['refreshEnabled'] ?? false,
-        optionsView =
-            json['optionsView'] == null || json['optionsView'] == 'View.list'
-                ? OptionsView.list
-                : OptionsView.grouped,
-        displayValue = parseDisplayValue(json['displayValue']),
-        sortOptions = parseDisplayValue(json['sortOptions']),
-        sortDirection = json['sortDirection'] != null
-            ? json['sortDirection'] == 'asc'
+    : source = _parseSource(json['source']),
+      userName = json['userName'],
+      credentials = json['credentials'],
+      refreshEnabled = json['refreshEnabled'] ?? false,
+      optionsView =
+          json['optionsView'] == null || json['optionsView'] == 'View.list'
+          ? OptionsView.list
+          : OptionsView.grouped,
+      displayValue = parseDisplayValue(json['displayValue']),
+      sortOptions = parseDisplayValue(json['sortOptions']),
+      sortDirection = json['sortDirection'] != null
+          ? json['sortDirection'] == 'asc'
                 ? SortDirection.asc
                 : SortDirection.desc
-            : null,
-        showPositionDetails = json['showPositionDetails'] ?? true,
-        userInfo = json['userInfo'] != null
-            ? UserInfo.fromJson(json['userInfo'])
-            : null,
-        accounts = json['accounts'] != null
-            ? Account.fromJsonArray(json['accounts'])
-            : [] {
+          : null,
+      showPositionDetails = json['showPositionDetails'] ?? true,
+      userInfo = json['userInfo'] != null
+          ? UserInfo.fromJson(json['userInfo'])
+          : null,
+      accounts = json['accounts'] != null
+          ? Account.fromJsonArray(json['accounts'])
+          : [] {
     ensureOAuth2Client();
   }
 
@@ -93,18 +98,18 @@ class BrokerageUser {
   }
 
   Map<String, dynamic> toJson() => {
-        'source': source.toString(),
-        'userName': userName,
-        'credentials': credentials,
-        'refreshEnabled': refreshEnabled,
-        'optionsView': optionsView.toString(),
-        'sortOptions': sortOptions.toString(),
-        'sortDirection': sortDirection.toString(),
-        'displayValue': displayValue.toString(),
-        'showPositionDetails': showPositionDetails,
-        'userInfo': userInfo?.toJson(),
-        'accounts': accounts.map((e) => e.toJson()).toList(),
-      };
+    'source': source.toString(),
+    'userName': userName,
+    'credentials': credentials,
+    'refreshEnabled': refreshEnabled,
+    'optionsView': optionsView.toString(),
+    'sortOptions': sortOptions.toString(),
+    'sortDirection': sortDirection.toString(),
+    'displayValue': displayValue.toString(),
+    'showPositionDetails': showPositionDetails,
+    'userInfo': userInfo?.toJson(),
+    'accounts': accounts.map((e) => e.toJson()).toList(),
+  };
 
   void ensureOAuth2Client() {
     if (oauth2Client != null || credentials == null) {
@@ -115,20 +120,24 @@ class BrokerageUser {
       var service = source == BrokerageSource.robinhood
           ? RobinhoodService()
           : source == BrokerageSource.schwab
-              ? SchwabService()
-              : source == BrokerageSource.plaid
-                  ? PlaidService()
-                  : DemoService();
+          ? SchwabService()
+          : source == BrokerageSource.plaid
+          ? PlaidService()
+          : DemoService();
 
       String? secret;
       if (source == BrokerageSource.schwab) {
         secret = SchwabService.sc;
       }
 
-      oauth2Client = Client(creds, identifier: service.clientId, secret: secret,
-          onCredentialsRefreshed: (c) {
-        credentials = c.toJson();
-      });
+      oauth2Client = Client(
+        creds,
+        identifier: service.clientId,
+        secret: secret,
+        onCredentialsRefreshed: (c) {
+          credentials = c.toJson();
+        },
+      );
     } catch (e) {
       debugPrint('Error creating oauth2 client for $userName: $e');
     }
@@ -193,8 +202,9 @@ class BrokerageUser {
   }
 
   double? getDisplayValueOptionAggregatePosition(
-      List<OptionAggregatePosition> ops,
-      {DisplayValue? displayValue}) {
+    List<OptionAggregatePosition> ops, {
+    DisplayValue? displayValue,
+  }) {
     double value = 0;
     if (ops.isEmpty) {
       return value;
@@ -202,10 +212,13 @@ class BrokerageUser {
     switch (displayValue ?? this.displayValue) {
       case DisplayValue.lastPrice:
         value = ops
-            .map((OptionAggregatePosition e) => e.optionInstrument != null &&
-                    e.optionInstrument!.optionMarketData != null
-                ? e.optionInstrument!.optionMarketData!.adjustedMarkPrice!
-                : 0.0)
+            .map(
+              (OptionAggregatePosition e) =>
+                  e.optionInstrument != null &&
+                      e.optionInstrument!.optionMarketData != null
+                  ? e.optionInstrument!.optionMarketData!.adjustedMarkPrice!
+                  : 0.0,
+            )
             .reduce((a, b) => a + b);
         break;
       case DisplayValue.marketValue:
@@ -256,8 +269,10 @@ class BrokerageUser {
     return value;
   }
 
-  double? getDisplayValueInstrumentPositions(List<InstrumentPosition> ops,
-      {DisplayValue? displayValue}) {
+  double? getDisplayValueInstrumentPositions(
+    List<InstrumentPosition> ops, {
+    DisplayValue? displayValue,
+  }) {
     double value = 0;
     if (ops.isEmpty) {
       return value;
@@ -316,8 +331,10 @@ class BrokerageUser {
     return value;
   }
 
-  double? getDisplayValueForexHoldings(List<ForexHolding> ops,
-      {DisplayValue? displayValue}) {
+  double? getDisplayValueForexHoldings(
+    List<ForexHolding> ops, {
+    DisplayValue? displayValue,
+  }) {
     double value = 0;
     if (ops.isEmpty) {
       return value;
@@ -334,12 +351,14 @@ class BrokerageUser {
         break;
         */
       case DisplayValue.marketValue:
-        value =
-            ops.map((ForexHolding e) => e.marketValue).reduce((a, b) => a + b);
+        value = ops
+            .map((ForexHolding e) => e.marketValue)
+            .reduce((a, b) => a + b);
         break;
       case DisplayValue.totalCost:
-        value =
-            ops.map((ForexHolding e) => e.totalCost).reduce((a, b) => a + b);
+        value = ops
+            .map((ForexHolding e) => e.totalCost)
+            .reduce((a, b) => a + b);
         break;
       case DisplayValue.todayReturn:
         value = ops
@@ -347,8 +366,9 @@ class BrokerageUser {
             .reduce((a, b) => a + b);
         break;
       case DisplayValue.todayReturnPercent:
-        var numerator =
-            ops.map((ForexHolding e) => e.marketValue).reduce((a, b) => a + b);
+        var numerator = ops
+            .map((ForexHolding e) => e.marketValue)
+            .reduce((a, b) => a + b);
         var denominator = ops
             .map((ForexHolding e) => e.marketValue - e.gainLossToday)
             .reduce((a, b) => a + b);
@@ -358,10 +378,12 @@ class BrokerageUser {
         value = ops.map((ForexHolding e) => e.gainLoss).reduce((a, b) => a + b);
         break;
       case DisplayValue.totalReturnPercent:
-        var numerator =
-            ops.map((ForexHolding e) => e.marketValue).reduce((a, b) => a + b);
-        var denominator =
-            ops.map((ForexHolding e) => e.totalCost).reduce((a, b) => a + b);
+        var numerator = ops
+            .map((ForexHolding e) => e.marketValue)
+            .reduce((a, b) => a + b);
+        var denominator = ops
+            .map((ForexHolding e) => e.totalCost)
+            .reduce((a, b) => a + b);
         value = numerator / denominator - 1;
         break;
       default:
@@ -369,14 +391,16 @@ class BrokerageUser {
     return value;
   }
 
-  double getDisplayValueInstrumentPosition(InstrumentPosition op,
-      {DisplayValue? displayValue}) {
+  double getDisplayValueInstrumentPosition(
+    InstrumentPosition op, {
+    DisplayValue? displayValue,
+  }) {
     double value = 0;
     switch (displayValue ?? this.displayValue) {
       case DisplayValue.lastPrice:
         value = op.instrumentObj != null && op.instrumentObj!.quoteObj != null
             ? op.instrumentObj!.quoteObj!.lastExtendedHoursTradePrice ??
-                op.instrumentObj!.quoteObj!.lastTradePrice!
+                  op.instrumentObj!.quoteObj!.lastTradePrice!
             : 0;
         break;
       case DisplayValue.marketValue:
@@ -402,8 +426,10 @@ class BrokerageUser {
     return value;
   }
 
-  double getDisplayValueForexHolding(ForexHolding op,
-      {DisplayValue? displayValue}) {
+  double getDisplayValueForexHolding(
+    ForexHolding op, {
+    DisplayValue? displayValue,
+  }) {
     double value = 0;
     switch (displayValue ?? this.displayValue) {
       case DisplayValue.lastPrice:
@@ -435,12 +461,14 @@ class BrokerageUser {
   Icon getDisplayIcon(double value, {double? size = 26.0}) {
     var icon = Icon(
       value > 0
-          ? Icons.arrow_drop_up // Icons.trending_up
+          ? Icons
+                .arrow_drop_up // Icons.trending_up
           : (value < 0
-              ? Icons.arrow_drop_down
-              : Icons.trending_flat), // Icons.trending_down
-      color:
-          (value > 0 ? Colors.green : (value < 0 ? Colors.red : Colors.grey)),
+                ? Icons.arrow_drop_down
+                : Icons.trending_flat), // Icons.trending_down
+      color: (value > 0
+          ? Colors.green
+          : (value < 0 ? Colors.red : Colors.grey)),
       size: size,
     );
     return icon;
@@ -457,8 +485,8 @@ class BrokerageUser {
         opTrailingText = value.abs() != 0.0 && value.abs() < 0.00005
             ? formatPrecise8Currency.format(value)
             : (value.abs() != 0.0 && value.abs() < 0.005
-                ? formatPrecise4Currency.format(value)
-                : formatCurrency.format(value));
+                  ? formatPrecise4Currency.format(value)
+                  : formatCurrency.format(value));
         break;
       case DisplayValue.todayReturnPercent:
       case DisplayValue.totalReturnPercent:
@@ -469,12 +497,15 @@ class BrokerageUser {
     return opTrailingText;
   }
 
-  double getDisplayValue(OptionAggregatePosition op,
-      {DisplayValue? displayValue}) {
+  double getDisplayValue(
+    OptionAggregatePosition op, {
+    DisplayValue? displayValue,
+  }) {
     double value = 0;
     switch (displayValue ?? this.displayValue) {
       case DisplayValue.lastPrice:
-        value = op.optionInstrument != null &&
+        value =
+            op.optionInstrument != null &&
                 op.optionInstrument!.optionMarketData != null
             ? op.optionInstrument!.optionMarketData!.adjustedMarkPrice!
             : 0;

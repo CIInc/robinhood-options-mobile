@@ -12,7 +12,8 @@ final _monthYearFormat = DateFormat.yMMMM();
 class AccountDocument {
   final String id;
   final String? accountNumber;
-  final String type; // '1099', 'account_statement', 'trade_confirmation', 'crypto_statement'
+  final String
+  type; // '1099', 'account_statement', 'trade_confirmation', 'crypto_statement'
   final String title;
   final DateTime? date;
   final int? year;
@@ -66,7 +67,8 @@ class AccountDocument {
         json['account_number']?.toString() ?? json['account']?.toString();
     final type = json['type']?.toString().toLowerCase() ?? '1099';
     final date = parseDate(json['date']);
-    final fileFormat = json['filetype']?.toString().toUpperCase() ??
+    final fileFormat =
+        json['filetype']?.toString().toUpperCase() ??
         json['file_type']?.toString().toUpperCase() ??
         'PDF';
 
@@ -82,7 +84,8 @@ class AccountDocument {
       }
     }
 
-    String title = json['title']?.toString() ??
+    String title =
+        json['title']?.toString() ??
         json['name']?.toString() ??
         json['description']?.toString() ??
         '';
@@ -107,13 +110,16 @@ class AccountDocument {
       }
     }
 
-    final downloadUrl = json['download_url']?.toString() ??
+    final downloadUrl =
+        json['download_url']?.toString() ??
         json['url']?.toString() ??
         json['file']?.toString();
-    final fileSize = parseInt(json['file_size']) ??
+    final fileSize =
+        parseInt(json['file_size']) ??
         parseInt(json['size']) ??
         parseInt(json['bytes']);
-    final state = json['state']?.toString().toLowerCase() ??
+    final state =
+        json['state']?.toString().toLowerCase() ??
         json['status']?.toString().toLowerCase() ??
         'ready';
     final createdAt = parseDate(json['created_at']);
@@ -293,7 +299,7 @@ class AdrFee {
     final id = json['id']?.toString() ?? json['ref_id']?.toString() ?? '';
     final accountNumber =
         json['account_number']?.toString() ?? json['account']?.toString();
-    
+
     // Extract instrumentId from instrument URL if needed
     String? instrumentId = json['instrument_id']?.toString();
     if (instrumentId == null && json['instrument'] != null) {
@@ -303,37 +309,43 @@ class AdrFee {
           .replaceAll('/', '');
     }
 
-    final symbol = json['symbol']?.toString().toUpperCase() ??
+    final symbol =
+        json['symbol']?.toString().toUpperCase() ??
         json['ticker']?.toString().toUpperCase() ??
         '';
-    final amount = parseDouble(json['amount']) ??
-        parseDouble(json['fee_amount']) ??
-        0.0;
-    final rate = parseDouble(json['rate']) ??
+    final amount =
+        parseDouble(json['amount']) ?? parseDouble(json['fee_amount']) ?? 0.0;
+    final rate =
+        parseDouble(json['rate']) ??
         parseDouble(json['fee_rate']) ??
         parseDouble(json['rate_per_share']) ??
         0.0;
-    final quantity = parseDouble(json['quantity']) ??
+    final quantity =
+        parseDouble(json['quantity']) ??
         parseDouble(json['shares']) ??
         parseDouble(json['position']) ??
         0.0;
-    
+
     String currencyCode = 'USD';
     if (json['currency_code'] != null) {
       currencyCode = json['currency_code'].toString();
-    } else if (json['amount'] is Map && json['amount']['currency_code'] != null) {
+    } else if (json['amount'] is Map &&
+        json['amount']['currency_code'] != null) {
       currencyCode = json['amount']['currency_code'].toString();
     } else if (json['rate'] is Map && json['rate']['currency_code'] != null) {
       currencyCode = json['rate']['currency_code'].toString();
     }
 
-    final date = parseDate(json['date']) ??
+    final date =
+        parseDate(json['date']) ??
         parseDate(json['paid_at']) ??
         parseDate(json['created_at']);
-    final feeType = json['fee_type']?.toString().toLowerCase() ??
+    final feeType =
+        json['fee_type']?.toString().toLowerCase() ??
         json['type']?.toString().toLowerCase() ??
         'custody_fee';
-    final description = json['description']?.toString() ??
+    final description =
+        json['description']?.toString() ??
         json['memo']?.toString() ??
         'ADR Pass-Through Fee';
 
@@ -371,8 +383,9 @@ class AdrFee {
   String get formattedAmount => _currencyFormat.format(amount);
   String get formattedRate =>
       rate > 0 ? '\$${rate.toStringAsFixed(3)} / sh' : '';
-  String get formattedQuantity =>
-      quantity % 1 == 0 ? quantity.toInt().toString() : quantity.toStringAsFixed(2);
+  String get formattedQuantity => quantity % 1 == 0
+      ? quantity.toInt().toString()
+      : quantity.toStringAsFixed(2);
   String get formattedDate => date != null ? _dateFormat.format(date!) : '—';
 
   String get feeTypeLabel {
@@ -398,7 +411,8 @@ class TaxWithholdingStatus {
   final String? countryName;
   final double withholdingRate; // e.g. 0.15 for 15%
   final double? treatyRate; // e.g. 0.15 for 15% under US tax treaty
-  final String status; // 'exempt', 'reduced', 'standard', 'subject_to_withholding'
+  final String
+  status; // 'exempt', 'reduced', 'standard', 'subject_to_withholding'
   final String? description;
 
   const TaxWithholdingStatus({
@@ -421,24 +435,31 @@ class TaxWithholdingStatus {
     }
 
     final instrumentId =
-        json['instrument_id']?.toString() ?? json['instrument']?.toString() ?? '';
-    final symbol = json['symbol']?.toString().toUpperCase() ??
+        json['instrument_id']?.toString() ??
+        json['instrument']?.toString() ??
+        '';
+    final symbol =
+        json['symbol']?.toString().toUpperCase() ??
         defaultSymbol?.toUpperCase() ??
         '';
-    final country = json['country']?.toString().toUpperCase() ??
+    final country =
+        json['country']?.toString().toUpperCase() ??
         json['country_code']?.toString().toUpperCase();
-    final countryName = json['country_name']?.toString() ??
-        json['jurisdiction']?.toString();
-    final withholdingRate = parseDouble(json['withholding_rate']) ??
+    final countryName =
+        json['country_name']?.toString() ?? json['jurisdiction']?.toString();
+    final withholdingRate =
+        parseDouble(json['withholding_rate']) ??
         parseDouble(json['rate']) ??
         parseDouble(json['tax_rate']) ??
         0.0;
-    final treatyRate = parseDouble(json['treaty_rate']) ??
+    final treatyRate =
+        parseDouble(json['treaty_rate']) ??
         parseDouble(json['tax_treaty_rate']);
-    final status = json['status']?.toString().toLowerCase() ??
+    final status =
+        json['status']?.toString().toLowerCase() ??
         (withholdingRate == 0.0 ? 'exempt' : 'standard');
-    final description = json['description']?.toString() ??
-        json['notes']?.toString();
+    final description =
+        json['description']?.toString() ?? json['notes']?.toString();
 
     return TaxWithholdingStatus(
       instrumentId: instrumentId,

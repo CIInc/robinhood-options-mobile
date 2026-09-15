@@ -32,16 +32,21 @@ class SubscriptionService {
     });
 
     final Stream<List<PurchaseDetails>> purchaseUpdated = _iap.purchaseStream;
-    _subscription = purchaseUpdated.listen((purchaseDetailsList) {
-      debugPrint(
-          'SubscriptionService: IAP Stream Event: ${purchaseDetailsList.length} items received');
-      _listenToPurchaseUpdated(purchaseDetailsList);
-    }, onDone: () {
-      debugPrint('SubscriptionService: IAP Stream Done');
-      _subscription?.cancel();
-    }, onError: (error) {
-      debugPrint('SubscriptionService: IAP Stream Error: $error');
-    });
+    _subscription = purchaseUpdated.listen(
+      (purchaseDetailsList) {
+        debugPrint(
+          'SubscriptionService: IAP Stream Event: ${purchaseDetailsList.length} items received',
+        );
+        _listenToPurchaseUpdated(purchaseDetailsList);
+      },
+      onDone: () {
+        debugPrint('SubscriptionService: IAP Stream Done');
+        _subscription?.cancel();
+      },
+      onError: (error) {
+        debugPrint('SubscriptionService: IAP Stream Error: $error');
+      },
+    );
   }
 
   void dispose() {
@@ -49,12 +54,15 @@ class SubscriptionService {
   }
 
   Future<void> _listenToPurchaseUpdated(
-      List<PurchaseDetails> purchaseDetailsList) async {
+    List<PurchaseDetails> purchaseDetailsList,
+  ) async {
     debugPrint('_listenToPurchaseUpdated: $purchaseDetailsList');
     for (var purchaseDetails in purchaseDetailsList) {
-      debugPrint('Processing purchase: ${purchaseDetails.productID} '
-          'status: ${purchaseDetails.status} '
-          'error: ${purchaseDetails.error}');
+      debugPrint(
+        'Processing purchase: ${purchaseDetails.productID} '
+        'status: ${purchaseDetails.status} '
+        'error: ${purchaseDetails.error}',
+      );
       if (purchaseDetails.status == PurchaseStatus.pending) {
         // Show pending UI if needed
         debugPrint('Purchase pending...');
@@ -89,16 +97,16 @@ class SubscriptionService {
       final source = defaultTargetPlatform == TargetPlatform.iOS
           ? 'ios'
           : defaultTargetPlatform == TargetPlatform.android
-              ? 'android'
-              : 'unsupported';
+          ? 'android'
+          : 'unsupported';
       await FirebaseFunctions.instance
           .httpsCallable('verifySubscription')
           .call({
-        'productId': purchaseDetails.productID,
-        'source': source,
-        'verificationData':
-            purchaseDetails.verificationData.serverVerificationData,
-      });
+            'productId': purchaseDetails.productID,
+            'source': source,
+            'verificationData':
+                purchaseDetails.verificationData.serverVerificationData,
+          });
       debugPrint('Subscription receipt submitted for verification.');
     } catch (e) {
       debugPrint('Subscription verification failed: $e');
@@ -125,8 +133,9 @@ class SubscriptionService {
     if (!(await _iap.isAvailable())) {
       return [];
     }
-    final ProductDetailsResponse response =
-        await _iap.queryProductDetails(_kIds);
+    final ProductDetailsResponse response = await _iap.queryProductDetails(
+      _kIds,
+    );
     if (response.notFoundIDs.isNotEmpty) {
       debugPrint('Products not found: ${response.notFoundIDs}');
     }

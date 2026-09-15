@@ -25,8 +25,11 @@ class CopyTradingProvider with ChangeNotifier {
   final InstrumentStore _instrumentStore = InstrumentStore();
   final OptionInstrumentStore _optionInstrumentStore = OptionInstrumentStore();
 
-  void initialize(String firebaseUserId, BrokerageUser brokerageUser,
-      IBrokerageService service) {
+  void initialize(
+    String firebaseUserId,
+    BrokerageUser brokerageUser,
+    IBrokerageService service,
+  ) {
     if (_firebaseUserId == firebaseUserId &&
         _brokerageUser?.userName == brokerageUser.userName) {
       return;
@@ -70,9 +73,11 @@ class CopyTradingProvider with ChangeNotifier {
         .where('targetUserId', isEqualTo: _firebaseUserId)
         .orderBy('timestamp', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => CopyTradeRecord.fromDocument(doc))
-            .toList());
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => CopyTradeRecord.fromDocument(doc))
+              .toList(),
+        );
   }
 
   Stream<List<CopyTradeRecord>> getRequests() {
@@ -84,9 +89,11 @@ class CopyTradingProvider with ChangeNotifier {
         .where('status', whereIn: ['pending_approval', 'rejected'])
         .orderBy('timestamp', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => CopyTradeRecord.fromDocument(doc))
-            .toList());
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => CopyTradeRecord.fromDocument(doc))
+              .toList(),
+        );
   }
 
   Future<void> approveRequest(CopyTradeRecord record) async {
@@ -94,9 +101,9 @@ class CopyTradingProvider with ChangeNotifier {
         .collection('copy_trades')
         .doc(record.id)
         .update({
-      'status': 'approved',
-      'actionTime': FieldValue.serverTimestamp(),
-    });
+          'status': 'approved',
+          'actionTime': FieldValue.serverTimestamp(),
+        });
   }
 
   Future<void> rejectRequest(CopyTradeRecord record) async {
@@ -104,9 +111,9 @@ class CopyTradingProvider with ChangeNotifier {
         .collection('copy_trades')
         .doc(record.id)
         .update({
-      'status': 'rejected',
-      'actionTime': FieldValue.serverTimestamp(),
-    });
+          'status': 'rejected',
+          'actionTime': FieldValue.serverTimestamp(),
+        });
   }
 
   Future<void> _handleSnapshot(QuerySnapshot snapshot) async {
@@ -195,7 +202,8 @@ class CopyTradingProvider with ChangeNotifier {
 
       if (totalAmount + currentTradeAmount > settings.maxDailyAmount!) {
         debugPrint(
-            'Daily limit exceeded. Limit: ${settings.maxDailyAmount}, Used: $totalAmount, Current: $currentTradeAmount');
+          'Daily limit exceeded. Limit: ${settings.maxDailyAmount}, Used: $totalAmount, Current: $currentTradeAmount',
+        );
         return false;
       }
 
@@ -212,7 +220,8 @@ class CopyTradingProvider with ChangeNotifier {
     if (_consecutiveFailures >= _maxConsecutiveFailures) {
       _isCircuitBreakerTripped = true;
       debugPrint(
-          'Circuit breaker tripped after $_consecutiveFailures failures');
+        'Circuit breaker tripped after $_consecutiveFailures failures',
+      );
       return;
     }
 
@@ -223,17 +232,21 @@ class CopyTradingProvider with ChangeNotifier {
           .collection('copy_trades')
           .doc(record.id)
           .update({
-        'executionResult': 'skipped_daily_limit',
-        'error': 'Daily limit exceeded',
-        'executionTime': FieldValue.serverTimestamp(),
-      });
+            'executionResult': 'skipped_daily_limit',
+            'error': 'Daily limit exceeded',
+            'executionTime': FieldValue.serverTimestamp(),
+          });
       return;
     }
 
     try {
       // 1. Get Account
-      final accounts = await _service!
-          .getAccounts(_brokerageUser!, _accountStore, null, null);
+      final accounts = await _service!.getAccounts(
+        _brokerageUser!,
+        _accountStore,
+        null,
+        null,
+      );
       if (accounts.isEmpty) {
         throw Exception('No accounts found for copy trading');
       }
@@ -242,7 +255,10 @@ class CopyTradingProvider with ChangeNotifier {
       if (record.orderType == 'instrument') {
         // 2. Get Instrument
         final instrument = await _service!.getInstrumentBySymbol(
-            _brokerageUser!, _instrumentStore, record.symbol);
+          _brokerageUser!,
+          _instrumentStore,
+          record.symbol,
+        );
         if (instrument == null) {
           throw Exception('Instrument not found: ${record.symbol}');
         }
@@ -272,25 +288,35 @@ class CopyTradingProvider with ChangeNotifier {
 
         // 2. Get Underlying Instrument
         final instrument = await _service!.getInstrumentBySymbol(
-            _brokerageUser!, _instrumentStore, record.symbol);
+          _brokerageUser!,
+          _instrumentStore,
+          record.symbol,
+        );
         if (instrument == null) {
           throw Exception('Instrument not found: ${record.symbol}');
         }
 
         // 3. Find Option Instrument
-        final expirationDateStr =
-            leg.expirationDate!.toIso8601String().substring(0, 10);
+        final expirationDateStr = leg.expirationDate!
+            .toIso8601String()
+            .substring(0, 10);
         final options = await _service!
-            .streamOptionInstruments(_brokerageUser!, _optionInstrumentStore,
-                instrument, expirationDateStr, leg.optionType)
+            .streamOptionInstruments(
+              _brokerageUser!,
+              _optionInstrumentStore,
+              instrument,
+              expirationDateStr,
+              leg.optionType,
+            )
             .first;
 
         final optionInstrument = options.firstWhere(
-            (o) =>
-                o.strikePrice == leg.strikePrice &&
-                o.type == leg.optionType &&
-                o.expirationDate == expirationDateStr,
-            orElse: () => throw Exception('Option instrument not found'));
+          (o) =>
+              o.strikePrice == leg.strikePrice &&
+              o.type == leg.optionType &&
+              o.expirationDate == expirationDateStr,
+          orElse: () => throw Exception('Option instrument not found'),
+        );
 
         // 4. Place Order
         await _service!.placeOptionsOrder(
@@ -312,13 +338,13 @@ class CopyTradingProvider with ChangeNotifier {
           .collection('copy_trades')
           .doc(record.id)
           .update({
-        'executed': true,
-        'status': 'approved',
-        'executionResult': 'success',
-        'executionTime': FieldValue.serverTimestamp(),
-        // TODO: Confirm orderId field name with brokerage response
-        // 'orderId': orderResult.body['id'], // Assuming orderResult has id, depends on brokerage response
-      });
+            'executed': true,
+            'status': 'approved',
+            'executionResult': 'success',
+            'executionTime': FieldValue.serverTimestamp(),
+            // TODO: Confirm orderId field name with brokerage response
+            // 'orderId': orderResult.body['id'], // Assuming orderResult has id, depends on brokerage response
+          });
 
       debugPrint('Executed copy trade: ${record.id}');
       _consecutiveFailures = 0; // Reset failure counter on success
@@ -331,10 +357,10 @@ class CopyTradingProvider with ChangeNotifier {
           .collection('copy_trades')
           .doc(record.id)
           .update({
-        'executionResult': 'failure',
-        'error': e.toString(),
-        'executionTime': FieldValue.serverTimestamp(),
-      });
+            'executionResult': 'failure',
+            'error': e.toString(),
+            'executionTime': FieldValue.serverTimestamp(),
+          });
     }
   }
 }

@@ -10,7 +10,7 @@ class StrategyListWidget extends StatelessWidget {
   final Set<String> selectedIndicators;
   final Map<String, String>? indicatorNames;
   final String
-      sortBy; // default, name_asc, name_desc, date_new, date_old, last_used
+  sortBy; // default, name_asc, name_desc, date_new, date_old, last_used
   final bool allowDelete;
   final Function(TradeStrategyTemplate) onSelect;
   final Function(TradeStrategyTemplate)? onDelete;
@@ -63,8 +63,9 @@ class StrategyListWidget extends StatelessWidget {
     // Filter by indicators
     if (selectedIndicators.isNotEmpty) {
       filtered = filtered.where((t) {
-        return selectedIndicators
-            .every((key) => t.config.enabledIndicators[key] == true);
+        return selectedIndicators.every(
+          (key) => t.config.enabledIndicators[key] == true,
+        );
       }).toList();
     }
 
@@ -93,8 +94,9 @@ class StrategyListWidget extends StatelessWidget {
 
     // Move selected strategy to the front
     if (selectedStrategyId != null) {
-      final selectedIndex =
-          filtered.indexWhere((s) => s.id == selectedStrategyId);
+      final selectedIndex = filtered.indexWhere(
+        (s) => s.id == selectedStrategyId,
+      );
       if (selectedIndex > 0) {
         final selected = filtered.removeAt(selectedIndex);
         filtered.insert(0, selected);
@@ -106,14 +108,17 @@ class StrategyListWidget extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.search_off,
-                size: 64, color: Theme.of(context).colorScheme.outline),
+            Icon(
+              Icons.search_off,
+              size: 64,
+              color: Theme.of(context).colorScheme.outline,
+            ),
             const SizedBox(height: 16),
             Text(
               'No strategies found',
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
           ],
         ),
@@ -141,7 +146,9 @@ class StrategyListWidget extends StatelessWidget {
   }
 
   Widget _buildStrategyCard(
-      BuildContext context, TradeStrategyTemplate template) {
+    BuildContext context,
+    TradeStrategyTemplate template,
+  ) {
     final isDefault = template.id.startsWith('default_');
     final isSelected = template.id == selectedStrategyId;
     final df = DateFormat('MMM dd, yyyy');
@@ -153,10 +160,9 @@ class StrategyListWidget extends StatelessWidget {
           : Colors.transparent,
       clipBehavior: Clip.antiAlias,
       color: isSelected
-          ? Theme.of(context)
-              .colorScheme
-              .primaryContainer
-              .withValues(alpha: 0.15)
+          ? Theme.of(
+              context,
+            ).colorScheme.primaryContainer.withValues(alpha: 0.15)
           : Theme.of(context).cardColor,
       margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(
@@ -185,10 +191,8 @@ class StrategyListWidget extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: isDefault
                           ? Colors.amber.withValues(alpha: 0.15)
-                          : Theme.of(context)
-                              .colorScheme
-                              .primaryContainer
-                              .withValues(alpha: 0.2),
+                          : Theme.of(context).colorScheme.primaryContainer
+                                .withValues(alpha: 0.2),
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
@@ -219,14 +223,16 @@ class StrategyListWidget extends StatelessWidget {
                               const SizedBox(width: 8),
                               Container(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 8, vertical: 3),
+                                  horizontal: 8,
+                                  vertical: 3,
+                                ),
                                 decoration: BoxDecoration(
                                   color: Colors.amber.withValues(alpha: 0.15),
                                   borderRadius: BorderRadius.circular(6),
                                   border: Border.all(
-                                      color:
-                                          Colors.amber.withValues(alpha: 0.5),
-                                      width: 1),
+                                    color: Colors.amber.withValues(alpha: 0.5),
+                                    width: 1,
+                                  ),
                                 ),
                                 child: Text(
                                   'SYSTEM',
@@ -247,9 +253,9 @@ class StrategyListWidget extends StatelessWidget {
                             template.description,
                             style: TextStyle(
                               fontSize: 13,
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurfaceVariant,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurfaceVariant,
                             ),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
@@ -282,9 +288,10 @@ class StrategyListWidget extends StatelessWidget {
                       onDuplicate != null ||
                       (allowDelete && onDelete != null && !isDefault))
                     PopupMenuButton<String>(
-                      icon: Icon(Icons.more_vert,
-                          color:
-                              Theme.of(context).colorScheme.onSurfaceVariant),
+                      icon: Icon(
+                        Icons.more_vert,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
                       padding: EdgeInsets.zero,
                       onSelected: (value) {
                         if (value == 'delete' && onDelete != null) {
@@ -344,15 +351,18 @@ class StrategyListWidget extends StatelessWidget {
                             value: 'delete',
                             child: Row(
                               children: [
-                                Icon(Icons.delete_outline,
-                                    size: 20,
-                                    color: Theme.of(context).colorScheme.error),
+                                Icon(
+                                  Icons.delete_outline,
+                                  size: 20,
+                                  color: Theme.of(context).colorScheme.error,
+                                ),
                                 const SizedBox(width: 12),
-                                Text('Delete',
-                                    style: TextStyle(
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .error)),
+                                Text(
+                                  'Delete',
+                                  style: TextStyle(
+                                    color: Theme.of(context).colorScheme.error,
+                                  ),
+                                ),
                               ],
                             ),
                           ),
@@ -396,8 +406,8 @@ class StrategyListWidget extends StatelessWidget {
                       template.config.stopLossPercent == 0
                           ? 'Inf'
                           : (template.config.takeProfitPercent /
-                                  template.config.stopLossPercent)
-                              .toStringAsFixed(1),
+                                    template.config.stopLossPercent)
+                                .toStringAsFixed(1),
                       Theme.of(context).colorScheme.primary,
                       icon: Icons.balance_rounded,
                     ),
@@ -418,21 +428,31 @@ class StrategyListWidget extends StatelessWidget {
                 runSpacing: 8,
                 children: [
                   _buildFeatureChip(
-                      context,
-                      Icons.show_chart_rounded,
-                      template.config.symbolFilter.isEmpty
-                          ? "All Symbols"
-                          : (template.config.symbolFilter.length > 3
+                    context,
+                    Icons.show_chart_rounded,
+                    template.config.symbolFilter.isEmpty
+                        ? "All Symbols"
+                        : (template.config.symbolFilter.length > 3
                               ? "${template.config.symbolFilter.take(3).join(', ')} +${template.config.symbolFilter.length - 3}"
-                              : template.config.symbolFilter.join(', '))),
-                  _buildFeatureChip(context, Icons.layers_outlined,
-                      _getIndicatorsSummary(template.config)),
+                              : template.config.symbolFilter.join(', ')),
+                  ),
+                  _buildFeatureChip(
+                    context,
+                    Icons.layers_outlined,
+                    _getIndicatorsSummary(template.config),
+                  ),
                   if (template.config.trailingStopEnabled)
-                    _buildFeatureChip(context, Icons.trending_up,
-                        'Trailing ${template.config.trailingStopPercent}%'),
+                    _buildFeatureChip(
+                      context,
+                      Icons.trending_up,
+                      'Trailing ${template.config.trailingStopPercent}%',
+                    ),
                   if (template.lastUsedAt != null)
-                    _buildFeatureChip(context, Icons.history_rounded,
-                        'Used ${_formatTime(template.lastUsedAt!)}'),
+                    _buildFeatureChip(
+                      context,
+                      Icons.history_rounded,
+                      'Used ${_formatTime(template.lastUsedAt!)}',
+                    ),
                 ],
               ),
             ],
@@ -443,8 +463,12 @@ class StrategyListWidget extends StatelessWidget {
   }
 
   Widget _buildStatBadge(
-      BuildContext context, String label, String value, Color color,
-      {IconData? icon}) {
+    BuildContext context,
+    String label,
+    String value,
+    Color color, {
+    IconData? icon,
+  }) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
@@ -486,10 +510,9 @@ class StrategyListWidget extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: Theme.of(context)
-            .colorScheme
-            .surfaceContainerHighest
-            .withValues(alpha: 0.5),
+        color: Theme.of(
+          context,
+        ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(6),
         border: Border.all(
           color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
@@ -498,8 +521,11 @@ class StrategyListWidget extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon,
-              size: 13, color: Theme.of(context).colorScheme.onSurfaceVariant),
+          Icon(
+            icon,
+            size: 13,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
           const SizedBox(width: 4),
           Flexible(
             child: Text(

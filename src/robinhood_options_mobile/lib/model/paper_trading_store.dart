@@ -144,23 +144,23 @@ class PendingPaperOrder {
       limitPrice ?? effectiveStopPrice ?? stopPrice ?? watermark ?? 0.0;
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'assetType': assetType,
-        'symbol': symbol,
-        'side': side,
-        'orderType': orderType,
-        'limitPrice': limitPrice,
-        'stopPrice': stopPrice,
-        'trailType': trailType,
-        'trailValue': trailValue,
-        'watermark': watermark,
-        'quantity': quantity,
-        'timeInForce': timeInForce,
-        'positionEffect': positionEffect,
-        'createdAt': createdAt.toIso8601String(),
-        'triggered': triggered,
-        'instrumentJson': instrumentJson,
-      };
+    'id': id,
+    'assetType': assetType,
+    'symbol': symbol,
+    'side': side,
+    'orderType': orderType,
+    'limitPrice': limitPrice,
+    'stopPrice': stopPrice,
+    'trailType': trailType,
+    'trailValue': trailValue,
+    'watermark': watermark,
+    'quantity': quantity,
+    'timeInForce': timeInForce,
+    'positionEffect': positionEffect,
+    'createdAt': createdAt.toIso8601String(),
+    'triggered': triggered,
+    'instrumentJson': instrumentJson,
+  };
 
   factory PendingPaperOrder.fromJson(Map<String, dynamic> json) {
     return PendingPaperOrder(
@@ -177,7 +177,8 @@ class PendingPaperOrder {
       quantity: (json['quantity'] as num?)?.toDouble() ?? 0.0,
       timeInForce: json['timeInForce']?.toString() ?? 'gtc',
       positionEffect: json['positionEffect']?.toString() ?? 'auto',
-      createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '') ??
+      createdAt:
+          DateTime.tryParse(json['createdAt']?.toString() ?? '') ??
           DateTime.now(),
       triggered: json['triggered'] == true,
       instrumentJson: json['instrumentJson'] != null
@@ -195,10 +196,11 @@ class PaperTradingStore extends ChangeNotifier {
   /// aren't dependent on the wall clock.
   final bool Function() _isMarketOpen;
 
-  PaperTradingStore(
-      {FirebaseFirestore? firestore, bool Function()? isMarketOpen})
-      : _firestore = firestore ?? FirebaseFirestore.instance,
-        _isMarketOpen = isMarketOpen ?? (() => MarketHours.isMarketOpen());
+  PaperTradingStore({
+    FirebaseFirestore? firestore,
+    bool Function()? isMarketOpen,
+  }) : _firestore = firestore ?? FirebaseFirestore.instance,
+       _isMarketOpen = isMarketOpen ?? (() => MarketHours.isMarketOpen());
 
   // State
   double _cashBalance = 100000.0;
@@ -228,12 +230,15 @@ class PaperTradingStore extends ChangeNotifier {
   bool get isLoading => _isLoading;
 
   /// Cash reserved by working buy orders (each also reserves its commission).
-  double get reservedCash => _pendingOrders.where((o) => o.side == 'buy').fold(
-      0.0,
-      (total, o) =>
-          total +
-          o.quantity * o.reservePrice * o.contractMultiplier +
-          _commission);
+  double get reservedCash => _pendingOrders
+      .where((o) => o.side == 'buy')
+      .fold(
+        0.0,
+        (total, o) =>
+            total +
+            o.quantity * o.reservePrice * o.contractMultiplier +
+            _commission,
+      );
 
   /// Initial margin required to open a short: 150% of the entry value
   /// (Reg-T style: the 100% proceeds already credited to cash plus 50%).
@@ -245,24 +250,26 @@ class PaperTradingStore extends ChangeNotifier {
 
   /// Cash held against short stock positions: 130% of current market value
   /// (falls back to the entry price until a quote is available).
-  double get shortStockCollateral =>
-      _positions.where((p) => (p.quantity ?? 0) < 0).fold(
-          0.0,
-          (total, p) =>
-              total +
-              (p.quantity ?? 0).abs() *
-                  (p.instrumentObj?.quoteObj?.lastTradePrice ??
-                      p.averageBuyPrice ??
-                      0) *
-                  shortStockMaintenanceMultiplier);
+  double get shortStockCollateral => _positions
+      .where((p) => (p.quantity ?? 0) < 0)
+      .fold(
+        0.0,
+        (total, p) =>
+            total +
+            (p.quantity ?? 0).abs() *
+                (p.instrumentObj?.quoteObj?.lastTradePrice ??
+                    p.averageBuyPrice ??
+                    0) *
+                shortStockMaintenanceMultiplier,
+      );
 
   /// Cash securing short puts: strike × 100 per contract.
   double get shortPutCollateral => _optionPositions
-          .where((p) => p.direction == 'credit')
-          .fold(0.0, (total, p) {
+      .where((p) => p.direction == 'credit')
+      .fold(0.0, (total, p) {
         final leg = p.legs.isNotEmpty ? p.legs.first : null;
-        final type =
-            (leg?.optionType ?? p.optionInstrument?.type ?? '').toLowerCase();
+        final type = (leg?.optionType ?? p.optionInstrument?.type ?? '')
+            .toLowerCase();
         if (type != 'put') return total;
         final strike =
             leg?.strikePrice ?? p.optionInstrument?.strikePrice ?? 0.0;
@@ -274,11 +281,11 @@ class PaperTradingStore extends ChangeNotifier {
 
   /// Shares of [symbol] pledged as covered-call collateral (100/contract).
   double coveredCallShares(String symbol) => _optionPositions
-          .where((p) => p.direction == 'credit')
-          .fold(0.0, (total, p) {
+      .where((p) => p.direction == 'credit')
+      .fold(0.0, (total, p) {
         final leg = p.legs.isNotEmpty ? p.legs.first : null;
-        final type =
-            (leg?.optionType ?? p.optionInstrument?.type ?? '').toLowerCase();
+        final type = (leg?.optionType ?? p.optionInstrument?.type ?? '')
+            .toLowerCase();
         if (type != 'call' || p.symbol != symbol) return total;
         return total + (p.quantity ?? 0) * 100.0;
       });
@@ -296,7 +303,8 @@ class PaperTradingStore extends ChangeNotifier {
     double total = 0;
     for (var pos in _positions) {
       // Use current market price if available, otherwise fallback to cost basis (averageBuyPrice)
-      double price = pos.instrumentObj?.quoteObj?.lastTradePrice ??
+      double price =
+          pos.instrumentObj?.quoteObj?.lastTradePrice ??
           pos.averageBuyPrice ??
           0;
       total += (pos.quantity ?? 0) * price;
@@ -305,8 +313,8 @@ class PaperTradingStore extends ChangeNotifier {
       // Use current market price if available, otherwise fallback to averageOpenPrice
       double price =
           (pos.optionInstrument?.optionMarketData?.adjustedMarkPrice ??
-              pos.averageOpenPrice ??
-              0);
+          pos.averageOpenPrice ??
+          0);
       // Short (credit) positions are a liability: they subtract from equity.
       final sign = pos.direction == 'credit' ? -1.0 : 1.0;
       total += sign * (pos.quantity ?? 0) * price * 100;
@@ -392,8 +400,9 @@ class PaperTradingStore extends ChangeNotifier {
           _optionPositions = (data['optionPositions'] as List).map((e) {
             var pos = OptionAggregatePosition.fromJson(e);
             if (e['optionInstrument'] != null) {
-              pos.optionInstrument =
-                  OptionInstrument.fromJson(e['optionInstrument']);
+              pos.optionInstrument = OptionInstrument.fromJson(
+                e['optionInstrument'],
+              );
             }
             return pos;
           }).toList();
@@ -401,15 +410,18 @@ class PaperTradingStore extends ChangeNotifier {
 
         if (data['futuresPositions'] != null) {
           _futuresPositions = (data['futuresPositions'] as List)
-              .map((e) =>
-                  FuturesPaperPosition.fromJson(Map<String, dynamic>.from(e)))
+              .map(
+                (e) =>
+                    FuturesPaperPosition.fromJson(Map<String, dynamic>.from(e)),
+              )
               .toList();
         }
 
         if (data['pendingOrders'] != null) {
           _pendingOrders = (data['pendingOrders'] as List)
-              .map((e) =>
-                  PendingPaperOrder.fromJson(Map<String, dynamic>.from(e)))
+              .map(
+                (e) => PendingPaperOrder.fromJson(Map<String, dynamic>.from(e)),
+              )
               .toList();
         }
 
@@ -441,7 +453,8 @@ class PaperTradingStore extends ChangeNotifier {
       final userDoc = _firestore.collection('user').doc(_user!.uid);
       final batch = _firestore.batch();
       for (final entry in _history) {
-        final id = entry['id']?.toString() ??
+        final id =
+            entry['id']?.toString() ??
             'legacy_${entry['timestamp'] ?? entry['created_at'] ?? ''}'
                 '_${entry['symbol'] ?? ''}'
                 '_${entry['quantity'] ?? ''}';
@@ -452,8 +465,9 @@ class PaperTradingStore extends ChangeNotifier {
             normalized['timestamp'] ?? normalized['updated_at'] ?? '';
         batch.set(userDoc.collection('paper_orders').doc(id), normalized);
       }
-      batch.set(userDoc.collection('paper_account').doc('main'),
-          {'historyMigrated': true}, SetOptions(merge: true));
+      batch.set(userDoc.collection('paper_account').doc('main'), {
+        'historyMigrated': true,
+      }, SetOptions(merge: true));
       await batch.commit();
       debugPrint('Migrated ${_history.length} paper fills to paper_orders.');
     } catch (e) {
@@ -491,19 +505,23 @@ class PaperTradingStore extends ChangeNotifier {
           .collection('paper_account')
           .doc('main')
           .set({
-        'cashBalance': _cashBalance,
-        'initialCapital': _initialCapital,
-        'slippage': _slippage,
-        'commission': _commission,
-        'positions':
-            _positions.map((p) => _instrumentPositionToJson(p)).toList(),
-        'optionPositions':
-            _optionPositions.map((p) => _optionAggregationToJson(p)).toList(),
-        'futuresPositions': _futuresPositions.map((p) => p.toJson()).toList(),
-        'pendingOrders': _pendingOrders.map((o) => o.toJson()).toList(),
-        'history': _history,
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
+            'cashBalance': _cashBalance,
+            'initialCapital': _initialCapital,
+            'slippage': _slippage,
+            'commission': _commission,
+            'positions': _positions
+                .map((p) => _instrumentPositionToJson(p))
+                .toList(),
+            'optionPositions': _optionPositions
+                .map((p) => _optionAggregationToJson(p))
+                .toList(),
+            'futuresPositions': _futuresPositions
+                .map((p) => p.toJson())
+                .toList(),
+            'pendingOrders': _pendingOrders.map((o) => o.toJson()).toList(),
+            'history': _history,
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
     } catch (e) {
       debugPrint("Error saving paper account: $e");
     }
@@ -585,8 +603,12 @@ class PaperTradingStore extends ChangeNotifier {
     };
   }
 
-  Future<void> refreshQuotes(IBrokerageService service, QuoteStore quoteStore,
-      OptionInstrumentStore optionInstrumentStore, BrokerageUser user) async {
+  Future<void> refreshQuotes(
+    IBrokerageService service,
+    QuoteStore quoteStore,
+    OptionInstrumentStore optionInstrumentStore,
+    BrokerageUser user,
+  ) async {
     bool changed = false;
 
     // 1. Stocks & Underlying for Options
@@ -609,7 +631,7 @@ class PaperTradingStore extends ChangeNotifier {
     var allSymbols = {
       ...stockSymbols,
       ...optionUnderlyingSymbols,
-      ...pendingStockSymbols
+      ...pendingStockSymbols,
     }.toList();
 
     Map<String, double> underlyingPrices = {};
@@ -639,16 +661,19 @@ class PaperTradingStore extends ChangeNotifier {
     }
 
     // 2. Options
-    final expiredPositions =
-        processExpiredOptions(underlyingPrices: underlyingPrices);
+    final expiredPositions = processExpiredOptions(
+      underlyingPrices: underlyingPrices,
+    );
     if (expiredPositions.isNotEmpty) {
       changed = true;
     }
 
     var optionIds = {
       ..._optionPositions
-          .where((p) =>
-              !expiredPositions.contains(p) && p.optionInstrument?.id != null)
+          .where(
+            (p) =>
+                !expiredPositions.contains(p) && p.optionInstrument?.id != null,
+          )
           .map((p) => p.optionInstrument!.id),
       // Working option orders need marks for trigger evaluation.
       ..._pendingOrders
@@ -659,8 +684,10 @@ class PaperTradingStore extends ChangeNotifier {
     Map<String, double> optionMarks = {};
     if (optionIds.isNotEmpty) {
       try {
-        var marketDataList =
-            await service.getOptionMarketDataByIds(user, optionIds);
+        var marketDataList = await service.getOptionMarketDataByIds(
+          user,
+          optionIds,
+        );
         for (var marketData in marketDataList) {
           final mark = marketData.adjustedMarkPrice ?? marketData.markPrice;
           if (mark != null) {
@@ -706,7 +733,9 @@ class PaperTradingStore extends ChangeNotifier {
     // Evaluate working orders against the fresh prices, then sweep for
     // maintenance-margin deficits the new marks may have created.
     await evaluatePendingOrders(
-        stockPrices: underlyingPrices, optionMarks: optionMarks);
+      stockPrices: underlyingPrices,
+      optionMarks: optionMarks,
+    );
     await processMarginCalls(stockPrices: underlyingPrices);
 
     if (changed) {
@@ -857,7 +886,8 @@ class PaperTradingStore extends ChangeNotifier {
     String? trailType,
     double? trailValue,
   }) async {
-    final price = marketPrice ??
+    final price =
+        marketPrice ??
         optionInstrument.optionMarketData?.adjustedMarkPrice ??
         optionInstrument.optionMarketData?.markPrice;
     return _submitOrder(
@@ -923,47 +953,52 @@ class PaperTradingStore extends ChangeNotifier {
             limitPrice == null ||
             limitPrice <= 0) {
           throw Exception(
-              'Stop and limit prices are required for stop-limit orders.');
+            'Stop and limit prices are required for stop-limit orders.',
+          );
         }
         break;
       case 'trailing_stop':
         if (trailValue == null || trailValue <= 0) {
           throw Exception(
-              'A trail amount is required for trailing stop orders.');
+            'A trail amount is required for trailing stop orders.',
+          );
         }
         if (trailType == 'percentage' && trailValue >= 100) {
           throw Exception('Trail percentage must be below 100.');
         }
         if (marketPrice == null || marketPrice <= 0) {
           throw Exception(
-              'No market price available to anchor the trailing stop for $symbol.');
+            'No market price available to anchor the trailing stop for $symbol.',
+          );
         }
         break;
       default:
         throw Exception(
-            'Order type "$orderType" is not supported in paper trading yet.');
+          'Order type "$orderType" is not supported in paper trading yet.',
+        );
     }
 
-    final order = PendingPaperOrder(
-      id: _newOrderId(),
-      assetType: assetType,
-      symbol: symbol,
-      side: normalizedSide,
-      orderType: normalizedType,
-      limitPrice: limitPrice,
-      stopPrice: stopPrice,
-      trailType: trailType?.toLowerCase(),
-      trailValue: trailValue,
-      // The trailing watermark starts at the current price.
-      watermark: normalizedType == 'trailing_stop' ? marketPrice : null,
-      quantity: quantity,
-      timeInForce: timeInForce.toLowerCase(),
-      positionEffect: positionEffect.toLowerCase(),
-      createdAt: DateTime.now(),
-      instrumentJson: instrumentJson,
-    )
-      ..instrumentRef = instrumentRef
-      ..optionInstrumentRef = optionInstrumentRef;
+    final order =
+        PendingPaperOrder(
+            id: _newOrderId(),
+            assetType: assetType,
+            symbol: symbol,
+            side: normalizedSide,
+            orderType: normalizedType,
+            limitPrice: limitPrice,
+            stopPrice: stopPrice,
+            trailType: trailType?.toLowerCase(),
+            trailValue: trailValue,
+            // The trailing watermark starts at the current price.
+            watermark: normalizedType == 'trailing_stop' ? marketPrice : null,
+            quantity: quantity,
+            timeInForce: timeInForce.toLowerCase(),
+            positionEffect: positionEffect.toLowerCase(),
+            createdAt: DateTime.now(),
+            instrumentJson: instrumentJson,
+          )
+          ..instrumentRef = instrumentRef
+          ..optionInstrumentRef = optionInstrumentRef;
 
     // Fills only happen while the market is open; anything submitted after
     // hours rests as a working order until the next session.
@@ -997,10 +1032,11 @@ class PaperTradingStore extends ChangeNotifier {
     if (order.side == 'buy') {
       final cost =
           order.quantity * order.reservePrice * order.contractMultiplier +
-              _commission;
+          _commission;
       if (availableBuyingPower < cost) {
         throw Exception(
-            'Insufficient buying power (cash is reserved by working orders).');
+          'Insufficient buying power (cash is reserved by working orders).',
+        );
       }
       return;
     }
@@ -1010,17 +1046,21 @@ class PaperTradingStore extends ChangeNotifier {
       final idx = _positions.indexWhere((p) => p.instrument == order.assetUrl);
       held = idx >= 0 ? (_positions[idx].quantity ?? 0) : 0;
     } else {
-      final idx = _optionPositions.indexWhere((p) =>
-          p.legs.isNotEmpty &&
-          p.legs.first.option == order.assetUrl &&
-          p.direction != 'credit');
+      final idx = _optionPositions.indexWhere(
+        (p) =>
+            p.legs.isNotEmpty &&
+            p.legs.first.option == order.assetUrl &&
+            p.direction != 'credit',
+      );
       held = idx >= 0 ? (_optionPositions[idx].quantity ?? 0) : 0;
     }
     final reserved = _pendingOrders
-        .where((o) =>
-            o.side == 'sell' &&
-            o.assetType == order.assetType &&
-            o.assetUrl == order.assetUrl)
+        .where(
+          (o) =>
+              o.side == 'sell' &&
+              o.assetType == order.assetType &&
+              o.assetUrl == order.assetUrl,
+        )
         .fold(0.0, (total, o) => total + o.quantity);
 
     if (held - reserved >= order.quantity) {
@@ -1029,38 +1069,48 @@ class PaperTradingStore extends ChangeNotifier {
     if (held > 0) {
       // Partially covered sells would mix closing and shorting.
       throw Exception(
-          'Insufficient quantity available (shares are reserved by working orders).');
+        'Insufficient quantity available (shares are reserved by working orders).',
+      );
     }
 
     // Sell-to-open (short) resting order: check collateral capacity now.
     if (order.assetType == 'stock') {
-      final extraMargin = order.quantity *
+      final extraMargin =
+          order.quantity *
           order.reservePrice *
           (shortStockMarginMultiplier - 1);
       if (availableBuyingPower < extraMargin) {
         throw Exception(
-            'Insufficient buying power to open a short (requires 150% collateral).');
+          'Insufficient buying power to open a short (requires 150% collateral).',
+        );
       }
     } else {
       final type = order.instrumentJson['type']?.toString().toLowerCase();
       if (type == 'call') {
-        final stockIdx = _positions.indexWhere((p) =>
-            p.instrumentObj?.symbol == order.symbol && (p.quantity ?? 0) > 0);
-        final heldShares =
-            stockIdx >= 0 ? (_positions[stockIdx].quantity ?? 0) : 0.0;
+        final stockIdx = _positions.indexWhere(
+          (p) =>
+              p.instrumentObj?.symbol == order.symbol && (p.quantity ?? 0) > 0,
+        );
+        final heldShares = stockIdx >= 0
+            ? (_positions[stockIdx].quantity ?? 0)
+            : 0.0;
         final pledged = coveredCallShares(order.symbol);
         if (heldShares - pledged < order.quantity * 100) {
           throw Exception(
-              'Naked calls are not supported; writing calls requires 100 unpledged shares per contract.');
+            'Naked calls are not supported; writing calls requires 100 unpledged shares per contract.',
+          );
         }
       } else {
-        final strike = double.tryParse(
-                order.instrumentJson['strike_price']?.toString() ?? '') ??
+        final strike =
+            double.tryParse(
+              order.instrumentJson['strike_price']?.toString() ?? '',
+            ) ??
             0.0;
         final premium = order.quantity * order.reservePrice * 100;
         if (availableBuyingPower + premium < strike * 100 * order.quantity) {
           throw Exception(
-              'Insufficient buying power to secure the put (requires strike × 100 in cash).');
+            'Insufficient buying power to secure the put (requires strike × 100 in cash).',
+          );
         }
       }
     }
@@ -1086,7 +1136,8 @@ class PaperTradingStore extends ChangeNotifier {
       );
     } else {
       await executeOptionOrder(
-        optionInstrument: order.optionInstrumentRef ??
+        optionInstrument:
+            order.optionInstrumentRef ??
             OptionInstrument.fromJson(order.instrumentJson),
         quantity: order.quantity,
         price: price,
@@ -1101,7 +1152,9 @@ class PaperTradingStore extends ChangeNotifier {
   /// when the order's conditions are satisfied; may set [order.triggered]
   /// (stop-limit) without filling.
   Future<bool> _tryFillPendingOrder(
-      PendingPaperOrder order, double? price) async {
+    PendingPaperOrder order,
+    double? price,
+  ) async {
     if (price == null || price <= 0) return false;
     final isBuy = order.side == 'buy';
     bool shouldFill = false;
@@ -1175,11 +1228,16 @@ class PaperTradingStore extends ChangeNotifier {
       if (order.timeInForce == 'gfd' &&
           !_isSameDay(order.createdAt, evalTime)) {
         _pendingOrders.remove(order);
-        _addToHistory(order.assetType, order.side, order.symbol, order.quantity,
-            order.reservePrice,
-            detail: 'GFD order expired unfilled',
-            orderType: order.orderType,
-            state: 'cancelled');
+        _addToHistory(
+          order.assetType,
+          order.side,
+          order.symbol,
+          order.quantity,
+          order.reservePrice,
+          detail: 'GFD order expired unfilled',
+          orderType: order.orderType,
+          state: 'cancelled',
+        );
         changed = true;
         continue;
       }
@@ -1201,11 +1259,16 @@ class PaperTradingStore extends ChangeNotifier {
         filled = await _tryFillPendingOrder(order, price);
       } catch (e) {
         // e.g. cash consumed by an earlier fill — reject rather than retry.
-        _addToHistory(order.assetType, order.side, order.symbol, order.quantity,
-            order.reservePrice,
-            detail: 'Order rejected on trigger: $e',
-            orderType: order.orderType,
-            state: 'rejected');
+        _addToHistory(
+          order.assetType,
+          order.side,
+          order.symbol,
+          order.quantity,
+          order.reservePrice,
+          detail: 'Order rejected on trigger: $e',
+          orderType: order.orderType,
+          state: 'rejected',
+        );
         changed = true;
         continue;
       }
@@ -1230,8 +1293,10 @@ class PaperTradingStore extends ChangeNotifier {
   /// first, buying back only as many shares as needed to restore margin.
   /// [stockPrices] is keyed by symbol; positions without a price are skipped.
   /// Returns true when any forced liquidation happened.
-  Future<bool> processMarginCalls(
-      {required Map<String, double> stockPrices, bool? marketOpen}) async {
+  Future<bool> processMarginCalls({
+    required Map<String, double> stockPrices,
+    bool? marketOpen,
+  }) async {
     // Forced liquidations execute at market prices, so they only run
     // while the market is open (prices are static after hours anyway).
     if (!(marketOpen ?? _isMarketOpen())) return false;
@@ -1242,13 +1307,16 @@ class PaperTradingStore extends ChangeNotifier {
         p.averageBuyPrice ??
         0;
 
-    double maintenance() => _positions.where((p) => (p.quantity ?? 0) < 0).fold(
-        0.0,
-        (total, p) =>
-            total +
-            (p.quantity ?? 0).abs() *
-                priceFor(p) *
-                shortStockMaintenanceMultiplier);
+    double maintenance() => _positions
+        .where((p) => (p.quantity ?? 0) < 0)
+        .fold(
+          0.0,
+          (total, p) =>
+              total +
+              (p.quantity ?? 0).abs() *
+                  priceFor(p) *
+                  shortStockMaintenanceMultiplier,
+        );
 
     double deficit() =>
         reservedCash + maintenance() + shortPutCollateral - _cashBalance;
@@ -1257,8 +1325,11 @@ class PaperTradingStore extends ChangeNotifier {
 
     bool liquidated = false;
     final shorts = _positions.where((p) => (p.quantity ?? 0) < 0).toList()
-      ..sort((a, b) => ((b.quantity ?? 0).abs() * priceFor(b))
-          .compareTo((a.quantity ?? 0).abs() * priceFor(a)));
+      ..sort(
+        (a, b) => ((b.quantity ?? 0).abs() * priceFor(b)).compareTo(
+          (a.quantity ?? 0).abs() * priceFor(a),
+        ),
+      );
 
     for (final pos in shorts) {
       final currentDeficit = deficit();
@@ -1270,34 +1341,50 @@ class PaperTradingStore extends ChangeNotifier {
       // requirement, freeing (multiplier - 1) x price of buying power.
       final freedPerShare = price * (shortStockMaintenanceMultiplier - 1);
       final held = (pos.quantity ?? 0).abs();
-      final sharesToCover =
-          (currentDeficit / freedPerShare).ceilToDouble().clamp(0.0, held);
+      final sharesToCover = (currentDeficit / freedPerShare)
+          .ceilToDouble()
+          .clamp(0.0, held);
       if (sharesToCover <= 0) continue;
 
       final avgShort = pos.averageBuyPrice ?? 0;
       final profitLoss = (avgShort - price) * sharesToCover;
-      final instrument = pos.instrumentObj ??
+      final instrument =
+          pos.instrumentObj ??
           Instrument.forSymbol(
-              pos.instrument.split('/').where((s) => s.isNotEmpty).last,
-              instrumentUrl: pos.instrument);
+            pos.instrument.split('/').where((s) => s.isNotEmpty).last,
+            instrumentUrl: pos.instrument,
+          );
 
       // Direct fill: forced liquidations bypass buying-power checks (the
       // account may legitimately go cash-negative on a blown-up short).
       _cashBalance -= sharesToCover * price;
       _updateStockPosition(instrument, sharesToCover, price, 1);
-      _addToHistory('stock', 'buy', instrument.symbol, sharesToCover, price,
-          detail: 'Margin call: bought to cover at ${price.toStringAsFixed(2)}',
-          orderType: 'market',
-          instrumentUrl: instrument.url,
-          profitLoss: profitLoss);
+      _addToHistory(
+        'stock',
+        'buy',
+        instrument.symbol,
+        sharesToCover,
+        price,
+        detail: 'Margin call: bought to cover at ${price.toStringAsFixed(2)}',
+        orderType: 'market',
+        instrumentUrl: instrument.url,
+        profitLoss: profitLoss,
+      );
       liquidated = true;
     }
 
     if (deficit() > 0.01) {
-      _addToHistory('margin', 'call', 'ACCOUNT', 0, 0,
-          detail: 'Maintenance deficit of '
-              '\$${deficit().toStringAsFixed(2)} remains after liquidation',
-          state: 'warning');
+      _addToHistory(
+        'margin',
+        'call',
+        'ACCOUNT',
+        0,
+        0,
+        detail:
+            'Maintenance deficit of '
+            '\$${deficit().toStringAsFixed(2)} remains after liquidation',
+        state: 'warning',
+      );
       liquidated = true;
     }
 
@@ -1342,26 +1429,37 @@ class PaperTradingStore extends ChangeNotifier {
         // Buy-to-cover an existing short.
         if (quantity > heldQty.abs() + 0.000001) {
           throw Exception(
-              "Buy exceeds the short position; cover it before going long.");
+            "Buy exceeds the short position; cover it before going long.",
+          );
         }
         final avgShort = _positions[index].averageBuyPrice ?? 0;
         final profitLoss = (avgShort - executionPrice) * quantity - _commission;
         _cashBalance -= amount;
         _updateStockPosition(instrument, quantity, executionPrice, 1);
         _addToHistory(
-            "stock", side, instrument.symbol, quantity, executionPrice,
-            detail: "Buy to cover${orderType != null ? " | $orderType" : ""}",
-            orderType: orderType,
-            instrumentUrl: instrument.url,
-            profitLoss: profitLoss);
+          "stock",
+          side,
+          instrument.symbol,
+          quantity,
+          executionPrice,
+          detail: "Buy to cover${orderType != null ? " | $orderType" : ""}",
+          orderType: orderType,
+          instrumentUrl: instrument.url,
+          profitLoss: profitLoss,
+        );
       } else {
         _cashBalance -= amount;
         _updateStockPosition(instrument, quantity, executionPrice, 1);
         _addToHistory(
-            "stock", side, instrument.symbol, quantity, executionPrice,
-            detail: orderType != null ? "Type: $orderType" : null,
-            orderType: orderType,
-            instrumentUrl: instrument.url);
+          "stock",
+          side,
+          instrument.symbol,
+          quantity,
+          executionPrice,
+          detail: orderType != null ? "Type: $orderType" : null,
+          orderType: orderType,
+          instrumentUrl: instrument.url,
+        );
       }
     } else {
       executionPrice -= _slippage;
@@ -1371,13 +1469,15 @@ class PaperTradingStore extends ChangeNotifier {
         // Sell-to-close a long position.
         if (heldQty < quantity) {
           throw Exception(
-              "Sell exceeds the long position; close it before going short.");
+            "Sell exceeds the long position; close it before going short.",
+          );
         }
         // Shares pledged as covered-call collateral can't be sold.
         final pledged = coveredCallShares(instrument.symbol);
         if (heldQty - pledged < quantity) {
           throw Exception(
-              "Shares are pledged as covered-call collateral; close the call first.");
+            "Shares are pledged as covered-call collateral; close the call first.",
+          );
         }
 
         double costBasis = (_positions[index].averageBuyPrice ?? 0) * quantity;
@@ -1387,11 +1487,16 @@ class PaperTradingStore extends ChangeNotifier {
         _updateStockPosition(instrument, quantity, executionPrice, -1);
 
         _addToHistory(
-            "stock", side, instrument.symbol, quantity, executionPrice,
-            detail: orderType != null ? "Type: $orderType" : null,
-            orderType: orderType,
-            instrumentUrl: instrument.url,
-            profitLoss: profitLoss);
+          "stock",
+          side,
+          instrument.symbol,
+          quantity,
+          executionPrice,
+          detail: orderType != null ? "Type: $orderType" : null,
+          orderType: orderType,
+          instrumentUrl: instrument.url,
+          profitLoss: profitLoss,
+        );
       } else {
         // Sell-to-open (or extend) a short position, 150% collateralized:
         // proceeds are credited but the position holds 1.5x entry value.
@@ -1399,15 +1504,21 @@ class PaperTradingStore extends ChangeNotifier {
             quantity * executionPrice * shortStockMarginMultiplier;
         if (availableBuyingPower + amount < addedCollateral) {
           throw Exception(
-              "Insufficient buying power to open a short (requires 150% collateral).");
+            "Insufficient buying power to open a short (requires 150% collateral).",
+          );
         }
         _cashBalance += amount;
         _updateStockPosition(instrument, quantity, executionPrice, -1);
         _addToHistory(
-            "stock", side, instrument.symbol, quantity, executionPrice,
-            detail: "Sell short${orderType != null ? " | $orderType" : ""}",
-            orderType: orderType,
-            instrumentUrl: instrument.url);
+          "stock",
+          side,
+          instrument.symbol,
+          quantity,
+          executionPrice,
+          detail: "Sell short${orderType != null ? " | $orderType" : ""}",
+          orderType: orderType,
+          instrumentUrl: instrument.url,
+        );
       }
     }
     await _save();
@@ -1417,7 +1528,11 @@ class PaperTradingStore extends ChangeNotifier {
   /// Applies a fill to the stock position book. Positive quantities are
   /// long; negative are short. [sign] is +1 for buys, -1 for sells.
   void _updateStockPosition(
-      Instrument instrument, double quantity, double price, int sign) {
+    Instrument instrument,
+    double quantity,
+    double price,
+    int sign,
+  ) {
     int index = _positions.indexWhere((p) => p.instrument == instrument.url);
 
     if (index != -1) {
@@ -1433,7 +1548,8 @@ class PaperTradingStore extends ChangeNotifier {
         final extendsShort = sign < 0 && currentQty <= 0;
         if (extendsLong || extendsShort) {
           // Average into the position; reductions keep the entry average.
-          newAvgPrice = ((currentQty.abs() * (current.averageBuyPrice ?? 0)) +
+          newAvgPrice =
+              ((currentQty.abs() * (current.averageBuyPrice ?? 0)) +
                   (quantity * price)) /
               newQty.abs();
         }
@@ -1502,8 +1618,9 @@ class PaperTradingStore extends ChangeNotifier {
     double executionPrice = price;
     double amount = 0;
 
-    final index = _optionPositions.indexWhere((p) =>
-        p.legs.isNotEmpty && p.legs.first.option == optionInstrument.url);
+    final index = _optionPositions.indexWhere(
+      (p) => p.legs.isNotEmpty && p.legs.first.option == optionInstrument.url,
+    );
     final existing = index >= 0 ? _optionPositions[index] : null;
     final effect = positionEffect.toLowerCase();
 
@@ -1525,28 +1642,46 @@ class PaperTradingStore extends ChangeNotifier {
         if ((existing!.quantity ?? 0) < quantity) {
           throw Exception("Buy exceeds the short option position.");
         }
-        final profitLoss = ((existing.averageOpenPrice ?? 0) - executionPrice) *
+        final profitLoss =
+            ((existing.averageOpenPrice ?? 0) - executionPrice) *
                 quantity *
                 multiplier -
             _commission;
         _cashBalance -= amount;
-        _updateOptionPosition(optionInstrument, quantity, executionPrice, -1,
-            direction: 'credit');
-        _addToHistory("option", side, optionInstrument.chainSymbol, quantity,
-            executionPrice,
-            detail: "Buy to close | $detail",
-            orderType: orderType,
-            profitLoss: profitLoss);
+        _updateOptionPosition(
+          optionInstrument,
+          quantity,
+          executionPrice,
+          -1,
+          direction: 'credit',
+        );
+        _addToHistory(
+          "option",
+          side,
+          optionInstrument.chainSymbol,
+          quantity,
+          executionPrice,
+          detail: "Buy to close | $detail",
+          orderType: orderType,
+          profitLoss: profitLoss,
+        );
       } else {
         if (existing?.direction == 'credit') {
           throw Exception(
-              "Close the short option position before opening a long.");
+            "Close the short option position before opening a long.",
+          );
         }
         _cashBalance -= amount;
         _updateOptionPosition(optionInstrument, quantity, executionPrice, 1);
-        _addToHistory("option", side, optionInstrument.chainSymbol, quantity,
-            executionPrice,
-            detail: detail, orderType: orderType);
+        _addToHistory(
+          "option",
+          side,
+          optionInstrument.chainSymbol,
+          quantity,
+          executionPrice,
+          detail: detail,
+          orderType: orderType,
+        );
       }
     } else {
       executionPrice -= _slippage;
@@ -1567,29 +1702,41 @@ class PaperTradingStore extends ChangeNotifier {
         _cashBalance += amount;
         _updateOptionPosition(optionInstrument, quantity, executionPrice, -1);
 
-        _addToHistory("option", side, optionInstrument.chainSymbol, quantity,
-            executionPrice,
-            detail: detail, orderType: orderType, profitLoss: profitLoss);
+        _addToHistory(
+          "option",
+          side,
+          optionInstrument.chainSymbol,
+          quantity,
+          executionPrice,
+          detail: detail,
+          orderType: orderType,
+          profitLoss: profitLoss,
+        );
       } else {
         if (existing != null && existing.direction != 'credit') {
           throw Exception(
-              "Close the long option position before writing this contract.");
+            "Close the long option position before writing this contract.",
+          );
         }
         // Sell-to-open (write) a new short, or extend an existing one.
         final type = optionInstrument.type.toLowerCase();
         if (type == 'call') {
           // Covered calls only: 100 unpledged long shares per contract.
-          final stockIdx = _positions.indexWhere((p) =>
-              p.instrumentObj?.symbol == optionInstrument.chainSymbol &&
-              (p.quantity ?? 0) > 0);
-          final heldShares =
-              stockIdx >= 0 ? (_positions[stockIdx].quantity ?? 0) : 0.0;
+          final stockIdx = _positions.indexWhere(
+            (p) =>
+                p.instrumentObj?.symbol == optionInstrument.chainSymbol &&
+                (p.quantity ?? 0) > 0,
+          );
+          final heldShares = stockIdx >= 0
+              ? (_positions[stockIdx].quantity ?? 0)
+              : 0.0;
           final pledged = coveredCallShares(optionInstrument.chainSymbol);
           if (heldShares - pledged < quantity * multiplier) {
             throw Exception(
-                "Naked calls are not supported; writing ${quantity.toStringAsFixed(0)} "
-                "call(s) requires ${(quantity * 100).toStringAsFixed(0)} unpledged "
-                "shares of ${optionInstrument.chainSymbol}.");
+              "Naked calls are not supported; writing ${quantity.toStringAsFixed(0)} "
+              "call(s) requires ${(quantity * 100).toStringAsFixed(0)} unpledged "
+              "shares of ${optionInstrument.chainSymbol}.",
+            );
           }
         } else {
           // Cash-secured put: hold strike x 100 per contract.
@@ -1597,15 +1744,27 @@ class PaperTradingStore extends ChangeNotifier {
           final addedCollateral = strike * multiplier * quantity;
           if (availableBuyingPower + amount < addedCollateral) {
             throw Exception(
-                "Insufficient buying power to secure the put (requires strike × 100 in cash).");
+              "Insufficient buying power to secure the put (requires strike × 100 in cash).",
+            );
           }
         }
         _cashBalance += amount;
-        _updateOptionPosition(optionInstrument, quantity, executionPrice, 1,
-            direction: 'credit');
-        _addToHistory("option", side, optionInstrument.chainSymbol, quantity,
-            executionPrice,
-            detail: "Sell to open | $detail", orderType: orderType);
+        _updateOptionPosition(
+          optionInstrument,
+          quantity,
+          executionPrice,
+          1,
+          direction: 'credit',
+        );
+        _addToHistory(
+          "option",
+          side,
+          optionInstrument.chainSymbol,
+          quantity,
+          executionPrice,
+          detail: "Sell to open | $detail",
+          orderType: orderType,
+        );
       }
     }
     await _save();
@@ -1618,7 +1777,7 @@ class PaperTradingStore extends ChangeNotifier {
     required String strategyName,
     required String direction, // 'debit' or 'credit'
     required List<Map<String, dynamic>>
-        legsData, // Contains 'instrument' (OptionInstrument), 'side' (String), 'ratio' (int)
+    legsData, // Contains 'instrument' (OptionInstrument), 'side' (String), 'ratio' (int)
   }) async {
     double multiplier = 100.0;
     double executionPrice = price;
@@ -1681,9 +1840,14 @@ class PaperTradingStore extends ChangeNotifier {
 
     _optionPositions.add(newPos);
 
-    _addToHistory("strategy", direction == 'debit' ? 'buy' : 'sell',
-        strategyName, quantity, executionPrice,
-        detail: "$strategyName (${legsData.length} legs)");
+    _addToHistory(
+      "strategy",
+      direction == 'debit' ? 'buy' : 'sell',
+      strategyName,
+      quantity,
+      executionPrice,
+      detail: "$strategyName (${legsData.length} legs)",
+    );
     await _save();
     notifyListeners();
   }
@@ -1692,12 +1856,18 @@ class PaperTradingStore extends ChangeNotifier {
   /// [direction] distinguishes long ('debit') from written ('credit')
   /// positions, and [sign] is +1 to increase exposure, -1 to reduce it.
   void _updateOptionPosition(
-      OptionInstrument option, double quantity, double price, int sign,
-      {String direction = 'debit'}) {
-    int index = _optionPositions.indexWhere((p) =>
-        p.legs.isNotEmpty &&
-        p.legs.first.option == option.url &&
-        p.direction == direction);
+    OptionInstrument option,
+    double quantity,
+    double price,
+    int sign, {
+    String direction = 'debit',
+  }) {
+    int index = _optionPositions.indexWhere(
+      (p) =>
+          p.legs.isNotEmpty &&
+          p.legs.first.option == option.url &&
+          p.direction == direction,
+    );
 
     if (index != -1) {
       var current = _optionPositions[index];
@@ -1709,7 +1879,8 @@ class PaperTradingStore extends ChangeNotifier {
       } else {
         double newAvgPrice = current.averageOpenPrice ?? 0;
         if (sign > 0) {
-          newAvgPrice = ((currentQty * (current.averageOpenPrice ?? 0)) +
+          newAvgPrice =
+              ((currentQty * (current.averageOpenPrice ?? 0)) +
                   (quantity * price)) /
               newQty;
         }
@@ -1783,13 +1954,18 @@ class PaperTradingStore extends ChangeNotifier {
   /// - InstrumentOrder.fromPaperJson ('side', 'state', 'order_type',
   ///   'instrument', 'created_at'/'updated_at')
   void _addToHistory(
-      String type, String action, String symbol, double quantity, double price,
-      {String? detail,
-      double? profitLoss,
-      double? multiplier,
-      String? orderType,
-      String? instrumentUrl,
-      String state = 'filled'}) {
+    String type,
+    String action,
+    String symbol,
+    double quantity,
+    double price, {
+    String? detail,
+    double? profitLoss,
+    double? multiplier,
+    String? orderType,
+    String? instrumentUrl,
+    String state = 'filled',
+  }) {
     final now = DateTime.now();
     final nowIso = now.toIso8601String();
     _history.insert(0, {
@@ -1824,7 +2000,8 @@ class PaperTradingStore extends ChangeNotifier {
   /// whole-document overwrites the embedded array is subject to.
   void _appendFillToSubcollection(Map<String, dynamic> entry) {
     if (_user == null) return;
-    final id = entry['id']?.toString() ??
+    final id =
+        entry['id']?.toString() ??
         'paper_${DateTime.now().microsecondsSinceEpoch}';
     _firestore
         .collection('user')
@@ -1833,8 +2010,8 @@ class PaperTradingStore extends ChangeNotifier {
         .doc(id)
         .set(entry)
         .catchError((e) {
-      debugPrint('Error appending paper fill $id: $e');
-    });
+          debugPrint('Error appending paper fill $id: $e');
+        });
   }
 
   /// Settles option positions whose expiration has passed, using
@@ -1843,16 +2020,20 @@ class PaperTradingStore extends ChangeNotifier {
   /// the strike, covered calls have shares called away). Positions whose
   /// underlying price is unknown are left for the next refresh. Returns the
   /// settled positions. [now] is injectable for tests.
-  List<OptionAggregatePosition> processExpiredOptions(
-      {required Map<String, double> underlyingPrices, DateTime? now}) {
+  List<OptionAggregatePosition> processExpiredOptions({
+    required Map<String, double> underlyingPrices,
+    DateTime? now,
+  }) {
     final evalNow = now ?? DateTime.now();
     final today = DateTime(evalNow.year, evalNow.month, evalNow.day);
 
     final expired = _optionPositions
-        .where((p) =>
-            p.optionInstrument?.expirationDate != null &&
-            p.optionInstrument!.expirationDate!.isBefore(today) &&
-            (underlyingPrices[p.optionInstrument?.chainSymbol] ?? 0) > 0)
+        .where(
+          (p) =>
+              p.optionInstrument?.expirationDate != null &&
+              p.optionInstrument!.expirationDate!.isBefore(today) &&
+              (underlyingPrices[p.optionInstrument?.chainSymbol] ?? 0) > 0,
+        )
         .toList();
 
     for (final pos in expired) {
@@ -1867,7 +2048,9 @@ class PaperTradingStore extends ChangeNotifier {
   }
 
   void _settleExpiredPosition(
-      OptionAggregatePosition pos, double underlyingPrice) {
+    OptionAggregatePosition pos,
+    double underlyingPrice,
+  ) {
     final option = pos.optionInstrument!;
     final strike = option.strikePrice ?? 0.0;
     final type = option.type.toLowerCase();
@@ -1885,30 +2068,49 @@ class PaperTradingStore extends ChangeNotifier {
       final totalPayout = intrinsicValue * 100 * quantity;
       _cashBalance += totalPayout;
       if (totalPayout > 0) {
-        _addToHistory("expiration", "exercise", pos.symbol, quantity,
-            intrinsicValue, // price field carries the intrinsic value
-            detail: "Expired ITM at $underlyingPrice. "
-                "Exercised: +${totalPayout.toStringAsFixed(2)}");
+        _addToHistory(
+          "expiration",
+          "exercise",
+          pos.symbol,
+          quantity,
+          intrinsicValue, // price field carries the intrinsic value
+          detail:
+              "Expired ITM at $underlyingPrice. "
+              "Exercised: +${totalPayout.toStringAsFixed(2)}",
+        );
       } else {
-        _addToHistory("expiration", "expired", pos.symbol, quantity, 0,
-            detail: "Expired worthless at $underlyingPrice");
+        _addToHistory(
+          "expiration",
+          "expired",
+          pos.symbol,
+          quantity,
+          0,
+          detail: "Expired worthless at $underlyingPrice",
+        );
       }
       return;
     }
 
     // Short (written) positions: OTM keeps the premium; ITM is assigned.
     if (intrinsicValue <= 0) {
-      _addToHistory("expiration", "expired", pos.symbol, quantity, 0,
-          detail:
-              "Short ${type == 'call' ? 'call' : 'put'} expired worthless at "
-              "$underlyingPrice — premium kept");
+      _addToHistory(
+        "expiration",
+        "expired",
+        pos.symbol,
+        quantity,
+        0,
+        detail:
+            "Short ${type == 'call' ? 'call' : 'put'} expired worthless at "
+            "$underlyingPrice — premium kept",
+      );
       return;
     }
 
     if (isCall) {
       // Covered call assigned: shares are called away at the strike.
-      final stockIdx = _positions.indexWhere((p) =>
-          p.instrumentObj?.symbol == pos.symbol && (p.quantity ?? 0) > 0);
+      final stockIdx = _positions.indexWhere(
+        (p) => p.instrumentObj?.symbol == pos.symbol && (p.quantity ?? 0) > 0,
+      );
       if (stockIdx >= 0) {
         final stockPos = _positions[stockIdx];
         final callAway = shares.clamp(0.0, stockPos.quantity ?? 0.0).toDouble();
@@ -1916,38 +2118,65 @@ class PaperTradingStore extends ChangeNotifier {
         _cashBalance += callAway * strike;
         final profitLoss = (strike - avgCost) * callAway;
         _updateStockPosition(
-            stockPos.instrumentObj ??
-                Instrument.forSymbol(pos.symbol,
-                    instrumentUrl: stockPos.instrument),
-            callAway,
-            strike,
-            -1);
-        _addToHistory("expiration", "assignment", pos.symbol, quantity, strike,
-            detail: "Short call assigned at $underlyingPrice: "
-                "${callAway.toStringAsFixed(0)} shares called away at $strike",
-            profitLoss: profitLoss);
+          stockPos.instrumentObj ??
+              Instrument.forSymbol(
+                pos.symbol,
+                instrumentUrl: stockPos.instrument,
+              ),
+          callAway,
+          strike,
+          -1,
+        );
+        _addToHistory(
+          "expiration",
+          "assignment",
+          pos.symbol,
+          quantity,
+          strike,
+          detail:
+              "Short call assigned at $underlyingPrice: "
+              "${callAway.toStringAsFixed(0)} shares called away at $strike",
+          profitLoss: profitLoss,
+        );
       } else {
         // Shares are gone (shouldn't happen while pledged): cash-settle.
         _cashBalance -= intrinsicValue * 100 * quantity;
-        _addToHistory("expiration", "assignment", pos.symbol, quantity, strike,
-            detail: "Short call cash-settled at $underlyingPrice "
-                "(-${(intrinsicValue * 100 * quantity).toStringAsFixed(2)})");
+        _addToHistory(
+          "expiration",
+          "assignment",
+          pos.symbol,
+          quantity,
+          strike,
+          detail:
+              "Short call cash-settled at $underlyingPrice "
+              "(-${(intrinsicValue * 100 * quantity).toStringAsFixed(2)})",
+        );
       }
     } else {
       // Cash-secured put assigned: buy the shares at the strike, merging
       // into an existing position for the symbol when there is one.
-      final stockIdx =
-          _positions.indexWhere((p) => p.instrumentObj?.symbol == pos.symbol);
+      final stockIdx = _positions.indexWhere(
+        (p) => p.instrumentObj?.symbol == pos.symbol,
+      );
       final instrument = stockIdx >= 0
           ? (_positions[stockIdx].instrumentObj ??
-              Instrument.forSymbol(pos.symbol,
-                  instrumentUrl: _positions[stockIdx].instrument))
+                Instrument.forSymbol(
+                  pos.symbol,
+                  instrumentUrl: _positions[stockIdx].instrument,
+                ))
           : Instrument.forSymbol(pos.symbol);
       _cashBalance -= shares * strike;
       _updateStockPosition(instrument, shares, strike, 1);
-      _addToHistory("expiration", "assignment", pos.symbol, quantity, strike,
-          detail: "Short put assigned at $underlyingPrice: bought "
-              "${shares.toStringAsFixed(0)} shares at $strike");
+      _addToHistory(
+        "expiration",
+        "assignment",
+        pos.symbol,
+        quantity,
+        strike,
+        detail:
+            "Short put assigned at $underlyingPrice: bought "
+            "${shares.toStringAsFixed(0)} shares at $strike",
+      );
     }
   }
 
@@ -1977,7 +2206,8 @@ class PaperTradingStore extends ChangeNotifier {
       final currentQty = pos.quantity;
 
       // Check if we are closing part of the position or adding to it
-      bool isClosing = (currentQty > 0 && signedTradeQty < 0) ||
+      bool isClosing =
+          (currentQty > 0 && signedTradeQty < 0) ||
           (currentQty < 0 && signedTradeQty > 0);
 
       if (isClosing) {
@@ -1986,7 +2216,8 @@ class PaperTradingStore extends ChangeNotifier {
             : signedTradeQty.abs();
 
         // Realize P&L for closed portion
-        final realizedPnL = (price - pos.avgPrice) *
+        final realizedPnL =
+            (price - pos.avgPrice) *
             qtyToClose *
             pos.multiplier *
             (currentQty > 0 ? 1 : -1);
@@ -2016,22 +2247,29 @@ class PaperTradingStore extends ChangeNotifier {
       }
     } else {
       // New position
-      _futuresPositions.add(FuturesPaperPosition(
-        contractId: contractId,
-        symbol: symbol,
-        quantity: signedTradeQty.toDouble(),
-        avgPrice: price,
-        multiplier: multiplier,
-        lastPrice: price,
-      ));
+      _futuresPositions.add(
+        FuturesPaperPosition(
+          contractId: contractId,
+          symbol: symbol,
+          quantity: signedTradeQty.toDouble(),
+          avgPrice: price,
+          multiplier: multiplier,
+          lastPrice: price,
+        ),
+      );
     }
 
     _cashBalance -= _commission; // Fee for opening/adjusting position
 
     _addToHistory(
-        "futures", side.toLowerCase(), symbol, quantity.toDouble(), price,
-        detail: "Contract ID: $contractId, Multiplier: $multiplier",
-        multiplier: multiplier);
+      "futures",
+      side.toLowerCase(),
+      symbol,
+      quantity.toDouble(),
+      price,
+      detail: "Contract ID: $contractId, Multiplier: $multiplier",
+      multiplier: multiplier,
+    );
 
     notifyListeners();
     _save();

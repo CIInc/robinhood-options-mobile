@@ -125,11 +125,16 @@ class _MarginHealthWidgetState extends State<MarginHealthWidget> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.error_outline,
-                        size: 48, color: Colors.red),
+                    const Icon(
+                      Icons.error_outline,
+                      size: 48,
+                      color: Colors.red,
+                    ),
                     const SizedBox(height: 12),
-                    Text('Failed to load margin health: ${snapshot.error}',
-                        textAlign: TextAlign.center),
+                    Text(
+                      'Failed to load margin health: ${snapshot.error}',
+                      textAlign: TextAlign.center,
+                    ),
                     const SizedBox(height: 16),
                     ElevatedButton.icon(
                       icon: const Icon(Icons.refresh),
@@ -195,7 +200,9 @@ class _MarginHealthWidgetState extends State<MarginHealthWidget> {
                         child: Text(
                           'Margin Health',
                           style: TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.bold),
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
@@ -204,8 +211,10 @@ class _MarginHealthWidgetState extends State<MarginHealthWidget> {
                 ),
                 const SizedBox(width: 8),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: color.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(20),
@@ -217,8 +226,10 @@ class _MarginHealthWidgetState extends State<MarginHealthWidget> {
                       Container(
                         width: 8,
                         height: 8,
-                        decoration:
-                            BoxDecoration(color: color, shape: BoxShape.circle),
+                        decoration: BoxDecoration(
+                          color: color,
+                          shape: BoxShape.circle,
+                        ),
                       ),
                       const SizedBox(width: 6),
                       Text(
@@ -245,8 +256,10 @@ class _MarginHealthWidgetState extends State<MarginHealthWidget> {
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.shield_outlined,
-                        color: Theme.of(context).colorScheme.primary),
+                    Icon(
+                      Icons.shield_outlined,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
@@ -259,10 +272,11 @@ class _MarginHealthWidgetState extends State<MarginHealthWidget> {
                           Text(
                             'Your account is currently unleveraged with zero borrowed balances. You are not at risk of margin calls.',
                             style: TextStyle(
-                                fontSize: 12,
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurfaceVariant),
+                              fontSize: 12,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurfaceVariant,
+                            ),
                           ),
                         ],
                       ),
@@ -287,8 +301,9 @@ class _MarginHealthWidgetState extends State<MarginHealthWidget> {
                   Text(
                     'buffer distance',
                     style: TextStyle(
-                        fontSize: 12,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant),
+                      fontSize: 12,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ],
               ),
@@ -298,8 +313,9 @@ class _MarginHealthWidgetState extends State<MarginHealthWidget> {
                 child: LinearProgressIndicator(
                   value: health.marginBufferPercentage.clamp(0.0, 1.0),
                   minHeight: 10,
-                  backgroundColor:
-                      Theme.of(context).colorScheme.surfaceContainerHighest,
+                  backgroundColor: Theme.of(
+                    context,
+                  ).colorScheme.surfaceContainerHighest,
                   valueColor: AlwaysStoppedAnimation<Color>(color),
                 ),
               ),
@@ -313,20 +329,23 @@ class _MarginHealthWidgetState extends State<MarginHealthWidget> {
                   Text(
                     'Buffer: ${_percentFormat.format(health.marginBufferPercentage)} of equity',
                     style: const TextStyle(
-                        fontSize: 12, fontWeight: FontWeight.w500),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                   Text(
                     health.isMarginCall
                         ? 'MARGIN CALL'
                         : (health.isCritical
-                            ? 'Critical Threshold (<10%)'
-                            : (health.isWarning
-                                ? 'Low Threshold (<25%)'
-                                : 'Safe Operating Zone')),
+                              ? 'Critical Threshold (<10%)'
+                              : (health.isWarning
+                                    ? 'Low Threshold (<25%)'
+                                    : 'Safe Operating Zone')),
                     style: TextStyle(
-                        fontSize: 11,
-                        color: color,
-                        fontWeight: FontWeight.w600),
+                      fontSize: 11,
+                      color: color,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ],
               ),
@@ -348,9 +367,10 @@ class _MarginHealthWidgetState extends State<MarginHealthWidget> {
                       child: Text(
                         'Margin Call Deficit: ${_currencyFormat.format(health.marginCallAmount > 0 ? health.marginCallAmount : health.borrowedAmount)}. Deposit funds or close positions immediately to meet maintenance.',
                         style: const TextStyle(
-                            fontSize: 12,
-                            color: Colors.red,
-                            fontWeight: FontWeight.w600),
+                          fontSize: 12,
+                          color: Colors.red,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ],
@@ -374,8 +394,11 @@ class _MarginHealthWidgetState extends State<MarginHealthWidget> {
           children: [
             Row(
               children: [
-                Icon(Icons.account_balance_wallet_outlined,
-                    size: 20, color: Theme.of(context).colorScheme.primary),
+                Icon(
+                  Icons.account_balance_wallet_outlined,
+                  size: 20,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
                 const SizedBox(width: 8),
                 const Expanded(
                   child: Text(
@@ -429,8 +452,9 @@ class _MarginHealthWidgetState extends State<MarginHealthWidget> {
                     _buildMetricTile(
                       context,
                       title: 'Withdrawable Cash',
-                      value: _currencyFormat
-                          .format(unified.cashAvailableForWithdrawal),
+                      value: _currencyFormat.format(
+                        unified.cashAvailableForWithdrawal,
+                      ),
                       subtitle: 'Free to Transfer Out',
                       icon: Icons.payments_outlined,
                       accentColor: Colors.teal,
@@ -463,16 +487,14 @@ class _MarginHealthWidgetState extends State<MarginHealthWidget> {
       width: width,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Theme.of(context)
-            .colorScheme
-            .surfaceContainerHighest
-            .withValues(alpha: 0.6),
+        color: Theme.of(
+          context,
+        ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.6),
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
-          color: Theme.of(context)
-              .colorScheme
-              .outlineVariant
-              .withValues(alpha: 0.5),
+          color: Theme.of(
+            context,
+          ).colorScheme.outlineVariant.withValues(alpha: 0.5),
         ),
       ),
       child: Column(
@@ -529,15 +551,19 @@ class _MarginHealthWidgetState extends State<MarginHealthWidget> {
                 Expanded(
                   child: Row(
                     children: [
-                      Icon(Icons.lock_clock_outlined,
-                          size: 20,
-                          color: Theme.of(context).colorScheme.secondary),
+                      Icon(
+                        Icons.lock_clock_outlined,
+                        size: 20,
+                        color: Theme.of(context).colorScheme.secondary,
+                      ),
                       const SizedBox(width: 8),
                       const Flexible(
                         child: Text(
                           'Collateral & Order Holds',
                           style: TextStyle(
-                              fontSize: 15, fontWeight: FontWeight.bold),
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                          ),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
@@ -546,17 +572,22 @@ class _MarginHealthWidgetState extends State<MarginHealthWidget> {
                 ),
                 const SizedBox(width: 8),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
                   decoration: BoxDecoration(
-                    color:
-                        Theme.of(context).colorScheme.surfaceContainerHighest,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
                     _currencyFormat.format(col.totalCollateralHeld),
                     style: const TextStyle(
-                        fontSize: 12, fontWeight: FontWeight.bold),
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ],
@@ -618,16 +649,23 @@ class _MarginHealthWidgetState extends State<MarginHealthWidget> {
   }) {
     return Row(
       children: [
-        Icon(icon,
-            size: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
+        Icon(
+          icon,
+          size: 16,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
         const SizedBox(width: 8),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title,
-                  style: const TextStyle(
-                      fontSize: 13, fontWeight: FontWeight.w600)),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
               Text(
                 detail,
                 style: TextStyle(
@@ -666,8 +704,11 @@ class _MarginHealthWidgetState extends State<MarginHealthWidget> {
           children: [
             Row(
               children: [
-                Icon(Icons.speed,
-                    size: 20, color: Theme.of(context).colorScheme.tertiary),
+                Icon(
+                  Icons.speed,
+                  size: 20,
+                  color: Theme.of(context).colorScheme.tertiary,
+                ),
                 const SizedBox(width: 8),
                 const Expanded(
                   child: Text(
@@ -749,7 +790,9 @@ class _MarginHealthWidgetState extends State<MarginHealthWidget> {
   }
 
   Widget _buildMarginCallsActionCard(
-      BuildContext context, UnifiedAccount unified) {
+    BuildContext context,
+    UnifiedAccount unified,
+  ) {
     final health = unified.marginHealth;
     final hasCall = health.isMarginCall || health.marginCallAmount > 0;
     final theme = Theme.of(context);
@@ -786,8 +829,9 @@ class _MarginHealthWidgetState extends State<MarginHealthWidget> {
               ? 'Active Deficit: ${_currencyFormat.format(health.marginCallAmount)} — Tap to view demands & resolution'
               : 'Review deficit demands, resolution options, and monthly interest debits',
           style: theme.textTheme.bodySmall?.copyWith(
-            color:
-                hasCall ? Colors.redAccent : theme.colorScheme.onSurfaceVariant,
+            color: hasCall
+                ? Colors.redAccent
+                : theme.colorScheme.onSurfaceVariant,
             fontWeight: hasCall ? FontWeight.w600 : FontWeight.normal,
           ),
         ),
@@ -813,8 +857,10 @@ class _MarginHealthWidgetState extends State<MarginHealthWidget> {
       elevation: 1,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       child: ExpansionTile(
-        leading: Icon(Icons.help_outline,
-            color: Theme.of(context).colorScheme.primary),
+        leading: Icon(
+          Icons.help_outline,
+          color: Theme.of(context).colorScheme.primary,
+        ),
         title: const Text(
           'Understanding Margin Health & FINRA Rules',
           style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),

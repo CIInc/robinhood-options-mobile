@@ -132,10 +132,13 @@ class _SearchWidgetState extends State<SearchWidget>
 
       if (searchCtl?.text.isNotEmpty == true) {
         debugPrint(
-            "SearchWidget: User changed and text present. Retriggering search.");
+          "SearchWidget: User changed and text present. Retriggering search.",
+        );
         if (widget.service != null) {
-          futureSearch =
-              widget.service!.search(widget.brokerageUser!, searchCtl!.text);
+          futureSearch = widget.service!.search(
+            widget.brokerageUser!,
+            searchCtl!.text,
+          );
         } else {
           futureSearch = _yahooService.search(searchCtl!.text);
         }
@@ -163,49 +166,53 @@ class _SearchWidgetState extends State<SearchWidget>
             .toList();
         if (queries.isNotEmpty) {
           if (widget.service != null) {
-            futureSearch = Future.wait(queries.map(
-                    (q) => widget.service!.search(widget.brokerageUser!, q)))
-                .then((results) {
-              var combined = [];
-              for (var result in results) {
-                if (result is List) {
-                  combined.addAll(result);
-                } else if (result is Map) {
-                  // Assume Robinhood structure
-                  try {
-                    var resList = result['results'] as List?;
-                    if (resList != null) {
-                      for (var res in resList) {
-                        var content = res['content'];
-                        if (content != null) {
-                          var data = content['data'] as List?;
-                          if (data != null) {
-                            for (var d in data) {
-                              if (d['item'] != null) {
-                                combined.add(d['item']);
+            futureSearch =
+                Future.wait(
+                  queries.map(
+                    (q) => widget.service!.search(widget.brokerageUser!, q),
+                  ),
+                ).then((results) {
+                  var combined = [];
+                  for (var result in results) {
+                    if (result is List) {
+                      combined.addAll(result);
+                    } else if (result is Map) {
+                      // Assume Robinhood structure
+                      try {
+                        var resList = result['results'] as List?;
+                        if (resList != null) {
+                          for (var res in resList) {
+                            var content = res['content'];
+                            if (content != null) {
+                              var data = content['data'] as List?;
+                              if (data != null) {
+                                for (var d in data) {
+                                  if (d['item'] != null) {
+                                    combined.add(d['item']);
+                                  }
+                                }
                               }
                             }
                           }
                         }
+                      } catch (e) {
+                        debugPrint('Error parsing search result: $e');
                       }
                     }
-                  } catch (e) {
-                    debugPrint('Error parsing search result: $e');
                   }
-                }
-              }
-              return combined;
-            });
+                  return combined;
+                });
           } else {
             futureSearch =
-                Future.wait(queries.map((q) => _yahooService.search(q)))
-                    .then((results) {
-              var combined = [];
-              for (var result in results) {
-                combined.addAll(result);
-              }
-              return combined;
-            });
+                Future.wait(queries.map((q) => _yahooService.search(q))).then((
+                  results,
+                ) {
+                  var combined = [];
+                  for (var result in results) {
+                    combined.addAll(result);
+                  }
+                  return combined;
+                });
           }
           return;
         }
@@ -246,46 +253,78 @@ class _SearchWidgetState extends State<SearchWidget>
     super.build(context);
 
     return PopScope(
-        canPop: widget
-            .embedded, //When false, blocks the current route from being popped.
-        onPopInvokedWithResult: (didPop, result) {
-          //do your logic here
-          // setStatusBarColor(statusBarColorPrimary,statusBarIconBrightness: Brightness.light);
-          // do your logic ends
-          return;
-        },
-        child: _buildScaffold());
+      canPop: widget
+          .embedded, //When false, blocks the current route from being popped.
+      onPopInvokedWithResult: (didPop, result) {
+        //do your logic here
+        // setStatusBarColor(statusBarColorPrimary,statusBarIconBrightness: Brightness.light);
+        // do your logic ends
+        return;
+      },
+      child: _buildScaffold(),
+    );
   }
 
   Widget _buildScaffold() {
     instrumentStore = Provider.of<InstrumentStore>(context, listen: false);
 
     if (widget.brokerageUser != null && widget.service != null) {
-      futureMovers ??=
-          widget.service!.getMovers(widget.brokerageUser!, direction: "up");
-      futureLosers ??=
-          widget.service!.getMovers(widget.brokerageUser!, direction: "down");
-      futureListMovers ??=
-          widget.service!.getTopMovers(widget.brokerageUser!, instrumentStore!);
+      futureMovers ??= widget.service!.getMovers(
+        widget.brokerageUser!,
+        direction: "up",
+      );
+      futureLosers ??= widget.service!.getMovers(
+        widget.brokerageUser!,
+        direction: "down",
+      );
+      futureListMovers ??= widget.service!.getTopMovers(
+        widget.brokerageUser!,
+        instrumentStore!,
+      );
       if (widget.brokerageUser!.source == BrokerageSource.robinhood ||
           widget.brokerageUser!.source == BrokerageSource.demo) {
         watchlistStream ??= widget.service!
-            .streamLists(widget.brokerageUser!, instrumentStore!,
-                Provider.of<QuoteStore>(context, listen: false))
+            .streamLists(
+              widget.brokerageUser!,
+              instrumentStore!,
+              Provider.of<QuoteStore>(context, listen: false),
+            )
             .asBroadcastStream();
       }
     } else {
       // Fallback for non-logged-in users
-      futureMovers ??= _yahooService.getMovers(direction: "up").then(
-          (results) => results
-              .map((q) => MidlandMoversItem('', q['symbol'], DateTime.now(),
-                  q['changePercent'], q['price'], q['description']))
-              .toList());
-      futureLosers ??= _yahooService.getMovers(direction: "down").then(
-          (results) => results
-              .map((q) => MidlandMoversItem('', q['symbol'], DateTime.now(),
-                  q['changePercent'], q['price'], q['description']))
-              .toList());
+      futureMovers ??= _yahooService
+          .getMovers(direction: "up")
+          .then(
+            (results) => results
+                .map(
+                  (q) => MidlandMoversItem(
+                    '',
+                    q['symbol'],
+                    DateTime.now(),
+                    q['changePercent'],
+                    q['price'],
+                    q['description'],
+                  ),
+                )
+                .toList(),
+          );
+      futureLosers ??= _yahooService
+          .getMovers(direction: "down")
+          .then(
+            (results) => results
+                .map(
+                  (q) => MidlandMoversItem(
+                    '',
+                    q['symbol'],
+                    DateTime.now(),
+                    q['changePercent'],
+                    q['price'],
+                    q['description'],
+                  ),
+                )
+                .toList(),
+          );
       futureListMovers ??= Future.value([]);
     }
     // futureListMostPopular ??=
@@ -293,65 +332,66 @@ class _SearchWidgetState extends State<SearchWidget>
     futureSearch ??= Future.value(null);
 
     return Scaffold(
-      body: Column(
-        children: [
-          Expanded(child: _buildSearchContent()),
-        ],
-      ),
+      body: Column(children: [Expanded(child: _buildSearchContent())]),
     );
   }
 
   Widget _buildSearchContent() {
     return FutureBuilder(
-        future: Future.wait([
-          futureSearch as Future,
-          futureMovers as Future,
-          futureLosers as Future,
-          futureListMovers as Future,
-          // futureListMostPopular as Future,
-        ]),
-        builder: (context, AsyncSnapshot<List<dynamic>> snapshot) {
-          if (snapshot.hasData) {
-            List<dynamic> data = snapshot.data as List<dynamic>;
-            var search = data.isNotEmpty ? data[0] as dynamic : null;
-            var movers =
-                data.length > 1 ? data[1] as List<MidlandMoversItem> : null;
-            var losers =
-                data.length > 2 ? data[2] as List<MidlandMoversItem> : null;
-            var listMovers =
-                data.length > 3 ? data[3] as List<Instrument> : null;
-            // var listMostPopular =
-            //     data.length > 4 ? data[4] as List<Instrument> : null;
+      future: Future.wait([
+        futureSearch as Future,
+        futureMovers as Future,
+        futureLosers as Future,
+        futureListMovers as Future,
+        // futureListMostPopular as Future,
+      ]),
+      builder: (context, AsyncSnapshot<List<dynamic>> snapshot) {
+        if (snapshot.hasData) {
+          List<dynamic> data = snapshot.data as List<dynamic>;
+          var search = data.isNotEmpty ? data[0] as dynamic : null;
+          var movers = data.length > 1
+              ? data[1] as List<MidlandMoversItem>
+              : null;
+          var losers = data.length > 2
+              ? data[2] as List<MidlandMoversItem>
+              : null;
+          var listMovers = data.length > 3 ? data[3] as List<Instrument> : null;
+          // var listMostPopular =
+          //     data.length > 4 ? data[4] as List<Instrument> : null;
 
-            if (search != null) {
-              debugPrint("SearchWidget: has search results: $search");
-            }
-
-            return _buildPage(
-                search: search,
-                movers: movers,
-                losers: losers,
-                listMovers: listMovers,
-                listMostPopular: null, //listMostPopular,
-                done: snapshot.connectionState == ConnectionState.done);
-          } else if (snapshot.hasError) {
-            debugPrint("${snapshot.error}");
-            return _buildPage(welcomeWidget: Text("${snapshot.error}"));
-          } else {
-            return _buildPage(
-                done: snapshot.connectionState == ConnectionState.done);
+          if (search != null) {
+            debugPrint("SearchWidget: has search results: $search");
           }
-        });
+
+          return _buildPage(
+            search: search,
+            movers: movers,
+            losers: losers,
+            listMovers: listMovers,
+            listMostPopular: null, //listMostPopular,
+            done: snapshot.connectionState == ConnectionState.done,
+          );
+        } else if (snapshot.hasError) {
+          debugPrint("${snapshot.error}");
+          return _buildPage(welcomeWidget: Text("${snapshot.error}"));
+        } else {
+          return _buildPage(
+            done: snapshot.connectionState == ConnectionState.done,
+          );
+        }
+      },
+    );
   }
 
-  Widget _buildPage(
-      {Widget? welcomeWidget,
-      dynamic search,
-      List<MidlandMoversItem>? movers,
-      List<MidlandMoversItem>? losers,
-      List<Instrument>? listMovers,
-      List<Instrument>? listMostPopular,
-      bool done = false}) {
+  Widget _buildPage({
+    Widget? welcomeWidget,
+    dynamic search,
+    List<MidlandMoversItem>? movers,
+    List<MidlandMoversItem>? losers,
+    List<Instrument>? listMovers,
+    List<Instrument>? listMostPopular,
+    bool done = false,
+  }) {
     return RefreshIndicator(
       onRefresh: _pullRefresh,
       child: GestureDetector(
@@ -435,22 +475,26 @@ class _SearchWidgetState extends State<SearchWidget>
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12.0),
                         borderSide: BorderSide(
-                            color:
-                                Theme.of(context).colorScheme.outlineVariant),
+                          color: Theme.of(context).colorScheme.outlineVariant,
+                        ),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12.0),
-                        borderSide:
-                            const BorderSide(color: Colors.blue, width: 2),
+                        borderSide: const BorderSide(
+                          color: Colors.blue,
+                          width: 2,
+                        ),
                       ),
                       filled: true,
-                      contentPadding:
-                          const EdgeInsets.symmetric(vertical: 16.0),
+                      contentPadding: const EdgeInsets.symmetric(
+                        vertical: 16.0,
+                      ),
                     ),
                     onChanged: (text) {
                       widget.analytics.logSearch(searchTerm: text);
                       debugPrint(
-                          "SearchWidget: onChanged '$text'. Service: ${widget.service}");
+                        "SearchWidget: onChanged '$text'. Service: ${widget.service}",
+                      );
                       _searchDebounce?.cancel();
                       if (text.isEmpty) {
                         setState(() {
@@ -458,10 +502,12 @@ class _SearchWidgetState extends State<SearchWidget>
                         });
                         return;
                       }
-                      _searchDebounce =
-                          Timer(const Duration(milliseconds: 400), () {
-                        if (mounted) _performSearch(text);
-                      });
+                      _searchDebounce = Timer(
+                        const Duration(milliseconds: 400),
+                        () {
+                          if (mounted) _performSearch(text);
+                        },
+                      );
                     },
                     onSubmitted: (value) {
                       FocusScope.of(context).unfocus();
@@ -473,46 +519,50 @@ class _SearchWidgetState extends State<SearchWidget>
                   ? null
                   : SliverPadding(
                       padding: const EdgeInsets.all(
-                          12), // .symmetric(horizontal: 2),
+                        12,
+                      ), // .symmetric(horizontal: 2),
                       sliver: SliverGrid(
                         gridDelegate:
                             const SliverGridDelegateWithMaxCrossAxisExtent(
-                          maxCrossAxisExtent: 150.0,
-                          mainAxisSpacing: 8.0,
-                          crossAxisSpacing: 8.0,
-                          childAspectRatio: 0.925,
-                        ),
+                              maxCrossAxisExtent: 150.0,
+                              mainAxisSpacing: 8.0,
+                              crossAxisSpacing: 8.0,
+                              childAspectRatio: 0.925,
+                            ),
                         delegate: SliverChildBuilderDelegate(
                           (BuildContext context, int index) {
                             return _buildSearchGridItem(search, index);
                           },
                           childCount: search != null
                               ? (search is List
-                                  ? search.length
-                                  : (search["results"] != null &&
-                                          search["results"].isNotEmpty &&
-                                          search["results"][0]["content"] !=
-                                              null &&
-                                          search["results"][0]["content"]
-                                                  ["data"] !=
-                                              null
-                                      ? search["results"][0]["content"]["data"]
-                                          .length
-                                      : 0))
+                                    ? search.length
+                                    : (search["results"] != null &&
+                                              search["results"].isNotEmpty &&
+                                              search["results"][0]["content"] !=
+                                                  null &&
+                                              search["results"][0]["content"]["data"] !=
+                                                  null
+                                          ? search["results"][0]["content"]["data"]
+                                                .length
+                                          : 0))
                               : 0,
                         ),
-                      )),
+                      ),
+                    ),
             ),
             if (welcomeWidget != null) ...[
               SliverToBoxAdapter(
-                  child: SizedBox(
-                height: 80.0,
-                child: Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child:
-                      Align(alignment: Alignment.center, child: welcomeWidget),
+                child: SizedBox(
+                  height: 80.0,
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Align(
+                      alignment: Alignment.center,
+                      child: welcomeWidget,
+                    ),
+                  ),
                 ),
-              ))
+              ),
             ],
             // if (search != null) ...[
             //   SliverStickyHeader(
@@ -554,8 +604,10 @@ class _SearchWidgetState extends State<SearchWidget>
             // ],
             SliverToBoxAdapter(
               child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16.0,
+                  vertical: 8.0,
+                ),
                 child: MacroAssessmentWidget(
                   user: widget.user,
                   userDocRef: widget.userDocRef,
@@ -591,12 +643,12 @@ class _SearchWidgetState extends State<SearchWidget>
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 16.0, vertical: 8.0),
+                    horizontal: 16.0,
+                    vertical: 8.0,
+                  ),
                   child: Card(
                     elevation: 0,
-                    color: Theme.of(context)
-                        .colorScheme
-                        .surfaceContainerHighest
+                    color: Theme.of(context).colorScheme.surfaceContainerHighest
                         .withValues(alpha: 0.3),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
@@ -633,8 +685,11 @@ class _SearchWidgetState extends State<SearchWidget>
                                 color: Colors.green.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(12),
                               ),
-                              child: const Icon(Icons.adjust_outlined,
-                                  size: 24, color: Colors.green),
+                              child: const Icon(
+                                Icons.adjust_outlined,
+                                size: 24,
+                                color: Colors.green,
+                              ),
                             ),
                             const SizedBox(width: 16),
                             Expanded(
@@ -655,17 +710,20 @@ class _SearchWidgetState extends State<SearchWidget>
                                         .textTheme
                                         .bodyMedium
                                         ?.copyWith(
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .onSurfaceVariant),
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.onSurfaceVariant,
+                                        ),
                                   ),
                                 ],
                               ),
                             ),
-                            Icon(Icons.chevron_right,
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurfaceVariant),
+                            Icon(
+                              Icons.chevron_right,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurfaceVariant,
+                            ),
                           ],
                         ),
                       ),
@@ -677,12 +735,12 @@ class _SearchWidgetState extends State<SearchWidget>
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 16.0, vertical: 8.0),
+                    horizontal: 16.0,
+                    vertical: 8.0,
+                  ),
                   child: Card(
                     elevation: 0,
-                    color: Theme.of(context)
-                        .colorScheme
-                        .surfaceContainerHighest
+                    color: Theme.of(context).colorScheme.surfaceContainerHighest
                         .withValues(alpha: 0.3),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
@@ -711,8 +769,11 @@ class _SearchWidgetState extends State<SearchWidget>
                                 color: Colors.teal.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(12),
                               ),
-                              child: const Icon(Icons.event_available,
-                                  size: 24, color: Colors.teal),
+                              child: const Icon(
+                                Icons.event_available,
+                                size: 24,
+                                color: Colors.teal,
+                              ),
                             ),
                             const SizedBox(width: 16),
                             Expanded(
@@ -733,17 +794,20 @@ class _SearchWidgetState extends State<SearchWidget>
                                         .textTheme
                                         .bodyMedium
                                         ?.copyWith(
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .onSurfaceVariant),
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.onSurfaceVariant,
+                                        ),
                                   ),
                                 ],
                               ),
                             ),
-                            Icon(Icons.chevron_right,
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurfaceVariant),
+                            Icon(
+                              Icons.chevron_right,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurfaceVariant,
+                            ),
                           ],
                         ),
                       ),
@@ -755,12 +819,12 @@ class _SearchWidgetState extends State<SearchWidget>
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 16.0, vertical: 8.0),
+                    horizontal: 16.0,
+                    vertical: 8.0,
+                  ),
                   child: Card(
                     elevation: 0,
-                    color: Theme.of(context)
-                        .colorScheme
-                        .surfaceContainerHighest
+                    color: Theme.of(context).colorScheme.surfaceContainerHighest
                         .withValues(alpha: 0.3),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
@@ -773,22 +837,22 @@ class _SearchWidgetState extends State<SearchWidget>
                       borderRadius: BorderRadius.circular(16),
                       onTap: () {
                         Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => Scaffold(
-                                      appBar: AppBar(
-                                          title: const Text('Whale Watch')),
-                                      body: WhaleWatchDashboardWidget(
-                                        brokerageUser: widget.brokerageUser!,
-                                        service: widget.service!,
-                                        user: widget.user,
-                                        userDocRef: widget.userDocRef,
-                                        analytics: widget.analytics,
-                                        observer: widget.observer,
-                                        generativeService:
-                                            widget.generativeService,
-                                      ),
-                                    )));
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => Scaffold(
+                              appBar: AppBar(title: const Text('Whale Watch')),
+                              body: WhaleWatchDashboardWidget(
+                                brokerageUser: widget.brokerageUser!,
+                                service: widget.service!,
+                                user: widget.user,
+                                userDocRef: widget.userDocRef,
+                                analytics: widget.analytics,
+                                observer: widget.observer,
+                                generativeService: widget.generativeService,
+                              ),
+                            ),
+                          ),
+                        );
                       },
                       child: Padding(
                         padding: const EdgeInsets.all(16.0),
@@ -800,8 +864,11 @@ class _SearchWidgetState extends State<SearchWidget>
                                 color: Colors.blue.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(12),
                               ),
-                              child: const Icon(Icons.visibility_outlined,
-                                  size: 24, color: Colors.blue),
+                              child: const Icon(
+                                Icons.visibility_outlined,
+                                size: 24,
+                                color: Colors.blue,
+                              ),
                             ),
                             const SizedBox(width: 16),
                             Expanded(
@@ -822,17 +889,20 @@ class _SearchWidgetState extends State<SearchWidget>
                                         .textTheme
                                         .bodyMedium
                                         ?.copyWith(
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .onSurfaceVariant),
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.onSurfaceVariant,
+                                        ),
                                   ),
                                 ],
                               ),
                             ),
-                            Icon(Icons.chevron_right,
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurfaceVariant),
+                            Icon(
+                              Icons.chevron_right,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurfaceVariant,
+                            ),
                           ],
                         ),
                       ),
@@ -844,12 +914,12 @@ class _SearchWidgetState extends State<SearchWidget>
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 16.0, vertical: 8.0),
+                    horizontal: 16.0,
+                    vertical: 8.0,
+                  ),
                   child: Card(
                     elevation: 0,
-                    color: Theme.of(context)
-                        .colorScheme
-                        .surfaceContainerHighest
+                    color: Theme.of(context).colorScheme.surfaceContainerHighest
                         .withValues(alpha: 0.3),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
@@ -879,8 +949,11 @@ class _SearchWidgetState extends State<SearchWidget>
                                 color: Colors.purple.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(12),
                               ),
-                              child: const Icon(Icons.analytics_outlined,
-                                  size: 24, color: Colors.purple),
+                              child: const Icon(
+                                Icons.analytics_outlined,
+                                size: 24,
+                                color: Colors.purple,
+                              ),
                             ),
                             const SizedBox(width: 16),
                             Expanded(
@@ -901,17 +974,20 @@ class _SearchWidgetState extends State<SearchWidget>
                                         .textTheme
                                         .bodyMedium
                                         ?.copyWith(
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .onSurfaceVariant),
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.onSurfaceVariant,
+                                        ),
                                   ),
                                 ],
                               ),
                             ),
-                            Icon(Icons.chevron_right,
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurfaceVariant),
+                            Icon(
+                              Icons.chevron_right,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurfaceVariant,
+                            ),
                           ],
                         ),
                       ),
@@ -923,12 +999,12 @@ class _SearchWidgetState extends State<SearchWidget>
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 16.0, vertical: 8.0),
+                    horizontal: 16.0,
+                    vertical: 8.0,
+                  ),
                   child: Card(
                     elevation: 0,
-                    color: Theme.of(context)
-                        .colorScheme
-                        .surfaceContainerHighest
+                    color: Theme.of(context).colorScheme.surfaceContainerHighest
                         .withValues(alpha: 0.3),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
@@ -962,8 +1038,11 @@ class _SearchWidgetState extends State<SearchWidget>
                                 color: Colors.amber.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(12),
                               ),
-                              child: const Icon(Icons.currency_exchange,
-                                  size: 24, color: Colors.amber),
+                              child: const Icon(
+                                Icons.currency_exchange,
+                                size: 24,
+                                color: Colors.amber,
+                              ),
                             ),
                             const SizedBox(width: 16),
                             Expanded(
@@ -984,17 +1063,20 @@ class _SearchWidgetState extends State<SearchWidget>
                                         .textTheme
                                         .bodyMedium
                                         ?.copyWith(
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .onSurfaceVariant),
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.onSurfaceVariant,
+                                        ),
                                   ),
                                 ],
                               ),
                             ),
-                            Icon(Icons.chevron_right,
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurfaceVariant),
+                            Icon(
+                              Icons.chevron_right,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurfaceVariant,
+                            ),
                           ],
                         ),
                       ),
@@ -1025,8 +1107,12 @@ class _SearchWidgetState extends State<SearchWidget>
                       return SizedBox(
                         height: 50,
                         child: ListView.builder(
-                          padding:
-                              const EdgeInsets.fromLTRB(16.0, 12.0, 16.0, 0.0),
+                          padding: const EdgeInsets.fromLTRB(
+                            16.0,
+                            12.0,
+                            16.0,
+                            0.0,
+                          ),
                           scrollDirection: Axis.horizontal,
                           itemCount: lists.length + 1,
                           itemBuilder: (context, index) {
@@ -1091,232 +1177,244 @@ class _SearchWidgetState extends State<SearchWidget>
                 ),
               ),
             ],
-            const SliverToBoxAdapter(
-                child: SizedBox(
-              height: 12.0,
-            )),
+            const SliverToBoxAdapter(child: SizedBox(height: 12.0)),
             if (movers != null && movers.isNotEmpty) ...[
               // const SliverToBoxAdapter(
               //     child: SizedBox(
               //   height: 25.0,
               // )),
               SliverStickyHeader(
-                  header: Material(
-                      elevation: 1,
-                      child: Container(
-                          color: Theme.of(context).colorScheme.surface,
-                          alignment: Alignment.centerLeft,
-                          child: ListTile(
-                            leading: Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: Colors.green.withValues(alpha: 0.15),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: const Icon(Icons.trending_up,
-                                  color: Colors.green, size: 22),
-                            ),
-                            title: Text(
-                              "S&P Gainers",
-                              style: TextStyle(
-                                fontSize: 20.0,
-                                color: Theme.of(context).colorScheme.onSurface,
-                              ),
-                            ),
-                          ))),
-                  sliver: SliverPadding(
-                      padding: const EdgeInsets.all(
-                          12), // .symmetric(horizontal: 2),
-                      sliver: SliverGrid(
-                        gridDelegate:
-                            const SliverGridDelegateWithMaxCrossAxisExtent(
+                header: Material(
+                  elevation: 1,
+                  child: Container(
+                    color: Theme.of(context).colorScheme.surface,
+                    alignment: Alignment.centerLeft,
+                    child: ListTile(
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(
+                          Icons.trending_up,
+                          color: Colors.green,
+                          size: 22,
+                        ),
+                      ),
+                      title: Text(
+                        "S&P Gainers",
+                        style: TextStyle(
+                          fontSize: 20.0,
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                sliver: SliverPadding(
+                  padding: const EdgeInsets.all(
+                    12,
+                  ), // .symmetric(horizontal: 2),
+                  sliver: SliverGrid(
+                    gridDelegate:
+                        const SliverGridDelegateWithMaxCrossAxisExtent(
                           maxCrossAxisExtent: 220.0,
                           mainAxisSpacing: 8.0,
                           crossAxisSpacing: 8.0,
                           mainAxisExtent: 144.0,
                         ),
-                        delegate: SliverChildBuilderDelegate(
-                          (BuildContext context, int index) {
-                            return _buildMoversGridItem(movers, index);
-                          },
-                          childCount: movers.length,
-                        ),
-                      ))),
+                    delegate: SliverChildBuilderDelegate((
+                      BuildContext context,
+                      int index,
+                    ) {
+                      return _buildMoversGridItem(movers, index);
+                    }, childCount: movers.length),
+                  ),
+                ),
+              ),
             ],
             if (losers != null && losers.isNotEmpty) ...[
-              const SliverToBoxAdapter(
-                  child: SizedBox(
-                height: 25.0,
-              )),
+              const SliverToBoxAdapter(child: SizedBox(height: 25.0)),
               SliverStickyHeader(
-                  header: Material(
-                      elevation: 1,
-                      child: Container(
-                          color: Theme.of(context).colorScheme.surface,
-                          alignment: Alignment.centerLeft,
-                          child: ListTile(
-                            leading: Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: Colors.red.withValues(alpha: 0.15),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: const Icon(Icons.trending_down,
-                                  color: Colors.red, size: 22),
-                            ),
-                            title: Text(
-                              "S&P Decliners",
-                              style: TextStyle(
-                                fontSize: 20.0,
-                                color: Theme.of(context).colorScheme.onSurface,
-                              ),
-                            ),
-                          ))),
-                  sliver: SliverPadding(
-                      padding: const EdgeInsets.all(
-                          12), // .symmetric(horizontal: 2),
-                      sliver: SliverGrid(
-                        gridDelegate:
-                            const SliverGridDelegateWithMaxCrossAxisExtent(
+                header: Material(
+                  elevation: 1,
+                  child: Container(
+                    color: Theme.of(context).colorScheme.surface,
+                    alignment: Alignment.centerLeft,
+                    child: ListTile(
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.red.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(
+                          Icons.trending_down,
+                          color: Colors.red,
+                          size: 22,
+                        ),
+                      ),
+                      title: Text(
+                        "S&P Decliners",
+                        style: TextStyle(
+                          fontSize: 20.0,
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                sliver: SliverPadding(
+                  padding: const EdgeInsets.all(
+                    12,
+                  ), // .symmetric(horizontal: 2),
+                  sliver: SliverGrid(
+                    gridDelegate:
+                        const SliverGridDelegateWithMaxCrossAxisExtent(
                           maxCrossAxisExtent: 220.0,
                           mainAxisSpacing: 8.0,
                           crossAxisSpacing: 8.0,
                           mainAxisExtent: 144.0,
                         ),
-                        delegate: SliverChildBuilderDelegate(
-                          (BuildContext context, int index) {
-                            return _buildMoversGridItem(losers, index);
-                          },
-                          childCount: losers.length,
-                        ),
-                      ))),
-              const SliverToBoxAdapter(
-                  child: SizedBox(
-                height: 25.0,
-              )),
+                    delegate: SliverChildBuilderDelegate((
+                      BuildContext context,
+                      int index,
+                    ) {
+                      return _buildMoversGridItem(losers, index);
+                    }, childCount: losers.length),
+                  ),
+                ),
+              ),
+              const SliverToBoxAdapter(child: SizedBox(height: 25.0)),
             ],
             if (listMovers != null && listMovers.isNotEmpty) ...[
               SliverStickyHeader(
-                  header: Material(
-                      elevation: 1,
-                      child: Container(
-                          color: Theme.of(context).colorScheme.surface,
-                          alignment: Alignment.centerLeft,
-                          child: ListTile(
-                            leading: Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .primaryContainer
-                                    .withValues(alpha: 0.15),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Icon(Icons.show_chart,
-                                  color: Theme.of(context).colorScheme.primary,
-                                  size: 22),
-                            ),
-                            title: Text(
-                              "Top Movers",
-                              style: TextStyle(
-                                fontSize: 20.0,
-                                color: Theme.of(context).colorScheme.onSurface,
-                              ),
-                            ),
-                          ))),
-                  sliver: SliverPadding(
-                      padding: const EdgeInsets.all(
-                          12), // .symmetric(horizontal: 2),
-                      sliver: SliverGrid(
-                        gridDelegate:
-                            const SliverGridDelegateWithMaxCrossAxisExtent(
+                header: Material(
+                  elevation: 1,
+                  child: Container(
+                    color: Theme.of(context).colorScheme.surface,
+                    alignment: Alignment.centerLeft,
+                    child: ListTile(
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.primaryContainer
+                              .withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(
+                          Icons.show_chart,
+                          color: Theme.of(context).colorScheme.primary,
+                          size: 22,
+                        ),
+                      ),
+                      title: Text(
+                        "Top Movers",
+                        style: TextStyle(
+                          fontSize: 20.0,
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                sliver: SliverPadding(
+                  padding: const EdgeInsets.all(
+                    12,
+                  ), // .symmetric(horizontal: 2),
+                  sliver: SliverGrid(
+                    gridDelegate:
+                        const SliverGridDelegateWithMaxCrossAxisExtent(
                           maxCrossAxisExtent: 220.0,
                           mainAxisSpacing: 8.0,
                           crossAxisSpacing: 8.0,
                           mainAxisExtent: 144.0,
                         ),
-                        delegate: SliverChildBuilderDelegate(
-                          (BuildContext context, int index) {
-                            return _buildListGridItem(
-                                listMovers, index, widget.brokerageUser!);
-                          },
-                          childCount: listMovers.length,
-                        ),
-                      ))),
-              const SliverToBoxAdapter(
-                  child: SizedBox(
-                height: 25.0,
-              )),
+                    delegate: SliverChildBuilderDelegate((
+                      BuildContext context,
+                      int index,
+                    ) {
+                      return _buildListGridItem(
+                        listMovers,
+                        index,
+                        widget.brokerageUser!,
+                      );
+                    }, childCount: listMovers.length),
+                  ),
+                ),
+              ),
+              const SliverToBoxAdapter(child: SizedBox(height: 25.0)),
             ],
             if (listMostPopular != null && listMostPopular.isNotEmpty) ...[
               SliverStickyHeader(
-                  header: Material(
-                      elevation: 1,
-                      child: Container(
-                          color: Theme.of(context).colorScheme.surface,
-                          alignment: Alignment.centerLeft,
-                          child: ListTile(
-                            leading: Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .primaryContainer
-                                    .withValues(alpha: 0.15),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Icon(Icons.star,
-                                  color: Theme.of(context).colorScheme.primary,
-                                  size: 22),
-                            ),
-                            title: Text(
-                              "100 Most Popular",
-                              style: TextStyle(
-                                fontSize: 20.0,
-                                color: Theme.of(context).colorScheme.onSurface,
-                              ),
-                            ),
-                          ))),
-                  sliver: SliverPadding(
-                      padding: const EdgeInsets.all(
-                          12), // .symmetric(horizontal: 2),
-                      sliver: SliverGrid(
-                        gridDelegate:
-                            const SliverGridDelegateWithMaxCrossAxisExtent(
+                header: Material(
+                  elevation: 1,
+                  child: Container(
+                    color: Theme.of(context).colorScheme.surface,
+                    alignment: Alignment.centerLeft,
+                    child: ListTile(
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.primaryContainer
+                              .withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(
+                          Icons.star,
+                          color: Theme.of(context).colorScheme.primary,
+                          size: 22,
+                        ),
+                      ),
+                      title: Text(
+                        "100 Most Popular",
+                        style: TextStyle(
+                          fontSize: 20.0,
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                sliver: SliverPadding(
+                  padding: const EdgeInsets.all(
+                    12,
+                  ), // .symmetric(horizontal: 2),
+                  sliver: SliverGrid(
+                    gridDelegate:
+                        const SliverGridDelegateWithMaxCrossAxisExtent(
                           maxCrossAxisExtent: 150.0,
                           mainAxisSpacing: 6.0,
                           crossAxisSpacing: 2.0,
                           mainAxisExtent: 144.0,
                         ),
-                        delegate: SliverChildBuilderDelegate(
-                          (BuildContext context, int index) {
-                            return _buildListGridItem(
-                                listMostPopular, index, widget.brokerageUser!);
-                          },
-                          childCount: listMostPopular.length,
-                        ),
-                      ))),
-              const SliverToBoxAdapter(
-                  child: SizedBox(
-                height: 25.0,
-              )),
+                    delegate: SliverChildBuilderDelegate((
+                      BuildContext context,
+                      int index,
+                    ) {
+                      return _buildListGridItem(
+                        listMostPopular,
+                        index,
+                        widget.brokerageUser!,
+                      );
+                    }, childCount: listMostPopular.length),
+                  ),
+                ),
+              ),
+              const SliverToBoxAdapter(child: SizedBox(height: 25.0)),
               // TODO: Introduce web banner
               if (!kIsWeb) ...[
                 SliverToBoxAdapter(
-                    child: AdBannerWidget(
-                  size: AdSize.mediumRectangle,
-                  searchBanner: true,
-                )),
+                  child: AdBannerWidget(
+                    size: AdSize.mediumRectangle,
+                    searchBanner: true,
+                  ),
+                ),
               ],
-              const SliverToBoxAdapter(
-                  child: SizedBox(
-                height: 25.0,
-              )),
+              const SliverToBoxAdapter(child: SizedBox(height: 25.0)),
               const SliverToBoxAdapter(child: DisclaimerWidget()),
-              const SliverToBoxAdapter(
-                  child: SizedBox(
-                height: 25.0,
-              )),
+              const SliverToBoxAdapter(child: SizedBox(height: 25.0)),
             ],
           ],
         ),
@@ -1340,124 +1438,140 @@ class _SearchWidgetState extends State<SearchWidget>
     final isPositive = movers[index].marketHoursPriceMovement! > 0;
     final isNegative = movers[index].marketHoursPriceMovement! < 0;
     return Card(
-        elevation: 1,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12.0),
-          side: BorderSide(
-            color: isPositive
-                ? Colors.green.withValues(alpha: 0.3)
-                : (isNegative
+      elevation: 1,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12.0),
+        side: BorderSide(
+          color: isPositive
+              ? Colors.green.withValues(alpha: 0.3)
+              : (isNegative
                     ? Colors.red.withValues(alpha: 0.3)
                     : Colors.grey.withValues(
-                        alpha:
-                            0.2)), // Theme.of(context).colorScheme.outlineVariant)
-            width: 1.5,
+                        alpha: 0.2,
+                      )), // Theme.of(context).colorScheme.outlineVariant)
+          width: 1.5,
+        ),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12.0),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text(
+                movers[index].symbol,
+                style: TextStyle(
+                  fontSize: 18.0,
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 6),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      formatCurrency.format(movers[index].marketHoursLastPrice),
+                      style: TextStyle(
+                        fontSize: 16.0,
+                        fontWeight: FontWeight.w500,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  Icon(
+                    isPositive
+                        ? Icons.trending_up
+                        : (isNegative
+                              ? Icons.trending_down
+                              : Icons.trending_flat),
+                    color: isPositive
+                        ? Colors.green
+                        : (isNegative ? Colors.red : Colors.grey),
+                    size: 18,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    formatPercentage.format(
+                      movers[index].marketHoursPriceMovement!.abs() / 100,
+                    ),
+                    style: TextStyle(
+                      fontSize: 15.0,
+                      fontWeight: FontWeight.w600,
+                      color: isPositive
+                          ? Colors.green
+                          : (isNegative ? Colors.red : Colors.grey),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Expanded(
+                child: Text(
+                  movers[index].description,
+                  style: TextStyle(
+                    fontSize: 12.0,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.6),
+                  ),
+                  softWrap: true,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
           ),
         ),
-        child: InkWell(
-            borderRadius: BorderRadius.circular(12.0),
-            child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Text(movers[index].symbol,
-                          style: TextStyle(
-                            fontSize: 18.0,
-                            fontWeight: FontWeight.bold,
-                            color: Theme.of(context).colorScheme.onSurface,
-                          ),
-                          overflow: TextOverflow.ellipsis),
-                      const SizedBox(height: 6),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                                formatCurrency
-                                    .format(movers[index].marketHoursLastPrice),
-                                style: TextStyle(
-                                  fontSize: 16.0,
-                                  fontWeight: FontWeight.w500,
-                                  color:
-                                      Theme.of(context).colorScheme.onSurface,
-                                ),
-                                overflow: TextOverflow.ellipsis),
-                          ),
-                          Icon(
-                              isPositive
-                                  ? Icons.trending_up
-                                  : (isNegative
-                                      ? Icons.trending_down
-                                      : Icons.trending_flat),
-                              color: isPositive
-                                  ? Colors.green
-                                  : (isNegative ? Colors.red : Colors.grey),
-                              size: 18),
-                          const SizedBox(width: 4),
-                          Text(
-                              formatPercentage.format(movers[index]
-                                      .marketHoursPriceMovement!
-                                      .abs() /
-                                  100),
-                              style: TextStyle(
-                                fontSize: 15.0,
-                                fontWeight: FontWeight.w600,
-                                color: isPositive
-                                    ? Colors.green
-                                    : (isNegative ? Colors.red : Colors.grey),
-                              )),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      Expanded(
-                        child: Text(movers[index].description,
-                            style: TextStyle(
-                              fontSize: 12.0,
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurface
-                                  .withValues(alpha: 0.6),
-                            ),
-                            softWrap: true,
-                            maxLines: 3,
-                            overflow: TextOverflow.ellipsis),
-                      ),
-                    ])),
-            onTap: () async {
-              IBrokerageService activeService =
-                  widget.service ?? PaperService();
-              BrokerageUser activeUser = widget.brokerageUser ??
-                  BrokerageUser(BrokerageSource.paper, 'Guest', null, null);
+        onTap: () async {
+          IBrokerageService activeService = widget.service ?? PaperService();
+          BrokerageUser activeUser =
+              widget.brokerageUser ??
+              BrokerageUser(BrokerageSource.paper, 'Guest', null, null);
 
-              final instrumentStore =
-                  Provider.of<InstrumentStore>(context, listen: false);
-              var instrument = await activeService.getInstrumentBySymbol(
-                  activeUser, instrumentStore, movers[index].symbol);
+          final instrumentStore = Provider.of<InstrumentStore>(
+            context,
+            listen: false,
+          );
+          var instrument = await activeService.getInstrumentBySymbol(
+            activeUser,
+            instrumentStore,
+            movers[index].symbol,
+          );
 
-              if (!mounted) return;
+          if (!mounted) return;
 
-              if (instrument == null) {
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                    content:
-                        Text("Instrument ${movers[index].symbol} not found.")));
-                return;
-              }
+          if (instrument == null) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text("Instrument ${movers[index].symbol} not found."),
+              ),
+            );
+            return;
+          }
 
-              Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => InstrumentWidget(
-                            activeUser,
-                            activeService,
-                            instrument,
-                            analytics: widget.analytics,
-                            observer: widget.observer,
-                            generativeService: widget.generativeService,
-                            user: widget.user,
-                            userDocRef: widget.userDocRef,
-                          )));
-            }));
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => InstrumentWidget(
+                activeUser,
+                activeService,
+                instrument,
+                analytics: widget.analytics,
+                observer: widget.observer,
+                generativeService: widget.generativeService,
+                user: widget.user,
+                userDocRef: widget.userDocRef,
+              ),
+            ),
+          );
+        },
+      ),
+    );
   }
 
   Widget _buildSearchGridItem(dynamic search, int index) {
@@ -1468,157 +1582,173 @@ class _SearchWidgetState extends State<SearchWidget>
       data = search["results"][0]["content"]["data"][index]["item"];
     }
     return Card(
-        elevation: 1,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12.0),
-          side: BorderSide(
-            color: Colors.grey.withValues(
-                alpha: 0.2), // Theme.of(context).colorScheme.outlineVariant,
-            width: 1,
-          ),
+      elevation: 1,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12.0),
+        side: BorderSide(
+          color: Colors.grey.withValues(
+            alpha: 0.2,
+          ), // Theme.of(context).colorScheme.outlineVariant,
+          width: 1,
         ),
-        child: InkWell(
-            borderRadius: BorderRadius.circular(12.0),
-            child: Padding(
-                padding: const EdgeInsets.all(8),
-                child: Column(
-                    mainAxisSize: MainAxisSize.max,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              data["symbol"],
-                              style: TextStyle(
-                                fontSize: 18.0,
-                                fontWeight: FontWeight.bold,
-                                color: Theme.of(context).colorScheme.onSurface,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12.0),
+        child: Padding(
+          padding: const EdgeInsets.all(8),
+          child: Column(
+            mainAxisSize: MainAxisSize.max,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      data["symbol"],
+                      style: TextStyle(
+                        fontSize: 18.0,
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
-                      const SizedBox(height: 4),
-                      Expanded(
-                        child: Text(
-                          data["simple_name"] ??
-                              data["name"] ??
-                              data[
-                                  "description"], // Schwab API returns this field
-                          style: TextStyle(
-                            fontSize: 13.0,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Expanded(
+                child: Text(
+                  data["simple_name"] ??
+                      data["name"] ??
+                      data["description"], // Schwab API returns this field
+                  style: TextStyle(
+                    fontSize: 13.0,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.7),
+                  ),
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              if (data["exchange"] != null || data["assetType"] != null) ...[
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    if (data["exchange"] != null)
+                      Flexible(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
                             color: Theme.of(context)
                                 .colorScheme
-                                .onSurface
-                                .withValues(alpha: 0.7),
+                                .secondaryContainer
+                                .withValues(alpha: 0.5),
+                            borderRadius: BorderRadius.circular(6),
                           ),
-                          maxLines: 3,
-                          overflow: TextOverflow.ellipsis,
+                          child: Text(
+                            data["exchange"],
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSecondaryContainer,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
                       ),
-                      if (data["exchange"] != null ||
-                          data["assetType"] != null) ...[
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            if (data["exchange"] != null)
-                              Flexible(
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 6, vertical: 3),
-                                  decoration: BoxDecoration(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .secondaryContainer
-                                        .withValues(alpha: 0.5),
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: Text(
-                                    data["exchange"],
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w500,
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSecondaryContainer,
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              ),
-                            if (data["exchange"] != null &&
-                                data["assetType"] != null &&
-                                data["exchange"] != "Mutual Fund" &&
-                                data["assetType"] != "INDEX" &&
-                                data["assetType"] != "EQUITY")
-                              const SizedBox(width: 4),
-                            if (data["assetType"] != null &&
-                                data["exchange"] != "Mutual Fund" &&
-                                data["assetType"] != "INDEX" &&
-                                data["assetType"] != "EQUITY")
-                              Flexible(
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 6, vertical: 3),
-                                  decoration: BoxDecoration(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .tertiaryContainer
-                                        .withValues(alpha: 0.5),
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: Text(
-                                    data["assetType"],
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w500,
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onTertiaryContainer,
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              ),
-                          ],
-                        )
-                      ]
-                    ])),
-            onTap: () async {
-              IBrokerageService activeService =
-                  widget.service ?? PaperService();
-              BrokerageUser activeUser = widget.brokerageUser ??
-                  BrokerageUser(BrokerageSource.paper, 'Guest', null, null);
+                    if (data["exchange"] != null &&
+                        data["assetType"] != null &&
+                        data["exchange"] != "Mutual Fund" &&
+                        data["assetType"] != "INDEX" &&
+                        data["assetType"] != "EQUITY")
+                      const SizedBox(width: 4),
+                    if (data["assetType"] != null &&
+                        data["exchange"] != "Mutual Fund" &&
+                        data["assetType"] != "INDEX" &&
+                        data["assetType"] != "EQUITY")
+                      Flexible(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .tertiaryContainer
+                                .withValues(alpha: 0.5),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            data["assetType"],
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onTertiaryContainer,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ],
+            ],
+          ),
+        ),
+        onTap: () async {
+          IBrokerageService activeService = widget.service ?? PaperService();
+          BrokerageUser activeUser =
+              widget.brokerageUser ??
+              BrokerageUser(BrokerageSource.paper, 'Guest', null, null);
 
-              final instrumentStore =
-                  Provider.of<InstrumentStore>(context, listen: false);
-              var instrument = await activeService.getInstrumentBySymbol(
-                  activeUser, instrumentStore, data["symbol"]);
+          final instrumentStore = Provider.of<InstrumentStore>(
+            context,
+            listen: false,
+          );
+          var instrument = await activeService.getInstrumentBySymbol(
+            activeUser,
+            instrumentStore,
+            data["symbol"],
+          );
 
-              if (!mounted) return;
+          if (!mounted) return;
 
-              if (instrument == null) {
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                    content: Text("Instrument ${data["symbol"]} not found.")));
-                return;
-              }
+          if (instrument == null) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text("Instrument ${data["symbol"]} not found."),
+              ),
+            );
+            return;
+          }
 
-              Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => InstrumentWidget(
-                            activeUser,
-                            activeService,
-                            instrument,
-                            analytics: widget.analytics,
-                            observer: widget.observer,
-                            generativeService: widget.generativeService,
-                            user: widget.user,
-                            userDocRef: widget.userDocRef,
-                          )));
-            }));
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => InstrumentWidget(
+                activeUser,
+                activeService,
+                instrument,
+                analytics: widget.analytics,
+                observer: widget.observer,
+                generativeService: widget.generativeService,
+                user: widget.user,
+                userDocRef: widget.userDocRef,
+              ),
+            ),
+          );
+        },
+      ),
+    );
     /*
     return ListTile(
       title: Text(data["item"]["symbol"]),
@@ -1636,136 +1766,144 @@ class _SearchWidgetState extends State<SearchWidget>
   }
 
   Widget _buildListGridItem(
-      List<Instrument> instruments, int index, BrokerageUser user) {
+    List<Instrument> instruments,
+    int index,
+    BrokerageUser user,
+  ) {
     var instrumentObj = instruments[index];
     final hasQuote = instrumentObj.quoteObj != null;
-    final lastTradePrice =
-        hasQuote ? instrumentObj.quoteObj!.lastTradePrice : null;
+    final lastTradePrice = hasQuote
+        ? instrumentObj.quoteObj!.lastTradePrice
+        : null;
     final changeToday = hasQuote ? instrumentObj.quoteObj!.changeToday : 0.0;
-    final changePercentToday =
-        hasQuote ? instrumentObj.quoteObj!.changePercentToday : 0.0;
+    final changePercentToday = hasQuote
+        ? instrumentObj.quoteObj!.changePercentToday
+        : 0.0;
 
     return Card(
-        elevation: 1,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12.0),
-          side: BorderSide(
-            color: changeToday > 0
-                ? Colors.green.withValues(alpha: 0.3)
-                : (changeToday < 0
+      elevation: 1,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12.0),
+        side: BorderSide(
+          color: changeToday > 0
+              ? Colors.green.withValues(alpha: 0.3)
+              : (changeToday < 0
                     ? Colors.red.withValues(alpha: 0.3)
                     : Colors.grey.withValues(
-                        alpha:
-                            0.2)), // Theme.of(context).colorScheme.outlineVariant)
-            width: 1.5,
-          ),
+                        alpha: 0.2,
+                      )), // Theme.of(context).colorScheme.outlineVariant)
+          width: 1.5,
         ),
-        child: InkWell(
-            borderRadius: BorderRadius.circular(12.0),
-            child: Padding(
-                padding: const EdgeInsets.all(10),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    // Symbol - always shown
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12.0),
+        child: Padding(
+          padding: const EdgeInsets.all(10),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              // Symbol - always shown
+              Text(
+                instrumentObj.symbol,
+                style: TextStyle(
+                  fontSize: 16.0,
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 6),
+              if (hasQuote && lastTradePrice != null) ...[
+                Row(
+                  children: [
+                    Expanded(
+                      child: AnimatedPriceText(
+                        price: lastTradePrice,
+                        format: formatCurrency,
+                        style: TextStyle(
+                          fontSize: 15.0,
+                          fontWeight: FontWeight.w500,
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    Icon(
+                      changeToday > 0
+                          ? Icons.trending_up
+                          : (changeToday < 0
+                                ? Icons.trending_down
+                                : Icons.trending_flat),
+                      color: changeToday > 0
+                          ? Colors.green
+                          : (changeToday < 0 ? Colors.red : Colors.grey),
+                      size: 15,
+                    ),
+                    const SizedBox(width: 4),
                     Text(
-                      instrumentObj.symbol,
+                      formatPercentage.format(changePercentToday.abs()),
                       style: TextStyle(
-                        fontSize: 16.0,
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).colorScheme.onSurface,
+                        fontSize: 13.0,
+                        fontWeight: FontWeight.w600,
+                        color: changeToday > 0
+                            ? Colors.green
+                            : (changeToday < 0 ? Colors.red : Colors.grey),
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 6),
-                    if (hasQuote && lastTradePrice != null) ...[
-                      Row(
-                        children: [
-                          Expanded(
-                            child: AnimatedPriceText(
-                              price: lastTradePrice,
-                              format: formatCurrency,
-                              style: TextStyle(
-                                fontSize: 15.0,
-                                fontWeight: FontWeight.w500,
-                                color: Theme.of(context).colorScheme.onSurface,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          Icon(
-                            changeToday > 0
-                                ? Icons.trending_up
-                                : (changeToday < 0
-                                    ? Icons.trending_down
-                                    : Icons.trending_flat),
-                            color: changeToday > 0
-                                ? Colors.green
-                                : (changeToday < 0 ? Colors.red : Colors.grey),
-                            size: 15,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            formatPercentage.format(changePercentToday.abs()),
-                            style: TextStyle(
-                              fontSize: 13.0,
-                              fontWeight: FontWeight.w600,
-                              color: changeToday > 0
-                                  ? Colors.green
-                                  : (changeToday < 0
-                                      ? Colors.red
-                                      : Colors.grey),
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ),
-                    ] else ...[
-                      Text(
-                        'No quote data',
-                        style: TextStyle(
-                            fontSize: 12.0,
-                            color:
-                                Theme.of(context).colorScheme.onSurfaceVariant),
-                      ),
-                    ],
-                    const SizedBox(height: 6),
-                    Expanded(
-                      child:
-                          Text(instrumentObj.fundamentalsObj?.description ?? '',
-                              style: TextStyle(
-                                fontSize: 12.0,
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurface
-                                    .withValues(alpha: 0.6),
-                              ),
-                              softWrap: true,
-                              maxLines: 3,
-                              overflow: TextOverflow.ellipsis),
-                    ),
                   ],
-                )),
-            onTap: () {
-              /* For navigation within this tab, uncomment
+                ),
+              ] else ...[
+                Text(
+                  'No quote data',
+                  style: TextStyle(
+                    fontSize: 12.0,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+              const SizedBox(height: 6),
+              Expanded(
+                child: Text(
+                  instrumentObj.fundamentalsObj?.description ?? '',
+                  style: TextStyle(
+                    fontSize: 12.0,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.6),
+                  ),
+                  softWrap: true,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        ),
+        onTap: () {
+          /* For navigation within this tab, uncomment
               widget.navigatorKey!.currentState!.push(MaterialPageRoute(
                   builder: (context) => InstrumentWidget(ru,
                       watchLists[index].instrumentObj as Instrument)));
                       */
-              Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => InstrumentWidget(
-                            user,
-                            widget.service!,
-                            instrumentObj,
-                            analytics: widget.analytics,
-                            observer: widget.observer,
-                            generativeService: widget.generativeService,
-                            user: widget.user,
-                            userDocRef: widget.userDocRef,
-                          )));
-            }));
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => InstrumentWidget(
+                user,
+                widget.service!,
+                instrumentObj,
+                analytics: widget.analytics,
+                observer: widget.observer,
+                generativeService: widget.generativeService,
+                user: widget.user,
+                userDocRef: widget.userDocRef,
+              ),
+            ),
+          );
+        },
+      ),
+    );
   }
 }

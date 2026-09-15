@@ -71,23 +71,25 @@ class _PerformanceSectionPageState extends State<PerformanceSectionPage> {
               tooltip: 'Import from Fidelity CSV',
               onPressed: () => CsvImportService.importFidelityCsv(context),
             ),
-            Builder(builder: (context) {
-              return IconButton(
-                icon: const Icon(Icons.download),
-                tooltip: 'Export to CSV',
-                onPressed: () {
-                  final box = context.findRenderObject() as RenderBox?;
-                  AnalyticsCsvExport.share(
-                    context,
-                    metrics,
-                    benchmarkSymbol: controller.selectedBenchmark,
-                    sharePositionOrigin: box == null
-                        ? null
-                        : box.localToGlobal(Offset.zero) & box.size,
-                  );
-                },
-              );
-            }),
+            Builder(
+              builder: (context) {
+                return IconButton(
+                  icon: const Icon(Icons.download),
+                  tooltip: 'Export to CSV',
+                  onPressed: () {
+                    final box = context.findRenderObject() as RenderBox?;
+                    AnalyticsCsvExport.share(
+                      context,
+                      metrics,
+                      benchmarkSymbol: controller.selectedBenchmark,
+                      sharePositionOrigin: box == null
+                          ? null
+                          : box.localToGlobal(Offset.zero) & box.size,
+                    );
+                  },
+                );
+              },
+            ),
             PopupMenuButton<String>(
               icon: const Icon(Icons.help_outline),
               tooltip: 'Help & Documentation',
@@ -98,8 +100,10 @@ class _PerformanceSectionPageState extends State<PerformanceSectionPage> {
                   case 'definitions':
                     MetricPresentation.showAllDefinitions(context);
                   case 'benchmarks':
-                    MetricPresentation.showBenchmarkGuide(context,
-                        selectedBenchmark: controller.selectedBenchmark);
+                    MetricPresentation.showBenchmarkGuide(
+                      context,
+                      selectedBenchmark: controller.selectedBenchmark,
+                    );
                 }
               },
               itemBuilder: (context) => const [
@@ -187,13 +191,17 @@ class _PerformanceSectionPageState extends State<PerformanceSectionPage> {
       return const SizedBox.shrink();
     }
 
-    final sp500Future = controller.benchmarkHistoricals['SPY'] ??
+    final sp500Future =
+        controller.benchmarkHistoricals['SPY'] ??
         ctx.futureMarketIndexHistoricalsSp500;
-    final nasdaqFuture = controller.benchmarkHistoricals['QQQ'] ??
+    final nasdaqFuture =
+        controller.benchmarkHistoricals['QQQ'] ??
         ctx.futureMarketIndexHistoricalsNasdaq;
-    final dowFuture = controller.benchmarkHistoricals['DIA'] ??
+    final dowFuture =
+        controller.benchmarkHistoricals['DIA'] ??
         ctx.futureMarketIndexHistoricalsDow;
-    final russell2000Future = controller.benchmarkHistoricals['IWM'] ??
+    final russell2000Future =
+        controller.benchmarkHistoricals['IWM'] ??
         ctx.futureMarketIndexHistoricalsRussell2000;
     final portfolioFuture =
         controller.portfolioHistoricalsFuture ?? ctx.portfolioHistoricalsFuture;
@@ -203,8 +211,9 @@ class _PerformanceSectionPageState extends State<PerformanceSectionPage> {
     final customBenchmarkFuture = isCustomBenchmark
         ? controller.getBenchmarkFuture(controller.selectedBenchmark)
         : null;
-    final customBenchmarkSymbol =
-        isCustomBenchmark ? controller.selectedBenchmark : null;
+    final customBenchmarkSymbol = isCustomBenchmark
+        ? controller.selectedBenchmark
+        : null;
 
     return AnalyticsStyleCard(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
@@ -213,18 +222,24 @@ class _PerformanceSectionPageState extends State<PerformanceSectionPage> {
         children: [
           ListTile(
             contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-            leading: Icon(Icons.show_chart,
-                color: Theme.of(context).colorScheme.primary),
-            title:
-                Text('Growth', style: Theme.of(context).textTheme.titleLarge),
+            leading: Icon(
+              Icons.show_chart,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+            title: Text(
+              'Growth',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
             subtitle: const Text('Portfolio vs. market indices'),
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 IconButton(
-                  icon: Icon(_showAllBenchmarks
-                      ? Icons.visibility_off
-                      : Icons.visibility),
+                  icon: Icon(
+                    _showAllBenchmarks
+                        ? Icons.visibility_off
+                        : Icons.visibility,
+                  ),
                   tooltip: _showAllBenchmarks
                       ? 'Hide Other Indices'
                       : 'Show All Indices',
@@ -268,8 +283,9 @@ class _PerformanceSectionPageState extends State<PerformanceSectionPage> {
             futurePortfolioHistoricalsYear: portfolioFuture,
             benchmarkChartDateSpanFilter: span,
             onFilterChanged: ctx.onBenchmarkFilterChanged!,
-            selectedBenchmark:
-                _showAllBenchmarks ? null : controller.selectedBenchmark,
+            selectedBenchmark: _showAllBenchmarks
+                ? null
+                : controller.selectedBenchmark,
             futureCustomBenchmark: customBenchmarkFuture,
             customBenchmarkSymbol: customBenchmarkSymbol,
           ),
@@ -288,11 +304,15 @@ class _PerformanceSectionPageState extends State<PerformanceSectionPage> {
           children: [
             Icon(Icons.query_stats, size: 48, color: theme.colorScheme.outline),
             const SizedBox(height: 16),
-            Text('No Analytics Data Available',
-                style: theme.textTheme.titleMedium),
+            Text(
+              'No Analytics Data Available',
+              style: theme.textTheme.titleMedium,
+            ),
             const SizedBox(height: 8),
-            Text('Try selecting a different benchmark or time period.',
-                style: theme.textTheme.bodySmall),
+            Text(
+              'Try selecting a different benchmark or time period.',
+              style: theme.textTheme.bodySmall,
+            ),
           ],
         ),
       ),

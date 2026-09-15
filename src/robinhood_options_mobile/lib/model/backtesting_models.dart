@@ -33,28 +33,28 @@ class BacktestTrade {
   double get totalCost => price * quantity + commission;
 
   Map<String, dynamic> toJson() => {
-        'timestamp': timestamp.toIso8601String(),
-        'action': action,
-        'symbol': symbol,
-        'price': price,
-        'quantity': quantity,
-        'commission': commission,
-        'reason': reason,
-        'signalData': signalData,
-      };
+    'timestamp': timestamp.toIso8601String(),
+    'action': action,
+    'symbol': symbol,
+    'price': price,
+    'quantity': quantity,
+    'commission': commission,
+    'reason': reason,
+    'signalData': signalData,
+  };
 
   factory BacktestTrade.fromJson(Map<String, dynamic> json) => BacktestTrade(
-        timestamp: DateTime.parse(json['timestamp'] as String),
-        action: json['action'] as String,
-        symbol: json['symbol'] as String?,
-        price: (json['price'] as num).toDouble(),
-        quantity: json['quantity'] as int,
-        commission: (json['commission'] as num?)?.toDouble() ?? 0.0,
-        reason: json['reason'] as String,
-        signalData: json['signalData'] != null
-            ? Map<String, dynamic>.from(json['signalData'] as Map)
-            : null,
-      );
+    timestamp: DateTime.parse(json['timestamp'] as String),
+    action: json['action'] as String,
+    symbol: json['symbol'] as String?,
+    price: (json['price'] as num).toDouble(),
+    quantity: json['quantity'] as int,
+    commission: (json['commission'] as num?)?.toDouble() ?? 0.0,
+    reason: json['reason'] as String,
+    signalData: json['signalData'] != null
+        ? Map<String, dynamic>.from(json['signalData'] as Map)
+        : null,
+  );
 }
 
 /// Results from a completed backtest run
@@ -154,75 +154,77 @@ class BacktestResult {
   }
 
   Map<String, dynamic> toJson() => {
-        'templateId': templateId,
-        'templateName': templateName,
-        'config': config.toJson(),
-        'trades': trades.map((t) => t.toJson()).toList(),
-        'finalCapital': finalCapital,
-        'totalReturn': totalReturn,
-        'totalReturnPercent': totalReturnPercent,
-        'buyAndHoldReturn': buyAndHoldReturn,
-        'buyAndHoldReturnPercent': buyAndHoldReturnPercent,
-        'totalTrades': totalTrades,
-        'winningTrades': winningTrades,
-        'losingTrades': losingTrades,
-        'winRate': winRate,
-        'averageWin': averageWin,
-        'averageLoss': averageLoss,
-        'largestWin': largestWin,
-        'largestLoss': largestLoss,
-        'profitFactor': profitFactor,
-        'sharpeRatio': sharpeRatio,
-        'maxDrawdown': maxDrawdown,
-        'maxDrawdownPercent': maxDrawdownPercent,
-        'averageHoldTimeSeconds': averageHoldTime.inSeconds,
-        'totalDurationSeconds': totalDuration.inSeconds,
-        'equityCurve': equityCurve,
-        'buyAndHoldEquityCurve': buyAndHoldEquityCurve,
-        'performanceByIndicator': performanceByIndicator,
-      };
+    'templateId': templateId,
+    'templateName': templateName,
+    'config': config.toJson(),
+    'trades': trades.map((t) => t.toJson()).toList(),
+    'finalCapital': finalCapital,
+    'totalReturn': totalReturn,
+    'totalReturnPercent': totalReturnPercent,
+    'buyAndHoldReturn': buyAndHoldReturn,
+    'buyAndHoldReturnPercent': buyAndHoldReturnPercent,
+    'totalTrades': totalTrades,
+    'winningTrades': winningTrades,
+    'losingTrades': losingTrades,
+    'winRate': winRate,
+    'averageWin': averageWin,
+    'averageLoss': averageLoss,
+    'largestWin': largestWin,
+    'largestLoss': largestLoss,
+    'profitFactor': profitFactor,
+    'sharpeRatio': sharpeRatio,
+    'maxDrawdown': maxDrawdown,
+    'maxDrawdownPercent': maxDrawdownPercent,
+    'averageHoldTimeSeconds': averageHoldTime.inSeconds,
+    'totalDurationSeconds': totalDuration.inSeconds,
+    'equityCurve': equityCurve,
+    'buyAndHoldEquityCurve': buyAndHoldEquityCurve,
+    'performanceByIndicator': performanceByIndicator,
+  };
 
-  factory BacktestResult.fromJson(Map<String, dynamic> json, {String? id}) =>
-      BacktestResult(
-        id: id,
-        templateId: json['templateId'] as String?,
-        templateName: json['templateName'] as String?,
-        config: TradeStrategyConfig.fromJson(
-          Map<String, dynamic>.from(json['config'] as Map),
-        ),
-        trades: (json['trades'] as List)
-            .map((t) =>
-                BacktestTrade.fromJson(Map<String, dynamic>.from(t as Map)))
-            .toList(),
-        finalCapital: (json['finalCapital'] as num).toDouble(),
-        totalReturn: (json['totalReturn'] as num).toDouble(),
-        totalReturnPercent: (json['totalReturnPercent'] as num).toDouble(),
-        buyAndHoldReturn: (json['buyAndHoldReturn'] as num?)?.toDouble() ?? 0.0,
-        buyAndHoldReturnPercent:
-            (json['buyAndHoldReturnPercent'] as num?)?.toDouble() ?? 0.0,
-        totalTrades: json['totalTrades'] as int,
-        winningTrades: json['winningTrades'] as int,
-        losingTrades: json['losingTrades'] as int,
-        winRate: (json['winRate'] as num).toDouble(),
-        averageWin: (json['averageWin'] as num).toDouble(),
-        averageLoss: (json['averageLoss'] as num).toDouble(),
-        largestWin: (json['largestWin'] as num).toDouble(),
-        largestLoss: (json['largestLoss'] as num).toDouble(),
-        profitFactor: (json['profitFactor'] as num).toDouble(),
-        sharpeRatio: (json['sharpeRatio'] as num).toDouble(),
-        maxDrawdown: (json['maxDrawdown'] as num).toDouble(),
-        maxDrawdownPercent: (json['maxDrawdownPercent'] as num).toDouble(),
-        averageHoldTime:
-            Duration(seconds: json['averageHoldTimeSeconds'] as int),
-        totalDuration: Duration(seconds: json['totalDurationSeconds'] as int),
-        equityCurve: (json['equityCurve'] as List)
-            .map((e) => Map<String, dynamic>.from(e as Map))
-            .toList(),
-        buyAndHoldEquityCurve: (json['buyAndHoldEquityCurve'] as List?)
-                ?.map((e) => Map<String, dynamic>.from(e as Map))
-                .toList() ??
-            [],
-        performanceByIndicator:
-            Map<String, dynamic>.from(json['performanceByIndicator'] as Map),
-      );
+  factory BacktestResult.fromJson(
+    Map<String, dynamic> json, {
+    String? id,
+  }) => BacktestResult(
+    id: id,
+    templateId: json['templateId'] as String?,
+    templateName: json['templateName'] as String?,
+    config: TradeStrategyConfig.fromJson(
+      Map<String, dynamic>.from(json['config'] as Map),
+    ),
+    trades: (json['trades'] as List)
+        .map((t) => BacktestTrade.fromJson(Map<String, dynamic>.from(t as Map)))
+        .toList(),
+    finalCapital: (json['finalCapital'] as num).toDouble(),
+    totalReturn: (json['totalReturn'] as num).toDouble(),
+    totalReturnPercent: (json['totalReturnPercent'] as num).toDouble(),
+    buyAndHoldReturn: (json['buyAndHoldReturn'] as num?)?.toDouble() ?? 0.0,
+    buyAndHoldReturnPercent:
+        (json['buyAndHoldReturnPercent'] as num?)?.toDouble() ?? 0.0,
+    totalTrades: json['totalTrades'] as int,
+    winningTrades: json['winningTrades'] as int,
+    losingTrades: json['losingTrades'] as int,
+    winRate: (json['winRate'] as num).toDouble(),
+    averageWin: (json['averageWin'] as num).toDouble(),
+    averageLoss: (json['averageLoss'] as num).toDouble(),
+    largestWin: (json['largestWin'] as num).toDouble(),
+    largestLoss: (json['largestLoss'] as num).toDouble(),
+    profitFactor: (json['profitFactor'] as num).toDouble(),
+    sharpeRatio: (json['sharpeRatio'] as num).toDouble(),
+    maxDrawdown: (json['maxDrawdown'] as num).toDouble(),
+    maxDrawdownPercent: (json['maxDrawdownPercent'] as num).toDouble(),
+    averageHoldTime: Duration(seconds: json['averageHoldTimeSeconds'] as int),
+    totalDuration: Duration(seconds: json['totalDurationSeconds'] as int),
+    equityCurve: (json['equityCurve'] as List)
+        .map((e) => Map<String, dynamic>.from(e as Map))
+        .toList(),
+    buyAndHoldEquityCurve:
+        (json['buyAndHoldEquityCurve'] as List?)
+            ?.map((e) => Map<String, dynamic>.from(e as Map))
+            .toList() ??
+        [],
+    performanceByIndicator: Map<String, dynamic>.from(
+      json['performanceByIndicator'] as Map,
+    ),
+  );
 }

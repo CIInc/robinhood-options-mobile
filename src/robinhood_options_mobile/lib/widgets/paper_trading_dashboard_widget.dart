@@ -96,12 +96,18 @@ class _PaperTradingDashboardWidgetState
   Future<void> _refreshQuotes() async {
     final store = Provider.of<PaperTradingStore>(context, listen: false);
     final quoteStore = Provider.of<QuoteStore>(context, listen: false);
-    final optionInstrumentStore =
-        Provider.of<OptionInstrumentStore>(context, listen: false);
+    final optionInstrumentStore = Provider.of<OptionInstrumentStore>(
+      context,
+      listen: false,
+    );
 
     if (widget.brokerageUser != null) {
-      await store.refreshQuotes(widget.service, quoteStore,
-          optionInstrumentStore, widget.brokerageUser!);
+      await store.refreshQuotes(
+        widget.service,
+        quoteStore,
+        optionInstrumentStore,
+        widget.brokerageUser!,
+      );
       if (mounted) {
         setState(_loadHistoricals);
       }
@@ -144,19 +150,23 @@ class _PaperTradingDashboardWidgetState
       sb.writeln("Cash: \$${store.cashBalance.toStringAsFixed(2)}");
       sb.writeln("Equity: \$${store.equity.toStringAsFixed(2)}");
       sb.writeln(
-          "P&L: \$${(store.equity - store.initialCapital).toStringAsFixed(2)} (${((store.equity - store.initialCapital) / store.initialCapital * 100).toStringAsFixed(2)}%)");
+        "P&L: \$${(store.equity - store.initialCapital).toStringAsFixed(2)} (${((store.equity - store.initialCapital) / store.initialCapital * 100).toStringAsFixed(2)}%)",
+      );
       sb.writeln("Positions:");
       for (var p in store.positions) {
         sb.writeln(
-            "- Stock: ${p.instrumentObj?.symbol}, Qty: ${p.quantity}, Avg: ${p.averageBuyPrice}, Current: ${p.instrumentObj?.quoteObj?.lastTradePrice}");
+          "- Stock: ${p.instrumentObj?.symbol}, Qty: ${p.quantity}, Avg: ${p.averageBuyPrice}, Current: ${p.instrumentObj?.quoteObj?.lastTradePrice}",
+        );
       }
       for (var p in store.optionPositions) {
         sb.writeln(
-            "- Option: ${p.symbol} ${p.strategy}, Qty: ${p.quantity}, Avg: ${p.averageOpenPrice}, Current: ${p.optionInstrument?.optionMarketData?.adjustedMarkPrice}");
+          "- Option: ${p.symbol} ${p.strategy}, Qty: ${p.quantity}, Avg: ${p.averageOpenPrice}, Current: ${p.optionInstrument?.optionMarketData?.adjustedMarkPrice}",
+        );
       }
       for (var p in store.futuresPositions) {
         sb.writeln(
-            "- Futures: ${p.symbol} (${p.contractId}), Qty: ${p.quantity}, Avg: ${p.avgPrice}, Current: ${p.lastPrice}, Multiplier: ${p.multiplier}");
+          "- Futures: ${p.symbol} (${p.contractId}), Qty: ${p.quantity}, Avg: ${p.avgPrice}, Current: ${p.lastPrice}, Multiplier: ${p.multiplier}",
+        );
       }
 
       final prompt = sb.toString();
@@ -189,8 +199,9 @@ class _PaperTradingDashboardWidgetState
   Widget build(BuildContext context) {
     final store = Provider.of<PaperTradingStore>(context);
     final formatCurrency = NumberFormat.simpleCurrency();
-    final formatPercentage =
-        NumberFormat.decimalPercentPattern(decimalDigits: 2);
+    final formatPercentage = NumberFormat.decimalPercentPattern(
+      decimalDigits: 2,
+    );
 
     final totalEquity = store.equity;
     final initialBalance = store.initialCapital;
@@ -263,8 +274,10 @@ class _PaperTradingDashboardWidgetState
                           children: [
                             const Text(
                               'No active positions.',
-                              style:
-                                  TextStyle(color: Colors.grey, fontSize: 16),
+                              style: TextStyle(
+                                color: Colors.grey,
+                                fontSize: 16,
+                              ),
                             ),
                             const SizedBox(height: 12),
                             FilledButton.icon(
@@ -276,36 +289,49 @@ class _PaperTradingDashboardWidgetState
                         ),
                       ),
                     ),
-                  ...store.positions.map((pos) => _buildStockPosition(
-                        context,
-                        pos,
-                        formatCurrency,
-                        formatPercentage,
-                      )),
-                  ...store.optionPositions.map((pos) => _buildOptionPosition(
-                        context,
-                        pos,
-                        formatCurrency,
-                        formatPercentage,
-                      )),
-                  ...store.futuresPositions.map((pos) => _buildFuturesPosition(
-                        context,
-                        pos,
-                        formatCurrency,
-                        formatPercentage,
-                      )),
+                  ...store.positions.map(
+                    (pos) => _buildStockPosition(
+                      context,
+                      pos,
+                      formatCurrency,
+                      formatPercentage,
+                    ),
+                  ),
+                  ...store.optionPositions.map(
+                    (pos) => _buildOptionPosition(
+                      context,
+                      pos,
+                      formatCurrency,
+                      formatPercentage,
+                    ),
+                  ),
+                  ...store.futuresPositions.map(
+                    (pos) => _buildFuturesPosition(
+                      context,
+                      pos,
+                      formatCurrency,
+                      formatPercentage,
+                    ),
+                  ),
                   if (store.pendingOrders.isNotEmpty) ...[
                     const SizedBox(height: 24),
                     _buildSectionHeader('Working Orders'),
-                    ...store.pendingOrders.map((order) => _buildWorkingOrder(
-                        context, store, order, formatCurrency)),
+                    ...store.pendingOrders.map(
+                      (order) => _buildWorkingOrder(
+                        context,
+                        store,
+                        order,
+                        formatCurrency,
+                      ),
+                    ),
                   ],
                   const SizedBox(height: 24),
                   _buildSectionHeader('Order History'),
                   if (store.history.isEmpty)
                     _buildEmptyState('No order history.'),
-                  ...store.history
-                      .map((h) => _buildHistoryItem(h, formatCurrency)),
+                  ...store.history.map(
+                    (h) => _buildHistoryItem(h, formatCurrency),
+                  ),
                   const SizedBox(height: 24),
                   _buildSectionHeader('Tools'),
                   _buildToolsSection(context),
@@ -368,8 +394,10 @@ class _PaperTradingDashboardWidgetState
                   ),
                 ),
                 const SizedBox(width: 4),
-                const Text('All Time',
-                    style: TextStyle(color: Colors.grey, fontSize: 12)),
+                const Text(
+                  'All Time',
+                  style: TextStyle(color: Colors.grey, fontSize: 12),
+                ),
               ],
             ),
             const Divider(height: 32),
@@ -377,8 +405,10 @@ class _PaperTradingDashboardWidgetState
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 _buildSummaryItem('Buying Power', formatCurrency.format(cash)),
-                _buildSummaryItem('Annual Return',
-                    formatPercentage.format(pnlPercent)), // Simplification
+                _buildSummaryItem(
+                  'Annual Return',
+                  formatPercentage.format(pnlPercent),
+                ), // Simplification
               ],
             ),
             const SizedBox(height: 16),
@@ -457,8 +487,9 @@ class _PaperTradingDashboardWidgetState
               if (_isAnalyzing && _aiAnalysis == null)
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 20.0),
-                  child:
-                      Center(child: Text("Analyzing portfolio performance...")),
+                  child: Center(
+                    child: Text("Analyzing portfolio performance..."),
+                  ),
                 )
               else if (_aiAnalysis != null)
                 MarkdownBody(
@@ -478,8 +509,11 @@ class _PaperTradingDashboardWidgetState
   /// allocation pie on page 1. Allocation only exists when there are open
   /// positions, so with none the carousel collapses to just the chart.
   Widget _buildChartCarousel(
-      PaperTradingStore store, NumberFormat formatCurrency) {
-    final hasPositions = store.positions.isNotEmpty ||
+    PaperTradingStore store,
+    NumberFormat formatCurrency,
+  ) {
+    final hasPositions =
+        store.positions.isNotEmpty ||
         store.optionPositions.isNotEmpty ||
         store.futuresPositions.isNotEmpty;
 
@@ -498,8 +532,9 @@ class _PaperTradingDashboardWidgetState
             controller: _chartPageController,
             onPageChanged: (i) => setState(() => _chartPage = i),
             children: pages
-                .map((page) =>
-                    Align(alignment: Alignment.topCenter, child: page))
+                .map(
+                  (page) => Align(alignment: Alignment.topCenter, child: page),
+                )
                 .toList(),
           ),
         ),
@@ -532,8 +567,9 @@ class _PaperTradingDashboardWidgetState
   Widget _buildEquityChart() {
     if (_futureHistoricals == null) return const SizedBox.shrink();
     final formatCurrency = NumberFormat.simpleCurrency();
-    final formatPercentage =
-        NumberFormat.decimalPercentPattern(decimalDigits: 2);
+    final formatPercentage = NumberFormat.decimalPercentPattern(
+      decimalDigits: 2,
+    );
 
     return Card(
       elevation: 4,
@@ -545,13 +581,15 @@ class _PaperTradingDashboardWidgetState
           builder: (context, snapshot) {
             if (snapshot.hasError) {
               return const SizedBox(
-                  height: 120,
-                  child: Center(child: Text('Could not load equity history')));
+                height: 120,
+                child: Center(child: Text('Could not load equity history')),
+              );
             }
             if (!snapshot.hasData) {
               return const SizedBox(
-                  height: 120,
-                  child: Center(child: CircularProgressIndicator()));
+                height: 120,
+                child: Center(child: CircularProgressIndicator()),
+              );
             }
 
             final now = DateTime.now();
@@ -562,24 +600,31 @@ class _PaperTradingDashboardWidgetState
               _ => null,
             };
             final points = snapshot.data!.equityHistoricals
-                .where((e) =>
-                    e.beginsAt != null &&
-                    (days == null ||
-                        e.beginsAt!
-                            .isAfter(now.subtract(Duration(days: days)))))
+                .where(
+                  (e) =>
+                      e.beginsAt != null &&
+                      (days == null ||
+                          e.beginsAt!.isAfter(
+                            now.subtract(Duration(days: days)),
+                          )),
+                )
                 .toList();
 
             Widget body;
             if (points.length < 2) {
               body = const SizedBox(
-                  height: 120,
-                  child: Center(
-                      child: Text('Not enough history for this range yet.')));
+                height: 120,
+                child: Center(
+                  child: Text('Not enough history for this range yet.'),
+                ),
+              );
             } else {
-              final open = points.first.adjustedOpenEquity ??
+              final open =
+                  points.first.adjustedOpenEquity ??
                   points.first.closeEquity ??
                   0;
-              final close = points.last.adjustedCloseEquity ??
+              final close =
+                  points.last.adjustedCloseEquity ??
                   points.last.closeEquity ??
                   0;
               final change = close - open;
@@ -592,21 +637,26 @@ class _PaperTradingDashboardWidgetState
                   Row(
                     children: [
                       Icon(
-                          change >= 0
-                              ? Icons.arrow_upward
-                              : Icons.arrow_downward,
-                          color: color,
-                          size: 16),
+                        change >= 0 ? Icons.arrow_upward : Icons.arrow_downward,
+                        color: color,
+                        size: 16,
+                      ),
                       const SizedBox(width: 4),
                       Text(
                         "${formatCurrency.format(change)} (${formatPercentage.format(changePercent)})",
                         style: TextStyle(
-                            fontWeight: FontWeight.bold, color: color),
+                          fontWeight: FontWeight.bold,
+                          color: color,
+                        ),
                       ),
                       const SizedBox(width: 6),
-                      Text(_chartRange == 'All' ? 'all time' : _chartRange,
-                          style: const TextStyle(
-                              color: Colors.grey, fontSize: 12)),
+                      Text(
+                        _chartRange == 'All' ? 'all time' : _chartRange,
+                        style: const TextStyle(
+                          color: Colors.grey,
+                          fontSize: 12,
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 8),
@@ -625,7 +675,8 @@ class _PaperTradingDashboardWidgetState
                       animate: false,
                       primaryMeasureAxis: const charts.NumericAxisSpec(
                         tickProviderSpec: charts.BasicNumericTickProviderSpec(
-                            zeroBound: false),
+                          zeroBound: false,
+                        ),
                       ),
                     ),
                   ),
@@ -641,12 +692,14 @@ class _PaperTradingDashboardWidgetState
                 Wrap(
                   spacing: 8,
                   children: ['1W', '1M', '3M', 'All']
-                      .map((range) => ChoiceChip(
-                            label: Text(range),
-                            selected: _chartRange == range,
-                            onSelected: (_) =>
-                                setState(() => _chartRange = range),
-                          ))
+                      .map(
+                        (range) => ChoiceChip(
+                          label: Text(range),
+                          selected: _chartRange == range,
+                          onSelected: (_) =>
+                              setState(() => _chartRange = range),
+                        ),
+                      )
                       .toList(),
                 ),
               ],
@@ -715,7 +768,9 @@ class _PaperTradingDashboardWidgetState
   }
 
   Widget _buildAllocationChart(
-      PaperTradingStore store, NumberFormat formatCurrency) {
+    PaperTradingStore store,
+    NumberFormat formatCurrency,
+  ) {
     final data = _getPieData(store);
     if (data.isEmpty) return const SizedBox.shrink();
 
@@ -727,7 +782,7 @@ class _PaperTradingDashboardWidgetState
         data: data,
         labelAccessorFn: (PieChartData row, _) =>
             '${row.label}: ${formatCurrency.format(row.value)}',
-      )
+      ),
     ];
 
     return Card(
@@ -737,8 +792,10 @@ class _PaperTradingDashboardWidgetState
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            const Text('Asset Allocation',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const Text(
+              'Asset Allocation',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
             SizedBox(
               height: 250,
               child: PieChart(
@@ -752,7 +809,7 @@ class _PaperTradingDashboardWidgetState
                   arcRendererDecorators: [
                     charts.ArcLabelDecorator(
                       labelPosition: charts.ArcLabelPosition.outside,
-                    )
+                    ),
                   ],
                 ),
               ),
@@ -768,7 +825,8 @@ class _PaperTradingDashboardWidgetState
     // absolute value.
     double stockValue = 0;
     for (var pos in store.positions) {
-      final currentPrice = pos.instrumentObj?.quoteObj?.lastTradePrice ??
+      final currentPrice =
+          pos.instrumentObj?.quoteObj?.lastTradePrice ??
           pos.averageBuyPrice ??
           0;
       stockValue += ((pos.quantity ?? 0) * currentPrice).abs();
@@ -778,8 +836,8 @@ class _PaperTradingDashboardWidgetState
     for (var pos in store.optionPositions) {
       final currentPrice =
           pos.optionInstrument?.optionMarketData?.adjustedMarkPrice ??
-              pos.averageOpenPrice ??
-              0;
+          pos.averageOpenPrice ??
+          0;
       optionValue += ((pos.quantity ?? 0) * currentPrice * 100).abs();
     }
 
@@ -803,8 +861,10 @@ class _PaperTradingDashboardWidgetState
       children: [
         Text(label, style: const TextStyle(color: Colors.grey, fontSize: 12)),
         const SizedBox(height: 4),
-        Text(value,
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+        Text(
+          value,
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        ),
       ],
     );
   }
@@ -887,25 +947,32 @@ class _PaperTradingDashboardWidgetState
                         child: Text(
                           pos.instrumentObj?.symbol ?? '?',
                           style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 10,
-                              color: Colors.black87),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 10,
+                            color: Colors.black87,
+                          ),
                         ),
                       ),
                       const SizedBox(width: 12),
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(pos.instrumentObj?.symbol ?? 'Unknown',
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.bold, fontSize: 16)),
                           Text(
-                              isShort
-                                  ? "${quantity.abs().toStringAsFixed(2)} shares (SHORT)"
-                                  : "${quantity.toStringAsFixed(2)} shares",
-                              style: TextStyle(
-                                  color: isShort ? Colors.orange : Colors.grey,
-                                  fontSize: 12)),
+                            pos.instrumentObj?.symbol ?? 'Unknown',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                          Text(
+                            isShort
+                                ? "${quantity.abs().toStringAsFixed(2)} shares (SHORT)"
+                                : "${quantity.toStringAsFixed(2)} shares",
+                            style: TextStyle(
+                              color: isShort ? Colors.orange : Colors.grey,
+                              fontSize: 12,
+                            ),
+                          ),
                         ],
                       ),
                     ],
@@ -913,12 +980,20 @@ class _PaperTradingDashboardWidgetState
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      Text(formatCurrency.format(marketValue),
-                          style: const TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 16)),
-                      Text(formatCurrency.format(currentPrice),
-                          style: const TextStyle(
-                              color: Colors.grey, fontSize: 12)),
+                      Text(
+                        formatCurrency.format(marketValue),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                      Text(
+                        formatCurrency.format(currentPrice),
+                        style: const TextStyle(
+                          color: Colors.grey,
+                          fontSize: 12,
+                        ),
+                      ),
                     ],
                   ),
                 ],
@@ -932,17 +1007,23 @@ class _PaperTradingDashboardWidgetState
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Avg Cost',
-                          style: TextStyle(color: Colors.grey, fontSize: 10)),
-                      Text(formatCurrency.format(avgCost),
-                          style: const TextStyle(fontWeight: FontWeight.w500)),
+                      const Text(
+                        'Avg Cost',
+                        style: TextStyle(color: Colors.grey, fontSize: 10),
+                      ),
+                      Text(
+                        formatCurrency.format(avgCost),
+                        style: const TextStyle(fontWeight: FontWeight.w500),
+                      ),
                     ],
                   ),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      const Text('Total Return',
-                          style: TextStyle(color: Colors.grey, fontSize: 10)),
+                      const Text(
+                        'Total Return',
+                        style: TextStyle(color: Colors.grey, fontSize: 10),
+                      ),
                       Row(
                         children: [
                           Icon(
@@ -1007,12 +1088,19 @@ class _PaperTradingDashboardWidgetState
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                            pos.symbol.isNotEmpty ? pos.symbol : pos.contractId,
-                            style: const TextStyle(
-                                fontWeight: FontWeight.bold, fontSize: 16)),
-                        Text("${quantity.toStringAsFixed(0)} contracts",
-                            style: const TextStyle(
-                                color: Colors.grey, fontSize: 12)),
+                          pos.symbol.isNotEmpty ? pos.symbol : pos.contractId,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                        Text(
+                          "${quantity.toStringAsFixed(0)} contracts",
+                          style: const TextStyle(
+                            color: Colors.grey,
+                            fontSize: 12,
+                          ),
+                        ),
                       ],
                     ),
                   ],
@@ -1020,12 +1108,17 @@ class _PaperTradingDashboardWidgetState
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text(formatCurrency.format(currentPrice),
-                        style: const TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 16)),
-                    Text("Multiplier: ${pos.multiplier}",
-                        style:
-                            const TextStyle(color: Colors.grey, fontSize: 11)),
+                    Text(
+                      formatCurrency.format(currentPrice),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    Text(
+                      "Multiplier: ${pos.multiplier}",
+                      style: const TextStyle(color: Colors.grey, fontSize: 11),
+                    ),
                   ],
                 ),
               ],
@@ -1039,17 +1132,23 @@ class _PaperTradingDashboardWidgetState
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Avg Price',
-                        style: TextStyle(color: Colors.grey, fontSize: 10)),
-                    Text(formatCurrency.format(avgCost),
-                        style: const TextStyle(fontWeight: FontWeight.w500)),
+                    const Text(
+                      'Avg Price',
+                      style: TextStyle(color: Colors.grey, fontSize: 10),
+                    ),
+                    Text(
+                      formatCurrency.format(avgCost),
+                      style: const TextStyle(fontWeight: FontWeight.w500),
+                    ),
                   ],
                 ),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    const Text('Total Return',
-                        style: TextStyle(color: Colors.grey, fontSize: 10)),
+                    const Text(
+                      'Total Return',
+                      style: TextStyle(color: Colors.grey, fontSize: 10),
+                    ),
                     Row(
                       children: [
                         Icon(
@@ -1137,25 +1236,31 @@ class _PaperTradingDashboardWidgetState
                         child: const Text(
                           'OPT',
                           style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 10,
-                              color: Colors.black87),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 10,
+                            color: Colors.black87,
+                          ),
                         ),
                       ),
                       const SizedBox(width: 12),
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(pos.symbol ?? 'Option',
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.bold, fontSize: 15)),
+                          Text(
+                            pos.symbol ?? 'Option',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                            ),
+                          ),
                           Text(
                             isShort
                                 ? "${quantity.toStringAsFixed(0)} contracts (SHORT)"
                                 : "${quantity.toStringAsFixed(0)} contracts",
                             style: TextStyle(
-                                color: isShort ? Colors.orange : Colors.grey,
-                                fontSize: 12),
+                              color: isShort ? Colors.orange : Colors.grey,
+                              fontSize: 12,
+                            ),
                           ),
                         ],
                       ),
@@ -1164,12 +1269,20 @@ class _PaperTradingDashboardWidgetState
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      Text(formatCurrency.format(marketValue),
-                          style: const TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 16)),
-                      Text(formatCurrency.format(currentPrice),
-                          style: const TextStyle(
-                              color: Colors.grey, fontSize: 12)),
+                      Text(
+                        formatCurrency.format(marketValue),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                      Text(
+                        formatCurrency.format(currentPrice),
+                        style: const TextStyle(
+                          color: Colors.grey,
+                          fontSize: 12,
+                        ),
+                      ),
                     ],
                   ),
                 ],
@@ -1183,17 +1296,23 @@ class _PaperTradingDashboardWidgetState
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Avg Cost',
-                          style: TextStyle(color: Colors.grey, fontSize: 10)),
-                      Text(formatCurrency.format(avgCost),
-                          style: const TextStyle(fontWeight: FontWeight.w500)),
+                      const Text(
+                        'Avg Cost',
+                        style: TextStyle(color: Colors.grey, fontSize: 10),
+                      ),
+                      Text(
+                        formatCurrency.format(avgCost),
+                        style: const TextStyle(fontWeight: FontWeight.w500),
+                      ),
                     ],
                   ),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      const Text('Total Return',
-                          style: TextStyle(color: Colors.grey, fontSize: 10)),
+                      const Text(
+                        'Total Return',
+                        style: TextStyle(color: Colors.grey, fontSize: 10),
+                      ),
                       Row(
                         children: [
                           Icon(
@@ -1224,8 +1343,12 @@ class _PaperTradingDashboardWidgetState
     );
   }
 
-  Widget _buildWorkingOrder(BuildContext context, PaperTradingStore store,
-      PendingPaperOrder order, NumberFormat formatCurrency) {
+  Widget _buildWorkingOrder(
+    BuildContext context,
+    PaperTradingStore store,
+    PendingPaperOrder order,
+    NumberFormat formatCurrency,
+  ) {
     final isBuy = order.side == 'buy';
     final typeLabel = order.orderType.replaceAll('_', ' ').toUpperCase();
     final isTrailing = order.orderType == 'trailing_stop';
@@ -1249,20 +1372,25 @@ class _PaperTradingDashboardWidgetState
           color: isBuy ? Colors.green : Colors.red,
         ),
         title: Text(
-            "${order.side.toUpperCase()} ${order.quantity.toStringAsFixed(order.quantity % 1 == 0 ? 0 : 2)} ${order.symbol}"),
-        subtitle:
-            Text("$typeLabel · $prices · ${order.timeInForce.toUpperCase()}"
-                "${order.triggered ? ' · TRIGGERED' : ''}"),
+          "${order.side.toUpperCase()} ${order.quantity.toStringAsFixed(order.quantity % 1 == 0 ? 0 : 2)} ${order.symbol}",
+        ),
+        subtitle: Text(
+          "$typeLabel · $prices · ${order.timeInForce.toUpperCase()}"
+          "${order.triggered ? ' · TRIGGERED' : ''}",
+        ),
         trailing: IconButton(
           icon: const Icon(Icons.close),
           tooltip: 'Cancel Order',
           onPressed: () async {
             final cancelled = await store.cancelPendingOrder(order.id);
             if (!context.mounted) return;
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                content: Text(cancelled
-                    ? 'Order cancelled.'
-                    : 'Order no longer working.')));
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  cancelled ? 'Order cancelled.' : 'Order no longer working.',
+                ),
+              ),
+            );
           },
         ),
       ),
@@ -1270,7 +1398,9 @@ class _PaperTradingDashboardWidgetState
   }
 
   Widget _buildHistoryItem(
-      Map<String, dynamic> h, NumberFormat formatCurrency) {
+    Map<String, dynamic> h,
+    NumberFormat formatCurrency,
+  ) {
     final type = h['type'].toString().toUpperCase();
     final side = (h['side'] ?? h['action'] ?? '').toString().toUpperCase();
     final isBuy = side == 'BUY';
@@ -1293,8 +1423,10 @@ class _PaperTradingDashboardWidgetState
           children: [
             Text(DateFormat.yMMMd().add_jm().format(date)),
             if (h['detail'] != null)
-              Text(h['detail'],
-                  style: const TextStyle(fontSize: 10, color: Colors.grey)),
+              Text(
+                h['detail'],
+                style: const TextStyle(fontSize: 10, color: Colors.grey),
+              ),
           ],
         ),
         trailing: Column(
@@ -1307,11 +1439,13 @@ class _PaperTradingDashboardWidgetState
             ),
             // Total value of trade
             Text(
-              formatCurrency.format((h['quantity'] ?? 0) *
-                  (h['price'] ?? 0) *
-                  (h['multiplier'] ?? (type == 'OPTION' ? 100 : 1))),
+              formatCurrency.format(
+                (h['quantity'] ?? 0) *
+                    (h['price'] ?? 0) *
+                    (h['multiplier'] ?? (type == 'OPTION' ? 100 : 1)),
+              ),
               style: TextStyle(color: color, fontSize: 12),
-            )
+            ),
           ],
         ),
       ),
@@ -1319,10 +1453,12 @@ class _PaperTradingDashboardWidgetState
   }
 
   void _showSettings(BuildContext context, PaperTradingStore store) {
-    final slippageController =
-        TextEditingController(text: store.slippage.toString());
-    final commissionController =
-        TextEditingController(text: store.commission.toString());
+    final slippageController = TextEditingController(
+      text: store.slippage.toString(),
+    );
+    final commissionController = TextEditingController(
+      text: store.commission.toString(),
+    );
 
     showDialog(
       context: context,
@@ -1364,7 +1500,8 @@ class _PaperTradingDashboardWidgetState
               store.updateSettings(slippage: s, commission: c);
               Navigator.pop(ctx);
               ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Settings updated.')));
+                const SnackBar(content: Text('Settings updated.')),
+              );
             },
             child: const Text('Save'),
           ),
@@ -1374,8 +1511,9 @@ class _PaperTradingDashboardWidgetState
   }
 
   void _confirmReset(BuildContext context, PaperTradingStore store) {
-    final capitalController =
-        TextEditingController(text: store.initialCapital.toStringAsFixed(2));
+    final capitalController = TextEditingController(
+      text: store.initialCapital.toStringAsFixed(2),
+    );
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -1410,7 +1548,8 @@ class _PaperTradingDashboardWidgetState
               store.resetAccount(initialCapital: capital);
               Navigator.pop(ctx);
               ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Paper account reset.')));
+                const SnackBar(content: Text('Paper account reset.')),
+              );
             },
             child: const Text('Reset Now', style: TextStyle(color: Colors.red)),
           ),

@@ -83,12 +83,15 @@ class _ExitStrategiesWidgetState extends State<ExitStrategiesWidget> {
 
   void _initializeStageControllers() {
     _exitStageProfitControllers = widget.exitStages
-        .map((s) =>
-            TextEditingController(text: s.profitTargetPercent.toString()))
+        .map(
+          (s) => TextEditingController(text: s.profitTargetPercent.toString()),
+        )
         .toList();
     _exitStageQuantityControllers = widget.exitStages
-        .map((s) =>
-            TextEditingController(text: (s.quantityPercent * 100).toString()))
+        .map(
+          (s) =>
+              TextEditingController(text: (s.quantityPercent * 100).toString()),
+        )
         .toList();
   }
 
@@ -280,9 +283,9 @@ class _ExitStrategiesWidgetState extends State<ExitStrategiesWidget> {
         child: Text(
           title,
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: Theme.of(context).colorScheme.primary,
-                fontWeight: FontWeight.bold,
-              ),
+            color: Theme.of(context).colorScheme.primary,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ),
     );
@@ -298,14 +301,18 @@ class _ExitStrategiesWidgetState extends State<ExitStrategiesWidget> {
             decoration: BoxDecoration(
               color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
-              border:
-                  Border.all(color: colorScheme.outline.withValues(alpha: 0.1)),
+              border: Border.all(
+                color: colorScheme.outline.withValues(alpha: 0.1),
+              ),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.info_outline_rounded,
-                    size: 16, color: colorScheme.onSurfaceVariant),
+                Icon(
+                  Icons.info_outline_rounded,
+                  size: 16,
+                  color: colorScheme.onSurfaceVariant,
+                ),
                 const SizedBox(width: 8),
                 Text(
                   'No exit stages configured.',
@@ -345,7 +352,9 @@ class _ExitStrategiesWidgetState extends State<ExitStrategiesWidget> {
                       children: [
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 4),
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: colorScheme.primary.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(6),
@@ -363,8 +372,9 @@ class _ExitStrategiesWidgetState extends State<ExitStrategiesWidget> {
                     ),
                     InkWell(
                       onTap: () {
-                        final newStages =
-                            List<ExitStage>.from(widget.exitStages);
+                        final newStages = List<ExitStage>.from(
+                          widget.exitStages,
+                        );
                         newStages.removeAt(index);
                         widget.onExitStagesChanged(newStages);
                         _notifySettingsChanged();
@@ -394,8 +404,9 @@ class _ExitStrategiesWidgetState extends State<ExitStrategiesWidget> {
                         onChanged: (value) {
                           final val = double.tryParse(value);
                           if (val != null) {
-                            final newStages =
-                                List<ExitStage>.from(widget.exitStages);
+                            final newStages = List<ExitStage>.from(
+                              widget.exitStages,
+                            );
                             newStages[index] = ExitStage(
                               profitTargetPercent: val,
                               quantityPercent: stage.quantityPercent,
@@ -417,8 +428,9 @@ class _ExitStrategiesWidgetState extends State<ExitStrategiesWidget> {
                         onChanged: (value) {
                           final val = double.tryParse(value);
                           if (val != null) {
-                            final newStages =
-                                List<ExitStage>.from(widget.exitStages);
+                            final newStages = List<ExitStage>.from(
+                              widget.exitStages,
+                            );
                             newStages[index] = ExitStage(
                               profitTargetPercent: stage.profitTargetPercent,
                               quantityPercent: val / 100.0,
@@ -461,9 +473,11 @@ class _ExitStrategiesWidgetState extends State<ExitStrategiesWidget> {
             style: TextButton.styleFrom(
               minimumSize: const Size(double.infinity, 44),
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
-              backgroundColor:
-                  colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              backgroundColor: colorScheme.surfaceContainerHighest.withValues(
+                alpha: 0.3,
+              ),
             ),
           ),
         ),
@@ -524,22 +538,26 @@ class _ExitStrategiesWidgetState extends State<ExitStrategiesWidget> {
               decoration: BoxDecoration(
                 color: value
                     ? colorScheme.primary.withValues(alpha: 0.1)
-                    : colorScheme.surfaceContainerHighest
-                        .withValues(alpha: 0.3),
+                    : colorScheme.surfaceContainerHighest.withValues(
+                        alpha: 0.3,
+                      ),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(
                 icon,
                 size: 20,
-                color:
-                    value ? colorScheme.primary : colorScheme.onSurfaceVariant,
+                color: value
+                    ? colorScheme.primary
+                    : colorScheme.onSurfaceVariant,
               ),
             ),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
             ),
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 4,
+            ),
           ),
           if (value && extraContent != null)
             Padding(
@@ -572,21 +590,28 @@ class _ExitStrategiesWidgetState extends State<ExitStrategiesWidget> {
     return TextFormField(
       controller: controller,
       style: TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w500,
-          color: colorScheme.onSurface),
+        fontSize: 14,
+        fontWeight: FontWeight.w500,
+        color: colorScheme.onSurface,
+      ),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle:
-            TextStyle(fontSize: 13, color: colorScheme.onSurfaceVariant),
+        labelStyle: TextStyle(
+          fontSize: 13,
+          color: colorScheme.onSurfaceVariant,
+        ),
         helperText: helperText,
         helperStyle: TextStyle(
-            color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7)),
+          color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+        ),
         suffixText: suffixText,
         suffixStyle: const TextStyle(fontWeight: FontWeight.bold),
         prefixIcon: prefixIcon != null
-            ? Icon(prefixIcon,
-                size: 18, color: colorScheme.primary.withValues(alpha: 0.8))
+            ? Icon(
+                prefixIcon,
+                size: 18,
+                color: colorScheme.primary.withValues(alpha: 0.8),
+              )
             : null,
         filled: true,
         fillColor: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
@@ -603,13 +628,12 @@ class _ExitStrategiesWidgetState extends State<ExitStrategiesWidget> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(
-            color: colorScheme.primary,
-            width: 1.5,
-          ),
+          borderSide: BorderSide(color: colorScheme.primary, width: 1.5),
         ),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
         isDense: true,
       ),
       keyboardType: const TextInputType.numberWithOptions(decimal: true),

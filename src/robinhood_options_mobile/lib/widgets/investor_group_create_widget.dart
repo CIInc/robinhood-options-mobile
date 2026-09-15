@@ -38,10 +38,7 @@ class _InvestorGroupCreateWidgetState extends State<InvestorGroupCreateWidget> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Create Investor Group'),
-        elevation: 0,
-      ),
+      appBar: AppBar(title: const Text('Create Investor Group'), elevation: 0),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 24.0),
         child: Form(
@@ -52,16 +49,14 @@ class _InvestorGroupCreateWidgetState extends State<InvestorGroupCreateWidget> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Theme.of(context)
-                      .colorScheme
-                      .primary
-                      .withValues(alpha: 0.08),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.primary.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .primary
-                        .withValues(alpha: 0.2),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.primary.withValues(alpha: 0.2),
                   ),
                 ),
                 child: Row(
@@ -77,8 +72,8 @@ class _InvestorGroupCreateWidgetState extends State<InvestorGroupCreateWidget> {
                       child: Text(
                         'Create a new investor group to share portfolios and collaborate with other investors.',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
                       ),
                     ),
                   ],
@@ -87,9 +82,9 @@ class _InvestorGroupCreateWidgetState extends State<InvestorGroupCreateWidget> {
               const SizedBox(height: 28),
               Text(
                 'Group Information',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 12),
               TextFormField(
@@ -110,8 +105,10 @@ class _InvestorGroupCreateWidgetState extends State<InvestorGroupCreateWidget> {
                     Icons.groups,
                     color: Theme.of(context).colorScheme.primary,
                   ),
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 16,
+                  ),
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
@@ -142,8 +139,10 @@ class _InvestorGroupCreateWidgetState extends State<InvestorGroupCreateWidget> {
                     Icons.description,
                     color: Theme.of(context).colorScheme.primary,
                   ),
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 16,
+                  ),
                   alignLabelWithHint: true,
                 ),
                 maxLines: 4,
@@ -151,9 +150,9 @@ class _InvestorGroupCreateWidgetState extends State<InvestorGroupCreateWidget> {
               const SizedBox(height: 24),
               Text(
                 'Privacy Settings',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 12),
               Card(
@@ -162,8 +161,10 @@ class _InvestorGroupCreateWidgetState extends State<InvestorGroupCreateWidget> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: SwitchListTile(
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                   title: const Text(
                     'Private Group',
                     style: TextStyle(fontWeight: FontWeight.w600),
@@ -194,8 +195,9 @@ class _InvestorGroupCreateWidgetState extends State<InvestorGroupCreateWidget> {
                           height: 20,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            valueColor:
-                                AlwaysStoppedAnimation<Color>(Colors.white),
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.white,
+                            ),
                           ),
                         )
                       : const Icon(Icons.add),
@@ -261,9 +263,9 @@ class _InvestorGroupCreateWidgetState extends State<InvestorGroupCreateWidget> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error creating group: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error creating group: $e')));
       }
     } finally {
       if (mounted) {

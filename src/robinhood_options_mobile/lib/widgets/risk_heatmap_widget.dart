@@ -26,181 +26,222 @@ class _RiskHeatmapWidgetState extends State<RiskHeatmapWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer5<PortfolioStore, InstrumentPositionStore,
-            OptionPositionStore, ForexHoldingStore, InstrumentStore>(
-        builder: (context, portfolioStore, stockPositionStore,
-            optionPositionStore, forexHoldingStore, instrumentStore, child) {
-      final heatmapData = _calculateHeatmapData(
-          stockPositionStore, optionPositionStore, instrumentStore);
+    return Consumer5<
+      PortfolioStore,
+      InstrumentPositionStore,
+      OptionPositionStore,
+      ForexHoldingStore,
+      InstrumentStore
+    >(
+      builder:
+          (
+            context,
+            portfolioStore,
+            stockPositionStore,
+            optionPositionStore,
+            forexHoldingStore,
+            instrumentStore,
+            child,
+          ) {
+            final heatmapData = _calculateHeatmapData(
+              stockPositionStore,
+              optionPositionStore,
+              instrumentStore,
+            );
 
-      if (heatmapData.isEmpty) {
-        return const SizedBox(
-          height: 100,
-          child: Center(child: Text("No data available")),
-        );
-      }
+            if (heatmapData.isEmpty) {
+              return const SizedBox(
+                height: 100,
+                child: Center(child: Text("No data available")),
+              );
+            }
 
-      // Sort by Equity (Exposure) descending
-      var sortedItems = heatmapData.entries.toList()
-        ..sort((a, b) => b.value.equity.compareTo(a.value.equity));
+            // Sort by Equity (Exposure) descending
+            var sortedItems = heatmapData.entries.toList()
+              ..sort((a, b) => b.value.equity.compareTo(a.value.equity));
 
-      // Calculate Portfolio Totals
-      double totalEquity = 0;
-      double totalWeightedChangeSum = 0;
-      for (var entry in heatmapData.entries) {
-        totalEquity += entry.value.equity;
-        totalWeightedChangeSum += entry.value.weightedChangeSum;
-      }
-      double totalWeightedChange =
-          totalEquity > 0 ? totalWeightedChangeSum / totalEquity : 0;
+            // Calculate Portfolio Totals
+            double totalEquity = 0;
+            double totalWeightedChangeSum = 0;
+            for (var entry in heatmapData.entries) {
+              totalEquity += entry.value.equity;
+              totalWeightedChangeSum += entry.value.weightedChangeSum;
+            }
+            double totalWeightedChange = totalEquity > 0
+                ? totalWeightedChangeSum / totalEquity
+                : 0;
 
-      // Group small items if too many (keeps UI clean)
-      int maxItems = widget.isFullscreen ? 20 : 15;
-      if (sortedItems.length > maxItems + 1) {
-        var topItems = sortedItems.take(maxItems).toList();
-        var otherItems = sortedItems.skip(maxItems).toList();
+            // Group small items if too many (keeps UI clean)
+            int maxItems = widget.isFullscreen ? 20 : 15;
+            if (sortedItems.length > maxItems + 1) {
+              var topItems = sortedItems.take(maxItems).toList();
+              var otherItems = sortedItems.skip(maxItems).toList();
 
-        if (otherItems.isNotEmpty) {
-          double othersEquity = 0;
-          double othersWeightedChangeSum = 0;
-          List<_PositionDetail> othersPositions = [];
+              if (otherItems.isNotEmpty) {
+                double othersEquity = 0;
+                double othersWeightedChangeSum = 0;
+                List<_PositionDetail> othersPositions = [];
 
-          for (var item in otherItems) {
-            othersEquity += item.value.equity;
-            othersWeightedChangeSum += item.value.weightedChangeSum;
-            othersPositions.addAll(item.value.positions);
-          }
+                for (var item in otherItems) {
+                  othersEquity += item.value.equity;
+                  othersWeightedChangeSum += item.value.weightedChangeSum;
+                  othersPositions.addAll(item.value.positions);
+                }
 
-          var othersData = _SectorPerformance();
-          othersData.equity = othersEquity;
-          othersData.weightedChangeSum = othersWeightedChangeSum;
-          othersData.positions = othersPositions;
+                var othersData = _SectorPerformance();
+                othersData.equity = othersEquity;
+                othersData.weightedChangeSum = othersWeightedChangeSum;
+                othersData.positions = othersPositions;
 
-          topItems.add(MapEntry("Others", othersData));
-          sortedItems = topItems;
-        }
-      }
+                topItems.add(MapEntry("Others", othersData));
+                sortedItems = topItems;
+              }
+            }
 
-      // Max scale for legend
-      double maxScale =
-          _selectedMetric == HeatmapMetric.dailyChange ? 0.03 : 0.20;
+            // Max scale for legend
+            double maxScale = _selectedMetric == HeatmapMetric.dailyChange
+                ? 0.03
+                : 0.20;
 
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
-            child: Column(
+            return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (!widget.isFullscreen) ...[
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        children: [
-                          Icon(Icons.grid_view,
-                              color: Theme.of(context).colorScheme.primary),
-                          const SizedBox(width: 12),
-                          Text("Risk Heatmap",
-                              style: Theme.of(context).textTheme.titleLarge
-                              // ?.copyWith(fontWeight: FontWeight.bold),
-                              ),
-                        ],
-                      ),
-                      _buildTotals(context, totalEquity, totalWeightedChange),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  _buildControls(),
-                ] else ...[
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(child: _buildControls()),
-                      const SizedBox(width: 16),
-                      _buildTotals(context, totalEquity, totalWeightedChange),
-                    ],
-                  ),
-                ],
-              ],
-            ),
-          ),
-          const SizedBox(height: 4),
-          if (widget.isFullscreen)
-            Expanded(
-              child: _buildTreemap(sortedItems, totalEquity),
-            )
-          else
-            Stack(
-              children: [
-                SizedBox(
-                  height: 350,
-                  child: _buildTreemap(sortedItems, totalEquity),
-                ),
-                Positioned(
-                  top: 0,
-                  right: 0,
-                  child: IconButton(
-                    icon: const Icon(Icons.fullscreen),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => Scaffold(
-                            appBar: AppBar(
-                              title: const Text("Risk Heatmap"),
+                      if (!widget.isFullscreen) ...[
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.grid_view,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                                const SizedBox(width: 12),
+                                Text(
+                                  "Risk Heatmap",
+                                  style: Theme.of(context).textTheme.titleLarge,
+                                  // ?.copyWith(fontWeight: FontWeight.bold),
+                                ),
+                              ],
                             ),
-                            body: const SafeArea(
-                              child: RiskHeatmapWidget(
-                                isFullscreen: true,
+                            _buildTotals(
+                              context,
+                              totalEquity,
+                              totalWeightedChange,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        _buildControls(),
+                      ] else ...[
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(child: _buildControls()),
+                            const SizedBox(width: 16),
+                            _buildTotals(
+                              context,
+                              totalEquity,
+                              totalWeightedChange,
+                            ),
+                          ],
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 4),
+                if (widget.isFullscreen)
+                  Expanded(child: _buildTreemap(sortedItems, totalEquity))
+                else
+                  Stack(
+                    children: [
+                      SizedBox(
+                        height: 350,
+                        child: _buildTreemap(sortedItems, totalEquity),
+                      ),
+                      Positioned(
+                        top: 0,
+                        right: 0,
+                        child: IconButton(
+                          icon: const Icon(Icons.fullscreen),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => Scaffold(
+                                  appBar: AppBar(
+                                    title: const Text("Risk Heatmap"),
+                                  ),
+                                  body: const SafeArea(
+                                    child: RiskHeatmapWidget(
+                                      isFullscreen: true,
+                                    ),
+                                  ),
+                                ),
                               ),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                // Legend
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                  child: Row(
+                    children: [
+                      Text(
+                        "-${(maxScale * 100).toInt()}%",
+                        style: const TextStyle(
+                          fontSize: 10,
+                          color: Colors.grey,
+                        ),
+                      ),
+                      Expanded(
+                        child: Container(
+                          height: 8,
+                          margin: const EdgeInsets.symmetric(horizontal: 8),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(4),
+                            gradient: LinearGradient(
+                              colors: [
+                                Colors.red.shade900,
+                                Colors.red.shade300,
+                                Colors.grey.shade800,
+                                Colors.green.shade300,
+                                Colors.green.shade900,
+                              ],
                             ),
                           ),
                         ),
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ),
-          // Legend
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-            child: Row(
-              children: [
-                Text("-${(maxScale * 100).toInt()}%",
-                    style: const TextStyle(fontSize: 10, color: Colors.grey)),
-                Expanded(
-                  child: Container(
-                    height: 8,
-                    margin: const EdgeInsets.symmetric(horizontal: 8),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(4),
-                      gradient: LinearGradient(
-                        colors: [
-                          Colors.red.shade900,
-                          Colors.red.shade300,
-                          Colors.grey.shade800,
-                          Colors.green.shade300,
-                          Colors.green.shade900,
-                        ],
                       ),
-                    ),
+                      Text(
+                        "+${(maxScale * 100).toInt()}%",
+                        style: const TextStyle(
+                          fontSize: 10,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                Text("+${(maxScale * 100).toInt()}%",
-                    style: const TextStyle(fontSize: 10, color: Colors.grey)),
               ],
-            ),
-          ),
-        ],
-      );
-    });
+            );
+          },
+    );
   }
 
   Widget _buildTotals(
-      BuildContext context, double totalEquity, double totalWeightedChange) {
+    BuildContext context,
+    double totalEquity,
+    double totalWeightedChange,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
@@ -279,25 +320,34 @@ class _RiskHeatmapWidgetState extends State<RiskHeatmapWidget> {
     );
   }
 
-  Widget _buildTreemap(List<MapEntry<String, _SectorPerformance>> items,
-      double portfolioEquity) {
+  Widget _buildTreemap(
+    List<MapEntry<String, _SectorPerformance>> items,
+    double portfolioEquity,
+  ) {
     // Filter out zero equity items to avoid layout issues
     final activeItems = items.where((e) => e.value.equity > 0).toList();
     if (activeItems.isEmpty) {
       return const Center(child: Text("No active positions"));
     }
 
-    double currentBranchEquity =
-        activeItems.fold(0, (sum, item) => sum + item.value.equity);
+    double currentBranchEquity = activeItems.fold(
+      0,
+      (sum, item) => sum + item.value.equity,
+    );
     return _buildTreemapRecursive(
-        activeItems, currentBranchEquity, true, portfolioEquity);
+      activeItems,
+      currentBranchEquity,
+      true,
+      portfolioEquity,
+    );
   }
 
   Widget _buildTreemapRecursive(
-      List<MapEntry<String, _SectorPerformance>> items,
-      double currentBranchEquity,
-      bool isHorizontal,
-      double portfolioEquity) {
+    List<MapEntry<String, _SectorPerformance>> items,
+    double currentBranchEquity,
+    bool isHorizontal,
+    double portfolioEquity,
+  ) {
     if (items.length == 1) {
       return _buildTile(items[0], portfolioEquity);
     }
@@ -322,8 +372,10 @@ class _RiskHeatmapWidgetState extends State<RiskHeatmapWidget> {
     var rightItems = items.sublist(splitIndex);
 
     double leftSum = leftItems.fold(0, (sum, item) => sum + item.value.equity);
-    double rightSum =
-        rightItems.fold(0, (sum, item) => sum + item.value.equity);
+    double rightSum = rightItems.fold(
+      0,
+      (sum, item) => sum + item.value.equity,
+    );
 
     int leftFlex = (leftSum / currentBranchEquity * 1000).round();
     int rightFlex = (rightSum / currentBranchEquity * 1000).round();
@@ -339,19 +391,29 @@ class _RiskHeatmapWidgetState extends State<RiskHeatmapWidget> {
         Expanded(
           flex: leftFlex,
           child: _buildTreemapRecursive(
-              leftItems, leftSum, !isHorizontal, portfolioEquity),
+            leftItems,
+            leftSum,
+            !isHorizontal,
+            portfolioEquity,
+          ),
         ),
         Expanded(
           flex: rightFlex,
           child: _buildTreemapRecursive(
-              rightItems, rightSum, !isHorizontal, portfolioEquity),
+            rightItems,
+            rightSum,
+            !isHorizontal,
+            portfolioEquity,
+          ),
         ),
       ],
     );
   }
 
   Widget _buildTile(
-      MapEntry<String, _SectorPerformance> entry, double portfolioEquity) {
+    MapEntry<String, _SectorPerformance> entry,
+    double portfolioEquity,
+  ) {
     final sectorName = entry.key;
     final data = entry.value;
     final changePercent = data.weightedChangePercent;
@@ -362,13 +424,17 @@ class _RiskHeatmapWidgetState extends State<RiskHeatmapWidget> {
     Color textColor = Colors.white;
 
     // Adjust intensity scaling based on metric
-    double maxScale =
-        _selectedMetric == HeatmapMetric.dailyChange ? 0.03 : 0.20;
+    double maxScale = _selectedMetric == HeatmapMetric.dailyChange
+        ? 0.03
+        : 0.20;
 
     if (changePercent >= 0) {
       final intensity = (changePercent / maxScale).clamp(0.0, 1.0);
-      color =
-          Color.lerp(Colors.green.shade300, Colors.green.shade900, intensity)!;
+      color = Color.lerp(
+        Colors.green.shade300,
+        Colors.green.shade900,
+        intensity,
+      )!;
     } else {
       final intensity = (changePercent.abs() / maxScale).clamp(0.0, 1.0);
       color = Color.lerp(Colors.red.shade300, Colors.red.shade900, intensity)!;
@@ -388,10 +454,7 @@ class _RiskHeatmapWidgetState extends State<RiskHeatmapWidget> {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              color.withValues(alpha: 0.9),
-              color,
-            ],
+            colors: [color.withValues(alpha: 0.9), color],
           ),
           boxShadow: [
             BoxShadow(
@@ -402,62 +465,26 @@ class _RiskHeatmapWidgetState extends State<RiskHeatmapWidget> {
           ],
         ),
         padding: const EdgeInsets.all(4),
-        child: LayoutBuilder(builder: (context, constraints) {
-          // Hide text if tile is too small
-          if (constraints.maxWidth < 30 || constraints.maxHeight < 30) {
-            return Container();
-          }
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            // Hide text if tile is too small
+            if (constraints.maxWidth < 30 || constraints.maxHeight < 30) {
+              return Container();
+            }
 
-          return FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.center,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  sectorName,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: textColor,
-                    fontWeight: FontWeight.bold,
-                    fontSize: (constraints.maxWidth / 10).clamp(10.0, 14.0),
-                    shadows: [
-                      Shadow(
-                        offset: const Offset(0, 1),
-                        blurRadius: 2,
-                        color: Colors.black.withValues(alpha: 0.5),
-                      ),
-                    ],
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                if (constraints.maxHeight > 50) ...[
-                  const SizedBox(height: 2),
+            return FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.center,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
                   Text(
-                    NumberFormat.compactSimpleCurrency().format(equity),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: textColor.withValues(alpha: 0.9),
-                      fontSize: (constraints.maxWidth / 12).clamp(9.0, 12.0),
-                      shadows: [
-                        Shadow(
-                          offset: const Offset(0, 1),
-                          blurRadius: 2,
-                          color: Colors.black.withValues(alpha: 0.5),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Text(
-                    "${(changePercent * 100).toStringAsFixed(2)}%",
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                    sectorName,
+                    textAlign: TextAlign.center,
                     style: TextStyle(
                       color: textColor,
-                      fontSize: (constraints.maxWidth / 10).clamp(10.0, 14.0),
                       fontWeight: FontWeight.bold,
+                      fontSize: (constraints.maxWidth / 10).clamp(10.0, 14.0),
                       shadows: [
                         Shadow(
                           offset: const Offset(0, 1),
@@ -466,15 +493,18 @@ class _RiskHeatmapWidgetState extends State<RiskHeatmapWidget> {
                         ),
                       ],
                     ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  if (constraints.maxHeight > 70)
+                  if (constraints.maxHeight > 50) ...[
+                    const SizedBox(height: 2),
                     Text(
-                      "(${(equity / portfolioEquity * 100).toStringAsFixed(1)}%)",
+                      NumberFormat.compactSimpleCurrency().format(equity),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color: textColor.withValues(alpha: 0.8),
-                        fontSize: (constraints.maxWidth / 14).clamp(8.0, 10.0),
+                        color: textColor.withValues(alpha: 0.9),
+                        fontSize: (constraints.maxWidth / 12).clamp(9.0, 12.0),
                         shadows: [
                           Shadow(
                             offset: const Offset(0, 1),
@@ -484,17 +514,59 @@ class _RiskHeatmapWidgetState extends State<RiskHeatmapWidget> {
                         ],
                       ),
                     ),
-                ]
-              ],
-            ),
-          );
-        }),
+                    Text(
+                      "${(changePercent * 100).toStringAsFixed(2)}%",
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: textColor,
+                        fontSize: (constraints.maxWidth / 10).clamp(10.0, 14.0),
+                        fontWeight: FontWeight.bold,
+                        shadows: [
+                          Shadow(
+                            offset: const Offset(0, 1),
+                            blurRadius: 2,
+                            color: Colors.black.withValues(alpha: 0.5),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (constraints.maxHeight > 70)
+                      Text(
+                        "(${(equity / portfolioEquity * 100).toStringAsFixed(1)}%)",
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: textColor.withValues(alpha: 0.8),
+                          fontSize: (constraints.maxWidth / 14).clamp(
+                            8.0,
+                            10.0,
+                          ),
+                          shadows: [
+                            Shadow(
+                              offset: const Offset(0, 1),
+                              blurRadius: 2,
+                              color: Colors.black.withValues(alpha: 0.5),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ],
+              ),
+            );
+          },
+        ),
       ),
     );
   }
 
-  void _showSectorDetails(BuildContext context, String groupName,
-      _SectorPerformance data, double portfolioEquity) {
+  void _showSectorDetails(
+    BuildContext context,
+    String groupName,
+    _SectorPerformance data,
+    double portfolioEquity,
+  ) {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -544,8 +616,9 @@ class _RiskHeatmapWidgetState extends State<RiskHeatmapWidget> {
                       _buildDetailChip(
                         context,
                         'Equity',
-                        NumberFormat.compactSimpleCurrency()
-                            .format(data.equity),
+                        NumberFormat.compactSimpleCurrency().format(
+                          data.equity,
+                        ),
                       ),
                       _buildDetailChip(
                         context,
@@ -572,10 +645,9 @@ class _RiskHeatmapWidgetState extends State<RiskHeatmapWidget> {
                     padding: const EdgeInsets.only(bottom: 4),
                     child: Text(
                       'Positions',
-                      style: Theme.of(context)
-                          .textTheme
-                          .labelLarge
-                          ?.copyWith(fontWeight: FontWeight.bold),
+                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                   Expanded(
@@ -585,8 +657,9 @@ class _RiskHeatmapWidgetState extends State<RiskHeatmapWidget> {
                       separatorBuilder: (_, __) => const Divider(height: 1),
                       itemBuilder: (context, index) {
                         final pos = sortedPositions[index];
-                        final changeColor =
-                            pos.changePercent >= 0 ? Colors.green : Colors.red;
+                        final changeColor = pos.changePercent >= 0
+                            ? Colors.green
+                            : Colors.red;
                         return ListTile(
                           contentPadding: EdgeInsets.zero,
                           leading: CircleAvatar(
@@ -612,10 +685,12 @@ class _RiskHeatmapWidgetState extends State<RiskHeatmapWidget> {
                             crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
                               Text(
-                                NumberFormat.simpleCurrency()
-                                    .format(pos.equity),
+                                NumberFormat.simpleCurrency().format(
+                                  pos.equity,
+                                ),
                                 style: const TextStyle(
-                                    fontWeight: FontWeight.bold),
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                               Text(
                                 '${(pos.changePercent * 100).toStringAsFixed(2)}%',
@@ -647,9 +722,10 @@ class _RiskHeatmapWidgetState extends State<RiskHeatmapWidget> {
   }
 
   Map<String, _SectorPerformance> _calculateHeatmapData(
-      InstrumentPositionStore stockStore,
-      OptionPositionStore optionStore,
-      InstrumentStore instrumentStore) {
+    InstrumentPositionStore stockStore,
+    OptionPositionStore optionStore,
+    InstrumentStore instrumentStore,
+  ) {
     final Map<String, _SectorPerformance> groups = {};
 
     // 1. Process Stocks
@@ -690,8 +766,13 @@ class _RiskHeatmapWidgetState extends State<RiskHeatmapWidget> {
         groups[groupKey] = _SectorPerformance();
       }
 
-      groups[groupKey]!
-          .addPosition(symbol, name, equity, changePercent, 'Stock');
+      groups[groupKey]!.addPosition(
+        symbol,
+        name,
+        equity,
+        changePercent,
+        'Stock',
+      );
     }
 
     // 2. Process Options
@@ -704,8 +785,9 @@ class _RiskHeatmapWidgetState extends State<RiskHeatmapWidget> {
 
       // Find underlying instrument for sector
       final chainSymbol = position.symbol;
-      final instrument = instrumentStore.items
-          .firstWhereOrNull((i) => i.symbol == chainSymbol);
+      final instrument = instrumentStore.items.firstWhereOrNull(
+        (i) => i.symbol == chainSymbol,
+      );
 
       final sector = instrument?.fundamentalsObj?.sector ?? 'Unknown';
       final symbol = position.symbol;
@@ -741,8 +823,13 @@ class _RiskHeatmapWidgetState extends State<RiskHeatmapWidget> {
         groups[groupKey] = _SectorPerformance();
       }
 
-      groups[groupKey]!
-          .addPosition(symbol, name, equity, changePercent, 'Option');
+      groups[groupKey]!.addPosition(
+        symbol,
+        name,
+        equity,
+        changePercent,
+        'Option',
+      );
     }
 
     return groups;
@@ -754,12 +841,18 @@ class _SectorPerformance {
   double weightedChangeSum = 0;
   List<_PositionDetail> positions = [];
 
-  void addPosition(String symbol, String name, double positionEquity,
-      double changePercent, String type) {
+  void addPosition(
+    String symbol,
+    String name,
+    double positionEquity,
+    double changePercent,
+    String type,
+  ) {
     equity += positionEquity;
     weightedChangeSum += positionEquity * changePercent;
     positions.add(
-        _PositionDetail(symbol, name, positionEquity, changePercent, type));
+      _PositionDetail(symbol, name, positionEquity, changePercent, type),
+    );
   }
 
   double get weightedChangePercent {
@@ -776,5 +869,10 @@ class _PositionDetail {
   final String type;
 
   _PositionDetail(
-      this.symbol, this.name, this.equity, this.changePercent, this.type);
+    this.symbol,
+    this.name,
+    this.equity,
+    this.changePercent,
+    this.type,
+  );
 }

@@ -46,10 +46,7 @@ class _FuturesTradingPerformanceWidgetState
         builder: (context, provider, child) {
           return TabBarView(
             controller: _tabController,
-            children: [
-              _buildHistoryTab(provider),
-              _buildLogTab(provider),
-            ],
+            children: [_buildHistoryTab(provider), _buildLogTab(provider)],
           );
         },
       ),
@@ -80,8 +77,8 @@ class _FuturesTradingPerformanceWidgetState
         final dateTime = timestamp is DateTime
             ? timestamp
             : (timestamp is String
-                ? DateTime.parse(timestamp)
-                : DateTime.now());
+                  ? DateTime.parse(timestamp)
+                  : DateTime.now());
 
         return ListTile(
           leading: Container(
@@ -113,10 +110,9 @@ class _FuturesTradingPerformanceWidgetState
               if (trade['type'] != null)
                 Text(
                   trade['type'],
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodySmall
-                      ?.copyWith(fontSize: 10),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(fontSize: 10),
                 ),
             ],
           ),
@@ -128,9 +124,7 @@ class _FuturesTradingPerformanceWidgetState
   Widget _buildLogTab(FuturesAutoTradingProvider provider) {
     final logs = provider.activityLog;
     if (logs.isEmpty) {
-      return const Center(
-        child: Text('No activity logs.'),
-      );
+      return const Center(child: Text('No activity logs.'));
     }
 
     return ListView.builder(
@@ -140,10 +134,7 @@ class _FuturesTradingPerformanceWidgetState
           padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 2.0),
           child: Text(
             logs[index],
-            style: const TextStyle(
-              fontFamily: 'monospace',
-              fontSize: 12,
-            ),
+            style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
           ),
         );
       },

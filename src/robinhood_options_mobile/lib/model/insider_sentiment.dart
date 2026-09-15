@@ -84,19 +84,22 @@ class MonthlyInsiderActivity {
     final buyVal = _parseDouble(json['buy_value'] ?? json['buyValue']) ?? 0.0;
     final sellVal =
         _parseDouble(json['sell_value'] ?? json['sellValue']) ?? 0.0;
-    final netSh = _parseNum(json['net_shares'] ?? json['netShares']) ??
+    final netSh =
+        _parseNum(json['net_shares'] ?? json['netShares']) ??
         (buyShares - sellShares);
-    final netVal = _parseDouble(json['net_value'] ?? json['netValue']) ??
+    final netVal =
+        _parseDouble(json['net_value'] ?? json['netValue']) ??
         (buyVal - sellVal);
     final bCount = _parseInt(json['buy_count'] ?? json['buyCount']) ?? 0;
     final sCount = _parseInt(json['sell_count'] ?? json['sellCount']) ?? 0;
 
-    String sentiment = (json['net_sentiment'] ??
-            json['sentiment'] ??
-            json['netSentiment'] ??
-            '')
-        .toString()
-        .toLowerCase();
+    String sentiment =
+        (json['net_sentiment'] ??
+                json['sentiment'] ??
+                json['netSentiment'] ??
+                '')
+            .toString()
+            .toLowerCase();
     if (sentiment.isEmpty) {
       if (netVal > 0 || netSh > 0) {
         sentiment = 'positive';
@@ -138,7 +141,7 @@ class InsiderTransactionRecord {
   final DateTime? transactionDate;
   final DateTime? filingDate;
   final String
-      transactionType; // "Purchase", "Sale", "Option Exercise", "Grant"
+  transactionType; // "Purchase", "Sale", "Option Exercise", "Grant"
   final String transactionCode; // "P", "S", "M", "A", etc.
   final num shares;
   final double? price;
@@ -218,48 +221,57 @@ class InsiderTransactionRecord {
 
   factory InsiderTransactionRecord.fromJson(Map<String, dynamic> json) {
     // 1. Filer & role
-    final filer = (json['filer_name'] ??
-            json['filerName'] ??
-            json['name'] ??
-            json['insider_name'] ??
-            '')
-        .toString();
-    final role = (json['relationship'] ??
-            json['filerRelation'] ??
-            json['title'] ??
-            json['role'] ??
-            '')
-        .toString();
+    final filer =
+        (json['filer_name'] ??
+                json['filerName'] ??
+                json['name'] ??
+                json['insider_name'] ??
+                '')
+            .toString();
+    final role =
+        (json['relationship'] ??
+                json['filerRelation'] ??
+                json['title'] ??
+                json['role'] ??
+                '')
+            .toString();
 
     // 2. Dates
-    final tDate = _parseDate(json['transaction_date'] ??
-        json['startDate'] ??
-        json['date'] ??
-        json['trans_date']);
+    final tDate = _parseDate(
+      json['transaction_date'] ??
+          json['startDate'] ??
+          json['date'] ??
+          json['trans_date'],
+    );
     final fDate = _parseDate(
-        json['filing_date'] ?? json['reported_date'] ?? json['file_date']);
+      json['filing_date'] ?? json['reported_date'] ?? json['file_date'],
+    );
 
     // 3. Codes & types
     final code =
         (json['transaction_code'] ?? json['code'] ?? json['trans_code'] ?? '')
             .toString()
             .trim();
-    final type = (json['transaction_type'] ??
-            json['transactionText'] ??
-            json['type'] ??
-            '')
-        .toString()
-        .trim();
+    final type =
+        (json['transaction_type'] ??
+                json['transactionText'] ??
+                json['type'] ??
+                '')
+            .toString()
+            .trim();
 
     // 4. Shares, price, value
     num shares = 0;
     if (json['shares'] is Map && json['shares']['raw'] != null) {
       shares = (json['shares']['raw'] as num);
     } else {
-      shares = _parseNum(json['shares'] ??
-              json['shares_transacted'] ??
-              json['sharesValue'] ??
-              json['share_count']) ??
+      shares =
+          _parseNum(
+            json['shares'] ??
+                json['shares_transacted'] ??
+                json['sharesValue'] ??
+                json['share_count'],
+          ) ??
           0;
     }
 
@@ -281,19 +293,21 @@ class InsiderTransactionRecord {
       price = value / shares;
     }
 
-    final heldAfter = _parseNum(json['shares_held_after'] ??
-        json['shares_held'] ??
-        json['post_shares']);
+    final heldAfter = _parseNum(
+      json['shares_held_after'] ?? json['shares_held'] ?? json['post_shares'],
+    );
 
-    final ownership =
-        (json['ownership'] ?? json['is_direct'] ?? '').toString().toUpperCase();
+    final ownership = (json['ownership'] ?? json['is_direct'] ?? '')
+        .toString()
+        .toUpperCase();
     final isDirect = ownership != 'I' && ownership != 'FALSE';
 
-    final url = (json['sec_form4_url'] ??
-            json['form4_url'] ??
-            json['filerUrl'] ??
-            json['url'])
-        ?.toString();
+    final url =
+        (json['sec_form4_url'] ??
+                json['form4_url'] ??
+                json['filerUrl'] ??
+                json['url'])
+            ?.toString();
 
     return InsiderTransactionRecord(
       filerName: filer,
@@ -455,8 +469,10 @@ class InsiderSentimentSummary {
 
     final parsedTransactions = rawTxList
         .whereType<Map>()
-        .map((e) =>
-            InsiderTransactionRecord.fromJson(Map<String, dynamic>.from(e)))
+        .map(
+          (e) =>
+              InsiderTransactionRecord.fromJson(Map<String, dynamic>.from(e)),
+        )
         .toList();
 
     // Sort transactions descending by date
@@ -468,36 +484,55 @@ class InsiderSentimentSummary {
     });
 
     // 3. Extract or compute summary values
-    final resolvedInstrumentId = (summaryMap['instrument_id'] ??
-            summaryMap['instrumentId'] ??
-            instrumentId ??
-            '')
-        .toString();
+    final resolvedInstrumentId =
+        (summaryMap['instrument_id'] ??
+                summaryMap['instrumentId'] ??
+                instrumentId ??
+                '')
+            .toString();
     final resolvedSymbol = (summaryMap['symbol'] ?? symbol)?.toString();
 
-    num buyShares = _parseNum(summaryMap['total_buy_shares'] ??
-            summaryMap['buy_shares'] ??
-            summaryMap['totalBuyShares']) ??
+    num buyShares =
+        _parseNum(
+          summaryMap['total_buy_shares'] ??
+              summaryMap['buy_shares'] ??
+              summaryMap['totalBuyShares'],
+        ) ??
         0;
-    num sellShares = _parseNum(summaryMap['total_sell_shares'] ??
-            summaryMap['sell_shares'] ??
-            summaryMap['totalSellShares']) ??
+    num sellShares =
+        _parseNum(
+          summaryMap['total_sell_shares'] ??
+              summaryMap['sell_shares'] ??
+              summaryMap['totalSellShares'],
+        ) ??
         0;
-    double buyValue = _parseDouble(summaryMap['total_buy_value'] ??
-            summaryMap['buy_value'] ??
-            summaryMap['totalBuyValue']) ??
+    double buyValue =
+        _parseDouble(
+          summaryMap['total_buy_value'] ??
+              summaryMap['buy_value'] ??
+              summaryMap['totalBuyValue'],
+        ) ??
         0.0;
-    double sellValue = _parseDouble(summaryMap['total_sell_value'] ??
-            summaryMap['sell_value'] ??
-            summaryMap['totalSellValue']) ??
+    double sellValue =
+        _parseDouble(
+          summaryMap['total_sell_value'] ??
+              summaryMap['sell_value'] ??
+              summaryMap['totalSellValue'],
+        ) ??
         0.0;
-    int bCount = _parseInt(summaryMap['buy_count'] ??
-            summaryMap['buyCount'] ??
-            summaryMap['num_buys']) ??
+    int bCount =
+        _parseInt(
+          summaryMap['buy_count'] ??
+              summaryMap['buyCount'] ??
+              summaryMap['num_buys'],
+        ) ??
         0;
-    int sCount = _parseInt(summaryMap['sell_count'] ??
-            summaryMap['sellCount'] ??
-            summaryMap['num_sells']) ??
+    int sCount =
+        _parseInt(
+          summaryMap['sell_count'] ??
+              summaryMap['sellCount'] ??
+              summaryMap['num_sells'],
+        ) ??
         0;
 
     // If summary values are missing but we have transactions, calculate them:
@@ -521,21 +556,24 @@ class InsiderSentimentSummary {
 
     final netSh =
         _parseNum(summaryMap['net_shares'] ?? summaryMap['netShares']) ??
-            (buyShares - sellShares);
+        (buyShares - sellShares);
     final netVal =
         _parseDouble(summaryMap['net_value'] ?? summaryMap['netValue']) ??
-            (buyValue - sellValue);
+        (buyValue - sellValue);
 
-    final score = _parseDouble(summaryMap['sentiment_score'] ??
-        summaryMap['sentimentScore'] ??
-        summaryMap['score']);
+    final score = _parseDouble(
+      summaryMap['sentiment_score'] ??
+          summaryMap['sentimentScore'] ??
+          summaryMap['score'],
+    );
 
-    String sentiment = (summaryMap['net_sentiment'] ??
-            summaryMap['sentiment'] ??
-            summaryMap['netSentiment'] ??
-            '')
-        .toString()
-        .toLowerCase();
+    String sentiment =
+        (summaryMap['net_sentiment'] ??
+                summaryMap['sentiment'] ??
+                summaryMap['netSentiment'] ??
+                '')
+            .toString()
+            .toLowerCase();
     if (sentiment.isEmpty) {
       if (netVal > 0 || netSh > 0 || (score != null && score > 0)) {
         sentiment = 'positive';
@@ -551,14 +589,18 @@ class InsiderSentimentSummary {
     if (summaryMap['monthly_summary'] is List) {
       monthlyList = (summaryMap['monthly_summary'] as List)
           .whereType<Map>()
-          .map((m) =>
-              MonthlyInsiderActivity.fromJson(Map<String, dynamic>.from(m)))
+          .map(
+            (m) =>
+                MonthlyInsiderActivity.fromJson(Map<String, dynamic>.from(m)),
+          )
           .toList();
     } else if (summaryMap['monthly'] is List) {
       monthlyList = (summaryMap['monthly'] as List)
           .whereType<Map>()
-          .map((m) =>
-              MonthlyInsiderActivity.fromJson(Map<String, dynamic>.from(m)))
+          .map(
+            (m) =>
+                MonthlyInsiderActivity.fromJson(Map<String, dynamic>.from(m)),
+          )
           .toList();
     } else if (parsedTransactions.isNotEmpty) {
       // Derive monthly breakdown from transactions if not present
@@ -591,27 +633,31 @@ class InsiderSentimentSummary {
             mSCount++;
           }
         }
-        monthlyList.add(MonthlyInsiderActivity(
-          month: m,
-          monthDate: DateFormat('yyyy-MM').parse(m),
-          buyShares: mBuySh,
-          sellShares: mSellSh,
-          buyValue: mBuyVal,
-          sellValue: mSellVal,
-          netShares: mBuySh - mSellSh,
-          netValue: mBuyVal - mSellVal,
-          buyCount: mBCount,
-          sellCount: mSCount,
-          netSentiment: (mBuyVal > mSellVal)
-              ? 'positive'
-              : (mSellVal > mBuyVal ? 'negative' : 'neutral'),
-        ));
+        monthlyList.add(
+          MonthlyInsiderActivity(
+            month: m,
+            monthDate: DateFormat('yyyy-MM').parse(m),
+            buyShares: mBuySh,
+            sellShares: mSellSh,
+            buyValue: mBuyVal,
+            sellValue: mSellVal,
+            netShares: mBuySh - mSellSh,
+            netValue: mBuyVal - mSellVal,
+            buyCount: mBCount,
+            sellCount: mSCount,
+            netSentiment: (mBuyVal > mSellVal)
+                ? 'positive'
+                : (mSellVal > mBuyVal ? 'negative' : 'neutral'),
+          ),
+        );
       }
     }
 
-    final updated = _parseDate(summaryMap['updated_at'] ??
-        summaryMap['updatedAt'] ??
-        summaryMap['timestamp']);
+    final updated = _parseDate(
+      summaryMap['updated_at'] ??
+          summaryMap['updatedAt'] ??
+          summaryMap['timestamp'],
+    );
 
     return InsiderSentimentSummary(
       instrumentId: resolvedInstrumentId,

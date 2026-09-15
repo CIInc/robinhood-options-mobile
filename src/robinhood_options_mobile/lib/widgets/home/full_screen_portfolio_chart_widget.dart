@@ -37,9 +37,7 @@ class _FullScreenPortfolioChartWidgetState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Portfolio Chart'),
-      ),
+      appBar: AppBar(title: const Text('Portfolio Chart')),
       body: PortfolioChartWidget(
         brokerageUser: widget.brokerageUser,
         chartDateSpanFilter: _chartDateSpanFilter,

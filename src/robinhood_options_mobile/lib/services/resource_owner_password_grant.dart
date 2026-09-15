@@ -17,12 +17,18 @@ Client generateClient(
 ) {
   var startTime = DateTime.now();
   var credentials = handleAccessTokenResponse(
-      response, tokenEndpoint, startTime, scopes as List<String>, delimiter
-      //getParameters: getParameters);
-      );
-  return Client(credentials,
-      identifier: identifier,
-      secret: secret,
-      httpClient: httpClient,
-      onCredentialsRefreshed: onCredentialsRefreshed);
+    response,
+    tokenEndpoint,
+    startTime,
+    scopes as List<String>,
+    delimiter,
+    //getParameters: getParameters);
+  );
+  return Client(
+    credentials,
+    identifier: identifier,
+    secret: secret,
+    httpClient: httpClient,
+    onCredentialsRefreshed: onCredentialsRefreshed,
+  );
 }

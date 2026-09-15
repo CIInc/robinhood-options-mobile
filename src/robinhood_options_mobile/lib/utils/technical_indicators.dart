@@ -96,9 +96,10 @@ class TechnicalIndicators {
 
   /// Calculates Bollinger Bands
   static Map<String, List<double?>> calculateBollingerBands(
-      List<Candle> candles,
-      [int period = 20,
-      double stdDevMultiplier = 2.0]) {
+    List<Candle> candles, [
+    int period = 20,
+    double stdDevMultiplier = 2.0,
+  ]) {
     List<double?> sma = calculateSMA(candles, period);
     List<double?> upper = List.filled(candles.length, null);
     List<double?> lower = List.filled(candles.length, null);
@@ -119,10 +120,11 @@ class TechnicalIndicators {
 
   /// Calculates Keltner Channels
   static Map<String, List<double?>> calculateKeltnerChannels(
-      List<Candle> candles,
-      [int period = 20,
-      int atrPeriod = 10,
-      double multiplier = 1.5]) {
+    List<Candle> candles, [
+    int period = 20,
+    int atrPeriod = 10,
+    double multiplier = 1.5,
+  ]) {
     List<double?> ema = calculateEMA(candles, period);
     List<double?> atr = calculateATR(candles, atrPeriod);
     List<double?> upper = List.filled(candles.length, null);
@@ -139,8 +141,12 @@ class TechnicalIndicators {
   }
 
   /// Calculates MACD (Moving Average Convergence Divergence)
-  static Map<String, List<double?>> calculateMACD(List<Candle> candles,
-      [int fastPeriod = 12, int slowPeriod = 26, int signalPeriod = 9]) {
+  static Map<String, List<double?>> calculateMACD(
+    List<Candle> candles, [
+    int fastPeriod = 12,
+    int slowPeriod = 26,
+    int signalPeriod = 9,
+  ]) {
     List<double?> fastEMA = calculateEMA(candles, fastPeriod);
     List<double?> slowEMA = calculateEMA(candles, slowPeriod);
 
@@ -179,7 +185,8 @@ class TechnicalIndicators {
       double multiplier = 2 / (signalPeriod + 1);
 
       for (int i = firstValidIndex + signalPeriod; i < candles.length; i++) {
-        signalLine[i] = (macdLine[i]! - signalLine[i - 1]!) * multiplier +
+        signalLine[i] =
+            (macdLine[i]! - signalLine[i - 1]!) * multiplier +
             signalLine[i - 1]!;
       }
     }
@@ -194,8 +201,11 @@ class TechnicalIndicators {
   }
 
   /// Calculates Stochastic Oscillator
-  static Map<String, List<double?>> calculateStochastic(List<Candle> candles,
-      [int kPeriod = 14, int dPeriod = 3]) {
+  static Map<String, List<double?>> calculateStochastic(
+    List<Candle> candles, [
+    int kPeriod = 14,
+    int dPeriod = 3,
+  ]) {
     List<double?> kLine = List.filled(candles.length, null);
 
     for (int i = kPeriod - 1; i < candles.length; i++) {
@@ -333,8 +343,10 @@ class TechnicalIndicators {
   }
 
   /// Calculates Williams %R
-  static List<double?> calculateWilliamsR(List<Candle> candles,
-      [int period = 14]) {
+  static List<double?> calculateWilliamsR(
+    List<Candle> candles, [
+    int period = 14,
+  ]) {
     if (candles.length < period) return List.filled(candles.length, null);
 
     List<double?> wr = List.filled(candles.length, null);
@@ -351,7 +363,8 @@ class TechnicalIndicators {
       }
 
       if (highestHigh != lowestLow) {
-        wr[i] = ((highestHigh - candles[i].close) / (highestHigh - lowestLow)) *
+        wr[i] =
+            ((highestHigh - candles[i].close) / (highestHigh - lowestLow)) *
             -100;
       } else {
         wr[i] = -50;
@@ -366,8 +379,9 @@ class TechnicalIndicators {
     if (candles.length < period) return List.filled(candles.length, null);
 
     List<double?> cci = List.filled(candles.length, null);
-    List<double> tp =
-        candles.map((c) => (c.high + c.low + c.close) / 3).toList();
+    List<double> tp = candles
+        .map((c) => (c.high + c.low + c.close) / 3)
+        .toList();
 
     for (int i = period - 1; i < candles.length; i++) {
       // Calculates SMA of TP
@@ -395,8 +409,10 @@ class TechnicalIndicators {
   }
 
   /// Calculates ADX (Average Directional Index)
-  static Map<String, List<double?>> calculateADX(List<Candle> candles,
-      [int period = 14]) {
+  static Map<String, List<double?>> calculateADX(
+    List<Candle> candles, [
+    int period = 14,
+  ]) {
     if (candles.length < period * 2) return {'adx': [], 'pdi': [], 'mdi': []};
 
     List<double> tr = List.filled(candles.length, 0.0);
@@ -503,8 +519,10 @@ class TechnicalIndicators {
   }
 
   /// Calculates Chaikin Money Flow (CMF)
-  static List<double?> calculateChaikinMoneyFlow(List<Candle> candles,
-      [int period = 20]) {
+  static List<double?> calculateChaikinMoneyFlow(
+    List<Candle> candles, [
+    int period = 20,
+  ]) {
     if (candles.length < period) return List.filled(candles.length, null);
 
     List<double?> cmf = List.filled(candles.length, null);
@@ -545,11 +563,13 @@ class TechnicalIndicators {
   }
 
   /// Calculates Ichimoku Cloud
-  static Map<String, List<double?>> calculateIchimokuCloud(List<Candle> candles,
-      [int conversionPeriod = 9,
-      int basePeriod = 26,
-      int spanBPeriod = 52,
-      int displacement = 26]) {
+  static Map<String, List<double?>> calculateIchimokuCloud(
+    List<Candle> candles, [
+    int conversionPeriod = 9,
+    int basePeriod = 26,
+    int spanBPeriod = 52,
+    int displacement = 26,
+  ]) {
     int len = candles.length;
     List<double?> conversionLine = List.filled(len, null);
     List<double?> baseLine = List.filled(len, null);
@@ -605,17 +625,20 @@ class TechnicalIndicators {
       'baseLine': baseLine,
       'spanA': spanA,
       'spanB': spanB,
-      'laggingSpan': laggingSpan
+      'laggingSpan': laggingSpan,
     };
   }
 
   /// Calculates Parabolic SAR
-  static Map<String, List<dynamic>> calculateParabolicSAR(List<Candle> candles,
-      [double startStep = 0.02, double maxStep = 0.2]) {
+  static Map<String, List<dynamic>> calculateParabolicSAR(
+    List<Candle> candles, [
+    double startStep = 0.02,
+    double maxStep = 0.2,
+  ]) {
     if (candles.length < 2) {
       return {
         'sar': List<double?>.filled(candles.length, null),
-        'isUptrend': List<bool?>.filled(candles.length, null)
+        'isUptrend': List<bool?>.filled(candles.length, null),
       };
     }
 
@@ -675,8 +698,10 @@ class TechnicalIndicators {
 
   /// Calculates Fibonacci Levels (Retracements)
   /// Returns a map of levels for the latest window of [period]
-  static Map<String, double>? calculateFibonacciLevels(List<Candle> candles,
-      [int period = 50]) {
+  static Map<String, double>? calculateFibonacciLevels(
+    List<Candle> candles, [
+    int period = 50,
+  ]) {
     if (candles.length < period) return null;
 
     // Use the latest 'period' candles
@@ -743,7 +768,7 @@ class TechnicalIndicators {
       'r2': r2,
       's2': s2,
       'r3': r3,
-      's3': s3
+      's3': s3,
     };
   }
 }

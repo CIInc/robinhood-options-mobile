@@ -20,18 +20,18 @@ class CopyTradeLeg {
   });
 
   CopyTradeLeg.fromJson(Map<String, dynamic> json)
-      : expirationDate = json['expirationDate'] != null
-            ? (json['expirationDate'] is Timestamp
+    : expirationDate = json['expirationDate'] != null
+          ? (json['expirationDate'] is Timestamp
                 ? (json['expirationDate'] as Timestamp).toDate()
                 : (json['expirationDate'] is String
-                    ? DateTime.tryParse(json['expirationDate'])
-                    : null))
-            : null,
-        strikePrice = parseDouble(json['strikePrice']),
-        optionType = json['optionType'],
-        side = json['side'],
-        positionEffect = json['positionEffect'],
-        ratioQuantity = parseDouble(json['ratioQuantity']);
+                      ? DateTime.tryParse(json['expirationDate'])
+                      : null))
+          : null,
+      strikePrice = parseDouble(json['strikePrice']),
+      optionType = json['optionType'],
+      side = json['side'],
+      positionEffect = json['positionEffect'],
+      ratioQuantity = parseDouble(json['ratioQuantity']);
 }
 
 class CopyTradeRecord {
@@ -78,30 +78,28 @@ class CopyTradeRecord {
   });
 
   CopyTradeRecord.fromDocument(DocumentSnapshot doc)
-      : this.fromJson(doc.data() as Map<String, dynamic>, doc.id);
+    : this.fromJson(doc.data() as Map<String, dynamic>, doc.id);
 
   CopyTradeRecord.fromJson(Map<String, dynamic> json, String id)
-      : id = id,
-        sourceUserId = json['sourceUserId'],
-        targetUserId = json['targetUserId'],
-        groupId = json['groupId'],
-        orderType = json['orderType'],
-        originalOrderId = json['originalOrderId'],
-        symbol = json['symbol'],
-        side = json['side'],
-        originalQuantity = (json['originalQuantity'] as num).toDouble(),
-        copiedQuantity = (json['copiedQuantity'] as num).toDouble(),
-        price = (json['price'] as num).toDouble(),
-        strategy = json['strategy'],
-        legs = json['legs'] != null
-            ? (json['legs'] as List)
-                .map((e) => CopyTradeLeg.fromJson(e))
-                .toList()
-            : null,
-        timestamp = (json['timestamp'] as Timestamp).toDate(),
-        executed = json['executed'] ?? false,
-        executionResult = json['executionResult'],
-        error = json['error'],
-        status = json['status'] ?? 'approved',
-        isInverse = json['isInverse'] ?? false;
+    : id = id,
+      sourceUserId = json['sourceUserId'],
+      targetUserId = json['targetUserId'],
+      groupId = json['groupId'],
+      orderType = json['orderType'],
+      originalOrderId = json['originalOrderId'],
+      symbol = json['symbol'],
+      side = json['side'],
+      originalQuantity = (json['originalQuantity'] as num).toDouble(),
+      copiedQuantity = (json['copiedQuantity'] as num).toDouble(),
+      price = (json['price'] as num).toDouble(),
+      strategy = json['strategy'],
+      legs = json['legs'] != null
+          ? (json['legs'] as List).map((e) => CopyTradeLeg.fromJson(e)).toList()
+          : null,
+      timestamp = (json['timestamp'] as Timestamp).toDate(),
+      executed = json['executed'] ?? false,
+      executionResult = json['executionResult'],
+      error = json['error'],
+      status = json['status'] ?? 'approved',
+      isInverse = json['isInverse'] ?? false;
 }

@@ -21,10 +21,12 @@ final formatPreciseCurrency = NumberFormat.simpleCurrency(decimalDigits: 4);
 final formatPrecise4Currency = NumberFormat.simpleCurrency(decimalDigits: 4);
 final formatPrecise8Currency = NumberFormat.simpleCurrency(decimalDigits: 8);
 final formatPercentage = NumberFormat.decimalPercentPattern(decimalDigits: 2);
-final formatPercentageOneDigit =
-    NumberFormat.decimalPercentPattern(decimalDigits: 1);
-final formatPercentageInteger =
-    NumberFormat.decimalPercentPattern(decimalDigits: 0);
+final formatPercentageOneDigit = NumberFormat.decimalPercentPattern(
+  decimalDigits: 1,
+);
+final formatPercentageInteger = NumberFormat.decimalPercentPattern(
+  decimalDigits: 0,
+);
 final formatNumber = NumberFormat("###,###,##0.#####");
 // final formatNumber = NumberFormat("0.####");
 // final formatNumber = NumberFormat("0.##");

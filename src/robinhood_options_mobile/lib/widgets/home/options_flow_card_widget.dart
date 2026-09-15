@@ -31,8 +31,10 @@ class OptionsFlowCardWidget extends StatelessWidget {
     this.user,
     this.userDocRef,
     this.includePortfolioSymbols = false,
-    this.outerPadding =
-        const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+    this.outerPadding = const EdgeInsets.symmetric(
+      horizontal: 16.0,
+      vertical: 8.0,
+    ),
   });
 
   @override
@@ -41,10 +43,9 @@ class OptionsFlowCardWidget extends StatelessWidget {
       padding: outerPadding,
       child: Card(
         elevation: 0,
-        color: Theme.of(context)
-            .colorScheme
-            .surfaceContainerHighest
-            .withValues(alpha: 0.3),
+        color: Theme.of(
+          context,
+        ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
           side: BorderSide(
@@ -56,12 +57,12 @@ class OptionsFlowCardWidget extends StatelessWidget {
           onTap: () {
             List<String>? portfolioSymbols;
             if (includePortfolioSymbols) {
-              final instrumentPositionStore =
-                  context.read<InstrumentPositionStore>();
+              final instrumentPositionStore = context
+                  .read<InstrumentPositionStore>();
               final optionPositionStore = context.read<OptionPositionStore>();
               portfolioSymbols = {
                 ...instrumentPositionStore.symbols,
-                ...optionPositionStore.symbols
+                ...optionPositionStore.symbols,
               }.toList();
             }
 
@@ -110,25 +111,19 @@ class OptionsFlowCardWidget extends StatelessWidget {
                             includePortfolioSymbols
                                 ? 'Portfolio Flow Analysis'
                                 : 'Options Flow Analysis',
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleMedium
-                                ?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(fontWeight: FontWeight.bold),
                           ),
                           const SizedBox(height: 4),
                           Text(
                             includePortfolioSymbols
                                 ? 'Track sentiment for your positions'
                                 : 'Track institutional sentiment & sweeps',
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodyMedium
+                            style: Theme.of(context).textTheme.bodyMedium
                                 ?.copyWith(
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onSurfaceVariant,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
                                 ),
                           ),
                         ],

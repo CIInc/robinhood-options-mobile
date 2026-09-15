@@ -74,7 +74,7 @@ void main() {
             quantity: 100,
             settlementDate: '2026-03-20',
             timestamp: DateTime(2026, 3, 15, 10, 0),
-          )
+          ),
         ],
       ),
       ComboLeg(
@@ -94,7 +94,7 @@ void main() {
             quantity: 1,
             settlementDate: '2026-03-20',
             timestamp: DateTime(2026, 3, 15, 10, 0),
-          )
+          ),
         ],
       ),
     ],
@@ -146,8 +146,9 @@ void main() {
   );
 
   group('ComboOrdersWidget Tests', () {
-    testWidgets('renders list and header correctly',
-        (WidgetTester tester) async {
+    testWidgets('renders list and header correctly', (
+      WidgetTester tester,
+    ) async {
       tester.view.physicalSize = const Size(1080, 2400);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() {
@@ -203,8 +204,9 @@ void main() {
   });
 
   group('ComboOrderWidget Detail Tests', () {
-    testWidgets('renders filled order details and legs breakdown',
-        (WidgetTester tester) async {
+    testWidgets('renders filled order details and legs breakdown', (
+      WidgetTester tester,
+    ) async {
       tester.view.physicalSize = const Size(1080, 2400);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() {
@@ -256,8 +258,9 @@ void main() {
       await tester.pumpAndSettle();
     });
 
-    testWidgets('shows cancel button for queued order and handles dialog',
-        (WidgetTester tester) async {
+    testWidgets('shows cancel button for queued order and handles dialog', (
+      WidgetTester tester,
+    ) async {
       tester.view.physicalSize = const Size(1080, 2400);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() {

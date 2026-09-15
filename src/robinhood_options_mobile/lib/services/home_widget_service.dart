@@ -22,7 +22,9 @@ class HomeWidgetService {
     await HomeWidget.saveWidgetData<double>('portfolio_equity', equity);
     await HomeWidget.saveWidgetData<double>('portfolio_change', change);
     await HomeWidget.saveWidgetData<double>(
-        'portfolio_change_percent', changePercent);
+      'portfolio_change_percent',
+      changePercent,
+    );
 
     await HomeWidget.updateWidget(
       name: androidWidgetName,
@@ -49,15 +51,13 @@ class HomeWidgetService {
         }
       }
 
-      return {
-        'symbol': symbol,
-        'price': price,
-        'changePercent': changePercent,
-      };
+      return {'symbol': symbol, 'price': price, 'changePercent': changePercent};
     }).toList();
 
     await HomeWidget.saveWidgetData<String>(
-        'watchlist_data', jsonEncode(watchlistData));
+      'watchlist_data',
+      jsonEncode(watchlistData),
+    );
 
     await HomeWidget.updateWidget(
       name: 'WatchlistWidget',
@@ -65,31 +65,44 @@ class HomeWidgetService {
     );
   }
 
-  static Future<void> updateGroupWatchlist(GroupWatchlist groupWatchlist,
-      Map<String, Map<String, dynamic>> quoteData) async {
-    final List<Map<String, dynamic>> watchlistData =
-        groupWatchlist.symbols.take(5).map((symbol) {
-      final symbolQuote = quoteData[symbol.symbol];
-      final price = symbolQuote?['lastTradePrice'] as double? ?? 0.0;
-      final previousClose = symbolQuote?['previousClose'] as double? ?? 0.0;
-      final changePercent =
-          previousClose != 0 ? (price - previousClose) / previousClose : 0.0;
+  static Future<void> updateGroupWatchlist(
+    GroupWatchlist groupWatchlist,
+    Map<String, Map<String, dynamic>> quoteData,
+  ) async {
+    final List<Map<String, dynamic>> watchlistData = groupWatchlist.symbols
+        .take(5)
+        .map((symbol) {
+          final symbolQuote = quoteData[symbol.symbol];
+          final price = symbolQuote?['lastTradePrice'] as double? ?? 0.0;
+          final previousClose = symbolQuote?['previousClose'] as double? ?? 0.0;
+          final changePercent = previousClose != 0
+              ? (price - previousClose) / previousClose
+              : 0.0;
 
-      return {
-        'symbol': symbol.symbol,
-        'price': price,
-        'changePercent': changePercent,
-      };
-    }).toList();
+          return {
+            'symbol': symbol.symbol,
+            'price': price,
+            'changePercent': changePercent,
+          };
+        })
+        .toList();
 
     await HomeWidget.saveWidgetData<String>(
-        'group_watchlist_data', jsonEncode(watchlistData));
+      'group_watchlist_data',
+      jsonEncode(watchlistData),
+    );
     await HomeWidget.saveWidgetData<String>(
-        'group_watchlist_name', groupWatchlist.name);
+      'group_watchlist_name',
+      groupWatchlist.name,
+    );
     await HomeWidget.saveWidgetData<String>(
-        'group_watchlist_id', groupWatchlist.id);
+      'group_watchlist_id',
+      groupWatchlist.id,
+    );
     await HomeWidget.saveWidgetData<String>(
-        'group_watchlist_group_id', groupWatchlist.groupId);
+      'group_watchlist_group_id',
+      groupWatchlist.groupId,
+    );
 
     await HomeWidget.updateWidget(
       name: 'WatchlistWidget',
@@ -98,36 +111,39 @@ class HomeWidgetService {
   }
 
   static Future<void> setSelectedGroupWatchlist(
-      String? groupId, String? watchlistId) async {
+    String? groupId,
+    String? watchlistId,
+  ) async {
     final prefs = await SharedPreferences.getInstance();
     if (groupId != null && watchlistId != null) {
       await prefs.setString(
-          'widget_selected_group_watchlist', '$groupId:$watchlistId');
+        'widget_selected_group_watchlist',
+        '$groupId:$watchlistId',
+      );
     } else {
       await prefs.remove('widget_selected_group_watchlist');
     }
   }
 
   static Future<void> updateTradeSignals(
-      List<Map<String, dynamic>> signals) async {
-    final List<Map<String, dynamic>> signalsData =
-        signals.take(5).map((signal) {
+    List<Map<String, dynamic>> signals,
+  ) async {
+    final List<Map<String, dynamic>> signalsData = signals.take(5).map((
+      signal,
+    ) {
       final symbol = signal['symbol'] as String? ?? 'N/A';
       final signalType = signal['signal'] as String? ?? 'HOLD';
       final multiIndicatorResult =
           signal['multiIndicatorResult'] as Map<String, dynamic>?;
       final strength = multiIndicatorResult?['signalStrength'] as int? ?? 0;
 
-      return {
-        'symbol': symbol,
-        'signalType': signalType,
-        'strength': strength,
-      };
+      return {'symbol': symbol, 'signalType': signalType, 'strength': strength};
     }).toList();
 
     final jsonString = jsonEncode(signalsData);
     debugPrint(
-        'HomeWidgetService: Updating trade signals widget with ${signalsData.length} signals');
+      'HomeWidgetService: Updating trade signals widget with ${signalsData.length} signals',
+    );
     debugPrint('HomeWidgetService: JSON data: $jsonString');
 
     await HomeWidget.saveWidgetData<String>('trade_signals_data', jsonString);

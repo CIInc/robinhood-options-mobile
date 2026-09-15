@@ -17,11 +17,7 @@ void main() {
         'unsettled_charges': '50.75',
         'interest_earned': '84.20',
         'apy': '0.0500',
-        'card': {
-          'status': 'active',
-          'last_four': '1234',
-          'type': 'physical',
-        },
+        'card': {'status': 'active', 'last_four': '1234', 'type': 'physical'},
         'created_at': '2023-04-12T10:00:00Z',
       };
 
@@ -94,12 +90,7 @@ void main() {
 
     test('integrates with DemoService', () async {
       final service = DemoService();
-      final user = BrokerageUser(
-        BrokerageSource.demo,
-        'demo_user',
-        null,
-        null,
-      );
+      final user = BrokerageUser(BrokerageSource.demo, 'demo_user', null, null);
 
       final spending = await service.getSpendingAccountModel(user);
       expect(spending, isNotNull);

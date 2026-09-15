@@ -13,10 +13,13 @@ class AccountStore extends ChangeNotifier {
   String? _selectedAccountNumber;
   bool _showBalances = true;
 
-  static String selectionStorageKey(
-      {required String source, String? userName}) {
-    final normalizedUser =
-        (userName == null || userName.isEmpty) ? 'unknown' : userName;
+  static String selectionStorageKey({
+    required String source,
+    String? userName,
+  }) {
+    final normalizedUser = (userName == null || userName.isEmpty)
+        ? 'unknown'
+        : userName;
     return '$_selectedAccountPrefPrefix::$source::$normalizedUser';
   }
 
@@ -38,8 +41,9 @@ class AccountStore extends ChangeNotifier {
     if (_items.isEmpty) return null;
     if (_selectedAccountNumber != null) {
       try {
-        return _items
-            .firstWhere((a) => a.accountNumber == _selectedAccountNumber);
+        return _items.firstWhere(
+          (a) => a.accountNumber == _selectedAccountNumber,
+        );
       } catch (_) {}
     }
     // Default to the first account when no explicit selection exists.
@@ -100,8 +104,9 @@ class AccountStore extends ChangeNotifier {
   }
 
   bool update(Account item) {
-    var index = _items
-        .indexWhere((element) => element.accountNumber == item.accountNumber);
+    var index = _items.indexWhere(
+      (element) => element.accountNumber == item.accountNumber,
+    );
     if (index == -1) {
       return false;
     }
