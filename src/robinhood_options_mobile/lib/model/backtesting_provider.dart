@@ -34,8 +34,10 @@ class BacktestingProvider with ChangeNotifier {
   String? get errorMessage => _errorMessage;
   double get progress => _progress;
   List<BacktestResult> get backtestHistory => _backtestHistory;
-  List<TradeStrategyTemplate> get templates =>
-      [...TradeStrategyDefaults.defaultTemplates, ..._userTemplates];
+  List<TradeStrategyTemplate> get templates => [
+    ...TradeStrategyDefaults.defaultTemplates,
+    ..._userTemplates,
+  ];
   TradeStrategyTemplate? get pendingTemplate => _pendingTemplate;
 
   /// Initialize provider with user document reference
@@ -48,8 +50,11 @@ class BacktestingProvider with ChangeNotifier {
   }
 
   /// Run a backtest with the given configuration
-  Future<BacktestResult?> runBacktest(TradeStrategyConfig config,
-      {String? templateId, String? templateName}) async {
+  Future<BacktestResult?> runBacktest(
+    TradeStrategyConfig config, {
+    String? templateId,
+    String? templateName,
+  }) async {
     if (_isRunning) {
       debugPrint('⚠️ Backtest already in progress');
       return null;
@@ -150,9 +155,9 @@ class BacktestingProvider with ChangeNotifier {
           .doc(_userDocRef!.id)
           .collection('backtest_history')
           .add({
-        'result': result.toJson(),
-        'createdAt': FieldValue.serverTimestamp(),
-      });
+            'result': result.toJson(),
+            'createdAt': FieldValue.serverTimestamp(),
+          });
 
       // Update result with ID
       final resultWithId = result.copyWith(id: docRef.id);
@@ -261,9 +266,11 @@ class BacktestingProvider with ChangeNotifier {
           .get();
 
       _userTemplates = snapshot.docs
-          .map((doc) => TradeStrategyTemplate.fromJson(
-                Map<String, dynamic>.from(doc.data()),
-              ))
+          .map(
+            (doc) => TradeStrategyTemplate.fromJson(
+              Map<String, dynamic>.from(doc.data()),
+            ),
+          )
           .toList();
 
       notifyListeners();
@@ -380,10 +387,14 @@ class BacktestingProvider with ChangeNotifier {
             .collection('user')
             .doc(_userDocRef!.id)
             .collection('backtest_history')
-            .where('result.config.symbolFilter',
-                arrayContains: result.config.symbolFilter.first)
-            .where('result.config.startDate',
-                isEqualTo: result.config.startDate?.toIso8601String())
+            .where(
+              'result.config.symbolFilter',
+              arrayContains: result.config.symbolFilter.first,
+            )
+            .where(
+              'result.config.startDate',
+              isEqualTo: result.config.startDate?.toIso8601String(),
+            )
             .limit(1)
             .get();
 
@@ -392,7 +403,8 @@ class BacktestingProvider with ChangeNotifier {
         }
       } else {
         debugPrint(
-            '⚠️ Cannot delete backtest: missing ID and symbols (legacy record)');
+          '⚠️ Cannot delete backtest: missing ID and symbols (legacy record)',
+        );
       }
 
       _backtestHistory.removeAt(index);
@@ -415,7 +427,9 @@ class BacktestingProvider with ChangeNotifier {
 
   /// Compare two backtest results
   Map<String, dynamic> compareResults(
-      BacktestResult result1, BacktestResult result2) {
+    BacktestResult result1,
+    BacktestResult result2,
+  ) {
     return {
       'totalReturnDiff':
           result1.totalReturnPercent - result2.totalReturnPercent,

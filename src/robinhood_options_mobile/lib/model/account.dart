@@ -21,24 +21,25 @@ class Account {
   final bool isPdtForever;
 
   Account(
-      // this.userId,
-      this.url,
-      this.portfolioCash,
-      this.accountNumber,
-      this.type,
-      this.buyingPower,
-      this.optionLevel,
-      this.cashHeldForOptionsCollateral,
-      this.unsettledDebit,
-      this.settledAmountBorrowed,
-      {this.brokerageAccountType,
-      this.isAgentic = false,
-      this.dayTradesProtection = true,
-      this.dayTradeBuyingPower,
-      this.dayTradeRatio,
-      this.markedPatternDayTraderDate,
-      this.patternDayTraderExpiryDate,
-      this.isPdtForever = false});
+    // this.userId,
+    this.url,
+    this.portfolioCash,
+    this.accountNumber,
+    this.type,
+    this.buyingPower,
+    this.optionLevel,
+    this.cashHeldForOptionsCollateral,
+    this.unsettledDebit,
+    this.settledAmountBorrowed, {
+    this.brokerageAccountType,
+    this.isAgentic = false,
+    this.dayTradesProtection = true,
+    this.dayTradeBuyingPower,
+    this.dayTradeRatio,
+    this.markedPatternDayTraderDate,
+    this.patternDayTraderExpiryDate,
+    this.isPdtForever = false,
+  });
 
   bool get isTraditionalIra =>
       (brokerageAccountType?.toLowerCase().contains('ira_traditional') ??
@@ -69,110 +70,125 @@ class Account {
   }
 
   Account.fromJson(dynamic json) //, BrokerageUser user
-      : // userId = user.id,
-        url = json['url'] ?? '',
-        portfolioCash = parseDouble(json['portfolio_cash']),
-        accountNumber = json['account_number'] ?? '',
-        type = json['type'] ?? '',
-        brokerageAccountType =
-            json['brokerage_account_type']?.toString() ?? json['account_type']?.toString(),
-        buyingPower = parseDouble(json['buying_power']),
-        optionLevel = json['option_level'] ?? '',
-        cashHeldForOptionsCollateral =
-            parseDouble(json['cash_held_for_options_collateral']),
-        unsettledDebit = parseDouble(json['unsettled_debit']),
-        settledAmountBorrowed = json['margin_balances'] != null
-            ? parseDouble(json['margin_balances']['settled_amount_borrowed'])
-            : parseDouble(json['settled_amount_borrowed']),
-        isAgentic = json['is_agentic'] ??
-            json['agentic_allowed'] ??
-            (json['type'] == 'agentic') ??
-            false,
-        dayTradesProtection = json['margin_balances'] != null &&
-                json['margin_balances']['day_trades_protection'] != null
-            ? json['margin_balances']['day_trades_protection'] == true
-            : (json['day_trades_protection'] ?? true),
-        dayTradeBuyingPower = json['margin_balances'] != null
-            ? parseDouble(json['margin_balances']['day_trade_buying_power'])
-            : parseDouble(json['day_trade_buying_power']),
-        dayTradeRatio = json['margin_balances'] != null
-            ? parseDouble(json['margin_balances']['day_trade_ratio'])
-            : parseDouble(json['day_trade_ratio']),
-        markedPatternDayTraderDate = json['margin_balances'] != null &&
-                json['margin_balances']['marked_pattern_day_trader_date'] !=
-                    null
-            ? DateTime.tryParse(json['margin_balances']
-                    ['marked_pattern_day_trader_date']
-                .toString())
-            : (json['marked_pattern_day_trader_date'] != null
+    : // userId = user.id,
+      url = json['url'] ?? '',
+      portfolioCash = parseDouble(json['portfolio_cash']),
+      accountNumber = json['account_number'] ?? '',
+      type = json['type'] ?? '',
+      brokerageAccountType =
+          json['brokerage_account_type']?.toString() ??
+          json['account_type']?.toString(),
+      buyingPower = parseDouble(json['buying_power']),
+      optionLevel = json['option_level'] ?? '',
+      cashHeldForOptionsCollateral = parseDouble(
+        json['cash_held_for_options_collateral'],
+      ),
+      unsettledDebit = parseDouble(json['unsettled_debit']),
+      settledAmountBorrowed = json['margin_balances'] != null
+          ? parseDouble(json['margin_balances']['settled_amount_borrowed'])
+          : parseDouble(json['settled_amount_borrowed']),
+      isAgentic =
+          json['is_agentic'] ??
+          json['agentic_allowed'] ??
+          (json['type'] == 'agentic') ??
+          false,
+      dayTradesProtection =
+          json['margin_balances'] != null &&
+              json['margin_balances']['day_trades_protection'] != null
+          ? json['margin_balances']['day_trades_protection'] == true
+          : (json['day_trades_protection'] ?? true),
+      dayTradeBuyingPower = json['margin_balances'] != null
+          ? parseDouble(json['margin_balances']['day_trade_buying_power'])
+          : parseDouble(json['day_trade_buying_power']),
+      dayTradeRatio = json['margin_balances'] != null
+          ? parseDouble(json['margin_balances']['day_trade_ratio'])
+          : parseDouble(json['day_trade_ratio']),
+      markedPatternDayTraderDate =
+          json['margin_balances'] != null &&
+              json['margin_balances']['marked_pattern_day_trader_date'] != null
+          ? DateTime.tryParse(
+              json['margin_balances']['marked_pattern_day_trader_date']
+                  .toString(),
+            )
+          : (json['marked_pattern_day_trader_date'] != null
                 ? DateTime.tryParse(
-                    json['marked_pattern_day_trader_date'].toString())
+                    json['marked_pattern_day_trader_date'].toString(),
+                  )
                 : null),
-        patternDayTraderExpiryDate = json['margin_balances'] != null &&
-                json['margin_balances']['pattern_day_trader_expiry_date'] !=
-                    null
-            ? DateTime.tryParse(json['margin_balances']
-                    ['pattern_day_trader_expiry_date']
-                .toString())
-            : (json['pattern_day_trader_expiry_date'] != null
+      patternDayTraderExpiryDate =
+          json['margin_balances'] != null &&
+              json['margin_balances']['pattern_day_trader_expiry_date'] != null
+          ? DateTime.tryParse(
+              json['margin_balances']['pattern_day_trader_expiry_date']
+                  .toString(),
+            )
+          : (json['pattern_day_trader_expiry_date'] != null
                 ? DateTime.tryParse(
-                    json['pattern_day_trader_expiry_date'].toString())
+                    json['pattern_day_trader_expiry_date'].toString(),
+                  )
                 : null),
-        isPdtForever = json['margin_balances'] != null &&
-                json['margin_balances']['is_pdt_forever'] != null
-            ? json['margin_balances']['is_pdt_forever'] == true
-            : (json['is_pdt_forever'] ?? false);
+      isPdtForever =
+          json['margin_balances'] != null &&
+              json['margin_balances']['is_pdt_forever'] != null
+          ? json['margin_balances']['is_pdt_forever'] == true
+          : (json['is_pdt_forever'] ?? false);
 
   Account.fromSchwabJson(dynamic json) //, BrokerageUser user
-      : // userId = user.id,
-        url = json['securitiesAccount']['accountNumber'],
-        portfolioCash = json['securitiesAccount']['currentBalances'] != null
-            ? parseDouble(
-                json['securitiesAccount']['currentBalances']['cashBalance'])
-            : null,
-        accountNumber = json['securitiesAccount']['accountNumber'],
-        type = json['securitiesAccount']['type'] ?? '',
-        brokerageAccountType =
-            json['securitiesAccount']['type']?.toString().toLowerCase().contains('ira') == true
-                ? json['securitiesAccount']['type']?.toString()
-                : 'individual',
-        buyingPower = json['securitiesAccount']['currentBalances'] != null
-            ? parseDouble(
-                json['securitiesAccount']['currentBalances']['buyingPower'])
-            : null,
-        optionLevel =
-            '', // TODO: From getUser() /userprincipals/. Use .authorizations.optionTradingLevel
-        cashHeldForOptionsCollateral = 0.0,
-        unsettledDebit = 0.0,
-        settledAmountBorrowed = 0.0,
-        isAgentic = false,
-        dayTradesProtection = true,
-        dayTradeBuyingPower = null,
-        dayTradeRatio = null,
-        markedPatternDayTraderDate = null,
-        patternDayTraderExpiryDate = null,
-        isPdtForever = false; // TODO
+    : // userId = user.id,
+      url = json['securitiesAccount']['accountNumber'],
+      portfolioCash = json['securitiesAccount']['currentBalances'] != null
+          ? parseDouble(
+              json['securitiesAccount']['currentBalances']['cashBalance'],
+            )
+          : null,
+      accountNumber = json['securitiesAccount']['accountNumber'],
+      type = json['securitiesAccount']['type'] ?? '',
+      brokerageAccountType =
+          json['securitiesAccount']['type']?.toString().toLowerCase().contains(
+                'ira',
+              ) ==
+              true
+          ? json['securitiesAccount']['type']?.toString()
+          : 'individual',
+      buyingPower = json['securitiesAccount']['currentBalances'] != null
+          ? parseDouble(
+              json['securitiesAccount']['currentBalances']['buyingPower'],
+            )
+          : null,
+      optionLevel =
+          '', // TODO: From getUser() /userprincipals/. Use .authorizations.optionTradingLevel
+      cashHeldForOptionsCollateral = 0.0,
+      unsettledDebit = 0.0,
+      settledAmountBorrowed = 0.0,
+      isAgentic = false,
+      dayTradesProtection = true,
+      dayTradeBuyingPower = null,
+      dayTradeRatio = null,
+      markedPatternDayTraderDate = null,
+      patternDayTraderExpiryDate = null,
+      isPdtForever = false; // TODO
 
   Account.fromPlaidJson(dynamic json) //, BrokerageUser user
-      : // userId = user.id,
-        url = '',
-        portfolioCash = parseDouble(json['accounts'][0]['balances']['current']),
-        accountNumber = json['accounts'][0]['mask'],
-        type = json['accounts'][0]['type'],
-        brokerageAccountType = json['accounts'][0]['subtype']?.toString() ?? 'individual',
-        buyingPower = parseDouble(json['accounts'][0]['balances']['current']),
-        optionLevel =
-            '', // TODO: From getUser() /userprincipals/. Use .authorizations.optionTradingLevel
-        cashHeldForOptionsCollateral = 0.0,
-        unsettledDebit = 0.0,
-        settledAmountBorrowed = 0.0,
-        isAgentic = false,
-        dayTradesProtection = true,
-        dayTradeBuyingPower = null,
-        dayTradeRatio = null,
-        markedPatternDayTraderDate = null,
-        patternDayTraderExpiryDate = null,
-        isPdtForever = false; // TODO
+    : // userId = user.id,
+      url = '',
+      portfolioCash = parseDouble(json['accounts'][0]['balances']['current']),
+      accountNumber = json['accounts'][0]['mask'],
+      type = json['accounts'][0]['type'],
+      brokerageAccountType =
+          json['accounts'][0]['subtype']?.toString() ?? 'individual',
+      buyingPower = parseDouble(json['accounts'][0]['balances']['current']),
+      optionLevel =
+          '', // TODO: From getUser() /userprincipals/. Use .authorizations.optionTradingLevel
+      cashHeldForOptionsCollateral = 0.0,
+      unsettledDebit = 0.0,
+      settledAmountBorrowed = 0.0,
+      isAgentic = false,
+      dayTradesProtection = true,
+      dayTradeBuyingPower = null,
+      dayTradeRatio = null,
+      markedPatternDayTraderDate = null,
+      patternDayTraderExpiryDate = null,
+      isPdtForever = false; // TODO
 
   Map<String, Object?> toJson() {
     return {
@@ -191,10 +207,10 @@ class Account {
       'day_trades_protection': dayTradesProtection,
       'day_trade_buying_power': dayTradeBuyingPower,
       'day_trade_ratio': dayTradeRatio,
-      'marked_pattern_day_trader_date':
-          markedPatternDayTraderDate?.toIso8601String(),
-      'pattern_day_trader_expiry_date':
-          patternDayTraderExpiryDate?.toIso8601String(),
+      'marked_pattern_day_trader_date': markedPatternDayTraderDate
+          ?.toIso8601String(),
+      'pattern_day_trader_expiry_date': patternDayTraderExpiryDate
+          ?.toIso8601String(),
       'is_pdt_forever': isPdtForever,
     };
   }

@@ -57,7 +57,7 @@ void main() {
             'sentimentLabel': 'Bullish',
             'impact': 'high',
             'symbols': ['TSLA'],
-          }
+          },
         ],
         'updatedAt': '2026-08-27T10:30:00.000Z',
       };
@@ -70,8 +70,10 @@ void main() {
       expect(intelligence.bullishCatalysts.length, 2);
       expect(intelligence.bearishCatalysts.length, 1);
       expect(intelligence.articles.length, 1);
-      expect(intelligence.articles.first.title,
-          'Tesla robotaxi approvals advance in key states');
+      expect(
+        intelligence.articles.first.title,
+        'Tesla robotaxi approvals advance in key states',
+      );
     });
   });
 }

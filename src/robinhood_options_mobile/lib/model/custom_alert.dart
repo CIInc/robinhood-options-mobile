@@ -8,7 +8,7 @@ enum AlertType {
   rsi,
   gex,
   dynamic_threshold,
-  custom
+  custom,
 }
 
 enum AlertCondition {
@@ -22,7 +22,7 @@ enum AlertCondition {
   above_gamma_flip,
   below_gamma_flip,
   above_band,
-  below_band
+  below_band,
 }
 
 enum AlertLogic { all, any }
@@ -73,7 +73,7 @@ class CustomAlert {
   final AlertCondition condition;
   final double value; // Threshold value
   final int?
-      period; // Period for technical indicators (e.g. 50 for SMA, 14 for RSI)
+  period; // Period for technical indicators (e.g. 50 for SMA, 14 for RSI)
   final AlertLogic logic;
   final List<SmartAlertRule> rules;
   final bool active;
@@ -102,10 +102,12 @@ class CustomAlert {
     final rulesData = data['rules'];
     final rules = (rulesData is List)
         ? rulesData
-            .whereType<Map>()
-            .map((rule) =>
-                SmartAlertRule.fromMap(Map<String, dynamic>.from(rule)))
-            .toList()
+              .whereType<Map>()
+              .map(
+                (rule) =>
+                    SmartAlertRule.fromMap(Map<String, dynamic>.from(rule)),
+              )
+              .toList()
         : <SmartAlertRule>[];
 
     return CustomAlert(
@@ -149,8 +151,9 @@ class CustomAlert {
       'logic': logic.name,
       'rules': rules.map((rule) => rule.toMap()).toList(),
       'active': active,
-      'lastTriggered':
-          lastTriggered != null ? Timestamp.fromDate(lastTriggered!) : null,
+      'lastTriggered': lastTriggered != null
+          ? Timestamp.fromDate(lastTriggered!)
+          : null,
       'createdAt': Timestamp.fromDate(createdAt),
       'deviceToken': deviceToken,
     };

@@ -58,17 +58,17 @@ class _CorporateActionsWidgetState extends State<CorporateActionsWidget> {
     setState(() {
       _futurePayments = widget.service
           .getSplitPaymentsModel(
-        widget.brokerageUser,
-        instrumentId: widget.filterInstrumentId,
-      )
+            widget.brokerageUser,
+            instrumentId: widget.filterInstrumentId,
+          )
           .then((payments) async {
-        _enrichPaymentsWithStore(payments);
-        return payments;
-      })
+            _enrichPaymentsWithStore(payments);
+            return payments;
+          })
           .catchError((e) {
-        debugPrint('Error loading corporate action split payments: $e');
-        return <SplitPayment>[];
-      });
+            debugPrint('Error loading corporate action split payments: $e');
+            return <SplitPayment>[];
+          });
     });
   }
 
@@ -95,7 +95,8 @@ class _CorporateActionsWidgetState extends State<CorporateActionsWidget> {
             (inst) =>
                 inst.id == p.instrumentId ||
                 inst.url == p.instrumentId ||
-                (p.instrumentId.isNotEmpty && inst.url.contains(p.instrumentId)),
+                (p.instrumentId.isNotEmpty &&
+                    inst.url.contains(p.instrumentId)),
           );
         }
         if (match == null) {
@@ -158,15 +159,15 @@ class _CorporateActionsWidgetState extends State<CorporateActionsWidget> {
           anyUpdated = true;
         } else if (p.splitUrl != null && p.splitUrl!.isNotEmpty) {
           try {
-            final splitJson =
-                await RobinhoodService.getJson(widget.brokerageUser, p.splitUrl!);
+            final splitJson = await RobinhoodService.getJson(
+              widget.brokerageUser,
+              p.splitUrl!,
+            );
             if (splitJson is Map) {
               final sm = parseDouble(splitJson['multiplier']);
               final sd = parseDouble(splitJson['divisor']);
               if (sm != null && sd != null && (sm != 1.0 || sd != 1.0)) {
-                final actionType = sm > sd
-                    ? 'forward_split'
-                    : 'reverse_split';
+                final actionType = sm > sd ? 'forward_split' : 'reverse_split';
                 p = p.copyWith(
                   multiplier: sm,
                   divisor: sd,
@@ -185,15 +186,18 @@ class _CorporateActionsWidgetState extends State<CorporateActionsWidget> {
           match != null &&
           match.splits.isNotEmpty) {
         try {
-          final splits =
-              await widget.service.getSplits(widget.brokerageUser, match);
+          final splits = await widget.service.getSplits(
+            widget.brokerageUser,
+            match,
+          );
           if (splits.isNotEmpty) {
             dynamic matchSplit;
             if (p.executionDate != null) {
               matchSplit = splits.firstWhereOrNull((s) {
                 if (s is! Map) return false;
                 final d = DateTime.tryParse(
-                    (s['execution_date'] ?? s['date'] ?? '').toString());
+                  (s['execution_date'] ?? s['date'] ?? '').toString(),
+                );
                 if (d == null) return false;
                 return d.year == p.executionDate!.year &&
                     d.month == p.executionDate!.month &&
@@ -253,7 +257,9 @@ class _CorporateActionsWidgetState extends State<CorporateActionsWidget> {
           }
 
           final allPayments = snapshot.data ?? [];
-          final summary = CorporateActionSplitsSummary.fromPayments(allPayments);
+          final summary = CorporateActionSplitsSummary.fromPayments(
+            allPayments,
+          );
 
           // Apply filters
           final filteredPayments = allPayments.where((payment) {
@@ -273,9 +279,10 @@ class _CorporateActionsWidgetState extends State<CorporateActionsWidget> {
               final query = _searchQuery.toLowerCase();
               final matchesSymbol =
                   payment.symbol.toLowerCase().contains(query) ||
-                      payment.displaySymbol.toLowerCase().contains(query);
-              final matchesDesc =
-                  (payment.description ?? '').toLowerCase().contains(query);
+                  payment.displaySymbol.toLowerCase().contains(query);
+              final matchesDesc = (payment.description ?? '')
+                  .toLowerCase()
+                  .contains(query);
               final matchesId = payment.id.toLowerCase().contains(query);
               return matchesSymbol || matchesDesc || matchesId;
             }
@@ -295,13 +302,19 @@ class _CorporateActionsWidgetState extends State<CorporateActionsWidget> {
                 ),
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 4,
+                    ),
                     child: _buildSearchBar(context),
                   ),
                 ),
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 6,
+                    ),
                     child: _buildFilterChips(context, summary),
                   ),
                 ),
@@ -314,13 +327,10 @@ class _CorporateActionsWidgetState extends State<CorporateActionsWidget> {
                   SliverPadding(
                     padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
                     sliver: SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                        (context, index) {
-                          final payment = filteredPayments[index];
-                          return _buildSplitCard(context, payment);
-                        },
-                        childCount: filteredPayments.length,
-                      ),
+                      delegate: SliverChildBuilderDelegate((context, index) {
+                        final payment = filteredPayments[index];
+                        return _buildSplitCard(context, payment);
+                      }, childCount: filteredPayments.length),
                     ),
                   ),
               ],
@@ -332,7 +342,9 @@ class _CorporateActionsWidgetState extends State<CorporateActionsWidget> {
   }
 
   Widget _buildHeroSummary(
-      BuildContext context, CorporateActionSplitsSummary summary) {
+    BuildContext context,
+    CorporateActionSplitsSummary summary,
+  ) {
     final theme = Theme.of(context);
 
     return Card(
@@ -393,7 +405,9 @@ class _CorporateActionsWidgetState extends State<CorporateActionsWidget> {
                 Container(
                   height: 36,
                   width: 1,
-                  color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+                  color: theme.colorScheme.outlineVariant.withValues(
+                    alpha: 0.5,
+                  ),
                 ),
                 Expanded(
                   child: _buildMetricItem(
@@ -407,13 +421,16 @@ class _CorporateActionsWidgetState extends State<CorporateActionsWidget> {
                 Container(
                   height: 36,
                   width: 1,
-                  color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+                  color: theme.colorScheme.outlineVariant.withValues(
+                    alpha: 0.5,
+                  ),
                 ),
                 Expanded(
                   child: _buildMetricItem(
                     context,
                     label: 'Fwd / Rev',
-                    value: '${summary.forwardSplitsCount} / ${summary.reverseSplitsCount}',
+                    value:
+                        '${summary.forwardSplitsCount} / ${summary.reverseSplitsCount}',
                     icon: Icons.swap_vert,
                   ),
                 ),
@@ -426,7 +443,9 @@ class _CorporateActionsWidgetState extends State<CorporateActionsWidget> {
                 color: theme.colorScheme.surface.withValues(alpha: 0.7),
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
-                  color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+                  color: theme.colorScheme.outlineVariant.withValues(
+                    alpha: 0.3,
+                  ),
                 ),
               ),
               child: Row(
@@ -512,8 +531,13 @@ class _CorporateActionsWidgetState extends State<CorporateActionsWidget> {
               )
             : null,
         filled: true,
-        fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        fillColor: theme.colorScheme.surfaceContainerHighest.withValues(
+          alpha: 0.3,
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 10,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
@@ -528,7 +552,9 @@ class _CorporateActionsWidgetState extends State<CorporateActionsWidget> {
   }
 
   Widget _buildFilterChips(
-      BuildContext context, CorporateActionSplitsSummary summary) {
+    BuildContext context,
+    CorporateActionSplitsSummary summary,
+  ) {
     final filters = [
       {'key': 'all', 'label': 'All (${summary.totalSplitsCount})'},
       {'key': 'forward', 'label': 'Forward (${summary.forwardSplitsCount})'},
@@ -625,7 +651,9 @@ class _CorporateActionsWidgetState extends State<CorporateActionsWidget> {
                             ),
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 2),
+                                horizontal: 8,
+                                vertical: 2,
+                              ),
                               decoration: BoxDecoration(
                                 color: isForward
                                     ? Colors.green.withValues(alpha: 0.12)
@@ -723,9 +751,12 @@ class _CorporateActionsWidgetState extends State<CorporateActionsWidget> {
                             const SizedBox(width: 6),
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 6, vertical: 1),
+                                horizontal: 6,
+                                vertical: 1,
+                              ),
                               decoration: BoxDecoration(
-                                color: theme.colorScheme.surfaceContainerHighest,
+                                color:
+                                    theme.colorScheme.surfaceContainerHighest,
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: Text(
@@ -758,7 +789,9 @@ class _CorporateActionsWidgetState extends State<CorporateActionsWidget> {
                         const SizedBox(height: 2),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 3),
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.green.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(6),
@@ -806,8 +839,10 @@ class _CorporateActionsWidgetState extends State<CorporateActionsWidget> {
                   ),
                   const SizedBox(width: 8),
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: payment.isSettled
                           ? Colors.blue.withValues(alpha: 0.1)
@@ -889,7 +924,10 @@ class _CorporateActionsWidgetState extends State<CorporateActionsWidget> {
     );
   }
 
-  void _showSplitDetailsBottomSheet(BuildContext context, SplitPayment payment) {
+  void _showSplitDetailsBottomSheet(
+    BuildContext context,
+    SplitPayment payment,
+  ) {
     final theme = Theme.of(context);
     final isForward = payment.isForwardSplit;
 
@@ -963,7 +1001,9 @@ class _CorporateActionsWidgetState extends State<CorporateActionsWidget> {
                       ),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 4),
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: payment.isSettled
                               ? Colors.blue.withValues(alpha: 0.15)
@@ -992,19 +1032,33 @@ class _CorporateActionsWidgetState extends State<CorporateActionsWidget> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  _buildDetailRow('Stock / Asset', payment.displaySymbol,
-                      isBold: true),
+                  _buildDetailRow(
+                    'Stock / Asset',
+                    payment.displaySymbol,
+                    isBold: true,
+                  ),
                   if (payment.description != null &&
                       payment.description!.isNotEmpty)
-                    _buildDetailRow('Company / Asset Name', payment.description!),
-                  _buildDetailRow('Pre-Split Shares Held',
-                      '${payment.formattedOldShares} sh'),
-                  _buildDetailRow('Split Ratio',
-                      '${payment.formattedSplitRatio} (${payment.formattedRatio})'),
-                  _buildDetailRow('Post-Split Shares Credited',
-                      '${payment.formattedNewShares} sh'),
-                  _buildDetailRow('Share Count Adjustment',
-                      payment.formattedSharesDelta),
+                    _buildDetailRow(
+                      'Company / Asset Name',
+                      payment.description!,
+                    ),
+                  _buildDetailRow(
+                    'Pre-Split Shares Held',
+                    '${payment.formattedOldShares} sh',
+                  ),
+                  _buildDetailRow(
+                    'Split Ratio',
+                    '${payment.formattedSplitRatio} (${payment.formattedRatio})',
+                  ),
+                  _buildDetailRow(
+                    'Post-Split Shares Credited',
+                    '${payment.formattedNewShares} sh',
+                  ),
+                  _buildDetailRow(
+                    'Share Count Adjustment',
+                    payment.formattedSharesDelta,
+                  ),
                   if (payment.hasCashInLieu) ...[
                     const Divider(height: 16),
                     _buildDetailRow(
@@ -1025,16 +1079,22 @@ class _CorporateActionsWidgetState extends State<CorporateActionsWidget> {
                   ),
                   const SizedBox(height: 8),
                   _buildDetailRow(
-                      'Execution Date', payment.formattedExecutionDate),
+                    'Execution Date',
+                    payment.formattedExecutionDate,
+                  ),
                   _buildDetailRow(
-                      'Settlement Date', payment.formattedPaymentDate),
+                    'Settlement Date',
+                    payment.formattedPaymentDate,
+                  ),
                   if (payment.accountNumber.isNotEmpty)
                     _buildDetailRow('Account Number', payment.accountNumber),
                   if (payment.instrumentId.isNotEmpty)
-                    _buildDetailRow('Instrument ID',
-                        payment.shortInstrumentId.isNotEmpty
-                            ? payment.shortInstrumentId
-                            : payment.instrumentId),
+                    _buildDetailRow(
+                      'Instrument ID',
+                      payment.shortInstrumentId.isNotEmpty
+                          ? payment.shortInstrumentId
+                          : payment.instrumentId,
+                    ),
                   if (payment.split?.id.isNotEmpty == true)
                     _buildDetailRow('Split Definition ID', payment.split!.id),
                   if (payment.id.isNotEmpty)
@@ -1047,8 +1107,9 @@ class _CorporateActionsWidgetState extends State<CorporateActionsWidget> {
                           .withValues(alpha: 0.4),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: theme.colorScheme.outlineVariant
-                            .withValues(alpha: 0.3),
+                        color: theme.colorScheme.outlineVariant.withValues(
+                          alpha: 0.3,
+                        ),
                       ),
                     ),
                     child: Column(
@@ -1056,8 +1117,11 @@ class _CorporateActionsWidgetState extends State<CorporateActionsWidget> {
                       children: [
                         Row(
                           children: [
-                            Icon(Icons.gavel,
-                                size: 16, color: theme.colorScheme.primary),
+                            Icon(
+                              Icons.gavel,
+                              size: 16,
+                              color: theme.colorScheme.primary,
+                            ),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(

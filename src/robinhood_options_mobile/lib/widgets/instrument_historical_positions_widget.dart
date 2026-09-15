@@ -39,8 +39,9 @@ class _InstrumentHistoricalPositionsWidgetState
         : (isLoss ? Colors.red : theme.colorScheme.onSurfaceVariant);
 
     final closedCycles = widget.summary.closedCycles.reversed.toList();
-    final displayedCycles =
-        _isExpanded ? closedCycles : closedCycles.take(2).toList();
+    final displayedCycles = _isExpanded
+        ? closedCycles
+        : closedCycles.take(2).toList();
 
     final card = Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -81,15 +82,17 @@ class _InstrumentHistoricalPositionsWidgetState
                 _buildMetricChip(
                   context,
                   label: 'Avg Buy',
-                  value: formatCurrency
-                      .format(widget.summary.overallAverageBuyPrice),
+                  value: formatCurrency.format(
+                    widget.summary.overallAverageBuyPrice,
+                  ),
                   icon: Icons.shopping_bag_outlined,
                 ),
                 _buildMetricChip(
                   context,
                   label: 'Avg Sell',
-                  value: formatCurrency
-                      .format(widget.summary.overallAverageSellPrice),
+                  value: formatCurrency.format(
+                    widget.summary.overallAverageSellPrice,
+                  ),
                   icon: Icons.sell_outlined,
                 ),
               ],
@@ -128,7 +131,9 @@ class _InstrumentHistoricalPositionsWidgetState
                     borderRadius: BorderRadius.circular(4),
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 4, vertical: 2),
+                        horizontal: 4,
+                        vertical: 2,
+                      ),
                       child: Row(
                         children: [
                           Text(
@@ -221,11 +226,7 @@ class _InstrumentHistoricalPositionsWidgetState
                 color: theme.colorScheme.primary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Icon(
-                icon,
-                size: 18,
-                color: theme.colorScheme.primary,
-              ),
+              child: Icon(icon, size: 18, color: theme.colorScheme.primary),
             ),
             const SizedBox(width: 10),
           ],
@@ -253,10 +254,7 @@ class _InstrumentHistoricalPositionsWidgetState
               ],
             ),
           ),
-          if (trailing != null) ...[
-            const SizedBox(width: 8),
-            trailing,
-          ],
+          if (trailing != null) ...[const SizedBox(width: 8), trailing],
         ],
       ),
     );
@@ -399,7 +397,9 @@ class _InstrumentHistoricalPositionsWidgetState
   }
 
   Widget _buildCycleCard(
-      BuildContext context, InstrumentHistoricalPosition cycle) {
+    BuildContext context,
+    InstrumentHistoricalPosition cycle,
+  ) {
     final theme = Theme.of(context);
     final dateFormat = DateFormat.yMMMd();
     final dateRangeStr = cycle.closedAt != null
@@ -422,11 +422,7 @@ class _InstrumentHistoricalPositionsWidgetState
         leading: CircleAvatar(
           radius: 16,
           backgroundColor: cycle.statusColor.withValues(alpha: 0.15),
-          child: Icon(
-            cycle.trendingIcon,
-            color: cycle.statusColor,
-            size: 18,
-          ),
+          child: Icon(cycle.trendingIcon, color: cycle.statusColor, size: 18),
         ),
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -475,8 +471,10 @@ class _InstrumentHistoricalPositionsWidgetState
                 ),
                 const SizedBox(width: 4),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 4,
+                    vertical: 1,
+                  ),
                   decoration: BoxDecoration(
                     color: theme.colorScheme.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(4),
@@ -492,11 +490,14 @@ class _InstrumentHistoricalPositionsWidgetState
                 if (cycle.hasSplits) ...[
                   const SizedBox(width: 4),
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 4,
+                      vertical: 1,
+                    ),
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.primaryContainer
-                          .withValues(alpha: 0.7),
+                      color: theme.colorScheme.primaryContainer.withValues(
+                        alpha: 0.7,
+                      ),
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Row(
@@ -530,7 +531,9 @@ class _InstrumentHistoricalPositionsWidgetState
   }
 
   void _showCycleDetailsBottomSheet(
-      BuildContext context, InstrumentHistoricalPosition cycle) {
+    BuildContext context,
+    InstrumentHistoricalPosition cycle,
+  ) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -559,8 +562,9 @@ class _InstrumentHistoricalPositionsWidgetState
                       width: 40,
                       height: 4,
                       decoration: BoxDecoration(
-                        color: theme.colorScheme.onSurfaceVariant
-                            .withValues(alpha: 0.3),
+                        color: theme.colorScheme.onSurfaceVariant.withValues(
+                          alpha: 0.3,
+                        ),
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -581,7 +585,9 @@ class _InstrumentHistoricalPositionsWidgetState
                       const SizedBox(width: 8),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 4),
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: cycle.statusColor.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(8),
@@ -653,12 +659,14 @@ class _InstrumentHistoricalPositionsWidgetState
                         margin: const EdgeInsets.symmetric(vertical: 4),
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: theme.colorScheme.primaryContainer
-                              .withValues(alpha: 0.3),
+                          color: theme.colorScheme.primaryContainer.withValues(
+                            alpha: 0.3,
+                          ),
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
-                            color: theme.colorScheme.primary
-                                .withValues(alpha: 0.3),
+                            color: theme.colorScheme.primary.withValues(
+                              alpha: 0.3,
+                            ),
                           ),
                         ),
                         child: Row(
@@ -743,8 +751,8 @@ class _InstrumentHistoricalPositionsWidgetState
                                         '${order.side.toUpperCase()} ${formatNumber.format(orderQty)} shares @ ${formatCurrency.format(orderPrice)}',
                                         style: theme.textTheme.bodyMedium
                                             ?.copyWith(
-                                          fontWeight: FontWeight.w600,
-                                        ),
+                                              fontWeight: FontWeight.w600,
+                                            ),
                                         overflow: TextOverflow.ellipsis,
                                       ),
                                       if (orderDate != null)
@@ -752,9 +760,10 @@ class _InstrumentHistoricalPositionsWidgetState
                                           dateFormat.format(orderDate),
                                           style: theme.textTheme.bodySmall
                                               ?.copyWith(
-                                            color: theme
-                                                .colorScheme.onSurfaceVariant,
-                                          ),
+                                                color: theme
+                                                    .colorScheme
+                                                    .onSurfaceVariant,
+                                              ),
                                           overflow: TextOverflow.ellipsis,
                                         ),
                                     ],

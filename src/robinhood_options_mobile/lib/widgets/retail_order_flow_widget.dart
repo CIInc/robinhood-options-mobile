@@ -105,12 +105,16 @@ class _RetailOrderFlowWidgetState extends State<RetailOrderFlowWidget> {
 
         if (snapshot.hasError) {
           return Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16.0,
+              vertical: 8.0,
+            ),
             child: Card(
               child: ListTile(
-                leading: Icon(Icons.error_outline,
-                    color: Theme.of(context).colorScheme.error),
+                leading: Icon(
+                  Icons.error_outline,
+                  color: Theme.of(context).colorScheme.error,
+                ),
                 title: const Text('Retail order flow unavailable'),
                 subtitle: Text('${snapshot.error}'),
                 trailing: IconButton(
@@ -146,17 +150,15 @@ class _RetailOrderFlowWidgetState extends State<RetailOrderFlowWidget> {
             Card(
               margin: const EdgeInsets.fromLTRB(16, 4, 16, 8),
               elevation: 0,
-              color: Theme.of(context)
-                  .colorScheme
-                  .surfaceContainerHighest
-                  .withValues(alpha: 0.25),
+              color: Theme.of(
+                context,
+              ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.25),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
                 side: BorderSide(
-                  color: Theme.of(context)
-                      .colorScheme
-                      .outlineVariant
-                      .withValues(alpha: 0.4),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.outlineVariant.withValues(alpha: 0.4),
                 ),
               ),
               child: Padding(
@@ -224,10 +226,9 @@ class _RetailOrderFlowWidgetState extends State<RetailOrderFlowWidget> {
             Container(
               padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
-                color: Theme.of(context)
-                    .colorScheme
-                    .primary
-                    .withValues(alpha: 0.1),
+                color: Theme.of(
+                  context,
+                ).colorScheme.primary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(
@@ -246,16 +247,13 @@ class _RetailOrderFlowWidgetState extends State<RetailOrderFlowWidget> {
                 Text(
                   title,
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 19,
-                      ),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 19,
+                  ),
                 ),
                 if (subtitle != null) ...[
                   const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
+                  Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
                 ],
               ],
             ),
@@ -314,16 +312,13 @@ class _RetailOrderFlowWidgetState extends State<RetailOrderFlowWidget> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(
-            color: Theme.of(context)
-                .colorScheme
-                .surfaceContainerHighest
+            color: Theme.of(context).colorScheme.surfaceContainerHighest
                 .withAlpha((255 * 0.5).round()),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: Theme.of(context)
-                  .colorScheme
-                  .outline
-                  .withAlpha((255 * 0.2).round()),
+              color: Theme.of(
+                context,
+              ).colorScheme.outline.withAlpha((255 * 0.2).round()),
             ),
           ),
           child: Text(
@@ -386,16 +381,12 @@ class _RetailOrderFlowWidgetState extends State<RetailOrderFlowWidget> {
               children: [
                 Expanded(
                   flex: buyFlex,
-                  child: Container(
-                    color: Colors.green,
-                  ),
+                  child: Container(color: Colors.green),
                 ),
                 const SizedBox(width: 2),
                 Expanded(
                   flex: sellFlex,
-                  child: Container(
-                    color: Colors.red,
-                  ),
+                  child: Container(color: Colors.red),
                 ),
               ],
             ),
@@ -421,11 +412,13 @@ class _RetailOrderFlowWidgetState extends State<RetailOrderFlowWidget> {
               context,
               title: 'Net Retail Bias',
               value: flow.netBuyFormatted,
-              subtitle:
-                  flow.netBuyPercentage >= 0 ? 'Accumulation' : 'Distribution',
+              subtitle: flow.netBuyPercentage >= 0
+                  ? 'Accumulation'
+                  : 'Distribution',
               width: cardWidth,
-              valueColor:
-                  flow.netBuyPercentage >= 0 ? Colors.green : Colors.red,
+              valueColor: flow.netBuyPercentage >= 0
+                  ? Colors.green
+                  : Colors.red,
             ),
             _buildMetricTile(
               context,
@@ -468,16 +461,14 @@ class _RetailOrderFlowWidgetState extends State<RetailOrderFlowWidget> {
       width: width,
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
       decoration: BoxDecoration(
-        color: Theme.of(context)
-            .colorScheme
-            .surfaceContainerLow
-            .withAlpha((255 * 0.7).round()),
+        color: Theme.of(
+          context,
+        ).colorScheme.surfaceContainerLow.withAlpha((255 * 0.7).round()),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: Theme.of(context)
-              .colorScheme
-              .outlineVariant
-              .withAlpha((255 * 0.4).round()),
+          color: Theme.of(
+            context,
+          ).colorScheme.outlineVariant.withAlpha((255 * 0.4).round()),
         ),
       ),
       child: Column(
@@ -486,10 +477,10 @@ class _RetailOrderFlowWidgetState extends State<RetailOrderFlowWidget> {
           Text(
             title,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w500,
-                ),
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+            ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -510,12 +501,11 @@ class _RetailOrderFlowWidgetState extends State<RetailOrderFlowWidget> {
           Text(
             subtitle,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context)
-                      .colorScheme
-                      .onSurfaceVariant
-                      .withAlpha((255 * 0.75).round()),
-                  fontSize: 10,
-                ),
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurfaceVariant.withAlpha((255 * 0.75).round()),
+              fontSize: 10,
+            ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -591,25 +581,27 @@ class _RetailOrderFlowWidgetState extends State<RetailOrderFlowWidget> {
           child: Text(
             'Historical trend data unavailable.',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
           ),
         ),
       );
     }
 
-    final hasSeparateVolumes = flow.history.any((pt) =>
-        pt.buyVolumeChangePercentage != null ||
-        pt.sellVolumeChangePercentage != null);
+    final hasSeparateVolumes = flow.history.any(
+      (pt) =>
+          pt.buyVolumeChangePercentage != null ||
+          pt.sellVolumeChangePercentage != null,
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'Daily Retail Sentiment Trend',
-          style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 8),
         SingleChildScrollView(
@@ -622,77 +614,123 @@ class _RetailOrderFlowWidgetState extends State<RetailOrderFlowWidget> {
             dataRowMaxHeight: 40,
             columns: [
               const DataColumn(
-                  label: Text('Date',
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 12))),
+                label: Text(
+                  'Date',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                ),
+              ),
               const DataColumn(
-                  label: Text('Net Flow',
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 12))),
+                label: Text(
+                  'Net Flow',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                ),
+              ),
               const DataColumn(
-                  label: Text('Buy %',
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 12))),
+                label: Text(
+                  'Buy %',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                ),
+              ),
               const DataColumn(
-                  label: Text('Sell %',
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 12))),
+                label: Text(
+                  'Sell %',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                ),
+              ),
               if (hasSeparateVolumes) ...[
                 const DataColumn(
-                    label: Text('Buy Vol',
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 12))),
+                  label: Text(
+                    'Buy Vol',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                  ),
+                ),
                 const DataColumn(
-                    label: Text('Sell Vol',
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 12))),
+                  label: Text(
+                    'Sell Vol',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                  ),
+                ),
               ] else ...[
                 const DataColumn(
-                    label: Text('Vol Shift',
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 12))),
+                  label: Text(
+                    'Vol Shift',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                  ),
+                ),
               ],
             ],
             rows: flow.history.map((pt) {
-              final dateLabel =
-                  pt.date != null ? _dateFormat.format(pt.date!) : '-';
-              final netColor =
-                  pt.netBuyPercentage >= 0 ? Colors.green : Colors.red;
+              final dateLabel = pt.date != null
+                  ? _dateFormat.format(pt.date!)
+                  : '-';
+              final netColor = pt.netBuyPercentage >= 0
+                  ? Colors.green
+                  : Colors.red;
               return DataRow(
                 cells: [
                   DataCell(
-                      Text(dateLabel, style: const TextStyle(fontSize: 12))),
-                  DataCell(Text(pt.netBuyFormatted,
+                    Text(dateLabel, style: const TextStyle(fontSize: 12)),
+                  ),
+                  DataCell(
+                    Text(
+                      pt.netBuyFormatted,
                       style: TextStyle(
-                          fontSize: 12,
-                          color: netColor,
-                          fontWeight: FontWeight.bold))),
-                  DataCell(Text(pt.buyFormatted,
+                        fontSize: 12,
+                        color: netColor,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  DataCell(
+                    Text(
+                      pt.buyFormatted,
                       style: const TextStyle(
-                          fontSize: 12,
-                          color: Colors.green,
-                          fontWeight: FontWeight.w600))),
-                  DataCell(Text(pt.sellFormatted,
+                        fontSize: 12,
+                        color: Colors.green,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  DataCell(
+                    Text(
+                      pt.sellFormatted,
                       style: const TextStyle(
-                          fontSize: 12,
-                          color: Colors.red,
-                          fontWeight: FontWeight.w600))),
+                        fontSize: 12,
+                        color: Colors.red,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
                   if (hasSeparateVolumes) ...[
-                    DataCell(Text(pt.buyVolumeChangeFormatted,
+                    DataCell(
+                      Text(
+                        pt.buyVolumeChangeFormatted,
                         style: TextStyle(
-                            fontSize: 12,
-                            color: (pt.buyVolumeChangePercentage ?? 0) >= 0
-                                ? Colors.green
-                                : Colors.red))),
-                    DataCell(Text(pt.sellVolumeChangeFormatted,
+                          fontSize: 12,
+                          color: (pt.buyVolumeChangePercentage ?? 0) >= 0
+                              ? Colors.green
+                              : Colors.red,
+                        ),
+                      ),
+                    ),
+                    DataCell(
+                      Text(
+                        pt.sellVolumeChangeFormatted,
                         style: TextStyle(
-                            fontSize: 12,
-                            color: (pt.sellVolumeChangePercentage ?? 0) >= 0
-                                ? Colors.green
-                                : Colors.red))),
+                          fontSize: 12,
+                          color: (pt.sellVolumeChangePercentage ?? 0) >= 0
+                              ? Colors.green
+                              : Colors.red,
+                        ),
+                      ),
+                    ),
                   ] else ...[
-                    DataCell(Text(pt.volumeChangeFormatted,
-                        style: const TextStyle(fontSize: 12))),
+                    DataCell(
+                      Text(
+                        pt.volumeChangeFormatted,
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                    ),
                   ],
                 ],
               );
@@ -707,10 +745,9 @@ class _RetailOrderFlowWidgetState extends State<RetailOrderFlowWidget> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Theme.of(context)
-            .colorScheme
-            .surfaceContainerHighest
-            .withAlpha((255 * 0.3).round()),
+        color: Theme.of(
+          context,
+        ).colorScheme.surfaceContainerHighest.withAlpha((255 * 0.3).round()),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -738,10 +775,10 @@ class _RetailOrderFlowWidgetState extends State<RetailOrderFlowWidget> {
           Text(
             'Aggregated directly from Robinhood retail customer execution data. Tracks daily buy/sell order ratios, net retail positioning, and customer trading volume shifts to spot retail momentum and sentiment divergences.',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  fontSize: 11,
-                  height: 1.35,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
+              fontSize: 11,
+              height: 1.35,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
           ),
         ],
       ),

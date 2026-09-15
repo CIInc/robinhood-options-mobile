@@ -89,8 +89,10 @@ class _MetricDisclosureCardState extends State<MetricDisclosureCard> {
                 child: Text(widget.title, style: theme.textTheme.titleLarge),
               ),
               if (widget.onTap != null)
-                Icon(Icons.chevron_right,
-                    color: theme.colorScheme.onSurfaceVariant),
+                Icon(
+                  Icons.chevron_right,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
             ],
           ),
           const SizedBox(height: 16),
@@ -109,8 +111,10 @@ class _MetricDisclosureCardState extends State<MetricDisclosureCard> {
                 const SizedBox(width: 12),
                 Flexible(
                   child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: statusColor.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(8),
@@ -132,8 +136,9 @@ class _MetricDisclosureCardState extends State<MetricDisclosureCard> {
             const SizedBox(height: 8),
             Text(
               widget.summary!,
-              style: theme.textTheme.bodyMedium
-                  ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
           ],
           if (widget.tiles.isNotEmpty) ...[
@@ -148,7 +153,8 @@ class _MetricDisclosureCardState extends State<MetricDisclosureCard> {
           if (widget.advanced != null) ...[
             const SizedBox(height: 8),
             Divider(
-                color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5)),
+              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+            ),
             InkWell(
               onTap: () => setState(() => _expanded = !_expanded),
               child: Padding(
@@ -167,8 +173,10 @@ class _MetricDisclosureCardState extends State<MetricDisclosureCard> {
                     AnimatedRotation(
                       turns: _expanded ? 0.5 : 0,
                       duration: const Duration(milliseconds: 180),
-                      child: Icon(Icons.expand_more,
-                          color: theme.colorScheme.primary),
+                      child: Icon(
+                        Icons.expand_more,
+                        color: theme.colorScheme.primary,
+                      ),
                     ),
                   ],
                 ),
@@ -202,8 +210,9 @@ class _MetricDisclosureCardState extends State<MetricDisclosureCard> {
           tile.label,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: theme.textTheme.bodySmall
-              ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
         ),
         const SizedBox(height: 4),
         Text(

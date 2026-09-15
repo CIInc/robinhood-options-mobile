@@ -22,7 +22,8 @@ String? buildOptionFlowTooltipMessage(String label, {String? reason}) {
 }
 
 List<MapEntry<String, String>> buildOptionFlowRecommendations(
-    Iterable<String> labels) {
+  Iterable<String> labels,
+) {
   final seen = <String>{};
   return labels
       .where(seen.add)
@@ -34,8 +35,11 @@ List<MapEntry<String, String>> buildOptionFlowRecommendations(
       .toList(growable: false);
 }
 
-void showOptionFlowGuidanceSheet(BuildContext context, String label,
-    {String? reason}) {
+void showOptionFlowGuidanceSheet(
+  BuildContext context,
+  String label, {
+  String? reason,
+}) {
   final documentation = OptionsFlowStore.flagDocumentation[label];
   final recommendation = OptionsFlowStore.flagRecommendations[label];
   if (documentation == null && reason == null && recommendation == null) return;
@@ -53,15 +57,17 @@ void showOptionFlowGuidanceSheet(BuildContext context, String label,
         children: [
           Row(
             children: [
-              Icon(Icons.menu_book_outlined,
-                  color: Theme.of(context).colorScheme.primary),
+              Icon(
+                Icons.menu_book_outlined,
+                color: Theme.of(context).colorScheme.primary,
+              ),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
                   label,
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                 ),
               ),
             ],
@@ -94,8 +100,8 @@ void showOptionFlowGuidanceSheet(BuildContext context, String label,
           Text(
             'Use flow as supporting evidence, not as a standalone trade signal.',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
           ),
         ],
       ),
@@ -119,17 +125,22 @@ class _GuidanceSection extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon,
-            size: 20, color: Theme.of(context).colorScheme.onSurfaceVariant),
+        Icon(
+          icon,
+          size: 20,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
         const SizedBox(width: 12),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title,
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      )),
+              Text(
+                title,
+                style: Theme.of(
+                  context,
+                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+              ),
               const SizedBox(height: 4),
               Text(body),
             ],
@@ -206,11 +217,14 @@ class OptionFlowListItem extends StatelessWidget {
     }
     final moneynessLabel =
         '${(moneynessPct.abs() * 100).toStringAsFixed(1)}% ${isItm ? "ITM" : "OTM"}';
-    final moneynessColor =
-        isItm ? sentimentColor : Theme.of(context).colorScheme.onSurfaceVariant;
-    final isGoldenSweep =
-        item.flags.any((f) => f.toUpperCase().contains('GOLDEN SWEEP'));
-    final isWhale = item.premium >= 1000000 ||
+    final moneynessColor = isItm
+        ? sentimentColor
+        : Theme.of(context).colorScheme.onSurfaceVariant;
+    final isGoldenSweep = item.flags.any(
+      (f) => f.toUpperCase().contains('GOLDEN SWEEP'),
+    );
+    final isWhale =
+        item.premium >= 1000000 ||
         item.flags.any((f) => f.toUpperCase().contains('WHALE'));
     final isHighConviction = item.score >= 80;
 
@@ -237,10 +251,7 @@ class OptionFlowListItem extends StatelessWidget {
       color: backgroundColor,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(
-          color: borderColor,
-          width: borderWidth,
-        ),
+        side: BorderSide(color: borderColor, width: borderWidth),
       ),
       child: InkWell(
         onTap: onTap ?? () => _handleItemTap(context, item),
@@ -279,14 +290,19 @@ class OptionFlowListItem extends StatelessWidget {
                             if (item.score > 0)
                               Container(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 6, vertical: 2),
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
                                 decoration: BoxDecoration(
-                                  color: getScoreColor(context, item.score)
-                                      .withValues(alpha: 0.2),
+                                  color: getScoreColor(
+                                    context,
+                                    item.score,
+                                  ).withValues(alpha: 0.2),
                                   borderRadius: BorderRadius.circular(4),
                                   border: Border.all(
-                                      color: getScoreColor(context, item.score),
-                                      width: 0.5),
+                                    color: getScoreColor(context, item.score),
+                                    width: 0.5,
+                                  ),
                                 ),
                                 child: Text(
                                   '${item.score}',
@@ -318,8 +334,8 @@ class OptionFlowListItem extends StatelessWidget {
                                     fontSize: 18,
                                     color: isWhale
                                         ? (isDark
-                                            ? Colors.amber.shade300
-                                            : Colors.amber.shade800)
+                                              ? Colors.amber.shade300
+                                              : Colors.amber.shade800)
                                         : null,
                                   ),
                                 ),
@@ -336,26 +352,29 @@ class OptionFlowListItem extends StatelessWidget {
                                   Flexible(
                                     child: Text(
                                       '${_dateFormat.format(item.expirationDate)} ($daysLabel) \$${item.strike.toStringAsFixed(1)} ${item.type}',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .bodyMedium,
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.bodyMedium,
                                       overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
                                   if (isItm) ...[
                                     const SizedBox(width: 6),
                                     OptionFlowFlagBadge(
-                                        flag: 'ITM',
-                                        small: true,
-                                        showTooltip: false),
+                                      flag: 'ITM',
+                                      small: true,
+                                      showTooltip: false,
+                                    ),
                                   ],
                                 ],
                               ),
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              _timeFormat.format(item.lastTradeDate ??
-                                  DateTime.fromMillisecondsSinceEpoch(0)),
+                              _timeFormat.format(
+                                item.lastTradeDate ??
+                                    DateTime.fromMillisecondsSinceEpoch(0),
+                              ),
                               style: Theme.of(context).textTheme.bodySmall,
                             ),
                           ],
@@ -372,44 +391,50 @@ class OptionFlowListItem extends StatelessWidget {
                 children: [
                   if (item.isUnusual)
                     OptionFlowBadge(
-                        label: 'UNUSUAL',
-                        color: isDark
-                            ? Colors.purple.shade200
-                            : Colors.purple.shade700,
-                        icon: Icons.bolt,
-                        showTooltip: true),
+                      label: 'UNUSUAL',
+                      color: isDark
+                          ? Colors.purple.shade200
+                          : Colors.purple.shade700,
+                      icon: Icons.bolt,
+                      showTooltip: true,
+                    ),
                   if (item.daysToExpiration == 0)
                     OptionFlowBadge(
-                        label: '0DTE',
-                        color: Colors.red,
-                        icon: Icons.timer_off,
-                        showTooltip: true),
+                      label: '0DTE',
+                      color: Colors.red,
+                      icon: Icons.timer_off,
+                      showTooltip: true,
+                    ),
                   if (item.flowType == FlowType.sweep)
                     OptionFlowBadge(
-                        label: 'SWEEP',
-                        color: isDark
-                            ? Colors.orange.shade300
-                            : Colors.orange.shade900,
-                        icon: Icons.waves,
-                        showTooltip: true),
+                      label: 'SWEEP',
+                      color: isDark
+                          ? Colors.orange.shade300
+                          : Colors.orange.shade900,
+                      icon: Icons.waves,
+                      showTooltip: true,
+                    ),
                   if (item.flowType == FlowType.block)
                     OptionFlowBadge(
-                        label: 'BLOCK',
-                        color: Colors.blue,
-                        icon: Icons.view_module,
-                        showTooltip: true),
+                      label: 'BLOCK',
+                      color: Colors.blue,
+                      icon: Icons.view_module,
+                      showTooltip: true,
+                    ),
                   if (item.flowType == FlowType.darkPool)
                     OptionFlowBadge(
-                        label: 'DARK POOL',
-                        color: Colors.grey.shade800,
-                        icon: Icons.visibility_off,
-                        showTooltip: true),
+                      label: 'DARK POOL',
+                      color: Colors.grey.shade800,
+                      icon: Icons.visibility_off,
+                      showTooltip: true,
+                    ),
                   if (item.details.isNotEmpty)
                     OptionFlowBadge(
-                        label: item.details,
-                        color: Theme.of(context).colorScheme.secondary,
-                        icon: null,
-                        showTooltip: false),
+                      label: item.details,
+                      color: Theme.of(context).colorScheme.secondary,
+                      icon: null,
+                      showTooltip: false,
+                    ),
                   ...item.flags.asMap().entries.map((entry) {
                     final index = entry.key;
                     final flag = entry.value;
@@ -417,7 +442,10 @@ class OptionFlowListItem extends StatelessWidget {
                         ? item.reasons[index]
                         : null;
                     return OptionFlowFlagBadge(
-                        flag: flag, showTooltip: true, reason: reason);
+                      flag: flag,
+                      showTooltip: true,
+                      reason: reason,
+                    );
                   }),
                 ],
               ),
@@ -431,11 +459,9 @@ class OptionFlowListItem extends StatelessWidget {
                       Text(
                         'Spot Price',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurfaceVariant,
-                              fontSize: 10,
-                            ),
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          fontSize: 10,
+                        ),
                       ),
                       const SizedBox(height: 2),
                       Row(
@@ -466,11 +492,9 @@ class OptionFlowListItem extends StatelessWidget {
                       Text(
                         'Vol / OI',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurfaceVariant,
-                              fontSize: 10,
-                            ),
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          fontSize: 10,
+                        ),
                       ),
                       const SizedBox(height: 2),
                       Row(
@@ -496,16 +520,19 @@ class OptionFlowListItem extends StatelessWidget {
                               textStyle: const TextStyle(color: Colors.white),
                               child: Container(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 4, vertical: 1),
+                                  horizontal: 4,
+                                  vertical: 1,
+                                ),
                                 decoration: BoxDecoration(
-                                  color: (item.volume / item.openInterest > 5
-                                          ? (isDark
-                                              ? Colors.purple.shade200
-                                              : Colors.purple)
-                                          : (isDark
-                                              ? Colors.amber
-                                              : Colors.amber.shade900))
-                                      .withValues(alpha: 0.2),
+                                  color:
+                                      (item.volume / item.openInterest > 5
+                                              ? (isDark
+                                                    ? Colors.purple.shade200
+                                                    : Colors.purple)
+                                              : (isDark
+                                                    ? Colors.amber
+                                                    : Colors.amber.shade900))
+                                          .withValues(alpha: 0.2),
                                   borderRadius: BorderRadius.circular(4),
                                 ),
                                 child: Text(
@@ -515,11 +542,11 @@ class OptionFlowListItem extends StatelessWidget {
                                     fontWeight: FontWeight.bold,
                                     color: item.volume / item.openInterest > 5
                                         ? (isDark
-                                            ? Colors.purple.shade200
-                                            : Colors.purple)
+                                              ? Colors.purple.shade200
+                                              : Colors.purple)
                                         : (isDark
-                                            ? Colors.amber
-                                            : Colors.amber.shade900),
+                                              ? Colors.amber
+                                              : Colors.amber.shade900),
                                   ),
                                 ),
                               ),
@@ -529,8 +556,11 @@ class OptionFlowListItem extends StatelessWidget {
                       ),
                     ],
                   ),
-                  _buildDetailItem(context, 'Implied Vol',
-                      '${(item.impliedVolatility * 100).toStringAsFixed(1)}%'),
+                  _buildDetailItem(
+                    context,
+                    'Implied Vol',
+                    '${(item.impliedVolatility * 100).toStringAsFixed(1)}%',
+                  ),
                 ],
               ),
             ],
@@ -565,17 +595,14 @@ class OptionFlowListItem extends StatelessWidget {
         Text(
           label,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                fontSize: 10,
-              ),
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+            fontSize: 10,
+          ),
         ),
         const SizedBox(height: 2),
         Text(
           value,
-          style: const TextStyle(
-            fontWeight: FontWeight.w500,
-            fontSize: 12,
-          ),
+          style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 12),
         ),
       ],
     );
@@ -631,8 +658,10 @@ class OptionFlowBadge extends StatelessWidget {
     );
 
     if (showTooltip) {
-      final tooltipMessage =
-          buildOptionFlowTooltipMessage(label, reason: reason);
+      final tooltipMessage = buildOptionFlowTooltipMessage(
+        label,
+        reason: reason,
+      );
 
       if (tooltipMessage != null) {
         return Semantics(
@@ -686,11 +715,7 @@ class OptionFlowFlagBadge extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             if (icon != null) ...[
-              Icon(
-                icon,
-                size: fontSize + 2,
-                color: color,
-              ),
+              Icon(icon, size: fontSize + 2, color: color),
               const SizedBox(width: 4),
             ],
             Text(
@@ -706,8 +731,10 @@ class OptionFlowFlagBadge extends StatelessWidget {
       );
 
       if (showTooltip) {
-        final tooltipMessage =
-            buildOptionFlowTooltipMessage(flag, reason: reason);
+        final tooltipMessage = buildOptionFlowTooltipMessage(
+          flag,
+          reason: reason,
+        );
 
         if (tooltipMessage != null) {
           return Semantics(
@@ -726,12 +753,13 @@ class OptionFlowFlagBadge extends StatelessWidget {
     }
 
     return OptionFlowBadge(
-        label: flag,
-        color: color,
-        icon: icon,
-        fontSize: fontSize,
-        showTooltip: showTooltip,
-        reason: reason);
+      label: flag,
+      color: color,
+      icon: icon,
+      fontSize: fontSize,
+      showTooltip: showTooltip,
+      reason: reason,
+    );
   }
 }
 

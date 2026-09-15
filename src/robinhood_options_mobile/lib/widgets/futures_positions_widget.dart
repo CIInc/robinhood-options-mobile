@@ -76,7 +76,8 @@ class _FuturesPositionsWidgetState extends State<FuturesPositionsWidget> {
       ..showSnackBar(
         const SnackBar(
           content: Text(
-              'Trading actions are disabled in Aggregate View. Switch to a single account to trade.'),
+            'Trading actions are disabled in Aggregate View. Switch to a single account to trade.',
+          ),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -98,18 +99,18 @@ class _FuturesPositionsWidgetState extends State<FuturesPositionsWidget> {
     final product = position['product'];
     final symbol = contract is Map
         ? (contract['rootSymbol'] ??
-                contract['symbol'] ??
-                contract['displaySymbol'] ??
-                position['contractId'] ??
-                'Other')
-            .toString()
+                  contract['symbol'] ??
+                  contract['displaySymbol'] ??
+                  position['contractId'] ??
+                  'Other')
+              .toString()
         : product is Map
-            ? (product['symbol'] ??
-                    product['displaySymbol'] ??
-                    position['contractId'] ??
-                    'Other')
-                .toString()
-            : (position['contractId'] ?? 'Other').toString();
+        ? (product['symbol'] ??
+                  product['displaySymbol'] ??
+                  position['contractId'] ??
+                  'Other')
+              .toString()
+        : (position['contractId'] ?? 'Other').toString();
     return symbol.split(':').first;
   }
 
@@ -241,9 +242,9 @@ class _FuturesPositionsWidgetState extends State<FuturesPositionsWidget> {
     // We can wrap our build method in `ChangeNotifierProvider.value`.
 
     return ChangeNotifierProvider<FuturesPositionStore>.value(
-        value: store,
-        child: Consumer<FuturesPositionStore>(
-            builder: (context, localStore, child) {
+      value: store,
+      child: Consumer<FuturesPositionStore>(
+        builder: (context, localStore, child) {
           var items = localStore.items;
           if (items.isEmpty) {
             return const SliverToBoxAdapter(child: SizedBox.shrink());
@@ -263,14 +264,17 @@ class _FuturesPositionsWidgetState extends State<FuturesPositionsWidget> {
           for (final position in items) {
             if (position is Map) {
               final symbol = _positionSymbol(position);
-              chartValuesBySymbol[symbol] = (chartValuesBySymbol[symbol] ?? 0) +
+              chartValuesBySymbol[symbol] =
+                  (chartValuesBySymbol[symbol] ?? 0) +
                   _positionChartValue(position);
             }
           }
           final sortedChartEntries = chartValuesBySymbol.entries.toList()
-            ..sort((a, b) => _sortDescending
-                ? b.value.compareTo(a.value)
-                : a.value.compareTo(b.value));
+            ..sort(
+              (a, b) => _sortDescending
+                  ? b.value.compareTo(a.value)
+                  : a.value.compareTo(b.value),
+            );
           final chartEntries = widget.chartRowLimit == null
               ? sortedChartEntries
               : sortedChartEntries.take(widget.chartRowLimit!).toList();
@@ -282,11 +286,13 @@ class _FuturesPositionsWidgetState extends State<FuturesPositionsWidget> {
           );
           final compactCurrency = NumberFormat.compactSimpleCurrency();
           final chartData = chartEntries
-              .map((entry) => {
-                    'domain': entry.key,
-                    'measure': entry.value,
-                    'label': compactCurrency.format(entry.value),
-                  })
+              .map(
+                (entry) => {
+                  'domain': entry.key,
+                  'measure': entry.value,
+                  'label': compactCurrency.format(entry.value),
+                },
+              )
               .toList();
           final chartSeries = <charts.Series<dynamic, String>>[
             charts.Series<dynamic, String>(
@@ -302,26 +308,26 @@ class _FuturesPositionsWidgetState extends State<FuturesPositionsWidget> {
               labelAccessorFn: (datum, _) => datum['label'],
               insideLabelStyleAccessorFn: (datum, index) =>
                   charts.TextStyleSpec(
-                fontSize: 14,
-                color: charts.ColorUtil.fromDartColor(
-                  Theme.of(context).brightness == Brightness.light
-                      ? Theme.of(context).colorScheme.surface
-                      : Theme.of(context).colorScheme.inverseSurface,
-                ),
-              ),
+                    fontSize: 14,
+                    color: charts.ColorUtil.fromDartColor(
+                      Theme.of(context).brightness == Brightness.light
+                          ? Theme.of(context).colorScheme.surface
+                          : Theme.of(context).colorScheme.inverseSurface,
+                    ),
+                  ),
               outsideLabelStyleAccessorFn: (datum, index) =>
                   charts.TextStyleSpec(
-                fontSize: 14,
-                color: charts.ColorUtil.fromDartColor(
-                  Theme.of(context).textTheme.labelSmall!.color!,
-                ),
-              ),
+                    fontSize: 14,
+                    color: charts.ColorUtil.fromDartColor(
+                      Theme.of(context).textTheme.labelSmall!.color!,
+                    ),
+                  ),
             ),
           ];
           final axisLabelColor =
               Theme.of(context).brightness == Brightness.light
-                  ? charts.MaterialPalette.gray.shade700
-                  : charts.MaterialPalette.gray.shade500;
+              ? charts.MaterialPalette.gray.shade700
+              : charts.MaterialPalette.gray.shade500;
           final openPnlChart = BarChart(
             chartSeries,
             barGroupingType: null,
@@ -336,8 +342,8 @@ class _FuturesPositionsWidgetState extends State<FuturesPositionsWidget> {
               ),
               tickFormatterSpec:
                   charts.BasicNumericTickFormatterSpec.fromNumberFormat(
-                compactCurrency,
-              ),
+                    compactCurrency,
+                  ),
             ),
             domainAxis: charts.OrdinalAxisSpec(
               renderSpec: charts.SmallTickRendererSpec(
@@ -350,9 +356,9 @@ class _FuturesPositionsWidgetState extends State<FuturesPositionsWidget> {
                 return;
               }
               final position = items.cast<dynamic>().firstWhere(
-                    (item) => _positionSymbol(item) == selected['domain'],
-                    orElse: () => null,
-                  );
+                (item) => _positionSymbol(item) == selected['domain'],
+                orElse: () => null,
+              );
               setState(() {});
               _navigateToPosition(context, position);
             },
@@ -390,10 +396,9 @@ class _FuturesPositionsWidgetState extends State<FuturesPositionsWidget> {
                           Container(
                             padding: const EdgeInsets.all(6),
                             decoration: BoxDecoration(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .primary
-                                  .withValues(alpha: 0.1),
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.primary.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Icon(
@@ -410,12 +415,11 @@ class _FuturesPositionsWidgetState extends State<FuturesPositionsWidget> {
                               children: [
                                 Text(
                                   'Futures',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .titleLarge
+                                  style: Theme.of(context).textTheme.titleLarge
                                       ?.copyWith(
-                                          fontSize: 19,
-                                          fontWeight: FontWeight.bold),
+                                        fontSize: 19,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                 ),
                                 Text(
                                   '${formatCompactNumber.format(items.length)} positions, ${formatCompactNumber.format(contracts)} contracts${chartRowsOmitted > 0 ? ', charting top ${chartEntries.length}' : ''}',
@@ -431,13 +435,18 @@ class _FuturesPositionsWidgetState extends State<FuturesPositionsWidget> {
                               });
                             },
                             child: Padding(
-                              padding:
-                                  const EdgeInsets.fromLTRB(8.0, 8.0, 0.0, 8.0),
+                              padding: const EdgeInsets.fromLTRB(
+                                8.0,
+                                8.0,
+                                0.0,
+                                8.0,
+                              ),
                               child: AnimatedPriceText(
                                 price: localStore.totalOpenPnl,
                                 format: formatCurrency,
                                 style: const TextStyle(
-                                    fontSize: assetValueFontSize),
+                                  fontSize: assetValueFontSize,
+                                ),
                                 textAlign: TextAlign.right,
                               ),
                             ),
@@ -453,27 +462,29 @@ class _FuturesPositionsWidgetState extends State<FuturesPositionsWidget> {
                     ),
                   ),
                 Card(
-                  margin:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  margin: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
                   elevation: 0,
-                  color: Theme.of(context)
-                      .colorScheme
-                      .surfaceContainerHighest
-                      .withValues(alpha: 0.25),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.25),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                     side: BorderSide(
-                      color: Theme.of(context)
-                          .colorScheme
-                          .outlineVariant
-                          .withValues(alpha: 0.4),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.outlineVariant.withValues(alpha: 0.4),
                     ),
                   ),
                   child: SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 5, vertical: 12.0),
+                        horizontal: 5,
+                        vertical: 12.0,
+                      ),
                       child: Row(
                         children: [
                           _buildSummaryMetric(
@@ -531,7 +542,9 @@ class _FuturesPositionsWidgetState extends State<FuturesPositionsWidget> {
                       child: Text(
                         'Risk Distribution (Notional)',
                         style: TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.bold),
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ),
@@ -549,15 +562,17 @@ class _FuturesPositionsWidgetState extends State<FuturesPositionsWidget> {
                           labelAccessorFn: (pie.PieChartData row, _) =>
                               '${row.label}: ${formatCompactNumber.format(row.value)}',
                           colorFn: (_, index) => pie.PieChart.makeShades(
-                              charts.MaterialPalette.blue.shadeDefault,
-                              localStore.notionalDistribution.length)[index!],
-                        )
+                            charts.MaterialPalette.blue.shadeDefault,
+                            localStore.notionalDistribution.length,
+                          )[index!],
+                        ),
                       ],
                       renderer: charts.ArcRendererConfig(
                         arcWidth: 60,
                         arcRendererDecorators: [
                           charts.ArcLabelDecorator(
-                              labelPosition: charts.ArcLabelPosition.outside)
+                            labelPosition: charts.ArcLabelPosition.outside,
+                          ),
                         ],
                       ),
                       onSelected: (p0) {},
@@ -597,8 +612,8 @@ class _FuturesPositionsWidgetState extends State<FuturesPositionsWidget> {
                         if (contract != null) {
                           contractSymbol =
                               contract['displaySymbol']?.toString() ?? '';
-                          var multiplierStr =
-                              contract['multiplier']?.toString();
+                          var multiplierStr = contract['multiplier']
+                              ?.toString();
                           if (multiplierStr != null) {
                             multiplier = double.tryParse(multiplierStr);
                           }
@@ -609,40 +624,51 @@ class _FuturesPositionsWidgetState extends State<FuturesPositionsWidget> {
                           displaySymbol = pos['contractId']?.toString() ?? '—';
                         }
 
-                        quantity = double.tryParse(
-                                pos['quantity']?.toString() ?? '0') ??
+                        quantity =
+                            double.tryParse(
+                              pos['quantity']?.toString() ?? '0',
+                            ) ??
                             0.0;
-                        avg = double.tryParse(
-                                pos['avgTradePrice']?.toString() ?? '0') ??
+                        avg =
+                            double.tryParse(
+                              pos['avgTradePrice']?.toString() ?? '0',
+                            ) ??
                             0.0;
                         accountNumber = pos['accountNumber']?.toString() ?? '';
                         if (pos['openPnlCalc'] != null) {
-                          openPnl =
-                              double.tryParse(pos['openPnlCalc'].toString());
+                          openPnl = double.tryParse(
+                            pos['openPnlCalc'].toString(),
+                          );
                         }
                         if (pos['dayPnlCalc'] != null) {
-                          dayPnl =
-                              double.tryParse(pos['dayPnlCalc'].toString());
+                          dayPnl = double.tryParse(
+                            pos['dayPnlCalc'].toString(),
+                          );
                         }
                         if (pos['realizedPnl'] != null) {
-                          realizedPnl =
-                              double.tryParse(pos['realizedPnl'].toString());
+                          realizedPnl = double.tryParse(
+                            pos['realizedPnl'].toString(),
+                          );
                         }
                         if (pos['lastTradePrice'] != null) {
-                          lastPrice =
-                              double.tryParse(pos['lastTradePrice'].toString());
+                          lastPrice = double.tryParse(
+                            pos['lastTradePrice'].toString(),
+                          );
                         }
                         if (pos['notionalValue'] != null) {
-                          notionalValue =
-                              double.tryParse(pos['notionalValue'].toString());
+                          notionalValue = double.tryParse(
+                            pos['notionalValue'].toString(),
+                          );
                         }
                         if (pos['previousClosePrice'] != null) {
                           previousClosePrice = double.tryParse(
-                              pos['previousClosePrice'].toString());
+                            pos['previousClosePrice'].toString(),
+                          );
                         }
                         if (pos['marginRequirement'] != null) {
                           marginRequirement = double.tryParse(
-                              pos['marginRequirement'].toString());
+                            pos['marginRequirement'].toString(),
+                          );
                         }
 
                         // Calculate total cost if we have all components
@@ -653,7 +679,8 @@ class _FuturesPositionsWidgetState extends State<FuturesPositionsWidget> {
                       return Card(
                         elevation: 2,
                         shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
@@ -666,37 +693,43 @@ class _FuturesPositionsWidgetState extends State<FuturesPositionsWidget> {
                                       MaterialPageRoute(
                                         builder: (context) =>
                                             FutureInstrumentWidget(
-                                          brokerageUser: widget.brokerageUser,
-                                          service: widget.service,
-                                          position: pos,
-                                          analytics: widget.analytics,
-                                          observer: widget.observer,
-                                          generativeService:
-                                              widget.generativeService,
-                                          user: widget.user,
-                                          userDocRef: widget.userDocRef,
-                                        ),
+                                              brokerageUser:
+                                                  widget.brokerageUser,
+                                              service: widget.service,
+                                              position: pos,
+                                              analytics: widget.analytics,
+                                              observer: widget.observer,
+                                              generativeService:
+                                                  widget.generativeService,
+                                              user: widget.user,
+                                              userDocRef: widget.userDocRef,
+                                            ),
                                       ),
                                     );
                                   });
                                 }
                               },
                               contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 16.0, vertical: 4.0),
+                                horizontal: 16.0,
+                                vertical: 4.0,
+                              ),
                               leading: CircleAvatar(
                                 radius: 25,
-                                child: Text(displaySymbol.isNotEmpty
-                                    ? displaySymbol.replaceAll('/', '')
-                                    : '—'),
+                                child: Text(
+                                  displaySymbol.isNotEmpty
+                                      ? displaySymbol.replaceAll('/', '')
+                                      : '—',
+                                ),
                               ),
                               title: Text(
-                                  '$contractSymbol ${quantity > 0 ? '+' : ''}${quantity.toStringAsFixed(quantity.truncateToDouble() == quantity ? 0 : 2)}'),
+                                '$contractSymbol ${quantity > 0 ? '+' : ''}${quantity.toStringAsFixed(quantity.truncateToDouble() == quantity ? 0 : 2)}',
+                              ),
                               subtitle: Text(
                                 description.isNotEmpty
                                     ? description
                                     : (contractSymbol.isNotEmpty
-                                        ? contractSymbol
-                                        : accountNumber),
+                                          ? contractSymbol
+                                          : accountNumber),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -704,7 +737,8 @@ class _FuturesPositionsWidgetState extends State<FuturesPositionsWidget> {
                                   ? Text(
                                       formatCurrency.format(lastPrice),
                                       style: const TextStyle(
-                                          fontSize: positionValueFontSize),
+                                        fontSize: positionValueFontSize,
+                                      ),
                                       textAlign: TextAlign.right,
                                     )
                                   : null,
@@ -713,45 +747,58 @@ class _FuturesPositionsWidgetState extends State<FuturesPositionsWidget> {
                               SingleChildScrollView(
                                 scrollDirection: Axis.horizontal,
                                 child: Padding(
-                                  padding:
-                                      const EdgeInsets.symmetric(horizontal: 5),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 5,
+                                  ),
                                   child: Row(
                                     children: [
                                       if (avg > 0)
                                         Padding(
                                           padding: const EdgeInsets.all(
-                                              summaryEgdeInset),
+                                            summaryEgdeInset,
+                                          ),
                                           child: Column(
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
                                               PnlBadge(
-                                                  text: formatCurrency
-                                                      .format(avg),
-                                                  neutral: true),
+                                                text: formatCurrency.format(
+                                                  avg,
+                                                ),
+                                                neutral: true,
+                                              ),
                                               const SizedBox(height: 4),
-                                              const Text("Cost",
-                                                  style: TextStyle(
-                                                      fontSize:
-                                                          summaryLabelFontSize)),
+                                              const Text(
+                                                "Cost",
+                                                style: TextStyle(
+                                                  fontSize:
+                                                      summaryLabelFontSize,
+                                                ),
+                                              ),
                                             ],
                                           ),
                                         ),
                                       if (dayPnl != null)
                                         Padding(
                                           padding: const EdgeInsets.all(
-                                              summaryEgdeInset),
+                                            summaryEgdeInset,
+                                          ),
                                           child: Column(
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
                                               PnlBadge(
-                                                  text: formatCurrency
-                                                      .format(dayPnl),
-                                                  value: dayPnl),
+                                                text: formatCurrency.format(
+                                                  dayPnl,
+                                                ),
+                                                value: dayPnl,
+                                              ),
                                               const SizedBox(height: 4),
-                                              const Text("Day P&L",
-                                                  style: TextStyle(
-                                                      fontSize:
-                                                          summaryLabelFontSize)),
+                                              const Text(
+                                                "Day P&L",
+                                                style: TextStyle(
+                                                  fontSize:
+                                                      summaryLabelFontSize,
+                                                ),
+                                              ),
                                             ],
                                           ),
                                         ),
@@ -759,134 +806,174 @@ class _FuturesPositionsWidgetState extends State<FuturesPositionsWidget> {
                                           realizedPnl != 0)
                                         Padding(
                                           padding: const EdgeInsets.all(
-                                              summaryEgdeInset),
+                                            summaryEgdeInset,
+                                          ),
                                           child: Column(
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
                                               PnlBadge(
-                                                  text: formatCurrency
-                                                      .format(realizedPnl),
-                                                  value: realizedPnl),
+                                                text: formatCurrency.format(
+                                                  realizedPnl,
+                                                ),
+                                                value: realizedPnl,
+                                              ),
                                               const SizedBox(height: 4),
-                                              const Text("Realized",
-                                                  style: TextStyle(
-                                                      fontSize:
-                                                          summaryLabelFontSize)),
+                                              const Text(
+                                                "Realized",
+                                                style: TextStyle(
+                                                  fontSize:
+                                                      summaryLabelFontSize,
+                                                ),
+                                              ),
                                             ],
                                           ),
                                         ),
                                       if (openPnl != null)
                                         Padding(
                                           padding: const EdgeInsets.all(
-                                              summaryEgdeInset),
+                                            summaryEgdeInset,
+                                          ),
                                           child: Column(
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
                                               PnlBadge(
-                                                  text: formatCurrency
-                                                      .format(openPnl),
-                                                  value: openPnl),
+                                                text: formatCurrency.format(
+                                                  openPnl,
+                                                ),
+                                                value: openPnl,
+                                              ),
                                               const SizedBox(height: 4),
-                                              const Text("Open P&L",
-                                                  style: TextStyle(
-                                                      fontSize:
-                                                          summaryLabelFontSize)),
+                                              const Text(
+                                                "Open P&L",
+                                                style: TextStyle(
+                                                  fontSize:
+                                                      summaryLabelFontSize,
+                                                ),
+                                              ),
                                             ],
                                           ),
                                         ),
                                       if (totalCost != null)
                                         Padding(
                                           padding: const EdgeInsets.all(
-                                              summaryEgdeInset),
+                                            summaryEgdeInset,
+                                          ),
                                           child: Column(
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
                                               PnlBadge(
-                                                  text: formatCurrency
-                                                      .format(totalCost),
-                                                  neutral: true),
+                                                text: formatCurrency.format(
+                                                  totalCost,
+                                                ),
+                                                neutral: true,
+                                              ),
                                               const SizedBox(height: 4),
-                                              const Text("Total Cost",
-                                                  style: TextStyle(
-                                                      fontSize:
-                                                          summaryLabelFontSize)),
+                                              const Text(
+                                                "Total Cost",
+                                                style: TextStyle(
+                                                  fontSize:
+                                                      summaryLabelFontSize,
+                                                ),
+                                              ),
                                             ],
                                           ),
                                         ),
                                       if (notionalValue != null)
                                         Padding(
                                           padding: const EdgeInsets.all(
-                                              summaryEgdeInset),
+                                            summaryEgdeInset,
+                                          ),
                                           child: Column(
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
                                               PnlBadge(
-                                                  text: formatCurrency
-                                                      .format(notionalValue),
-                                                  neutral: true),
+                                                text: formatCurrency.format(
+                                                  notionalValue,
+                                                ),
+                                                neutral: true,
+                                              ),
                                               const SizedBox(height: 4),
-                                              const Text("Notional",
-                                                  style: TextStyle(
-                                                      fontSize:
-                                                          summaryLabelFontSize)),
+                                              const Text(
+                                                "Notional",
+                                                style: TextStyle(
+                                                  fontSize:
+                                                      summaryLabelFontSize,
+                                                ),
+                                              ),
                                             ],
                                           ),
                                         ),
                                       if (marginRequirement != null)
                                         Padding(
                                           padding: const EdgeInsets.all(
-                                              summaryEgdeInset),
+                                            summaryEgdeInset,
+                                          ),
                                           child: Column(
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
                                               PnlBadge(
-                                                text: formatCurrency
-                                                    .format(marginRequirement),
+                                                text: formatCurrency.format(
+                                                  marginRequirement,
+                                                ),
                                                 neutral: true,
                                               ),
                                               const SizedBox(height: 4),
-                                              const Text("Margin Requirement",
-                                                  style: TextStyle(
-                                                      fontSize:
-                                                          summaryLabelFontSize)),
+                                              const Text(
+                                                "Margin Requirement",
+                                                style: TextStyle(
+                                                  fontSize:
+                                                      summaryLabelFontSize,
+                                                ),
+                                              ),
                                             ],
                                           ),
                                         ),
                                       if (multiplier != null)
                                         Padding(
                                           padding: const EdgeInsets.all(
-                                              summaryEgdeInset),
+                                            summaryEgdeInset,
+                                          ),
                                           child: Column(
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
                                               PnlBadge(
-                                                  text:
-                                                      '${multiplier.toStringAsFixed(0)}x',
-                                                  neutral: true),
+                                                text:
+                                                    '${multiplier.toStringAsFixed(0)}x',
+                                                neutral: true,
+                                              ),
                                               const SizedBox(height: 4),
-                                              const Text("Multiplier",
-                                                  style: TextStyle(
-                                                      fontSize:
-                                                          summaryLabelFontSize)),
+                                              const Text(
+                                                "Multiplier",
+                                                style: TextStyle(
+                                                  fontSize:
+                                                      summaryLabelFontSize,
+                                                ),
+                                              ),
                                             ],
                                           ),
                                         ),
                                       if (previousClosePrice != null)
                                         Padding(
                                           padding: const EdgeInsets.all(
-                                              summaryEgdeInset),
+                                            summaryEgdeInset,
+                                          ),
                                           child: Column(
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
                                               PnlBadge(
-                                                  text: formatCurrency.format(
-                                                      previousClosePrice),
-                                                  neutral: true),
+                                                text: formatCurrency.format(
+                                                  previousClosePrice,
+                                                ),
+                                                neutral: true,
+                                              ),
                                               const SizedBox(height: 4),
-                                              const Text("Prev Close",
-                                                  style: TextStyle(
-                                                      fontSize:
-                                                          summaryLabelFontSize)),
+                                              const Text(
+                                                "Prev Close",
+                                                style: TextStyle(
+                                                  fontSize:
+                                                      summaryLabelFontSize,
+                                                ),
+                                              ),
                                             ],
                                           ),
                                         ),
@@ -902,7 +989,9 @@ class _FuturesPositionsWidgetState extends State<FuturesPositionsWidget> {
               ],
             ),
           );
-        }));
+        },
+      ),
+    );
   }
 
   Widget _buildSummaryMetric(
@@ -973,8 +1062,9 @@ class _FuturesPositionsWidgetState extends State<FuturesPositionsWidget> {
               _buildToolbarButton(
                 context,
                 label: _sortDescending ? 'High to low' : 'Low to high',
-                icon:
-                    _sortDescending ? Icons.arrow_downward : Icons.arrow_upward,
+                icon: _sortDescending
+                    ? Icons.arrow_downward
+                    : Icons.arrow_upward,
                 iconColor: colorScheme.secondary,
                 onTap: () {
                   setState(() => _sortDescending = !_sortDescending);

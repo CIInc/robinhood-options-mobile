@@ -87,22 +87,27 @@ class FidelityService implements IBrokerageService {
   Future<UserInfo?> getUser(BrokerageUser user) async {
     // Return a dummy user info or null
     return UserInfo(
-        url: 'fidelity_user',
-        id: 'fidelity_user_id',
-        idInfo: 'fidelity_user_id',
-        username: 'Fidelity User',
-        email: 'user@fidelity.com',
-        firstName: 'Fidelity',
-        lastName: 'User',
-        profileName: 'Fidelity User',
-        createdAt: DateTime.now());
+      url: 'fidelity_user',
+      id: 'fidelity_user_id',
+      idInfo: 'fidelity_user_id',
+      username: 'Fidelity User',
+      email: 'user@fidelity.com',
+      firstName: 'Fidelity',
+      lastName: 'User',
+      profileName: 'Fidelity User',
+      createdAt: DateTime.now(),
+    );
   }
 
   @override
-  Future<List<Account>> getAccounts(BrokerageUser user, AccountStore store,
-      PortfolioStore? portfolioStore, OptionPositionStore? optionPositionStore,
-      {InstrumentPositionStore? instrumentPositionStore,
-      DocumentReference? userDoc}) async {
+  Future<List<Account>> getAccounts(
+    BrokerageUser user,
+    AccountStore store,
+    PortfolioStore? portfolioStore,
+    OptionPositionStore? optionPositionStore, {
+    InstrumentPositionStore? instrumentPositionStore,
+    DocumentReference? userDoc,
+  }) async {
     // Try to fetch latest from Firestore if provided (ensures fresh data after import)
     if (userDoc != null) {
       try {
@@ -122,8 +127,9 @@ class FidelityService implements IBrokerageService {
           }
 
           if (u != null) {
-            var distinctBrokerageUsers = u.brokerageUsers
-                .where((b) => b.source == BrokerageSource.fidelity);
+            var distinctBrokerageUsers = u.brokerageUsers.where(
+              (b) => b.source == BrokerageSource.fidelity,
+            );
             if (distinctBrokerageUsers.isNotEmpty) {
               var freshUser = distinctBrokerageUsers.first;
               if (freshUser.accounts.isNotEmpty) {
@@ -167,16 +173,16 @@ class FidelityService implements IBrokerageService {
         return accountNumbers.map((accNum) {
           double cash = accountCash[accNum] ?? 0;
           return Account(
-              'fidelity_account_url_$accNum', // url
-              cash, // portfolioCash
-              accNum, // accountNumber
-              'cash', // type
-              cash, // buyingPower
-              '3', // optionLevel
-              0, // cashHeldForOptionsCollateral
-              0, // unsettledDebit
-              0 // settledAmountBorrowed
-              );
+            'fidelity_account_url_$accNum', // url
+            cash, // portfolioCash
+            accNum, // accountNumber
+            'cash', // type
+            cash, // buyingPower
+            '3', // optionLevel
+            0, // cashHeldForOptionsCollateral
+            0, // unsettledDebit
+            0, // settledAmountBorrowed
+          );
         }).toList();
       }
     }
@@ -184,82 +190,88 @@ class FidelityService implements IBrokerageService {
     // Return a dummy account if no data
     return [
       Account(
-          'fidelity_account_url', // url
-          0, // portfolioCash
-          'Fidelity-Imported', // accountNumber
-          'cash', // type
-          0, // buyingPower
-          '3', // optionLevel
-          0, // cashHeldForOptionsCollateral
-          0, // unsettledDebit
-          0 // settledAmountBorrowed
-          )
+        'fidelity_account_url', // url
+        0, // portfolioCash
+        'Fidelity-Imported', // accountNumber
+        'cash', // type
+        0, // buyingPower
+        '3', // optionLevel
+        0, // cashHeldForOptionsCollateral
+        0, // unsettledDebit
+        0, // settledAmountBorrowed
+      ),
     ];
   }
 
   @override
   Future<List<Portfolio>> getPortfolios(
-      BrokerageUser user, PortfolioStore store) async {
+    BrokerageUser user,
+    PortfolioStore store,
+  ) async {
     // Return a dummy portfolio
     return [
       Portfolio(
-          'fidelity_portfolio_url', // url
-          'fidelity_account_url', // account
-          DateTime.now(), // startDate
-          0, // marketValue
-          0, // equity
-          0, // extendedHoursMarketValue
-          0, // extendedHoursEquity
-          0, // extendedHoursPortfolioEquity
-          0, // lastCoreMarketValue
-          0, // lastCoreEquity
-          0, // lastCorePortfolioEquity
-          0, // excessMargin
-          0, // excessMaintenance
-          0, // excessMarginWithUnclearedDeposits
-          0, // excessMaintenanceWithUnclearedDeposits
-          0, // equityPreviousClose
-          0, // portfolioEquityPreviousClose
-          0, // adjustedEquityPreviousClose
-          0, // adjustedPortfolioEquityPreviousClose
-          0, // withdrawableAmount
-          0, // unwithdrawableDeposits
-          0, // unwithdrawableGrants
-          DateTime.now() // updatedAt
-          )
+        'fidelity_portfolio_url', // url
+        'fidelity_account_url', // account
+        DateTime.now(), // startDate
+        0, // marketValue
+        0, // equity
+        0, // extendedHoursMarketValue
+        0, // extendedHoursEquity
+        0, // extendedHoursPortfolioEquity
+        0, // lastCoreMarketValue
+        0, // lastCoreEquity
+        0, // lastCorePortfolioEquity
+        0, // excessMargin
+        0, // excessMaintenance
+        0, // excessMarginWithUnclearedDeposits
+        0, // excessMaintenanceWithUnclearedDeposits
+        0, // equityPreviousClose
+        0, // portfolioEquityPreviousClose
+        0, // adjustedEquityPreviousClose
+        0, // adjustedPortfolioEquityPreviousClose
+        0, // withdrawableAmount
+        0, // unwithdrawableDeposits
+        0, // unwithdrawableGrants
+        DateTime.now(), // updatedAt
+      ),
     ];
   }
 
   @override
   Future<InstrumentPositionStore> getStockPositionStore(
-      BrokerageUser user,
-      InstrumentPositionStore store,
-      InstrumentStore instrumentStore,
-      QuoteStore quoteStore,
-      {bool nonzero = true,
-      DocumentReference? userDoc}) async {
+    BrokerageUser user,
+    InstrumentPositionStore store,
+    InstrumentStore instrumentStore,
+    QuoteStore quoteStore, {
+    bool nonzero = true,
+    DocumentReference? userDoc,
+  }) async {
     if (userDoc != null) {
       try {
         var firestoreService = FirestoreService();
         var positions = await firestoreService.getInstrumentPositions(userDoc);
-        var manualPositions =
-            positions.where((p) => p.url.startsWith('manual_pos')).toList();
+        var manualPositions = positions
+            .where((p) => p.url.startsWith('manual_pos'))
+            .toList();
         if (manualPositions.isNotEmpty) {
-          var instrumentUrls =
-              manualPositions.map((p) => p.instrument).toSet().toList();
+          var instrumentUrls = manualPositions
+              .map((p) => p.instrument)
+              .toSet()
+              .toList();
           List<Instrument> instruments = [];
           for (var i = 0; i < instrumentUrls.length; i += 10) {
             var chunk = instrumentUrls.sublist(
-                i,
-                (i + 10) < instrumentUrls.length
-                    ? i + 10
-                    : instrumentUrls.length);
+              i,
+              (i + 10) < instrumentUrls.length ? i + 10 : instrumentUrls.length,
+            );
             var snapshot = await FirebaseFirestore.instance
                 .collection(firestoreService.instrumentCollectionName)
                 .where('url', whereIn: chunk)
                 .get();
             instruments.addAll(
-                snapshot.docs.map((d) => Instrument.fromJson(d.data())));
+              snapshot.docs.map((d) => Instrument.fromJson(d.data())),
+            );
           }
           var instrumentMap = {for (var i in instruments) i.url: i};
           for (var p in manualPositions) {
@@ -278,14 +290,19 @@ class FidelityService implements IBrokerageService {
 
   @override
   Future<List<ForexHolding>> getNummusHoldings(
-      BrokerageUser user, ForexHoldingStore store,
-      {bool nonzero = true, DocumentReference? userDoc}) async {
+    BrokerageUser user,
+    ForexHoldingStore store, {
+    bool nonzero = true,
+    DocumentReference? userDoc,
+  }) async {
     return [];
   }
 
   @override
   Future<List<ForexHolding>> refreshNummusHoldings(
-      BrokerageUser user, ForexHoldingStore store) async {
+    BrokerageUser user,
+    ForexHoldingStore store,
+  ) async {
     return [];
   }
 
@@ -296,13 +313,25 @@ class FidelityService implements IBrokerageService {
       return await yahooService.getForexQuote(id);
     } catch (_) {
       return ForexQuote(
-          null, null, null, null, null, null, id, id, null, DateTime.now());
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        id,
+        id,
+        null,
+        DateTime.now(),
+      );
     }
   }
 
   @override
   Future<List<ForexQuote>> getForexQuoteByIds(
-      BrokerageUser user, List<String> ids) async {
+    BrokerageUser user,
+    List<String> ids,
+  ) async {
     final yahooService = YahooService();
     try {
       return await yahooService.getForexQuotesByIds(ids);
@@ -312,15 +341,20 @@ class FidelityService implements IBrokerageService {
   }
 
   @override
-  Future<OptionPositionStore> getOptionPositionStore(BrokerageUser user,
-      OptionPositionStore store, InstrumentStore instrumentStore,
-      {bool nonzero = true, DocumentReference? userDoc}) async {
+  Future<OptionPositionStore> getOptionPositionStore(
+    BrokerageUser user,
+    OptionPositionStore store,
+    InstrumentStore instrumentStore, {
+    bool nonzero = true,
+    DocumentReference? userDoc,
+  }) async {
     if (userDoc != null) {
       try {
         var firestoreService = FirestoreService();
         var positions = await firestoreService.getOptionPositions(userDoc);
-        var manualPositions =
-            positions.where((p) => p.id.startsWith('manual_op_')).toList();
+        var manualPositions = positions
+            .where((p) => p.id.startsWith('manual_op_'))
+            .toList();
         if (manualPositions.isNotEmpty) {
           Set<String> optUrls = {};
           for (var p in manualPositions) {
@@ -338,8 +372,9 @@ class FidelityService implements IBrokerageService {
                 .where('url', isEqualTo: url)
                 .get();
             if (snapshot.docs.isNotEmpty) {
-              optionInstruments.addAll(snapshot.docs
-                  .map((d) => OptionInstrument.fromJson(d.data())));
+              optionInstruments.addAll(
+                snapshot.docs.map((d) => OptionInstrument.fromJson(d.data())),
+              );
             }
           }
           var optMap = {for (var o in optionInstruments) o.url: o};
@@ -366,38 +401,46 @@ class FidelityService implements IBrokerageService {
 
   @override
   Future<List<OptionAggregatePosition>> getAggregateOptionPositions(
-      BrokerageUser user,
-      {bool nonzero = true}) async {
+    BrokerageUser user, {
+    bool nonzero = true,
+  }) async {
     return [];
   }
 
   @override
   Stream<List<OptionInstrument>> streamOptionInstruments(
-      BrokerageUser user,
-      OptionInstrumentStore store,
-      Instrument instrument,
-      String? expirationDates,
-      String? type,
-      {String? state = "active",
-      bool includeMarketData = false}) async* {
+    BrokerageUser user,
+    OptionInstrumentStore store,
+    Instrument instrument,
+    String? expirationDates,
+    String? type, {
+    String? state = "active",
+    bool includeMarketData = false,
+  }) async* {
     yield [];
   }
 
   @override
   Future<List<OptionInstrument>> getOptionInstrumentByIds(
-      BrokerageUser user, List<String> ids) async {
+    BrokerageUser user,
+    List<String> ids,
+  ) async {
     return [];
   }
 
   @override
   Future<OptionMarketData?> getOptionMarketData(
-      BrokerageUser user, OptionInstrument optionInstrument) async {
+    BrokerageUser user,
+    OptionInstrument optionInstrument,
+  ) async {
     return null;
   }
 
   @override
   Future<List<OptionMarketData>> getOptionMarketDataByIds(
-      BrokerageUser user, List<String> ids) async {
+    BrokerageUser user,
+    List<String> ids,
+  ) async {
     return [];
   }
 
@@ -407,46 +450,57 @@ class FidelityService implements IBrokerageService {
   }
 
   @override
-  Future<dynamic> placeForexOrder(BrokerageUser user, String pairId,
-      String side, double? price, double quantity,
-      {String type = 'market',
-      String timeInForce = 'gtc',
-      double? stopPrice}) async {
+  Future<dynamic> placeForexOrder(
+    BrokerageUser user,
+    String pairId,
+    String side,
+    double? price,
+    double quantity, {
+    String type = 'market',
+    String timeInForce = 'gtc',
+    double? stopPrice,
+  }) async {
     throw UnimplementedError();
   }
 
   @override
   Future<List<OptionAggregatePosition>> refreshOptionMarketData(
-      BrokerageUser user,
-      OptionPositionStore optionPositionStore,
-      OptionInstrumentStore optionInstrumentStore) async {
+    BrokerageUser user,
+    OptionPositionStore optionPositionStore,
+    OptionInstrumentStore optionInstrumentStore,
+  ) async {
     return [];
   }
 
   @override
   Future<List<OptionEvent>> getOptionEventsByInstrumentUrl(
-      BrokerageUser user, String instrumentUrl) async {
+    BrokerageUser user,
+    String instrumentUrl,
+  ) async {
     return [];
   }
 
   @override
   Stream<List<OptionEvent>> streamOptionEvents(
-      BrokerageUser user, OptionEventStore store,
-      {int pageSize = 20, DocumentReference? userDoc}) async* {
+    BrokerageUser user,
+    OptionEventStore store, {
+    int pageSize = 20,
+    DocumentReference? userDoc,
+  }) async* {
     if (userDoc != null) {
       yield* userDoc
           .collection(FirestoreService().optionEventCollectionName)
           .orderBy('event_date', descending: true)
           .snapshots()
           .map((snapshot) {
-        var list = snapshot.docs
-            .map((doc) => OptionEvent.fromJson(doc.data()))
-            .toList();
-        for (var item in list) {
-          store.addOrUpdate(item);
-        }
-        return list;
-      });
+            var list = snapshot.docs
+                .map((doc) => OptionEvent.fromJson(doc.data()))
+                .toList();
+            for (var item in list) {
+              store.addOrUpdate(item);
+            }
+            return list;
+          });
     } else {
       yield [];
     }
@@ -454,7 +508,9 @@ class FidelityService implements IBrokerageService {
 
   @override
   Future<List<OptionChain>> getOptionChainsByIds(
-      BrokerageUser user, List<String> ids) async {
+    BrokerageUser user,
+    List<String> ids,
+  ) async {
     return [];
   }
 
@@ -462,20 +518,35 @@ class FidelityService implements IBrokerageService {
   Future<OptionChain> getOptionChains(BrokerageUser user, String id) async {
     // Return empty or dummy
     return OptionChain(
-        id, id, false, null, [], 100, MinTicks(null, null, null));
+      id,
+      id,
+      false,
+      null,
+      [],
+      100,
+      MinTicks(null, null, null),
+    );
   }
 
   @override
   Future<Instrument> getInstrument(
-      BrokerageUser user, InstrumentStore store, String instrumentUrl) async {
+    BrokerageUser user,
+    InstrumentStore store,
+    String instrumentUrl,
+  ) async {
     // We assume instrumentUrl == symbol for manual entries
-    return Instrument.fromJson(
-        {'symbol': instrumentUrl, 'description': instrumentUrl});
+    return Instrument.fromJson({
+      'symbol': instrumentUrl,
+      'description': instrumentUrl,
+    });
   }
 
   @override
   Future<Instrument?> getInstrumentBySymbol(
-      BrokerageUser user, InstrumentStore store, String symbol) async {
+    BrokerageUser user,
+    InstrumentStore store,
+    String symbol,
+  ) async {
     final firestoreService = FirestoreService();
     var instrument = await firestoreService.getInstrument(symbol: symbol);
     if (instrument != null) {
@@ -487,7 +558,10 @@ class FidelityService implements IBrokerageService {
 
   @override
   Future<List<Instrument>> getInstrumentsByIds(
-      BrokerageUser user, InstrumentStore store, List<String> ids) async {
+    BrokerageUser user,
+    InstrumentStore store,
+    List<String> ids,
+  ) async {
     final firestoreService = FirestoreService();
     List<Instrument> results = [];
     for (var id in ids) {
@@ -504,8 +578,11 @@ class FidelityService implements IBrokerageService {
 
   @override
   Future<List<Quote>> getQuoteByIds(
-      BrokerageUser user, QuoteStore store, List<String> symbols,
-      {bool fromCache = true}) async {
+    BrokerageUser user,
+    QuoteStore store,
+    List<String> symbols, {
+    bool fromCache = true,
+  }) async {
     if (symbols.isEmpty) return [];
 
     try {
@@ -537,34 +614,42 @@ class FidelityService implements IBrokerageService {
 
     try {
       // Map symbols to Fidelity format
-      final fidSymbols = symbols.map((s) {
-        var fidS = s;
-        if (s.startsWith("^")) {
-          fidS = ".${s.substring(1)}";
-        }
-        // Fidelity specific mappings
-        final sUpper = fidS.toUpperCase();
-        if (sUpper == ".GSPC") fidS = ".SPX";
-        if (sUpper == "^PCC" || sUpper == "^CPCE") fidS = ".PCCE";
-        if (sUpper == "^CPC") fidS = ".PCC";
-        if (sUpper == "DX-Y.NYB" ||
-            sUpper == "DX=F" ||
-            sUpper == "DXY" ||
-            sUpper == "DX") {
-          fidS = ".DXY";
-        }
-        if (sUpper == "BTC-USD" || sUpper == "BTCUSD") fidS = "BTC/USD";
-        if (sUpper == "ETH-USD" || sUpper == "ETHUSD") fidS = "ETH/USD";
-        return fidS;
-      }).join(",");
+      final fidSymbols = symbols
+          .map((s) {
+            var fidS = s;
+            if (s.startsWith("^")) {
+              fidS = ".${s.substring(1)}";
+            }
+            // Fidelity specific mappings
+            final sUpper = fidS.toUpperCase();
+            if (sUpper == ".GSPC") fidS = ".SPX";
+            if (sUpper == "^PCC" || sUpper == "^CPCE") fidS = ".PCCE";
+            if (sUpper == "^CPC") fidS = ".PCC";
+            if (sUpper == "DX-Y.NYB" ||
+                sUpper == "DX=F" ||
+                sUpper == "DXY" ||
+                sUpper == "DX") {
+              fidS = ".DXY";
+            }
+            if (sUpper == "BTC-USD" || sUpper == "BTCUSD") fidS = "BTC/USD";
+            if (sUpper == "ETH-USD" || sUpper == "ETHUSD") fidS = "ETH/USD";
+            return fidS;
+          })
+          .join(",");
 
-      final url = "https://fastquote.fidelity.com/service/quote/json?"
+      final url =
+          "https://fastquote.fidelity.com/service/quote/json?"
           "productid=embeddedquotes&symbols=${Uri.encodeComponent(fidSymbols)}";
 
-      final resp = await http.get(Uri.parse(url), headers: {
-        "Referer": "https://www.fidelity.com/",
-        "Origin": "https://www.fidelity.com",
-      }).timeout(const Duration(seconds: 10));
+      final resp = await http
+          .get(
+            Uri.parse(url),
+            headers: {
+              "Referer": "https://www.fidelity.com/",
+              "Origin": "https://www.fidelity.com",
+            },
+          )
+          .timeout(const Duration(seconds: 10));
 
       if (resp.statusCode != 200) {
         throw Exception('Fidelity API returned status ${resp.statusCode}');
@@ -631,11 +716,13 @@ class FidelityService implements IBrokerageService {
     final bidSize = _parseInt(quote['bidSize']);
     final askPrice = _parseDouble(quote['askPrice']);
     final askSize = _parseInt(quote['askSize']);
-    final lastPrice = _parseDouble(quote['lastPrice']) ??
+    final lastPrice =
+        _parseDouble(quote['lastPrice']) ??
         _parseDouble(quote['bidPrice']) ??
         _parseDouble(quote['askPrice']) ??
         0.0;
-    final previousClose = _parseDouble(quote['openPrice']) ??
+    final previousClose =
+        _parseDouble(quote['openPrice']) ??
         _parseDouble(quote['lastPrice']) ??
         0.0;
 
@@ -679,7 +766,10 @@ class FidelityService implements IBrokerageService {
 
   @override
   Future<Quote> getQuote(
-      BrokerageUser user, QuoteStore store, String symbol) async {
+    BrokerageUser user,
+    QuoteStore store,
+    String symbol,
+  ) async {
     try {
       final quotes = await getQuotesFromFidelity([symbol]);
       if (quotes.isNotEmpty) {
@@ -696,25 +786,36 @@ class FidelityService implements IBrokerageService {
 
   @override
   Future<Quote> refreshQuote(
-      BrokerageUser user, QuoteStore store, String symbol) async {
+    BrokerageUser user,
+    QuoteStore store,
+    String symbol,
+  ) async {
     return await getQuote(user, store, symbol);
   }
 
   @override
-  Future<List<InstrumentPosition>> refreshPositionQuote(BrokerageUser user,
-      InstrumentPositionStore store, QuoteStore quoteStore) async {
+  Future<List<InstrumentPosition>> refreshPositionQuote(
+    BrokerageUser user,
+    InstrumentPositionStore store,
+    QuoteStore quoteStore,
+  ) async {
     return [];
   }
 
   @override
-  Future<List<Fundamentals>> getFundamentalsById(BrokerageUser user,
-      List<String> instruments, InstrumentStore store) async {
+  Future<List<Fundamentals>> getFundamentalsById(
+    BrokerageUser user,
+    List<String> instruments,
+    InstrumentStore store,
+  ) async {
     return [];
   }
 
   @override
   Future<Fundamentals> getFundamentals(
-      BrokerageUser user, Instrument instrumentObj) async {
+    BrokerageUser user,
+    Instrument instrumentObj,
+  ) async {
     // Basic Stub / No-Op to prevent crash + try Yahoo if possible
     /*
     try {
@@ -728,11 +829,12 @@ class FidelityService implements IBrokerageService {
 
   @override
   Future<PortfolioHistoricals> getPortfolioHistoricals(
-      BrokerageUser user,
-      PortfolioHistoricalsStore store,
-      String account,
-      Bounds chartBoundsFilter,
-      ChartDateSpan chartDateSpanFilter) async {
+    BrokerageUser user,
+    PortfolioHistoricalsStore store,
+    String account,
+    Bounds chartBoundsFilter,
+    ChartDateSpan chartDateSpanFilter,
+  ) async {
     await Future.delayed(Duration.zero);
     var rtn = convertChartSpanFilterWithInterval(chartDateSpanFilter);
     String rhSpan = rtn[0];
@@ -740,16 +842,30 @@ class FidelityService implements IBrokerageService {
     String bounds = convertChartBoundsFilter(chartBoundsFilter);
 
     var hist = PortfolioHistoricals(
-        0, 0, 0, 0, null, rhInterval, rhSpan, bounds, 0, [], false);
+      0,
+      0,
+      0,
+      0,
+      null,
+      rhInterval,
+      rhSpan,
+      bounds,
+      0,
+      [],
+      false,
+    );
     store.set(hist);
     return hist;
   }
 
   @override
   Future<PortfolioHistoricals> getPortfolioPerformance(
-      BrokerageUser user, PortfolioHistoricalsStore store, String account,
-      {Bounds chartBoundsFilter = Bounds.t24_7,
-      ChartDateSpan chartDateSpanFilter = ChartDateSpan.day}) async {
+    BrokerageUser user,
+    PortfolioHistoricalsStore store,
+    String account, {
+    Bounds chartBoundsFilter = Bounds.t24_7,
+    ChartDateSpan chartDateSpanFilter = ChartDateSpan.day,
+  }) async {
     await Future.delayed(Duration.zero);
     var rtn = convertChartSpanFilterWithInterval(chartDateSpanFilter);
     String rhSpan = rtn[0];
@@ -757,16 +873,30 @@ class FidelityService implements IBrokerageService {
     String bounds = convertChartBoundsFilter(chartBoundsFilter);
 
     var hist = PortfolioHistoricals(
-        0, 0, 0, 0, null, rhInterval, rhSpan, bounds, 0, [], false);
+      0,
+      0,
+      0,
+      0,
+      null,
+      rhInterval,
+      rhSpan,
+      bounds,
+      0,
+      [],
+      false,
+    );
     store.set(hist);
     return hist;
   }
 
   @override
   Future<OptionHistoricals> getOptionHistoricals(
-      BrokerageUser user, OptionHistoricalsStore store, List<String> ids,
-      {Bounds chartBoundsFilter = Bounds.regular,
-      ChartDateSpan chartDateSpanFilter = ChartDateSpan.day}) async {
+    BrokerageUser user,
+    OptionHistoricalsStore store,
+    List<String> ids, {
+    Bounds chartBoundsFilter = Bounds.regular,
+    ChartDateSpan chartDateSpanFilter = ChartDateSpan.day,
+  }) async {
     await Future.delayed(Duration.zero);
     var rtn = convertChartSpanFilterWithInterval(chartDateSpanFilter);
     String rhSpan = rtn[0];
@@ -777,7 +907,16 @@ class FidelityService implements IBrokerageService {
     List<Leg> legs = ids.map((id) => Leg(id, "1", "call")).toList();
 
     var hist = OptionHistoricals(
-        bounds, rhInterval, rhSpan, legs, null, null, null, null, []);
+      bounds,
+      rhInterval,
+      rhSpan,
+      legs,
+      null,
+      null,
+      null,
+      null,
+      [],
+    );
 
     if (legs.isNotEmpty) {
       // OptionHistoricalsStore uses update() (returns bool) or add()
@@ -789,12 +928,15 @@ class FidelityService implements IBrokerageService {
   }
 
   @override
-  Future<InstrumentHistoricals> getInstrumentHistoricals(BrokerageUser user,
-      InstrumentHistoricalsStore store, String symbolOrInstrumentId,
-      {bool includeInactive = true,
-      Bounds chartBoundsFilter = Bounds.trading,
-      ChartDateSpan chartDateSpanFilter = ChartDateSpan.day,
-      String? chartInterval}) async {
+  Future<InstrumentHistoricals> getInstrumentHistoricals(
+    BrokerageUser user,
+    InstrumentHistoricalsStore store,
+    String symbolOrInstrumentId, {
+    bool includeInactive = true,
+    Bounds chartBoundsFilter = Bounds.trading,
+    ChartDateSpan chartDateSpanFilter = ChartDateSpan.day,
+    String? chartInterval,
+  }) async {
     await Future.delayed(Duration.zero);
     final yahooService = YahooService();
 
@@ -858,24 +1000,28 @@ class FidelityService implements IBrokerageService {
       // TODO: Use the open Fidelity API instead, see https://github.com/njfdev/fidelity-api/blob/main/docs/historical-data.md
       // getHistoricals returns List<InstrumentHistorical>
       var candles = await yahooService.getHistoricals(
-          symbolOrInstrumentId, range, interval);
+        symbolOrInstrumentId,
+        range,
+        interval,
+      );
 
       var bounds = convertChartBoundsFilter(chartBoundsFilter);
 
       // We need to construct InstrumentHistoricals manually
       var hist = InstrumentHistoricals(
-          symbolOrInstrumentId,
-          symbolOrInstrumentId,
-          rhInterval,
-          rhSpan,
-          bounds,
-          null,
-          null,
-          null,
-          null,
-          symbolOrInstrumentId,
-          symbolOrInstrumentId,
-          candles);
+        symbolOrInstrumentId,
+        symbolOrInstrumentId,
+        rhInterval,
+        rhSpan,
+        bounds,
+        null,
+        null,
+        null,
+        null,
+        symbolOrInstrumentId,
+        symbolOrInstrumentId,
+        candles,
+      );
 
       store.set(hist);
       return hist;
@@ -885,17 +1031,19 @@ class FidelityService implements IBrokerageService {
       var bounds = convertChartBoundsFilter(chartBoundsFilter);
 
       var hist = InstrumentHistoricals(
-          symbolOrInstrumentId,
-          symbolOrInstrumentId,
-          rhInterval,
-          rhSpan,
-          bounds,
-          null,
-          null,
-          null,
-          null,
-          symbolOrInstrumentId,
-          symbolOrInstrumentId, []);
+        symbolOrInstrumentId,
+        symbolOrInstrumentId,
+        rhInterval,
+        rhSpan,
+        bounds,
+        null,
+        null,
+        null,
+        null,
+        symbolOrInstrumentId,
+        symbolOrInstrumentId,
+        [],
+      );
 
       store.set(hist);
       return hist;
@@ -903,32 +1051,51 @@ class FidelityService implements IBrokerageService {
   }
 
   @override
-  Future<ForexHistoricals> getForexHistoricals(BrokerageUser user, String id,
-      {Bounds chartBoundsFilter = Bounds.t24_7,
-      ChartDateSpan chartDateSpanFilter = ChartDateSpan.day}) async {
+  Future<ForexHistoricals> getForexHistoricals(
+    BrokerageUser user,
+    String id, {
+    Bounds chartBoundsFilter = Bounds.t24_7,
+    ChartDateSpan chartDateSpanFilter = ChartDateSpan.day,
+  }) async {
     final yahooService = YahooService();
     try {
-      return await yahooService.getForexHistoricals(id,
-          chartBoundsFilter: chartBoundsFilter,
-          chartDateSpanFilter: chartDateSpanFilter);
+      return await yahooService.getForexHistoricals(
+        id,
+        chartBoundsFilter: chartBoundsFilter,
+        chartDateSpanFilter: chartDateSpanFilter,
+      );
     } catch (_) {
       return ForexHistoricals(
-          'regular', '5m', 'day', id, id, null, null, null, null, []);
+        'regular',
+        '5m',
+        'day',
+        id,
+        id,
+        null,
+        null,
+        null,
+        null,
+        [],
+      );
     }
   }
 
   @override
   Future<FutureHistoricals?> getFuturesHistoricals(
-      BrokerageUser user, String id,
-      {Bounds chartBoundsFilter = Bounds.regular,
-      ChartDateSpan chartDateSpanFilter = ChartDateSpan.day}) async {
+    BrokerageUser user,
+    String id, {
+    Bounds chartBoundsFilter = Bounds.regular,
+    ChartDateSpan chartDateSpanFilter = ChartDateSpan.day,
+  }) async {
     return null;
   }
 
   @override
   Stream<List<dynamic>> streamDividends(
-      BrokerageUser user, InstrumentStore instrumentStore,
-      {DocumentReference? userDoc}) async* {
+    BrokerageUser user,
+    InstrumentStore instrumentStore, {
+    DocumentReference? userDoc,
+  }) async* {
     if (userDoc != null) {
       yield* userDoc
           .collection(FirestoreService().dividendCollectionName)
@@ -941,16 +1108,21 @@ class FidelityService implements IBrokerageService {
   }
 
   @override
-  Future<List<dynamic>> getDividends(BrokerageUser user,
-      DividendStore dividendStore, InstrumentStore instrumentStore,
-      {String? instrumentId}) async {
+  Future<List<dynamic>> getDividends(
+    BrokerageUser user,
+    DividendStore dividendStore,
+    InstrumentStore instrumentStore, {
+    String? instrumentId,
+  }) async {
     return [];
   }
 
   @override
   Stream<List<dynamic>> streamInterests(
-      BrokerageUser user, InstrumentStore instrumentStore,
-      {DocumentReference? userDoc}) async* {
+    BrokerageUser user,
+    InstrumentStore instrumentStore, {
+    DocumentReference? userDoc,
+  }) async* {
     if (userDoc != null) {
       yield* userDoc
           .collection(FirestoreService().interestCollectionName)
@@ -964,8 +1136,10 @@ class FidelityService implements IBrokerageService {
 
   @override
   Future<List<dynamic>> getInterests(
-      BrokerageUser user, InterestStore dividendStore,
-      {String? instrumentId}) async {
+    BrokerageUser user,
+    InterestStore dividendStore, {
+    String? instrumentId,
+  }) async {
     return [];
   }
 
@@ -981,25 +1155,33 @@ class FidelityService implements IBrokerageService {
 
   @override
   Future<dynamic> getRatingsOverview(
-      BrokerageUser user, String instrumentId) async {
+    BrokerageUser user,
+    String instrumentId,
+  ) async {
     return null;
   }
 
   @override
   Future<List<dynamic>> getEarnings(
-      BrokerageUser user, String instrumentId) async {
+    BrokerageUser user,
+    String instrumentId,
+  ) async {
     return [];
   }
 
   @override
   Future<List<dynamic>> getSimilar(
-      BrokerageUser user, String instrumentId) async {
+    BrokerageUser user,
+    String instrumentId,
+  ) async {
     return [];
   }
 
   @override
   Future<List<dynamic>> getSplits(
-      BrokerageUser user, Instrument instrumentObj) async {
+    BrokerageUser user,
+    Instrument instrumentObj,
+  ) async {
     return [];
   }
 
@@ -1009,48 +1191,80 @@ class FidelityService implements IBrokerageService {
   }
 
   @override
-  Future<List<MidlandMoversItem>> getMovers(BrokerageUser user,
-      {String direction = "up"}) async {
+  Future<List<MidlandMoversItem>> getMovers(
+    BrokerageUser user, {
+    String direction = "up",
+  }) async {
     return [];
   }
 
   @override
   Future<List<Instrument>> getTopMovers(
-      BrokerageUser user, InstrumentStore instrumentStore) async {
+    BrokerageUser user,
+    InstrumentStore instrumentStore,
+  ) async {
     return [];
   }
 
   @override
   Future<List<Instrument>> getListMostPopular(
-      BrokerageUser user, InstrumentStore instrumentStore) async {
+    BrokerageUser user,
+    InstrumentStore instrumentStore,
+  ) async {
     return [];
   }
 
   @override
-  Stream<List<Watchlist>> streamLists(BrokerageUser user,
-      InstrumentStore instrumentStore, QuoteStore quoteStore) async* {
+  Stream<List<Watchlist>> streamLists(
+    BrokerageUser user,
+    InstrumentStore instrumentStore,
+    QuoteStore quoteStore,
+  ) async* {
     yield [];
   }
 
   @override
   Future<List<dynamic>> getLists(
-      BrokerageUser user, String instrumentId) async {
+    BrokerageUser user,
+    String instrumentId,
+  ) async {
     return [];
   }
 
   @override
-  Stream<Watchlist> streamList(BrokerageUser user,
-      InstrumentStore instrumentStore, QuoteStore quoteStore, String key,
-      {String ownerType = "custom"}) async* {
+  Stream<Watchlist> streamList(
+    BrokerageUser user,
+    InstrumentStore instrumentStore,
+    QuoteStore quoteStore,
+    String key, {
+    String ownerType = "custom",
+  }) async* {
     yield Watchlist(
-        key, key, 'custom', null, null, DateTime.now(), DateTime.now());
+      key,
+      key,
+      'custom',
+      null,
+      null,
+      DateTime.now(),
+      DateTime.now(),
+    );
   }
 
   @override
-  Future<Watchlist> getList(String key, BrokerageUser user,
-      {String ownerType = "custom"}) async {
+  Future<Watchlist> getList(
+    String key,
+    BrokerageUser user, {
+    String ownerType = "custom",
+  }) async {
     return Watchlist(
-        key, key, 'custom', null, null, DateTime.now(), DateTime.now());
+      key,
+      key,
+      'custom',
+      null,
+      null,
+      DateTime.now(),
+      DateTime.now(),
+    );
   }
 
   @override
@@ -1060,37 +1274,49 @@ class FidelityService implements IBrokerageService {
 
   @override
   Future<void> addToList(
-      BrokerageUser user, String listId, String instrumentId) async {}
+    BrokerageUser user,
+    String listId,
+    String instrumentId,
+  ) async {}
 
   @override
   Future<void> removeFromList(
-      BrokerageUser user, String listId, String instrumentId) async {}
+    BrokerageUser user,
+    String listId,
+    String instrumentId,
+  ) async {}
 
   @override
-  Future<void> createList(BrokerageUser user, String name,
-      {String? emoji}) async {}
+  Future<void> createList(
+    BrokerageUser user,
+    String name, {
+    String? emoji,
+  }) async {}
 
   @override
   Future<void> deleteList(BrokerageUser user, String listId) async {}
 
   @override
-  Stream<List<InstrumentOrder>> streamPositionOrders(BrokerageUser user,
-      InstrumentOrderStore store, InstrumentStore instrumentStore,
-      {DocumentReference? userDoc}) async* {
+  Stream<List<InstrumentOrder>> streamPositionOrders(
+    BrokerageUser user,
+    InstrumentOrderStore store,
+    InstrumentStore instrumentStore, {
+    DocumentReference? userDoc,
+  }) async* {
     if (userDoc != null) {
       yield* userDoc
           .collection(FirestoreService().instrumentOrderCollectionName)
           .orderBy('updated_at', descending: true)
           .snapshots()
           .map((snapshot) {
-        var list = snapshot.docs
-            .map((doc) => InstrumentOrder.fromJson(doc.data()))
-            .toList();
-        for (var item in list) {
-          store.addOrUpdate(item);
-        }
-        return list;
-      });
+            var list = snapshot.docs
+                .map((doc) => InstrumentOrder.fromJson(doc.data()))
+                .toList();
+            for (var item in list) {
+              store.addOrUpdate(item);
+            }
+            return list;
+          });
     } else {
       yield [];
     }
@@ -1098,22 +1324,24 @@ class FidelityService implements IBrokerageService {
 
   @override
   Stream<List<OptionOrder>> streamOptionOrders(
-      BrokerageUser user, OptionOrderStore store,
-      {DocumentReference? userDoc}) async* {
+    BrokerageUser user,
+    OptionOrderStore store, {
+    DocumentReference? userDoc,
+  }) async* {
     if (userDoc != null) {
       yield* userDoc
           .collection(FirestoreService().optionOrderCollectionName)
           .orderBy('updated_at', descending: true)
           .snapshots()
           .map((snapshot) {
-        var list = snapshot.docs
-            .map((doc) => OptionOrder.fromJson(doc.data()))
-            .toList();
-        for (var item in list) {
-          store.addOrUpdate(item);
-        }
-        return list;
-      });
+            var list = snapshot.docs
+                .map((doc) => OptionOrder.fromJson(doc.data()))
+                .toList();
+            for (var item in list) {
+              store.addOrUpdate(item);
+            }
+            return list;
+          });
     } else {
       yield [];
     }
@@ -1121,62 +1349,71 @@ class FidelityService implements IBrokerageService {
 
   @override
   Future<List<OptionOrder>> getOptionOrders(
-      BrokerageUser user, OptionOrderStore store, String chainId) async {
+    BrokerageUser user,
+    OptionOrderStore store,
+    String chainId,
+  ) async {
     return [];
   }
 
   @override
-  Future<List<InstrumentOrder>> getInstrumentOrders(BrokerageUser user,
-      InstrumentOrderStore store, List<String> instrumentUrls) async {
+  Future<List<InstrumentOrder>> getInstrumentOrders(
+    BrokerageUser user,
+    InstrumentOrderStore store,
+    List<String> instrumentUrls,
+  ) async {
     return [];
   }
 
   @override
   Future<dynamic> placeInstrumentOrder(
-      BrokerageUser user,
-      Account account,
-      Instrument instrument,
-      String symbol,
-      String side,
-      double? price,
-      int quantity,
-      {String type = 'limit',
-      String trigger = 'immediate',
-      double? stopPrice,
-      String timeInForce = 'gtc',
-      Map<String, dynamic>? trailingPeg}) async {
+    BrokerageUser user,
+    Account account,
+    Instrument instrument,
+    String symbol,
+    String side,
+    double? price,
+    int quantity, {
+    String type = 'limit',
+    String trigger = 'immediate',
+    double? stopPrice,
+    String timeInForce = 'gtc',
+    Map<String, dynamic>? trailingPeg,
+  }) async {
     throw UnimplementedError();
   }
 
   @override
   Future<dynamic> placeOptionsOrder(
-      BrokerageUser user,
-      Account account,
-      OptionInstrument optionInstrument,
-      String side,
-      String positionEffect,
-      String creditOrDebit,
-      double price,
-      int quantity,
-      {String type = 'limit',
-      String trigger = 'immediate',
-      double? stopPrice,
-      String timeInForce = 'gtc',
-      Map<String, dynamic>? trailingPeg}) async {
+    BrokerageUser user,
+    Account account,
+    OptionInstrument optionInstrument,
+    String side,
+    String positionEffect,
+    String creditOrDebit,
+    double price,
+    int quantity, {
+    String type = 'limit',
+    String trigger = 'immediate',
+    double? stopPrice,
+    String timeInForce = 'gtc',
+    Map<String, dynamic>? trailingPeg,
+  }) async {
     throw UnimplementedError();
   }
 
   @override
   Future<dynamic> placeMultiLegOptionsOrder(
-      BrokerageUser user,
-      Account account,
-      List<Map<String, dynamic>> legs,
-      String creditOrDebit,
-      double price,
-      int quantity,
-      {String type = 'limit',
-      String trigger = 'immediate',
-      String timeInForce = 'gtc'}) async {
+    BrokerageUser user,
+    Account account,
+    List<Map<String, dynamic>> legs,
+    String creditOrDebit,
+    double price,
+    int quantity, {
+    String type = 'limit',
+    String trigger = 'immediate',
+    String timeInForce = 'gtc',
+  }) async {
     throw UnimplementedError();
   }
 
@@ -1194,32 +1431,38 @@ class FidelityService implements IBrokerageService {
   }
 
   @override
-  Future<List<ComboOrder>> getComboOrders(BrokerageUser user,
-      {String? accountNumber, int? limit}) async {
+  Future<List<ComboOrder>> getComboOrders(
+    BrokerageUser user, {
+    String? accountNumber,
+    int? limit,
+  }) async {
     return [];
   }
 
   @override
   Stream<List<ComboOrder>> streamComboOrders(
-      BrokerageUser user, ComboOrderStore store,
-      {DocumentReference? userDoc,
-      String? symbol,
-      String? accountNumber}) async* {
+    BrokerageUser user,
+    ComboOrderStore store, {
+    DocumentReference? userDoc,
+    String? symbol,
+    String? accountNumber,
+  }) async* {
     yield [];
   }
 
   @override
   Future<dynamic> placeComboOrder(
-      BrokerageUser user,
-      Account account,
-      List<Map<String, dynamic>> legs,
-      String creditOrDebit,
-      double price,
-      int quantity,
-      {String type = 'limit',
-      String trigger = 'immediate',
-      String timeInForce = 'gtc',
-      String? openingStrategy}) async {
+    BrokerageUser user,
+    Account account,
+    List<Map<String, dynamic>> legs,
+    String creditOrDebit,
+    double price,
+    int quantity, {
+    String type = 'limit',
+    String trigger = 'immediate',
+    String timeInForce = 'gtc',
+    String? openingStrategy,
+  }) async {
     return {
       'status': 'not_supported',
       'message': 'Combo orders not supported for Fidelity manual imports.',
@@ -1237,49 +1480,66 @@ class FidelityService implements IBrokerageService {
 
   @override
   Future<dynamic> getRecentDayTrades(
-      BrokerageUser user, String accountNumber) async {
+    BrokerageUser user,
+    String accountNumber,
+  ) async {
     return null;
   }
 
   @override
-  Future<dynamic> getShortInterest(BrokerageUser user, String instrumentId,
-      {String? startDate}) async {
+  Future<dynamic> getShortInterest(
+    BrokerageUser user,
+    String instrumentId, {
+    String? startDate,
+  }) async {
     return null;
   }
 
   @override
   Future<dynamic> getShortingAvailability(
-      BrokerageUser user, String instrumentId) async {
+    BrokerageUser user,
+    String instrumentId,
+  ) async {
     return null;
   }
 
   @override
   Future<dynamic> getRetailSentiment(
-      BrokerageUser user, String instrumentId) async {
+    BrokerageUser user,
+    String instrumentId,
+  ) async {
     return null;
   }
 
   @override
   Future<dynamic> getInsiderSummary(
-      BrokerageUser user, String instrumentId) async {
+    BrokerageUser user,
+    String instrumentId,
+  ) async {
     return null;
   }
 
   @override
   Future<dynamic> getInsiderTransactions(
-      BrokerageUser user, String instrumentId) async {
+    BrokerageUser user,
+    String instrumentId,
+  ) async {
     return null;
   }
 
   @override
   Future<dynamic> getHedgeFundSummary(
-      BrokerageUser user, String instrumentId) async {
+    BrokerageUser user,
+    String instrumentId,
+  ) async {
     return null;
   }
 
   @override
   Future<dynamic> getHedgeFundTransactions(
-      BrokerageUser user, String instrumentId) async {
+    BrokerageUser user,
+    String instrumentId,
+  ) async {
     return null;
   }
 
@@ -1289,8 +1549,10 @@ class FidelityService implements IBrokerageService {
   }
 
   @override
-  Future<dynamic> getScreeners(BrokerageUser user,
-      {bool includeFilters = false}) async {
+  Future<dynamic> getScreeners(
+    BrokerageUser user, {
+    bool includeFilters = false,
+  }) async {
     return null;
   }
 
@@ -1321,31 +1583,43 @@ class FidelityService implements IBrokerageService {
 
   @override
   Future<dynamic> getInstrumentBuyingPower(
-      BrokerageUser user, String accountNumber, String instrumentId) async {
+    BrokerageUser user,
+    String accountNumber,
+    String instrumentId,
+  ) async {
     return null;
   }
 
   @override
   Future<dynamic> getInstrumentWarnings(
-      BrokerageUser user, String instrumentId) async {
+    BrokerageUser user,
+    String instrumentId,
+  ) async {
     return null;
   }
 
   @override
   Future<dynamic> getOptionChainCollateral(
-      BrokerageUser user, String chainId, String accountNumber) async {
+    BrokerageUser user,
+    String chainId,
+    String accountNumber,
+  ) async {
     return null;
   }
 
   @override
   Future<dynamic> getOptionsUpgradeStatus(
-      BrokerageUser user, String accountNumber) async {
+    BrokerageUser user,
+    String accountNumber,
+  ) async {
     return null;
   }
 
   @override
-  Future<List<dynamic>> getStockLoanPayments(BrokerageUser user,
-      {String? accountNumber}) async {
+  Future<List<dynamic>> getStockLoanPayments(
+    BrokerageUser user, {
+    String? accountNumber,
+  }) async {
     return [];
   }
 
@@ -1375,7 +1649,9 @@ class FidelityService implements IBrokerageService {
   }
 
   @override
-  Future<List<AchRelationship>> getAchRelationshipsModel(BrokerageUser user) async {
+  Future<List<AchRelationship>> getAchRelationshipsModel(
+    BrokerageUser user,
+  ) async {
     return [];
   }
 
@@ -1396,13 +1672,17 @@ class FidelityService implements IBrokerageService {
 
   @override
   Future<dynamic> getTaxWithholdingStatus(
-      BrokerageUser user, String instrumentId) async {
+    BrokerageUser user,
+    String instrumentId,
+  ) async {
     return null;
   }
 
   @override
-  Future<List<AccountDocument>> getAccountDocumentsModel(BrokerageUser user,
-      {String? type}) async {
+  Future<List<AccountDocument>> getAccountDocumentsModel(
+    BrokerageUser user, {
+    String? type,
+  }) async {
     return [];
   }
 
@@ -1413,81 +1693,110 @@ class FidelityService implements IBrokerageService {
 
   @override
   Future<TaxWithholdingStatus?> getTaxWithholdingStatusModel(
-      BrokerageUser user, String instrumentId,
-      {String? symbol}) async {
+    BrokerageUser user,
+    String instrumentId, {
+    String? symbol,
+  }) async {
     return null;
   }
 
   @override
-  Future<List<dynamic>> getSplitPayments(BrokerageUser user,
-      {String? instrumentId}) async {
+  Future<List<dynamic>> getSplitPayments(
+    BrokerageUser user, {
+    String? instrumentId,
+  }) async {
     return [];
   }
 
   @override
-  Future<List<SplitPayment>> getSplitPaymentsModel(BrokerageUser user,
-      {String? instrumentId}) async {
+  Future<List<SplitPayment>> getSplitPaymentsModel(
+    BrokerageUser user, {
+    String? instrumentId,
+  }) async {
     return [];
   }
 
   @override
   Future<CorporateActionSplitsSummary> getCorporateActionSplitsSummary(
-      BrokerageUser user) async {
+    BrokerageUser user,
+  ) async {
     return const CorporateActionSplitsSummary();
   }
 
   @override
   Future<dynamic> getShareholderQaEvents(
-      BrokerageUser user, String instrumentId) async {
+    BrokerageUser user,
+    String instrumentId,
+  ) async {
     return null;
   }
 
   @override
   Future<ShareholderQaSection?> getShareholderQaSectionModel(
-      BrokerageUser user, String instrumentId,
-      {String? symbol}) async {
+    BrokerageUser user,
+    String instrumentId, {
+    String? symbol,
+  }) async {
     return null;
   }
 
   @override
-  Future<bool> upvoteQuestion(BrokerageUser user, String instrumentId,
-      String eventId, String questionId) async {
+  Future<bool> upvoteQuestion(
+    BrokerageUser user,
+    String instrumentId,
+    String eventId,
+    String questionId,
+  ) async {
     return false;
   }
 
   @override
-  Future<ShareholderQuestion?> submitQuestion(BrokerageUser user,
-      String instrumentId, String eventId, String questionText) async {
+  Future<ShareholderQuestion?> submitQuestion(
+    BrokerageUser user,
+    String instrumentId,
+    String eventId,
+    String questionText,
+  ) async {
     return null;
   }
 
   @override
   Future<List<dynamic>> getFuturesOrders(
-      BrokerageUser user, String account) async {
+    BrokerageUser user,
+    String account,
+  ) async {
     return [];
   }
 
   @override
   Future<List<dynamic>> getFuturesContractsByIds(
-      BrokerageUser user, List<String> contractIds) async {
+    BrokerageUser user,
+    List<String> contractIds,
+  ) async {
     return [];
   }
 
   @override
   Future<dynamic> getFuturesContractBySymbol(
-      BrokerageUser user, String symbol) async {
+    BrokerageUser user,
+    String symbol,
+  ) async {
     return null;
   }
 
   @override
   Future<List<dynamic>> getFuturesContractsBySymbols(
-      BrokerageUser user, List<String> symbols) async {
+    BrokerageUser user,
+    List<String> symbols,
+  ) async {
     return [];
   }
 
   @override
   Future<List<dynamic>> getFuturesClosesByIds(
-      BrokerageUser user, List<String> contractIds) async {
+    BrokerageUser user,
+    List<String> contractIds,
+  ) async {
     return [];
   }
 
@@ -1505,9 +1814,7 @@ class FidelityService implements IBrokerageService {
     String timeInForce = 'GTC',
     String positionEffect = 'OPENING',
   }) {
-    return Future.error(
-      'Futures orders are not supported in FidelityService',
-    );
+    return Future.error('Futures orders are not supported in FidelityService');
   }
 
   // --- CSV Import Functionality (Ported from CsvImportService) ---
@@ -1519,7 +1826,8 @@ class FidelityService implements IBrokerageService {
         return AlertDialog(
           title: const Text('Reset Fidelity Data'),
           content: const Text(
-              'Are you sure you want to clear all imported Fidelity data? This cannot be undone.'),
+            'Are you sure you want to clear all imported Fidelity data? This cannot be undone.',
+          ),
           actions: <Widget>[
             TextButton(
               child: const Text('Cancel'),
@@ -1541,16 +1849,26 @@ class FidelityService implements IBrokerageService {
     if (shouldClear != true) return;
 
     if (context.mounted) {
-      Provider.of<InstrumentPositionStore>(context, listen: false)
-          .removeWhere((p) => p.url.startsWith('manual_pos'));
-      Provider.of<OptionPositionStore>(context, listen: false)
-          .removeWhere((p) => p.id.startsWith('manual_op_'));
-      Provider.of<InstrumentOrderStore>(context, listen: false)
-          .removeWhere((o) => o.id.startsWith('manual_order_'));
-      Provider.of<OptionOrderStore>(context, listen: false)
-          .removeWhere((o) => o.id.startsWith('manual_ord_'));
-      Provider.of<DividendStore>(context, listen: false)
-          .removeWhere((d) => (d['id'] as String).startsWith('manual_div_'));
+      Provider.of<InstrumentPositionStore>(
+        context,
+        listen: false,
+      ).removeWhere((p) => p.url.startsWith('manual_pos'));
+      Provider.of<OptionPositionStore>(
+        context,
+        listen: false,
+      ).removeWhere((p) => p.id.startsWith('manual_op_'));
+      Provider.of<InstrumentOrderStore>(
+        context,
+        listen: false,
+      ).removeWhere((o) => o.id.startsWith('manual_order_'));
+      Provider.of<OptionOrderStore>(
+        context,
+        listen: false,
+      ).removeWhere((o) => o.id.startsWith('manual_ord_'));
+      Provider.of<DividendStore>(
+        context,
+        listen: false,
+      ).removeWhere((d) => (d['id'] as String).startsWith('manual_div_'));
     }
 
     final user = FirebaseAuth.instance.currentUser;
@@ -1655,16 +1973,30 @@ class FidelityService implements IBrokerageService {
         var userModel = userSnapshot.data()!;
         try {
           var fidelityUser = userModel.brokerageUsers.firstWhere(
-              (b) => b.source == BrokerageSource.fidelity,
-              orElse: () => BrokerageUser(
-                  BrokerageSource.fidelity, 'Fidelity Manual', null, null,
-                  accounts: []));
+            (b) => b.source == BrokerageSource.fidelity,
+            orElse: () => BrokerageUser(
+              BrokerageSource.fidelity,
+              'Fidelity Manual',
+              null,
+              null,
+              accounts: [],
+            ),
+          );
           bool changed = false;
           for (int i = 0; i < fidelityUser.accounts.length; i++) {
             var acc = fidelityUser.accounts[i];
             if (acc.portfolioCash != 0) {
-              fidelityUser.accounts[i] = Account(acc.url, 0.0,
-                  acc.accountNumber, acc.type, 0.0, acc.optionLevel, 0.0, 0, 0);
+              fidelityUser.accounts[i] = Account(
+                acc.url,
+                0.0,
+                acc.accountNumber,
+                acc.type,
+                0.0,
+                acc.optionLevel,
+                0.0,
+                0,
+                0,
+              );
               changed = true;
             }
           }
@@ -1672,8 +2004,10 @@ class FidelityService implements IBrokerageService {
           if (changed) {
             await firestoreService.updateUser(userDoc, userModel);
             if (context.mounted) {
-              var userStore =
-                  Provider.of<BrokerageUserStore>(context, listen: false);
+              var userStore = Provider.of<BrokerageUserStore>(
+                context,
+                listen: false,
+              );
               userStore.addOrUpdate(fidelityUser);
             }
           }
@@ -1731,7 +2065,7 @@ class FidelityService implements IBrokerageService {
             headers = row;
             headerMap = {
               for (var j = 0; j < headers.length; j++)
-                headers[j].toString().trim(): j
+                headers[j].toString().trim(): j,
             };
             dataStartRow = i + 1;
             break;
@@ -1740,7 +2074,7 @@ class FidelityService implements IBrokerageService {
             headers = row;
             headerMap = {
               for (var j = 0; j < headers.length; j++)
-                headers[j].toString().trim(): j
+                headers[j].toString().trim(): j,
             };
             dataStartRow = i + 1;
             break;
@@ -1752,7 +2086,7 @@ class FidelityService implements IBrokerageService {
             headers = fields.first;
             headerMap = {
               for (var i = 0; i < headers.length; i++)
-                headers[i].toString().trim(): i
+                headers[i].toString().trim(): i,
             };
           }
         }
@@ -1805,8 +2139,9 @@ class FidelityService implements IBrokerageService {
             barrierDismissible: false,
             builder: (BuildContext context) {
               return _AccountSelectionDialog(
-                  accounts: distinctAccounts.keys.toList(),
-                  accountLabels: distinctAccounts);
+                accounts: distinctAccounts.keys.toList(),
+                accountLabels: distinctAccounts,
+              );
             },
           );
 
@@ -1819,8 +2154,14 @@ class FidelityService implements IBrokerageService {
         // Detect File Type
         if (headerMap.containsKey('Run Date') &&
             headerMap.containsKey('Action')) {
-          await _importHistory(context, fields, headerMap, dataStartRow,
-              selectedAccounts, accountColIndex);
+          await _importHistory(
+            context,
+            fields,
+            headerMap,
+            dataStartRow,
+            selectedAccounts,
+            accountColIndex,
+          );
           return;
         }
 
@@ -1829,7 +2170,8 @@ class FidelityService implements IBrokerageService {
             !headerMap.containsKey('Average Cost Basis')) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-                content: Text('Invalid CSV format - missing required columns')),
+              content: Text('Invalid CSV format - missing required columns'),
+            ),
           );
           return;
         }
@@ -1872,8 +2214,9 @@ class FidelityService implements IBrokerageService {
           if (symbol.endsWith('**')) {
             if (quantity == 0) {
               if (headerMap.containsKey('Current Value')) {
-                String cvStr =
-                    _cleanCurrency(row[headerMap['Current Value']!].toString());
+                String cvStr = _cleanCurrency(
+                  row[headerMap['Current Value']!].toString(),
+                );
                 quantity = double.tryParse(cvStr) ?? 0;
               }
             }
@@ -1884,14 +2227,16 @@ class FidelityService implements IBrokerageService {
             if (quantityStr.isEmpty) continue;
           }
 
-          String costBasisStr =
-              _cleanCurrency(row[headerMap['Average Cost Basis']!].toString());
+          String costBasisStr = _cleanCurrency(
+            row[headerMap['Average Cost Basis']!].toString(),
+          );
           double averageCost = double.tryParse(costBasisStr) ?? 0;
 
           double lastPrice = 0;
           if (headerMap.containsKey('Last Price')) {
-            String lpStr =
-                _cleanCurrency(row[headerMap['Last Price']!].toString());
+            String lpStr = _cleanCurrency(
+              row[headerMap['Last Price']!].toString(),
+            );
             lastPrice = double.tryParse(lpStr) ?? 0;
           }
 
@@ -1902,8 +2247,9 @@ class FidelityService implements IBrokerageService {
 
           double lastPriceChange = 0;
           if (headerMap.containsKey('Last Price Change')) {
-            String lpcStr =
-                _cleanCurrency(row[headerMap['Last Price Change']!].toString());
+            String lpcStr = _cleanCurrency(
+              row[headerMap['Last Price Change']!].toString(),
+            );
             lastPriceChange = double.tryParse(lpcStr) ?? 0;
           }
 
@@ -1920,7 +2266,8 @@ class FidelityService implements IBrokerageService {
 
           if (match != null) {
             importedOptions++;
-            newOptionPositions.add(_importOption(
+            newOptionPositions.add(
+              _importOption(
                 context,
                 cleanSymbol,
                 match,
@@ -1928,7 +2275,9 @@ class FidelityService implements IBrokerageService {
                 averageCost,
                 lastPrice,
                 previousClose,
-                accountNumber));
+                accountNumber,
+              ),
+            );
           } else {
             // Note: Cash positions (**) are skipped above
             importedStocks++;
@@ -1939,7 +2288,8 @@ class FidelityService implements IBrokerageService {
               description = row[headerMap['Description']!].toString().trim();
             }
 
-            newStockPositions.add(_importStock(
+            newStockPositions.add(
+              _importStock(
                 context,
                 cleanSymbol,
                 description,
@@ -1948,7 +2298,9 @@ class FidelityService implements IBrokerageService {
                 lastPrice,
                 previousClose,
                 accountNumber,
-                type: type));
+                type: type,
+              ),
+            );
           }
         }
 
@@ -1968,10 +2320,15 @@ class FidelityService implements IBrokerageService {
             if (userSnapshot.exists) {
               var userModel = userSnapshot.data()!;
               var fidelityUser = userModel.brokerageUsers.firstWhere(
-                  (b) => b.source == BrokerageSource.fidelity,
-                  orElse: () => BrokerageUser(
-                      BrokerageSource.fidelity, 'Fidelity Manual', null, null,
-                      accounts: [])); // Should exist if enabled?
+                (b) => b.source == BrokerageSource.fidelity,
+                orElse: () => BrokerageUser(
+                  BrokerageSource.fidelity,
+                  'Fidelity Manual',
+                  null,
+                  null,
+                  accounts: [],
+                ),
+              ); // Should exist if enabled?
 
               // Update Accounts
               bool accountsUpdated = false;
@@ -1979,25 +2336,28 @@ class FidelityService implements IBrokerageService {
                 var accountNum = entry.key;
                 var cash = entry.value;
 
-                var accountIndex = fidelityUser.accounts
-                    .indexWhere((a) => a.accountNumber == accountNum);
+                var accountIndex = fidelityUser.accounts.indexWhere(
+                  (a) => a.accountNumber == accountNum,
+                );
                 if (accountIndex != -1) {
                   var existing = fidelityUser.accounts[accountIndex];
                   if (existing.portfolioCash != cash) {
                     fidelityUser.accounts[accountIndex] = Account(
-                        existing.url,
-                        cash,
-                        existing.accountNumber,
-                        existing.type,
-                        cash,
-                        existing.optionLevel,
-                        existing.cashHeldForOptionsCollateral,
-                        existing.unsettledDebit,
-                        existing.settledAmountBorrowed);
+                      existing.url,
+                      cash,
+                      existing.accountNumber,
+                      existing.type,
+                      cash,
+                      existing.optionLevel,
+                      existing.cashHeldForOptionsCollateral,
+                      existing.unsettledDebit,
+                      existing.settledAmountBorrowed,
+                    );
                     accountsUpdated = true;
                   }
                 } else {
-                  fidelityUser.accounts.add(Account(
+                  fidelityUser.accounts.add(
+                    Account(
                       'manual_account_$accountNum',
                       cash,
                       accountNum,
@@ -2006,15 +2366,18 @@ class FidelityService implements IBrokerageService {
                       '3',
                       0,
                       0,
-                      0));
+                      0,
+                    ),
+                  );
                   accountsUpdated = true;
                 }
               }
 
               if (accountsUpdated) {
                 // Ensure the brokerage user is in the list (if we created a new one, add it)
-                if (!userModel.brokerageUsers
-                    .any((b) => b.source == BrokerageSource.fidelity)) {
+                if (!userModel.brokerageUsers.any(
+                  (b) => b.source == BrokerageSource.fidelity,
+                )) {
                   userModel.brokerageUsers.add(fidelityUser);
                 } else {
                   // Replace it? No, if we mutated it in place it's fine if it was from the list
@@ -2024,8 +2387,10 @@ class FidelityService implements IBrokerageService {
                 await firestoreService.updateUser(userDoc, userModel);
 
                 if (context.mounted) {
-                  var userStore =
-                      Provider.of<BrokerageUserStore>(context, listen: false);
+                  var userStore = Provider.of<BrokerageUserStore>(
+                    context,
+                    listen: false,
+                  );
                   userStore.addOrUpdate(fidelityUser);
                 }
               }
@@ -2039,15 +2404,15 @@ class FidelityService implements IBrokerageService {
           message += ' Updated cash balances.';
         }
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(message)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(message)));
       }
     } catch (e) {
       debugPrint('Error importing CSV: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error importing CSV: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error importing CSV: $e')));
     }
   }
 
@@ -2056,12 +2421,13 @@ class FidelityService implements IBrokerageService {
   }
 
   static Future<void> _importHistory(
-      BuildContext context,
-      List<List<dynamic>> fields,
-      Map<String, int> headerMap,
-      int dataStartRow,
-      List<String> selectedAccounts,
-      int? accountColIndex) async {
+    BuildContext context,
+    List<List<dynamic>> fields,
+    Map<String, int> headerMap,
+    int dataStartRow,
+    List<String> selectedAccounts,
+    int? accountColIndex,
+  ) async {
     int importedOrders = 0;
 
     List<dynamic> dividends = [];
@@ -2109,9 +2475,14 @@ class FidelityService implements IBrokerageService {
         List<String> parts = dateStr.split('/');
         if (parts.length == 3) {
           date = DateTime(
-              int.parse(parts[2]), int.parse(parts[0]), int.parse(parts[1]));
+            int.parse(parts[2]),
+            int.parse(parts[0]),
+            int.parse(parts[1]),
+          );
         }
-      } catch (e) {/* ignore */}
+      } catch (e) {
+        /* ignore */
+      }
 
       String quantityStr = row[headerMap['Quantity']!].toString();
       double quantity = double.tryParse(quantityStr) ?? 0;
@@ -2136,14 +2507,34 @@ class FidelityService implements IBrokerageService {
       }
 
       if (isDividend) {
-        dividends.add(_createDividend(
-            cleanSymbol, date, amount, quantity, accountNumber));
+        dividends.add(
+          _createDividend(cleanSymbol, date, amount, quantity, accountNumber),
+        );
       } else if (isOption && match != null) {
-        optionOrders.add(_createOptionOrder(cleanSymbol, match, date, action,
-            quantity, price, amount, accountNumber));
+        optionOrders.add(
+          _createOptionOrder(
+            cleanSymbol,
+            match,
+            date,
+            action,
+            quantity,
+            price,
+            amount,
+            accountNumber,
+          ),
+        );
       } else {
-        orders.add(_createStockOrder(
-            cleanSymbol, date, action, quantity, price, amount, accountNumber));
+        orders.add(
+          _createStockOrder(
+            cleanSymbol,
+            date,
+            action,
+            quantity,
+            price,
+            amount,
+            accountNumber,
+          ),
+        );
       }
       importedOrders++;
     }
@@ -2182,15 +2573,20 @@ class FidelityService implements IBrokerageService {
                 ? i + chunkSize
                 : dividends.length;
             await firestoreService.upsertDividends(
-                dividends.sublist(i, end), userDoc);
+              dividends.sublist(i, end),
+              userDoc,
+            );
           }
         }
         if (orders.isNotEmpty) {
           for (var i = 0; i < orders.length; i += chunkSize) {
-            var end =
-                (i + chunkSize < orders.length) ? i + chunkSize : orders.length;
+            var end = (i + chunkSize < orders.length)
+                ? i + chunkSize
+                : orders.length;
             await firestoreService.upsertInstrumentOrders(
-                orders.sublist(i, end), userDoc);
+              orders.sublist(i, end),
+              userDoc,
+            );
           }
         }
         if (optionOrders.isNotEmpty) {
@@ -2199,7 +2595,9 @@ class FidelityService implements IBrokerageService {
                 ? i + chunkSize
                 : optionOrders.length;
             await firestoreService.upsertOptionOrders(
-                optionOrders.sublist(i, end), userDoc);
+              optionOrders.sublist(i, end),
+              userDoc,
+            );
           }
         }
       }
@@ -2210,14 +2608,19 @@ class FidelityService implements IBrokerageService {
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-            content:
-                Text('Imported $importedOrders transactions from history.')),
+          content: Text('Imported $importedOrders transactions from history.'),
+        ),
       );
     }
   }
 
-  static Map<String, dynamic> _createDividend(String symbol, DateTime? date,
-      double amount, double quantity, String account) {
+  static Map<String, dynamic> _createDividend(
+    String symbol,
+    DateTime? date,
+    double amount,
+    double quantity,
+    String account,
+  ) {
     return {
       'id': 'manual_div_${symbol}_${date?.millisecondsSinceEpoch}',
       'account': account,
@@ -2234,13 +2637,14 @@ class FidelityService implements IBrokerageService {
   }
 
   static InstrumentOrder _createStockOrder(
-      String symbol,
-      DateTime? date,
-      String action,
-      double quantity,
-      double price,
-      double amount,
-      String account) {
+    String symbol,
+    DateTime? date,
+    String action,
+    double quantity,
+    double price,
+    double amount,
+    String account,
+  ) {
     String side = 'buy';
     if (action.contains('SOLD')) side = 'sell';
     if (action.contains('BOUGHT')) side = 'buy';
@@ -2256,65 +2660,68 @@ class FidelityService implements IBrokerageService {
     }
 
     InstrumentOrder order = InstrumentOrder(
-        'manual_order_${symbol}_${date?.millisecondsSinceEpoch}',
-        null,
-        'manual_url',
-        account,
-        'manual_pos_url',
-        null,
-        'manual_inst_url_$symbol',
-        'manual_inst_id_$symbol',
-        quantity.abs(),
-        price,
-        fees,
-        'filled',
-        null,
-        'market',
-        side,
-        'gfd',
-        'immediate',
-        price,
-        null,
-        quantity.abs(),
-        null, // rejectReason
-        date ?? DateTime.now(),
-        date ?? DateTime.now(),
-        null);
+      'manual_order_${symbol}_${date?.millisecondsSinceEpoch}',
+      null,
+      'manual_url',
+      account,
+      'manual_pos_url',
+      null,
+      'manual_inst_url_$symbol',
+      'manual_inst_id_$symbol',
+      quantity.abs(),
+      price,
+      fees,
+      'filled',
+      null,
+      'market',
+      side,
+      'gfd',
+      'immediate',
+      price,
+      null,
+      quantity.abs(),
+      null, // rejectReason
+      date ?? DateTime.now(),
+      date ?? DateTime.now(),
+      null,
+    );
 
     order.instrumentObj = Instrument(
-        id: 'manual_$symbol',
-        url: 'manual_inst_$symbol',
-        quote: 'manual_quote_$symbol',
-        fundamentals: 'manual_fundamentals_$symbol',
-        splits: 'manual_splits_$symbol',
-        state: 'active',
-        market: 'manual_market_$symbol',
-        name: symbol,
-        tradeable: true,
-        tradability: 'tradable',
-        symbol: symbol,
-        bloombergUnique: 'manual_$symbol',
-        country: 'US',
-        type: 'stock',
-        rhsTradability: 'tradable',
-        fractionalTradability: 'tradable',
-        isSpac: false,
-        isTest: false,
-        ipoAccessSupportsDsp: false,
-        dateCreated: DateTime.now());
+      id: 'manual_$symbol',
+      url: 'manual_inst_$symbol',
+      quote: 'manual_quote_$symbol',
+      fundamentals: 'manual_fundamentals_$symbol',
+      splits: 'manual_splits_$symbol',
+      state: 'active',
+      market: 'manual_market_$symbol',
+      name: symbol,
+      tradeable: true,
+      tradability: 'tradable',
+      symbol: symbol,
+      bloombergUnique: 'manual_$symbol',
+      country: 'US',
+      type: 'stock',
+      rhsTradability: 'tradable',
+      fractionalTradability: 'tradable',
+      isSpac: false,
+      isTest: false,
+      ipoAccessSupportsDsp: false,
+      dateCreated: DateTime.now(),
+    );
 
     return order;
   }
 
   static OptionOrder _createOptionOrder(
-      String occSymbol,
-      Match match,
-      DateTime? date,
-      String action,
-      double quantity,
-      double price,
-      double amount,
-      String account) {
+    String occSymbol,
+    Match match,
+    DateTime? date,
+    String action,
+    double quantity,
+    double price,
+    double amount,
+    String account,
+  ) {
     String symbol = match.group(1)!;
     String dateStr = match.group(2)!;
     String type = match.group(3)!;
@@ -2357,16 +2764,18 @@ class FidelityService implements IBrokerageService {
     }
 
     OptionLeg leg = OptionLeg(
-        'manual_leg_${occSymbol}_${date?.millisecondsSinceEpoch}',
-        'manual_pos_url',
-        side,
-        'manual_opt_inst_$occSymbol',
-        positionEffect,
-        1,
-        side,
-        expirationDate,
-        strike,
-        optionType, []);
+      'manual_leg_${occSymbol}_${date?.millisecondsSinceEpoch}',
+      'manual_pos_url',
+      side,
+      'manual_opt_inst_$occSymbol',
+      positionEffect,
+      1,
+      side,
+      expirationDate,
+      strike,
+      optionType,
+      [],
+    );
 
     OptionOrder order = OptionOrder(
       'manual_ord_${occSymbol}_${date?.millisecondsSinceEpoch}',
@@ -2399,15 +2808,16 @@ class FidelityService implements IBrokerageService {
   }
 
   static InstrumentPosition _importStock(
-      BuildContext context,
-      String symbol,
-      String description,
-      double quantity,
-      double averageCost,
-      double lastPrice,
-      double previousClose,
-      String account,
-      {String type = 'stock'}) {
+    BuildContext context,
+    String symbol,
+    String description,
+    double quantity,
+    double averageCost,
+    double lastPrice,
+    double previousClose,
+    String account, {
+    String type = 'stock',
+  }) {
     var store = Provider.of<InstrumentPositionStore>(context, listen: false);
 
     Quote quote = Quote(
@@ -2427,34 +2837,35 @@ class FidelityService implements IBrokerageService {
     );
 
     Instrument instrument = Instrument(
-        id: 'manual_$symbol',
-        url: 'manual_inst/$symbol/',
-        quote: 'manual_quote_$symbol',
-        fundamentals: 'manual_fundamentals_$symbol',
-        splits: 'manual_splits_$symbol',
-        state: 'active',
-        market: 'manual_market_$symbol',
-        simpleName: description.isNotEmpty ? description : symbol,
-        name: description.isNotEmpty ? description : symbol,
-        tradeable: true,
-        tradability: 'tradable',
-        symbol: symbol,
-        bloombergUnique: 'manual_bloomberg_$symbol',
-        marginInitialRatio: 0,
-        maintenanceRatio: 0,
-        country: 'US',
-        dayTradeRatio: 0,
-        listDate: DateTime.now(),
-        minTickSize: null,
-        type: type,
-        tradeableChainId: 'manual',
-        rhsTradability: 'tradable',
-        fractionalTradability: 'tradable',
-        isSpac: false,
-        isTest: false,
-        ipoAccessSupportsDsp: false,
-        dateCreated: DateTime.now(),
-        quoteObj: quote);
+      id: 'manual_$symbol',
+      url: 'manual_inst/$symbol/',
+      quote: 'manual_quote_$symbol',
+      fundamentals: 'manual_fundamentals_$symbol',
+      splits: 'manual_splits_$symbol',
+      state: 'active',
+      market: 'manual_market_$symbol',
+      simpleName: description.isNotEmpty ? description : symbol,
+      name: description.isNotEmpty ? description : symbol,
+      tradeable: true,
+      tradability: 'tradable',
+      symbol: symbol,
+      bloombergUnique: 'manual_bloomberg_$symbol',
+      marginInitialRatio: 0,
+      maintenanceRatio: 0,
+      country: 'US',
+      dayTradeRatio: 0,
+      listDate: DateTime.now(),
+      minTickSize: null,
+      type: type,
+      tradeableChainId: 'manual',
+      rhsTradability: 'tradable',
+      fractionalTradability: 'tradable',
+      isSpac: false,
+      isTest: false,
+      ipoAccessSupportsDsp: false,
+      dateCreated: DateTime.now(),
+      quoteObj: quote,
+    );
 
     InstrumentPosition position = InstrumentPosition(
       'manual_pos://$symbol',
@@ -2486,14 +2897,15 @@ class FidelityService implements IBrokerageService {
   }
 
   static OptionAggregatePosition _importOption(
-      BuildContext context,
-      String occSymbol,
-      Match match,
-      double quantity,
-      double averageCost,
-      double lastPrice,
-      double previousClose,
-      String account) {
+    BuildContext context,
+    String occSymbol,
+    Match match,
+    double quantity,
+    double averageCost,
+    double lastPrice,
+    double previousClose,
+    String account,
+  ) {
     var store = Provider.of<OptionPositionStore>(context, listen: false);
 
     String symbol = match.group(1)!;
@@ -2513,70 +2925,74 @@ class FidelityService implements IBrokerageService {
     double absQuantity = quantity.abs();
 
     OptionMarketData marketData = OptionMarketData(
-        lastPrice,
-        0,
-        0,
-        0,
-        0,
-        averageCost,
-        0,
-        'manual_opt_inst_$occSymbol',
-        'manual_opt_inst_id_$occSymbol',
-        lastPrice,
-        0,
-        0, // lowPrice
-        lastPrice,
-        0,
-        null,
-        previousClose,
-        0,
-        symbol,
-        occSymbol,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        DateTime.now());
+      lastPrice,
+      0,
+      0,
+      0,
+      0,
+      averageCost,
+      0,
+      'manual_opt_inst_$occSymbol',
+      'manual_opt_inst_id_$occSymbol',
+      lastPrice,
+      0,
+      0, // lowPrice
+      lastPrice,
+      0,
+      null,
+      previousClose,
+      0,
+      symbol,
+      occSymbol,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      DateTime.now(),
+    );
 
     OptionInstrument optInstrument = OptionInstrument(
-        'manual_chain',
-        'manual_chain_symbol',
-        DateTime.now(),
-        expirationDate,
-        'manual_opt_inst_id_$occSymbol',
-        DateTime.now(),
-        const MinTicks(0.01, 0.01, 0.0),
-        'tradable',
-        'active',
-        strike,
-        'tradable',
-        optionType,
-        DateTime.now(),
-        'manual_opt_inst_$occSymbol',
-        DateTime.now(), // AI chose `null` on initial code generation
-        'none',
-        'none');
+      'manual_chain',
+      'manual_chain_symbol',
+      DateTime.now(),
+      expirationDate,
+      'manual_opt_inst_id_$occSymbol',
+      DateTime.now(),
+      const MinTicks(0.01, 0.01, 0.0),
+      'tradable',
+      'active',
+      strike,
+      'tradable',
+      optionType,
+      DateTime.now(),
+      'manual_opt_inst_$occSymbol',
+      DateTime.now(), // AI chose `null` on initial code generation
+      'none',
+      'none',
+    );
     optInstrument.optionMarketData = marketData;
 
     OptionLeg leg = OptionLeg(
-        'manual_leg_$occSymbol',
-        'manual_pos',
-        direction == 'debit' ? 'long' : 'short',
-        'manual_opt_inst_$occSymbol',
-        'open',
-        1,
-        direction == 'debit' ? 'long' : 'short',
-        expirationDate,
-        strike,
-        optionType, []);
+      'manual_leg_$occSymbol',
+      'manual_pos',
+      direction == 'debit' ? 'long' : 'short',
+      'manual_opt_inst_$occSymbol',
+      'open',
+      1,
+      direction == 'debit' ? 'long' : 'short',
+      expirationDate,
+      strike,
+      optionType,
+      [],
+    );
 
     OptionAggregatePosition position = OptionAggregatePosition(
       'manual_op_$occSymbol',
@@ -2599,26 +3015,27 @@ class FidelityService implements IBrokerageService {
 
     position.optionInstrument = optInstrument;
     position.instrumentObj = Instrument(
-        id: 'manual_$symbol',
-        url: 'manual_inst_$symbol',
-        quote: 'manual_quote_$symbol',
-        fundamentals: 'manual_fundamentals_$symbol',
-        splits: 'manual_splits_$symbol',
-        state: 'active',
-        market: 'manual_market_$symbol',
-        name: symbol,
-        tradeable: true,
-        tradability: 'tradable',
-        symbol: symbol,
-        bloombergUnique: 'manual_bloomberg_$symbol',
-        country: 'US',
-        type: 'stock',
-        rhsTradability: 'tradable',
-        fractionalTradability: 'tradable',
-        isSpac: false,
-        isTest: false,
-        ipoAccessSupportsDsp: false,
-        dateCreated: DateTime.now());
+      id: 'manual_$symbol',
+      url: 'manual_inst_$symbol',
+      quote: 'manual_quote_$symbol',
+      fundamentals: 'manual_fundamentals_$symbol',
+      splits: 'manual_splits_$symbol',
+      state: 'active',
+      market: 'manual_market_$symbol',
+      name: symbol,
+      tradeable: true,
+      tradability: 'tradable',
+      symbol: symbol,
+      bloombergUnique: 'manual_bloomberg_$symbol',
+      country: 'US',
+      type: 'stock',
+      rhsTradability: 'tradable',
+      fractionalTradability: 'tradable',
+      isSpac: false,
+      isTest: false,
+      ipoAccessSupportsDsp: false,
+      dateCreated: DateTime.now(),
+    );
 
     store.add(position);
     return position;
@@ -2628,35 +3045,44 @@ class FidelityService implements IBrokerageService {
   Future<List<dynamic>> getExternalTokens(BrokerageUser user) async => [];
 
   @override
-  Future<List<ExternalToken>> getExternalTokensModel(BrokerageUser user) async => [];
+  Future<List<ExternalToken>> getExternalTokensModel(
+    BrokerageUser user,
+  ) async => [];
 
   @override
-  Future<bool> revokeExternalToken(BrokerageUser user, String tokenId) async => false;
+  Future<bool> revokeExternalToken(BrokerageUser user, String tokenId) async =>
+      false;
 
   @override
   Future<List<dynamic>> getNotificationStack(BrokerageUser user) async => [];
 
   @override
-  Future<List<NotificationItem>> getNotificationStackModel(BrokerageUser user) async => [];
+  Future<List<NotificationItem>> getNotificationStackModel(
+    BrokerageUser user,
+  ) async => [];
 
   @override
   Future<dynamic> getInboxThreads(BrokerageUser user) async => null;
 
   @override
-  Future<List<NotificationItem>> getInboxThreadsModel(BrokerageUser user) async => [];
+  Future<List<NotificationItem>> getInboxThreadsModel(
+    BrokerageUser user,
+  ) async => [];
 
   @override
   Future<dynamic> getSpendingAccount(BrokerageUser user) async => null;
 
   @override
-  Future<SpendingAccount?> getSpendingAccountModel(BrokerageUser user) async => null;
+  Future<SpendingAccount?> getSpendingAccountModel(BrokerageUser user) async =>
+      null;
 
   @override
   Future<dynamic> getRetirementHistory(BrokerageUser user) async => null;
 
   @override
-  Future<RetirementHistory> getRetirementHistoryModel(BrokerageUser user) async =>
-      const RetirementHistory();
+  Future<RetirementHistory> getRetirementHistoryModel(
+    BrokerageUser user,
+  ) async => const RetirementHistory();
 }
 
 class _AccountSelectionDialog extends StatefulWidget {

@@ -41,8 +41,10 @@ class ESGService {
           // We'll use 100 - Risk.
 
           double totalScore = (100 - totalRisk).clamp(0, 100);
-          double envScore =
-              (100 - envRisk * 3).clamp(0, 100); // Component risks are smaller
+          double envScore = (100 - envRisk * 3).clamp(
+            0,
+            100,
+          ); // Component risks are smaller
           double socScore = (100 - socRisk * 3).clamp(0, 100);
           double govScore = (100 - govRisk * 3).clamp(0, 100);
 

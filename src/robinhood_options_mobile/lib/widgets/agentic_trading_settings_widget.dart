@@ -109,18 +109,23 @@ class _AgenticTradingSettingsWidgetState
 
     // Initialize BacktestingProvider to load saved templates
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final backtestingProvider =
-          Provider.of<BacktestingProvider>(context, listen: false);
+      final backtestingProvider = Provider.of<BacktestingProvider>(
+        context,
+        listen: false,
+      );
       backtestingProvider.initialize(widget.userDocRef);
     });
 
     // Load config after frame to ensure provider has latest user config
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final agenticTradingProvider =
-          Provider.of<AgenticTradingProvider>(context, listen: false);
+      final agenticTradingProvider = Provider.of<AgenticTradingProvider>(
+        context,
+        listen: false,
+      );
       if (widget.user.agenticTradingConfig != null) {
-        agenticTradingProvider
-            .loadConfigFromUser(widget.user.agenticTradingConfig);
+        agenticTradingProvider.loadConfigFromUser(
+          widget.user.agenticTradingConfig,
+        );
       }
     });
 
@@ -130,107 +135,136 @@ class _AgenticTradingSettingsWidgetState
 
     _selectedTemplateId = config?.tradeStrategyTemplateId;
 
-    _symbolFilter =
-        strategy?.symbolFilter != null ? List.from(strategy!.symbolFilter) : [];
+    _symbolFilter = strategy?.symbolFilter != null
+        ? List.from(strategy!.symbolFilter)
+        : [];
     _interval = strategy?.interval ?? '1d';
 
-    _tradeQuantityController =
-        TextEditingController(text: strategy?.tradeQuantity.toString() ?? '1');
+    _tradeQuantityController = TextEditingController(
+      text: strategy?.tradeQuantity.toString() ?? '1',
+    );
     _maxPositionSizeController = TextEditingController(
-        text: strategy?.maxPositionSize.toString() ?? '100');
+      text: strategy?.maxPositionSize.toString() ?? '100',
+    );
 
     double maxPortfolioConcentration =
         strategy?.maxPortfolioConcentration ?? 0.5;
     double maxConcentrationPercent = maxPortfolioConcentration * 100;
     _maxPortfolioConcentrationController = TextEditingController(
-        text: maxConcentrationPercent % 1 == 0
-            ? maxConcentrationPercent.toInt().toString()
-            : maxConcentrationPercent.toString());
+      text: maxConcentrationPercent % 1 == 0
+          ? maxConcentrationPercent.toInt().toString()
+          : maxConcentrationPercent.toString(),
+    );
 
     _dailyTradeLimitController = TextEditingController(
-        text: strategy?.dailyTradeLimit.toString() ?? '5');
+      text: strategy?.dailyTradeLimit.toString() ?? '5',
+    );
     _autoTradeCooldownController = TextEditingController(
-        text: config?.autoTradeCooldownMinutes.toString() ?? '60');
+      text: config?.autoTradeCooldownMinutes.toString() ?? '60',
+    );
     _checkIntervalController = TextEditingController(
-        text: config?.checkIntervalMinutes.toString() ?? '5');
+      text: config?.checkIntervalMinutes.toString() ?? '5',
+    );
     _takeProfitPercentController = TextEditingController(
-        text: strategy?.takeProfitPercent.toString() ?? '10.0');
+      text: strategy?.takeProfitPercent.toString() ?? '10.0',
+    );
     _stopLossPercentController = TextEditingController(
-        text: strategy?.stopLossPercent.toString() ?? '5.0');
+      text: strategy?.stopLossPercent.toString() ?? '5.0',
+    );
     _trailingStopPercentController = TextEditingController(
-        text: strategy?.trailingStopPercent.toString() ?? '3.0');
+      text: strategy?.trailingStopPercent.toString() ?? '3.0',
+    );
 
     double maxSectorExposure = strategy?.maxSectorExposure ?? 0.2;
     double sectorPercent = maxSectorExposure * 100;
     _maxSectorExposureController = TextEditingController(
-        text: sectorPercent % 1 == 0
-            ? sectorPercent.toInt().toString()
-            : sectorPercent.toString());
+      text: sectorPercent % 1 == 0
+          ? sectorPercent.toInt().toString()
+          : sectorPercent.toString(),
+    );
 
     double maxCorrelation = strategy?.maxCorrelation ?? 0.7;
     double maxCorrelationPercent = maxCorrelation * 100;
     _maxCorrelationController = TextEditingController(
-        text: maxCorrelationPercent % 1 == 0
-            ? maxCorrelationPercent.toInt().toString()
-            : maxCorrelationPercent.toString());
+      text: maxCorrelationPercent % 1 == 0
+          ? maxCorrelationPercent.toInt().toString()
+          : maxCorrelationPercent.toString(),
+    );
 
     double minVolatility = strategy?.minVolatility ?? 0.0;
     double minVolPercent = minVolatility * 100;
     _minVolatilityController = TextEditingController(
-        text: minVolPercent % 1 == 0
-            ? minVolPercent.toInt().toString()
-            : minVolPercent.toString());
+      text: minVolPercent % 1 == 0
+          ? minVolPercent.toInt().toString()
+          : minVolPercent.toString(),
+    );
 
     double maxVolatility = strategy?.maxVolatility ?? 1.0;
     double maxVolPercent = maxVolatility * 100;
     _maxVolatilityController = TextEditingController(
-        text: maxVolPercent % 1 == 0
-            ? maxVolPercent.toInt().toString()
-            : maxVolPercent.toString());
+      text: maxVolPercent % 1 == 0
+          ? maxVolPercent.toInt().toString()
+          : maxVolPercent.toString(),
+    );
 
     double maxDrawdown = strategy?.maxDrawdown ?? 0.05;
     double drawdownPercent = maxDrawdown * 100;
     _maxDrawdownController = TextEditingController(
-        text: drawdownPercent % 1 == 0
-            ? drawdownPercent.toInt().toString()
-            : drawdownPercent.toString());
+      text: drawdownPercent % 1 == 0
+          ? drawdownPercent.toInt().toString()
+          : drawdownPercent.toString(),
+    );
 
     _minSignalStrengthController = TextEditingController(
-        text: strategy?.minSignalStrength.toString() ?? '75.0');
+      text: strategy?.minSignalStrength.toString() ?? '75.0',
+    );
     _rsiExitThresholdController = TextEditingController(
-        text: strategy?.rsiExitThreshold.toString() ?? '80.0');
+      text: strategy?.rsiExitThreshold.toString() ?? '80.0',
+    );
     _signalStrengthExitThresholdController = TextEditingController(
-        text: strategy?.signalStrengthExitThreshold.toString() ?? '40.0');
+      text: strategy?.signalStrengthExitThreshold.toString() ?? '40.0',
+    );
     _gexExitThresholdController = TextEditingController(
-        text: ((strategy?.gexExitThreshold ?? 0.0) / 1e6).toString());
+      text: ((strategy?.gexExitThreshold ?? 0.0) / 1e6).toString(),
+    );
 
     double riskOffSizeReduction = strategy?.riskOffSizeReduction ?? 0.5;
     double riskOffSizeReductionPercent = riskOffSizeReduction * 100;
     _riskOffSizeReductionController = TextEditingController(
-        text: riskOffSizeReductionPercent % 1 == 0
-            ? riskOffSizeReductionPercent.toInt().toString()
-            : riskOffSizeReductionPercent.toString());
+      text: riskOffSizeReductionPercent % 1 == 0
+          ? riskOffSizeReductionPercent.toInt().toString()
+          : riskOffSizeReductionPercent.toString(),
+    );
     _timeBasedExitMinutesController = TextEditingController(
-        text: strategy?.timeBasedExitMinutes.toString() ?? '0');
+      text: strategy?.timeBasedExitMinutes.toString() ?? '0',
+    );
     _marketCloseExitMinutesController = TextEditingController(
-        text: strategy?.marketCloseExitMinutes.toString() ?? '15');
+      text: strategy?.marketCloseExitMinutes.toString() ?? '15',
+    );
 
     double riskPerTrade = strategy?.riskPerTrade ?? 0.01;
-    _riskPerTradeController =
-        TextEditingController(text: (riskPerTrade * 100).toString());
+    _riskPerTradeController = TextEditingController(
+      text: (riskPerTrade * 100).toString(),
+    );
 
     _atrMultiplierController = TextEditingController(
-        text: strategy?.atrMultiplier.toString() ?? '2.0');
-    _rsiPeriodController =
-        TextEditingController(text: strategy?.rsiPeriod.toString() ?? '14');
-    _rocPeriodController =
-        TextEditingController(text: strategy?.rocPeriod.toString() ?? '9');
-    _smaFastController =
-        TextEditingController(text: strategy?.smaPeriodFast.toString() ?? '10');
-    _smaSlowController =
-        TextEditingController(text: strategy?.smaPeriodSlow.toString() ?? '30');
-    _marketIndexController =
-        TextEditingController(text: strategy?.marketIndexSymbol ?? 'SPY');
+      text: strategy?.atrMultiplier.toString() ?? '2.0',
+    );
+    _rsiPeriodController = TextEditingController(
+      text: strategy?.rsiPeriod.toString() ?? '14',
+    );
+    _rocPeriodController = TextEditingController(
+      text: strategy?.rocPeriod.toString() ?? '9',
+    );
+    _smaFastController = TextEditingController(
+      text: strategy?.smaPeriodFast.toString() ?? '10',
+    );
+    _smaSlowController = TextEditingController(
+      text: strategy?.smaPeriodSlow.toString() ?? '30',
+    );
+    _marketIndexController = TextEditingController(
+      text: strategy?.marketIndexSymbol ?? 'SPY',
+    );
   }
 
   @override
@@ -282,18 +316,25 @@ class _AgenticTradingSettingsWidgetState
     return TextFormField(
       controller: controller,
       style: TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w500,
-          color: colorScheme.onSurface),
+        fontSize: 14,
+        fontWeight: FontWeight.w500,
+        color: colorScheme.onSurface,
+      ),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle:
-            TextStyle(fontSize: 13, color: colorScheme.onSurfaceVariant),
+        labelStyle: TextStyle(
+          fontSize: 13,
+          color: colorScheme.onSurfaceVariant,
+        ),
         helperText: helperText,
         helperStyle: TextStyle(
-            color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7)),
-        prefixIcon: Icon(icon,
-            size: 18, color: colorScheme.primary.withValues(alpha: 0.8)),
+          color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+        ),
+        prefixIcon: Icon(
+          icon,
+          size: 18,
+          color: colorScheme.primary.withValues(alpha: 0.8),
+        ),
         suffixText: suffixText,
         suffixStyle: const TextStyle(fontWeight: FontWeight.bold),
         border: OutlineInputBorder(
@@ -309,15 +350,14 @@ class _AgenticTradingSettingsWidgetState
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(
-            color: colorScheme.primary,
-            width: 1.5,
-          ),
+          borderSide: BorderSide(color: colorScheme.primary, width: 1.5),
         ),
         filled: true,
         fillColor: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
       ),
       keyboardType: TextInputType.numberWithOptions(decimal: isDecimal),
       onChanged: (_) => _saveSettings(),
@@ -379,7 +419,8 @@ class _AgenticTradingSettingsWidgetState
       child: Column(
         children: [
           SwitchListTile(
-            title: titleWidget ??
+            title:
+                titleWidget ??
                 Text(
                   title,
                   style: TextStyle(
@@ -393,8 +434,9 @@ class _AgenticTradingSettingsWidgetState
                     description,
                     style: TextStyle(
                       fontSize: subtitleFontSize,
-                      color:
-                          colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+                      color: colorScheme.onSurfaceVariant.withValues(
+                        alpha: 0.8,
+                      ),
                     ),
                   )
                 : null,
@@ -403,10 +445,12 @@ class _AgenticTradingSettingsWidgetState
             activeThumbColor: effectiveActiveColor,
             activeTrackColor:
                 activeTrackColor ?? effectiveActiveColor.withValues(alpha: 0.5),
-            contentPadding: contentPadding ??
+            contentPadding:
+                contentPadding ??
                 const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
           ),
           if (isEnabled && extraContent != null)
             Padding(
@@ -414,12 +458,10 @@ class _AgenticTradingSettingsWidgetState
               child: Column(
                 children: [
                   Divider(
-                      height: 24,
-                      color: colorScheme.outline.withValues(alpha: 0.1)),
-                  SizedBox(
-                    width: double.infinity,
-                    child: extraContent,
+                    height: 24,
+                    color: colorScheme.outline.withValues(alpha: 0.1),
                   ),
+                  SizedBox(width: double.infinity, child: extraContent),
                 ],
               ),
             ),
@@ -483,10 +525,7 @@ class _AgenticTradingSettingsWidgetState
         ),
         Text(
           value,
-          style: const TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.bold,
-          ),
+          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
         ),
       ],
     );
@@ -526,8 +565,9 @@ class _AgenticTradingSettingsWidgetState
   }
 
   AgenticTradingConfig _createFullConfigFromSettings(
-      AgenticTradingProvider provider,
-      {AgenticTradingConfig? baseConfig}) {
+    AgenticTradingProvider provider, {
+    AgenticTradingConfig? baseConfig,
+  }) {
     final configSource = baseConfig ?? provider.config;
     final strategySource = configSource.strategyConfig;
 
@@ -536,8 +576,9 @@ class _AgenticTradingSettingsWidgetState
       endDate: DateTime.now(),
       initialCapital: strategySource.initialCapital ?? 10000.0,
       interval: strategySource.interval,
-      enabledIndicators:
-          Map<String, bool>.from(strategySource.enabledIndicators),
+      enabledIndicators: Map<String, bool>.from(
+        strategySource.enabledIndicators,
+      ),
       tradeQuantity: int.tryParse(_tradeQuantityController.text) ?? 1,
       takeProfitPercent:
           double.tryParse(_takeProfitPercentController.text) ?? 10.0,
@@ -553,7 +594,7 @@ class _AgenticTradingSettingsWidgetState
       maxPositionSize: int.tryParse(_maxPositionSizeController.text) ?? 100,
       maxPortfolioConcentration:
           (double.tryParse(_maxPortfolioConcentrationController.text) ?? 50.0) /
-              100.0,
+          100.0,
       dailyTradeLimit: int.tryParse(_dailyTradeLimitController.text) ?? 5,
       minSignalStrength: (strategySource.requireAllIndicatorsGreen)
           ? 100.0
@@ -590,7 +631,7 @@ class _AgenticTradingSettingsWidgetState
       reduceSizeOnRiskOff: strategySource.reduceSizeOnRiskOff,
       riskOffSizeReduction:
           (double.tryParse(_riskOffSizeReductionController.text) ?? 50.0) /
-              100.0,
+          100.0,
       rsiExitEnabled: strategySource.rsiExitEnabled,
       rsiExitThreshold:
           double.tryParse(_rsiExitThresholdController.text) ?? 80.0,
@@ -629,8 +670,10 @@ class _AgenticTradingSettingsWidgetState
     }
 
     try {
-      final agenticTradingProvider =
-          Provider.of<AgenticTradingProvider>(context, listen: false);
+      final agenticTradingProvider = Provider.of<AgenticTradingProvider>(
+        context,
+        listen: false,
+      );
 
       // Force paper trading mode if no brokerage service is linked
       if (widget.service == null) {
@@ -656,13 +699,20 @@ class _AgenticTradingSettingsWidgetState
     }
   }
 
-  void _approveOrder(BuildContext context, AgenticTradingProvider provider,
-      Map<String, dynamic> order) async {
-    final brokerageUserStore =
-        Provider.of<BrokerageUserStore>(context, listen: false);
+  void _approveOrder(
+    BuildContext context,
+    AgenticTradingProvider provider,
+    Map<String, dynamic> order,
+  ) async {
+    final brokerageUserStore = Provider.of<BrokerageUserStore>(
+      context,
+      listen: false,
+    );
     final accountStore = Provider.of<AccountStore>(context, listen: false);
-    final paperTradingStore =
-        Provider.of<PaperTradingStore>(context, listen: false);
+    final paperTradingStore = Provider.of<PaperTradingStore>(
+      context,
+      listen: false,
+    );
     final isPaperMode = provider.config.paperTradingMode;
 
     if (!isPaperMode && brokerageUserStore.items.isEmpty) {
@@ -675,8 +725,9 @@ class _AgenticTradingSettingsWidgetState
         ? brokerageUserStore.items[brokerageUserStore.currentUserIndex]
         : null;
 
-    var account =
-        accountStore.items.isNotEmpty ? accountStore.items.first : null;
+    var account = accountStore.items.isNotEmpty
+        ? accountStore.items.first
+        : null;
     if (!isPaperMode && account == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('No brokerage account found')),
@@ -697,22 +748,26 @@ class _AgenticTradingSettingsWidgetState
   void _addCustomIndicator() async {
     final result = await Navigator.push<CustomIndicatorConfig>(
       context,
-      MaterialPageRoute(
-        builder: (context) => const CustomIndicatorPage(),
-      ),
+      MaterialPageRoute(builder: (context) => const CustomIndicatorPage()),
     );
 
     if (result != null) {
-      final provider =
-          Provider.of<AgenticTradingProvider>(context, listen: false);
+      final provider = Provider.of<AgenticTradingProvider>(
+        context,
+        listen: false,
+      );
       final newIndicators = List<CustomIndicatorConfig>.from(
-          provider.config.strategyConfig.customIndicators)
-        ..add(result);
+        provider.config.strategyConfig.customIndicators,
+      )..add(result);
 
-      final newConfig = _createFullConfigFromSettings(provider,
-          baseConfig: provider.config.copyWith(
-              strategyConfig: provider.config.strategyConfig
-                  .copyWith(customIndicators: newIndicators)));
+      final newConfig = _createFullConfigFromSettings(
+        provider,
+        baseConfig: provider.config.copyWith(
+          strategyConfig: provider.config.strategyConfig.copyWith(
+            customIndicators: newIndicators,
+          ),
+        ),
+      );
       provider.updateConfig(newConfig, widget.userDocRef);
     }
   }
@@ -726,33 +781,46 @@ class _AgenticTradingSettingsWidgetState
     );
 
     if (result != null) {
-      final provider =
-          Provider.of<AgenticTradingProvider>(context, listen: false);
+      final provider = Provider.of<AgenticTradingProvider>(
+        context,
+        listen: false,
+      );
       final newIndicators = List<CustomIndicatorConfig>.from(
-          provider.config.strategyConfig.customIndicators);
+        provider.config.strategyConfig.customIndicators,
+      );
       final index = newIndicators.indexWhere((i) => i.id == indicator.id);
       if (index != -1) {
         newIndicators[index] = result;
-        final newConfig = _createFullConfigFromSettings(provider,
-            baseConfig: provider.config.copyWith(
-                strategyConfig: provider.config.strategyConfig
-                    .copyWith(customIndicators: newIndicators)));
+        final newConfig = _createFullConfigFromSettings(
+          provider,
+          baseConfig: provider.config.copyWith(
+            strategyConfig: provider.config.strategyConfig.copyWith(
+              customIndicators: newIndicators,
+            ),
+          ),
+        );
         provider.updateConfig(newConfig, widget.userDocRef);
       }
     }
   }
 
   void _removeCustomIndicator(CustomIndicatorConfig indicator) {
-    final provider =
-        Provider.of<AgenticTradingProvider>(context, listen: false);
+    final provider = Provider.of<AgenticTradingProvider>(
+      context,
+      listen: false,
+    );
     final newIndicators = List<CustomIndicatorConfig>.from(
-        provider.config.strategyConfig.customIndicators)
-      ..removeWhere((i) => i.id == indicator.id);
+      provider.config.strategyConfig.customIndicators,
+    )..removeWhere((i) => i.id == indicator.id);
 
-    final newConfig = _createFullConfigFromSettings(provider,
-        baseConfig: provider.config.copyWith(
-            strategyConfig: provider.config.strategyConfig
-                .copyWith(customIndicators: newIndicators)));
+    final newConfig = _createFullConfigFromSettings(
+      provider,
+      baseConfig: provider.config.copyWith(
+        strategyConfig: provider.config.strategyConfig.copyWith(
+          customIndicators: newIndicators,
+        ),
+      ),
+    );
     provider.updateConfig(newConfig, widget.userDocRef);
   }
 
@@ -762,26 +830,26 @@ class _AgenticTradingSettingsWidgetState
       _hasScrolledToTemplate = false;
       _interval = template.config.interval;
 
-      _takeProfitPercentController.text =
-          template.config.takeProfitPercent.toString();
-      _stopLossPercentController.text =
-          template.config.stopLossPercent.toString();
-      _trailingStopPercentController.text =
-          template.config.trailingStopPercent.toString();
+      _takeProfitPercentController.text = template.config.takeProfitPercent
+          .toString();
+      _stopLossPercentController.text = template.config.stopLossPercent
+          .toString();
+      _trailingStopPercentController.text = template.config.trailingStopPercent
+          .toString();
 
       _tradeQuantityController.text = template.config.tradeQuantity.toString();
-      _maxPositionSizeController.text =
-          template.config.maxPositionSize.toString();
+      _maxPositionSizeController.text = template.config.maxPositionSize
+          .toString();
 
       double maxPortfolioConcentration =
           template.config.maxPortfolioConcentration * 100;
       _maxPortfolioConcentrationController.text =
           maxPortfolioConcentration % 1 == 0
-              ? maxPortfolioConcentration.toInt().toString()
-              : maxPortfolioConcentration.toString();
+          ? maxPortfolioConcentration.toInt().toString()
+          : maxPortfolioConcentration.toString();
 
-      _dailyTradeLimitController.text =
-          template.config.dailyTradeLimit.toString();
+      _dailyTradeLimitController.text = template.config.dailyTradeLimit
+          .toString();
 
       _rsiPeriodController.text = template.config.rsiPeriod.toString();
       _smaFastController.text = template.config.smaPeriodFast.toString();
@@ -794,46 +862,57 @@ class _AgenticTradingSettingsWidgetState
           : maxSector.toString();
 
       double maxCorr = template.config.maxCorrelation * 100;
-      _maxCorrelationController.text =
-          maxCorr % 1 == 0 ? maxCorr.toInt().toString() : maxCorr.toString();
+      _maxCorrelationController.text = maxCorr % 1 == 0
+          ? maxCorr.toInt().toString()
+          : maxCorr.toString();
 
       double minVol = template.config.minVolatility * 100;
-      _minVolatilityController.text =
-          minVol % 1 == 0 ? minVol.toInt().toString() : minVol.toString();
+      _minVolatilityController.text = minVol % 1 == 0
+          ? minVol.toInt().toString()
+          : minVol.toString();
 
       double maxVol = template.config.maxVolatility * 100;
-      _maxVolatilityController.text =
-          maxVol % 1 == 0 ? maxVol.toInt().toString() : maxVol.toString();
+      _maxVolatilityController.text = maxVol % 1 == 0
+          ? maxVol.toInt().toString()
+          : maxVol.toString();
 
       double maxDrawdown = template.config.maxDrawdown * 100;
       _maxDrawdownController.text = maxDrawdown % 1 == 0
           ? maxDrawdown.toInt().toString()
           : maxDrawdown.toString();
 
-      _rsiExitThresholdController.text =
-          template.config.rsiExitThreshold.toString();
-      _signalStrengthExitThresholdController.text =
-          template.config.signalStrengthExitThreshold.toString();
+      _rsiExitThresholdController.text = template.config.rsiExitThreshold
+          .toString();
+      _signalStrengthExitThresholdController.text = template
+          .config
+          .signalStrengthExitThreshold
+          .toString();
 
       _minSignalStrengthController.text =
           template.config.requireAllIndicatorsGreen
-              ? '100'
-              : template.config.minSignalStrength.toString();
+          ? '100'
+          : template.config.minSignalStrength.toString();
 
-      _timeBasedExitMinutesController.text =
-          template.config.timeBasedExitMinutes.toString();
-      _marketCloseExitMinutesController.text =
-          template.config.marketCloseExitMinutes.toString();
+      _timeBasedExitMinutesController.text = template
+          .config
+          .timeBasedExitMinutes
+          .toString();
+      _marketCloseExitMinutesController.text = template
+          .config
+          .marketCloseExitMinutes
+          .toString();
 
-      _riskPerTradeController.text =
-          (template.config.riskPerTrade * 100).toString();
+      _riskPerTradeController.text = (template.config.riskPerTrade * 100)
+          .toString();
       _atrMultiplierController.text = template.config.atrMultiplier.toString();
 
       _symbolFilter = List.from(template.config.symbolFilter);
     });
 
-    final provider =
-        Provider.of<AgenticTradingProvider>(context, listen: false);
+    final provider = Provider.of<AgenticTradingProvider>(
+      context,
+      listen: false,
+    );
 
     final baseStrategy = provider.config.strategyConfig.copyWith(
       initialCapital: template.config.initialCapital,
@@ -856,9 +935,13 @@ class _AgenticTradingSettingsWidgetState
       symbolFilter: _symbolFilter,
     );
 
-    final newConfig = _createFullConfigFromSettings(provider,
-        baseConfig: provider.config.copyWith(
-            strategyConfig: baseStrategy, selectedTemplateId: template.id));
+    final newConfig = _createFullConfigFromSettings(
+      provider,
+      baseConfig: provider.config.copyWith(
+        strategyConfig: baseStrategy,
+        selectedTemplateId: template.id,
+      ),
+    );
 
     provider.updateConfig(newConfig, widget.userDocRef);
   }
@@ -867,8 +950,10 @@ class _AgenticTradingSettingsWidgetState
     final nameController = TextEditingController();
     final descriptionController = TextEditingController();
     final provider = Provider.of<BacktestingProvider>(context, listen: false);
-    final agenticProvider =
-        Provider.of<AgenticTradingProvider>(context, listen: false);
+    final agenticProvider = Provider.of<AgenticTradingProvider>(
+      context,
+      listen: false,
+    );
 
     bool isEditing = false;
     bool isDefault = false;
@@ -876,8 +961,9 @@ class _AgenticTradingSettingsWidgetState
 
     if (_selectedTemplateId != null) {
       try {
-        existingTemplate =
-            provider.templates.firstWhere((t) => t.id == _selectedTemplateId);
+        existingTemplate = provider.templates.firstWhere(
+          (t) => t.id == _selectedTemplateId,
+        );
         nameController.text = existingTemplate.name;
         descriptionController.text = existingTemplate.description;
         isEditing = true;
@@ -898,9 +984,9 @@ class _AgenticTradingSettingsWidgetState
                   color: colorScheme.primary,
                 ),
                 const SizedBox(width: 8),
-                Text(isEditing && !isDefault
-                    ? 'Edit Strategy'
-                    : 'Save Strategy'),
+                Text(
+                  isEditing && !isDefault ? 'Edit Strategy' : 'Save Strategy',
+                ),
               ],
             ),
             content: Column(
@@ -912,8 +998,9 @@ class _AgenticTradingSettingsWidgetState
                     padding: const EdgeInsets.all(12),
                     margin: const EdgeInsets.only(bottom: 16),
                     decoration: BoxDecoration(
-                      color:
-                          colorScheme.primaryContainer.withValues(alpha: 0.3),
+                      color: colorScheme.primaryContainer.withValues(
+                        alpha: 0.3,
+                      ),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
                         color: colorScheme.primary.withValues(alpha: 0.3),
@@ -921,8 +1008,11 @@ class _AgenticTradingSettingsWidgetState
                     ),
                     child: Row(
                       children: [
-                        Icon(Icons.info_outline,
-                            size: 20, color: colorScheme.primary),
+                        Icon(
+                          Icons.info_outline,
+                          size: 20,
+                          color: colorScheme.primary,
+                        ),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
@@ -941,8 +1031,10 @@ class _AgenticTradingSettingsWidgetState
                   decoration: const InputDecoration(
                     labelText: 'Strategy Name',
                     border: OutlineInputBorder(),
-                    contentPadding:
-                        EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 12,
+                    ),
                   ),
                   textCapitalization: TextCapitalization.words,
                   onChanged: (value) => dialogSetState(() {}),
@@ -953,8 +1045,10 @@ class _AgenticTradingSettingsWidgetState
                   decoration: const InputDecoration(
                     labelText: 'Description (Optional)',
                     border: OutlineInputBorder(),
-                    contentPadding:
-                        EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 12,
+                    ),
                   ),
                   textCapitalization: TextCapitalization.sentences,
                   maxLines: 3,
@@ -988,8 +1082,10 @@ class _AgenticTradingSettingsWidgetState
                           Navigator.pop(dialogContext);
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                                content: Text(
-                                    'Updated strategy "${template.name}"')),
+                              content: Text(
+                                'Updated strategy "${template.name}"',
+                              ),
+                            ),
                           );
                         },
                   child: const Text('Update'),
@@ -999,24 +1095,28 @@ class _AgenticTradingSettingsWidgetState
                     ? null
                     : () {
                         // Check for duplicate names if saving as new
-                        final nameExists = provider.templates.any((t) =>
-                            t.name.toLowerCase() ==
-                                nameController.text.trim().toLowerCase() &&
-                            t.id != _selectedTemplateId);
+                        final nameExists = provider.templates.any(
+                          (t) =>
+                              t.name.toLowerCase() ==
+                                  nameController.text.trim().toLowerCase() &&
+                              t.id != _selectedTemplateId,
+                        );
 
                         if (nameExists) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
                               content: Text(
-                                  'A strategy with this name already exists. Please choose a different name.'),
+                                'A strategy with this name already exists. Please choose a different name.',
+                              ),
                               backgroundColor: Colors.red,
                             ),
                           );
                           return;
                         }
 
-                        final currentConfig =
-                            _createConfigFromCurrentSettings(agenticProvider);
+                        final currentConfig = _createConfigFromCurrentSettings(
+                          agenticProvider,
+                        );
                         final template = TradeStrategyTemplate(
                           id: DateTime.now().millisecondsSinceEpoch.toString(),
                           name: nameController.text,
@@ -1032,8 +1132,10 @@ class _AgenticTradingSettingsWidgetState
                         Navigator.pop(dialogContext);
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                              content: Text(
-                                  'Saved new strategy "${template.name}"')),
+                            content: Text(
+                              'Saved new strategy "${template.name}"',
+                            ),
+                          ),
                         );
                       },
                 child: Text(isEditing && !isDefault ? 'Save as New' : 'Save'),
@@ -1046,17 +1148,20 @@ class _AgenticTradingSettingsWidgetState
   }
 
   TradeStrategyConfig _createConfigFromCurrentSettings(
-      AgenticTradingProvider provider) {
+    AgenticTradingProvider provider,
+  ) {
     // We use provider config + controllers
     final strategySource = provider.config.strategyConfig;
     return TradeStrategyConfig(
-      startDate: strategySource.startDate ??
+      startDate:
+          strategySource.startDate ??
           DateTime.now().subtract(const Duration(days: 30)),
       endDate: strategySource.endDate ?? DateTime.now(),
       initialCapital: strategySource.initialCapital ?? 10000.0,
       interval: strategySource.interval, // ??_interval,
-      enabledIndicators:
-          Map<String, bool>.from(strategySource.enabledIndicators),
+      enabledIndicators: Map<String, bool>.from(
+        strategySource.enabledIndicators,
+      ),
       takeProfitPercent:
           double.tryParse(_takeProfitPercentController.text) ?? 10.0,
       stopLossPercent: double.tryParse(_stopLossPercentController.text) ?? 5.0,
@@ -1071,7 +1176,7 @@ class _AgenticTradingSettingsWidgetState
       maxPositionSize: int.tryParse(_maxPositionSizeController.text) ?? 100,
       maxPortfolioConcentration:
           (double.tryParse(_maxPortfolioConcentrationController.text) ?? 50.0) /
-              100.0,
+          100.0,
       dailyTradeLimit: int.tryParse(_dailyTradeLimitController.text) ?? 5,
       minSignalStrength:
           double.tryParse(_minSignalStrengthController.text) ?? 50.0,
@@ -1085,7 +1190,8 @@ class _AgenticTradingSettingsWidgetState
       enablePartialExits: strategySource.enablePartialExits,
       exitStages: List.from(strategySource.exitStages),
       enableDynamicPositionSizing: strategySource.enableDynamicPositionSizing,
-      riskPerTrade: (double.tryParse(_riskPerTradeController.text) ?? 1.0) /
+      riskPerTrade:
+          (double.tryParse(_riskPerTradeController.text) ?? 1.0) /
           100.0, // Convert % to decimal
       atrMultiplier: double.tryParse(_atrMultiplierController.text) ?? 2.0,
       customIndicators: List.from(strategySource.customIndicators),
@@ -1122,9 +1228,7 @@ class _AgenticTradingSettingsWidgetState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Automated Trading'),
-      ),
+      appBar: AppBar(title: const Text('Automated Trading')),
       body: GestureDetector(
         onTap: () {
           FocusScope.of(context).unfocus();
@@ -1146,10 +1250,13 @@ class _AgenticTradingSettingsWidgetState
                     _buildTemplateList(context),
                     _buildExecutionSettings(context, agenticTradingProvider),
                     _buildRiskManagement(context, agenticTradingProvider),
-                    _buildEntryStrategies(context, agenticTradingProvider,
-                        initiallyExpanded:
-                            widget.initialSection == 'entryStrategies',
-                        key: _entryStrategiesKey),
+                    _buildEntryStrategies(
+                      context,
+                      agenticTradingProvider,
+                      initiallyExpanded:
+                          widget.initialSection == 'entryStrategies',
+                      key: _entryStrategiesKey,
+                    ),
                     _buildExitStrategies(context, agenticTradingProvider),
                     _buildNotificationSettings(context, agenticTradingProvider),
                     _buildBacktesting(context, agenticTradingProvider),
@@ -1177,9 +1284,7 @@ class _AgenticTradingSettingsWidgetState
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: colorScheme.outline.withValues(alpha: 0.05),
-        ),
+        border: Border.all(color: colorScheme.outline.withValues(alpha: 0.05)),
       ),
       child: Column(
         children: [
@@ -1208,14 +1313,16 @@ class _AgenticTradingSettingsWidgetState
   Widget _buildTemplateList(BuildContext context) {
     return Consumer<BacktestingProvider>(
       builder: (context, backtestingProvider, child) {
-        var templates =
-            List<TradeStrategyTemplate>.from(backtestingProvider.templates);
+        var templates = List<TradeStrategyTemplate>.from(
+          backtestingProvider.templates,
+        );
         final colorScheme = Theme.of(context).colorScheme;
 
         // Move selected template to the front
         if (_selectedTemplateId != null) {
-          final selectedIndex =
-              templates.indexWhere((t) => t.id == _selectedTemplateId);
+          final selectedIndex = templates.indexWhere(
+            (t) => t.id == _selectedTemplateId,
+          );
           if (selectedIndex != -1) {
             final selectedTemplate = templates.removeAt(selectedIndex);
             templates.insert(0, selectedTemplate);
@@ -1225,8 +1332,9 @@ class _AgenticTradingSettingsWidgetState
         if (!_hasScrolledToTemplate &&
             templates.isNotEmpty &&
             _selectedTemplateId != null) {
-          final index =
-              templates.indexWhere((t) => t.id == _selectedTemplateId);
+          final index = templates.indexWhere(
+            (t) => t.id == _selectedTemplateId,
+          );
           if (index != -1) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (_templateScrollController.hasClients) {
@@ -1258,8 +1366,11 @@ class _AgenticTradingSettingsWidgetState
                       color: colorScheme.primary.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: Icon(Icons.bolt_rounded,
-                        size: 20, color: colorScheme.primary),
+                    child: Icon(
+                      Icons.bolt_rounded,
+                      size: 20,
+                      color: colorScheme.primary,
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Text(
@@ -1274,21 +1385,26 @@ class _AgenticTradingSettingsWidgetState
                   TextButton.icon(
                     onPressed: () {
                       final agenticProvider =
-                          Provider.of<AgenticTradingProvider>(context,
-                              listen: false);
+                          Provider.of<AgenticTradingProvider>(
+                            context,
+                            listen: false,
+                          );
                       final brokerageUserStore =
-                          Provider.of<BrokerageUserStore>(context,
-                              listen: false);
+                          Provider.of<BrokerageUserStore>(
+                            context,
+                            listen: false,
+                          );
                       final brokerageUser = brokerageUserStore.items.isNotEmpty
-                          ? brokerageUserStore
-                              .items[brokerageUserStore.currentUserIndex]
+                          ? brokerageUserStore.items[brokerageUserStore
+                                .currentUserIndex]
                           : null;
                       Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (context) => TradingStrategiesPage(
                             currentConfig: _createConfigFromCurrentSettings(
-                                agenticProvider),
+                              agenticProvider,
+                            ),
                             selectedStrategyId: _selectedTemplateId,
                             user: widget.user,
                             userDocRef: widget.userDocRef,
@@ -1298,8 +1414,10 @@ class _AgenticTradingSettingsWidgetState
                               _loadFromTemplate(template);
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                    content: Text(
-                                        'Loaded strategy: ${template.name}')),
+                                  content: Text(
+                                    'Loaded strategy: ${template.name}',
+                                  ),
+                                ),
                               );
                             },
                           ),
@@ -1341,7 +1459,11 @@ class _AgenticTradingSettingsWidgetState
                     final isSelected = template.id == _selectedTemplateId;
 
                     return _buildStrategyTemplateCard(
-                        context, template, isSelected, isDefault);
+                      context,
+                      template,
+                      isSelected,
+                      isDefault,
+                    );
                   }),
                 ],
               ),
@@ -1354,10 +1476,14 @@ class _AgenticTradingSettingsWidgetState
   }
 
   void _showTemplateDetailsSheet(
-      BuildContext context, TradeStrategyTemplate template) {
+    BuildContext context,
+    TradeStrategyTemplate template,
+  ) {
     // Replacement start
-    final agenticProvider =
-        Provider.of<AgenticTradingProvider>(context, listen: false);
+    final agenticProvider = Provider.of<AgenticTradingProvider>(
+      context,
+      listen: false,
+    );
     final currentConfig = _createConfigFromCurrentSettings(agenticProvider);
     StrategyDetailsBottomSheet.showWithConfirmation(
       context: context,
@@ -1365,13 +1491,15 @@ class _AgenticTradingSettingsWidgetState
       currentConfig: currentConfig,
       onConfirmLoad: (t) {
         _loadFromTemplate(t);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Loaded strategy: ${t.name}')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Loaded strategy: ${t.name}')));
       },
       onSearch: () {
-        final brokerageUserStore =
-            Provider.of<BrokerageUserStore>(context, listen: false);
+        final brokerageUserStore = Provider.of<BrokerageUserStore>(
+          context,
+          listen: false,
+        );
         final brokerageUser = brokerageUserStore.items.isNotEmpty
             ? brokerageUserStore.items[brokerageUserStore.currentUserIndex]
             : null;
@@ -1387,25 +1515,27 @@ class _AgenticTradingSettingsWidgetState
         final initialIndicators = template.config.enabledIndicators.entries
             .where((e) => e.value)
             .fold<Map<String, String>>({}, (prev, element) {
-          prev[element.key] = "BUY";
-          return prev;
-        });
+              prev[element.key] = "BUY";
+              return prev;
+            });
 
         Navigator.pop(context); // Close sheet
         Navigator.push(
-            context,
-            MaterialPageRoute(
-                builder: (context) => TradeSignalsPage(
-                      user: widget.user,
-                      userDocRef: widget.userDocRef,
-                      brokerageUser: brokerageUser,
-                      service: widget.service,
-                      analytics: MyApp.analytics,
-                      observer: MyApp.observer,
-                      generativeService: GenerativeService(),
-                      initialIndicators: initialIndicators,
-                      strategyTemplate: template,
-                    )));
+          context,
+          MaterialPageRoute(
+            builder: (context) => TradeSignalsPage(
+              user: widget.user,
+              userDocRef: widget.userDocRef,
+              brokerageUser: brokerageUser,
+              service: widget.service,
+              analytics: MyApp.analytics,
+              observer: MyApp.observer,
+              generativeService: GenerativeService(),
+              initialIndicators: initialIndicators,
+              strategyTemplate: template,
+            ),
+          ),
+        );
       },
     );
   }
@@ -1436,8 +1566,11 @@ class _AgenticTradingSettingsWidgetState
                   color: colorScheme.primary.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(Icons.add_rounded,
-                    size: 28, color: colorScheme.primary),
+                child: Icon(
+                  Icons.add_rounded,
+                  size: 28,
+                  color: colorScheme.primary,
+                ),
               ),
               const SizedBox(height: 12),
               Text(
@@ -1463,8 +1596,12 @@ class _AgenticTradingSettingsWidgetState
     );
   }
 
-  Widget _buildStrategyTemplateCard(BuildContext context,
-      TradeStrategyTemplate template, bool isSelected, bool isDefault) {
+  Widget _buildStrategyTemplateCard(
+    BuildContext context,
+    TradeStrategyTemplate template,
+    bool isSelected,
+    bool isDefault,
+  ) {
     final colorScheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.only(right: 12),
@@ -1504,14 +1641,16 @@ class _AgenticTradingSettingsWidgetState
                       decoration: BoxDecoration(
                         color: isDefault
                             ? Colors.amber.withValues(alpha: 0.15)
-                            : colorScheme.primaryContainer
-                                .withValues(alpha: 0.2),
+                            : colorScheme.primaryContainer.withValues(
+                                alpha: 0.2,
+                              ),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
                         isDefault ? Icons.verified : Icons.analytics_rounded,
-                        color:
-                            isDefault ? Colors.amber[800] : colorScheme.primary,
+                        color: isDefault
+                            ? Colors.amber[800]
+                            : colorScheme.primary,
                         size: 22,
                       ),
                     ),
@@ -1540,8 +1679,11 @@ class _AgenticTradingSettingsWidgetState
                                     color: colorScheme.primary,
                                     shape: BoxShape.circle,
                                   ),
-                                  child: Icon(Icons.check,
-                                      size: 10, color: colorScheme.onPrimary),
+                                  child: Icon(
+                                    Icons.check,
+                                    size: 10,
+                                    color: colorScheme.onPrimary,
+                                  ),
                                 ),
                             ],
                           ),
@@ -1549,13 +1691,16 @@ class _AgenticTradingSettingsWidgetState
                             const SizedBox(height: 6),
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 3),
+                                horizontal: 8,
+                                vertical: 3,
+                              ),
                               decoration: BoxDecoration(
                                 color: Colors.amber.withValues(alpha: 0.15),
                                 borderRadius: BorderRadius.circular(6),
                                 border: Border.all(
-                                    color: Colors.amber.withValues(alpha: 0.5),
-                                    width: 1),
+                                  color: Colors.amber.withValues(alpha: 0.5),
+                                  width: 1,
+                                ),
                               ),
                               child: Text(
                                 'SYSTEM',
@@ -1642,16 +1787,20 @@ class _AgenticTradingSettingsWidgetState
                   child: Row(
                     children: [
                       _buildFeatureChip(
-                          context,
-                          Icons.show_chart_rounded,
-                          template.config.symbolFilter.isEmpty
-                              ? "All Symbols"
-                              : (template.config.symbolFilter.length > 3
+                        context,
+                        Icons.show_chart_rounded,
+                        template.config.symbolFilter.isEmpty
+                            ? "All Symbols"
+                            : (template.config.symbolFilter.length > 3
                                   ? "${template.config.symbolFilter.take(3).join(', ')} +${template.config.symbolFilter.length - 3}"
-                                  : template.config.symbolFilter.join(', '))),
+                                  : template.config.symbolFilter.join(', ')),
+                      ),
                       const SizedBox(width: 8),
-                      _buildFeatureChip(context, Icons.layers_outlined,
-                          _getIndicatorsSummary(template.config)),
+                      _buildFeatureChip(
+                        context,
+                        Icons.layers_outlined,
+                        _getIndicatorsSummary(template.config),
+                      ),
                     ],
                   ),
                 ),
@@ -1664,8 +1813,12 @@ class _AgenticTradingSettingsWidgetState
   }
 
   Widget _buildStatBadge(
-      BuildContext context, String label, String value, Color color,
-      {IconData? icon}) {
+    BuildContext context,
+    String label,
+    String value,
+    Color color, {
+    IconData? icon,
+  }) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
@@ -1707,10 +1860,9 @@ class _AgenticTradingSettingsWidgetState
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: Theme.of(context)
-            .colorScheme
-            .surfaceContainerHighest
-            .withValues(alpha: 0.5),
+        color: Theme.of(
+          context,
+        ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(6),
         border: Border.all(
           color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
@@ -1719,8 +1871,11 @@ class _AgenticTradingSettingsWidgetState
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon,
-              size: 13, color: Theme.of(context).colorScheme.onSurfaceVariant),
+          Icon(
+            icon,
+            size: 13,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
           const SizedBox(width: 4),
           Flexible(
             child: Text(
@@ -1785,7 +1940,9 @@ class _AgenticTradingSettingsWidgetState
   }
 
   Widget _buildStatusHeader(
-      BuildContext context, AgenticTradingProvider agenticTradingProvider) {
+    BuildContext context,
+    AgenticTradingProvider agenticTradingProvider,
+  ) {
     final colorScheme = Theme.of(context).colorScheme;
     final isEnabled = agenticTradingProvider.config.autoTradeEnabled;
 
@@ -1793,10 +1950,13 @@ class _AgenticTradingSettingsWidgetState
     String strategyDisplay =
         'Min Strength: ${_minSignalStrengthController.text}%';
     if (_selectedTemplateId != null) {
-      final backtestingProvider =
-          Provider.of<BacktestingProvider>(context, listen: false);
-      final templateIndex = backtestingProvider.templates
-          .indexWhere((t) => t.id == _selectedTemplateId);
+      final backtestingProvider = Provider.of<BacktestingProvider>(
+        context,
+        listen: false,
+      );
+      final templateIndex = backtestingProvider.templates.indexWhere(
+        (t) => t.id == _selectedTemplateId,
+      );
       if (templateIndex != -1) {
         strategyDisplay = backtestingProvider.templates[templateIndex].name;
       }
@@ -1870,7 +2030,8 @@ class _AgenticTradingSettingsWidgetState
                         builder: (context) => AlertDialog(
                           title: const Text('Enable Real-Money Trading?'),
                           content: const Text(
-                              'WARNING: You are about to enable automated trading with REAL MONEY.\n\nEnsure you have tested your strategy in Paper Trading mode first.\n\nThe application is provided "as is" and assumes \nNO RESPONSIBILITY for financial losses.'),
+                            'WARNING: You are about to enable automated trading with REAL MONEY.\n\nEnsure you have tested your strategy in Paper Trading mode first.\n\nThe application is provided "as is" and assumes \nNO RESPONSIBILITY for financial losses.',
+                          ),
                           actions: [
                             TextButton(
                               onPressed: () =>
@@ -1902,7 +2063,8 @@ class _AgenticTradingSettingsWidgetState
                       builder: (context) => AlertDialog(
                         title: const Text('Stop Auto-Trading?'),
                         content: const Text(
-                            'This will stop all automated trading activities. Open positions will still need to be managed manually.'),
+                          'This will stop all automated trading activities. Open positions will still need to be managed manually.',
+                        ),
                         actions: [
                           TextButton(
                             onPressed: () =>
@@ -1923,19 +2085,26 @@ class _AgenticTradingSettingsWidgetState
                   if (value) {
                     final checkInterval =
                         int.tryParse(_checkIntervalController.text) ?? 5;
-                    final nextTradeTime =
-                        DateTime.now().add(Duration(minutes: checkInterval));
+                    final nextTradeTime = DateTime.now().add(
+                      Duration(minutes: checkInterval),
+                    );
                     final countdownSeconds = checkInterval * 60;
                     agenticTradingProvider.updateAutoTradeCountdown(
-                        nextTradeTime, countdownSeconds);
+                      nextTradeTime,
+                      countdownSeconds,
+                    );
                   }
 
                   final newConfig = _createFullConfigFromSettings(
-                      agenticTradingProvider,
-                      baseConfig: agenticTradingProvider.config
-                          .copyWith(autoTradeEnabled: value));
+                    agenticTradingProvider,
+                    baseConfig: agenticTradingProvider.config.copyWith(
+                      autoTradeEnabled: value,
+                    ),
+                  );
                   agenticTradingProvider.updateConfig(
-                      newConfig, widget.userDocRef);
+                    newConfig,
+                    widget.userDocRef,
+                  );
                 },
                 title: Text(
                   'Auto-Trading${isEnabled ? ' Active' : ' Paused'}',
@@ -1976,15 +2145,20 @@ class _AgenticTradingSettingsWidgetState
                 ),
                 tileColor: isEnabled
                     ? colorScheme.primaryContainer.withValues(alpha: 0.15)
-                    : colorScheme.surfaceContainerHighest
-                        .withValues(alpha: 0.3),
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    : colorScheme.surfaceContainerHighest.withValues(
+                        alpha: 0.3,
+                      ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
               ),
               // Trading Mode Selector
               Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16.0,
+                  vertical: 8.0,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -2013,11 +2187,15 @@ class _AgenticTradingSettingsWidgetState
                       selected: {agenticTradingProvider.config.tradingMode},
                       onSelectionChanged: (Set<TradingMode> newSelection) {
                         final newConfig = _createFullConfigFromSettings(
-                            agenticTradingProvider,
-                            baseConfig: agenticTradingProvider.config
-                                .copyWith(tradingMode: newSelection.first));
+                          agenticTradingProvider,
+                          baseConfig: agenticTradingProvider.config.copyWith(
+                            tradingMode: newSelection.first,
+                          ),
+                        );
                         agenticTradingProvider.updateConfig(
-                            newConfig, widget.userDocRef);
+                          newConfig,
+                          widget.userDocRef,
+                        );
                       },
                     ),
                     if (agenticTradingProvider.config.tradingMode ==
@@ -2027,8 +2205,9 @@ class _AgenticTradingSettingsWidgetState
                         child: Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: colorScheme.primaryContainer
-                                .withValues(alpha: 0.1),
+                            color: colorScheme.primaryContainer.withValues(
+                              alpha: 0.1,
+                            ),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
                               color: colorScheme.primary.withValues(alpha: 0.2),
@@ -2039,8 +2218,11 @@ class _AgenticTradingSettingsWidgetState
                             children: [
                               Row(
                                 children: [
-                                  Icon(Icons.auto_awesome,
-                                      size: 16, color: colorScheme.primary),
+                                  Icon(
+                                    Icons.auto_awesome,
+                                    size: 16,
+                                    color: colorScheme.primary,
+                                  ),
                                   const SizedBox(width: 8),
                                   Text(
                                     'Cognitive Synthesis Engine',
@@ -2054,17 +2236,20 @@ class _AgenticTradingSettingsWidgetState
                               ),
                               const SizedBox(height: 8),
                               _buildModeDetailItem(
-                                  Icons.psychology_outlined,
-                                  'Contextual Reasoning',
-                                  'Synthesizes indicators, macro regime, and GEX structural levels.'),
+                                Icons.psychology_outlined,
+                                'Contextual Reasoning',
+                                'Synthesizes indicators, macro regime, and GEX structural levels.',
+                              ),
                               _buildModeDetailItem(
-                                  Icons.rule,
-                                  '11-Rule Discipline',
-                                  'Strictly enforces GEX mechanical checklists to eliminate bias.'),
+                                Icons.rule,
+                                '11-Rule Discipline',
+                                'Strictly enforces GEX mechanical checklists to eliminate bias.',
+                              ),
                               _buildModeDetailItem(
-                                  Icons.security,
-                                  'RiskGuard Overlay',
-                                  'All decisions filtered through portfolio concentration limits.'),
+                                Icons.security,
+                                'RiskGuard Overlay',
+                                'All decisions filtered through portfolio concentration limits.',
+                              ),
                             ],
                           ),
                         ),
@@ -2085,9 +2270,11 @@ class _AgenticTradingSettingsWidgetState
                             children: [
                               Row(
                                 children: [
-                                  Icon(Icons.functions,
-                                      size: 16,
-                                      color: colorScheme.onSurfaceVariant),
+                                  Icon(
+                                    Icons.functions,
+                                    size: 16,
+                                    color: colorScheme.onSurfaceVariant,
+                                  ),
                                   const SizedBox(width: 8),
                                   Text(
                                     'Deterministic Execution',
@@ -2125,8 +2312,11 @@ class _AgenticTradingSettingsWidgetState
                     children: [
                       Row(
                         children: [
-                          Icon(Icons.warning_amber_rounded,
-                              color: colorScheme.error, size: 28),
+                          Icon(
+                            Icons.warning_amber_rounded,
+                            color: colorScheme.error,
+                            size: 28,
+                          ),
                           const SizedBox(width: 12),
                           Expanded(
                             child: Column(
@@ -2178,8 +2368,9 @@ class _AgenticTradingSettingsWidgetState
                     children: [
                       Divider(
                         height: 1,
-                        color:
-                            colorScheme.outlineVariant.withValues(alpha: 0.5),
+                        color: colorScheme.outlineVariant.withValues(
+                          alpha: 0.5,
+                        ),
                       ),
                       // const SizedBox(height: 16),
                       // // Config Summary
@@ -2227,7 +2418,9 @@ class _AgenticTradingSettingsWidgetState
                                         .lastAutoTradeResult !=
                                     null) {
                                   _showLastExecutionDetails(
-                                      context, agenticTradingProvider);
+                                    context,
+                                    agenticTradingProvider,
+                                  );
                                 }
                               },
                               borderRadius: BorderRadius.circular(12),
@@ -2262,23 +2455,27 @@ class _AgenticTradingSettingsWidgetState
                                 );
                               },
                               borderRadius: BorderRadius.circular(12),
-                              child: Builder(builder: (context) {
-                                double totalPnl = 0;
-                                for (var trade in agenticTradingProvider
-                                    .autoTradeHistory) {
-                                  totalPnl +=
-                                      (trade['profitLoss'] as num? ?? 0.0)
-                                          .toDouble();
-                                }
-                                return _buildSummaryItem(
-                                  context,
-                                  'Performance',
-                                  '${totalPnl >= 0 ? '+' : ''}\$${totalPnl.toStringAsFixed(2)}',
-                                  Icons.analytics,
-                                  valueColor:
-                                      totalPnl >= 0 ? Colors.green : Colors.red,
-                                );
-                              }),
+                              child: Builder(
+                                builder: (context) {
+                                  double totalPnl = 0;
+                                  for (var trade
+                                      in agenticTradingProvider
+                                          .autoTradeHistory) {
+                                    totalPnl +=
+                                        (trade['profitLoss'] as num? ?? 0.0)
+                                            .toDouble();
+                                  }
+                                  return _buildSummaryItem(
+                                    context,
+                                    'Performance',
+                                    '${totalPnl >= 0 ? '+' : ''}\$${totalPnl.toStringAsFixed(2)}',
+                                    Icons.analytics,
+                                    valueColor: totalPnl >= 0
+                                        ? Colors.green
+                                        : Colors.red,
+                                  );
+                                },
+                              ),
                             ),
                           ),
                         ],
@@ -2293,14 +2490,17 @@ class _AgenticTradingSettingsWidgetState
                             if (agenticTradingProvider.isAutoTrading)
                               Container(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 16, vertical: 12),
+                                  horizontal: 16,
+                                  vertical: 12,
+                                ),
                                 decoration: BoxDecoration(
                                   color: colorScheme.primaryContainer
                                       .withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(12),
                                   border: Border.all(
-                                    color: colorScheme.primary
-                                        .withValues(alpha: 0.2),
+                                    color: colorScheme.primary.withValues(
+                                      alpha: 0.2,
+                                    ),
                                   ),
                                 ),
                                 child: Row(
@@ -2368,7 +2568,7 @@ class _AgenticTradingSettingsWidgetState
                                               fontWeight: FontWeight.bold,
                                               color: colorScheme.primary,
                                               fontFeatures: const [
-                                                FontFeature.tabularFigures()
+                                                FontFeature.tabularFigures(),
                                               ],
                                             ),
                                           ),
@@ -2388,7 +2588,7 @@ class _AgenticTradingSettingsWidgetState
                                               color: colorScheme.primary
                                                   .withValues(alpha: 0.8),
                                               fontFeatures: const [
-                                                FontFeature.tabularFigures()
+                                                FontFeature.tabularFigures(),
                                               ],
                                             ),
                                           ),
@@ -2400,10 +2600,12 @@ class _AgenticTradingSettingsWidgetState
                                   ClipRRect(
                                     borderRadius: BorderRadius.circular(4),
                                     child: LinearProgressIndicator(
-                                      value: 1.0 -
+                                      value:
+                                          1.0 -
                                           (agenticTradingProvider
                                                   .autoTradeCountdownSeconds /
-                                              (agenticTradingProvider.config
+                                              (agenticTradingProvider
+                                                      .config
                                                       .checkIntervalMinutes *
                                                   60)),
                                       minHeight: 6,
@@ -2411,7 +2613,8 @@ class _AgenticTradingSettingsWidgetState
                                           .surfaceContainerHighest
                                           .withValues(alpha: 0.5),
                                       valueColor: AlwaysStoppedAnimation<Color>(
-                                          colorScheme.primary),
+                                        colorScheme.primary,
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -2420,7 +2623,10 @@ class _AgenticTradingSettingsWidgetState
                             // if (agenticTradingProvider
                             //     .activityLog.isNotEmpty) ...[
                             _buildActivityLog(
-                                context, agenticTradingProvider, colorScheme),
+                              context,
+                              agenticTradingProvider,
+                              colorScheme,
+                            ),
                             // ],
                             const SizedBox(height: 6),
                             Row(
@@ -2430,10 +2636,14 @@ class _AgenticTradingSettingsWidgetState
                                     onPressed: () {
                                       agenticTradingProvider
                                           .updateAutoTradeCountdown(
-                                              DateTime.now(), 0);
+                                            DateTime.now(),
+                                            0,
+                                          );
                                     },
-                                    icon:
-                                        const Icon(Icons.play_arrow, size: 16),
+                                    icon: const Icon(
+                                      Icons.play_arrow,
+                                      size: 16,
+                                    ),
                                     label: const Text('Run Now'),
                                     style: FilledButton.styleFrom(
                                       visualDensity: VisualDensity.compact,
@@ -2470,8 +2680,11 @@ class _AgenticTradingSettingsWidgetState
     );
   }
 
-  Widget _buildActivityLog(BuildContext context,
-      AgenticTradingProvider agenticTradingProvider, ColorScheme colorScheme) {
+  Widget _buildActivityLog(
+    BuildContext context,
+    AgenticTradingProvider agenticTradingProvider,
+    ColorScheme colorScheme,
+  ) {
     return _buildSection(
       context: context,
       title: 'Activity Log',
@@ -2496,7 +2709,8 @@ class _AgenticTradingSettingsWidgetState
                   builder: (context) => AlertDialog(
                     title: const Text('Clear Log?'),
                     content: const Text(
-                        'This will remove all activity log entries. This action cannot be undone.'),
+                      'This will remove all activity log entries. This action cannot be undone.',
+                    ),
                     actions: [
                       TextButton(
                         onPressed: () => Navigator.pop(context, false),
@@ -2540,8 +2754,9 @@ class _AgenticTradingSettingsWidgetState
                     'No activity recorded yet.',
                     style: TextStyle(
                       fontSize: 12,
-                      color:
-                          colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                      color: colorScheme.onSurfaceVariant.withValues(
+                        alpha: 0.7,
+                      ),
                       fontStyle: FontStyle.italic,
                     ),
                   ),
@@ -2575,7 +2790,9 @@ class _AgenticTradingSettingsWidgetState
   }
 
   Widget _buildPendingOrders(
-      BuildContext context, AgenticTradingProvider agenticTradingProvider) {
+    BuildContext context,
+    AgenticTradingProvider agenticTradingProvider,
+  ) {
     if (agenticTradingProvider.pendingOrders.isEmpty) {
       return const SizedBox.shrink();
     }
@@ -2584,11 +2801,7 @@ class _AgenticTradingSettingsWidgetState
       children: [
         Row(
           children: [
-            Icon(
-              Icons.pending_actions,
-              size: 20,
-              color: colorScheme.tertiary,
-            ),
+            Icon(Icons.pending_actions, size: 20, color: colorScheme.tertiary),
             const SizedBox(width: 8),
             Text(
               'Pending Approvals',
@@ -2650,7 +2863,9 @@ class _AgenticTradingSettingsWidgetState
                         children: [
                           Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 6, vertical: 2),
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
                               color: action.toUpperCase() == 'BUY'
                                   ? Colors.green.withValues(alpha: 0.2)
@@ -2697,14 +2912,18 @@ class _AgenticTradingSettingsWidgetState
                       if (confidence != null)
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 2),
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
-                            color: _getConfidenceColor(confidence.toDouble())
-                                .withValues(alpha: 0.1),
+                            color: _getConfidenceColor(
+                              confidence.toDouble(),
+                            ).withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(4),
                             border: Border.all(
-                              color: _getConfidenceColor(confidence.toDouble())
-                                  .withValues(alpha: 0.5),
+                              color: _getConfidenceColor(
+                                confidence.toDouble(),
+                              ).withValues(alpha: 0.5),
                             ),
                           ),
                           child: Row(
@@ -2713,15 +2932,17 @@ class _AgenticTradingSettingsWidgetState
                               Icon(
                                 Icons.bolt,
                                 size: 12,
-                                color:
-                                    _getConfidenceColor(confidence.toDouble()),
+                                color: _getConfidenceColor(
+                                  confidence.toDouble(),
+                                ),
                               ),
                               const SizedBox(width: 4),
                               Text(
                                 '${confidence.toString()}%',
                                 style: TextStyle(
                                   color: _getConfidenceColor(
-                                      confidence.toDouble()),
+                                    confidence.toDouble(),
+                                  ),
                                   fontWeight: FontWeight.bold,
                                   fontSize: 11,
                                 ),
@@ -2736,19 +2957,24 @@ class _AgenticTradingSettingsWidgetState
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: colorScheme.surfaceContainerHighest
-                            .withValues(alpha: 0.5),
+                        color: colorScheme.surfaceContainerHighest.withValues(
+                          alpha: 0.5,
+                        ),
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
-                          color:
-                              colorScheme.outlineVariant.withValues(alpha: 0.5),
+                          color: colorScheme.outlineVariant.withValues(
+                            alpha: 0.5,
+                          ),
                         ),
                       ),
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Icon(Icons.info_outline,
-                              size: 16, color: colorScheme.primary),
+                          Icon(
+                            Icons.info_outline,
+                            size: 16,
+                            color: colorScheme.primary,
+                          ),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
@@ -2793,10 +3019,13 @@ class _AgenticTradingSettingsWidgetState
                         if (proposal != null && proposal['interval'] != null)
                           Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 6, vertical: 2),
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
-                              color: colorScheme.surfaceVariant
-                                  .withValues(alpha: 0.5),
+                              color: colorScheme.surfaceVariant.withValues(
+                                alpha: 0.5,
+                              ),
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Text(
@@ -2827,8 +3056,11 @@ class _AgenticTradingSettingsWidgetState
                         children: [
                           Row(
                             children: [
-                              const Icon(Icons.analytics_outlined,
-                                  size: 14, color: Colors.blue),
+                              const Icon(
+                                Icons.analytics_outlined,
+                                size: 14,
+                                color: Colors.blue,
+                              ),
                               const SizedBox(width: 4),
                               Text(
                                 'GEX Analysis',
@@ -2845,20 +3077,23 @@ class _AgenticTradingSettingsWidgetState
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               _buildGexMetric(
-                                  'pTrans',
-                                  proposal['gexData']['pTrans'] != null
-                                      ? '\$${proposal['gexData']['pTrans'].toStringAsFixed(2)}'
-                                      : 'N/A'),
+                                'pTrans',
+                                proposal['gexData']['pTrans'] != null
+                                    ? '\$${proposal['gexData']['pTrans'].toStringAsFixed(2)}'
+                                    : 'N/A',
+                              ),
                               _buildGexMetric(
-                                  'nTrans',
-                                  proposal['gexData']['nTrans'] != null
-                                      ? '\$${proposal['gexData']['nTrans'].toStringAsFixed(2)}'
-                                      : 'N/A'),
+                                'nTrans',
+                                proposal['gexData']['nTrans'] != null
+                                    ? '\$${proposal['gexData']['nTrans'].toStringAsFixed(2)}'
+                                    : 'N/A',
+                              ),
                               _buildGexMetric(
-                                  'Flip',
-                                  proposal['gexData']['gammaFlip'] != null
-                                      ? '\$${proposal['gexData']['gammaFlip'].toStringAsFixed(2)}'
-                                      : 'N/A'),
+                                'Flip',
+                                proposal['gexData']['gammaFlip'] != null
+                                    ? '\$${proposal['gexData']['gammaFlip'].toStringAsFixed(2)}'
+                                    : 'N/A',
+                              ),
                             ],
                           ),
                         ],
@@ -2870,21 +3105,25 @@ class _AgenticTradingSettingsWidgetState
                     const SizedBox(height: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 4),
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: _getMacroColor(
-                                proposal['macroAssessment']['status'])
-                            .withValues(alpha: 0.05),
+                          proposal['macroAssessment']['status'],
+                        ).withValues(alpha: 0.05),
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Row(
                         children: [
                           Icon(
                             _getMacroIcon(
-                                proposal['macroAssessment']['status']),
+                              proposal['macroAssessment']['status'],
+                            ),
                             size: 14,
                             color: _getMacroColor(
-                                proposal['macroAssessment']['status']),
+                              proposal['macroAssessment']['status'],
+                            ),
                           ),
                           const SizedBox(width: 8),
                           Expanded(
@@ -2893,7 +3132,8 @@ class _AgenticTradingSettingsWidgetState
                               style: TextStyle(
                                 fontSize: 11,
                                 color: _getMacroColor(
-                                    proposal['macroAssessment']['status']),
+                                  proposal['macroAssessment']['status'],
+                                ),
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -2909,8 +3149,10 @@ class _AgenticTradingSettingsWidgetState
                     children: [
                       TextButton(
                         onPressed: () async {
-                          await agenticTradingProvider.rejectOrder(order,
-                              userDocRef: widget.userDocRef);
+                          await agenticTradingProvider.rejectOrder(
+                            order,
+                            userDocRef: widget.userDocRef,
+                          );
                         },
                         child: const Text('Reject'),
                       ),
@@ -2941,14 +3183,20 @@ class _AgenticTradingSettingsWidgetState
         InputDecorator(
           decoration: InputDecoration(
             labelText: 'Symbol Filter',
-            labelStyle:
-                TextStyle(fontSize: 13, color: colorScheme.onSurfaceVariant),
+            labelStyle: TextStyle(
+              fontSize: 13,
+              color: colorScheme.onSurfaceVariant,
+            ),
             helperText:
                 'Only trade specific symbols (leave empty for all supported)',
             helperStyle: TextStyle(
-                color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7)),
-            prefixIcon: Icon(Icons.filter_list,
-                size: 18, color: colorScheme.primary.withValues(alpha: 0.8)),
+              color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+            ),
+            prefixIcon: Icon(
+              Icons.filter_list,
+              size: 18,
+              color: colorScheme.primary.withValues(alpha: 0.8),
+            ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide.none,
@@ -2961,10 +3209,13 @@ class _AgenticTradingSettingsWidgetState
               ),
             ),
             filled: true,
-            fillColor:
-                colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            fillColor: colorScheme.surfaceContainerHighest.withValues(
+              alpha: 0.3,
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 12,
+            ),
           ),
           child: Wrap(
             spacing: 8.0,
@@ -2974,24 +3225,28 @@ class _AgenticTradingSettingsWidgetState
                 Text(
                   'All Symbols',
                   style: TextStyle(
-                      color: colorScheme.onSurface.withValues(alpha: 0.5)),
+                    color: colorScheme.onSurface.withValues(alpha: 0.5),
+                  ),
                 ),
-              ..._symbolFilter.map((symbol) => Chip(
-                    label: Text(symbol, style: const TextStyle(fontSize: 12)),
-                    onDeleted: () {
-                      setState(() {
-                        _symbolFilter.remove(symbol);
-                      });
-                      _saveSettings();
-                    },
-                    visualDensity: VisualDensity.compact,
-                    backgroundColor: colorScheme.surface,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      side: BorderSide(
-                          color: colorScheme.outline.withValues(alpha: 0.2)),
+              ..._symbolFilter.map(
+                (symbol) => Chip(
+                  label: Text(symbol, style: const TextStyle(fontSize: 12)),
+                  onDeleted: () {
+                    setState(() {
+                      _symbolFilter.remove(symbol);
+                    });
+                    _saveSettings();
+                  },
+                  visualDensity: VisualDensity.compact,
+                  backgroundColor: colorScheme.surface,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    side: BorderSide(
+                      color: colorScheme.outline.withValues(alpha: 0.2),
                     ),
-                  )),
+                  ),
+                ),
+              ),
               ActionChip(
                 label: const Text('Add', style: TextStyle(fontSize: 12)),
                 avatar: const Icon(Icons.add, size: 14),
@@ -3047,7 +3302,9 @@ class _AgenticTradingSettingsWidgetState
   }
 
   Widget _buildExecutionSettings(
-      BuildContext context, AgenticTradingProvider agenticTradingProvider) {
+    BuildContext context,
+    AgenticTradingProvider agenticTradingProvider,
+  ) {
     final colorScheme = Theme.of(context).colorScheme;
     return _buildSection(
       context: context,
@@ -3070,11 +3327,15 @@ class _AgenticTradingSettingsWidgetState
               ? (_) {}
               : (value) {
                   final newConfig = _createFullConfigFromSettings(
-                      agenticTradingProvider,
-                      baseConfig: agenticTradingProvider.config
-                          .copyWith(paperTradingMode: value));
+                    agenticTradingProvider,
+                    baseConfig: agenticTradingProvider.config.copyWith(
+                      paperTradingMode: value,
+                    ),
+                  );
                   agenticTradingProvider.updateConfig(
-                      newConfig, widget.userDocRef);
+                    newConfig,
+                    widget.userDocRef,
+                  );
                 },
           activeColor: Colors.blue,
           titleWidget: Row(
@@ -3121,9 +3382,11 @@ class _AgenticTradingSettingsWidgetState
           value: agenticTradingProvider.config.requireApproval,
           onChanged: (value) {
             final newConfig = _createFullConfigFromSettings(
-                agenticTradingProvider,
-                baseConfig: agenticTradingProvider.config
-                    .copyWith(requireApproval: value));
+              agenticTradingProvider,
+              baseConfig: agenticTradingProvider.config.copyWith(
+                requireApproval: value,
+              ),
+            );
             agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
           },
           activeColor: Colors.amber[800],
@@ -3167,13 +3430,17 @@ class _AgenticTradingSettingsWidgetState
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Trading Interval',
-                style: Theme.of(context).textTheme.bodyLarge),
+            Text(
+              'Trading Interval',
+              style: Theme.of(context).textTheme.bodyLarge,
+            ),
             const SizedBox(height: 4),
             Text(
               'Determines the candle size used for indicator analysis.',
-              style:
-                  TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant),
+              style: TextStyle(
+                fontSize: 12,
+                color: colorScheme.onSurfaceVariant,
+              ),
             ),
             const SizedBox(height: 12),
             SizedBox(
@@ -3255,15 +3522,21 @@ class _AgenticTradingSettingsWidgetState
                 agenticTradingProvider.config.allowPreMarketTrading,
                 (val) {
                   final newConfig = _createFullConfigFromSettings(
-                      agenticTradingProvider,
-                      baseConfig: agenticTradingProvider.config
-                          .copyWith(allowPreMarketTrading: val));
+                    agenticTradingProvider,
+                    baseConfig: agenticTradingProvider.config.copyWith(
+                      allowPreMarketTrading: val,
+                    ),
+                  );
                   agenticTradingProvider.updateConfig(
-                      newConfig, widget.userDocRef);
+                    newConfig,
+                    widget.userDocRef,
+                  );
                 },
               ),
               Divider(
-                  height: 1, color: colorScheme.outline.withValues(alpha: 0.1)),
+                height: 1,
+                color: colorScheme.outline.withValues(alpha: 0.1),
+              ),
               _buildSimpleSwitch(
                 context,
                 'After-Hours',
@@ -3271,11 +3544,15 @@ class _AgenticTradingSettingsWidgetState
                 agenticTradingProvider.config.allowAfterHoursTrading,
                 (val) {
                   final newConfig = _createFullConfigFromSettings(
-                      agenticTradingProvider,
-                      baseConfig: agenticTradingProvider.config
-                          .copyWith(allowAfterHoursTrading: val));
+                    agenticTradingProvider,
+                    baseConfig: agenticTradingProvider.config.copyWith(
+                      allowAfterHoursTrading: val,
+                    ),
+                  );
                   agenticTradingProvider.updateConfig(
-                      newConfig, widget.userDocRef);
+                    newConfig,
+                    widget.userDocRef,
+                  );
                 },
               ),
             ],
@@ -3312,13 +3589,20 @@ class _AgenticTradingSettingsWidgetState
     );
   }
 
-  Widget _buildSimpleSwitch(BuildContext context, String title, String subtitle,
-      bool value, ValueChanged<bool> onChanged) {
+  Widget _buildSimpleSwitch(
+    BuildContext context,
+    String title,
+    String subtitle,
+    bool value,
+    ValueChanged<bool> onChanged,
+  ) {
     return Material(
       color: Colors.transparent,
       child: SwitchListTile(
-        title: Text(title,
-            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+        title: Text(
+          title,
+          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+        ),
         subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
         value: value,
         onChanged: onChanged,
@@ -3329,7 +3613,9 @@ class _AgenticTradingSettingsWidgetState
   }
 
   Widget _buildRiskManagement(
-      BuildContext context, AgenticTradingProvider agenticTradingProvider) {
+    BuildContext context,
+    AgenticTradingProvider agenticTradingProvider,
+  ) {
     return _buildSection(
       context: context,
       title: 'Risk Management',
@@ -3352,13 +3638,17 @@ class _AgenticTradingSettingsWidgetState
           agenticTradingProvider,
           defaultValue: false,
           value: agenticTradingProvider
-              .config.strategyConfig.enableDynamicPositionSizing,
+              .config
+              .strategyConfig
+              .enableDynamicPositionSizing,
           onChanged: (value) {
             final newConfig = _createFullConfigFromSettings(
-                agenticTradingProvider,
-                baseConfig: agenticTradingProvider.config.copyWith(
-                    strategyConfig: agenticTradingProvider.config.strategyConfig
-                        .copyWith(enableDynamicPositionSizing: value)));
+              agenticTradingProvider,
+              baseConfig: agenticTradingProvider.config.copyWith(
+                strategyConfig: agenticTradingProvider.config.strategyConfig
+                    .copyWith(enableDynamicPositionSizing: value),
+              ),
+            );
             agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
           },
           extraContent: Column(
@@ -3428,10 +3718,12 @@ class _AgenticTradingSettingsWidgetState
               agenticTradingProvider.config.strategyConfig.enableSectorLimits,
           onChanged: (value) {
             final newConfig = _createFullConfigFromSettings(
-                agenticTradingProvider,
-                baseConfig: agenticTradingProvider.config.copyWith(
-                    strategyConfig: agenticTradingProvider.config.strategyConfig
-                        .copyWith(enableSectorLimits: value)));
+              agenticTradingProvider,
+              baseConfig: agenticTradingProvider.config.copyWith(
+                strategyConfig: agenticTradingProvider.config.strategyConfig
+                    .copyWith(enableSectorLimits: value),
+              ),
+            );
             agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
           },
           extraContent: _buildNumberField(
@@ -3453,13 +3745,17 @@ class _AgenticTradingSettingsWidgetState
           agenticTradingProvider,
           defaultValue: false,
           value: agenticTradingProvider
-              .config.strategyConfig.enableCorrelationChecks,
+              .config
+              .strategyConfig
+              .enableCorrelationChecks,
           onChanged: (value) {
             final newConfig = _createFullConfigFromSettings(
-                agenticTradingProvider,
-                baseConfig: agenticTradingProvider.config.copyWith(
-                    strategyConfig: agenticTradingProvider.config.strategyConfig
-                        .copyWith(enableCorrelationChecks: value)));
+              agenticTradingProvider,
+              baseConfig: agenticTradingProvider.config.copyWith(
+                strategyConfig: agenticTradingProvider.config.strategyConfig
+                    .copyWith(enableCorrelationChecks: value),
+              ),
+            );
             agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
           },
           extraContent: _buildNumberField(
@@ -3481,13 +3777,17 @@ class _AgenticTradingSettingsWidgetState
           agenticTradingProvider,
           defaultValue: false,
           value: agenticTradingProvider
-              .config.strategyConfig.enableVolatilityFilters,
+              .config
+              .strategyConfig
+              .enableVolatilityFilters,
           onChanged: (value) {
             final newConfig = _createFullConfigFromSettings(
-                agenticTradingProvider,
-                baseConfig: agenticTradingProvider.config.copyWith(
-                    strategyConfig: agenticTradingProvider.config.strategyConfig
-                        .copyWith(enableVolatilityFilters: value)));
+              agenticTradingProvider,
+              baseConfig: agenticTradingProvider.config.copyWith(
+                strategyConfig: agenticTradingProvider.config.strategyConfig
+                    .copyWith(enableVolatilityFilters: value),
+              ),
+            );
             agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
           },
           extraContent: Row(
@@ -3528,13 +3828,17 @@ class _AgenticTradingSettingsWidgetState
           agenticTradingProvider,
           defaultValue: false,
           value: agenticTradingProvider
-              .config.strategyConfig.enableDrawdownProtection,
+              .config
+              .strategyConfig
+              .enableDrawdownProtection,
           onChanged: (value) {
             final newConfig = _createFullConfigFromSettings(
-                agenticTradingProvider,
-                baseConfig: agenticTradingProvider.config.copyWith(
-                    strategyConfig: agenticTradingProvider.config.strategyConfig
-                        .copyWith(enableDrawdownProtection: value)));
+              agenticTradingProvider,
+              baseConfig: agenticTradingProvider.config.copyWith(
+                strategyConfig: agenticTradingProvider.config.strategyConfig
+                    .copyWith(enableDrawdownProtection: value),
+              ),
+            );
             agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
           },
           extraContent: _buildNumberField(
@@ -3561,10 +3865,12 @@ class _AgenticTradingSettingsWidgetState
               agenticTradingProvider.config.strategyConfig.reduceSizeOnRiskOff,
           onChanged: (value) {
             final newConfig = _createFullConfigFromSettings(
-                agenticTradingProvider,
-                baseConfig: agenticTradingProvider.config.copyWith(
-                    strategyConfig: agenticTradingProvider.config.strategyConfig
-                        .copyWith(reduceSizeOnRiskOff: value)));
+              agenticTradingProvider,
+              baseConfig: agenticTradingProvider.config.copyWith(
+                strategyConfig: agenticTradingProvider.config.strategyConfig
+                    .copyWith(reduceSizeOnRiskOff: value),
+              ),
+            );
             agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
           },
           extraContent: _buildNumberField(
@@ -3590,16 +3896,18 @@ class _AgenticTradingSettingsWidgetState
         child: Text(
           title,
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: Theme.of(context).colorScheme.primary,
-                fontWeight: FontWeight.bold,
-              ),
+            color: Theme.of(context).colorScheme.primary,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ),
     );
   }
 
   Widget _buildExitStrategies(
-      BuildContext context, AgenticTradingProvider agenticTradingProvider) {
+    BuildContext context,
+    AgenticTradingProvider agenticTradingProvider,
+  ) {
     return _buildSection(
       context: context,
       title: 'Exit Strategies',
@@ -3620,78 +3928,98 @@ class _AgenticTradingSettingsWidgetState
           timeBasedExitEnabled:
               agenticTradingProvider.config.strategyConfig.timeBasedExitEnabled,
           marketCloseExitEnabled: agenticTradingProvider
-              .config.strategyConfig.marketCloseExitEnabled,
+              .config
+              .strategyConfig
+              .marketCloseExitEnabled,
           partialExitsEnabled:
               agenticTradingProvider.config.strategyConfig.enablePartialExits,
           rsiExitEnabled:
               agenticTradingProvider.config.strategyConfig.rsiExitEnabled,
           signalStrengthExitEnabled: agenticTradingProvider
-              .config.strategyConfig.signalStrengthExitEnabled,
+              .config
+              .strategyConfig
+              .signalStrengthExitEnabled,
           gexExitEnabled:
               agenticTradingProvider.config.strategyConfig.gexExitEnabled,
           exitStages: agenticTradingProvider.config.strategyConfig.exitStages,
           onTrailingStopChanged: (val) {
             final newConfig = _createFullConfigFromSettings(
-                agenticTradingProvider,
-                baseConfig: agenticTradingProvider.config.copyWith(
-                    strategyConfig: agenticTradingProvider.config.strategyConfig
-                        .copyWith(trailingStopEnabled: val)));
+              agenticTradingProvider,
+              baseConfig: agenticTradingProvider.config.copyWith(
+                strategyConfig: agenticTradingProvider.config.strategyConfig
+                    .copyWith(trailingStopEnabled: val),
+              ),
+            );
             agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
           },
           onTimeBasedExitChanged: (val) {
             final newConfig = _createFullConfigFromSettings(
-                agenticTradingProvider,
-                baseConfig: agenticTradingProvider.config.copyWith(
-                    strategyConfig: agenticTradingProvider.config.strategyConfig
-                        .copyWith(timeBasedExitEnabled: val)));
+              agenticTradingProvider,
+              baseConfig: agenticTradingProvider.config.copyWith(
+                strategyConfig: agenticTradingProvider.config.strategyConfig
+                    .copyWith(timeBasedExitEnabled: val),
+              ),
+            );
             agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
           },
           onMarketCloseExitChanged: (val) {
             final newConfig = _createFullConfigFromSettings(
-                agenticTradingProvider,
-                baseConfig: agenticTradingProvider.config.copyWith(
-                    strategyConfig: agenticTradingProvider.config.strategyConfig
-                        .copyWith(marketCloseExitEnabled: val)));
+              agenticTradingProvider,
+              baseConfig: agenticTradingProvider.config.copyWith(
+                strategyConfig: agenticTradingProvider.config.strategyConfig
+                    .copyWith(marketCloseExitEnabled: val),
+              ),
+            );
             agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
           },
           onPartialExitsChanged: (val) {
             final newConfig = _createFullConfigFromSettings(
-                agenticTradingProvider,
-                baseConfig: agenticTradingProvider.config.copyWith(
-                    strategyConfig: agenticTradingProvider.config.strategyConfig
-                        .copyWith(enablePartialExits: val)));
+              agenticTradingProvider,
+              baseConfig: agenticTradingProvider.config.copyWith(
+                strategyConfig: agenticTradingProvider.config.strategyConfig
+                    .copyWith(enablePartialExits: val),
+              ),
+            );
             agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
           },
           onRsiExitChanged: (val) {
             final newConfig = _createFullConfigFromSettings(
-                agenticTradingProvider,
-                baseConfig: agenticTradingProvider.config.copyWith(
-                    strategyConfig: agenticTradingProvider.config.strategyConfig
-                        .copyWith(rsiExitEnabled: val)));
+              agenticTradingProvider,
+              baseConfig: agenticTradingProvider.config.copyWith(
+                strategyConfig: agenticTradingProvider.config.strategyConfig
+                    .copyWith(rsiExitEnabled: val),
+              ),
+            );
             agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
           },
           onSignalStrengthExitChanged: (val) {
             final newConfig = _createFullConfigFromSettings(
-                agenticTradingProvider,
-                baseConfig: agenticTradingProvider.config.copyWith(
-                    strategyConfig: agenticTradingProvider.config.strategyConfig
-                        .copyWith(signalStrengthExitEnabled: val)));
+              agenticTradingProvider,
+              baseConfig: agenticTradingProvider.config.copyWith(
+                strategyConfig: agenticTradingProvider.config.strategyConfig
+                    .copyWith(signalStrengthExitEnabled: val),
+              ),
+            );
             agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
           },
           onGexExitChanged: (val) {
             final newConfig = _createFullConfigFromSettings(
-                agenticTradingProvider,
-                baseConfig: agenticTradingProvider.config.copyWith(
-                    strategyConfig: agenticTradingProvider.config.strategyConfig
-                        .copyWith(gexExitEnabled: val)));
+              agenticTradingProvider,
+              baseConfig: agenticTradingProvider.config.copyWith(
+                strategyConfig: agenticTradingProvider.config.strategyConfig
+                    .copyWith(gexExitEnabled: val),
+              ),
+            );
             agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
           },
           onExitStagesChanged: (stages) {
             final newConfig = _createFullConfigFromSettings(
-                agenticTradingProvider,
-                baseConfig: agenticTradingProvider.config.copyWith(
-                    strategyConfig: agenticTradingProvider.config.strategyConfig
-                        .copyWith(exitStages: stages)));
+              agenticTradingProvider,
+              baseConfig: agenticTradingProvider.config.copyWith(
+                strategyConfig: agenticTradingProvider.config.strategyConfig
+                    .copyWith(exitStages: stages),
+              ),
+            );
             agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
           },
           onSettingsChanged: _saveSettings,
@@ -3701,8 +4029,11 @@ class _AgenticTradingSettingsWidgetState
   }
 
   Widget _buildEntryStrategies(
-      BuildContext context, AgenticTradingProvider agenticTradingProvider,
-      {bool initiallyExpanded = false, Key? key}) {
+    BuildContext context,
+    AgenticTradingProvider agenticTradingProvider, {
+    bool initiallyExpanded = false,
+    Key? key,
+  }) {
     return _buildSection(
       key: key,
       context: context,
@@ -3712,16 +4043,20 @@ class _AgenticTradingSettingsWidgetState
       children: [
         EntryStrategiesWidget(
           requireAllIndicatorsGreen: agenticTradingProvider
-              .config.strategyConfig.requireAllIndicatorsGreen,
+              .config
+              .strategyConfig
+              .requireAllIndicatorsGreen,
           onRequireStrictEntryChanged: (value) {
             if (value) {
               _minSignalStrengthController.text = '100';
             }
             final newConfig = _createFullConfigFromSettings(
-                agenticTradingProvider,
-                baseConfig: agenticTradingProvider.config.copyWith(
-                    strategyConfig: agenticTradingProvider.config.strategyConfig
-                        .copyWith(requireAllIndicatorsGreen: value)));
+              agenticTradingProvider,
+              baseConfig: agenticTradingProvider.config.copyWith(
+                strategyConfig: agenticTradingProvider.config.strategyConfig
+                    .copyWith(requireAllIndicatorsGreen: value),
+              ),
+            );
             agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
           },
           minSignalStrengthController: _minSignalStrengthController,
@@ -3731,27 +4066,33 @@ class _AgenticTradingSettingsWidgetState
               agenticTradingProvider.config.strategyConfig.indicatorReasons,
           onToggleIndicator: (key, value) {
             final currentIndicators = Map<String, bool>.from(
-                agenticTradingProvider.config.strategyConfig.enabledIndicators);
+              agenticTradingProvider.config.strategyConfig.enabledIndicators,
+            );
             currentIndicators[key] = value;
             final newConfig = _createFullConfigFromSettings(
-                agenticTradingProvider,
-                baseConfig: agenticTradingProvider.config.copyWith(
-                    strategyConfig: agenticTradingProvider.config.strategyConfig
-                        .copyWith(enabledIndicators: currentIndicators)));
+              agenticTradingProvider,
+              baseConfig: agenticTradingProvider.config.copyWith(
+                strategyConfig: agenticTradingProvider.config.strategyConfig
+                    .copyWith(enabledIndicators: currentIndicators),
+              ),
+            );
             agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
           },
           onToggleAllIndicators: () {
             final currentIndicators = Map<String, bool>.from(
-                agenticTradingProvider.config.strategyConfig.enabledIndicators);
+              agenticTradingProvider.config.strategyConfig.enabledIndicators,
+            );
             final allEnabled = currentIndicators.values.every((e) => e);
             for (var key in currentIndicators.keys) {
               currentIndicators[key] = !allEnabled;
             }
             final newConfig = _createFullConfigFromSettings(
-                agenticTradingProvider,
-                baseConfig: agenticTradingProvider.config.copyWith(
-                    strategyConfig: agenticTradingProvider.config.strategyConfig
-                        .copyWith(enabledIndicators: currentIndicators)));
+              agenticTradingProvider,
+              baseConfig: agenticTradingProvider.config.copyWith(
+                strategyConfig: agenticTradingProvider.config.strategyConfig
+                    .copyWith(enabledIndicators: currentIndicators),
+              ),
+            );
             agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
           },
           rocPeriodController: _rocPeriodController,
@@ -3770,7 +4111,9 @@ class _AgenticTradingSettingsWidgetState
   }
 
   Widget _buildNotificationSettings(
-      BuildContext context, AgenticTradingProvider agenticTradingProvider) {
+    BuildContext context,
+    AgenticTradingProvider agenticTradingProvider,
+  ) {
     return _buildSection(
       context: context,
       title: 'Notifications',
@@ -3784,9 +4127,11 @@ class _AgenticTradingSettingsWidgetState
           value: agenticTradingProvider.config.notifyOnBuy,
           onChanged: (value) {
             final newConfig = _createFullConfigFromSettings(
-                agenticTradingProvider,
-                baseConfig:
-                    agenticTradingProvider.config.copyWith(notifyOnBuy: value));
+              agenticTradingProvider,
+              baseConfig: agenticTradingProvider.config.copyWith(
+                notifyOnBuy: value,
+              ),
+            );
             agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
           },
         ),
@@ -3798,9 +4143,11 @@ class _AgenticTradingSettingsWidgetState
           value: agenticTradingProvider.config.notifyOnTakeProfit,
           onChanged: (value) {
             final newConfig = _createFullConfigFromSettings(
-                agenticTradingProvider,
-                baseConfig: agenticTradingProvider.config
-                    .copyWith(notifyOnTakeProfit: value));
+              agenticTradingProvider,
+              baseConfig: agenticTradingProvider.config.copyWith(
+                notifyOnTakeProfit: value,
+              ),
+            );
             agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
           },
         ),
@@ -3812,9 +4159,11 @@ class _AgenticTradingSettingsWidgetState
           value: agenticTradingProvider.config.notifyOnStopLoss,
           onChanged: (value) {
             final newConfig = _createFullConfigFromSettings(
-                agenticTradingProvider,
-                baseConfig: agenticTradingProvider.config
-                    .copyWith(notifyOnStopLoss: value));
+              agenticTradingProvider,
+              baseConfig: agenticTradingProvider.config.copyWith(
+                notifyOnStopLoss: value,
+              ),
+            );
             agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
           },
         ),
@@ -3826,9 +4175,11 @@ class _AgenticTradingSettingsWidgetState
           value: agenticTradingProvider.config.notifyOnEmergencyStop,
           onChanged: (value) {
             final newConfig = _createFullConfigFromSettings(
-                agenticTradingProvider,
-                baseConfig: agenticTradingProvider.config
-                    .copyWith(notifyOnEmergencyStop: value));
+              agenticTradingProvider,
+              baseConfig: agenticTradingProvider.config.copyWith(
+                notifyOnEmergencyStop: value,
+              ),
+            );
             agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
           },
         ),
@@ -3841,9 +4192,11 @@ class _AgenticTradingSettingsWidgetState
           value: agenticTradingProvider.config.notifyDailySummary,
           onChanged: (value) {
             final newConfig = _createFullConfigFromSettings(
-                agenticTradingProvider,
-                baseConfig: agenticTradingProvider.config
-                    .copyWith(notifyDailySummary: value));
+              agenticTradingProvider,
+              baseConfig: agenticTradingProvider.config.copyWith(
+                notifyDailySummary: value,
+              ),
+            );
             agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
           },
           extraContent: Align(
@@ -3857,10 +4210,12 @@ class _AgenticTradingSettingsWidgetState
                 icon: const Icon(Icons.summarize, size: 18),
                 label: const Text('Send Daily Summary Now'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor:
-                      Theme.of(context).colorScheme.primaryContainer,
-                  foregroundColor:
-                      Theme.of(context).colorScheme.onPrimaryContainer,
+                  backgroundColor: Theme.of(
+                    context,
+                  ).colorScheme.primaryContainer,
+                  foregroundColor: Theme.of(
+                    context,
+                  ).colorScheme.onPrimaryContainer,
                   elevation: 0,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(20),
@@ -3873,34 +4228,40 @@ class _AgenticTradingSettingsWidgetState
         const SizedBox(height: 16),
         Container(
           decoration: BoxDecoration(
-            color: Theme.of(context)
-                .colorScheme
-                .surfaceContainerHighest
-                .withValues(alpha: 0.3),
+            color: Theme.of(
+              context,
+            ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color:
-                  Theme.of(context).colorScheme.outline.withValues(alpha: 0.1),
+              color: Theme.of(
+                context,
+              ).colorScheme.outline.withValues(alpha: 0.1),
             ),
           ),
           child: Material(
             color: Colors.transparent,
             child: ListTile(
-              title: const Text('Trade Signal Alerts',
-                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
-              subtitle: const Text('Configure push notifications for signals',
-                  style: TextStyle(fontSize: 13)),
+              title: const Text(
+                'Trade Signal Alerts',
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+              ),
+              subtitle: const Text(
+                'Configure push notifications for signals',
+                style: TextStyle(fontSize: 13),
+              ),
               leading: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Theme.of(context)
-                      .colorScheme
-                      .primary
-                      .withValues(alpha: 0.1),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(Icons.notifications_active,
-                    color: Theme.of(context).colorScheme.primary, size: 20),
+                child: Icon(
+                  Icons.notifications_active,
+                  color: Theme.of(context).colorScheme.primary,
+                  size: 20,
+                ),
               ),
               trailing: const Icon(Icons.chevron_right),
               onTap: () {
@@ -3921,7 +4282,9 @@ class _AgenticTradingSettingsWidgetState
   }
 
   Widget _buildBacktesting(
-      BuildContext context, AgenticTradingProvider agenticTradingProvider) {
+    BuildContext context,
+    AgenticTradingProvider agenticTradingProvider,
+  ) {
     final colorScheme = Theme.of(context).colorScheme;
     return _buildSection(
       context: context,
@@ -3939,30 +4302,36 @@ class _AgenticTradingSettingsWidgetState
           child: OutlinedButton.icon(
             onPressed: () {
               // Create config from current settings
-              final config =
-                  _createFullConfigFromSettings(agenticTradingProvider);
-              final brokerageUserStore =
-                  Provider.of<BrokerageUserStore>(context, listen: false);
+              final config = _createFullConfigFromSettings(
+                agenticTradingProvider,
+              );
+              final brokerageUserStore = Provider.of<BrokerageUserStore>(
+                context,
+                listen: false,
+              );
               final brokerageUser = brokerageUserStore.items.isNotEmpty
-                  ? brokerageUserStore
-                      .items[brokerageUserStore.currentUserIndex]
+                  ? brokerageUserStore.items[brokerageUserStore
+                        .currentUserIndex]
                   : null;
 
               if (brokerageUser == null) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                      content: Text('Please log in for signal search.')),
+                    content: Text('Please log in for signal search.'),
+                  ),
                 );
                 return;
               }
 
               final initialIndicators = config
-                  .strategyConfig.enabledIndicators.entries
+                  .strategyConfig
+                  .enabledIndicators
+                  .entries
                   .where((e) => e.value)
                   .fold<Map<String, String>>({}, (prev, element) {
-                prev[element.key] = "BUY";
-                return prev;
-              });
+                    prev[element.key] = "BUY";
+                    return prev;
+                  });
 
               Navigator.push(
                 context,
@@ -3998,13 +4367,16 @@ class _AgenticTradingSettingsWidgetState
           child: ElevatedButton.icon(
             onPressed: () {
               // Create config from current settings
-              final config =
-                  _createFullConfigFromSettings(agenticTradingProvider);
-              final brokerageUserStore =
-                  Provider.of<BrokerageUserStore>(context, listen: false);
+              final config = _createFullConfigFromSettings(
+                agenticTradingProvider,
+              );
+              final brokerageUserStore = Provider.of<BrokerageUserStore>(
+                context,
+                listen: false,
+              );
               final brokerageUser = brokerageUserStore.items.isNotEmpty
-                  ? brokerageUserStore
-                      .items[brokerageUserStore.currentUserIndex]
+                  ? brokerageUserStore.items[brokerageUserStore
+                        .currentUserIndex]
                   : null;
 
               Navigator.push(
@@ -4051,23 +4423,22 @@ class _AgenticTradingSettingsWidgetState
       margin: const EdgeInsets.only(bottom: 16),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(
-          color: colorScheme.outline.withValues(alpha: 0.1),
-        ),
+        side: BorderSide(color: colorScheme.outline.withValues(alpha: 0.1)),
       ),
       clipBehavior: Clip.antiAlias,
       color: colorScheme.surface,
       child: Theme(
         data: Theme.of(context).copyWith(
           dividerColor: Colors.transparent,
-          splashColor:
-              colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+          splashColor: colorScheme.surfaceContainerHighest.withValues(
+            alpha: 0.3,
+          ),
         ),
         child: ExpansionTile(
           initiallyExpanded: initiallyExpanded,
           backgroundColor: colorScheme.surfaceContainer.withValues(alpha: 0.2),
-          collapsedBackgroundColor:
-              colorScheme.surfaceContainerHighest.withValues(alpha: 0.1),
+          collapsedBackgroundColor: colorScheme.surfaceContainerHighest
+              .withValues(alpha: 0.1),
           shape: const Border.fromBorderSide(BorderSide.none),
           collapsedShape: const Border.fromBorderSide(BorderSide.none),
           leading: Container(
@@ -4094,7 +4465,9 @@ class _AgenticTradingSettingsWidgetState
   }
 
   void _showLastExecutionDetails(
-      BuildContext context, AgenticTradingProvider provider) {
+    BuildContext context,
+    AgenticTradingProvider provider,
+  ) {
     if (provider.lastAutoTradeResult == null) return;
 
     final result = provider.lastAutoTradeResult!;
@@ -4112,12 +4485,14 @@ class _AgenticTradingSettingsWidgetState
     }
     executionTime ??= DateTime.now();
     final message = result['message']?.toString() ?? 'No message';
-    final isNoAction = !isSuccess &&
+    final isNoAction =
+        !isSuccess &&
         (message.contains('No trades executed') ||
             message.contains('No BUY signals') ||
             message.contains('No signals'));
     final trades = result['trades'] is List ? result['trades'] as List : [];
-    final signals = (result['processedSignals'] is List &&
+    final signals =
+        (result['processedSignals'] is List &&
             (result['processedSignals'] as List).isNotEmpty)
         ? (result['processedSignals'] as List)
         : provider.signalProcessingHistory.take(20).toList();
@@ -4151,15 +4526,15 @@ class _AgenticTradingSettingsWidgetState
                 color: isSuccess
                     ? Colors.green.withValues(alpha: 0.1)
                     : (isNoAction
-                        ? Colors.orange.withValues(alpha: 0.1)
-                        : colorScheme.error.withValues(alpha: 0.1)),
+                          ? Colors.orange.withValues(alpha: 0.1)
+                          : colorScheme.error.withValues(alpha: 0.1)),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
                   color: isSuccess
                       ? Colors.green.withValues(alpha: 0.3)
                       : (isNoAction
-                          ? Colors.orange.withValues(alpha: 0.3)
-                          : colorScheme.error.withValues(alpha: 0.3)),
+                            ? Colors.orange.withValues(alpha: 0.3)
+                            : colorScheme.error.withValues(alpha: 0.3)),
                 ),
               ),
               child: Column(
@@ -4171,8 +4546,8 @@ class _AgenticTradingSettingsWidgetState
                         isSuccess
                             ? Icons.check_circle
                             : (isNoAction
-                                ? Icons.info_outline
-                                : Icons.error_outline),
+                                  ? Icons.info_outline
+                                  : Icons.error_outline),
                         size: 20,
                         color: isSuccess
                             ? Colors.green
@@ -4189,8 +4564,8 @@ class _AgenticTradingSettingsWidgetState
                           color: isSuccess
                               ? Colors.green
                               : (isNoAction
-                                  ? Colors.orange
-                                  : colorScheme.error),
+                                    ? Colors.orange
+                                    : colorScheme.error),
                         ),
                       ),
                       const Spacer(),
@@ -4288,68 +4663,73 @@ class _AgenticTradingSettingsWidgetState
                 ),
               ),
               const SizedBox(height: 8),
-              Builder(builder: (context) {
-                final trade = provider.autoTradeHistory.first;
-                final symbol = trade['symbol'] ?? 'Unknown';
-                final side = trade['action'] ?? 'Unknown';
-                final quantity = trade['quantity'] ?? 0;
-                final price = trade['price'];
-                final reason = trade['rejectionReason'] as String? ??
-                    (trade['paperMode'] == true ? 'Paper Trade' : null);
+              Builder(
+                builder: (context) {
+                  final trade = provider.autoTradeHistory.first;
+                  final symbol = trade['symbol'] ?? 'Unknown';
+                  final side = trade['action'] ?? 'Unknown';
+                  final quantity = trade['quantity'] ?? 0;
+                  final price = trade['price'];
+                  final reason =
+                      trade['rejectionReason'] as String? ??
+                      (trade['paperMode'] == true ? 'Paper Trade' : null);
 
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  elevation: 0,
-                  color: colorScheme.surfaceContainer,
-                  child: ListTile(
-                    leading: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: side.toString().toLowerCase() == 'buy'
-                            ? Colors.green.withValues(alpha: 0.1)
-                            : Colors.red.withValues(alpha: 0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Text(
-                        (side.toString().isNotEmpty
-                                ? side.toString().substring(0, 1)
-                                : '?')
-                            .toUpperCase(),
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
+                  return Card(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    elevation: 0,
+                    color: colorScheme.surfaceContainer,
+                    child: ListTile(
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
                           color: side.toString().toLowerCase() == 'buy'
-                              ? Colors.green
-                              : Colors.red,
+                              ? Colors.green.withValues(alpha: 0.1)
+                              : Colors.red.withValues(alpha: 0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Text(
+                          (side.toString().isNotEmpty
+                                  ? side.toString().substring(0, 1)
+                                  : '?')
+                              .toUpperCase(),
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: side.toString().toLowerCase() == 'buy'
+                                ? Colors.green
+                                : Colors.red,
+                          ),
                         ),
                       ),
-                    ),
-                    title: Text('$quantity $symbol'),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (price != null) Text('@ \$${price.toString()}'),
-                        if (trade['timestamp'] != null)
-                          Text(
-                            _formatTime(DateTime.tryParse(trade['timestamp']) ??
-                                DateTime.now()),
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: colorScheme.onSurfaceVariant,
+                      title: Text('$quantity $symbol'),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (price != null) Text('@ \$${price.toString()}'),
+                          if (trade['timestamp'] != null)
+                            Text(
+                              _formatTime(
+                                DateTime.tryParse(trade['timestamp']) ??
+                                    DateTime.now(),
+                              ),
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: colorScheme.onSurfaceVariant,
+                              ),
                             ),
-                          ),
-                        if (reason != null)
-                          Text(
-                            reason,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: colorScheme.onSurfaceVariant,
+                          if (reason != null)
+                            Text(
+                              reason,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: colorScheme.onSurfaceVariant,
+                              ),
                             ),
-                          ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                );
-              }),
+                  );
+                },
+              ),
             ],
             if (signals.isNotEmpty) ...[
               const SizedBox(height: 24),
@@ -4397,8 +4777,9 @@ class _AgenticTradingSettingsWidgetState
                             const SizedBox(width: 8),
                             Text(
                               symbol,
-                              style:
-                                  const TextStyle(fontWeight: FontWeight.bold),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                             if (price != null) ...[
                               const SizedBox(width: 8),
@@ -4414,14 +4795,17 @@ class _AgenticTradingSettingsWidgetState
                             if (strength != null)
                               Container(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 6, vertical: 2),
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
                                 decoration: BoxDecoration(
-                                  color: (strength >= 80
-                                          ? Colors.green
-                                          : (strength >= 60
-                                              ? Colors.orange
-                                              : Colors.red))
-                                      .withValues(alpha: 0.1),
+                                  color:
+                                      (strength >= 80
+                                              ? Colors.green
+                                              : (strength >= 60
+                                                    ? Colors.orange
+                                                    : Colors.red))
+                                          .withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(4),
                                 ),
                                 child: Text(
@@ -4432,8 +4816,8 @@ class _AgenticTradingSettingsWidgetState
                                     color: strength >= 80
                                         ? Colors.green
                                         : (strength >= 60
-                                            ? Colors.orange
-                                            : Colors.red),
+                                              ? Colors.orange
+                                              : Colors.red),
                                   ),
                                 ),
                               ),
@@ -4467,8 +4851,9 @@ class _AgenticTradingSettingsWidgetState
                             child: Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: colorScheme.primaryContainer
-                                    .withValues(alpha: 0.3),
+                                color: colorScheme.primaryContainer.withValues(
+                                  alpha: 0.3,
+                                ),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Column(
@@ -4476,8 +4861,11 @@ class _AgenticTradingSettingsWidgetState
                                 children: [
                                   Row(
                                     children: [
-                                      Icon(Icons.auto_awesome,
-                                          size: 12, color: colorScheme.primary),
+                                      Icon(
+                                        Icons.auto_awesome,
+                                        size: 12,
+                                        color: colorScheme.primary,
+                                      ),
                                       const SizedBox(width: 4),
                                       Text(
                                         'AI Optimization',
@@ -4517,12 +4905,13 @@ class _AgenticTradingSettingsWidgetState
                             padding: const EdgeInsets.only(top: 8),
                             child: Text(
                               DateFormat('MMM d, h:mm a').format(
-                                  DateTime.fromMillisecondsSinceEpoch(
-                                      timestamp)),
+                                DateTime.fromMillisecondsSinceEpoch(timestamp),
+                              ),
                               style: TextStyle(
                                 fontSize: 10,
-                                color: colorScheme.onSurfaceVariant
-                                    .withValues(alpha: 0.6),
+                                color: colorScheme.onSurfaceVariant.withValues(
+                                  alpha: 0.6,
+                                ),
                               ),
                             ),
                           ),
@@ -4545,8 +4934,11 @@ class _AgenticTradingSettingsWidgetState
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon,
-              size: 14, color: colorScheme.primary.withValues(alpha: 0.7)),
+          Icon(
+            icon,
+            size: 14,
+            color: colorScheme.primary.withValues(alpha: 0.7),
+          ),
           const SizedBox(width: 8),
           Expanded(
             child: RichText(

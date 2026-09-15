@@ -30,14 +30,17 @@ enum SortType { alphabetical, change }
 enum SortDirection { asc, desc }
 
 class ListsWidget extends StatefulWidget {
-  const ListsWidget(this.brokerageUser, this.service,
-      {super.key,
-      required this.analytics,
-      required this.observer,
-      required this.generativeService,
-      this.navigatorKey,
-      required this.user,
-      required this.userDocRef});
+  const ListsWidget(
+    this.brokerageUser,
+    this.service, {
+    super.key,
+    required this.analytics,
+    required this.observer,
+    required this.generativeService,
+    this.navigatorKey,
+    required this.user,
+    required this.userDocRef,
+  });
 
   final GlobalKey<NavigatorState>? navigatorKey;
   final FirebaseAnalytics analytics;
@@ -67,9 +70,7 @@ class _ListsWidgetState extends State<ListsWidget>
   @override
   void initState() {
     super.initState();
-    widget.analytics.logScreenView(
-      screenName: 'Lists',
-    );
+    widget.analytics.logScreenView(screenName: 'Lists');
   }
 
   @override
@@ -89,88 +90,104 @@ class _ListsWidgetState extends State<ListsWidget>
       return Container();
     }
     watchlistStream ??= widget.service.streamLists(
-        widget.brokerageUser,
-        Provider.of<InstrumentStore>(context, listen: false),
-        Provider.of<QuoteStore>(context, listen: false));
+      widget.brokerageUser,
+      Provider.of<InstrumentStore>(context, listen: false),
+      Provider.of<QuoteStore>(context, listen: false),
+    );
     return StreamBuilder(
-        stream: watchlistStream,
-        builder: (context4, snapshot) {
-          if (snapshot.hasData) {
-            watchlists = snapshot.data!;
-            if (watchlists!.isNotEmpty) {
-              // Check if a group watchlist is selected for the widget
-              HomeWidgetService.getSelectedGroupWatchlist()
-                  .then((selectedGroupWatchlist) async {
-                if (selectedGroupWatchlist != null) {
-                  // Update widget with selected group watchlist
-                  final groupWatchlistService = GroupWatchlistService();
-                  final groupWatchlists = await groupWatchlistService
-                      .getGroupWatchlistsStream(
-                          selectedGroupWatchlist['groupId']!)
-                      .first;
-                  final selectedWatchlist = groupWatchlists.firstWhere(
-                    (wl) => wl.id == selectedGroupWatchlist['watchlistId'],
-                  );
+      stream: watchlistStream,
+      builder: (context4, snapshot) {
+        if (snapshot.hasData) {
+          watchlists = snapshot.data!;
+          if (watchlists!.isNotEmpty) {
+            // Check if a group watchlist is selected for the widget
+            HomeWidgetService.getSelectedGroupWatchlist()
+                .then((selectedGroupWatchlist) async {
+                  if (selectedGroupWatchlist != null) {
+                    // Update widget with selected group watchlist
+                    final groupWatchlistService = GroupWatchlistService();
+                    final groupWatchlists = await groupWatchlistService
+                        .getGroupWatchlistsStream(
+                          selectedGroupWatchlist['groupId']!,
+                        )
+                        .first;
+                    final selectedWatchlist = groupWatchlists.firstWhere(
+                      (wl) => wl.id == selectedGroupWatchlist['watchlistId'],
+                    );
 
-                  // Get quote data for the symbols
-                  final quoteStore =
-                      Provider.of<QuoteStore>(context, listen: false);
-                  final quoteData = <String, Map<String, dynamic>>{};
+                    // Get quote data for the symbols
+                    final quoteStore = Provider.of<QuoteStore>(
+                      context,
+                      listen: false,
+                    );
+                    final quoteData = <String, Map<String, dynamic>>{};
 
-                  for (final symbol in selectedWatchlist.symbols) {
-                    final quotes = quoteStore.items
-                        .where((q) => q.symbol == symbol.symbol);
-                    final quote = quotes.isNotEmpty ? quotes.first : null;
-                    quoteData[symbol.symbol] = {
-                      'lastTradePrice': quote?.lastTradePrice ?? 0.0,
-                      'previousClose': quote?.previousClose ?? 0.0,
-                    };
+                    for (final symbol in selectedWatchlist.symbols) {
+                      final quotes = quoteStore.items.where(
+                        (q) => q.symbol == symbol.symbol,
+                      );
+                      final quote = quotes.isNotEmpty ? quotes.first : null;
+                      quoteData[symbol.symbol] = {
+                        'lastTradePrice': quote?.lastTradePrice ?? 0.0,
+                        'previousClose': quote?.previousClose ?? 0.0,
+                      };
+                    }
+
+                    HomeWidgetService.updateGroupWatchlist(
+                      selectedWatchlist,
+                      quoteData,
+                    );
+                  } else {
+                    // Update widget with regular watchlist
+                    HomeWidgetService.updateWatchlist(watchlists!.first.items);
                   }
-
-                  HomeWidgetService.updateGroupWatchlist(
-                      selectedWatchlist, quoteData);
-                } else {
-                  // Update widget with regular watchlist
+                })
+                .catchError((error) {
+                  // If there's an error getting the group watchlist, fall back to regular watchlist
                   HomeWidgetService.updateWatchlist(watchlists!.first.items);
-                }
-              }).catchError((error) {
-                // If there's an error getting the group watchlist, fall back to regular watchlist
-                HomeWidgetService.updateWatchlist(watchlists!.first.items);
-              });
-            }
-            for (var watchList in watchlists!) {
-              if (_sortType == SortType.alphabetical) {
-                watchList.items.sort((a, b) =>
-                    a.instrumentObj != null && b.instrumentObj != null
-                        ? (_sortDirection == SortDirection.asc
-                            ? (a.instrumentObj!.symbol
-                                .compareTo(b.instrumentObj!.symbol))
-                            : (b.instrumentObj!.symbol
-                                .compareTo(a.instrumentObj!.symbol)))
-                        : 0);
-              } else if (_sortType == SortType.change) {
-                watchList.items.sort((a, b) => a.instrumentObj != null &&
-                        b.instrumentObj != null
-                    ? (_sortDirection == SortDirection.asc
-                        ? (b.instrumentObj!.quoteObj!.changePercentToday
-                            .compareTo(
-                                a.instrumentObj!.quoteObj!.changePercentToday))
-                        : (a.instrumentObj!.quoteObj!.changePercentToday
-                            .compareTo(
-                                b.instrumentObj!.quoteObj!.changePercentToday)))
-                    : 0);
-              }
-            }
-            //return _buildScaffold();
-          } else if (snapshot.hasError) {
-            debugPrint("${snapshot.error}");
-            return _buildScaffold(welcomeWidget: Text("${snapshot.error}"));
-          } else {
-            // No Watchlists found.
+                });
           }
-          return _buildScaffold(
-              done: snapshot.connectionState == ConnectionState.done);
-        });
+          for (var watchList in watchlists!) {
+            if (_sortType == SortType.alphabetical) {
+              watchList.items.sort(
+                (a, b) => a.instrumentObj != null && b.instrumentObj != null
+                    ? (_sortDirection == SortDirection.asc
+                          ? (a.instrumentObj!.symbol.compareTo(
+                              b.instrumentObj!.symbol,
+                            ))
+                          : (b.instrumentObj!.symbol.compareTo(
+                              a.instrumentObj!.symbol,
+                            )))
+                    : 0,
+              );
+            } else if (_sortType == SortType.change) {
+              watchList.items.sort(
+                (a, b) => a.instrumentObj != null && b.instrumentObj != null
+                    ? (_sortDirection == SortDirection.asc
+                          ? (b.instrumentObj!.quoteObj!.changePercentToday
+                                .compareTo(
+                                  a.instrumentObj!.quoteObj!.changePercentToday,
+                                ))
+                          : (a.instrumentObj!.quoteObj!.changePercentToday
+                                .compareTo(
+                                  b.instrumentObj!.quoteObj!.changePercentToday,
+                                )))
+                    : 0,
+              );
+            }
+          }
+          //return _buildScaffold();
+        } else if (snapshot.hasError) {
+          debugPrint("${snapshot.error}");
+          return _buildScaffold(welcomeWidget: Text("${snapshot.error}"));
+        } else {
+          // No Watchlists found.
+        }
+        return _buildScaffold(
+          done: snapshot.connectionState == ConnectionState.done,
+        );
+      },
+    );
   }
 
   void _showCreateListDialog() {
@@ -186,75 +203,86 @@ class _ListsWidgetState extends State<ListsWidget>
       "👀",
       "❤️",
       "⭐",
-      "⚠️"
+      "⚠️",
     ];
 
     showDialog(
       context: context,
       builder: (context) {
-        return StatefulBuilder(builder: (context, setStateDialog) {
-          return AlertDialog(
-            title: const Text("Create New List"),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: nameController,
-                  decoration: const InputDecoration(labelText: "List Name"),
-                ),
-                const SizedBox(height: 16),
-                const Text("Select Icon"),
-                Wrap(
-                  spacing: 8.0,
-                  children: emojis.map((emoji) {
-                    return ChoiceChip(
-                      label: Text(emoji, style: const TextStyle(fontSize: 24)),
-                      selected: selectedEmoji == emoji,
-                      onSelected: (bool selected) {
-                        setStateDialog(() {
-                          selectedEmoji = emoji;
-                        });
-                      },
-                    );
-                  }).toList(),
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                child: const Text("Cancel"),
-                onPressed: () => Navigator.pop(context),
+        return StatefulBuilder(
+          builder: (context, setStateDialog) {
+            return AlertDialog(
+              title: const Text("Create New List"),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: nameController,
+                    decoration: const InputDecoration(labelText: "List Name"),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text("Select Icon"),
+                  Wrap(
+                    spacing: 8.0,
+                    children: emojis.map((emoji) {
+                      return ChoiceChip(
+                        label: Text(
+                          emoji,
+                          style: const TextStyle(fontSize: 24),
+                        ),
+                        selected: selectedEmoji == emoji,
+                        onSelected: (bool selected) {
+                          setStateDialog(() {
+                            selectedEmoji = emoji;
+                          });
+                        },
+                      );
+                    }).toList(),
+                  ),
+                ],
               ),
-              TextButton(
-                child: const Text("Create"),
-                onPressed: () async {
-                  if (nameController.text.isNotEmpty) {
-                    try {
-                      await widget.service.createList(
-                          widget.brokerageUser, nameController.text,
-                          emoji: selectedEmoji);
-                      if (context.mounted) {
-                        Navigator.pop(context);
-                        setState(() {
-                          watchlistStream = widget.service.streamLists(
+              actions: [
+                TextButton(
+                  child: const Text("Cancel"),
+                  onPressed: () => Navigator.pop(context),
+                ),
+                TextButton(
+                  child: const Text("Create"),
+                  onPressed: () async {
+                    if (nameController.text.isNotEmpty) {
+                      try {
+                        await widget.service.createList(
+                          widget.brokerageUser,
+                          nameController.text,
+                          emoji: selectedEmoji,
+                        );
+                        if (context.mounted) {
+                          Navigator.pop(context);
+                          setState(() {
+                            watchlistStream = widget.service.streamLists(
                               widget.brokerageUser,
-                              Provider.of<InstrumentStore>(context,
-                                  listen: false),
-                              Provider.of<QuoteStore>(context, listen: false));
-                        });
-                      }
-                    } catch (e) {
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context)
-                            .showSnackBar(SnackBar(content: Text("Error: $e")));
+                              Provider.of<InstrumentStore>(
+                                context,
+                                listen: false,
+                              ),
+                              Provider.of<QuoteStore>(context, listen: false),
+                            );
+                          });
+                        }
+                      } catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(
+                            context,
+                          ).showSnackBar(SnackBar(content: Text("Error: $e")));
+                        }
                       }
                     }
-                  }
-                },
-              ),
-            ],
-          );
-        });
+                  },
+                ),
+              ],
+            );
+          },
+        );
       },
     );
   }
@@ -270,372 +298,384 @@ class _ListsWidgetState extends State<ListsWidget>
     }
     */
     return Scaffold(
-        body: CustomScrollView(slivers: [
-      SliverAppBar(
-        floating: false,
-        snap: false,
-        pinned: true,
-        centerTitle: false,
-        // title: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        //   const Text('Lists', style: TextStyle(fontSize: 20.0)),
-        //   Text(
-        //     "${formatCompactNumber.format(totalItems)} items in ${formatCompactNumber.format(totalLists)} lists",
-        //     style: const TextStyle(fontSize: 16.0),
-        //   )
-        // ]),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: _showCreateListDialog,
-          ),
-          if (auth.currentUser != null)
-            AutoTradeStatusBadgeWidget(
-              user: widget.user,
-              userDocRef: widget.userDocRef,
-              service: widget.service,
-              userAvatar: auth.currentUser!.photoURL == null
-                  ? const Icon(Icons.account_circle)
-                  : CircleAvatar(
-                      maxRadius: 11,
-                      backgroundImage: CachedNetworkImageProvider(
-                          auth.currentUser!.photoURL!)),
-              onProfileTap: () async {
-                var response = await showProfile(
-                    context,
-                    auth,
-                    _firestoreService,
-                    widget.analytics,
-                    widget.observer,
-                    widget.brokerageUser,
-                    widget.service);
-                if (response != null) {
-                  setState(() {});
-                }
-              },
-            )
-          else
-            IconButton(
-                icon: const Icon(Icons.login),
-                onPressed: () async {
-                  var response = await showProfile(
+      body: CustomScrollView(
+        slivers: [
+          SliverAppBar(
+            floating: false,
+            snap: false,
+            pinned: true,
+            centerTitle: false,
+            // title: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            //   const Text('Lists', style: TextStyle(fontSize: 20.0)),
+            //   Text(
+            //     "${formatCompactNumber.format(totalItems)} items in ${formatCompactNumber.format(totalLists)} lists",
+            //     style: const TextStyle(fontSize: 16.0),
+            //   )
+            // ]),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.add),
+                onPressed: _showCreateListDialog,
+              ),
+              if (auth.currentUser != null)
+                AutoTradeStatusBadgeWidget(
+                  user: widget.user,
+                  userDocRef: widget.userDocRef,
+                  service: widget.service,
+                  userAvatar: auth.currentUser!.photoURL == null
+                      ? const Icon(Icons.account_circle)
+                      : CircleAvatar(
+                          maxRadius: 11,
+                          backgroundImage: CachedNetworkImageProvider(
+                            auth.currentUser!.photoURL!,
+                          ),
+                        ),
+                  onProfileTap: () async {
+                    var response = await showProfile(
                       context,
                       auth,
                       _firestoreService,
                       widget.analytics,
                       widget.observer,
                       widget.brokerageUser,
-                      widget.service);
-                  if (response != null) {
-                    setState(() {});
-                  }
-                }),
-          // IconButton(
-          //     icon: const Icon(Icons.sort),
-          //     onPressed: () {
-          //       showModalBottomSheet<void>(
-          //         context: context,
-          //         showDragHandle: true,
-          //         //constraints: BoxConstraints(maxHeight: 260),
-          //         builder: (BuildContext context) {
-          //           return Column(
-          //             mainAxisAlignment: MainAxisAlignment.start,
-          //             crossAxisAlignment: CrossAxisAlignment.start,
-          //             children: [
-          //               ListTile(
-          //                 // tileColor: Theme.of(context).colorScheme.primary,
-          //                 leading: const Icon(Icons.sort),
-          //                 title: const Text(
-          //                   "Sort Watch List",
-          //                   style: TextStyle(fontSize: 19.0),
-          //                 ),
-          //                 /*
-          //                         trailing: TextButton(
-          //                             child: const Text("APPLY"),
-          //                             onPressed: () => Navigator.pop(context))*/
-          //               ),
-          //               Column(
-          //                 mainAxisAlignment: MainAxisAlignment.start,
-          //                 crossAxisAlignment: CrossAxisAlignment.start,
-          //                 children: [
-          //                   RadioListTile<SortType>(
-          //                     title: const Text('Alphabetical'),
-          //                     value: SortType.alphabetical,
-          //                     groupValue: _sortType,
-          //                     onChanged: (SortType? value) {
-          //                       Navigator.pop(context);
-          //                       setState(() {
-          //                         _sortType = value;
-          //                         _sortDirection = SortDirection.asc;
-          //                       });
-          //                     },
-          //                     secondary: _sortType == SortType.alphabetical
-          //                         ? IconButton(
-          //                             icon: Icon(
-          //                                 _sortDirection == SortDirection.desc
-          //                                     ? Icons.south
-          //                                     : Icons.north),
-          //                             onPressed: () {
-          //                               Navigator.pop(context, 'dialog');
-          //                               setState(() {
-          //                                 _sortDirection = _sortDirection ==
-          //                                         SortDirection.asc
-          //                                     ? SortDirection.desc
-          //                                     : SortDirection.asc;
-          //                               });
-          //                               // showSettings();
-          //                             },
-          //                           )
-          //                         : null,
-          //                   ),
-          //                   RadioListTile<SortType>(
-          //                     title: const Text('Change (Ascending)'),
-          //                     value: SortType.change,
-          //                     groupValue: _sortType,
-          //                     onChanged: (SortType? value) {
-          //                       Navigator.pop(context);
-          //                       setState(() {
-          //                         _sortType = value;
-          //                         _sortDirection = SortDirection.asc;
-          //                       });
-          //                     },
-          //                     secondary: _sortType == SortType.change
-          //                         ? IconButton(
-          //                             icon: Icon(
-          //                                 _sortDirection == SortDirection.desc
-          //                                     ? Icons.south
-          //                                     : Icons.north),
-          //                             onPressed: () {
-          //                               Navigator.pop(context, 'dialog');
-          //                               setState(() {
-          //                                 _sortDirection = _sortDirection ==
-          //                                         SortDirection.asc
-          //                                     ? SortDirection.desc
-          //                                     : SortDirection.asc;
-          //                               });
-          //                               // showSettings();
-          //                             },
-          //                           )
-          //                         : null,
-          //                   ),
-          //                 ],
-          //               )
-          //             ],
-          //           );
-          //         },
-          //       );
-          //     })
-        ],
-      ),
-      if (done == false) ...[
-        const SliverToBoxAdapter(
-            child: SizedBox(
-          height: 3, //150.0,
-          child: Align(
-              alignment: Alignment.center,
-              child: Center(
-                  child: LinearProgressIndicator(
+                      widget.service,
+                    );
+                    if (response != null) {
+                      setState(() {});
+                    }
+                  },
+                )
+              else
+                IconButton(
+                  icon: const Icon(Icons.login),
+                  onPressed: () async {
+                    var response = await showProfile(
+                      context,
+                      auth,
+                      _firestoreService,
+                      widget.analytics,
+                      widget.observer,
+                      widget.brokerageUser,
+                      widget.service,
+                    );
+                    if (response != null) {
+                      setState(() {});
+                    }
+                  },
+                ),
+              // IconButton(
+              //     icon: const Icon(Icons.sort),
+              //     onPressed: () {
+              //       showModalBottomSheet<void>(
+              //         context: context,
+              //         showDragHandle: true,
+              //         //constraints: BoxConstraints(maxHeight: 260),
+              //         builder: (BuildContext context) {
+              //           return Column(
+              //             mainAxisAlignment: MainAxisAlignment.start,
+              //             crossAxisAlignment: CrossAxisAlignment.start,
+              //             children: [
+              //               ListTile(
+              //                 // tileColor: Theme.of(context).colorScheme.primary,
+              //                 leading: const Icon(Icons.sort),
+              //                 title: const Text(
+              //                   "Sort Watch List",
+              //                   style: TextStyle(fontSize: 19.0),
+              //                 ),
+              //                 /*
+              //                         trailing: TextButton(
+              //                             child: const Text("APPLY"),
+              //                             onPressed: () => Navigator.pop(context))*/
+              //               ),
+              //               Column(
+              //                 mainAxisAlignment: MainAxisAlignment.start,
+              //                 crossAxisAlignment: CrossAxisAlignment.start,
+              //                 children: [
+              //                   RadioListTile<SortType>(
+              //                     title: const Text('Alphabetical'),
+              //                     value: SortType.alphabetical,
+              //                     groupValue: _sortType,
+              //                     onChanged: (SortType? value) {
+              //                       Navigator.pop(context);
+              //                       setState(() {
+              //                         _sortType = value;
+              //                         _sortDirection = SortDirection.asc;
+              //                       });
+              //                     },
+              //                     secondary: _sortType == SortType.alphabetical
+              //                         ? IconButton(
+              //                             icon: Icon(
+              //                                 _sortDirection == SortDirection.desc
+              //                                     ? Icons.south
+              //                                     : Icons.north),
+              //                             onPressed: () {
+              //                               Navigator.pop(context, 'dialog');
+              //                               setState(() {
+              //                                 _sortDirection = _sortDirection ==
+              //                                         SortDirection.asc
+              //                                     ? SortDirection.desc
+              //                                     : SortDirection.asc;
+              //                               });
+              //                               // showSettings();
+              //                             },
+              //                           )
+              //                         : null,
+              //                   ),
+              //                   RadioListTile<SortType>(
+              //                     title: const Text('Change (Ascending)'),
+              //                     value: SortType.change,
+              //                     groupValue: _sortType,
+              //                     onChanged: (SortType? value) {
+              //                       Navigator.pop(context);
+              //                       setState(() {
+              //                         _sortType = value;
+              //                         _sortDirection = SortDirection.asc;
+              //                       });
+              //                     },
+              //                     secondary: _sortType == SortType.change
+              //                         ? IconButton(
+              //                             icon: Icon(
+              //                                 _sortDirection == SortDirection.desc
+              //                                     ? Icons.south
+              //                                     : Icons.north),
+              //                             onPressed: () {
+              //                               Navigator.pop(context, 'dialog');
+              //                               setState(() {
+              //                                 _sortDirection = _sortDirection ==
+              //                                         SortDirection.asc
+              //                                     ? SortDirection.desc
+              //                                     : SortDirection.asc;
+              //                               });
+              //                               // showSettings();
+              //                             },
+              //                           )
+              //                         : null,
+              //                   ),
+              //                 ],
+              //               )
+              //             ],
+              //           );
+              //         },
+              //       );
+              //     })
+            ],
+          ),
+          if (done == false) ...[
+            const SliverToBoxAdapter(
+              child: SizedBox(
+                height: 3, //150.0,
+                child: Align(
+                  alignment: Alignment.center,
+                  child: Center(
+                    child: LinearProgressIndicator(
                       //value: controller.value,
                       //semanticsLabel: 'Linear progress indicator',
-                      ) //CircularProgressIndicator(),
-                  )),
-        ))
-      ],
-      if (welcomeWidget != null) ...[
-        SliverToBoxAdapter(
-            child: SizedBox(
-          height: 150.0,
-          child: Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Align(alignment: Alignment.center, child: welcomeWidget),
-          ),
-        ))
-      ],
-      if (watchlists != null) ...[
-        for (var watchlist in watchlists!) ...[
-          SliverStickyHeader(
-              header: Material(
+                    ), //CircularProgressIndicator(),
+                  ),
+                ),
+              ),
+            ),
+          ],
+          if (welcomeWidget != null) ...[
+            SliverToBoxAdapter(
+              child: SizedBox(
+                height: 150.0,
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Align(
+                    alignment: Alignment.center,
+                    child: welcomeWidget,
+                  ),
+                ),
+              ),
+            ),
+          ],
+          if (watchlists != null) ...[
+            for (var watchlist in watchlists!) ...[
+              SliverStickyHeader(
+                header: Material(
                   //elevation: 2,
                   child: Container(
-                      //height: 208.0, //60.0,
-                      //padding: EdgeInsets.symmetric(horizontal: 16.0),
-                      alignment: Alignment.centerLeft,
-                      child: ListTile(
-                        leading: watchlist.iconEmoji != null
-                            ? Text(
-                                watchlist.iconEmoji!,
-                                style: const TextStyle(fontSize: 32),
-                              )
-                            : null,
-                        title: Text(
-                          // "${watchlist.iconEmoji ?? ''} ${watchlist.displayName}".trim()
-                          watchlist.displayName.trim(),
-                          style: const TextStyle(fontSize: 20.0),
-                        ),
-                        subtitle: Text(
-                            "${formatCompactNumber.format(watchlist.items.length)} items"),
-                        trailing: PopupMenuButton<String>(
-                            icon: const Icon(Icons.more_vert),
-                            onSelected: (value) {
-                              if (value == 'sort') {
-                                showModalBottomSheet<void>(
-                                  context: context,
-                                  showDragHandle: true,
-                                  constraints:
-                                      const BoxConstraints(maxHeight: 260),
-                                  builder: (BuildContext context) {
-                                    return Column(
+                    //height: 208.0, //60.0,
+                    //padding: EdgeInsets.symmetric(horizontal: 16.0),
+                    alignment: Alignment.centerLeft,
+                    child: ListTile(
+                      leading: watchlist.iconEmoji != null
+                          ? Text(
+                              watchlist.iconEmoji!,
+                              style: const TextStyle(fontSize: 32),
+                            )
+                          : null,
+                      title: Text(
+                        // "${watchlist.iconEmoji ?? ''} ${watchlist.displayName}".trim()
+                        watchlist.displayName.trim(),
+                        style: const TextStyle(fontSize: 20.0),
+                      ),
+                      subtitle: Text(
+                        "${formatCompactNumber.format(watchlist.items.length)} items",
+                      ),
+                      trailing: PopupMenuButton<String>(
+                        icon: const Icon(Icons.more_vert),
+                        onSelected: (value) {
+                          if (value == 'sort') {
+                            showModalBottomSheet<void>(
+                              context: context,
+                              showDragHandle: true,
+                              constraints: const BoxConstraints(maxHeight: 260),
+                              builder: (BuildContext context) {
+                                return Column(
+                                  mainAxisAlignment: MainAxisAlignment.start,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    ListTile(
+                                      // tileColor: Theme.of(context)
+                                      //     .colorScheme
+                                      //     .primary,
+                                      title: const Text(
+                                        "Sort Watch List",
+                                        style: TextStyle(fontSize: 20.0),
+                                      ),
+                                      //trailing: TextButton(
+                                      //    child: const Text("APPLY"),
+                                      //    onPressed: () => Navigator.pop(context))
+                                    ),
+                                    Column(
                                       mainAxisAlignment:
                                           MainAxisAlignment.start,
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
-                                        ListTile(
-                                          // tileColor: Theme.of(context)
-                                          //     .colorScheme
-                                          //     .primary,
-                                          title: const Text(
-                                            "Sort Watch List",
-                                            style: TextStyle(fontSize: 20.0),
-                                          ),
-                                          //trailing: TextButton(
-                                          //    child: const Text("APPLY"),
-                                          //    onPressed: () => Navigator.pop(context))
+                                        RadioListTile<SortType>(
+                                          title: const Text('Alphabetical'),
+                                          value: SortType.alphabetical,
+                                          groupValue: _sortType,
+                                          onChanged: (SortType? value) {
+                                            Navigator.pop(context);
+                                            setState(() {
+                                              _sortType = value;
+                                            });
+                                          },
+                                          secondary:
+                                              _sortType == SortType.alphabetical
+                                              ? IconButton(
+                                                  icon: Icon(
+                                                    _sortDirection ==
+                                                            SortDirection.desc
+                                                        ? Icons.south
+                                                        : Icons.north,
+                                                  ),
+                                                  onPressed: () {
+                                                    Navigator.pop(
+                                                      context,
+                                                      'dialog',
+                                                    );
+                                                    setState(() {
+                                                      _sortDirection =
+                                                          _sortDirection ==
+                                                              SortDirection.asc
+                                                          ? SortDirection.desc
+                                                          : SortDirection.asc;
+                                                    });
+                                                    // showSettings();
+                                                  },
+                                                )
+                                              : null,
                                         ),
-                                        Column(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.start,
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            RadioListTile<SortType>(
-                                              title: const Text('Alphabetical'),
-                                              value: SortType.alphabetical,
-                                              groupValue: _sortType,
-                                              onChanged: (SortType? value) {
-                                                Navigator.pop(context);
-                                                setState(() {
-                                                  _sortType = value;
-                                                });
-                                              },
-                                              secondary: _sortType ==
-                                                      SortType.alphabetical
-                                                  ? IconButton(
-                                                      icon: Icon(
+                                        RadioListTile<SortType>(
+                                          title: const Text('Change'),
+                                          value: SortType.change,
+                                          groupValue: _sortType,
+                                          onChanged: (SortType? value) {
+                                            Navigator.pop(context);
+                                            setState(() {
+                                              _sortType = value;
+                                            });
+                                          },
+                                          secondary:
+                                              _sortType == SortType.change
+                                              ? IconButton(
+                                                  icon: Icon(
+                                                    _sortDirection ==
+                                                            SortDirection.desc
+                                                        ? Icons.south
+                                                        : Icons.north,
+                                                  ),
+                                                  onPressed: () {
+                                                    Navigator.pop(
+                                                      context,
+                                                      'dialog',
+                                                    );
+                                                    setState(() {
+                                                      _sortDirection =
                                                           _sortDirection ==
-                                                                  SortDirection
-                                                                      .desc
-                                                              ? Icons.south
-                                                              : Icons.north),
-                                                      onPressed: () {
-                                                        Navigator.pop(
-                                                            context, 'dialog');
-                                                        setState(() {
-                                                          _sortDirection =
-                                                              _sortDirection ==
-                                                                      SortDirection
-                                                                          .asc
-                                                                  ? SortDirection
-                                                                      .desc
-                                                                  : SortDirection
-                                                                      .asc;
-                                                        });
-                                                        // showSettings();
-                                                      },
-                                                    )
-                                                  : null,
-                                            ),
-                                            RadioListTile<SortType>(
-                                              title: const Text('Change'),
-                                              value: SortType.change,
-                                              groupValue: _sortType,
-                                              onChanged: (SortType? value) {
-                                                Navigator.pop(context);
-                                                setState(() {
-                                                  _sortType = value;
-                                                });
-                                              },
-                                              secondary: _sortType ==
-                                                      SortType.change
-                                                  ? IconButton(
-                                                      icon: Icon(
-                                                          _sortDirection ==
-                                                                  SortDirection
-                                                                      .desc
-                                                              ? Icons.south
-                                                              : Icons.north),
-                                                      onPressed: () {
-                                                        Navigator.pop(
-                                                            context, 'dialog');
-                                                        setState(() {
-                                                          _sortDirection =
-                                                              _sortDirection ==
-                                                                      SortDirection
-                                                                          .asc
-                                                                  ? SortDirection
-                                                                      .desc
-                                                                  : SortDirection
-                                                                      .asc;
-                                                        });
-                                                        // showSettings();
-                                                      },
-                                                    )
-                                                  : null,
-                                            ),
-                                          ],
-                                        )
+                                                              SortDirection.asc
+                                                          ? SortDirection.desc
+                                                          : SortDirection.asc;
+                                                    });
+                                                    // showSettings();
+                                                  },
+                                                )
+                                              : null,
+                                        ),
                                       ],
-                                    );
-                                  },
+                                    ),
+                                  ],
                                 );
-                              } else if (value == 'delete') {
-                                showDialog(
-                                    context: context,
-                                    builder: (BuildContext context) {
-                                      return AlertDialog(
-                                        title: const Text("Delete List"),
-                                        content: Text(
-                                            "Are you sure you want to delete ${watchlist.displayName}?"),
-                                        actions: [
-                                          TextButton(
-                                            child: const Text("Cancel"),
-                                            onPressed: () =>
-                                                Navigator.of(context).pop(),
-                                          ),
-                                          TextButton(
-                                            child: const Text("Delete"),
-                                            onPressed: () async {
-                                              Navigator.of(context).pop();
-                                              await widget.service.deleteList(
-                                                  widget.brokerageUser,
-                                                  watchlist.id);
-                                              setState(() {
-                                                watchlistStream = null;
-                                              });
-                                            },
-                                          ),
-                                        ],
-                                      );
-                                    });
-                              }
-                            },
-                            itemBuilder: (BuildContext context) =>
-                                <PopupMenuEntry<String>>[
-                                  const PopupMenuItem<String>(
-                                    value: 'sort',
-                                    child: ListTile(
-                                      leading: Icon(Icons.sort),
-                                      title: Text('Sort'),
-                                    ),
+                              },
+                            );
+                          } else if (value == 'delete') {
+                            showDialog(
+                              context: context,
+                              builder: (BuildContext context) {
+                                return AlertDialog(
+                                  title: const Text("Delete List"),
+                                  content: Text(
+                                    "Are you sure you want to delete ${watchlist.displayName}?",
                                   ),
-                                  const PopupMenuItem<String>(
-                                    value: 'delete',
-                                    child: ListTile(
-                                      leading: Icon(Icons.delete),
-                                      title: Text('Delete'),
+                                  actions: [
+                                    TextButton(
+                                      child: const Text("Cancel"),
+                                      onPressed: () =>
+                                          Navigator.of(context).pop(),
                                     ),
-                                  ),
-                                ]),
-                        /*
+                                    TextButton(
+                                      child: const Text("Delete"),
+                                      onPressed: () async {
+                                        Navigator.of(context).pop();
+                                        await widget.service.deleteList(
+                                          widget.brokerageUser,
+                                          watchlist.id,
+                                        );
+                                        setState(() {
+                                          watchlistStream = null;
+                                        });
+                                      },
+                                    ),
+                                  ],
+                                );
+                              },
+                            );
+                          }
+                        },
+                        itemBuilder: (BuildContext context) =>
+                            <PopupMenuEntry<String>>[
+                              const PopupMenuItem<String>(
+                                value: 'sort',
+                                child: ListTile(
+                                  leading: Icon(Icons.sort),
+                                  title: Text('Sort'),
+                                ),
+                              ),
+                              const PopupMenuItem<String>(
+                                value: 'delete',
+                                child: ListTile(
+                                  leading: Icon(Icons.delete),
+                                  title: Text('Delete'),
+                                ),
+                              ),
+                            ],
+                      ),
+                      /*
                             trailing: IconButton(
                                 icon: const Icon(Icons.sort),
                                 onPressed: () {
@@ -699,62 +739,57 @@ class _ListsWidgetState extends State<ListsWidget>
                                   );
                                 }),
                                 */
-                      ))),
-              sliver: watchListWidget(watchlist.items)),
-          const SliverToBoxAdapter(
-              child: SizedBox(
-            height: 25.0,
-          )),
-        ]
-      ],
-      // TODO: Introduce web banner
-      if (!kIsWeb) ...[
-        SliverToBoxAdapter(child: AdBannerWidget(size: AdSize.largeBanner)),
-      ],
-      const SliverToBoxAdapter(
-          child: SizedBox(
-        height: 25.0,
-      )),
-      const SliverToBoxAdapter(child: DisclaimerWidget()),
-      const SliverToBoxAdapter(
-          child: SizedBox(
-        height: 25.0,
-      )),
-    ]));
+                    ),
+                  ),
+                ),
+                sliver: watchListWidget(watchlist.items),
+              ),
+              const SliverToBoxAdapter(child: SizedBox(height: 25.0)),
+            ],
+          ],
+          // TODO: Introduce web banner
+          if (!kIsWeb) ...[
+            SliverToBoxAdapter(child: AdBannerWidget(size: AdSize.largeBanner)),
+          ],
+          const SliverToBoxAdapter(child: SizedBox(height: 25.0)),
+          const SliverToBoxAdapter(child: DisclaimerWidget()),
+          const SliverToBoxAdapter(child: SizedBox(height: 25.0)),
+        ],
+      ),
+    );
   }
 
   Widget watchListWidget(List<WatchlistItem> watchLists) {
     return SliverPadding(
-        padding: const EdgeInsets.symmetric(horizontal: 2),
-        sliver: SliverGrid(
-          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-            maxCrossAxisExtent: 220.0,
-            mainAxisSpacing: 10.0,
-            crossAxisSpacing: 10.0,
-            childAspectRatio: 1.25,
-          ),
-          delegate: SliverChildBuilderDelegate(
-            (BuildContext context, int index) {
-              return WatchlistGridItemWidget(
-                  watchLists[index],
-                  widget.brokerageUser,
-                  widget.service,
-                  widget.analytics,
-                  widget.observer,
-                  widget.generativeService,
-                  widget.user,
-                  widget.userDocRef);
-              /*
+      padding: const EdgeInsets.symmetric(horizontal: 2),
+      sliver: SliverGrid(
+        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+          maxCrossAxisExtent: 220.0,
+          mainAxisSpacing: 10.0,
+          crossAxisSpacing: 10.0,
+          childAspectRatio: 1.25,
+        ),
+        delegate: SliverChildBuilderDelegate((BuildContext context, int index) {
+          return WatchlistGridItemWidget(
+            watchLists[index],
+            widget.brokerageUser,
+            widget.service,
+            widget.analytics,
+            widget.observer,
+            widget.generativeService,
+            widget.user,
+            widget.userDocRef,
+          );
+          /*
           return Container(
             alignment: Alignment.center,
             color: Colors.teal[100 * (index % 9)],
             child: Text('grid item $index'),
           );
           */
-            },
-            childCount: watchLists.length,
-          ),
-        ));
+        }, childCount: watchLists.length),
+      ),
+    );
     /*
     return SliverList(
       // delegate: SliverChildListDelegate(widgets),

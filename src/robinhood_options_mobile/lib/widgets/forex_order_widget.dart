@@ -44,127 +44,130 @@ class _ForexOrderWidgetState extends State<ForexOrderWidget> {
           slivers: [
             SliverAppBar(
               title: Text(
-                  "${order.side == 'buy' ? 'Buy' : 'Sell'} ${order.currencyPairId}"),
+                "${order.side == 'buy' ? 'Buy' : 'Sell'} ${order.currencyPairId}",
+              ),
               pinned: true,
             ),
             SliverList(
-              delegate: SliverChildListDelegate(
-                [
-                  Card(
-                    margin: const EdgeInsets.all(10),
-                    child: Column(
-                      children: [
+              delegate: SliverChildListDelegate([
+                Card(
+                  margin: const EdgeInsets.all(10),
+                  child: Column(
+                    children: [
+                      ListTile(
+                        title: const Text("State"),
+                        trailing: Text(
+                          order.state ?? "",
+                          style: const TextStyle(fontSize: 16),
+                        ),
+                      ),
+                      if (order.averagePrice != null)
                         ListTile(
-                          title: const Text("State"),
+                          title: const Text("Average Price"),
                           trailing: Text(
-                            order.state ?? "",
+                            formatCurrency.format(order.averagePrice),
                             style: const TextStyle(fontSize: 16),
                           ),
                         ),
-                        if (order.averagePrice != null)
-                          ListTile(
-                            title: const Text("Average Price"),
-                            trailing: Text(
-                              formatCurrency.format(order.averagePrice),
-                              style: const TextStyle(fontSize: 16),
-                            ),
+                      if (order.price != null)
+                        ListTile(
+                          title: const Text("Price"),
+                          trailing: Text(
+                            formatCurrency.format(order.price),
+                            style: const TextStyle(fontSize: 16),
                           ),
-                        if (order.price != null)
-                          ListTile(
-                            title: const Text("Price"),
-                            trailing: Text(
-                              formatCurrency.format(order.price),
-                              style: const TextStyle(fontSize: 16),
-                            ),
+                        ),
+                      if (order.quantity != null)
+                        ListTile(
+                          title: const Text("Quantity"),
+                          trailing: Text(
+                            formatCompactNumber.format(order.quantity),
+                            style: const TextStyle(fontSize: 16),
                           ),
-                        if (order.quantity != null)
-                          ListTile(
-                            title: const Text("Quantity"),
-                            trailing: Text(
-                              formatCompactNumber.format(order.quantity),
-                              style: const TextStyle(fontSize: 16),
+                        ),
+                      if (order.cumulativeQuantity != null)
+                        ListTile(
+                          title: const Text("Filled Quantity"),
+                          trailing: Text(
+                            formatCompactNumber.format(
+                              order.cumulativeQuantity,
                             ),
+                            style: const TextStyle(fontSize: 16),
                           ),
-                        if (order.cumulativeQuantity != null)
-                          ListTile(
-                            title: const Text("Filled Quantity"),
-                            trailing: Text(
-                              formatCompactNumber
-                                  .format(order.cumulativeQuantity),
-                              style: const TextStyle(fontSize: 16),
+                        ),
+                      if (order.quantity != null &&
+                          (order.averagePrice != null || order.price != null))
+                        ListTile(
+                          title: const Text("Total Value"),
+                          trailing: Text(
+                            formatCurrency.format(
+                              (order.quantity ?? 0) *
+                                  (order.averagePrice ?? order.price ?? 0),
                             ),
+                            style: const TextStyle(fontSize: 16),
                           ),
-                        if (order.quantity != null &&
-                            (order.averagePrice != null || order.price != null))
-                          ListTile(
-                            title: const Text("Total Value"),
-                            trailing: Text(
-                              formatCurrency.format((order.quantity ?? 0) *
-                                  (order.averagePrice ?? order.price ?? 0)),
-                              style: const TextStyle(fontSize: 16),
+                        ),
+                      if (order.fees != null)
+                        ListTile(
+                          title: const Text("Fees"),
+                          trailing: Text(
+                            formatCurrency.format(order.fees),
+                            style: const TextStyle(fontSize: 16),
+                          ),
+                        ),
+                      if (order.type != null)
+                        ListTile(
+                          title: const Text("Type"),
+                          trailing: Text(
+                            order.type!,
+                            style: const TextStyle(fontSize: 16),
+                          ),
+                        ),
+                      if (order.timeInForce != null)
+                        ListTile(
+                          title: const Text("Time in Force"),
+                          trailing: Text(
+                            order.timeInForce!,
+                            style: const TextStyle(fontSize: 16),
+                          ),
+                        ),
+                      if (order.createdAt != null)
+                        ListTile(
+                          title: const Text("Created"),
+                          trailing: Text(
+                            DateFormat.yMMMd().add_jm().format(
+                              order.createdAt!,
                             ),
+                            style: const TextStyle(fontSize: 16),
                           ),
-                        if (order.fees != null)
-                          ListTile(
-                            title: const Text("Fees"),
-                            trailing: Text(
-                              formatCurrency.format(order.fees),
-                              style: const TextStyle(fontSize: 16),
+                        ),
+                      if (order.updatedAt != null)
+                        ListTile(
+                          title: const Text("Updated"),
+                          trailing: Text(
+                            DateFormat.yMMMd().add_jm().format(
+                              order.updatedAt!,
                             ),
+                            style: const TextStyle(fontSize: 16),
                           ),
-                        if (order.type != null)
-                          ListTile(
-                            title: const Text("Type"),
-                            trailing: Text(
-                              order.type!,
-                              style: const TextStyle(fontSize: 16),
-                            ),
-                          ),
-                        if (order.timeInForce != null)
-                          ListTile(
-                            title: const Text("Time in Force"),
-                            trailing: Text(
-                              order.timeInForce!,
-                              style: const TextStyle(fontSize: 16),
-                            ),
-                          ),
-                        if (order.createdAt != null)
-                          ListTile(
-                            title: const Text("Created"),
-                            trailing: Text(
-                              DateFormat.yMMMd()
-                                  .add_jm()
-                                  .format(order.createdAt!),
-                              style: const TextStyle(fontSize: 16),
-                            ),
-                          ),
-                        if (order.updatedAt != null)
-                          ListTile(
-                            title: const Text("Updated"),
-                            trailing: Text(
-                              DateFormat.yMMMd()
-                                  .add_jm()
-                                  .format(order.updatedAt!),
-                              style: const TextStyle(fontSize: 16),
-                            ),
-                          ),
-                      ],
+                        ),
+                    ],
+                  ),
+                ),
+                if (order.cancel != null ||
+                    (order.state == 'confirmed' || order.state == 'queued'))
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                        foregroundColor: Colors.white,
+                      ),
+                      onPressed: _confirmCancelOrder,
+                      child: const Text("Cancel Order"),
                     ),
                   ),
-                  if (order.cancel != null ||
-                      (order.state == 'confirmed' || order.state == 'queued'))
-                    Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.red,
-                            foregroundColor: Colors.white),
-                        onPressed: _confirmCancelOrder,
-                        child: const Text("Cancel Order"),
-                      ),
-                    ),
-                ],
-              ),
+              ]),
             ),
           ],
         ),
@@ -175,8 +178,10 @@ class _ForexOrderWidgetState extends State<ForexOrderWidget> {
   Future<void> _refresh() async {
     try {
       var orders = await widget.service.getForexOrders(widget.brokerageUser);
-      var updatedOrder = orders.firstWhere((element) => element.id == order.id,
-          orElse: () => order);
+      var updatedOrder = orders.firstWhere(
+        (element) => element.id == order.id,
+        orElse: () => order,
+      );
       setState(() {
         order = updatedOrder;
       });
@@ -219,8 +224,10 @@ class _ForexOrderWidgetState extends State<ForexOrderWidget> {
       return;
     }
     try {
-      final result =
-          await widget.service.cancelOrder(widget.brokerageUser, order.cancel!);
+      final result = await widget.service.cancelOrder(
+        widget.brokerageUser,
+        order.cancel!,
+      );
       if (result != null) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Order cancelled successfully")),
@@ -228,9 +235,9 @@ class _ForexOrderWidgetState extends State<ForexOrderWidget> {
         Navigator.pop(context);
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Failed to cancel order: $e")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Failed to cancel order: $e")));
     }
   }
 }

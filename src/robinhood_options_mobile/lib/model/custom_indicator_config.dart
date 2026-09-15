@@ -14,7 +14,7 @@ enum IndicatorType {
   MFI,
   ROC,
   BBW,
-  CMF
+  CMF,
 }
 
 enum SignalCondition { GreaterThan, LessThan, CrossOverAbove, CrossOverBelow }
@@ -43,33 +43,36 @@ class CustomIndicatorConfig {
   });
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'type': type.toString().split('.').last,
-        'parameters': parameters,
-        'condition': condition.toString().split('.').last,
-        'threshold': threshold,
-        'compareToPrice': compareToPrice,
-        'signalType': signalType.toString().split('.').last,
-      };
+    'id': id,
+    'name': name,
+    'type': type.toString().split('.').last,
+    'parameters': parameters,
+    'condition': condition.toString().split('.').last,
+    'threshold': threshold,
+    'compareToPrice': compareToPrice,
+    'signalType': signalType.toString().split('.').last,
+  };
 
   factory CustomIndicatorConfig.fromJson(Map<String, dynamic> json) =>
       CustomIndicatorConfig(
         id: json['id'] as String,
         name: json['name'] as String,
         type: IndicatorType.values.firstWhere(
-            (e) => e.toString().split('.').last == json['type'],
-            orElse: () => IndicatorType.SMA),
+          (e) => e.toString().split('.').last == json['type'],
+          orElse: () => IndicatorType.SMA,
+        ),
         parameters: Map<String, dynamic>.from(json['parameters'] as Map),
         condition: SignalCondition.values.firstWhere(
-            (e) => e.toString().split('.').last == json['condition'],
-            orElse: () => SignalCondition.GreaterThan),
+          (e) => e.toString().split('.').last == json['condition'],
+          orElse: () => SignalCondition.GreaterThan,
+        ),
         threshold: (json['threshold'] as num?)?.toDouble(),
         compareToPrice: json['compareToPrice'] as bool? ?? false,
         signalType: json['signalType'] != null
             ? SignalType.values.firstWhere(
                 (e) => e.toString().split('.').last == json['signalType'],
-                orElse: () => SignalType.BUY)
+                orElse: () => SignalType.BUY,
+              )
             : SignalType.BUY,
       );
 }

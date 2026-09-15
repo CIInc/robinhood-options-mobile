@@ -240,47 +240,49 @@ void main() {
   });
 
   group('Firestore Emotion Log Integration Tests', () {
-    test('Saves, fetches, and deletes emotion logs using FakeFirebaseFirestore',
-        () async {
-      final fakeDb = FakeFirebaseFirestore();
-      final userDoc = fakeDb.collection('user').doc('user_abc');
-      final firestoreService = FirestoreService(firestore: fakeDb);
+    test(
+      'Saves, fetches, and deletes emotion logs using FakeFirebaseFirestore',
+      () async {
+        final fakeDb = FakeFirebaseFirestore();
+        final userDoc = fakeDb.collection('user').doc('user_abc');
+        final firestoreService = FirestoreService(firestore: fakeDb);
 
-      final log1 = EmotionLog(
-        id: 'log_1',
-        timestamp: DateTime(2026, 9, 6, 9, 30),
-        emotion: EmotionState.confident,
-        energyLevel: 4,
-        confidenceLevel: 4,
-        marketSentiment: 'Bullish',
-        notes: 'Entering SPY calls on support bounce.',
-        symbol: 'SPY',
-      );
+        final log1 = EmotionLog(
+          id: 'log_1',
+          timestamp: DateTime(2026, 9, 6, 9, 30),
+          emotion: EmotionState.confident,
+          energyLevel: 4,
+          confidenceLevel: 4,
+          marketSentiment: 'Bullish',
+          notes: 'Entering SPY calls on support bounce.',
+          symbol: 'SPY',
+        );
 
-      final log2 = EmotionLog(
-        id: 'log_2',
-        timestamp: DateTime(2026, 9, 7, 10, 0),
-        emotion: EmotionState.frustrated,
-        energyLevel: 2,
-        confidenceLevel: 2,
-        marketSentiment: 'Bearish',
-        notes: 'Took a premature stop loss.',
-        symbol: 'QQQ',
-      );
+        final log2 = EmotionLog(
+          id: 'log_2',
+          timestamp: DateTime(2026, 9, 7, 10, 0),
+          emotion: EmotionState.frustrated,
+          energyLevel: 2,
+          confidenceLevel: 2,
+          marketSentiment: 'Bearish',
+          notes: 'Took a premature stop loss.',
+          symbol: 'QQQ',
+        );
 
-      await firestoreService.saveEmotionLog(userDoc, log1);
-      await firestoreService.saveEmotionLog(userDoc, log2);
+        await firestoreService.saveEmotionLog(userDoc, log1);
+        await firestoreService.saveEmotionLog(userDoc, log2);
 
-      final fetched = await firestoreService.getEmotionLogs(userDoc);
-      expect(fetched.length, 2);
-      expect(fetched.any((l) => l.id == 'log_1'), true);
-      expect(fetched.any((l) => l.id == 'log_2'), true);
+        final fetched = await firestoreService.getEmotionLogs(userDoc);
+        expect(fetched.length, 2);
+        expect(fetched.any((l) => l.id == 'log_1'), true);
+        expect(fetched.any((l) => l.id == 'log_2'), true);
 
-      // Verify deletion
-      await firestoreService.deleteEmotionLog(userDoc, 'log_1');
-      final afterDelete = await firestoreService.getEmotionLogs(userDoc);
-      expect(afterDelete.length, 1);
-      expect(afterDelete.first.id, 'log_2');
-    });
+        // Verify deletion
+        await firestoreService.deleteEmotionLog(userDoc, 'log_1');
+        final afterDelete = await firestoreService.getEmotionLogs(userDoc);
+        expect(afterDelete.length, 1);
+        expect(afterDelete.first.id, 'log_2');
+      },
+    );
   });
 }

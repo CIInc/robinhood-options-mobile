@@ -17,13 +17,7 @@ enum MarginCallType {
 }
 
 /// Status of the margin call demand.
-enum MarginCallState {
-  open,
-  satisfied,
-  closed,
-  waived,
-  canceled,
-}
+enum MarginCallState { open, satisfied, closed, waived, canceled }
 
 /// Represents an individual margin call demand issued against an account.
 class MarginCall {
@@ -67,10 +61,12 @@ class MarginCall {
       );
     }
 
-    final id = json['id']?.toString() ??
+    final id =
+        json['id']?.toString() ??
         'call_${DateTime.now().millisecondsSinceEpoch}';
     final account = json['account']?.toString();
-    final accountNumber = json['account_number']?.toString() ??
+    final accountNumber =
+        json['account_number']?.toString() ??
         (account != null ? _extractAccountNumber(account) : null);
 
     final rawType = (json['type'] ?? json['call_type'] ?? 'maintenance')
@@ -93,8 +89,9 @@ class MarginCall {
       type = MarginCallType.other;
     }
 
-    final rawState =
-        (json['state'] ?? json['status'] ?? 'open').toString().toLowerCase();
+    final rawState = (json['state'] ?? json['status'] ?? 'open')
+        .toString()
+        .toLowerCase();
     MarginCallState state;
     if (rawState.contains('sat')) {
       state = MarginCallState.satisfied;
@@ -108,7 +105,8 @@ class MarginCall {
       state = MarginCallState.open;
     }
 
-    final amount = parseDouble(json['amount']) ??
+    final amount =
+        parseDouble(json['amount']) ??
         parseDouble(json['deficit']) ??
         parseDouble(json['demand_amount']) ??
         0.0;
@@ -138,7 +136,8 @@ class MarginCall {
     }
 
     final reason = json['reason']?.toString();
-    final description = json['description']?.toString() ??
+    final description =
+        json['description']?.toString() ??
         json['message']?.toString() ??
         json['details']?.toString();
 
@@ -312,12 +311,14 @@ class MarginInterestCharge {
       );
     }
 
-    final id = json['id']?.toString() ??
+    final id =
+        json['id']?.toString() ??
         'mic_${DateTime.now().millisecondsSinceEpoch}';
     final account = json['account']?.toString();
     final accountNumber = json['account_number']?.toString();
 
-    final amount = parseDouble(json['amount']) ??
+    final amount =
+        parseDouble(json['amount']) ??
         parseDouble(json['charge_amount']) ??
         0.0;
 
@@ -339,7 +340,8 @@ class MarginInterestCharge {
       effectiveDate = DateTime.tryParse(rawEff.toString());
     }
 
-    double? interestRate = parseDouble(json['interest_rate']) ??
+    double? interestRate =
+        parseDouble(json['interest_rate']) ??
         parseDouble(json['rate']) ??
         parseDouble(json['annual_percentage_rate']);
     // Normalize percentage if > 1.0 (e.g. 6.5 -> 0.065)
@@ -349,10 +351,11 @@ class MarginInterestCharge {
 
     final settledAmountBorrowed =
         parseDouble(json['settled_amount_borrowed']) ??
-            parseDouble(json['average_daily_balance']) ??
-            parseDouble(json['principal']);
+        parseDouble(json['average_daily_balance']) ??
+        parseDouble(json['principal']);
 
-    final description = json['description']?.toString() ??
+    final description =
+        json['description']?.toString() ??
         json['details']?.toString() ??
         'Margin Interest Charge';
 
@@ -485,8 +488,10 @@ class MarginFinancingSummary {
 
     final openCalls = calls.where((c) => c.isOpen).toList();
     final openCallsCount = openCalls.length;
-    final totalDeficitDemand =
-        openCalls.fold<double>(0.0, (sum, call) => sum + call.amount);
+    final totalDeficitDemand = openCalls.fold<double>(
+      0.0,
+      (sum, call) => sum + call.amount,
+    );
 
     DateTime? nearestDueDate;
     for (final call in openCalls) {

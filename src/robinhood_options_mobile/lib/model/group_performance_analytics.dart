@@ -41,27 +41,27 @@ class MemberPerformanceMetrics {
   });
 
   MemberPerformanceMetrics.fromJson(Map<String, dynamic> json)
-      : memberId = json['memberId'] as String,
-        memberName = json['memberName'] as String,
-        memberPhotoUrl = json['memberPhotoUrl'] as String?,
-        totalReturnPercent = _jsonDouble(json['totalReturnPercent']) ?? 0,
-        totalReturnDollars = _jsonDouble(json['totalReturnDollars']) ?? 0,
-        winRate = _jsonDouble(json['winRate']) ?? 0,
-        totalTrades = json['totalTrades'] as int? ?? 0,
-        winningTrades = json['winningTrades'] as int? ?? 0,
-        losingTrades = json['losingTrades'] as int? ?? 0,
-        averageWin = _jsonDouble(json['averageWin']) ?? 0,
-        averageLoss = _jsonDouble(json['averageLoss']) ?? 0,
-        profitFactor = _jsonDouble(json['profitFactor']) ?? 0,
-        sharpeRatio = _jsonDouble(json['sharpeRatio']) ?? 0,
-        maxDrawdownPercent = _jsonDouble(json['maxDrawdownPercent']) ?? 0,
-        avgHoldTimeHours = _jsonDouble(json['avgHoldTimeHours']),
-        firstTradeDate = json['firstTradeDate'] != null
-            ? DateTime.parse(json['firstTradeDate'] as String)
-            : null,
-        lastTradeDate = json['lastTradeDate'] != null
-            ? DateTime.parse(json['lastTradeDate'] as String)
-            : null;
+    : memberId = json['memberId'] as String,
+      memberName = json['memberName'] as String,
+      memberPhotoUrl = json['memberPhotoUrl'] as String?,
+      totalReturnPercent = _jsonDouble(json['totalReturnPercent']) ?? 0,
+      totalReturnDollars = _jsonDouble(json['totalReturnDollars']) ?? 0,
+      winRate = _jsonDouble(json['winRate']) ?? 0,
+      totalTrades = json['totalTrades'] as int? ?? 0,
+      winningTrades = json['winningTrades'] as int? ?? 0,
+      losingTrades = json['losingTrades'] as int? ?? 0,
+      averageWin = _jsonDouble(json['averageWin']) ?? 0,
+      averageLoss = _jsonDouble(json['averageLoss']) ?? 0,
+      profitFactor = _jsonDouble(json['profitFactor']) ?? 0,
+      sharpeRatio = _jsonDouble(json['sharpeRatio']) ?? 0,
+      maxDrawdownPercent = _jsonDouble(json['maxDrawdownPercent']) ?? 0,
+      avgHoldTimeHours = _jsonDouble(json['avgHoldTimeHours']),
+      firstTradeDate = json['firstTradeDate'] != null
+          ? DateTime.parse(json['firstTradeDate'] as String)
+          : null,
+      lastTradeDate = json['lastTradeDate'] != null
+          ? DateTime.parse(json['lastTradeDate'] as String)
+          : null;
 
   Map<String, dynamic> toJson() {
     return {
@@ -127,33 +127,33 @@ class GroupPerformanceMetrics {
   });
 
   GroupPerformanceMetrics.fromJson(Map<String, dynamic> json)
-      : groupId = json['groupId'] as String,
-        groupTotalReturnPercent =
-            _jsonDouble(json['groupTotalReturnPercent']) ?? 0,
-        groupTotalReturnDollars =
-            _jsonDouble(json['groupTotalReturnDollars']) ?? 0,
-        groupAverageReturnPercent =
-            _jsonDouble(json['groupAverageReturnPercent']) ?? 0,
-        groupAverageReturnDollars =
-            _jsonDouble(json['groupAverageReturnDollars']) ?? 0,
-        totalMembersTraded = json['totalMembersTraded'] as int? ?? 0,
-        totalGroupTrades = json['totalGroupTrades'] as int? ?? 0,
-        groupWinRate = _jsonDouble(json['groupWinRate']) ?? 0,
-        groupAverageSharpeRatio =
-            _jsonDouble(json['groupAverageSharpeRatio']) ?? 0,
-        topPerformerReturnPercent =
-            _jsonDouble(json['topPerformerReturnPercent']) ?? 0,
-        topPerformerId = json['topPerformerId'] as String?,
-        membersWithPositiveReturn =
-            json['membersWithPositiveReturn'] as int? ?? 0,
-        membersWithNegativeReturn =
-            json['membersWithNegativeReturn'] as int? ?? 0,
-        timeRangeStart = json['timeRangeStart'] != null
-            ? DateTime.parse(json['timeRangeStart'] as String)
-            : null,
-        timeRangeEnd = json['timeRangeEnd'] != null
-            ? DateTime.parse(json['timeRangeEnd'] as String)
-            : null;
+    : groupId = json['groupId'] as String,
+      groupTotalReturnPercent =
+          _jsonDouble(json['groupTotalReturnPercent']) ?? 0,
+      groupTotalReturnDollars =
+          _jsonDouble(json['groupTotalReturnDollars']) ?? 0,
+      groupAverageReturnPercent =
+          _jsonDouble(json['groupAverageReturnPercent']) ?? 0,
+      groupAverageReturnDollars =
+          _jsonDouble(json['groupAverageReturnDollars']) ?? 0,
+      totalMembersTraded = json['totalMembersTraded'] as int? ?? 0,
+      totalGroupTrades = json['totalGroupTrades'] as int? ?? 0,
+      groupWinRate = _jsonDouble(json['groupWinRate']) ?? 0,
+      groupAverageSharpeRatio =
+          _jsonDouble(json['groupAverageSharpeRatio']) ?? 0,
+      topPerformerReturnPercent =
+          _jsonDouble(json['topPerformerReturnPercent']) ?? 0,
+      topPerformerId = json['topPerformerId'] as String?,
+      membersWithPositiveReturn =
+          json['membersWithPositiveReturn'] as int? ?? 0,
+      membersWithNegativeReturn =
+          json['membersWithNegativeReturn'] as int? ?? 0,
+      timeRangeStart = json['timeRangeStart'] != null
+          ? DateTime.parse(json['timeRangeStart'] as String)
+          : null,
+      timeRangeEnd = json['timeRangeEnd'] != null
+          ? DateTime.parse(json['timeRangeEnd'] as String)
+          : null;
 
   Map<String, dynamic> toJson() {
     return {

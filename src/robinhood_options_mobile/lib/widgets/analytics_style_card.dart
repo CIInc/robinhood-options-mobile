@@ -14,10 +14,7 @@ class AnalyticsStyleCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Widget content = Padding(
-      padding: padding,
-      child: child,
-    );
+    Widget content = Padding(padding: padding, child: child);
 
     if (onTap != null) {
       content = InkWell(
@@ -32,10 +29,9 @@ class AnalyticsStyleCard extends StatelessWidget {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
         side: BorderSide(
-          color: Theme.of(context)
-              .colorScheme
-              .outlineVariant
-              .withValues(alpha: 0.5),
+          color: Theme.of(
+            context,
+          ).colorScheme.outlineVariant.withValues(alpha: 0.5),
         ),
       ),
       clipBehavior: Clip.antiAlias,

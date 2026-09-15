@@ -529,8 +529,10 @@ class OptionsFlowStore extends ChangeNotifier {
   }
 
   Future<List<OptionFlowItem>> fetchYahooFlowItems(
-      String symbol, String? expiration,
-      {Function(List<OptionFlowItem>)? onChunkLoaded}) async {
+    String symbol,
+    String? expiration, {
+    Function(List<OptionFlowItem>)? onChunkLoaded,
+  }) async {
     try {
       final db = FirebaseFirestore.instance;
       final docRef = db.collection('yahoo_options_results').doc(symbol);
@@ -549,11 +551,13 @@ class OptionsFlowStore extends ChangeNotifier {
           // }
 
           // Fetch expirations from subcollection
-          final expirationsSnapshot =
-              await docRef.collection('expirations').get();
+          final expirationsSnapshot = await docRef
+              .collection('expirations')
+              .get();
           if (expirationsSnapshot.docs.isNotEmpty) {
-            final options =
-                expirationsSnapshot.docs.map((d) => d.data()).toList();
+            final options = expirationsSnapshot.docs
+                .map((d) => d.data())
+                .toList();
             cachedResult['options'] = options;
           }
         }
@@ -602,19 +606,24 @@ class OptionsFlowStore extends ChangeNotifier {
 
       // Now we have cachedResult (either from DB or fresh fetch)
       final expirationDatesRaw = cachedResult['expirationDates'] as List?;
-      final List<DateTime> expirationDates = expirationDatesRaw
+      final List<DateTime> expirationDates =
+          expirationDatesRaw
               ?.map((e) {
                 if (e is Timestamp) return e.toDate().toUtc();
                 if (e is int) {
-                  return DateTime.fromMillisecondsSinceEpoch(e * 1000,
-                      isUtc: true);
+                  return DateTime.fromMillisecondsSinceEpoch(
+                    e * 1000,
+                    isUtc: true,
+                  );
                 }
                 if (e is DateTime) return e.isUtc ? e : e.toUtc();
                 return DateTime.now().toUtc(); // Should not happen
               })
               // Ensure past dates don't attempt to be fetched
-              .where((e) =>
-                  e.isAfter(DateTime.now().subtract(const Duration(days: 1))))
+              .where(
+                (e) =>
+                    e.isAfter(DateTime.now().subtract(const Duration(days: 1))),
+              )
               .toList() ??
           [];
 
@@ -633,8 +642,10 @@ class OptionsFlowStore extends ChangeNotifier {
           return expDate.isAfter(now.subtract(const Duration(days: 1)));
         } else if (exp is int) {
           // TODO: Should not occur, to remove
-          final expDate =
-              DateTime.fromMillisecondsSinceEpoch(exp * 1000, isUtc: true);
+          final expDate = DateTime.fromMillisecondsSinceEpoch(
+            exp * 1000,
+            isUtc: true,
+          );
           return expDate.isAfter(now.subtract(const Duration(days: 1)));
         }
         return false;
@@ -645,17 +656,25 @@ class OptionsFlowStore extends ChangeNotifier {
       final double spotPrice = quote != null
           ? (quote['regularMarketPrice']?.toDouble() ?? 0.0)
           : 0.0;
-      final double? marketCap =
-          quote != null ? quote['marketCap']?.toDouble() : null;
-      final int? earningsTimestamp =
-          quote != null ? quote['earningsTimestamp'] : null;
+      final double? marketCap = quote != null
+          ? quote['marketCap']?.toDouble()
+          : null;
+      final int? earningsTimestamp = quote != null
+          ? quote['earningsTimestamp']
+          : null;
 
       final List<OptionFlowItem> allResultItems = [];
 
       // Process existing cached options
       if (existingOptions.isNotEmpty) {
-        final cachedItems = _convertOptionsToItems(existingOptions, symbol,
-            spotPrice, marketCap, earningsTimestamp, expiration);
+        final cachedItems = _convertOptionsToItems(
+          existingOptions,
+          symbol,
+          spotPrice,
+          marketCap,
+          earningsTimestamp,
+          expiration,
+        );
         allResultItems.addAll(cachedItems);
         onChunkLoaded?.call(cachedItems);
       }
@@ -680,14 +699,22 @@ class OptionsFlowStore extends ChangeNotifier {
             }
 
             try {
-              final result = await yahooService.getOptionChain(symbol,
-                  date: date.millisecondsSinceEpoch ~/ 1000);
+              final result = await yahooService.getOptionChain(
+                symbol,
+                date: date.millisecondsSinceEpoch ~/ 1000,
+              );
 
               final newOptionsRaw = (result['options'] as List? ?? []);
               if (newOptionsRaw.isNotEmpty) {
                 // Process new chunk
-                final newItems = _convertOptionsToItems(newOptionsRaw, symbol,
-                    spotPrice, marketCap, earningsTimestamp, expiration);
+                final newItems = _convertOptionsToItems(
+                  newOptionsRaw,
+                  symbol,
+                  spotPrice,
+                  marketCap,
+                  earningsTimestamp,
+                  expiration,
+                );
 
                 allResultItems.addAll(newItems);
                 onChunkLoaded?.call(newItems);
@@ -721,29 +748,38 @@ class OptionsFlowStore extends ChangeNotifier {
   }
 
   List<OptionFlowItem> _convertOptionsToItems(
-      List<dynamic> options,
-      String symbol,
-      double spotPrice,
-      double? marketCap,
-      int? earningsTimestamp,
-      String? filterExpiration) {
+    List<dynamic> options,
+    String symbol,
+    double spotPrice,
+    double? marketCap,
+    int? earningsTimestamp,
+    String? filterExpiration,
+  ) {
     List<OptionFlowItem> items = [];
 
     for (var optionDate in options) {
       final expirationDate = optionDate['expirationDate'] is DateTime
           ? (optionDate['expirationDate'] as DateTime).toUtc()
           : optionDate['expirationDate'] is Timestamp
-              ? (optionDate['expirationDate'] as Timestamp).toDate().toUtc()
-              : DateTime.fromMillisecondsSinceEpoch(
-                  optionDate['expirationDate'] * 1000,
-                  isUtc: true);
+          ? (optionDate['expirationDate'] as Timestamp).toDate().toUtc()
+          : DateTime.fromMillisecondsSinceEpoch(
+              optionDate['expirationDate'] * 1000,
+              isUtc: true,
+            );
 
       // Process Calls
       if (optionDate['calls'] != null) {
         for (var call in optionDate['calls']) {
           _processOptionContract(
-              call, 'Call', symbol, expirationDate, spotPrice, items,
-              marketCap: marketCap, earningsTimestamp: earningsTimestamp);
+            call,
+            'Call',
+            symbol,
+            expirationDate,
+            spotPrice,
+            items,
+            marketCap: marketCap,
+            earningsTimestamp: earningsTimestamp,
+          );
         }
       }
 
@@ -751,8 +787,15 @@ class OptionsFlowStore extends ChangeNotifier {
       if (optionDate['puts'] != null) {
         for (var put in optionDate['puts']) {
           _processOptionContract(
-              put, 'Put', symbol, expirationDate, spotPrice, items,
-              marketCap: marketCap, earningsTimestamp: earningsTimestamp);
+            put,
+            'Put',
+            symbol,
+            expirationDate,
+            spotPrice,
+            items,
+            marketCap: marketCap,
+            earningsTimestamp: earningsTimestamp,
+          );
         }
       }
     }
@@ -775,7 +818,9 @@ class OptionsFlowStore extends ChangeNotifier {
   }
 
   Future<void> _saveYahooOptionsResult(
-      DocumentReference docRef, Map<String, dynamic> data) async {
+    DocumentReference docRef,
+    Map<String, dynamic> data,
+  ) async {
     final options = data['options'] as List?;
     final metadata = Map<String, dynamic>.from(data);
     metadata.remove('options');
@@ -816,8 +861,15 @@ class OptionsFlowStore extends ChangeNotifier {
   }
 
   static ({Sentiment sentiment, String details, FlowType flowType})
-      _analyzeTradeExecution(bool isCall, double lastPrice, double bid,
-          double ask, int volume, int openInterest, double premium) {
+  _analyzeTradeExecution(
+    bool isCall,
+    double lastPrice,
+    double bid,
+    double ask,
+    int volume,
+    int openInterest,
+    double premium,
+  ) {
     Sentiment sentiment = isCall ? Sentiment.bullish : Sentiment.bearish;
     String details = isCall ? 'Ask Side' : 'Bid Side';
 
@@ -860,7 +912,7 @@ class OptionsFlowStore extends ChangeNotifier {
   }
 
   static ({List<String> flags, List<String> reasons, bool isUnusual})
-      _detectFlags({
+  _detectFlags({
     required double premium,
     required FlowType flowType,
     required bool isOTM,
@@ -892,7 +944,8 @@ class OptionsFlowStore extends ChangeNotifier {
       if (delta != null && delta.abs() > 0.4) {
         flags.add('Delta Whale');
         reasons.add(
-            'Massive premium with high delta exposure (${delta.toStringAsFixed(2)})');
+          'Massive premium with high delta exposure (${delta.toStringAsFixed(2)})',
+        );
       } else {
         flags.add('Super Whale');
         reasons.add('Massive premium > \$5M');
@@ -924,7 +977,8 @@ class OptionsFlowStore extends ChangeNotifier {
         volume > openInterest) {
       flags.add('Golden Sweep');
       reasons.add(
-          'High-conviction sweep: Premium > \$1M, OTM, Above Ask, Vol > OI');
+        'High-conviction sweep: Premium > \$1M, OTM, Above Ask, Vol > OI',
+      );
       isUnusual = true;
     }
 
@@ -946,7 +1000,8 @@ class OptionsFlowStore extends ChangeNotifier {
     }
 
     // Gamma Squeeze - enhanced with gamma if avail
-    bool isPotentialGammaSqueeze = daysToExpiration <= 2 &&
+    bool isPotentialGammaSqueeze =
+        daysToExpiration <= 2 &&
         isCall &&
         isOTM &&
         volume > openInterest &&
@@ -961,13 +1016,15 @@ class OptionsFlowStore extends ChangeNotifier {
         } else if (gamma > 0.05) {
           flags.add('Gamma Squeeze');
           reasons.add(
-              'Short-dated OTM calls with high volume and Gamma sensitivity');
+            'Short-dated OTM calls with high volume and Gamma sensitivity',
+          );
           isUnusual = true;
         } else {
           // Standard gamma squeeze logic
           flags.add('Gamma Squeeze');
-          reasons
-              .add('Short-dated OTM calls with high volume and rising price');
+          reasons.add(
+            'Short-dated OTM calls with high volume and rising price',
+          );
           isUnusual = true;
         }
       } else {
@@ -1000,8 +1057,9 @@ class OptionsFlowStore extends ChangeNotifier {
 
     // Earnings Play
     if (earningsTimestamp != null) {
-      final earningsDate =
-          DateTime.fromMillisecondsSinceEpoch(earningsTimestamp * 1000);
+      final earningsDate = DateTime.fromMillisecondsSinceEpoch(
+        earningsTimestamp * 1000,
+      );
       final daysToEarnings = earningsDate.difference(now).inDays;
       if (daysToEarnings >= 0 &&
           daysToEarnings <= 14 &&
@@ -1075,11 +1133,13 @@ class OptionsFlowStore extends ChangeNotifier {
       if (spread < 0.01 && volume > 500) {
         flags.add('Tight Spread');
         reasons.add(
-            'Liquid market with ${(spread * 100).toStringAsFixed(2)}% spread');
+          'Liquid market with ${(spread * 100).toStringAsFixed(2)}% spread',
+        );
       } else if (spread > 0.1) {
         flags.add('Wide Spread');
         reasons.add(
-            'Illiquid market with ${(spread * 100).toStringAsFixed(2)}% spread');
+          'Illiquid market with ${(spread * 100).toStringAsFixed(2)}% spread',
+        );
       }
     }
 
@@ -1129,18 +1189,21 @@ class OptionsFlowStore extends ChangeNotifier {
       score += 30;
     else if (premium > 500000)
       score += 20;
-    else if (premium > 100000) score += 10;
+    else if (premium > 100000)
+      score += 10;
 
     // Flow Type
     if (flowType == FlowType.sweep) {
       score += 20;
-    } else if (flowType == FlowType.block) score += 10;
+    } else if (flowType == FlowType.block)
+      score += 10;
 
     // Urgency
     if (isOTM) score += 10;
     if (daysToExpiration <= 1) {
       score += 10;
-    } else if (daysToExpiration < 14) score += 5;
+    } else if (daysToExpiration < 14)
+      score += 5;
 
     if (flags.contains('Aggressive')) score += 5;
     if (flags.contains('Tight Spread')) score += 5;
@@ -1157,7 +1220,8 @@ class OptionsFlowStore extends ChangeNotifier {
         score += 20;
       else if (volume > openInterest * 2)
         score += 10;
-      else if (volume > openInterest) score += 5;
+      else if (volume > openInterest)
+        score += 5;
     }
 
     // Bonus
@@ -1172,23 +1236,41 @@ class OptionsFlowStore extends ChangeNotifier {
     return min(score.round(), 100);
   }
 
-  void _processOptionContract(dynamic contract, String type, String symbol,
-      DateTime expirationDate, double spotPrice, List<OptionFlowItem> items,
-      {double? marketCap, int? earningsTimestamp}) {
+  void _processOptionContract(
+    dynamic contract,
+    String type,
+    String symbol,
+    DateTime expirationDate,
+    double spotPrice,
+    List<OptionFlowItem> items, {
+    double? marketCap,
+    int? earningsTimestamp,
+  }) {
     final item = processOptionContract(
-        contract, type, symbol, expirationDate, spotPrice,
-        marketCap: marketCap, earningsTimestamp: earningsTimestamp);
+      contract,
+      type,
+      symbol,
+      expirationDate,
+      spotPrice,
+      marketCap: marketCap,
+      earningsTimestamp: earningsTimestamp,
+    );
     if (item != null) items.add(item);
   }
 
-  static OptionFlowItem? processOptionContract(dynamic contract, String type,
-      String symbol, DateTime expirationDate, double spotPrice,
-      {double? marketCap,
-      String? sector,
-      int? earningsTimestamp,
-      bool skipFilters = false,
-      double? delta,
-      double? gamma}) {
+  static OptionFlowItem? processOptionContract(
+    dynamic contract,
+    String type,
+    String symbol,
+    DateTime expirationDate,
+    double spotPrice, {
+    double? marketCap,
+    String? sector,
+    int? earningsTimestamp,
+    bool skipFilters = false,
+    double? delta,
+    double? gamma,
+  }) {
     final int volume = _extractValue(contract['volume'])?.toInt() ?? 0;
     final int openInterest =
         _extractValue(contract['openInterest'])?.toInt() ?? 0;
@@ -1199,8 +1281,9 @@ class OptionsFlowStore extends ChangeNotifier {
     final double ask = _extractValue(contract['ask'])?.toDouble() ?? 0.0;
     final double impliedVolatility =
         _extractValue(contract['impliedVolatility'])?.toDouble() ?? 0.0;
-    final double? changePercent =
-        _extractValue(contract['percentChange'])?.toDouble();
+    final double? changePercent = _extractValue(
+      contract['percentChange'],
+    )?.toDouble();
 
     dynamic lastTradeDateVal = _extractValue(contract['lastTradeDate']);
     DateTime? time;
@@ -1230,30 +1313,38 @@ class OptionsFlowStore extends ChangeNotifier {
     final isOTM = isCall ? strike > spotPrice : strike < spotPrice;
 
     final analysis = _analyzeTradeExecution(
-        isCall, lastPrice, bid, ask, volume, openInterest, premium);
+      isCall,
+      lastPrice,
+      bid,
+      ask,
+      volume,
+      openInterest,
+      premium,
+    );
 
     final flagResult = _detectFlags(
-        premium: premium,
-        flowType: analysis.flowType,
-        isOTM: isOTM,
-        details: analysis.details,
-        openInterest: openInterest,
-        volume: volume,
-        daysToExpiration: daysToExpiration,
-        isCall: isCall,
-        changePercent: changePercent,
-        earningsTimestamp: earningsTimestamp,
-        expirationDate: expirationDate,
-        now: now,
-        iv: impliedVolatility,
-        spotPrice: spotPrice,
-        strike: strike,
-        bid: bid,
-        ask: ask,
-        marketCap: marketCap,
-        lastPrice: lastPrice,
-        delta: delta,
-        gamma: gamma);
+      premium: premium,
+      flowType: analysis.flowType,
+      isOTM: isOTM,
+      details: analysis.details,
+      openInterest: openInterest,
+      volume: volume,
+      daysToExpiration: daysToExpiration,
+      isCall: isCall,
+      changePercent: changePercent,
+      earningsTimestamp: earningsTimestamp,
+      expirationDate: expirationDate,
+      now: now,
+      iv: impliedVolatility,
+      spotPrice: spotPrice,
+      strike: strike,
+      bid: bid,
+      ask: ask,
+      marketCap: marketCap,
+      lastPrice: lastPrice,
+      delta: delta,
+      gamma: gamma,
+    );
 
     final score = _calculateConvictionScore(
       premium: premium,
@@ -1366,27 +1457,33 @@ class OptionsFlowStore extends ChangeNotifier {
 
       // Fetch from Yahoo if a single symbol is selected
       if (_filterSymbol != null && _filterSymbol!.isNotEmpty
-          // && _allItems.isEmpty
-          ) {
-        await fetchYahooFlowItems(_filterSymbol!, _filterExpiration,
-            onChunkLoaded: (items) {
-          _allItems.addAll(items);
-          _applyFilters();
-          notifyListeners();
-        });
+      // && _allItems.isEmpty
+      ) {
+        await fetchYahooFlowItems(
+          _filterSymbol!,
+          _filterExpiration,
+          onChunkLoaded: (items) {
+            _allItems.addAll(items);
+            _applyFilters();
+            notifyListeners();
+          },
+        );
       }
 
       // Fetch from Yahoo if multiple symbols are selected
       if (_filterSymbols != null && _filterSymbols!.isNotEmpty
-          //  && _allItems.isEmpty
-          ) {
+      //  && _allItems.isEmpty
+      ) {
         for (var symbol in _filterSymbols!) {
-          await fetchYahooFlowItems(symbol, _filterExpiration,
-              onChunkLoaded: (items) {
-            _allItems.addAll(items);
-            _applyFilters();
-            notifyListeners();
-          });
+          await fetchYahooFlowItems(
+            symbol,
+            _filterExpiration,
+            onChunkLoaded: (items) {
+              _allItems.addAll(items);
+              _applyFilters();
+              notifyListeners();
+            },
+          );
         }
         // final futures = _filterSymbols!
         //     .map((symbol) => fetchYahooFlowItems(symbol, _filterExpiration));
@@ -1413,14 +1510,19 @@ class OptionsFlowStore extends ChangeNotifier {
     final today = DateTime(now.year, now.month, now.day);
     _items = _items.where((i) {
       final exp = DateTime(
-          i.expirationDate.year, i.expirationDate.month, i.expirationDate.day);
+        i.expirationDate.year,
+        i.expirationDate.month,
+        i.expirationDate.day,
+      );
       return !exp.isBefore(today);
     }).toList();
 
     if (_filterSymbol != null && _filterSymbol!.isNotEmpty) {
       _items = _items
-          .where((i) =>
-              i.symbol.toUpperCase().contains(_filterSymbol!.toUpperCase()))
+          .where(
+            (i) =>
+                i.symbol.toUpperCase().contains(_filterSymbol!.toUpperCase()),
+          )
           .toList();
     } else if (_filterSymbols != null && _filterSymbols!.isNotEmpty) {
       _items = _items
@@ -1463,7 +1565,10 @@ class OptionsFlowStore extends ChangeNotifier {
           final parts = _filterExpiration!.split('-');
           if (parts.length == 3) {
             final filterDate = DateTime(
-                int.parse(parts[0]), int.parse(parts[1]), int.parse(parts[2]));
+              int.parse(parts[0]),
+              int.parse(parts[1]),
+              int.parse(parts[2]),
+            );
             return i.expirationDate.year == filterDate.year &&
                 i.expirationDate.month == filterDate.month &&
                 i.expirationDate.day == filterDate.day;
@@ -1492,18 +1597,21 @@ class OptionsFlowStore extends ChangeNotifier {
         // Check if item has ANY of the selected flags (OR logic)
         // Or ALL? Usually filters are AND logic across categories, but OR within category.
         // Let's assume OR logic for flags (e.g. show me WHALES or GOLDEN SWEEPS)
-        return _filterFlags!
-            .any((flag) => i.flags.any((f) => f.contains(flag)));
+        return _filterFlags!.any(
+          (flag) => i.flags.any((f) => f.contains(flag)),
+        );
       }).toList();
     }
 
     // Sort
     switch (_sortOption) {
       case FlowSortOption.time:
-        _items.sort((a, b) =>
-            (b.lastTradeDate ?? DateTime.fromMillisecondsSinceEpoch(0))
-                .compareTo(
-                    a.lastTradeDate ?? DateTime.fromMillisecondsSinceEpoch(0)));
+        _items.sort(
+          (a, b) => (b.lastTradeDate ?? DateTime.fromMillisecondsSinceEpoch(0))
+              .compareTo(
+                a.lastTradeDate ?? DateTime.fromMillisecondsSinceEpoch(0),
+              ),
+        );
         break;
       case FlowSortOption.premium:
         _items.sort((a, b) => b.premium.compareTo(a.premium));

@@ -27,10 +27,7 @@ class RejectingTradeSignalsProvider {
     String? interval,
     bool skipSignalUpdate = false,
   }) async {
-    return {
-      'status': 'rejected',
-      'message': 'Risk threshold exceeded',
-    };
+    return {'status': 'rejected', 'message': 'Risk threshold exceeded'};
   }
 }
 
@@ -63,8 +60,10 @@ void main() {
       expect(provider.config.autoTradeCooldownMinutes, equals(60));
       expect(provider.config.strategyConfig.tradeQuantity, equals(1));
       expect(provider.config.strategyConfig.maxPositionSize, equals(100));
-      expect(provider.config.strategyConfig.maxPortfolioConcentration,
-          equals(0.5));
+      expect(
+        provider.config.strategyConfig.maxPortfolioConcentration,
+        equals(0.5),
+      );
     });
 
     test('activateEmergencyStop should set emergency stop flag', () {
@@ -98,42 +97,48 @@ void main() {
       expect(notified, equals(true));
     });
 
-    test('indicatorDocumentation should return correct info for all indicators',
-        () {
-      final indicators = [
-        'priceMovement',
-        'momentum',
-        'marketDirection',
-        'volume',
-        'macd',
-        'bollingerBands',
-        'stochastic',
-        'atr',
-        'obv',
-        'sma',
-        'ema',
-        'ttmSqueeze',
-      ];
+    test(
+      'indicatorDocumentation should return correct info for all indicators',
+      () {
+        final indicators = [
+          'priceMovement',
+          'momentum',
+          'marketDirection',
+          'volume',
+          'macd',
+          'bollingerBands',
+          'stochastic',
+          'atr',
+          'obv',
+          'sma',
+          'ema',
+          'ttmSqueeze',
+        ];
 
-      for (final indicator in indicators) {
-        final doc = TradeSignalsProvider.indicatorDocumentation(indicator);
+        for (final indicator in indicators) {
+          final doc = TradeSignalsProvider.indicatorDocumentation(indicator);
 
-        expect(doc, isNotNull);
-        expect(doc['title'], isNotNull);
-        expect(doc['title'], isNotEmpty);
-        expect(doc['description'], isNotNull);
-        expect(doc['description'], isNotEmpty);
-      }
-    });
+          expect(doc, isNotNull);
+          expect(doc['title'], isNotNull);
+          expect(doc['title'], isNotEmpty);
+          expect(doc['description'], isNotNull);
+          expect(doc['description'], isNotEmpty);
+        }
+      },
+    );
 
-    test('indicatorDocumentation should return default for unknown indicator',
-        () {
-      final doc = TradeSignalsProvider.indicatorDocumentation('unknown');
+    test(
+      'indicatorDocumentation should return default for unknown indicator',
+      () {
+        final doc = TradeSignalsProvider.indicatorDocumentation('unknown');
 
-      expect(doc['title'], equals('Technical Indicator'));
-      expect(
-          doc['description'], contains('Technical indicator used to analyze'));
-    });
+        expect(doc['title'], equals('Technical Indicator'));
+        expect(
+          doc['description'],
+          contains('Technical indicator used to analyze'),
+        );
+      },
+    );
 
     test('isMarketOpen should return boolean value', () {
       // Just verify it doesn't throw and returns a boolean
@@ -211,8 +216,10 @@ void main() {
 
       expect(result['success'], equals(false));
       expect(result['tradesExecuted'], equals(0));
-      expect(result['message'],
-          contains('No BUY signals matching enabled indicators'));
+      expect(
+        result['message'],
+        contains('No BUY signals matching enabled indicators'),
+      );
     });
 
     test('autoTrade logs a rejected trade proposal once', () async {
@@ -225,10 +232,7 @@ void main() {
       try {
         await provider.autoTrade(
           tradeSignals: [
-            {
-              'symbol': 'NUE',
-              'currentPrice': 150.0,
-            }
+            {'symbol': 'NUE', 'currentPrice': 150.0},
           ],
           tradeSignalsProvider: RejectingTradeSignalsProvider(),
           portfolioState: {'buyingPower': 10000.0},
@@ -241,23 +245,25 @@ void main() {
         MarketHours.testTime = null;
       }
 
-      final rejectionEntries = provider.activityLog
-          .where((entry) => entry.contains('Trade proposal rejected for NUE'));
+      final rejectionEntries = provider.activityLog.where(
+        (entry) => entry.contains('Trade proposal rejected for NUE'),
+      );
       expect(rejectionEntries, hasLength(1));
       expect(rejectionEntries.single, contains('Risk threshold exceeded'));
     });
 
-    testWidgets('duplicate activity is logged once and shown on stock card',
-        (tester) async {
+    testWidgets('duplicate activity is logged once and shown on stock card', (
+      tester,
+    ) async {
       Future<void> runDisabledAutoTrade() => provider.autoTrade(
-            tradeSignals: [],
-            tradeSignalsProvider: null,
-            portfolioState: {},
-            brokerageUser: 'mock',
-            account: 'mock',
-            brokerageService: 'mock',
-            instrumentStore: 'mock',
-          );
+        tradeSignals: [],
+        tradeSignalsProvider: null,
+        portfolioState: {},
+        brokerageUser: 'mock',
+        account: 'mock',
+        brokerageService: 'mock',
+        instrumentStore: 'mock',
+      );
       await runDisabledAutoTrade();
       await runDisabledAutoTrade();
 
@@ -271,16 +277,16 @@ void main() {
           value: provider,
           child: const MaterialApp(
             home: Scaffold(
-              body: SingleChildScrollView(
-                child: AgenticTradingCardWidget(),
-              ),
+              body: SingleChildScrollView(child: AgenticTradingCardWidget()),
             ),
           ),
         ),
       );
 
-      expect(find.textContaining('Conditions not met: Auto-trade disabled'),
-          findsOneWidget);
+      expect(
+        find.textContaining('Conditions not met: Auto-trade disabled'),
+        findsOneWidget,
+      );
       await tester.pump(const Duration(seconds: 3));
     });
 
@@ -318,8 +324,9 @@ void main() {
 
       // Note: dailyTradeLimit is in strategyConfig which is final.
       // We need to create a new strategy config to change it.
-      final newStrategy =
-          provider.config.strategyConfig.copyWith(dailyTradeLimit: 1);
+      final newStrategy = provider.config.strategyConfig.copyWith(
+        dailyTradeLimit: 1,
+      );
       provider.config.strategyConfig = newStrategy;
 
       // After one trade, dailyTradeCount would be 1
@@ -345,7 +352,9 @@ void main() {
       // Verify all risk parameters are present
       expect(provider.config.strategyConfig.maxPositionSize, isNotNull);
       expect(
-          provider.config.strategyConfig.maxPortfolioConcentration, isNotNull);
+        provider.config.strategyConfig.maxPortfolioConcentration,
+        isNotNull,
+      );
       expect(provider.config.strategyConfig.dailyTradeLimit, isNotNull);
       expect(provider.config.autoTradeCooldownMinutes, isNotNull);
     });

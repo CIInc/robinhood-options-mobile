@@ -115,8 +115,9 @@ class _TradingStrategiesPageState extends State<TradingStrategiesPage>
           PopupMenuButton<String>(
             icon: const Icon(Icons.sort_rounded),
             tooltip: 'Sort Strategies',
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
             position: PopupMenuPosition.under,
             onSelected: (value) {
               setState(() {
@@ -226,21 +227,24 @@ class _TradingStrategiesPageState extends State<TradingStrategiesPage>
                     borderRadius: BorderRadius.circular(24),
                     borderSide: BorderSide.none,
                   ),
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 0),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 0,
+                  ),
                   filled: true,
-                  fillColor: Theme.of(context)
-                      .colorScheme
-                      .surfaceContainerHighest
-                      .withValues(alpha: 0.5),
+                  fillColor: Theme.of(
+                    context,
+                  ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
                 ),
               ),
             ),
             SizedBox(
               height: 48,
               child: ListView.separated(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 scrollDirection: Axis.horizontal,
                 itemCount: _indicatorNames.length,
                 separatorBuilder: (context, index) => const SizedBox(width: 8),
@@ -258,18 +262,20 @@ class _TradingStrategiesPageState extends State<TradingStrategiesPage>
                           ? Theme.of(context).colorScheme.onSecondaryContainer
                           : Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
-                    backgroundColor: Theme.of(context)
-                        .colorScheme
-                        .surfaceContainer
-                        .withValues(alpha: 0.5),
-                    selectedColor:
-                        Theme.of(context).colorScheme.secondaryContainer,
+                    backgroundColor: Theme.of(
+                      context,
+                    ).colorScheme.surfaceContainer.withValues(alpha: 0.5),
+                    selectedColor: Theme.of(
+                      context,
+                    ).colorScheme.secondaryContainer,
                     side: BorderSide.none,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 4,
+                      vertical: 0,
+                    ),
                     onSelected: (selected) {
                       setState(() {
                         if (selected) {
@@ -314,8 +320,10 @@ class _TradingStrategiesPageState extends State<TradingStrategiesPage>
                         onEdit: (template) =>
                             _showEditTemplateDialog(context, template),
                         onUpdate: widget.currentConfig != null
-                            ? (template) =>
-                                _confirmUpdateTemplateConfig(context, template)
+                            ? (template) => _confirmUpdateTemplateConfig(
+                                context,
+                                template,
+                              )
                             : null,
                         onDuplicate: (template) =>
                             _duplicateTemplate(context, template),
@@ -350,8 +358,10 @@ class _TradingStrategiesPageState extends State<TradingStrategiesPage>
                         onEdit: (template) =>
                             _showEditTemplateDialog(context, template),
                         onUpdate: widget.currentConfig != null
-                            ? (template) =>
-                                _confirmUpdateTemplateConfig(context, template)
+                            ? (template) => _confirmUpdateTemplateConfig(
+                                context,
+                                template,
+                              )
                             : null,
                         onDuplicate: (template) =>
                             _duplicateTemplate(context, template),
@@ -368,11 +378,15 @@ class _TradingStrategiesPageState extends State<TradingStrategiesPage>
   }
 
   void _duplicateTemplate(
-      BuildContext context, TradeStrategyTemplate template) {
-    final nameController =
-        TextEditingController(text: "${template.name} (Copy)");
-    final descriptionController =
-        TextEditingController(text: template.description);
+    BuildContext context,
+    TradeStrategyTemplate template,
+  ) {
+    final nameController = TextEditingController(
+      text: "${template.name} (Copy)",
+    );
+    final descriptionController = TextEditingController(
+      text: template.description,
+    );
     final provider = Provider.of<BacktestingProvider>(context, listen: false);
 
     showDialog(
@@ -415,15 +429,18 @@ class _TradingStrategiesPageState extends State<TradingStrategiesPage>
                     ? null
                     : () {
                         // Check for duplicate names
-                        final nameExists = provider.templates.any((t) =>
-                            t.name.toLowerCase() ==
-                            nameController.text.trim().toLowerCase());
+                        final nameExists = provider.templates.any(
+                          (t) =>
+                              t.name.toLowerCase() ==
+                              nameController.text.trim().toLowerCase(),
+                        );
 
                         if (nameExists) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
                               content: Text(
-                                  'A strategy with this name already exists. Please choose a different name.'),
+                                'A strategy with this name already exists. Please choose a different name.',
+                              ),
                               backgroundColor: Colors.red,
                             ),
                           );
@@ -441,7 +458,8 @@ class _TradingStrategiesPageState extends State<TradingStrategiesPage>
                         Navigator.pop(dialogContext);
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                              content: Text('Duplicated "${template.name}"')),
+                            content: Text('Duplicated "${template.name}"'),
+                          ),
                         );
                       },
                 child: const Text('Duplicate'),
@@ -454,7 +472,9 @@ class _TradingStrategiesPageState extends State<TradingStrategiesPage>
   }
 
   void _confirmUpdateTemplateConfig(
-      BuildContext context, TradeStrategyTemplate template) {
+    BuildContext context,
+    TradeStrategyTemplate template,
+  ) {
     if (widget.currentConfig == null) return;
 
     final provider = Provider.of<BacktestingProvider>(context, listen: false);
@@ -464,7 +484,8 @@ class _TradingStrategiesPageState extends State<TradingStrategiesPage>
       builder: (dialogContext) => AlertDialog(
         title: Text('Update ${template.name}?'),
         content: const Text(
-            'This will overwrite the strategy configuration with your current settings.'),
+          'This will overwrite the strategy configuration with your current settings.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
@@ -494,10 +515,13 @@ class _TradingStrategiesPageState extends State<TradingStrategiesPage>
   }
 
   void _showEditTemplateDialog(
-      BuildContext context, TradeStrategyTemplate template) {
+    BuildContext context,
+    TradeStrategyTemplate template,
+  ) {
     final nameController = TextEditingController(text: template.name);
-    final descriptionController =
-        TextEditingController(text: template.description);
+    final descriptionController = TextEditingController(
+      text: template.description,
+    );
     final provider = Provider.of<BacktestingProvider>(context, listen: false);
 
     showDialog(
@@ -540,16 +564,19 @@ class _TradingStrategiesPageState extends State<TradingStrategiesPage>
                     ? null
                     : () {
                         // Check for duplicate names (excluding self)
-                        final nameExists = provider.templates.any((t) =>
-                            t.name.toLowerCase() ==
-                                nameController.text.trim().toLowerCase() &&
-                            t.id != template.id);
+                        final nameExists = provider.templates.any(
+                          (t) =>
+                              t.name.toLowerCase() ==
+                                  nameController.text.trim().toLowerCase() &&
+                              t.id != template.id,
+                        );
 
                         if (nameExists) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
                               content: Text(
-                                  'A strategy with this name already exists. Please choose a different name.'),
+                                'A strategy with this name already exists. Please choose a different name.',
+                              ),
                               backgroundColor: Colors.red,
                             ),
                           );
@@ -578,14 +605,17 @@ class _TradingStrategiesPageState extends State<TradingStrategiesPage>
   }
 
   void _confirmDeleteTemplate(
-      BuildContext context, TradeStrategyTemplate template) {
+    BuildContext context,
+    TradeStrategyTemplate template,
+  ) {
     final provider = Provider.of<BacktestingProvider>(context, listen: false);
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Strategy?'),
         content: Text(
-            'Are you sure you want to delete "${template.name}"? This cannot be undone.'),
+          'Are you sure you want to delete "${template.name}"? This cannot be undone.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -608,7 +638,9 @@ class _TradingStrategiesPageState extends State<TradingStrategiesPage>
   }
 
   void _showTemplateDetailsSheet(
-      BuildContext context, TradeStrategyTemplate template) {
+    BuildContext context,
+    TradeStrategyTemplate template,
+  ) {
     StrategyDetailsBottomSheet.showWithConfirmation(
       context: context,
       template: template,
@@ -616,34 +648,36 @@ class _TradingStrategiesPageState extends State<TradingStrategiesPage>
       onConfirmLoad: (t) {
         widget.onLoadStrategy(t);
         Navigator.pop(context); // Close page
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Loaded strategy: ${t.name}')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Loaded strategy: ${t.name}')));
       },
       onSearch: () {
         if (widget.user != null && widget.userDocRef != null) {
           final initialIndicators = template.config.enabledIndicators.entries
               .where((e) => e.value)
               .fold<Map<String, String>>({}, (prev, element) {
-            prev[element.key] = "BUY";
-            return prev;
-          });
+                prev[element.key] = "BUY";
+                return prev;
+              });
 
           Navigator.pop(context); // Close sheet
           Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (context) => TradeSignalsPage(
-                        user: widget.user,
-                        userDocRef: widget.userDocRef,
-                        brokerageUser: widget.brokerageUser,
-                        service: widget.service,
-                        analytics: MyApp.analytics,
-                        observer: MyApp.observer,
-                        generativeService: GenerativeService(),
-                        initialIndicators: initialIndicators,
-                        strategyTemplate: template,
-                      )));
+            context,
+            MaterialPageRoute(
+              builder: (context) => TradeSignalsPage(
+                user: widget.user,
+                userDocRef: widget.userDocRef,
+                brokerageUser: widget.brokerageUser,
+                service: widget.service,
+                analytics: MyApp.analytics,
+                observer: MyApp.observer,
+                generativeService: GenerativeService(),
+                initialIndicators: initialIndicators,
+                strategyTemplate: template,
+              ),
+            ),
+          );
         } else {
           Navigator.pop(context);
           ScaffoldMessenger.of(context).showSnackBar(

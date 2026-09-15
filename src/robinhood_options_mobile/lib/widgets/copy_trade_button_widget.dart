@@ -23,9 +23,9 @@ Future<void> showCopyTradeDialog({
   bool skipInitialConfirmation = false,
 }) async {
   if (instrumentOrder == null && optionOrder == null) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('No trade to copy')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('No trade to copy')));
     return;
   }
 
@@ -34,11 +34,13 @@ Future<void> showCopyTradeDialog({
       ? instrumentOrder.instrumentObj?.symbol ?? 'Unknown'
       : '${optionOrder!.chainSymbol} \$${optionOrder.legs.isNotEmpty ? optionOrder.legs.first.strikePrice : ""}';
 
-  final quantity =
-      isInstrument ? instrumentOrder.quantity ?? 0 : optionOrder!.quantity ?? 0;
+  final quantity = isInstrument
+      ? instrumentOrder.quantity ?? 0
+      : optionOrder!.quantity ?? 0;
 
-  final price =
-      isInstrument ? instrumentOrder.price ?? 0 : optionOrder!.price ?? 0;
+  final price = isInstrument
+      ? instrumentOrder.price ?? 0
+      : optionOrder!.price ?? 0;
 
   final side = isInstrument ? instrumentOrder.side : optionOrder!.direction;
 
@@ -62,11 +64,13 @@ Future<void> showCopyTradeDialog({
 
   bool confirmed = true;
   if (!skipInitialConfirmation) {
-    confirmed = await showDialog<bool>(
+    confirmed =
+        await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
             title: Text(
-                'Copy Trade${isInstrument ? ' (Stock/ETF)' : ' (Option)'}'),
+              'Copy Trade${isInstrument ? ' (Stock/ETF)' : ' (Option)'}',
+            ),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -78,35 +82,40 @@ Future<void> showCopyTradeDialog({
                   // Text('State: ${instrumentOrder.state}'),
                   Text('Quantity: ${finalQuantity.toStringAsFixed(2)}'),
                   Text(
-                      '${instrumentOrder.price != null ? '' : 'Limit '}Price: \$${instrumentOrder.averagePrice != null ? instrumentOrder.averagePrice!.toStringAsFixed(2) : price.toStringAsFixed(2)}'),
+                    '${instrumentOrder.price != null ? '' : 'Limit '}Price: \$${instrumentOrder.averagePrice != null ? instrumentOrder.averagePrice!.toStringAsFixed(2) : price.toStringAsFixed(2)}',
+                  ),
                   Text(
-                      'Est Total: \$${(finalQuantity * (instrumentOrder.averagePrice != null ? instrumentOrder.averagePrice! : price)).toStringAsFixed(2)}'),
+                    'Est Total: \$${(finalQuantity * (instrumentOrder.averagePrice != null ? instrumentOrder.averagePrice! : price)).toStringAsFixed(2)}',
+                  ),
                 ] else ...[
-                  Builder(builder: (_) {
-                    final leg = optionOrder!.legs.isNotEmpty
-                        ? optionOrder.legs.first
-                        : null;
-                    final exp = leg?.expirationDate;
-                    final df = DateFormat('MMM d, yyyy');
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Chain: ${optionOrder.chainSymbol}'),
-                        if (leg != null) Text('Type: ${leg.optionType}'),
-                        if (leg != null && exp != null)
-                          Text('Expiration: ${df.format(exp)}'),
-                        if (leg != null) Text('Strike: \$${leg.strikePrice}'),
-                        Text('Leg Side: ${leg?.side ?? '-'}'),
-                        Text('Direction: ${optionOrder.direction}'),
-                        Text(
-                          'Contracts: ${finalQuantity.toStringAsFixed(0)}',
-                        ),
-                        Text('Limit Price: \$${price.toStringAsFixed(2)}'),
-                        Text(
-                            'Est Total: \$${(finalQuantity * 100 * price).toStringAsFixed(2)}'),
-                      ],
-                    );
-                  }),
+                  Builder(
+                    builder: (_) {
+                      final leg = optionOrder!.legs.isNotEmpty
+                          ? optionOrder.legs.first
+                          : null;
+                      final exp = leg?.expirationDate;
+                      final df = DateFormat('MMM d, yyyy');
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Chain: ${optionOrder.chainSymbol}'),
+                          if (leg != null) Text('Type: ${leg.optionType}'),
+                          if (leg != null && exp != null)
+                            Text('Expiration: ${df.format(exp)}'),
+                          if (leg != null) Text('Strike: \$${leg.strikePrice}'),
+                          Text('Leg Side: ${leg?.side ?? '-'}'),
+                          Text('Direction: ${optionOrder.direction}'),
+                          Text(
+                            'Contracts: ${finalQuantity.toStringAsFixed(0)}',
+                          ),
+                          Text('Limit Price: \$${price.toStringAsFixed(2)}'),
+                          Text(
+                            'Est Total: \$${(finalQuantity * 100 * price).toStringAsFixed(2)}',
+                          ),
+                        ],
+                      );
+                    },
+                  ),
                 ],
                 const SizedBox(height: 16),
                 const Text(
@@ -142,7 +151,9 @@ Future<void> showCopyTradeDialog({
               width: 20,
               height: 20,
               child: CircularProgressIndicator(
-                  strokeWidth: 2, color: Colors.white),
+                strokeWidth: 2,
+                color: Colors.white,
+              ),
             ),
             SizedBox(width: 16),
             Text('Placing order...'),
@@ -193,24 +204,27 @@ Future<void> showCopyTradeDialog({
 
     // RiskGuard Check
     try {
-      final agenticTradingProvider =
-          Provider.of<AgenticTradingProvider>(context, listen: false);
+      final agenticTradingProvider = Provider.of<AgenticTradingProvider>(
+        context,
+        listen: false,
+      );
       final portfolioState = <String, dynamic>{};
       portfolioState['buyingPower'] = account.buyingPower;
       portfolioState['cashAvailable'] = account.portfolioCash;
 
-      final riskResult =
-          await FirebaseFunctions.instance.httpsCallable('riskguardTask').call({
-        'proposal': {
-          'symbol': riskSymbol,
-          'quantity': finalQuantity.round(),
-          'price': finalPrice,
-          'action': riskAction,
-          'multiplier': riskMultiplier,
-        },
-        'portfolioState': portfolioState,
-        'config': agenticTradingProvider.config,
-      });
+      final riskResult = await FirebaseFunctions.instance
+          .httpsCallable('riskguardTask')
+          .call({
+            'proposal': {
+              'symbol': riskSymbol,
+              'quantity': finalQuantity.round(),
+              'price': finalPrice,
+              'action': riskAction,
+              'multiplier': riskMultiplier,
+            },
+            'portfolioState': portfolioState,
+            'config': agenticTradingProvider.config,
+          });
 
       if (riskResult.data['approved'] == false) {
         if (!context.mounted) return;
@@ -219,7 +233,8 @@ Future<void> showCopyTradeDialog({
           builder: (context) => AlertDialog(
             title: const Text('RiskGuard Warning'),
             content: Text(
-                riskResult.data['reason'] ?? 'Trade rejected by RiskGuard.'),
+              riskResult.data['reason'] ?? 'Trade rejected by RiskGuard.',
+            ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context, false),
@@ -255,8 +270,9 @@ Future<void> showCopyTradeDialog({
 
         if (orderResponse.statusCode == 200 ||
             orderResponse.statusCode == 201) {
-          final newOrder =
-              InstrumentOrder.fromJson(jsonDecode(orderResponse.body));
+          final newOrder = InstrumentOrder.fromJson(
+            jsonDecode(orderResponse.body),
+          );
 
           if (newOrder.state == "confirmed" ||
               newOrder.state == "queued" ||
@@ -275,14 +291,16 @@ Future<void> showCopyTradeDialog({
               SnackBar(
                 duration: const Duration(seconds: 5),
                 content: Text(
-                    'Order placed but in unexpected state: ${newOrder.state}'),
+                  'Order placed but in unexpected state: ${newOrder.state}',
+                ),
                 backgroundColor: Colors.orange,
               ),
             );
           }
         } else {
           throw Exception(
-              'Order failed with status ${orderResponse.statusCode}: ${orderResponse.body}');
+            'Order failed with status ${orderResponse.statusCode}: ${orderResponse.body}',
+          );
         }
       }
     } else {
@@ -326,7 +344,8 @@ Future<void> showCopyTradeDialog({
             SnackBar(
               duration: const Duration(seconds: 5),
               content: Text(
-                  'Order placed but in unexpected state: ${newOrder.state}'),
+                'Order placed but in unexpected state: ${newOrder.state}',
+              ),
               backgroundColor: Colors.orange,
             ),
           );

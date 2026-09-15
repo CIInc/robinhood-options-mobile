@@ -65,11 +65,13 @@ class PriceTargetAnalysis {
 
   factory PriceTargetAnalysis.fromJson(Map<String, dynamic> json) {
     return PriceTargetAnalysis(
-      supportLevels: (json['support_levels'] as List<dynamic>?)
+      supportLevels:
+          (json['support_levels'] as List<dynamic>?)
               ?.map((e) => PriceTargetLevel.fromJson(e))
               .toList() ??
           [],
-      resistanceLevels: (json['resistance_levels'] as List<dynamic>?)
+      resistanceLevels:
+          (json['resistance_levels'] as List<dynamic>?)
               ?.map((e) => PriceTargetLevel.fromJson(e))
               .toList() ??
           [],
@@ -85,7 +87,8 @@ class PriceTargetAnalysis {
           : null,
       confidenceScore: (json['confidence_score'] as num?)?.toDouble(),
       investmentHorizon: json['investment_horizon'],
-      keyRisks: (json['key_risks'] as List<dynamic>?)
+      keyRisks:
+          (json['key_risks'] as List<dynamic>?)
               ?.map((e) => e.toString())
               .toList() ??
           [],

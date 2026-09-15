@@ -99,20 +99,21 @@ import 'package:robinhood_options_mobile/services/esg_service.dart'; */
 
 class InstrumentWidget extends StatefulWidget {
   const InstrumentWidget(
-      this.brokerageUser,
-      this.service,
-      //this.account,
-      this.instrument,
-      {super.key,
-      required this.analytics,
-      required this.observer,
-      required this.generativeService,
-      required this.user,
-      required this.userDocRef,
-      this.heroTag,
-      this.scrollToTradeSignal = false,
-      this.initialIsPaperTrade = false,
-      this.initialCategory = 'Overview'});
+    this.brokerageUser,
+    this.service,
+    //this.account,
+    this.instrument, {
+    super.key,
+    required this.analytics,
+    required this.observer,
+    required this.generativeService,
+    required this.user,
+    required this.userDocRef,
+    this.heroTag,
+    this.scrollToTradeSignal = false,
+    this.initialIsPaperTrade = false,
+    this.initialCategory = 'Overview',
+  });
 
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
@@ -190,7 +191,10 @@ class InstrumentCategoryHeaderDelegate extends SliverPersistentHeaderDelegate {
 
   @override
   Widget build(
-      BuildContext context, double shrinkOffset, bool overlapsContent) {
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
@@ -235,8 +239,9 @@ class InstrumentCategoryHeaderDelegate extends SliverPersistentHeaderDelegate {
                     cat.label,
                     style: TextStyle(
                       fontSize: 12.5,
-                      fontWeight:
-                          isSelected ? FontWeight.bold : FontWeight.w500,
+                      fontWeight: isSelected
+                          ? FontWeight.bold
+                          : FontWeight.w500,
                       color: isSelected
                           ? theme.colorScheme.onPrimaryContainer
                           : theme.colorScheme.onSurfaceVariant,
@@ -246,12 +251,16 @@ class InstrumentCategoryHeaderDelegate extends SliverPersistentHeaderDelegate {
                     const SizedBox(width: 5),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 5.0, vertical: 1.0),
+                        horizontal: 5.0,
+                        vertical: 1.0,
+                      ),
                       decoration: BoxDecoration(
-                        color: cat.badgeColor ??
+                        color:
+                            cat.badgeColor ??
                             (isSelected
-                                ? theme.colorScheme.primary
-                                    .withValues(alpha: 0.2)
+                                ? theme.colorScheme.primary.withValues(
+                                    alpha: 0.2,
+                                  )
                                 : theme.colorScheme.surfaceContainerHighest),
                         borderRadius: BorderRadius.circular(8),
                       ),
@@ -260,7 +269,8 @@ class InstrumentCategoryHeaderDelegate extends SliverPersistentHeaderDelegate {
                         style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
-                          color: cat.badgeTextColor ??
+                          color:
+                              cat.badgeTextColor ??
                               (isSelected
                                   ? theme.colorScheme.primary
                                   : theme.colorScheme.onSurfaceVariant),
@@ -273,10 +283,12 @@ class InstrumentCategoryHeaderDelegate extends SliverPersistentHeaderDelegate {
               selected: isSelected,
               selectedColor: theme.colorScheme.primaryContainer,
               backgroundColor: isDark
-                  ? theme.colorScheme.surfaceContainerHighest
-                      .withValues(alpha: 0.45)
-                  : theme.colorScheme.surfaceContainerHighest
-                      .withValues(alpha: 0.55),
+                  ? theme.colorScheme.surfaceContainerHighest.withValues(
+                      alpha: 0.45,
+                    )
+                  : theme.colorScheme.surfaceContainerHighest.withValues(
+                      alpha: 0.55,
+                    ),
               side: BorderSide(
                 color: isSelected
                     ? theme.colorScheme.primary.withValues(alpha: 0.3)
@@ -340,20 +352,24 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   double positionOrdersBalance = 0;
   // Controls whether all similar instruments are shown or only the first 5.
   final ValueNotifier<bool> _showAllSimilarNotifier = ValueNotifier(false);
-  final ValueNotifier<bool> _showAllPositionOrdersNotifier =
-      ValueNotifier(false);
+  final ValueNotifier<bool> _showAllPositionOrdersNotifier = ValueNotifier(
+    false,
+  );
   final ValueNotifier<bool> _showAllOptionOrdersNotifier = ValueNotifier(false);
   final ValueNotifier<bool> _showAllNewsNotifier = ValueNotifier(false);
   final ValueNotifier<bool> _showAllEarningsNotifier = ValueNotifier(false);
   // Controls visibility of AI reasoning details in trade signals
-  final ValueNotifier<bool> _showAIReasoningNotifier =
-      ValueNotifier<bool>(false);
+  final ValueNotifier<bool> _showAIReasoningNotifier = ValueNotifier<bool>(
+    false,
+  );
   // Controls visibility of technical indicators details
-  final ValueNotifier<bool> _showTechnicalDetailsNotifier =
-      ValueNotifier(false);
+  final ValueNotifier<bool> _showTechnicalDetailsNotifier = ValueNotifier(
+    false,
+  );
   // Controls visibility of expanded metadata
-  final ValueNotifier<Set<String>> _expandedIndicatorsNotifier =
-      ValueNotifier({});
+  final ValueNotifier<Set<String>> _expandedIndicatorsNotifier = ValueNotifier(
+    {},
+  );
   final ValueNotifier<bool> _showAllListsNotifier = ValueNotifier(false);
   final ValueNotifier<bool> _isGeneratingSignalNotifier = ValueNotifier(false);
   final ValueNotifier<bool> _isAssessingRiskNotifier = ValueNotifier(false);
@@ -378,8 +394,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     String? signalBadge;
     Color? signalBadgeColor;
     Color? signalBadgeTextColor;
-    final signalType =
-        tradeSignalsProvider?.tradeSignal?['signal']?.toString().toUpperCase();
+    final signalType = tradeSignalsProvider?.tradeSignal?['signal']
+        ?.toString()
+        .toUpperCase();
     if (signalType != null && signalType.isNotEmpty) {
       signalBadge = signalType;
       if (signalType.contains('BUY')) {
@@ -404,35 +421,46 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
     if (isPaper) {
       final paperStore = Provider.of<PaperTradingStore>(context, listen: false);
-      hasPosition = paperStore.positions
-              .any((e) => e.instrument == instrument.url) ||
+      hasPosition =
+          paperStore.positions.any((e) => e.instrument == instrument.url) ||
           paperStore.optionPositions.any((e) => e.symbol == instrument.symbol);
       orderCount = paperStore.history
           .where((h) => h['symbol'] == instrument.symbol)
           .length;
     } else {
-      final stockStore =
-          Provider.of<InstrumentPositionStore>(context, listen: false);
+      final stockStore = Provider.of<InstrumentPositionStore>(
+        context,
+        listen: false,
+      );
       final optStore = Provider.of<OptionPositionStore>(context, listen: false);
       final comboStore = Provider.of<ComboOrderStore>(context, listen: false);
       hasPosition =
           stockStore.items.any((e) => e.instrument == instrument.url) ||
-              optStore.items.any((e) => e.symbol == instrument.symbol);
-      final comboCount = comboStore.items.where((order) =>
-          order.primarySymbol.toUpperCase() ==
-              instrument.symbol.toUpperCase() ||
-          order.legs.any((l) =>
-              l.symbol != null &&
-              l.symbol!.toUpperCase() == instrument.symbol.toUpperCase())).length;
-      orderCount = (instrument.positionOrders?.length ?? 0) +
+          optStore.items.any((e) => e.symbol == instrument.symbol);
+      final comboCount = comboStore.items
+          .where(
+            (order) =>
+                order.primarySymbol.toUpperCase() ==
+                    instrument.symbol.toUpperCase() ||
+                order.legs.any(
+                  (l) =>
+                      l.symbol != null &&
+                      l.symbol!.toUpperCase() ==
+                          instrument.symbol.toUpperCase(),
+                ),
+          )
+          .length;
+      orderCount =
+          (instrument.positionOrders?.length ?? 0) +
           (instrument.optionOrders?.length ?? 0) +
           comboCount;
     }
 
     if (hasPosition) {
       activityBadge = 'Holding';
-      activityBadgeColor =
-          Theme.of(context).colorScheme.primary.withValues(alpha: 0.18);
+      activityBadgeColor = Theme.of(
+        context,
+      ).colorScheme.primary.withValues(alpha: 0.18);
       activityBadgeTextColor = Theme.of(context).colorScheme.primary;
     } else if (orderCount > 0) {
       activityBadge = '$orderCount';
@@ -508,18 +536,24 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       final paperStore = Provider.of<PaperTradingStore>(context, listen: false);
       var history = paperStore.history
           .where(
-              (h) => h['symbol'] == instrument.symbol && h['type'] == 'STOCK')
+            (h) => h['symbol'] == instrument.symbol && h['type'] == 'STOCK',
+          )
           .toList();
-      positionOrders =
-          history.map((h) => InstrumentOrder.fromPaperJson(h)).toList();
+      positionOrders = history
+          .map((h) => InstrumentOrder.fromPaperJson(h))
+          .toList();
     }
 
     positionOrdersBalance = positionOrders.isNotEmpty
         ? positionOrders
-            .map((e) =>
-                (e.averagePrice != null ? e.averagePrice! * e.quantity! : 0.0) *
-                (e.side == "buy" ? 1 : -1))
-            .reduce((a, b) => a + b)
+              .map(
+                (e) =>
+                    (e.averagePrice != null
+                        ? e.averagePrice! * e.quantity!
+                        : 0.0) *
+                    (e.side == "buy" ? 1 : -1),
+              )
+              .reduce((a, b) => a + b)
         : 0.0;
 
     var optionOrders = instrument.optionOrders ?? [];
@@ -527,7 +561,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       final paperStore = Provider.of<PaperTradingStore>(context, listen: false);
       var history = paperStore.history
           .where(
-              (h) => h['symbol'] == instrument.symbol && h['type'] == 'OPTION')
+            (h) => h['symbol'] == instrument.symbol && h['type'] == 'OPTION',
+          )
           .toList();
       optionOrders = history.map((h) {
         return OptionOrder(
@@ -561,10 +596,13 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
     optionOrdersPremiumBalance = optionOrders.isNotEmpty
         ? optionOrders
-            .map((e) =>
-                (e.processedPremium != null ? e.processedPremium! : 0) *
-                (e.direction == "credit" ? 1 : -1))
-            .reduce((a, b) => a + b) as double
+                  .map(
+                    (e) =>
+                        (e.processedPremium != null ? e.processedPremium! : 0) *
+                        (e.direction == "credit" ? 1 : -1),
+                  )
+                  .reduce((a, b) => a + b)
+              as double
         : 0;
   }
 
@@ -580,43 +618,55 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     widget.service
         .getInstrumentBuyingPower(user, accountNumber, instrument.id)
         .then((bp) {
-      if (mounted && bp != null) {
-        setState(() {
-          _instrumentBuyingPower = InstrumentBuyingPower.fromJson(
-              instrument.id, bp,
-              defaultAccount: accountNumber);
+          if (mounted && bp != null) {
+            setState(() {
+              _instrumentBuyingPower = InstrumentBuyingPower.fromJson(
+                instrument.id,
+                bp,
+                defaultAccount: accountNumber,
+              );
+            });
+          }
+        })
+        .catchError((e) {
+          debugPrint('Error fetching instrument buying power: $e');
         });
-      }
-    }).catchError((e) {
-      debugPrint('Error fetching instrument buying power: $e');
-    });
 
-    widget.service.getInstrumentWarnings(user, instrument.id).then((warn) {
-      if (mounted && warn != null) {
-        setState(() {
-          _instrumentWarnings =
-              InstrumentTradeWarnings.fromJson(instrument.id, warn);
+    widget.service
+        .getInstrumentWarnings(user, instrument.id)
+        .then((warn) {
+          if (mounted && warn != null) {
+            setState(() {
+              _instrumentWarnings = InstrumentTradeWarnings.fromJson(
+                instrument.id,
+                warn,
+              );
+            });
+          }
+        })
+        .catchError((e) {
+          debugPrint('Error fetching instrument warnings: $e');
         });
-      }
-    }).catchError((e) {
-      debugPrint('Error fetching instrument warnings: $e');
-    });
 
     // _esgFuture = _esgService.getESGScore(instrument.symbol);
     // _institutionalOwnershipFuture =
     //     _yahooService.getInstitutionalOwnership(instrument.symbol);
 
     final isPaper = user.source == BrokerageSource.paper;
-    final paperStore =
-        isPaper ? Provider.of<PaperTradingStore>(context, listen: false) : null;
+    final paperStore = isPaper
+        ? Provider.of<PaperTradingStore>(context, listen: false)
+        : null;
 
-    var optionOrderStore =
-        Provider.of<OptionOrderStore>(context, listen: false);
+    var optionOrderStore = Provider.of<OptionOrderStore>(
+      context,
+      listen: false,
+    );
 
     if (isPaper && paperStore != null) {
       var history = paperStore.history
           .where(
-              (h) => h['symbol'] == instrument.symbol && h['type'] == 'OPTION')
+            (h) => h['symbol'] == instrument.symbol && h['type'] == 'OPTION',
+          )
           .toList();
       var paperOrders = history.map((h) {
         var order = OptionOrder(
@@ -656,9 +706,10 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         futureOptionOrders = Future.value(optionOrders);
       } else if (widget.instrument.tradeableChainId != null) {
         futureOptionOrders = widget.service.getOptionOrders(
-            widget.brokerageUser,
-            optionOrderStore,
-            widget.instrument.tradeableChainId!);
+          widget.brokerageUser,
+          optionOrderStore,
+          widget.instrument.tradeableChainId!,
+        );
       } else {
         futureOptionOrders = Future.value([]);
       }
@@ -672,13 +723,16 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       }
     });
 
-    var stockPositionOrderStore =
-        Provider.of<InstrumentOrderStore>(context, listen: false);
+    var stockPositionOrderStore = Provider.of<InstrumentOrderStore>(
+      context,
+      listen: false,
+    );
 
     if (isPaper && paperStore != null) {
       var history = paperStore.history
           .where(
-              (h) => h['symbol'] == instrument.symbol && h['type'] == 'STOCK')
+            (h) => h['symbol'] == instrument.symbol && h['type'] == 'STOCK',
+          )
           .toList();
       var paperOrders = history.map((h) {
         return InstrumentOrder.fromPaperJson(h);
@@ -692,9 +746,10 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         futureInstrumentOrders = Future.value(positionOrders);
       } else {
         futureInstrumentOrders = widget.service.getInstrumentOrders(
-            widget.brokerageUser,
-            stockPositionOrderStore,
-            [widget.instrument.url]);
+          widget.brokerageUser,
+          stockPositionOrderStore,
+          [widget.instrument.url],
+        );
       }
     }
     futureInstrumentOrders?.then((value) {
@@ -715,8 +770,11 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     }
 
     //if (instrument.quoteObj == null) {
-    futureQuote = widget.service.getQuote(user,
-        Provider.of<QuoteStore>(context, listen: false), instrument.symbol);
+    futureQuote = widget.service.getQuote(
+      user,
+      Provider.of<QuoteStore>(context, listen: false),
+      instrument.symbol,
+    );
     futureQuote?.then((value) {
       if (mounted) {
         setState(() {
@@ -756,10 +814,11 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     });
 
     futureDividends = widget.service.getDividends(
-        user,
-        Provider.of<DividendStore>(context, listen: false),
-        Provider.of<InstrumentStore>(context, listen: false),
-        instrumentId: instrument.id);
+      user,
+      Provider.of<DividendStore>(context, listen: false),
+      Provider.of<InstrumentStore>(context, listen: false),
+      instrumentId: instrument.id,
+    );
     futureDividends?.then((value) {
       if (mounted) {
         setState(() {
@@ -777,8 +836,10 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       }
     });
 
-    futureRatingsOverview =
-        widget.service.getRatingsOverview(user, instrument.id);
+    futureRatingsOverview = widget.service.getRatingsOverview(
+      user,
+      instrument.id,
+    );
     futureRatingsOverview?.then((value) {
       if (mounted) {
         setState(() {
@@ -787,8 +848,10 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       }
     });
 
-    futureOptionEvents = widget.service
-        .getOptionEventsByInstrumentUrl(widget.brokerageUser, instrument.url);
+    futureOptionEvents = widget.service.getOptionEventsByInstrumentUrl(
+      widget.brokerageUser,
+      instrument.url,
+    );
     futureOptionEvents?.then((value) {
       if (mounted) {
         setState(() {
@@ -825,11 +888,12 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     });
 
     futureHistoricals = widget.service.getInstrumentHistoricals(
-        user,
-        Provider.of<InstrumentHistoricalsStore>(context, listen: false),
-        instrument.symbol,
-        chartBoundsFilter: chartBoundsFilter,
-        chartDateSpanFilter: chartDateSpanFilter);
+      user,
+      Provider.of<InstrumentHistoricalsStore>(context, listen: false),
+      instrument.symbol,
+      chartBoundsFilter: chartBoundsFilter,
+      chartDateSpanFilter: chartDateSpanFilter,
+    );
     futureHistoricals?.then((value) {
       if (mounted) {
         setState(() {
@@ -839,8 +903,10 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     });
 
     if (instrument.type == 'etp' && widget.service is RobinhoodService) {
-      futureEtp =
-          (widget.service as RobinhoodService).getEtpDetails(user, instrument);
+      futureEtp = (widget.service as RobinhoodService).getEtpDetails(
+        user,
+        instrument,
+      );
       futureEtp?.then((value) {
         if (mounted) {
           setState(() {
@@ -858,8 +924,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   void initState() {
     super.initState();
 
-    _selectedCategory =
-        widget.scrollToTradeSignal ? 'Signals' : widget.initialCategory;
+    _selectedCategory = widget.scrollToTradeSignal
+        ? 'Signals'
+        : widget.initialCategory;
 
     if (widget.scrollToTradeSignal) {
       _showTechnicalDetailsNotifier.value = true;
@@ -870,10 +937,12 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         // Add a small delay to ensure the widget is fully built and expanded
         await Future.delayed(const Duration(milliseconds: 300));
         if (tradeSignalKey.currentContext != null) {
-          Scrollable.ensureVisible(tradeSignalKey.currentContext!,
-              duration: const Duration(milliseconds: 500),
-              curve: Curves.easeInOut,
-              alignment: 0.0);
+          Scrollable.ensureVisible(
+            tradeSignalKey.currentContext!,
+            duration: const Duration(milliseconds: 500),
+            curve: Curves.easeInOut,
+            alignment: 0.0,
+          );
         }
       });
     }
@@ -885,8 +954,10 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     widget.analytics.logScreenView(
       screenName: 'Instrument/${widget.instrument.symbol}',
     );
-    Provider.of<TradeSignalsProvider>(context, listen: false)
-        .fetchTradeSignal(widget.instrument.symbol);
+    Provider.of<TradeSignalsProvider>(
+      context,
+      listen: false,
+    ).fetchTradeSignal(widget.instrument.symbol);
   }
 
   void _onCategorySelected(String category) {
@@ -897,14 +968,11 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     });
     widget.analytics.logEvent(
       name: 'instrument_category_selected',
-      parameters: {
-        'category': category,
-        'symbol': widget.instrument.symbol,
-      },
+      parameters: {'category': category, 'symbol': widget.instrument.symbol},
     );
     if (_scrollController.hasClients) {
-      final renderObject =
-          _categoryHeaderKey.currentContext?.findRenderObject();
+      final renderObject = _categoryHeaderKey.currentContext
+          ?.findRenderObject();
       if (renderObject is RenderSliver) {
         final pinnedAppBarHeight =
             kToolbarHeight + MediaQuery.paddingOf(context).top;
@@ -940,7 +1008,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     super.dispose();
   }
 
-/*
+  /*
   // scopes: [acats, balances, document_upload, edocs, funding:all:read, funding:ach:read, funding:ach:write, funding:wire:read, funding:wire:write, internal, investments, margin, read, signup, trade, watchlist, web_limited])
   Request to https://api.robinhood.com/marketdata/options/?instruments=942d3704-7247-454f-9fb6-1f98f5d41702 failed with status 400: Bad Request.
   */
@@ -957,7 +1025,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
     try {
       final portfolioState = _buildPortfolioState(context);
-      final price = widget.instrument.quoteObj?.lastExtendedHoursTradePrice ??
+      final price =
+          widget.instrument.quoteObj?.lastExtendedHoursTradePrice ??
           widget.instrument.quoteObj?.lastTradePrice;
 
       if (price == null) {
@@ -965,10 +1034,14 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       }
 
       // Generate new signal via initiateTradeProposal
-      final tradeSignalsProvider =
-          Provider.of<TradeSignalsProvider>(context, listen: false);
-      final agenticTradingProvider =
-          Provider.of<AgenticTradingProvider>(context, listen: false);
+      final tradeSignalsProvider = Provider.of<TradeSignalsProvider>(
+        context,
+        listen: false,
+      );
+      final agenticTradingProvider = Provider.of<AgenticTradingProvider>(
+        context,
+        listen: false,
+      );
       await tradeSignalsProvider.initiateTradeProposal(
         symbol: widget.instrument.symbol,
         currentPrice: price,
@@ -980,14 +1053,18 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       await Future.delayed(const Duration(milliseconds: 500));
 
       // Refresh the signal from Firestore
-      await Provider.of<TradeSignalsProvider>(context, listen: false)
-          .fetchTradeSignal(widget.instrument.symbol);
+      await Provider.of<TradeSignalsProvider>(
+        context,
+        listen: false,
+      ).fetchTradeSignal(widget.instrument.symbol);
 
       if (mounted) {
-        Scrollable.ensureVisible(tradeSignalKey.currentContext!,
-            duration: const Duration(milliseconds: 500),
-            curve: Curves.easeInOut,
-            alignment: 0.0);
+        Scrollable.ensureVisible(
+          tradeSignalKey.currentContext!,
+          duration: const Duration(milliseconds: 500),
+          curve: Curves.easeInOut,
+          alignment: 0.0,
+        );
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Trade signal generated successfully!'),
@@ -1014,7 +1091,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   }
 
   Future<void> _runRiskAssessment(
-      Map<String, dynamic> signal, String signalType) async {
+    Map<String, dynamic> signal,
+    String signalType,
+  ) async {
     if (_isAssessingRiskNotifier.value) return;
 
     _isAssessingRiskNotifier.value = true;
@@ -1029,10 +1108,14 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
       final portfolioState = _buildPortfolioState(context);
 
-      final tradeSignalsProvider =
-          Provider.of<TradeSignalsProvider>(context, listen: false);
-      final agenticTradingProvider =
-          Provider.of<AgenticTradingProvider>(context, listen: false);
+      final tradeSignalsProvider = Provider.of<TradeSignalsProvider>(
+        context,
+        listen: false,
+      );
+      final agenticTradingProvider = Provider.of<AgenticTradingProvider>(
+        context,
+        listen: false,
+      );
       final result = await tradeSignalsProvider.assessTradeRisk(
         proposal: proposal,
         portfolioState: portfolioState,
@@ -1113,10 +1196,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  Text(
-                    result['reason'],
-                    style: const TextStyle(fontSize: 15),
-                  ),
+                  Text(result['reason'], style: const TextStyle(fontSize: 15)),
                 ],
               ],
             ),
@@ -1157,8 +1237,10 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       buyingPower = account.buyingPower ?? cash;
     }
 
-    final stockPositionStore =
-        Provider.of<InstrumentPositionStore>(context, listen: false);
+    final stockPositionStore = Provider.of<InstrumentPositionStore>(
+      context,
+      listen: false,
+    );
 
     final Map<String, dynamic> portfolioState = {
       'buyingPower': buyingPower,
@@ -1174,7 +1256,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         final posQuantity = position.quantity!;
         final posPrice =
             position.instrumentObj!.quoteObj?.lastExtendedHoursTradePrice ??
-                position.instrumentObj!.quoteObj?.lastTradePrice;
+            position.instrumentObj!.quoteObj?.lastTradePrice;
 
         if (posPrice != null) {
           // Store as object with quantity and price for accurate valuation
@@ -1193,17 +1275,24 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   }
 
   Future<void> _generateAIContent(
-      GenerativeProvider provider, Prompt prompt) async {
+    GenerativeProvider provider,
+    Prompt prompt,
+  ) async {
     provider.startGenerating(prompt.key);
     try {
       // Using null for stores as we don't need portfolio context for symbol specific analysis usually,
       var response = await widget.generativeService.generateContentFromServer(
-          prompt, null, null, null // Pass nulls for stores
-          );
+        prompt,
+        null,
+        null,
+        null, // Pass nulls for stores
+      );
       provider.setGenerativeResponse(prompt.key, response);
     } catch (e) {
       provider.setGenerativeResponse(
-          prompt.key, "Failed to generate insight. Please try again.");
+        prompt.key,
+        "Failed to generate insight. Please try again.",
+      );
     }
   }
 
@@ -1211,254 +1300,287 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   // ignore: unused_element
   Widget _buildAIInsights(BuildContext context) {
     return Consumer<GenerativeProvider>(
-        builder: (context, generativeProvider, child) {
-      final summaryKey = 'insight-${widget.instrument.symbol}-summary';
-      final sentimentKey = 'insight-${widget.instrument.symbol}-sentiment';
-      final newsKey = 'insight-${widget.instrument.symbol}-news';
-      final keyLevelsKey = 'insight-${widget.instrument.symbol}-key-levels';
-      final strategyKey = 'insight-${widget.instrument.symbol}-strategy';
+      builder: (context, generativeProvider, child) {
+        final summaryKey = 'insight-${widget.instrument.symbol}-summary';
+        final sentimentKey = 'insight-${widget.instrument.symbol}-sentiment';
+        final newsKey = 'insight-${widget.instrument.symbol}-news';
+        final keyLevelsKey = 'insight-${widget.instrument.symbol}-key-levels';
+        final strategyKey = 'insight-${widget.instrument.symbol}-strategy';
 
-      // Check if we are currently generating for this instrument
-      final isGeneratingSummary = generativeProvider.generating &&
-          generativeProvider.generatingPrompt == summaryKey;
-      final isGeneratingSentiment = generativeProvider.generating &&
-          generativeProvider.generatingPrompt == sentimentKey;
-      final isGeneratingNews = generativeProvider.generating &&
-          generativeProvider.generatingPrompt == newsKey;
-      final isGeneratingKeyLevels = generativeProvider.generating &&
-          generativeProvider.generatingPrompt == keyLevelsKey;
-      final isGeneratingStrategy = generativeProvider.generating &&
-          generativeProvider.generatingPrompt == strategyKey;
+        // Check if we are currently generating for this instrument
+        final isGeneratingSummary =
+            generativeProvider.generating &&
+            generativeProvider.generatingPrompt == summaryKey;
+        final isGeneratingSentiment =
+            generativeProvider.generating &&
+            generativeProvider.generatingPrompt == sentimentKey;
+        final isGeneratingNews =
+            generativeProvider.generating &&
+            generativeProvider.generatingPrompt == newsKey;
+        final isGeneratingKeyLevels =
+            generativeProvider.generating &&
+            generativeProvider.generatingPrompt == keyLevelsKey;
+        final isGeneratingStrategy =
+            generativeProvider.generating &&
+            generativeProvider.generatingPrompt == strategyKey;
 
-      if (!generativeProvider.promptResponses.containsKey(summaryKey) &&
-          !generativeProvider.promptResponses.containsKey(sentimentKey) &&
-          !generativeProvider.promptResponses.containsKey(newsKey) &&
-          !generativeProvider.promptResponses.containsKey(keyLevelsKey) &&
-          !generativeProvider.promptResponses.containsKey(strategyKey) &&
-          !isGeneratingSummary &&
-          !isGeneratingSentiment &&
-          !isGeneratingNews &&
-          !isGeneratingKeyLevels &&
-          !isGeneratingStrategy) {
-        // Collapsed state visualization or just existing state
-      }
+        if (!generativeProvider.promptResponses.containsKey(summaryKey) &&
+            !generativeProvider.promptResponses.containsKey(sentimentKey) &&
+            !generativeProvider.promptResponses.containsKey(newsKey) &&
+            !generativeProvider.promptResponses.containsKey(keyLevelsKey) &&
+            !generativeProvider.promptResponses.containsKey(strategyKey) &&
+            !isGeneratingSummary &&
+            !isGeneratingSentiment &&
+            !isGeneratingNews &&
+            !isGeneratingKeyLevels &&
+            !isGeneratingStrategy) {
+          // Collapsed state visualization or just existing state
+        }
 
-      return SliverToBoxAdapter(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-          child: Card(
-            elevation: 0,
-            color: Theme.of(context)
-                .colorScheme
-                .surfaceContainerHighest
-                .withValues(alpha: 0.3),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-              side: BorderSide(
-                color: Theme.of(context)
-                    .colorScheme
-                    .outlineVariant
-                    .withValues(alpha: 0.4),
-              ),
+        return SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16.0,
+              vertical: 8.0,
             ),
-            child: ExpansionTile(
-              shape: const Border(),
-              collapsedShape: const Border(),
-              leading: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Theme.of(context)
-                      .colorScheme
-                      .primary
-                      .withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(10),
+            child: Card(
+              elevation: 0,
+              color: Theme.of(
+                context,
+              ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+                side: BorderSide(
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.outlineVariant.withValues(alpha: 0.4),
                 ),
-                child: Icon(Icons.auto_awesome,
-                    color: Theme.of(context).colorScheme.primary, size: 20),
               ),
-              title: const Text('AI Market Insights',
-                  style: TextStyle(fontWeight: FontWeight.bold)),
-              subtitle: const Text('Analysis & Trade Ideas'),
-              initiallyExpanded: generativeProvider.promptResponses
-                      .containsKey(summaryKey) ||
-                  generativeProvider.promptResponses
-                      .containsKey(sentimentKey) ||
-                  generativeProvider.promptResponses.containsKey(newsKey) ||
-                  generativeProvider.promptResponses
-                      .containsKey(keyLevelsKey) ||
-                  generativeProvider.promptResponses.containsKey(strategyKey),
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Wrap(
-                        spacing: 8.0,
-                        runSpacing: 8.0,
-                        children: [
-                          ActionChip(
-                            avatar: isGeneratingSummary
-                                ? const SizedBox(
-                                    width: 12,
-                                    height: 12,
-                                    child: CircularProgressIndicator(
-                                        strokeWidth: 2))
-                                : const Icon(Icons.summarize, size: 16),
-                            label: const Text('Summary'),
-                            onPressed: () async {
-                              if (isGeneratingSummary) return;
-                              await _generateAIContent(
+              child: ExpansionTile(
+                shape: const Border(),
+                collapsedShape: const Border(),
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.primary.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    Icons.auto_awesome,
+                    color: Theme.of(context).colorScheme.primary,
+                    size: 20,
+                  ),
+                ),
+                title: const Text(
+                  'AI Market Insights',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                subtitle: const Text('Analysis & Trade Ideas'),
+                initiallyExpanded:
+                    generativeProvider.promptResponses.containsKey(
+                      summaryKey,
+                    ) ||
+                    generativeProvider.promptResponses.containsKey(
+                      sentimentKey,
+                    ) ||
+                    generativeProvider.promptResponses.containsKey(newsKey) ||
+                    generativeProvider.promptResponses.containsKey(
+                      keyLevelsKey,
+                    ) ||
+                    generativeProvider.promptResponses.containsKey(strategyKey),
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Wrap(
+                          spacing: 8.0,
+                          runSpacing: 8.0,
+                          children: [
+                            ActionChip(
+                              avatar: isGeneratingSummary
+                                  ? const SizedBox(
+                                      width: 12,
+                                      height: 12,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : const Icon(Icons.summarize, size: 16),
+                              label: const Text('Summary'),
+                              onPressed: () async {
+                                if (isGeneratingSummary) return;
+                                await _generateAIContent(
                                   generativeProvider,
-                                  GenerativeService
-                                      .buildInstrumentAnalysisPrompt(
-                                          symbol: widget.instrument.symbol,
-                                          type: 'summary'));
-                            },
-                          ),
-                          ActionChip(
-                            avatar: isGeneratingSentiment
-                                ? const SizedBox(
-                                    width: 12,
-                                    height: 12,
-                                    child: CircularProgressIndicator(
-                                        strokeWidth: 2))
-                                : const Icon(Icons.bar_chart, size: 16),
-                            label: const Text('Sentiment'),
-                            onPressed: () async {
-                              if (isGeneratingSentiment) return;
-                              await _generateAIContent(
+                                  GenerativeService.buildInstrumentAnalysisPrompt(
+                                    symbol: widget.instrument.symbol,
+                                    type: 'summary',
+                                  ),
+                                );
+                              },
+                            ),
+                            ActionChip(
+                              avatar: isGeneratingSentiment
+                                  ? const SizedBox(
+                                      width: 12,
+                                      height: 12,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : const Icon(Icons.bar_chart, size: 16),
+                              label: const Text('Sentiment'),
+                              onPressed: () async {
+                                if (isGeneratingSentiment) return;
+                                await _generateAIContent(
                                   generativeProvider,
-                                  GenerativeService
-                                      .buildInstrumentAnalysisPrompt(
-                                          symbol: widget.instrument.symbol,
-                                          type: 'sentiment'));
-                            },
-                          ),
-                          ActionChip(
-                            avatar: isGeneratingKeyLevels
-                                ? const SizedBox(
-                                    width: 12,
-                                    height: 12,
-                                    child: CircularProgressIndicator(
-                                        strokeWidth: 2))
-                                : const Icon(Icons.layers, size: 16),
-                            label: const Text('Key Levels'),
-                            onPressed: () async {
-                              if (isGeneratingKeyLevels) return;
-                              await _generateAIContent(
+                                  GenerativeService.buildInstrumentAnalysisPrompt(
+                                    symbol: widget.instrument.symbol,
+                                    type: 'sentiment',
+                                  ),
+                                );
+                              },
+                            ),
+                            ActionChip(
+                              avatar: isGeneratingKeyLevels
+                                  ? const SizedBox(
+                                      width: 12,
+                                      height: 12,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : const Icon(Icons.layers, size: 16),
+                              label: const Text('Key Levels'),
+                              onPressed: () async {
+                                if (isGeneratingKeyLevels) return;
+                                await _generateAIContent(
                                   generativeProvider,
-                                  GenerativeService
-                                      .buildInstrumentAnalysisPrompt(
-                                          symbol: widget.instrument.symbol,
-                                          type: 'keyLevels'));
-                            },
-                          ),
-                          ActionChip(
-                            avatar: isGeneratingStrategy
-                                ? const SizedBox(
-                                    width: 12,
-                                    height: 12,
-                                    child: CircularProgressIndicator(
-                                        strokeWidth: 2))
-                                : const Icon(Icons.lightbulb, size: 16),
-                            label: const Text('Strategy'),
-                            onPressed: () async {
-                              if (isGeneratingStrategy) return;
-                              await _generateAIContent(
+                                  GenerativeService.buildInstrumentAnalysisPrompt(
+                                    symbol: widget.instrument.symbol,
+                                    type: 'keyLevels',
+                                  ),
+                                );
+                              },
+                            ),
+                            ActionChip(
+                              avatar: isGeneratingStrategy
+                                  ? const SizedBox(
+                                      width: 12,
+                                      height: 12,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : const Icon(Icons.lightbulb, size: 16),
+                              label: const Text('Strategy'),
+                              onPressed: () async {
+                                if (isGeneratingStrategy) return;
+                                await _generateAIContent(
                                   generativeProvider,
-                                  GenerativeService
-                                      .buildInstrumentAnalysisPrompt(
-                                          symbol: widget.instrument.symbol,
-                                          type: 'strategy'));
-                            },
-                          ),
-                          ActionChip(
-                            avatar: isGeneratingNews
-                                ? const SizedBox(
-                                    width: 12,
-                                    height: 12,
-                                    child: CircularProgressIndicator(
-                                        strokeWidth: 2))
-                                : const Icon(Icons.newspaper, size: 16),
-                            label: const Text('News Analysis'),
-                            onPressed: () async {
-                              if (isGeneratingNews) return;
-                              await _generateAIContent(
+                                  GenerativeService.buildInstrumentAnalysisPrompt(
+                                    symbol: widget.instrument.symbol,
+                                    type: 'strategy',
+                                  ),
+                                );
+                              },
+                            ),
+                            ActionChip(
+                              avatar: isGeneratingNews
+                                  ? const SizedBox(
+                                      width: 12,
+                                      height: 12,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : const Icon(Icons.newspaper, size: 16),
+                              label: const Text('News Analysis'),
+                              onPressed: () async {
+                                if (isGeneratingNews) return;
+                                await _generateAIContent(
                                   generativeProvider,
-                                  GenerativeService
-                                      .buildInstrumentAnalysisPrompt(
-                                          symbol: widget.instrument.symbol,
-                                          type: 'news'));
-                            },
-                          ),
-                          ActionChip(
-                            avatar:
-                                const Icon(Icons.chat_bubble_outline, size: 16),
-                            label: const Text('Ask Assistant'),
-                            onPressed: () =>
-                                _openAIChat(context, widget.instrument),
+                                  GenerativeService.buildInstrumentAnalysisPrompt(
+                                    symbol: widget.instrument.symbol,
+                                    type: 'news',
+                                  ),
+                                );
+                              },
+                            ),
+                            ActionChip(
+                              avatar: const Icon(
+                                Icons.chat_bubble_outline,
+                                size: 16,
+                              ),
+                              label: const Text('Ask Assistant'),
+                              onPressed: () =>
+                                  _openAIChat(context, widget.instrument),
+                            ),
+                          ],
+                        ),
+                        if (generativeProvider.promptResponses[summaryKey] !=
+                            null) ...[
+                          const SizedBox(height: 12),
+                          _buildAIResponseBox(
+                            icon: Icons.summarize_outlined,
+                            title: "Executive Summary",
+                            content:
+                                generativeProvider.promptResponses[summaryKey]!,
                           ),
                         ],
-                      ),
-                      if (generativeProvider.promptResponses[summaryKey] !=
-                          null) ...[
-                        const SizedBox(height: 12),
-                        _buildAIResponseBox(
-                          icon: Icons.summarize_outlined,
-                          title: "Executive Summary",
-                          content:
-                              generativeProvider.promptResponses[summaryKey]!,
-                        ),
+                        if (generativeProvider.promptResponses[sentimentKey] !=
+                            null) ...[
+                          const SizedBox(height: 12),
+                          _buildAIResponseBox(
+                            icon: Icons.trending_up,
+                            title: "Market Sentiment",
+                            content: generativeProvider
+                                .promptResponses[sentimentKey]!,
+                          ),
+                        ],
+                        if (generativeProvider.promptResponses[keyLevelsKey] !=
+                            null) ...[
+                          const SizedBox(height: 12),
+                          _buildAIResponseBox(
+                            icon: Icons.layers_outlined,
+                            title: "Key Support & Resistance",
+                            content: generativeProvider
+                                .promptResponses[keyLevelsKey]!,
+                          ),
+                        ],
+                        if (generativeProvider.promptResponses[strategyKey] !=
+                            null) ...[
+                          const SizedBox(height: 12),
+                          _buildAIResponseBox(
+                            icon: Icons.lightbulb_outline,
+                            title: "Strategy Suggestion",
+                            content: generativeProvider
+                                .promptResponses[strategyKey]!,
+                          ),
+                        ],
+                        if (generativeProvider.promptResponses[newsKey] !=
+                            null) ...[
+                          const SizedBox(height: 12),
+                          _buildAIResponseBox(
+                            icon: Icons.newspaper_outlined,
+                            title: "News Catalyst Analysis",
+                            content:
+                                generativeProvider.promptResponses[newsKey]!,
+                          ),
+                        ],
                       ],
-                      if (generativeProvider.promptResponses[sentimentKey] !=
-                          null) ...[
-                        const SizedBox(height: 12),
-                        _buildAIResponseBox(
-                          icon: Icons.trending_up,
-                          title: "Market Sentiment",
-                          content:
-                              generativeProvider.promptResponses[sentimentKey]!,
-                        ),
-                      ],
-                      if (generativeProvider.promptResponses[keyLevelsKey] !=
-                          null) ...[
-                        const SizedBox(height: 12),
-                        _buildAIResponseBox(
-                          icon: Icons.layers_outlined,
-                          title: "Key Support & Resistance",
-                          content:
-                              generativeProvider.promptResponses[keyLevelsKey]!,
-                        ),
-                      ],
-                      if (generativeProvider.promptResponses[strategyKey] !=
-                          null) ...[
-                        const SizedBox(height: 12),
-                        _buildAIResponseBox(
-                          icon: Icons.lightbulb_outline,
-                          title: "Strategy Suggestion",
-                          content:
-                              generativeProvider.promptResponses[strategyKey]!,
-                        ),
-                      ],
-                      if (generativeProvider.promptResponses[newsKey] !=
-                          null) ...[
-                        const SizedBox(height: 12),
-                        _buildAIResponseBox(
-                          icon: Icons.newspaper_outlined,
-                          title: "News Catalyst Analysis",
-                          content: generativeProvider.promptResponses[newsKey]!,
-                        ),
-                      ],
-                    ],
+                    ),
                   ),
-                )
-              ],
+                ],
+              ),
             ),
           ),
-        ),
-      );
-    });
+        );
+      },
+    );
   }
 
   Widget _buildAIResponseBox({
@@ -1473,10 +1595,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         color: Theme.of(context).colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: Theme.of(context)
-              .colorScheme
-              .outlineVariant
-              .withValues(alpha: 0.35),
+          color: Theme.of(
+            context,
+          ).colorScheme.outlineVariant.withValues(alpha: 0.35),
         ),
       ),
       child: Column(
@@ -1484,8 +1605,11 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         children: [
           Row(
             children: [
-              Icon(icon,
-                  size: 16, color: Theme.of(context).colorScheme.primary),
+              Icon(
+                icon,
+                size: 16,
+                color: Theme.of(context).colorScheme.primary,
+              ),
               const SizedBox(width: 8),
               Text(
                 title,
@@ -1536,33 +1660,34 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
   void _startRefreshTimer() {
     // Start listening to clipboard
-    refreshTriggerTime = Timer.periodic(
-      const Duration(milliseconds: 15000),
-      (timer) async {
-        if (widget.brokerageUser.refreshEnabled) {
-          await widget.service.getInstrumentHistoricals(
-              widget.brokerageUser,
-              Provider.of<InstrumentHistoricalsStore>(context, listen: false),
-              widget.instrument.symbol,
-              chartBoundsFilter: chartBoundsFilter,
-              chartDateSpanFilter: chartDateSpanFilter);
+    refreshTriggerTime = Timer.periodic(const Duration(milliseconds: 15000), (
+      timer,
+    ) async {
+      if (widget.brokerageUser.refreshEnabled) {
+        await widget.service.getInstrumentHistoricals(
+          widget.brokerageUser,
+          Provider.of<InstrumentHistoricalsStore>(context, listen: false),
+          widget.instrument.symbol,
+          chartBoundsFilter: chartBoundsFilter,
+          chartDateSpanFilter: chartDateSpanFilter,
+        );
 
-          if (!mounted) return;
-          await widget.service.refreshQuote(
-              widget.brokerageUser,
-              Provider.of<QuoteStore>(context, listen: false),
-              widget.instrument.symbol);
+        if (!mounted) return;
+        await widget.service.refreshQuote(
+          widget.brokerageUser,
+          Provider.of<QuoteStore>(context, listen: false),
+          widget.instrument.symbol,
+        );
 
-          /*
+        /*
           if (futureHistoricals != null) {
             setState(() {
               futureHistoricals = null;
             });
           }
           */
-        }
-      },
-    );
+      }
+    });
   }
 
   void _stopRefreshTimer() {
@@ -1576,11 +1701,12 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       chartDateSpanFilter = span;
       chartBoundsFilter = bounds;
       futureHistoricals = widget.service.getInstrumentHistoricals(
-          widget.brokerageUser,
-          Provider.of<InstrumentHistoricalsStore>(context, listen: false),
-          widget.instrument.symbol,
-          chartBoundsFilter: chartBoundsFilter,
-          chartDateSpanFilter: chartDateSpanFilter);
+        widget.brokerageUser,
+        Provider.of<InstrumentHistoricalsStore>(context, listen: false),
+        widget.instrument.symbol,
+        chartBoundsFilter: chartBoundsFilter,
+        chartDateSpanFilter: chartDateSpanFilter,
+      );
       futureHistoricals?.then((value) {
         if (mounted) {
           setState(() {
@@ -1591,259 +1717,295 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     });
   }
 
-  RefreshIndicator buildScrollView(Instrument instrument,
-      {List<OptionInstrument>? optionInstruments, bool done = false}) {
+  RefreshIndicator buildScrollView(
+    Instrument instrument, {
+    List<OptionInstrument>? optionInstruments,
+    bool done = false,
+  }) {
     return RefreshIndicator(
-        onRefresh: _pullRefresh,
-        child: PrimaryScrollController(
-            controller: _scrollController,
-            child: CustomScrollView(primary: true, slivers: [
-              SliverLayoutBuilder(
-                builder: (BuildContext context, constraints) {
-                  const expandedHeight = 160.0; // 1800
-                  final scrolled =
-                      math.min(expandedHeight, constraints.scrollOffset) /
-                          expandedHeight;
-                  final t = (1 - scrolled).clamp(0.0, 1.0);
-                  final opacity = 1.0 - Interval(0, 1).transform(t);
-                  // debugPrint("transform: $t scrolled: $scrolled");
-                  return SliverAppBar(
-                    centerTitle: false,
-                    title: AppBarUtils.buildScrollToTopGestureDetector(
-                      context: context,
-                      scrollController: _scrollController,
-                      child: Consumer<QuoteStore>(
-                          builder: (context, quoteStore, child) {
+      onRefresh: _pullRefresh,
+      child: PrimaryScrollController(
+        controller: _scrollController,
+        child: CustomScrollView(
+          primary: true,
+          slivers: [
+            SliverLayoutBuilder(
+              builder: (BuildContext context, constraints) {
+                const expandedHeight = 160.0; // 1800
+                final scrolled =
+                    math.min(expandedHeight, constraints.scrollOffset) /
+                    expandedHeight;
+                final t = (1 - scrolled).clamp(0.0, 1.0);
+                final opacity = 1.0 - Interval(0, 1).transform(t);
+                // debugPrint("transform: $t scrolled: $scrolled");
+                return SliverAppBar(
+                  centerTitle: false,
+                  title: AppBarUtils.buildScrollToTopGestureDetector(
+                    context: context,
+                    scrollController: _scrollController,
+                    child: Consumer<QuoteStore>(
+                      builder: (context, quoteStore, child) {
                         return Opacity(
-                            opacity: opacity,
-                            child: headerTitle(instrument, quoteStore));
-                      }),
+                          opacity: opacity,
+                          child: headerTitle(instrument, quoteStore),
+                        );
+                      },
                     ),
-                    expandedHeight: 160, // 240 // 280.0,
-                    floating: false,
-                    snap: false,
-                    pinned: true,
-                    flexibleSpace: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        LayoutBuilder(builder:
-                            (BuildContext context, BoxConstraints constraints) {
+                  ),
+                  expandedHeight: 160, // 240 // 280.0,
+                  floating: false,
+                  snap: false,
+                  pinned: true,
+                  flexibleSpace: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      LayoutBuilder(
+                        builder: (BuildContext context, BoxConstraints constraints) {
                           //var top = constraints.biggest.height;
                           //debugPrint(top.toString());
                           //debugPrint(kToolbarHeight.toString());
 
-                          final settings =
-                              context.dependOnInheritedWidgetOfExactType<
-                                  FlexibleSpaceBarSettings>();
+                          final settings = context
+                              .dependOnInheritedWidgetOfExactType<
+                                FlexibleSpaceBarSettings
+                              >();
                           final deltaExtent =
                               settings!.maxExtent - settings.minExtent;
-                          final t = (1.0 -
-                                  (settings.currentExtent -
-                                          settings.minExtent) /
-                                      deltaExtent)
-                              .clamp(0.0, 1.0);
+                          final t =
+                              (1.0 -
+                                      (settings.currentExtent -
+                                              settings.minExtent) /
+                                          deltaExtent)
+                                  .clamp(0.0, 1.0);
                           final fadeStart = math.max(
-                              0.0, 1.0 - kToolbarHeight * 2 / deltaExtent);
+                            0.0,
+                            1.0 - kToolbarHeight * 2 / deltaExtent,
+                          );
                           const fadeEnd = 1.0;
                           final opacity =
                               1.0 - Interval(fadeStart, fadeEnd).transform(t);
                           return FlexibleSpaceBar(
-                              centerTitle: false,
-                              titlePadding: const EdgeInsetsDirectional.only(
-                                  start: 16.0, end: 16.0, bottom: 16.0),
-                              //background: const FlutterLogo(),
-                              background: Hero(
-                                  tag: widget.heroTag != null
-                                      ? '${widget.heroTag}'
-                                      : 'logo_${instrument.symbol}',
-                                  child: SizedBox(
-                                      //width: double.infinity,
-                                      child: instrument.logoUrl != null
-                                          ? Image.network(
-                                              instrument.logoUrl!,
-                                              fit: BoxFit.none,
-                                              errorBuilder:
-                                                  (BuildContext context,
-                                                      Object exception,
-                                                      StackTrace? stackTrace) {
-                                                debugPrint(
-                                                    'Error with ${instrument.symbol} ${instrument.logoUrl}');
-                                                RobinhoodService.removeLogo(
-                                                    instrument);
-                                                return Container(); // Text(instrument.symbol);
-                                              },
-                                            )
-                                          : Container() //const FlutterLogo()
-                                      /*Image.network(
+                            centerTitle: false,
+                            titlePadding: const EdgeInsetsDirectional.only(
+                              start: 16.0,
+                              end: 16.0,
+                              bottom: 16.0,
+                            ),
+                            //background: const FlutterLogo(),
+                            background: Hero(
+                              tag: widget.heroTag != null
+                                  ? '${widget.heroTag}'
+                                  : 'logo_${instrument.symbol}',
+                              child: SizedBox(
+                                //width: double.infinity,
+                                child: instrument.logoUrl != null
+                                    ? Image.network(
+                                        instrument.logoUrl!,
+                                        fit: BoxFit.none,
+                                        errorBuilder:
+                                            (
+                                              BuildContext context,
+                                              Object exception,
+                                              StackTrace? stackTrace,
+                                            ) {
+                                              debugPrint(
+                                                'Error with ${instrument.symbol} ${instrument.logoUrl}',
+                                              );
+                                              RobinhoodService.removeLogo(
+                                                instrument,
+                                              );
+                                              return Container(); // Text(instrument.symbol);
+                                            },
+                                      )
+                                    : Container(), //const FlutterLogo()
+                                /*Image.network(
                         Constants.flexibleSpaceBarBackground,
                         fit: BoxFit.cover,
                       ),*/
-                                      )),
-                              title: Opacity(
-                                //duration: Duration(milliseconds: 300),
-                                opacity:
-                                    opacity, //top > kToolbarHeight * 3 ? 1.0 : 0.0,
-                                child: Consumer<QuoteStore>(
-                                    builder: (context, quoteStore, child) {
+                              ),
+                            ),
+                            title: Opacity(
+                              //duration: Duration(milliseconds: 300),
+                              opacity:
+                                  opacity, //top > kToolbarHeight * 3 ? 1.0 : 0.0,
+                              child: Consumer<QuoteStore>(
+                                builder: (context, quoteStore, child) {
                                   return SingleChildScrollView(
-                                      child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: getHeaderWidgets(quoteStore)
-                                              .toList()));
-                                }),
-                                /*
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: getHeaderWidgets(
+                                        quoteStore,
+                                      ).toList(),
+                                    ),
+                                  );
+                                },
+                              ),
+                              /*
           ListTile(
             title: Text('${instrument.simpleName}'),
             subtitle: Text(instrument.name),
           )*/
-                              ));
-                        }),
-                        AppBarUtils.buildScrollToTopGestureDetector(
-                          context: context,
-                          scrollController: _scrollController,
-                          child: Container(color: Colors.transparent),
-                        ),
-                      ],
-                    ),
-                    actions: [
-                      IconButton(
-                        key: _shareButtonKey,
-                        icon: const Icon(Icons.share),
-                        tooltip: 'Share Instrument',
-                        onPressed: () {
-                          final symbol = widget.instrument.symbol;
-                          final url =
-                              'https://realizealpha.web.app/instrument/$symbol';
-                          final shareText =
-                              'Check out $symbol on RealizeAlpha: $url';
-
-                          final RenderBox? renderBox =
-                              _shareButtonKey.currentContext?.findRenderObject()
-                                  as RenderBox?;
-                          Rect? sharePositionOrigin;
-                          if (renderBox != null &&
-                              renderBox.size.width > 0 &&
-                              renderBox.size.height > 0) {
-                            final size = renderBox.size;
-                            final offset = renderBox.localToGlobal(Offset.zero);
-                            sharePositionOrigin = Rect.fromLTWH(
-                              offset.dx,
-                              offset.dy,
-                              size.width,
-                              size.height,
-                            );
-                          }
-
-                          SharePlus.instance.share(
-                            ShareParams(
-                              text: shareText,
-                              sharePositionOrigin: sharePositionOrigin,
                             ),
                           );
                         },
                       ),
-                      if (auth.currentUser != null)
-                        AutoTradeStatusBadgeWidget(
-                          user: widget.user,
-                          userDocRef: widget.userDocRef,
-                          service: widget.service,
-                          userAvatar: auth.currentUser!.photoURL == null
-                              ? const Icon(Icons.account_circle)
-                              : CircleAvatar(
-                                  maxRadius: 11,
-                                  backgroundImage: CachedNetworkImageProvider(
-                                      auth.currentUser!.photoURL!)),
-                          onProfileTap: () async {
-                            var response = await showProfile(
-                                context,
-                                auth,
-                                _firestoreService,
-                                widget.analytics,
-                                widget.observer,
-                                widget.brokerageUser,
-                                widget.service);
-                            if (response != null) {
-                              setState(() {});
-                            }
-                          },
-                        ),
+                      AppBarUtils.buildScrollToTopGestureDetector(
+                        context: context,
+                        scrollController: _scrollController,
+                        child: Container(color: Colors.transparent),
+                      ),
                     ],
-                    // actions: <Widget>[
-                    //   IconButton(
-                    //     icon: const Icon(Icons.more_vert),
-                    //     // icon: const Icon(Icons.settings),
-                    //     onPressed: () {
-                    //       showModalBottomSheet<void>(
-                    //         context: context,
-                    //        showDragHandle: true,
-                    //         //isScrollControlled: true,
-                    //         //useRootNavigator: true,
-                    //         //constraints: const BoxConstraints(maxHeight: 200),
-                    //         builder: (_) => MoreMenuBottomSheet(
-                    //           widget.user,
-                    //           onSettingsChanged: _handleSettingsChanged,
-                    //           analytics: widget.analytics,
-                    //           observer: widget.observer,
-                    //         ),
-                    //       );
-                    //     },
-                    //   ),
-                    // ],
-                  );
-                },
-              ),
-              SliverToBoxAdapter(
-                  child: Stack(children: [
-                if (done == false) ...[
-                  SizedBox(
-                    height: 3, //150.0,
-                    child: Center(
-                        child: LinearProgressIndicator(
-                            //value: controller.value,
-                            //semanticsLabel: 'Linear progress indicator',
-                            ) //CircularProgressIndicator(),
-                        ),
                   ),
-                ],
-                buildOverview(instrument)
-              ])),
-              SliverToBoxAdapter(
-                child: InstrumentChartWidget(
-                  instrument: instrument,
-                  chartDateSpanFilter: chartDateSpanFilter,
-                  chartBoundsFilter: chartBoundsFilter,
-                  onFilterChanged: (span, bounds) {
-                    resetChart(span, bounds);
-                  },
-                ),
-              ),
-              if (_instrumentWarnings != null &&
-                  _instrumentWarnings!.hasWarnings)
-                SliverToBoxAdapter(
-                  child: InstrumentTradeWarningsBanner(
-                    warnings: _instrumentWarnings!,
-                    onTapDetails: _showInstrumentBuyingPowerSheet,
-                  ),
-                ),
-              Consumer<TradeSignalsProvider>(
-                builder: (context, tradeSignalsProvider, child) {
-                  final categories = _buildCategories(
-                      context, instrument, tradeSignalsProvider);
-                  return SliverPersistentHeader(
-                    key: _categoryHeaderKey,
-                    pinned: true,
-                    delegate: InstrumentCategoryHeaderDelegate(
-                      selectedCategory: _selectedCategory,
-                      onCategorySelected: _onCategorySelected,
-                      categories: categories,
+                  actions: [
+                    IconButton(
+                      key: _shareButtonKey,
+                      icon: const Icon(Icons.share),
+                      tooltip: 'Share Instrument',
+                      onPressed: () {
+                        final symbol = widget.instrument.symbol;
+                        final url =
+                            'https://realizealpha.web.app/instrument/$symbol';
+                        final shareText =
+                            'Check out $symbol on RealizeAlpha: $url';
+
+                        final RenderBox? renderBox =
+                            _shareButtonKey.currentContext?.findRenderObject()
+                                as RenderBox?;
+                        Rect? sharePositionOrigin;
+                        if (renderBox != null &&
+                            renderBox.size.width > 0 &&
+                            renderBox.size.height > 0) {
+                          final size = renderBox.size;
+                          final offset = renderBox.localToGlobal(Offset.zero);
+                          sharePositionOrigin = Rect.fromLTWH(
+                            offset.dx,
+                            offset.dy,
+                            size.width,
+                            size.height,
+                          );
+                        }
+
+                        SharePlus.instance.share(
+                          ShareParams(
+                            text: shareText,
+                            sharePositionOrigin: sharePositionOrigin,
+                          ),
+                        );
+                      },
                     ),
-                  );
+                    if (auth.currentUser != null)
+                      AutoTradeStatusBadgeWidget(
+                        user: widget.user,
+                        userDocRef: widget.userDocRef,
+                        service: widget.service,
+                        userAvatar: auth.currentUser!.photoURL == null
+                            ? const Icon(Icons.account_circle)
+                            : CircleAvatar(
+                                maxRadius: 11,
+                                backgroundImage: CachedNetworkImageProvider(
+                                  auth.currentUser!.photoURL!,
+                                ),
+                              ),
+                        onProfileTap: () async {
+                          var response = await showProfile(
+                            context,
+                            auth,
+                            _firestoreService,
+                            widget.analytics,
+                            widget.observer,
+                            widget.brokerageUser,
+                            widget.service,
+                          );
+                          if (response != null) {
+                            setState(() {});
+                          }
+                        },
+                      ),
+                  ],
+                  // actions: <Widget>[
+                  //   IconButton(
+                  //     icon: const Icon(Icons.more_vert),
+                  //     // icon: const Icon(Icons.settings),
+                  //     onPressed: () {
+                  //       showModalBottomSheet<void>(
+                  //         context: context,
+                  //        showDragHandle: true,
+                  //         //isScrollControlled: true,
+                  //         //useRootNavigator: true,
+                  //         //constraints: const BoxConstraints(maxHeight: 200),
+                  //         builder: (_) => MoreMenuBottomSheet(
+                  //           widget.user,
+                  //           onSettingsChanged: _handleSettingsChanged,
+                  //           analytics: widget.analytics,
+                  //           observer: widget.observer,
+                  //         ),
+                  //       );
+                  //     },
+                  //   ),
+                  // ],
+                );
+              },
+            ),
+            SliverToBoxAdapter(
+              child: Stack(
+                children: [
+                  if (done == false) ...[
+                    SizedBox(
+                      height: 3, //150.0,
+                      child: Center(
+                        child: LinearProgressIndicator(
+                          //value: controller.value,
+                          //semanticsLabel: 'Linear progress indicator',
+                        ), //CircularProgressIndicator(),
+                      ),
+                    ),
+                  ],
+                  buildOverview(instrument),
+                ],
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: InstrumentChartWidget(
+                instrument: instrument,
+                chartDateSpanFilter: chartDateSpanFilter,
+                chartBoundsFilter: chartBoundsFilter,
+                onFilterChanged: (span, bounds) {
+                  resetChart(span, bounds);
                 },
               ),
-              ..._buildCategorySlivers(instrument),
-              ..._buildFooterSlivers(),
-            ])));
+            ),
+            if (_instrumentWarnings != null && _instrumentWarnings!.hasWarnings)
+              SliverToBoxAdapter(
+                child: InstrumentTradeWarningsBanner(
+                  warnings: _instrumentWarnings!,
+                  onTapDetails: _showInstrumentBuyingPowerSheet,
+                ),
+              ),
+            Consumer<TradeSignalsProvider>(
+              builder: (context, tradeSignalsProvider, child) {
+                final categories = _buildCategories(
+                  context,
+                  instrument,
+                  tradeSignalsProvider,
+                );
+                return SliverPersistentHeader(
+                  key: _categoryHeaderKey,
+                  pinned: true,
+                  delegate: InstrumentCategoryHeaderDelegate(
+                    selectedCategory: _selectedCategory,
+                    onCategorySelected: _onCategorySelected,
+                    categories: categories,
+                  ),
+                );
+              },
+            ),
+            ..._buildCategorySlivers(instrument),
+            ..._buildFooterSlivers(),
+          ],
+        ),
+      ),
+    );
   }
 
   List<Widget> _buildCategorySlivers(Instrument instrument) {
@@ -1981,8 +2143,11 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               children: [
                 Row(
                   children: [
-                    Icon(Icons.explore_outlined,
-                        size: 20, color: theme.colorScheme.primary),
+                    Icon(
+                      Icons.explore_outlined,
+                      size: 20,
+                      color: theme.colorScheme.primary,
+                    ),
                     const SizedBox(width: 8),
                     Text(
                       'Deep Dive into ${instrument.symbol}',
@@ -2001,17 +2166,20 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                       onTap: () => _onCategorySelected(sec.$5),
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 12.0, vertical: 10.0),
+                          horizontal: 12.0,
+                          vertical: 10.0,
+                        ),
                         decoration: BoxDecoration(
                           color: isDark
                               ? theme.colorScheme.surfaceContainerHighest
-                                  .withValues(alpha: 0.3)
+                                    .withValues(alpha: 0.3)
                               : theme.colorScheme.surfaceContainerHighest
-                                  .withValues(alpha: 0.5),
+                                    .withValues(alpha: 0.5),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: theme.colorScheme.outlineVariant
-                                .withValues(alpha: 0.2),
+                            color: theme.colorScheme.outlineVariant.withValues(
+                              alpha: 0.2,
+                            ),
                           ),
                         ),
                         child: Row(
@@ -2100,235 +2268,264 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
   Widget _buildPositionSliver(Instrument instrument) {
     return Consumer<InstrumentPositionStore>(
-        builder: (context, stockPositionStore, child) {
-      InstrumentPosition? position;
-      if (widget.brokerageUser.source == BrokerageSource.paper) {
-        final paperStore =
-            Provider.of<PaperTradingStore>(context, listen: false);
-        position = paperStore.positions
-            .firstWhereOrNull((e) => e.instrument == widget.instrument.url);
-      } else {
-        position = stockPositionStore.items
-            .firstWhereOrNull((e) => e.instrument == instrument.url);
-      }
-      if (position == null) {
-        return const SliverToBoxAdapter(child: SizedBox.shrink());
-      }
-      return SliverToBoxAdapter(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 8.0),
-            _buildSectionHeader(
-              title: "Position",
-              subtitle: '${formatNumber.format(position.quantity!)} shares',
-              icon: Icons.pie_chart_outline,
-              trailing: Text(
-                formatCurrency.format(position.marketValue),
-                style: Theme.of(context)
-                    .textTheme
-                    .titleLarge
-                    ?.copyWith(fontWeight: FontWeight.bold),
-              ),
-            ),
-            Card(
-              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-                side: BorderSide(
-                  color: Theme.of(context)
-                      .colorScheme
-                      .outlineVariant
-                      .withValues(alpha: 0.4),
+      builder: (context, stockPositionStore, child) {
+        InstrumentPosition? position;
+        if (widget.brokerageUser.source == BrokerageSource.paper) {
+          final paperStore = Provider.of<PaperTradingStore>(
+            context,
+            listen: false,
+          );
+          position = paperStore.positions.firstWhereOrNull(
+            (e) => e.instrument == widget.instrument.url,
+          );
+        } else {
+          position = stockPositionStore.items.firstWhereOrNull(
+            (e) => e.instrument == instrument.url,
+          );
+        }
+        if (position == null) {
+          return const SliverToBoxAdapter(child: SizedBox.shrink());
+        }
+        return SliverToBoxAdapter(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 8.0),
+              _buildSectionHeader(
+                title: "Position",
+                subtitle: '${formatNumber.format(position.quantity!)} shares',
+                icon: Icons.pie_chart_outline,
+                trailing: Text(
+                  formatCurrency.format(position.marketValue),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                 ),
               ),
-              color: Theme.of(context).colorScheme.surfaceContainerLow,
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    _buildDetailScrollRow(
-                      position,
-                      badgeValueFontSize,
-                      badgeLabelFontSize,
-                      iconSize: 27.0,
-                    ),
-                  ],
+              Card(
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: BorderSide(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.outlineVariant.withValues(alpha: 0.4),
+                  ),
+                ),
+                color: Theme.of(context).colorScheme.surfaceContainerLow,
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      _buildDetailScrollRow(
+                        position,
+                        badgeValueFontSize,
+                        badgeLabelFontSize,
+                        iconSize: 27.0,
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
-        ),
-      );
-    });
+            ],
+          ),
+        );
+      },
+    );
   }
 
   Widget _buildOptionPositionsSliver(Instrument instrument) {
     return Consumer<OptionPositionStore>(
-        builder: (context, optionPositionStore, child) {
-      List<OptionAggregatePosition> optionPositions = [];
-      if (widget.brokerageUser.source == BrokerageSource.paper) {
-        final paperStore =
-            Provider.of<PaperTradingStore>(context, listen: false);
-        optionPositions = paperStore.optionPositions
-            .where((e) => e.symbol == widget.instrument.symbol)
+      builder: (context, optionPositionStore, child) {
+        List<OptionAggregatePosition> optionPositions = [];
+        if (widget.brokerageUser.source == BrokerageSource.paper) {
+          final paperStore = Provider.of<PaperTradingStore>(
+            context,
+            listen: false,
+          );
+          optionPositions = paperStore.optionPositions
+              .where((e) => e.symbol == widget.instrument.symbol)
+              .toList();
+        } else {
+          optionPositions = optionPositionStore.items
+              .where((e) => e.symbol == widget.instrument.symbol)
+              .toList();
+        }
+        optionPositions.sort((a, b) {
+          int comp = a.legs.first.expirationDate!.compareTo(
+            b.legs.first.expirationDate!,
+          );
+          if (comp != 0) return comp;
+          return a.legs.first.strikePrice!.compareTo(b.legs.first.strikePrice!);
+        });
+
+        var filteredOptionPositions = optionPositions
+            .where(
+              (e) =>
+                  (hasQuantityFilters[0] && hasQuantityFilters[1]) ||
+                  (!hasQuantityFilters[0] || e.quantity! > 0) &&
+                      (!hasQuantityFilters[1] || e.quantity! <= 0),
+            )
             .toList();
-      } else {
-        optionPositions = optionPositionStore.items
-            .where((e) => e.symbol == widget.instrument.symbol)
-            .toList();
-      }
-      optionPositions.sort((a, b) {
-        int comp = a.legs.first.expirationDate!
-            .compareTo(b.legs.first.expirationDate!);
-        if (comp != 0) return comp;
-        return a.legs.first.strikePrice!.compareTo(b.legs.first.strikePrice!);
-      });
+        filteredOptionPositions.sort((a, b) {
+          int comp = a.legs.first.expirationDate!.compareTo(
+            b.legs.first.expirationDate!,
+          );
+          if (comp != 0) return comp;
+          return a.legs.first.strikePrice!.compareTo(b.legs.first.strikePrice!);
+        });
 
-      var filteredOptionPositions = optionPositions
-          .where((e) =>
-              (hasQuantityFilters[0] && hasQuantityFilters[1]) ||
-              (!hasQuantityFilters[0] || e.quantity! > 0) &&
-                  (!hasQuantityFilters[1] || e.quantity! <= 0))
-          .toList();
-      filteredOptionPositions.sort((a, b) {
-        int comp = a.legs.first.expirationDate!
-            .compareTo(b.legs.first.expirationDate!);
-        if (comp != 0) return comp;
-        return a.legs.first.strikePrice!.compareTo(b.legs.first.strikePrice!);
-      });
+        if (filteredOptionPositions.isEmpty) {
+          return const SliverToBoxAdapter(child: SizedBox.shrink());
+        }
 
-      if (filteredOptionPositions.isEmpty) {
-        return const SliverToBoxAdapter(child: SizedBox.shrink());
-      }
-
-      return SliverToBoxAdapter(
-          child:
-              ShrinkWrappingViewport(offset: ViewportOffset.zero(), slivers: [
-        OptionPositionsWidget(
-            widget.brokerageUser, widget.service, filteredOptionPositions,
-            showFooter: false,
-            showGroupHeader: false,
-            analytics: widget.analytics,
-            observer: widget.observer,
-            generativeService: widget.generativeService,
-            user: widget.user,
-            userDocRef: widget.userDocRef)
-      ]));
-    });
+        return SliverToBoxAdapter(
+          child: ShrinkWrappingViewport(
+            offset: ViewportOffset.zero(),
+            slivers: [
+              OptionPositionsWidget(
+                widget.brokerageUser,
+                widget.service,
+                filteredOptionPositions,
+                showFooter: false,
+                showGroupHeader: false,
+                analytics: widget.analytics,
+                observer: widget.observer,
+                generativeService: widget.generativeService,
+                user: widget.user,
+                userDocRef: widget.userDocRef,
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   Widget _buildStockOrdersSliver(Instrument instrument) {
     return Consumer<InstrumentOrderStore>(
-        builder: (context, stockOrderStore, child) {
-      List<InstrumentOrder>? positionOrders;
-      if (widget.brokerageUser.source == BrokerageSource.paper) {
-        final paperStore =
-            Provider.of<PaperTradingStore>(context, listen: false);
-        var history = paperStore.history
-            .where(
-                (h) => h['symbol'] == instrument.symbol && h['type'] == 'STOCK')
-            .toList();
-        positionOrders =
-            history.map((h) => InstrumentOrder.fromPaperJson(h)).toList();
-      } else {
-        positionOrders = instrument.positionOrders;
-      }
+      builder: (context, stockOrderStore, child) {
+        List<InstrumentOrder>? positionOrders;
+        if (widget.brokerageUser.source == BrokerageSource.paper) {
+          final paperStore = Provider.of<PaperTradingStore>(
+            context,
+            listen: false,
+          );
+          var history = paperStore.history
+              .where(
+                (h) => h['symbol'] == instrument.symbol && h['type'] == 'STOCK',
+              )
+              .toList();
+          positionOrders = history
+              .map((h) => InstrumentOrder.fromPaperJson(h))
+              .toList();
+        } else {
+          positionOrders = instrument.positionOrders;
+        }
 
-      if (positionOrders != null && positionOrders.isNotEmpty) {
-        return positionOrdersWidget(positionOrders);
-      }
-      return const SliverToBoxAdapter(child: SizedBox.shrink());
-    });
+        if (positionOrders != null && positionOrders.isNotEmpty) {
+          return positionOrdersWidget(positionOrders);
+        }
+        return const SliverToBoxAdapter(child: SizedBox.shrink());
+      },
+    );
   }
 
   Widget _buildHistoricalPositionsSliver(Instrument instrument) {
     return Consumer<InstrumentOrderStore>(
-        builder: (context, stockOrderStore, child) {
-      List<InstrumentOrder>? positionOrders;
-      if (widget.brokerageUser.source == BrokerageSource.paper) {
-        final paperStore =
-            Provider.of<PaperTradingStore>(context, listen: false);
-        var history = paperStore.history
-            .where(
-                (h) => h['symbol'] == instrument.symbol && h['type'] == 'STOCK')
-            .toList();
-        positionOrders =
-            history.map((h) => InstrumentOrder.fromPaperJson(h)).toList();
-      } else {
-        positionOrders = instrument.positionOrders;
-      }
-
-      if (positionOrders != null && positionOrders.isNotEmpty) {
-        final summary = InstrumentCostBasisLookbackSummary.fromOrders(
-          positionOrders,
-          symbol: instrument.symbol,
-          instrumentId: instrument.id,
-          splits: instrument.splitsObj,
-        );
-        if (summary.hasHistory) {
-          return SliverToBoxAdapter(
-            child: InstrumentHistoricalPositionsWidget(
-              summary: summary,
-            ),
+      builder: (context, stockOrderStore, child) {
+        List<InstrumentOrder>? positionOrders;
+        if (widget.brokerageUser.source == BrokerageSource.paper) {
+          final paperStore = Provider.of<PaperTradingStore>(
+            context,
+            listen: false,
           );
+          var history = paperStore.history
+              .where(
+                (h) => h['symbol'] == instrument.symbol && h['type'] == 'STOCK',
+              )
+              .toList();
+          positionOrders = history
+              .map((h) => InstrumentOrder.fromPaperJson(h))
+              .toList();
+        } else {
+          positionOrders = instrument.positionOrders;
         }
-      }
-      return const SliverToBoxAdapter(child: SizedBox.shrink());
-    });
+
+        if (positionOrders != null && positionOrders.isNotEmpty) {
+          final summary = InstrumentCostBasisLookbackSummary.fromOrders(
+            positionOrders,
+            symbol: instrument.symbol,
+            instrumentId: instrument.id,
+            splits: instrument.splitsObj,
+          );
+          if (summary.hasHistory) {
+            return SliverToBoxAdapter(
+              child: InstrumentHistoricalPositionsWidget(summary: summary),
+            );
+          }
+        }
+        return const SliverToBoxAdapter(child: SizedBox.shrink());
+      },
+    );
   }
 
   Widget _buildOptionOrdersSliver(Instrument instrument) {
     return Consumer<OptionOrderStore>(
-        builder: (context, optionOrderStore, child) {
-      List<OptionOrder>? optionOrders;
-      if (widget.brokerageUser.source == BrokerageSource.paper) {
-        final paperStore =
-            Provider.of<PaperTradingStore>(context, listen: false);
-        var history = paperStore.history
-            .where((h) =>
-                h['symbol'] == instrument.symbol && h['type'] == 'OPTION')
-            .toList();
-        optionOrders = history.map((h) {
-          return OptionOrder(
-            "paper_${h['timestamp']}",
-            "",
-            h['symbol'],
-            null,
-            0,
-            h['action'] == 'BUY' ? 'debit' : 'credit',
-            [],
-            0,
-            h['price'],
-            h['price'],
-            h['price'],
-            h['quantity'],
-            h['quantity'],
-            "paper_${h['timestamp']}",
-            "filled",
-            "gtc",
-            "immediate",
-            "limit",
-            null,
-            null,
-            null,
-            null,
-            DateTime.tryParse(h['timestamp']),
-            DateTime.tryParse(h['timestamp']),
+      builder: (context, optionOrderStore, child) {
+        List<OptionOrder>? optionOrders;
+        if (widget.brokerageUser.source == BrokerageSource.paper) {
+          final paperStore = Provider.of<PaperTradingStore>(
+            context,
+            listen: false,
           );
-        }).toList();
-      } else {
-        optionOrders = instrument.optionOrders;
-      }
+          var history = paperStore.history
+              .where(
+                (h) =>
+                    h['symbol'] == instrument.symbol && h['type'] == 'OPTION',
+              )
+              .toList();
+          optionOrders = history.map((h) {
+            return OptionOrder(
+              "paper_${h['timestamp']}",
+              "",
+              h['symbol'],
+              null,
+              0,
+              h['action'] == 'BUY' ? 'debit' : 'credit',
+              [],
+              0,
+              h['price'],
+              h['price'],
+              h['price'],
+              h['quantity'],
+              h['quantity'],
+              "paper_${h['timestamp']}",
+              "filled",
+              "gtc",
+              "immediate",
+              "limit",
+              null,
+              null,
+              null,
+              null,
+              DateTime.tryParse(h['timestamp']),
+              DateTime.tryParse(h['timestamp']),
+            );
+          }).toList();
+        } else {
+          optionOrders = instrument.optionOrders;
+        }
 
-      if (optionOrders != null && optionOrders.isNotEmpty) {
-        return _buildOptionOrdersWidget(optionOrders);
-      }
-      return const SliverToBoxAdapter(child: SizedBox.shrink());
-    });
+        if (optionOrders != null && optionOrders.isNotEmpty) {
+          return _buildOptionOrdersWidget(optionOrders);
+        }
+        return const SliverToBoxAdapter(child: SizedBox.shrink());
+      },
+    );
   }
 
   Widget _buildComboOrdersSliver(Instrument instrument) {
@@ -2339,9 +2536,11 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               instrument.symbol.toUpperCase()) {
             return true;
           }
-          return order.legs.any((l) =>
-              l.symbol != null &&
-              l.symbol!.toUpperCase() == instrument.symbol.toUpperCase());
+          return order.legs.any(
+            (l) =>
+                l.symbol != null &&
+                l.symbol!.toUpperCase() == instrument.symbol.toUpperCase(),
+          );
         }).toList();
 
         if (matching.isNotEmpty) {
@@ -2381,128 +2580,159 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
   Widget _buildActivityEmptyStateSliver(Instrument instrument) {
     final isPaper = widget.brokerageUser.source == BrokerageSource.paper;
-    return Consumer5<InstrumentPositionStore, OptionPositionStore,
-        InstrumentOrderStore, PaperTradingStore, ComboOrderStore>(
-      builder: (context, stockStore, optionStore, orderStore, paperStore,
-          comboStore, child) {
-        bool hasStockPos = false;
-        bool hasOptPos = false;
-        bool hasStockOrders = false;
-        bool hasOptOrders = false;
-        bool hasComboOrders = false;
+    return Consumer5<
+      InstrumentPositionStore,
+      OptionPositionStore,
+      InstrumentOrderStore,
+      PaperTradingStore,
+      ComboOrderStore
+    >(
+      builder:
+          (
+            context,
+            stockStore,
+            optionStore,
+            orderStore,
+            paperStore,
+            comboStore,
+            child,
+          ) {
+            bool hasStockPos = false;
+            bool hasOptPos = false;
+            bool hasStockOrders = false;
+            bool hasOptOrders = false;
+            bool hasComboOrders = false;
 
-        if (isPaper) {
-          hasStockPos = paperStore.positions
-              .any((e) => e.instrument == widget.instrument.url);
-          hasOptPos = paperStore.optionPositions
-              .any((e) => e.symbol == widget.instrument.symbol);
-          hasStockOrders = paperStore.history.any(
-              (h) => h['symbol'] == instrument.symbol && h['type'] == 'STOCK');
-          hasOptOrders = paperStore.history.any(
-              (h) => h['symbol'] == instrument.symbol && h['type'] == 'OPTION');
-        } else {
-          hasStockPos =
-              stockStore.items.any((e) => e.instrument == instrument.url);
-          hasOptPos = optionStore.items
-              .any((e) => e.symbol == widget.instrument.symbol);
-          hasStockOrders = (instrument.positionOrders != null &&
-              instrument.positionOrders!.isNotEmpty);
-          hasOptOrders = (instrument.optionOrders != null &&
-              instrument.optionOrders!.isNotEmpty);
-          hasComboOrders = comboStore.items.any((order) =>
-              order.primarySymbol.toUpperCase() ==
-                  instrument.symbol.toUpperCase() ||
-              order.legs.any((l) =>
-                  l.symbol != null &&
-                  l.symbol!.toUpperCase() == instrument.symbol.toUpperCase()));
-        }
-
-        final hasDividends = instrument.dividendsObj != null &&
-            instrument.dividendsObj!.isNotEmpty;
-
-        if (hasStockPos ||
-            hasOptPos ||
-            hasStockOrders ||
-            hasOptOrders ||
-            hasComboOrders ||
-            hasDividends) {
-          return const SliverToBoxAdapter(child: SizedBox.shrink());
-        }
-
-        return SliverToBoxAdapter(
-          child: Card(
-            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            elevation: 0,
-            color: Theme.of(context).colorScheme.surfaceContainerLow,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-              side: BorderSide(
-                color: Theme.of(context)
-                    .colorScheme
-                    .outlineVariant
-                    .withValues(alpha: 0.4),
-              ),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                children: [
-                  Icon(
-                    Icons.receipt_long_outlined,
-                    size: 40,
-                    color: Theme.of(context)
-                        .colorScheme
-                        .primary
-                        .withValues(alpha: 0.7),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'No Positions or Orders',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    'You don\'t have any active positions or recent orders for ${instrument.symbol}.',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                  if (instrument.tradeable) ...[
-                    const SizedBox(height: 16),
-                    FilledButton.icon(
-                      icon: const Icon(Icons.swap_horiz, size: 18),
-                      label: Text('Trade ${instrument.symbol}'),
-                      onPressed: () {
-                        HapticFeedback.lightImpact();
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => TradeInstrumentWidget(
-                              widget.brokerageUser,
-                              widget.service,
-                              instrument: widget.instrument,
-                              positionType: "Buy",
-                              analytics: widget.analytics,
-                              observer: widget.observer,
-                              initialIsPaperTrade: widget.initialIsPaperTrade,
-                            ),
-                          ),
-                        );
-                      },
+            if (isPaper) {
+              hasStockPos = paperStore.positions.any(
+                (e) => e.instrument == widget.instrument.url,
+              );
+              hasOptPos = paperStore.optionPositions.any(
+                (e) => e.symbol == widget.instrument.symbol,
+              );
+              hasStockOrders = paperStore.history.any(
+                (h) => h['symbol'] == instrument.symbol && h['type'] == 'STOCK',
+              );
+              hasOptOrders = paperStore.history.any(
+                (h) =>
+                    h['symbol'] == instrument.symbol && h['type'] == 'OPTION',
+              );
+            } else {
+              hasStockPos = stockStore.items.any(
+                (e) => e.instrument == instrument.url,
+              );
+              hasOptPos = optionStore.items.any(
+                (e) => e.symbol == widget.instrument.symbol,
+              );
+              hasStockOrders =
+                  (instrument.positionOrders != null &&
+                  instrument.positionOrders!.isNotEmpty);
+              hasOptOrders =
+                  (instrument.optionOrders != null &&
+                  instrument.optionOrders!.isNotEmpty);
+              hasComboOrders = comboStore.items.any(
+                (order) =>
+                    order.primarySymbol.toUpperCase() ==
+                        instrument.symbol.toUpperCase() ||
+                    order.legs.any(
+                      (l) =>
+                          l.symbol != null &&
+                          l.symbol!.toUpperCase() ==
+                              instrument.symbol.toUpperCase(),
                     ),
-                  ],
-                ],
+              );
+            }
+
+            final hasDividends =
+                instrument.dividendsObj != null &&
+                instrument.dividendsObj!.isNotEmpty;
+
+            if (hasStockPos ||
+                hasOptPos ||
+                hasStockOrders ||
+                hasOptOrders ||
+                hasComboOrders ||
+                hasDividends) {
+              return const SliverToBoxAdapter(child: SizedBox.shrink());
+            }
+
+            return SliverToBoxAdapter(
+              child: Card(
+                margin: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 16,
+                ),
+                elevation: 0,
+                color: Theme.of(context).colorScheme.surfaceContainerLow,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: BorderSide(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.outlineVariant.withValues(alpha: 0.4),
+                  ),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Column(
+                    children: [
+                      Icon(
+                        Icons.receipt_long_outlined,
+                        size: 40,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.primary.withValues(alpha: 0.7),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'No Positions or Orders',
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'You don\'t have any active positions or recent orders for ${instrument.symbol}.',
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                      if (instrument.tradeable) ...[
+                        const SizedBox(height: 16),
+                        FilledButton.icon(
+                          icon: const Icon(Icons.swap_horiz, size: 18),
+                          label: Text('Trade ${instrument.symbol}'),
+                          onPressed: () {
+                            HapticFeedback.lightImpact();
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => TradeInstrumentWidget(
+                                  widget.brokerageUser,
+                                  widget.service,
+                                  instrument: widget.instrument,
+                                  positionType: "Buy",
+                                  analytics: widget.analytics,
+                                  observer: widget.observer,
+                                  initialIsPaperTrade:
+                                      widget.initialIsPaperTrade,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
               ),
-            ),
-          ),
-        );
-      },
+            );
+          },
     );
   }
 
-  Widget _buildQuickIntelligenceCardsSliver(Instrument instrument,
-      {bool expandedTools = false}) {
+  Widget _buildQuickIntelligenceCardsSliver(
+    Instrument instrument, {
+    bool expandedTools = false,
+  }) {
     if (!instrument.tradeable) {
       return const SliverToBoxAdapter(child: SizedBox.shrink());
     }
@@ -2517,17 +2747,14 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                   child: Card(
                     elevation: 0,
                     margin: EdgeInsets.zero,
-                    color: Theme.of(context)
-                        .colorScheme
-                        .surfaceContainerHighest
+                    color: Theme.of(context).colorScheme.surfaceContainerHighest
                         .withValues(alpha: 0.25),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                       side: BorderSide(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .outlineVariant
-                            .withValues(alpha: 0.4),
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.outlineVariant.withValues(alpha: 0.4),
                       ),
                     ),
                     child: InkWell(
@@ -2563,15 +2790,20 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                                     color: Colors.blue.withValues(alpha: 0.12),
                                     borderRadius: BorderRadius.circular(10.0),
                                   ),
-                                  child: const Icon(Icons.water,
-                                      color: Colors.blue, size: 20),
+                                  child: const Icon(
+                                    Icons.water,
+                                    color: Colors.blue,
+                                    size: 20,
+                                  ),
                                 ),
                                 const Spacer(),
-                                Icon(Icons.arrow_forward_ios,
-                                    size: 12,
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurfaceVariant),
+                                Icon(
+                                  Icons.arrow_forward_ios,
+                                  size: 12,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                                ),
                               ],
                             ),
                             const SizedBox(height: 12.0),
@@ -2587,10 +2819,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                               'Whale & smart money',
                               style: TextStyle(
                                 fontSize: 12.0,
-                                color: Theme.of(context)
-                                    .textTheme
-                                    .bodySmall
-                                    ?.color,
+                                color: Theme.of(
+                                  context,
+                                ).textTheme.bodySmall?.color,
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -2606,17 +2837,14 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                   child: Card(
                     elevation: 0,
                     margin: EdgeInsets.zero,
-                    color: Theme.of(context)
-                        .colorScheme
-                        .surfaceContainerHighest
+                    color: Theme.of(context).colorScheme.surfaceContainerHighest
                         .withValues(alpha: 0.25),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                       side: BorderSide(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .outlineVariant
-                            .withValues(alpha: 0.4),
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.outlineVariant.withValues(alpha: 0.4),
                       ),
                     ),
                     child: InkWell(
@@ -2644,19 +2872,25 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                                 Container(
                                   padding: const EdgeInsets.all(8.0),
                                   decoration: BoxDecoration(
-                                    color:
-                                        Colors.purple.withValues(alpha: 0.12),
+                                    color: Colors.purple.withValues(
+                                      alpha: 0.12,
+                                    ),
                                     borderRadius: BorderRadius.circular(10.0),
                                   ),
-                                  child: const Icon(Icons.adjust,
-                                      color: Colors.purple, size: 20),
+                                  child: const Icon(
+                                    Icons.adjust,
+                                    color: Colors.purple,
+                                    size: 20,
+                                  ),
                                 ),
                                 const Spacer(),
-                                Icon(Icons.arrow_forward_ios,
-                                    size: 12,
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurfaceVariant),
+                                Icon(
+                                  Icons.arrow_forward_ios,
+                                  size: 12,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                                ),
                               ],
                             ),
                             const SizedBox(height: 12.0),
@@ -2672,10 +2906,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                               'GEX levels & pinning',
                               style: TextStyle(
                                 fontSize: 12.0,
-                                color: Theme.of(context)
-                                    .textTheme
-                                    .bodySmall
-                                    ?.color,
+                                color: Theme.of(
+                                  context,
+                                ).textTheme.bodySmall?.color,
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -2703,10 +2936,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                         side: BorderSide(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .outlineVariant
-                              .withValues(alpha: 0.4),
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.outlineVariant.withValues(alpha: 0.4),
                         ),
                       ),
                       child: InkWell(
@@ -2736,19 +2968,25 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                                   Container(
                                     padding: const EdgeInsets.all(8.0),
                                     decoration: BoxDecoration(
-                                      color:
-                                          Colors.teal.withValues(alpha: 0.12),
+                                      color: Colors.teal.withValues(
+                                        alpha: 0.12,
+                                      ),
                                       borderRadius: BorderRadius.circular(10.0),
                                     ),
-                                    child: const Icon(Icons.science_outlined,
-                                        color: Colors.teal, size: 20),
+                                    child: const Icon(
+                                      Icons.science_outlined,
+                                      color: Colors.teal,
+                                      size: 20,
+                                    ),
                                   ),
                                   const Spacer(),
-                                  Icon(Icons.arrow_forward_ios,
-                                      size: 12,
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurfaceVariant),
+                                  Icon(
+                                    Icons.arrow_forward_ios,
+                                    size: 12,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
+                                  ),
                                 ],
                               ),
                               const SizedBox(height: 12.0),
@@ -2764,10 +3002,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                                 '19-indicator simulation',
                                 style: TextStyle(
                                   fontSize: 12.0,
-                                  color: Theme.of(context)
-                                      .textTheme
-                                      .bodySmall
-                                      ?.color,
+                                  color: Theme.of(
+                                    context,
+                                  ).textTheme.bodySmall?.color,
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -2790,10 +3027,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                         side: BorderSide(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .outlineVariant
-                              .withValues(alpha: 0.4),
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.outlineVariant.withValues(alpha: 0.4),
                         ),
                       ),
                       child: InkWell(
@@ -2819,19 +3055,25 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                                   Container(
                                     padding: const EdgeInsets.all(8.0),
                                     decoration: BoxDecoration(
-                                      color:
-                                          Colors.indigo.withValues(alpha: 0.12),
+                                      color: Colors.indigo.withValues(
+                                        alpha: 0.12,
+                                      ),
                                       borderRadius: BorderRadius.circular(10.0),
                                     ),
-                                    child: const Icon(Icons.analytics_outlined,
-                                        color: Colors.indigo, size: 20),
+                                    child: const Icon(
+                                      Icons.analytics_outlined,
+                                      color: Colors.indigo,
+                                      size: 20,
+                                    ),
                                   ),
                                   const Spacer(),
-                                  Icon(Icons.arrow_forward_ios,
-                                      size: 12,
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurfaceVariant),
+                                  Icon(
+                                    Icons.arrow_forward_ios,
+                                    size: 12,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
+                                  ),
                                 ],
                               ),
                               const SizedBox(height: 12.0),
@@ -2847,10 +3089,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                                 'Historical impact analysis',
                                 style: TextStyle(
                                   fontSize: 12.0,
-                                  color: Theme.of(context)
-                                      .textTheme
-                                      .bodySmall
-                                      ?.color,
+                                  color: Theme.of(
+                                    context,
+                                  ).textTheme.bodySmall?.color,
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -2871,7 +3112,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   }
 
   List<Widget> _buildFinancialsSlivers(Instrument instrument) {
-    final hasFinancialData = instrument.fundamentalsObj != null ||
+    final hasFinancialData =
+        instrument.fundamentalsObj != null ||
         (instrument.earningsObj != null &&
             instrument.earningsObj!.isNotEmpty) ||
         (instrument.dividendsObj != null &&
@@ -2922,10 +3164,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
           side: BorderSide(
-            color: Theme.of(context)
-                .colorScheme
-                .outlineVariant
-                .withValues(alpha: 0.4),
+            color: Theme.of(
+              context,
+            ).colorScheme.outlineVariant.withValues(alpha: 0.4),
           ),
         ),
         child: Padding(
@@ -2935,17 +3176,16 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               Icon(
                 Icons.account_balance_outlined,
                 size: 40,
-                color: Theme.of(context)
-                    .colorScheme
-                    .primary
-                    .withValues(alpha: 0.7),
+                color: Theme.of(
+                  context,
+                ).colorScheme.primary.withValues(alpha: 0.7),
               ),
               const SizedBox(height: 12),
               Text(
                 'No Financial Data Available',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 6),
               Text(
@@ -3051,24 +3291,12 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   List<Widget> _buildFooterSlivers() {
     return [
       if (!kIsWeb) ...[
-        const SliverToBoxAdapter(
-            child: SizedBox(
-          height: 25.0,
-        )),
-        SliverToBoxAdapter(
-            child: AdBannerWidget(
-          size: AdSize.mediumRectangle,
-        )),
+        const SliverToBoxAdapter(child: SizedBox(height: 25.0)),
+        SliverToBoxAdapter(child: AdBannerWidget(size: AdSize.mediumRectangle)),
       ],
-      const SliverToBoxAdapter(
-          child: SizedBox(
-        height: 25.0,
-      )),
+      const SliverToBoxAdapter(child: SizedBox(height: 25.0)),
       const SliverToBoxAdapter(child: DisclaimerWidget()),
-      const SliverToBoxAdapter(
-          child: SizedBox(
-        height: 25.0,
-      )),
+      const SliverToBoxAdapter(child: SizedBox(height: 25.0)),
     ];
   }
 
@@ -3118,24 +3346,29 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                 ),
                 icon: const Icon(Icons.table_chart_outlined, size: 18),
                 label: const FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Text('Option Chain',
-                        style: TextStyle(fontWeight: FontWeight.w600))),
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    'Option Chain',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ),
                 onPressed: () {
                   HapticFeedback.lightImpact();
                   Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => InstrumentOptionChainWidget(
-                                widget.brokerageUser,
-                                widget.service,
-                                instrument,
-                                analytics: widget.analytics,
-                                observer: widget.observer,
-                                generativeService: widget.generativeService,
-                                user: widget.user,
-                                userDocRef: widget.userDocRef,
-                              )));
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => InstrumentOptionChainWidget(
+                        widget.brokerageUser,
+                        widget.service,
+                        instrument,
+                        analytics: widget.analytics,
+                        observer: widget.observer,
+                        generativeService: widget.generativeService,
+                        user: widget.user,
+                        userDocRef: widget.userDocRef,
+                      ),
+                    ),
+                  );
                 },
               ),
             ),
@@ -3152,24 +3385,29 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                 ),
                 icon: const Icon(Icons.tune, size: 18),
                 label: const FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Text('Strategy',
-                        style: TextStyle(fontWeight: FontWeight.w600))),
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    'Strategy',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ),
                 onPressed: () {
                   HapticFeedback.lightImpact();
                   Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => StrategyBuilderWidget(
-                                user: widget.brokerageUser,
-                                service: widget.service,
-                                instrument: instrument,
-                                analytics: widget.analytics,
-                                observer: widget.observer,
-                                generativeService: widget.generativeService,
-                                appUser: widget.user,
-                                userDocRef: widget.userDocRef,
-                              )));
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => StrategyBuilderWidget(
+                        user: widget.brokerageUser,
+                        service: widget.service,
+                        instrument: instrument,
+                        analytics: widget.analytics,
+                        observer: widget.observer,
+                        generativeService: widget.generativeService,
+                        appUser: widget.user,
+                        userDocRef: widget.userDocRef,
+                      ),
+                    ),
+                  );
                 },
               ),
             ),
@@ -3188,23 +3426,28 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                 ),
                 icon: const Icon(Icons.swap_horiz, size: 20),
                 label: const FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Text('Trade',
-                        style: TextStyle(fontWeight: FontWeight.bold))),
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    'Trade',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
                 onPressed: () {
                   HapticFeedback.lightImpact();
                   Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => TradeInstrumentWidget(
-                                widget.brokerageUser,
-                                widget.service,
-                                instrument: instrument,
-                                positionType: "Buy",
-                                analytics: widget.analytics,
-                                observer: widget.observer,
-                                initialIsPaperTrade: widget.initialIsPaperTrade,
-                              )));
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => TradeInstrumentWidget(
+                        widget.brokerageUser,
+                        widget.service,
+                        instrument: instrument,
+                        positionType: "Buy",
+                        analytics: widget.analytics,
+                        observer: widget.observer,
+                        initialIsPaperTrade: widget.initialIsPaperTrade,
+                      ),
+                    ),
+                  );
                 },
               ),
             ),
@@ -3217,124 +3460,191 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   // Badge helpers extracted for reuse across detail & quote scroll rows.
 
   SingleChildScrollView _buildDetailScrollRow(
-      InstrumentPosition ops, double valueFontSize, double labelFontSize,
-      {double iconSize = 23.0}) {
+    InstrumentPosition ops,
+    double valueFontSize,
+    double labelFontSize, {
+    double iconSize = 23.0,
+  }) {
     List<Widget> tiles = [];
 
     double? totalReturn = widget.brokerageUser
-        .getDisplayValueInstrumentPosition(ops,
-            displayValue: DisplayValue.totalReturn);
-    String? totalReturnText = widget.brokerageUser
-        .getDisplayText(totalReturn, displayValue: DisplayValue.totalReturn);
+        .getDisplayValueInstrumentPosition(
+          ops,
+          displayValue: DisplayValue.totalReturn,
+        );
+    String? totalReturnText = widget.brokerageUser.getDisplayText(
+      totalReturn,
+      displayValue: DisplayValue.totalReturn,
+    );
 
     double? totalReturnPercent = widget.brokerageUser
-        .getDisplayValueInstrumentPosition(ops,
-            displayValue: DisplayValue.totalReturnPercent);
+        .getDisplayValueInstrumentPosition(
+          ops,
+          displayValue: DisplayValue.totalReturnPercent,
+        );
     String? totalReturnPercentText = widget.brokerageUser.getDisplayText(
-        totalReturnPercent,
-        displayValue: DisplayValue.totalReturnPercent);
+      totalReturnPercent,
+      displayValue: DisplayValue.totalReturnPercent,
+    );
 
     double? todayReturn = widget.brokerageUser
-        .getDisplayValueInstrumentPosition(ops,
-            displayValue: DisplayValue.todayReturn);
-    String? todayReturnText = widget.brokerageUser
-        .getDisplayText(todayReturn, displayValue: DisplayValue.todayReturn);
+        .getDisplayValueInstrumentPosition(
+          ops,
+          displayValue: DisplayValue.todayReturn,
+        );
+    String? todayReturnText = widget.brokerageUser.getDisplayText(
+      todayReturn,
+      displayValue: DisplayValue.todayReturn,
+    );
 
     double? todayReturnPercent = widget.brokerageUser
-        .getDisplayValueInstrumentPosition(ops,
-            displayValue: DisplayValue.todayReturnPercent);
+        .getDisplayValueInstrumentPosition(
+          ops,
+          displayValue: DisplayValue.todayReturnPercent,
+        );
     String? todayReturnPercentText = widget.brokerageUser.getDisplayText(
-        todayReturnPercent,
-        displayValue: DisplayValue.todayReturnPercent);
+      todayReturnPercent,
+      displayValue: DisplayValue.todayReturnPercent,
+    );
 
     tiles = [
       Padding(
-          padding: const EdgeInsets.all(summaryEgdeInset),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
+        padding: const EdgeInsets.all(summaryEgdeInset),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
             PnlBadge(
-                text: todayReturnText,
-                value: todayReturn,
-                fontSize: valueFontSize),
-            Text("Return Today", style: TextStyle(fontSize: labelFontSize))
-          ])),
+              text: todayReturnText,
+              value: todayReturn,
+              fontSize: valueFontSize,
+            ),
+            Text("Return Today", style: TextStyle(fontSize: labelFontSize)),
+          ],
+        ),
+      ),
       Padding(
-          padding: const EdgeInsets.all(summaryEgdeInset),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
+        padding: const EdgeInsets.all(summaryEgdeInset),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
             PnlBadge(
-                text: todayReturnPercentText,
-                value: todayReturnPercent,
-                fontSize: valueFontSize),
-            Text("Return Today %", style: TextStyle(fontSize: labelFontSize))
-          ])),
+              text: todayReturnPercentText,
+              value: todayReturnPercent,
+              fontSize: valueFontSize,
+            ),
+            Text("Return Today %", style: TextStyle(fontSize: labelFontSize)),
+          ],
+        ),
+      ),
       Padding(
-          padding: const EdgeInsets.all(summaryEgdeInset),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
+        padding: const EdgeInsets.all(summaryEgdeInset),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
             PnlBadge(
-                text: totalReturnText,
-                value: totalReturn,
-                fontSize: valueFontSize),
-            Text("Total Return", style: TextStyle(fontSize: labelFontSize))
-          ])),
+              text: totalReturnText,
+              value: totalReturn,
+              fontSize: valueFontSize,
+            ),
+            Text("Total Return", style: TextStyle(fontSize: labelFontSize)),
+          ],
+        ),
+      ),
       Padding(
-          padding: const EdgeInsets.all(summaryEgdeInset),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
+        padding: const EdgeInsets.all(summaryEgdeInset),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
             PnlBadge(
-                text: totalReturnPercentText,
-                value: totalReturnPercent,
-                fontSize: valueFontSize),
-            Text("Total Return %", style: TextStyle(fontSize: labelFontSize))
-          ])),
+              text: totalReturnPercentText,
+              value: totalReturnPercent,
+              fontSize: valueFontSize,
+            ),
+            Text("Total Return %", style: TextStyle(fontSize: labelFontSize)),
+          ],
+        ),
+      ),
       Padding(
-          padding: const EdgeInsets.all(summaryEgdeInset),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
+        padding: const EdgeInsets.all(summaryEgdeInset),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
             PnlBadge(
-                text: widget.brokerageUser.getDisplayText(ops.totalCost,
-                    displayValue: DisplayValue.totalCost),
-                fontSize: valueFontSize,
-                neutral: true),
-            Text("Cost", style: TextStyle(fontSize: labelFontSize))
-          ])),
+              text: widget.brokerageUser.getDisplayText(
+                ops.totalCost,
+                displayValue: DisplayValue.totalCost,
+              ),
+              fontSize: valueFontSize,
+              neutral: true,
+            ),
+            Text("Cost", style: TextStyle(fontSize: labelFontSize)),
+          ],
+        ),
+      ),
       Padding(
-          padding: const EdgeInsets.all(summaryEgdeInset),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
+        padding: const EdgeInsets.all(summaryEgdeInset),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
             PnlBadge(
-                text: widget.brokerageUser.getDisplayText(ops.averageBuyPrice!,
-                    displayValue: DisplayValue.lastPrice),
-                fontSize: valueFontSize,
-                neutral: true),
-            Text("Cost per share", style: TextStyle(fontSize: labelFontSize))
-          ])),
+              text: widget.brokerageUser.getDisplayText(
+                ops.averageBuyPrice!,
+                displayValue: DisplayValue.lastPrice,
+              ),
+              fontSize: valueFontSize,
+              neutral: true,
+            ),
+            Text("Cost per share", style: TextStyle(fontSize: labelFontSize)),
+          ],
+        ),
+      ),
       Padding(
-          padding: const EdgeInsets.all(summaryEgdeInset),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
+        padding: const EdgeInsets.all(summaryEgdeInset),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
             PnlBadge(
-                text: formatCompactDateYear.format(ops.createdAt!),
-                fontSize: valueFontSize,
-                neutral: true),
-            Text("Opened", style: TextStyle(fontSize: labelFontSize))
-          ])),
+              text: formatCompactDateYear.format(ops.createdAt!),
+              fontSize: valueFontSize,
+              neutral: true,
+            ),
+            Text("Opened", style: TextStyle(fontSize: labelFontSize)),
+          ],
+        ),
+      ),
       Padding(
-          padding: const EdgeInsets.all(summaryEgdeInset),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
+        padding: const EdgeInsets.all(summaryEgdeInset),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
             PnlBadge(
-                text: formatCompactDateYear.format(ops.updatedAt!),
-                fontSize: valueFontSize,
-                neutral: true),
-            Text("Updated", style: TextStyle(fontSize: labelFontSize))
-          ])),
+              text: formatCompactDateYear.format(ops.updatedAt!),
+              fontSize: valueFontSize,
+              neutral: true,
+            ),
+            Text("Updated", style: TextStyle(fontSize: labelFontSize)),
+          ],
+        ),
+      ),
     ];
     return SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              ...tiles,
-            ])));
+      scrollDirection: Axis.horizontal,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [...tiles],
+        ),
+      ),
+    );
   }
 
   SingleChildScrollView _buildQuoteScrollRow(
-      Instrument ops, double valueFontSize, double labelFontSize,
-      {double iconSize = 23.0}) {
+    Instrument ops,
+    double valueFontSize,
+    double labelFontSize, {
+    double iconSize = 23.0,
+  }) {
     List<Widget> tiles = [];
 
     // double? totalReturn = 0;
@@ -3353,76 +3663,113 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
     double? todayReturn = ops.quoteObj?.changeToday;
     String? todayReturnText = widget.brokerageUser.getDisplayText(
-        todayReturn ?? 0,
-        displayValue: DisplayValue.todayReturn);
+      todayReturn ?? 0,
+      displayValue: DisplayValue.todayReturn,
+    );
 
     double? todayReturnPercent = ops.quoteObj?.changePercentToday;
     String? todayReturnPercentText = widget.brokerageUser.getDisplayText(
-        todayReturnPercent ?? 0,
-        displayValue: DisplayValue.todayReturnPercent);
+      todayReturnPercent ?? 0,
+      displayValue: DisplayValue.todayReturnPercent,
+    );
 
     tiles = [
       Padding(
-          padding: const EdgeInsets.all(summaryEgdeInset),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
+        padding: const EdgeInsets.all(summaryEgdeInset),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
             PnlBadge(
-                text: todayReturnText,
-                value: todayReturn,
-                fontSize: valueFontSize),
-            Text("Change Today", style: TextStyle(fontSize: labelFontSize))
-          ])),
+              text: todayReturnText,
+              value: todayReturn,
+              fontSize: valueFontSize,
+            ),
+            Text("Change Today", style: TextStyle(fontSize: labelFontSize)),
+          ],
+        ),
+      ),
       Padding(
-          padding: const EdgeInsets.all(summaryEgdeInset),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
+        padding: const EdgeInsets.all(summaryEgdeInset),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
             PnlBadge(
-                text: todayReturnPercentText,
-                value: todayReturnPercent,
-                fontSize: valueFontSize),
-            Text("Change Today %", style: TextStyle(fontSize: labelFontSize))
-          ])),
+              text: todayReturnPercentText,
+              value: todayReturnPercent,
+              fontSize: valueFontSize,
+            ),
+            Text("Change Today %", style: TextStyle(fontSize: labelFontSize)),
+          ],
+        ),
+      ),
       Padding(
-          padding: const EdgeInsets.all(summaryEgdeInset),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
+        padding: const EdgeInsets.all(summaryEgdeInset),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
             PnlBadge(
-                text: widget.brokerageUser.getDisplayText(
-                    ops.quoteObj?.bidPrice ?? 0,
-                    displayValue: DisplayValue.lastPrice),
-                fontSize: valueFontSize,
-                neutral: true),
-            Text("Bid x ${ops.quoteObj?.bidSize ?? 0}",
-                style: TextStyle(fontSize: labelFontSize))
-          ])),
+              text: widget.brokerageUser.getDisplayText(
+                ops.quoteObj?.bidPrice ?? 0,
+                displayValue: DisplayValue.lastPrice,
+              ),
+              fontSize: valueFontSize,
+              neutral: true,
+            ),
+            Text(
+              "Bid x ${ops.quoteObj?.bidSize ?? 0}",
+              style: TextStyle(fontSize: labelFontSize),
+            ),
+          ],
+        ),
+      ),
       Padding(
-          padding: const EdgeInsets.all(summaryEgdeInset),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
+        padding: const EdgeInsets.all(summaryEgdeInset),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
             PnlBadge(
-                text: widget.brokerageUser.getDisplayText(
-                    ops.quoteObj?.askPrice ?? 0,
-                    displayValue: DisplayValue.lastPrice),
-                fontSize: valueFontSize,
-                neutral: true),
-            Text("Ask x ${ops.quoteObj?.askSize ?? 0}",
-                style: TextStyle(fontSize: labelFontSize))
-          ])),
+              text: widget.brokerageUser.getDisplayText(
+                ops.quoteObj?.askPrice ?? 0,
+                displayValue: DisplayValue.lastPrice,
+              ),
+              fontSize: valueFontSize,
+              neutral: true,
+            ),
+            Text(
+              "Ask x ${ops.quoteObj?.askSize ?? 0}",
+              style: TextStyle(fontSize: labelFontSize),
+            ),
+          ],
+        ),
+      ),
       Padding(
-          padding: const EdgeInsets.all(summaryEgdeInset),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
+        padding: const EdgeInsets.all(summaryEgdeInset),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
             PnlBadge(
-                text: widget.brokerageUser.getDisplayText(
-                    ops.quoteObj?.adjustedPreviousClose ?? 0,
-                    displayValue: DisplayValue.lastPrice),
-                fontSize: valueFontSize,
-                neutral: true),
-            Text("Previous Close", style: TextStyle(fontSize: labelFontSize))
-          ])),
+              text: widget.brokerageUser.getDisplayText(
+                ops.quoteObj?.adjustedPreviousClose ?? 0,
+                displayValue: DisplayValue.lastPrice,
+              ),
+              fontSize: valueFontSize,
+              neutral: true,
+            ),
+            Text("Previous Close", style: TextStyle(fontSize: labelFontSize)),
+          ],
+        ),
+      ),
     ];
     return SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              ...tiles,
-            ])));
+      scrollDirection: Axis.horizontal,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [...tiles],
+        ),
+      ),
+    );
   }
 
   Widget quoteWidget(Instrument instrument) {
@@ -3449,8 +3796,10 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               children: [
                 if (isExtendedHours) ...[
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.purple.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(4),
@@ -3468,10 +3817,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                 ],
                 Text(
                   formatCurrency.format(displayPrice),
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleLarge
-                      ?.copyWith(fontWeight: FontWeight.bold),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                 ),
               ],
             ),
@@ -3482,16 +3830,14 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
               side: BorderSide(
-                color: Theme.of(context)
-                    .colorScheme
-                    .outlineVariant
-                    .withValues(alpha: 0.4),
+                color: Theme.of(
+                  context,
+                ).colorScheme.outlineVariant.withValues(alpha: 0.4),
               ),
             ),
-            color: Theme.of(context)
-                .colorScheme
-                .surfaceContainerHighest
-                .withValues(alpha: 0.25),
+            color: Theme.of(
+              context,
+            ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.25),
             child: Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(
@@ -3531,63 +3877,75 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       stats.add({"label": "Low", "value": formatCurrency.format(f.low)});
     }
     if (f.high52Weeks != null) {
-      stats.add(
-          {"label": "52W High", "value": formatCurrency.format(f.high52Weeks)});
+      stats.add({
+        "label": "52W High",
+        "value": formatCurrency.format(f.high52Weeks),
+      });
     }
     if (f.low52Weeks != null) {
-      stats.add(
-          {"label": "52W Low", "value": formatCurrency.format(f.low52Weeks)});
+      stats.add({
+        "label": "52W Low",
+        "value": formatCurrency.format(f.low52Weeks),
+      });
     }
     if (f.volume != null) {
-      stats.add(
-          {"label": "Volume", "value": formatCompactNumber.format(f.volume)});
+      stats.add({
+        "label": "Volume",
+        "value": formatCompactNumber.format(f.volume),
+      });
     }
     if (f.averageVolume != null) {
       stats.add({
         "label": "Avg Vol",
-        "value": formatCompactNumber.format(f.averageVolume)
+        "value": formatCompactNumber.format(f.averageVolume),
       });
     }
     if (f.averageVolume30Days != null) {
       stats.add({
         "label": "Avg Vol (30D)",
-        "value": formatCompactNumber.format(f.averageVolume30Days)
+        "value": formatCompactNumber.format(f.averageVolume30Days),
       });
     }
     if (f.marketCap != null) {
       stats.add({
         "label": "Mkt Cap",
-        "value": formatCompactNumber.format(f.marketCap)
+        "value": formatCompactNumber.format(f.marketCap),
       });
     }
     if (f.sharesOutstanding != null) {
       stats.add({
         "label": "Shares Out",
-        "value": formatCompactNumber.format(f.sharesOutstanding)
+        "value": formatCompactNumber.format(f.sharesOutstanding),
       });
     }
     if (f.float != null) {
-      stats.add(
-          {"label": "Float", "value": formatCompactNumber.format(f.float)});
+      stats.add({
+        "label": "Float",
+        "value": formatCompactNumber.format(f.float),
+      });
     }
     if (instrument.maintenanceRatio != null) {
       stats.add({
         "label": "Maint Req",
-        "value": formatPercentage.format(instrument.maintenanceRatio)
+        "value": formatPercentage.format(instrument.maintenanceRatio),
       });
     }
     if (f.peRatio != null) {
-      stats
-          .add({"label": "P/E Ratio", "value": formatNumber.format(f.peRatio)});
+      stats.add({
+        "label": "P/E Ratio",
+        "value": formatNumber.format(f.peRatio),
+      });
     }
     if (f.pbRatio != null) {
-      stats
-          .add({"label": "P/B Ratio", "value": formatNumber.format(f.pbRatio)});
+      stats.add({
+        "label": "P/B Ratio",
+        "value": formatNumber.format(f.pbRatio),
+      });
     }
     if (f.dividendYield != null) {
       stats.add({
         "label": "Div Yield",
-        "value": formatNumber.format(f.dividendYield)
+        "value": formatNumber.format(f.dividendYield),
       });
     }
     return SliverToBoxAdapter(
@@ -3601,17 +3959,15 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           Card(
             margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             elevation: 0,
-            color: Theme.of(context)
-                .colorScheme
-                .surfaceContainerHighest
-                .withValues(alpha: 0.25),
+            color: Theme.of(
+              context,
+            ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.25),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
               side: BorderSide(
-                color: Theme.of(context)
-                    .colorScheme
-                    .outlineVariant
-                    .withValues(alpha: 0.4),
+                color: Theme.of(
+                  context,
+                ).colorScheme.outlineVariant.withValues(alpha: 0.4),
               ),
             ),
             child: Padding(
@@ -3625,10 +3981,14 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                     child: Wrap(
                       runSpacing: 12,
                       children: stats
-                          .map((s) => SizedBox(
-                              width: (MediaQuery.of(context).size.width - 64) /
+                          .map(
+                            (s) => SizedBox(
+                              width:
+                                  (MediaQuery.of(context).size.width - 64) /
                                   3, // 3 columns approx
-                              child: _buildStatItem(s["label"]!, s["value"]!)))
+                              child: _buildStatItem(s["label"]!, s["value"]!),
+                            ),
+                          )
                           .toList(),
                     ),
                   ),
@@ -3639,15 +3999,25 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                     ),
                     const Padding(
                       padding: EdgeInsets.fromLTRB(16, 0, 16, 8),
-                      child: Text("About",
-                          style: TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.bold)),
+                      child: Text(
+                        "About",
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                     Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: Text(f.description,
-                            style: const TextStyle(
-                                height: 1.4, fontSize: 14, color: Colors.grey)))
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Text(
+                        f.description,
+                        style: const TextStyle(
+                          height: 1.4,
+                          fontSize: 14,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ),
                   ],
                   if (f.sector.isNotEmpty ||
                       f.industry.isNotEmpty ||
@@ -3658,25 +4028,35 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                     ),
                     const Padding(
                       padding: EdgeInsets.fromLTRB(16, 0, 16, 8),
-                      child: Text("Profile",
-                          style: TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.bold)),
+                      child: Text(
+                        "Profile",
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                     if (f.sector.isNotEmpty)
                       _buildFundamentalRow("Sector", f.sector),
                     if (f.industry.isNotEmpty)
                       _buildFundamentalRow("Industry", f.industry),
                     if (f.numEmployees != null)
-                      _buildFundamentalRow("Employees",
-                          formatCompactNumber.format(f.numEmployees!)),
+                      _buildFundamentalRow(
+                        "Employees",
+                        formatCompactNumber.format(f.numEmployees!),
+                      ),
                     if (f.yearFounded != null)
                       _buildFundamentalRow("Founded", f.yearFounded.toString()),
                     if (instrument.listDate != null)
-                      _buildFundamentalRow("List Date",
-                          formatShortDate.format(instrument.listDate!)),
+                      _buildFundamentalRow(
+                        "List Date",
+                        formatShortDate.format(instrument.listDate!),
+                      ),
                     if (f.headquartersCity.isNotEmpty)
-                      _buildFundamentalRow("Headquarters",
-                          "${f.headquartersCity}, ${f.headquartersState}"),
+                      _buildFundamentalRow(
+                        "Headquarters",
+                        "${f.headquartersCity}, ${f.headquartersState}",
+                      ),
                     if (instrument.country.isNotEmpty)
                       _buildFundamentalRow("Country", instrument.country),
                     if (f.ceo.isNotEmpty) _buildFundamentalRow("CEO", f.ceo),
@@ -3686,79 +4066,108 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                     child: Divider(),
                   ),
                   _buildFundamentalRow(
-                      "Type",
-                      instrument.type == "stock"
-                          ? "Stock"
-                          : (instrument.type == "etp"
+                    "Type",
+                    instrument.type == "stock"
+                        ? "Stock"
+                        : (instrument.type == "etp"
                               ? "Exchange Traded Product"
-                              : instrument.type)),
+                              : instrument.type),
+                  ),
                   if (instrument.type == "etp" && etp != null) ...[
                     Padding(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
                       child: Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text("ETF Details",
-                              style: TextStyle(
-                                  fontSize: 16, fontWeight: FontWeight.bold))),
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          "ETF Details",
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
                     ),
                     if (etp["inception_date"] != null)
                       _buildFundamentalRow(
-                          "Inception",
-                          formatShortDate
-                              .format(DateTime.parse(etp["inception_date"]))),
+                        "Inception",
+                        formatShortDate.format(
+                          DateTime.parse(etp["inception_date"]),
+                        ),
+                      ),
                     if (etp["aum"] != null)
                       _buildFundamentalRow(
-                          "AUM",
-                          formatCompactCurrency
-                              .format(double.parse(etp["aum"]))),
+                        "AUM",
+                        formatCompactCurrency.format(double.parse(etp["aum"])),
+                      ),
                     if (etp["gross_expense_ratio"] != null)
                       _buildFundamentalRow(
-                          "Expense Ratio",
-                          formatPercentage.format(
-                              double.tryParse(etp["gross_expense_ratio"])! /
-                                  100)),
+                        "Expense Ratio",
+                        formatPercentage.format(
+                          double.tryParse(etp["gross_expense_ratio"])! / 100,
+                        ),
+                      ),
                     if (etp["sec_yield"] != null)
                       _buildFundamentalRow(
-                          "SEC Yield",
-                          formatPercentage.format(
-                              double.tryParse(etp["sec_yield"])! / 100)),
+                        "SEC Yield",
+                        formatPercentage.format(
+                          double.tryParse(etp["sec_yield"])! / 100,
+                        ),
+                      ),
                     if (etp["month_end_date"] != null &&
                         etp["month_end_performance"]?["market"]?["1Y"] != null)
                       ListTile(
                         dense: true,
                         visualDensity: const VisualDensity(vertical: -3),
-                        title: const Text("Month Performance",
-                            style: TextStyle(fontSize: 14)),
-                        subtitle: Text("1 year to ${etp["month_end_date"]}",
-                            style: const TextStyle(fontSize: 12)),
+                        title: const Text(
+                          "Month Performance",
+                          style: TextStyle(fontSize: 14),
+                        ),
+                        subtitle: Text(
+                          "1 year to ${etp["month_end_date"]}",
+                          style: const TextStyle(fontSize: 12),
+                        ),
                         trailing: Text(
-                            formatPercentage.format(double.tryParse(
-                                    etp["month_end_performance"]["market"]
-                                        ["1Y"])! /
-                                100),
-                            style: const TextStyle(
-                                fontSize: 14, fontWeight: FontWeight.w500)),
+                          formatPercentage.format(
+                            double.tryParse(
+                                  etp["month_end_performance"]["market"]["1Y"],
+                                )! /
+                                100,
+                          ),
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
                       ),
                     if (etp["quarter_end_date"] != null &&
-                        etp["quarter_end_performance"]?["market"]
-                                ?["since_inception"] !=
+                        etp["quarter_end_performance"]?["market"]?["since_inception"] !=
                             null)
                       ListTile(
                         dense: true,
                         visualDensity: const VisualDensity(vertical: -3),
-                        title: const Text("Quarter Performance",
-                            style: TextStyle(fontSize: 14)),
+                        title: const Text(
+                          "Quarter Performance",
+                          style: TextStyle(fontSize: 14),
+                        ),
                         subtitle: Text(
-                            "Since inception to ${etp["quarter_end_date"]}",
-                            style: const TextStyle(fontSize: 12)),
+                          "Since inception to ${etp["quarter_end_date"]}",
+                          style: const TextStyle(fontSize: 12),
+                        ),
                         trailing: Text(
-                            formatPercentage.format(double.tryParse(
-                                    etp["quarter_end_performance"]["market"]
-                                        ["since_inception"])! /
-                                100),
-                            style: const TextStyle(
-                                fontSize: 14, fontWeight: FontWeight.w500)),
+                          formatPercentage.format(
+                            double.tryParse(
+                                  etp["quarter_end_performance"]["market"]["since_inception"],
+                                )! /
+                                100,
+                          ),
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
                       ),
                     if (etp["is_inverse"] == true ||
                         etp["is_leveraged"] == true ||
@@ -3768,52 +4177,74 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                       ListTile(
                         dense: true,
                         visualDensity: const VisualDensity(vertical: -2),
-                        title: const Text("Characteristics",
-                            style: TextStyle(fontSize: 14)),
+                        title: const Text(
+                          "Characteristics",
+                          style: TextStyle(fontSize: 14),
+                        ),
                         subtitle: Wrap(
                           spacing: 6,
                           runSpacing: 0,
                           children: [
                             if (etp["is_inverse"] == true)
                               const Chip(
-                                  label: Text("Inverse",
-                                      style: TextStyle(fontSize: 11)),
-                                  visualDensity: VisualDensity.compact,
-                                  padding: EdgeInsets.zero,
-                                  labelPadding:
-                                      EdgeInsets.symmetric(horizontal: 8)),
+                                label: Text(
+                                  "Inverse",
+                                  style: TextStyle(fontSize: 11),
+                                ),
+                                visualDensity: VisualDensity.compact,
+                                padding: EdgeInsets.zero,
+                                labelPadding: EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                ),
+                              ),
                             if (etp["is_leveraged"] == true)
                               const Chip(
-                                  label: Text("Leveraged",
-                                      style: TextStyle(fontSize: 11)),
-                                  visualDensity: VisualDensity.compact,
-                                  padding: EdgeInsets.zero,
-                                  labelPadding:
-                                      EdgeInsets.symmetric(horizontal: 8)),
+                                label: Text(
+                                  "Leveraged",
+                                  style: TextStyle(fontSize: 11),
+                                ),
+                                visualDensity: VisualDensity.compact,
+                                padding: EdgeInsets.zero,
+                                labelPadding: EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                ),
+                              ),
                             if (etp["is_volatility_linked"] == true)
                               const Chip(
-                                  label: Text("Volatility",
-                                      style: TextStyle(fontSize: 11)),
-                                  visualDensity: VisualDensity.compact,
-                                  padding: EdgeInsets.zero,
-                                  labelPadding:
-                                      EdgeInsets.symmetric(horizontal: 8)),
+                                label: Text(
+                                  "Volatility",
+                                  style: TextStyle(fontSize: 11),
+                                ),
+                                visualDensity: VisualDensity.compact,
+                                padding: EdgeInsets.zero,
+                                labelPadding: EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                ),
+                              ),
                             if (etp["is_crypto_futures"] == true)
                               const Chip(
-                                  label: Text("Crypto",
-                                      style: TextStyle(fontSize: 11)),
-                                  visualDensity: VisualDensity.compact,
-                                  padding: EdgeInsets.zero,
-                                  labelPadding:
-                                      EdgeInsets.symmetric(horizontal: 8)),
+                                label: Text(
+                                  "Crypto",
+                                  style: TextStyle(fontSize: 11),
+                                ),
+                                visualDensity: VisualDensity.compact,
+                                padding: EdgeInsets.zero,
+                                labelPadding: EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                ),
+                              ),
                             if (etp["is_actively_managed"] == true)
                               const Chip(
-                                  label: Text("Active",
-                                      style: TextStyle(fontSize: 11)),
-                                  visualDensity: VisualDensity.compact,
-                                  padding: EdgeInsets.zero,
-                                  labelPadding:
-                                      EdgeInsets.symmetric(horizontal: 8)),
+                                label: Text(
+                                  "Active",
+                                  style: TextStyle(fontSize: 11),
+                                ),
+                                visualDensity: VisualDensity.compact,
+                                padding: EdgeInsets.zero,
+                                labelPadding: EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                ),
+                              ),
                           ],
                         ),
                       ),
@@ -3821,14 +4252,20 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                       ListTile(
                         dense: true,
                         visualDensity: const VisualDensity(vertical: -3),
-                        title: const Text("Holdings",
-                            style: TextStyle(fontSize: 14)),
+                        title: const Text(
+                          "Holdings",
+                          style: TextStyle(fontSize: 14),
+                        ),
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text(formatNumber.format(etp["total_holdings"]),
-                                style: const TextStyle(
-                                    fontSize: 14, fontWeight: FontWeight.w500)),
+                            Text(
+                              formatNumber.format(etp["total_holdings"]),
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
                             const SizedBox(width: 4),
                             SizedBox(
                               height: 24,
@@ -3840,7 +4277,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                                 onPressed: () =>
                                     _showHoldingsDialog(context, instrument),
                               ),
-                            )
+                            ),
                           ],
                         ),
                       ),
@@ -3854,8 +4291,10 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: Text(
                         "Data as of ${formatShortDate.format(f.marketDate!)}",
-                        style:
-                            const TextStyle(fontSize: 12, color: Colors.grey),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey,
+                        ),
                       ),
                     ),
                   ],
@@ -3882,10 +4321,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             Container(
               padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
-                color: Theme.of(context)
-                    .colorScheme
-                    .primary
-                    .withValues(alpha: 0.1),
+                color: Theme.of(
+                  context,
+                ).colorScheme.primary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(
@@ -3904,16 +4342,13 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                 Text(
                   title,
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 19,
-                      ),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 19,
+                  ),
                 ),
                 if (subtitle != null) ...[
                   const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
+                  Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
                 ],
               ],
             ),
@@ -3931,9 +4366,11 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       title: Text(title, style: const TextStyle(fontSize: 14)),
       trailing: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 200),
-        child: Text(value,
-            textAlign: TextAlign.end,
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+        child: Text(
+          value,
+          textAlign: TextAlign.end,
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+        ),
       ),
     );
   }
@@ -3944,16 +4381,20 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  fontWeight: FontWeight.w500,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant)),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              fontWeight: FontWeight.w500,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
           const SizedBox(height: 2),
-          Text(value,
-              style: Theme.of(context)
-                  .textTheme
-                  .titleSmall
-                  ?.copyWith(fontWeight: FontWeight.w700)),
+          Text(
+            value,
+            style: Theme.of(
+              context,
+            ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+          ),
         ],
       ),
     );
@@ -3961,46 +4402,50 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
   void _showHoldingsDialog(BuildContext context, Instrument instrument) {
     showDialog<String>(
-        context: context,
-        builder: (BuildContext context) => AlertDialog(
-              title: Text('${instrument.symbol} Holdings'),
-              content: SizedBox(
-                width: double.maxFinite,
-                child: SingleChildScrollView(
-                  child: Table(
-                    border: TableBorder.all(
-                        color: Theme.of(context).dividerColor, width: 0.5),
-                    columnWidths: const {
-                      0: FlexColumnWidth(4),
-                      1: FlexColumnWidth(1)
-                    },
+      context: context,
+      builder: (BuildContext context) => AlertDialog(
+        title: Text('${instrument.symbol} Holdings'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: SingleChildScrollView(
+            child: Table(
+              border: TableBorder.all(
+                color: Theme.of(context).dividerColor,
+                width: 0.5,
+              ),
+              columnWidths: const {
+                0: FlexColumnWidth(4),
+                1: FlexColumnWidth(1),
+              },
+              children: [
+                for (var holding in instrument.etpDetails["holdings"]) ...[
+                  TableRow(
                     children: [
-                      for (var holding
-                          in instrument.etpDetails["holdings"]) ...[
-                        TableRow(children: [
-                          Padding(
-                            padding: const EdgeInsets.all(8.0),
-                            child: SelectableText(holding["name"]),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.all(8.0),
-                            child: SelectableText(holding["weight"]),
-                          ),
-                        ])
-                      ]
+                      Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: SelectableText(holding["name"]),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: SelectableText(holding["weight"]),
+                      ),
                     ],
                   ),
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                  child: const Text('OK'),
-                ),
+                ],
               ],
-            ));
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildRatingsWidget(Instrument instrument) {
@@ -4052,8 +4497,14 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     );
   }
 
-  Widget _buildRatingCard(BuildContext context, String title, int? count,
-      Color color, List<dynamic> ratings, String type) {
+  Widget _buildRatingCard(
+    BuildContext context,
+    String title,
+    int? count,
+    Color color,
+    List<dynamic> ratings,
+    String type,
+  ) {
     IconData icon;
     switch (type) {
       case 'buy':
@@ -4081,18 +4532,22 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             builder: (BuildContext context) => AlertDialog(
               title: Text('$title Ratings'),
               content: SingleChildScrollView(
-                  child: Column(children: [
-                for (var rating in ratings) ...[
-                  if (rating["type"] == type) ...[
-                    if (rating["text"] != null) Text("${rating["text"]}\n"),
-                    if (rating["published_at"] != null) ...[
-                      Text(
-                          "${formatLongDate.format(DateTime.tryParse(rating["published_at"].toString()) ?? DateTime.now())}\n",
-                          style: const TextStyle(fontSize: 11.0)),
-                    ]
-                  ]
-                ]
-              ])),
+                child: Column(
+                  children: [
+                    for (var rating in ratings) ...[
+                      if (rating["type"] == type) ...[
+                        if (rating["text"] != null) Text("${rating["text"]}\n"),
+                        if (rating["published_at"] != null) ...[
+                          Text(
+                            "${formatLongDate.format(DateTime.tryParse(rating["published_at"].toString()) ?? DateTime.now())}\n",
+                            style: const TextStyle(fontSize: 11.0),
+                          ),
+                        ],
+                      ],
+                    ],
+                  ],
+                ),
+              ),
               actions: <Widget>[
                 TextButton(
                   onPressed: () => Navigator.pop(context, 'OK'),
@@ -4111,13 +4566,19 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             Text(
               count != null ? formatCompactNumber.format(count) : "-",
               style: TextStyle(
-                  fontSize: 22, fontWeight: FontWeight.bold, color: color),
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
             ),
             const SizedBox(height: 2),
             Text(
               title,
               style: TextStyle(
-                  fontSize: 14, fontWeight: FontWeight.bold, color: color),
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
             ),
           ],
         ),
@@ -4138,8 +4599,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
     final economicMoat = overview["economic_moat"]?.toString();
     final starRatingStr = overview["star_rating"]?.toString();
-    final starRating =
-        starRatingStr != null ? int.tryParse(starRatingStr) : null;
+    final starRating = starRatingStr != null
+        ? int.tryParse(starRatingStr)
+        : null;
     final stewardship = overview["stewardship"]?.toString();
     final uncertainty = overview["uncertainty"]?.toString();
     final reportTitle = overview["report_title"]?.toString();
@@ -4153,8 +4615,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     final source = overview["source"]?.toString();
     final sourceSuffix =
         (source != null && source.isNotEmpty && source != 'null')
-            ? " by ${source.capitalize()}"
-            : "";
+        ? " by ${source.capitalize()}"
+        : "";
 
     String? reportSubtitle;
     if (updatedAt != null) {
@@ -4179,17 +4641,15 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           Card(
             margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             elevation: 0,
-            color: Theme.of(context)
-                .colorScheme
-                .surfaceContainerHighest
-                .withValues(alpha: 0.25),
+            color: Theme.of(
+              context,
+            ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.25),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
               side: BorderSide(
-                color: Theme.of(context)
-                    .colorScheme
-                    .outlineVariant
-                    .withValues(alpha: 0.4),
+                color: Theme.of(
+                  context,
+                ).colorScheme.outlineVariant.withValues(alpha: 0.4),
               ),
             ),
             child: Column(
@@ -4198,9 +4658,13 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                 if (fairValueVal != null) ...[
                   ListTile(
                     title: const Text("Fair Value"),
-                    trailing: Text(formatCurrency.format(fairValueVal),
-                        style: const TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.w500)),
+                    trailing: Text(
+                      formatCurrency.format(fairValueVal),
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                   ),
                 ],
                 if (economicMoat != null &&
@@ -4208,31 +4672,40 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                     economicMoat != "null") ...[
                   ListTile(
                     title: const Text("Economic Moat"),
-                    trailing: Text(economicMoat.capitalize(),
-                        style: const TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.w500)),
+                    trailing: Text(
+                      economicMoat.capitalize(),
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                   ),
                 ],
                 if (starRating != null && starRating > 0) ...[
                   ListTile(
-                      title: const Text("Star Rating"),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          for (var i = 0; i < starRating; i++) ...[
-                            const Icon(Icons.star, color: Colors.amber),
-                          ]
+                    title: const Text("Star Rating"),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        for (var i = 0; i < starRating; i++) ...[
+                          const Icon(Icons.star, color: Colors.amber),
                         ],
-                      )),
+                      ],
+                    ),
+                  ),
                 ],
                 if (stewardship != null &&
                     stewardship.isNotEmpty &&
                     stewardship != "null") ...[
                   ListTile(
                     title: const Text("Stewardship"),
-                    trailing: Text(stewardship.capitalize(),
-                        style: const TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.w500)),
+                    trailing: Text(
+                      stewardship.capitalize(),
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                   ),
                 ],
                 if (uncertainty != null &&
@@ -4241,9 +4714,12 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                   ListTile(
                     title: const Text("Uncertainty"),
                     trailing: Text(
-                        uncertainty.replaceAll('_', ' ').capitalize(),
-                        style: const TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.w500)),
+                      uncertainty.replaceAll('_', ' ').capitalize(),
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                   ),
                 ],
                 if ((reportTitle != null && reportTitle.isNotEmpty) ||
@@ -4253,12 +4729,16 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                         ? Text(
                             reportTitle,
                             style: const TextStyle(
-                                fontSize: 16.0, fontWeight: FontWeight.w500),
+                              fontSize: 16.0,
+                              fontWeight: FontWeight.w500,
+                            ),
                           )
                         : null,
                     subtitle: reportSubtitle != null
-                        ? Text(reportSubtitle,
-                            style: const TextStyle(fontSize: 14))
+                        ? Text(
+                            reportSubtitle,
+                            style: const TextStyle(fontSize: 14),
+                          )
                         : null,
                   ),
                 ],
@@ -4266,18 +4746,19 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                     downloadUrl.isNotEmpty &&
                     downloadUrl != "null") ...[
                   Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: <Widget>[
-                        TextButton(
-                          child: const Text('DOWNLOAD REPORT'),
-                          onPressed: () async {
-                            var uri = Uri.tryParse(downloadUrl);
-                            if (uri != null && await canLaunchUrl(uri)) {
-                              await launchUrl(uri);
-                            }
-                          },
-                        ),
-                      ]),
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: <Widget>[
+                      TextButton(
+                        child: const Text('DOWNLOAD REPORT'),
+                        onPressed: () async {
+                          var uri = Uri.tryParse(downloadUrl);
+                          if (uri != null && await canLaunchUrl(uri)) {
+                            await launchUrl(uri);
+                          }
+                        },
+                      ),
+                    ],
+                  ),
                 ],
               ],
             ),
@@ -4298,291 +4779,319 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
     return SliverToBoxAdapter(
       child: ValueListenableBuilder<bool>(
-          valueListenable: _showAllEarningsNotifier,
-          builder: (context, showAllEarnings, child) {
-            final displayCount = showAllEarnings
-                ? earnings.length
-                : (earnings.length > 3 ? 3 : earnings.length);
-            final displayEarnings = earnings.take(displayCount).toList();
+        valueListenable: _showAllEarningsNotifier,
+        builder: (context, showAllEarnings, child) {
+          final displayCount = showAllEarnings
+              ? earnings.length
+              : (earnings.length > 3 ? 3 : earnings.length);
+          final displayEarnings = earnings.take(displayCount).toList();
 
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildSectionHeader(
-                  title: "Earnings Reports",
-                  icon: Icons.event_note_outlined,
-                ),
-                Card(
-                  margin:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  elevation: 0,
-                  color: Theme.of(context)
-                      .colorScheme
-                      .surfaceContainerHighest
-                      .withValues(alpha: 0.25),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    side: BorderSide(
-                      color: Theme.of(context)
-                          .colorScheme
-                          .outlineVariant
-                          .withValues(alpha: 0.4),
-                    ),
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildSectionHeader(
+                title: "Earnings Reports",
+                icon: Icons.event_note_outlined,
+              ),
+              Card(
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                elevation: 0,
+                color: Theme.of(
+                  context,
+                ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.25),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: BorderSide(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.outlineVariant.withValues(alpha: 0.4),
                   ),
-                  child: ListView.separated(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: displayEarnings.length,
-                    separatorBuilder: (context, index) => const Divider(
-                      height: 1,
-                      indent: 16,
-                      endIndent: 16,
-                    ),
-                    itemBuilder: (context, index) {
-                      var earning = displayEarnings[index];
-                      final reportDate = earning["report"]?["date"];
-                      final eventDate = reportDate is String
-                          ? DateTime.tryParse(reportDate)
-                          : null;
-                      final isFutureEvent = eventDate != null &&
-                          eventDate.isAfter(DateTime.now());
-                      return Column(
-                        children: [
-                          ListTile(
-                            onTap: eventDate == null || isFutureEvent
-                                ? null
-                                : () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) => EventStudyWidget(
-                                          initialSymbol: instrument.symbol,
-                                          initialEventDate: eventDate,
-                                        ),
+                ),
+                child: ListView.separated(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: displayEarnings.length,
+                  separatorBuilder: (context, index) =>
+                      const Divider(height: 1, indent: 16, endIndent: 16),
+                  itemBuilder: (context, index) {
+                    var earning = displayEarnings[index];
+                    final reportDate = earning["report"]?["date"];
+                    final eventDate = reportDate is String
+                        ? DateTime.tryParse(reportDate)
+                        : null;
+                    final isFutureEvent =
+                        eventDate != null && eventDate.isAfter(DateTime.now());
+                    return Column(
+                      children: [
+                        ListTile(
+                          onTap: eventDate == null || isFutureEvent
+                              ? null
+                              : () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => EventStudyWidget(
+                                        initialSymbol: instrument.symbol,
+                                        initialEventDate: eventDate,
                                       ),
-                                    );
-                                  },
-                            leading: eventDate == null
-                                ? null
-                                : Icon(Icons.event_available,
-                                    color: isFutureEvent
-                                        ? Colors.grey
-                                        : Colors.teal),
-                            title: Text(
-                              "${earning!["year"] ?? ''} Q${earning!["quarter"] ?? ''}"
-                                  .trim(),
-                              style: const TextStyle(
-                                  fontSize: 16.0, fontWeight: FontWeight.w500),
+                                    ),
+                                  );
+                                },
+                          leading: eventDate == null
+                              ? null
+                              : Icon(
+                                  Icons.event_available,
+                                  color: isFutureEvent
+                                      ? Colors.grey
+                                      : Colors.teal,
+                                ),
+                          title: Text(
+                            "${earning!["year"] ?? ''} Q${earning!["quarter"] ?? ''}"
+                                .trim(),
+                            style: const TextStyle(
+                              fontSize: 16.0,
+                              fontWeight: FontWeight.w500,
                             ),
-                            subtitle: earning!["report"] != null
-                                ? Text(
-                                    "Report${earning!["report"]["verified"] == true ? "ed" : "ing"}${earning!["report"]["date"] != null ? " ${formatDate.format(DateTime.tryParse(earning!["report"]["date"].toString()) ?? DateTime.now())}" : ""}${earning!["report"]["timing"] != null ? " ${earning!["report"]["timing"]}" : ""}",
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: Theme.of(context)
-                                          .textTheme
-                                          .bodySmall
-                                          ?.color,
-                                    ))
-                                : null,
-                            trailing: (earning!["eps"] != null &&
-                                    (earning!["eps"]["estimate"] != null ||
-                                        earning!["eps"]["actual"] != null))
-                                ? Wrap(spacing: 16.0, children: [
+                          ),
+                          subtitle: earning!["report"] != null
+                              ? Text(
+                                  "Report${earning!["report"]["verified"] == true ? "ed" : "ing"}${earning!["report"]["date"] != null ? " ${formatDate.format(DateTime.tryParse(earning!["report"]["date"].toString()) ?? DateTime.now())}" : ""}${earning!["report"]["timing"] != null ? " ${earning!["report"]["timing"]}" : ""}",
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Theme.of(
+                                      context,
+                                    ).textTheme.bodySmall?.color,
+                                  ),
+                                )
+                              : null,
+                          trailing:
+                              (earning!["eps"] != null &&
+                                  (earning!["eps"]["estimate"] != null ||
+                                      earning!["eps"]["actual"] != null))
+                              ? Wrap(
+                                  spacing: 16.0,
+                                  children: [
                                     if (earning!["eps"]["estimate"] != null &&
-                                        double.tryParse(earning!["eps"]
-                                                    ["estimate"]
-                                                .toString()) !=
+                                        double.tryParse(
+                                              earning!["eps"]["estimate"]
+                                                  .toString(),
+                                            ) !=
                                             null) ...[
                                       Column(
                                         mainAxisSize: MainAxisSize.min,
                                         crossAxisAlignment:
                                             CrossAxisAlignment.end,
                                         children: [
-                                          Text("Estimate",
-                                              style: TextStyle(
-                                                  fontSize: 11,
-                                                  color: Theme.of(context)
-                                                      .textTheme
-                                                      .bodySmall
-                                                      ?.color)),
                                           Text(
-                                              formatCurrency.format(
-                                                  double.tryParse(
-                                                      earning!["eps"]
-                                                              ["estimate"]
-                                                          .toString())!),
-                                              style: const TextStyle(
-                                                  fontSize: 16,
-                                                  fontWeight: FontWeight.w500)),
+                                            "Estimate",
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              color: Theme.of(
+                                                context,
+                                              ).textTheme.bodySmall?.color,
+                                            ),
+                                          ),
+                                          Text(
+                                            formatCurrency.format(
+                                              double.tryParse(
+                                                earning!["eps"]["estimate"]
+                                                    .toString(),
+                                              )!,
+                                            ),
+                                            style: const TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
                                         ],
-                                      )
+                                      ),
                                     ],
                                     if (earning!["eps"]["actual"] != null &&
-                                        double.tryParse(earning!["eps"]
-                                                    ["actual"]
-                                                .toString()) !=
+                                        double.tryParse(
+                                              earning!["eps"]["actual"]
+                                                  .toString(),
+                                            ) !=
                                             null) ...[
                                       Column(
                                         mainAxisSize: MainAxisSize.min,
                                         crossAxisAlignment:
                                             CrossAxisAlignment.end,
                                         children: [
-                                          Text("Actual",
-                                              style: TextStyle(
-                                                  fontSize: 11,
-                                                  color: Theme.of(context)
-                                                      .textTheme
-                                                      .bodySmall
-                                                      ?.color)),
                                           Text(
-                                              formatCurrency.format(
-                                                  double.tryParse(
-                                                      earning!["eps"]["actual"]
-                                                          .toString())!),
-                                              style: const TextStyle(
-                                                  fontSize: 16,
-                                                  fontWeight: FontWeight.bold))
+                                            "Actual",
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              color: Theme.of(
+                                                context,
+                                              ).textTheme.bodySmall?.color,
+                                            ),
+                                          ),
+                                          Text(
+                                            formatCurrency.format(
+                                              double.tryParse(
+                                                earning!["eps"]["actual"]
+                                                    .toString(),
+                                              )!,
+                                            ),
+                                            style: const TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
                                         ],
-                                      )
-                                    ]
-                                  ])
-                                : (eventDate == null
+                                      ),
+                                    ],
+                                  ],
+                                )
+                              : (eventDate == null
                                     ? null
                                     : const Icon(Icons.chevron_right)),
-                          ),
-                          if (earning!["call"] != null &&
-                              ((pastEarning != null &&
-                                      pastEarning["year"] == earning!["year"] &&
-                                      pastEarning["quarter"] ==
-                                          earning!["quarter"]) ||
-                                  (futureEarning != null &&
-                                      futureEarning["year"] ==
-                                          earning!["year"] &&
-                                      futureEarning["quarter"] ==
-                                          earning!["quarter"]))) ...[
-                            Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 16.0),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  if (earning!["report"] != null &&
-                                      earning!["report"]["verified"] !=
-                                          true) ...[
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      "Report${earning!["report"]["verified"] == true ? "ed" : "ing"}${earning!["report"]["date"] != null ? " ${formatDate.format(DateTime.tryParse(earning!["report"]["date"].toString()) ?? DateTime.now())}" : ""}${earning!["report"]["timing"] != null ? " ${earning!["report"]["timing"]}" : ""}",
-                                      style: const TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w500),
-                                    ),
-                                    if (earning!["call"]["datetime"] != null)
-                                      Text(
-                                        formatLongDate.format(DateTime.tryParse(
-                                                earning!["call"]["datetime"]
-                                                    .toString()) ??
-                                            DateTime.now()),
-                                        style: TextStyle(
-                                            fontSize: 14,
-                                            color: Theme.of(context)
-                                                .textTheme
-                                                .bodySmall
-                                                ?.color),
-                                      ),
-                                  ],
-                                  Row(
-                                      mainAxisAlignment: MainAxisAlignment.end,
-                                      children: <Widget>[
-                                        if (earning!["call"]["replay_url"] !=
-                                            null) ...[
-                                          TextButton(
-                                            child:
-                                                const Text('LISTEN TO REPLAY'),
-                                            onPressed: () async {
-                                              var url = earning!["call"]
-                                                  ["replay_url"];
-                                              var uri = Uri.parse(url);
-                                              await canLaunchUrl(uri)
-                                                  ? await launchUrl(uri)
-                                                  : throw 'Could not launch $url';
-                                            },
-                                          ),
-                                        ],
-                                        if (earning!["call"]["broadcast_url"] !=
-                                            null) ...[
-                                          const SizedBox(width: 8),
-                                          TextButton(
-                                            child: const Text(
-                                                'LISTEN TO BROADCAST'),
-                                            onPressed: () async {
-                                              var url = earning!["call"]
-                                                  ["broadcast_url"];
-                                              var uri = Uri.parse(url);
-                                              await canLaunchUrl(uri)
-                                                  ? await launchUrl(uri)
-                                                  : throw 'Could not launch $url';
-                                            },
-                                          ),
-                                        ],
-                                      ])
-                                ],
-                              ),
+                        ),
+                        if (earning!["call"] != null &&
+                            ((pastEarning != null &&
+                                    pastEarning["year"] == earning!["year"] &&
+                                    pastEarning["quarter"] ==
+                                        earning!["quarter"]) ||
+                                (futureEarning != null &&
+                                    futureEarning["year"] == earning!["year"] &&
+                                    futureEarning["quarter"] ==
+                                        earning!["quarter"]))) ...[
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16.0,
                             ),
-                          ],
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (earning!["report"] != null &&
+                                    earning!["report"]["verified"] != true) ...[
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    "Report${earning!["report"]["verified"] == true ? "ed" : "ing"}${earning!["report"]["date"] != null ? " ${formatDate.format(DateTime.tryParse(earning!["report"]["date"].toString()) ?? DateTime.now())}" : ""}${earning!["report"]["timing"] != null ? " ${earning!["report"]["timing"]}" : ""}",
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  if (earning!["call"]["datetime"] != null)
+                                    Text(
+                                      formatLongDate.format(
+                                        DateTime.tryParse(
+                                              earning!["call"]["datetime"]
+                                                  .toString(),
+                                            ) ??
+                                            DateTime.now(),
+                                      ),
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: Theme.of(
+                                          context,
+                                        ).textTheme.bodySmall?.color,
+                                      ),
+                                    ),
+                                ],
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  children: <Widget>[
+                                    if (earning!["call"]["replay_url"] !=
+                                        null) ...[
+                                      TextButton(
+                                        child: const Text('LISTEN TO REPLAY'),
+                                        onPressed: () async {
+                                          var url =
+                                              earning!["call"]["replay_url"];
+                                          var uri = Uri.parse(url);
+                                          await canLaunchUrl(uri)
+                                              ? await launchUrl(uri)
+                                              : throw 'Could not launch $url';
+                                        },
+                                      ),
+                                    ],
+                                    if (earning!["call"]["broadcast_url"] !=
+                                        null) ...[
+                                      const SizedBox(width: 8),
+                                      TextButton(
+                                        child: const Text(
+                                          'LISTEN TO BROADCAST',
+                                        ),
+                                        onPressed: () async {
+                                          var url =
+                                              earning!["call"]["broadcast_url"];
+                                          var uri = Uri.parse(url);
+                                          await canLaunchUrl(uri)
+                                              ? await launchUrl(uri)
+                                              : throw 'Could not launch $url';
+                                        },
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
                         ],
-                      );
+                      ],
+                    );
+                  },
+                ),
+              ),
+              if (earnings.length > 3)
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    onPressed: () {
+                      _showAllEarningsNotifier.value = !showAllEarnings;
                     },
+                    icon: Icon(
+                      showAllEarnings ? Icons.expand_less : Icons.expand_more,
+                    ),
+                    label: Text(
+                      showAllEarnings
+                          ? 'Show Less'
+                          : 'Show All (${earnings.length})',
+                    ),
                   ),
                 ),
-                if (earnings.length > 3)
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: TextButton.icon(
-                        onPressed: () {
-                          _showAllEarningsNotifier.value = !showAllEarnings;
-                        },
-                        icon: Icon(showAllEarnings
-                            ? Icons.expand_less
-                            : Icons.expand_more),
-                        label: Text(showAllEarnings
-                            ? 'Show Less'
-                            : 'Show All (${earnings.length})')),
-                  ),
-                const SizedBox(height: 16),
-              ],
-            );
-          }),
+              const SizedBox(height: 16),
+            ],
+          );
+        },
+      ),
     );
   }
 
   Widget _buildDividendsWidget(Instrument instrument) {
     return SliverToBoxAdapter(
-        child: ShrinkWrappingViewport(offset: ViewportOffset.zero(), slivers: [
-      SliverToBoxAdapter(
-        child: _buildSectionHeader(
-          title: "Income",
-          icon: Icons.payments_outlined,
-        ),
+      child: ShrinkWrappingViewport(
+        offset: ViewportOffset.zero(),
+        slivers: [
+          SliverToBoxAdapter(
+            child: _buildSectionHeader(
+              title: "Income",
+              icon: Icons.payments_outlined,
+            ),
+          ),
+          IncomeTransactionsWidget(
+            widget.brokerageUser,
+            widget.service,
+            Provider.of<DividendStore>(context, listen: false),
+            Provider.of<InstrumentPositionStore>(context, listen: false),
+            Provider.of<InstrumentOrderStore>(context, listen: false),
+            Provider.of<ChartSelectionStore>(context, listen: false),
+            transactionSymbolFilters: [instrument.symbol],
+            showChips: false,
+            showList: true,
+            showFooter: false,
+            showYield: true,
+            showHeader: false,
+            analytics: widget.analytics,
+            observer: widget.observer,
+          ),
+          const SliverToBoxAdapter(child: SizedBox(height: 16)),
+        ],
       ),
-      IncomeTransactionsWidget(
-          widget.brokerageUser,
-          widget.service,
-          Provider.of<DividendStore>(context, listen: false),
-          Provider.of<InstrumentPositionStore>(context, listen: false),
-          Provider.of<InstrumentOrderStore>(context, listen: false),
-          Provider.of<ChartSelectionStore>(context, listen: false),
-          transactionSymbolFilters: [instrument.symbol],
-          showChips: false,
-          showList: true,
-          showFooter: false,
-          showYield: true,
-          showHeader: false,
-          analytics: widget.analytics,
-          observer: widget.observer),
-      const SliverToBoxAdapter(child: SizedBox(height: 16)),
-    ]));
+    );
   }
 
   Widget _buildSplitsWidget(Instrument instrument) {
@@ -4615,17 +5124,15 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           Card(
             margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             elevation: 0,
-            color: Theme.of(context)
-                .colorScheme
-                .surfaceContainerHighest
-                .withValues(alpha: 0.25),
+            color: Theme.of(
+              context,
+            ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.25),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
               side: BorderSide(
-                color: Theme.of(context)
-                    .colorScheme
-                    .outlineVariant
-                    .withValues(alpha: 0.4),
+                color: Theme.of(
+                  context,
+                ).colorScheme.outlineVariant.withValues(alpha: 0.4),
               ),
             ),
             child: ListView.separated(
@@ -4633,13 +5140,11 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: splits.length,
-              separatorBuilder: (context, index) => const Divider(
-                height: 1,
-                indent: 16,
-                endIndent: 16,
-              ),
+              separatorBuilder: (context, index) =>
+                  const Divider(height: 1, indent: 16, endIndent: 16),
               itemBuilder: (BuildContext context, int index) {
-                var rawSplit = splits[index]; // Note: Assumes splitsObj existence
+                var rawSplit =
+                    splits[index]; // Note: Assumes splitsObj existence
                 model.Split splitObj;
                 if (rawSplit is model.Split) {
                   splitObj = rawSplit;
@@ -4650,19 +5155,23 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                 var dateStr = splitObj.executionDate != null
                     ? formatDate.format(splitObj.executionDate!)
                     : (rawSplit is Map && rawSplit['execution_date'] != null
-                        ? rawSplit['execution_date'].toString()
-                        : 'Unknown date');
+                          ? rawSplit['execution_date'].toString()
+                          : 'Unknown date');
                 return ListTile(
                   title: Text(
                     splitText,
                     style: const TextStyle(
-                        fontSize: 16.0, fontWeight: FontWeight.w500),
+                      fontSize: 16.0,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                   subtitle: Text(
-                      "Ex-Date: $dateStr",
-                      style: TextStyle(
-                          fontSize: 14,
-                          color: Theme.of(context).textTheme.bodySmall?.color)),
+                    "Ex-Date: $dateStr",
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Theme.of(context).textTheme.bodySmall?.color,
+                    ),
+                  ),
                 );
               },
             ),
@@ -4677,174 +5186,179 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     final similar = instrument.similarObj!;
 
     return SliverToBoxAdapter(
-        child: ValueListenableBuilder<bool>(
-            valueListenable: _showAllSimilarNotifier,
-            builder: (context, showAllSimilar, child) {
-              final displayCount = showAllSimilar
-                  ? similar.length
-                  : (similar.length > 3 ? 3 : similar.length);
+      child: ValueListenableBuilder<bool>(
+        valueListenable: _showAllSimilarNotifier,
+        builder: (context, showAllSimilar, child) {
+          final displayCount = showAllSimilar
+              ? similar.length
+              : (similar.length > 3 ? 3 : similar.length);
 
-              return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildSectionHeader(
-                      title: "People Also Own",
-                      icon: Icons.interests_outlined,
-                    ),
-                    Card(
-                      margin: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
-                      elevation: 0,
-                      color: Theme.of(context)
-                          .colorScheme
-                          .surfaceContainerHighest
-                          .withValues(alpha: 0.25),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        side: BorderSide(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .outlineVariant
-                              .withValues(alpha: 0.4),
-                        ),
-                      ),
-                      child: ListView.separated(
-                          padding: const EdgeInsets.symmetric(vertical: 4),
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: displayCount,
-                          separatorBuilder: (context, index) => const Divider(
-                                height: 1,
-                                indent: 72,
-                                endIndent: 16,
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildSectionHeader(
+                title: "People Also Own",
+                icon: Icons.interests_outlined,
+              ),
+              Card(
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                elevation: 0,
+                color: Theme.of(
+                  context,
+                ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.25),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: BorderSide(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.outlineVariant.withValues(alpha: 0.4),
+                  ),
+                ),
+                child: ListView.separated(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: displayCount,
+                  separatorBuilder: (context, index) =>
+                      const Divider(height: 1, indent: 72, endIndent: 16),
+                  itemBuilder: (BuildContext context, int index) {
+                    var logoUrl = similar[index]["logo_url"]
+                        ?.toString()
+                        .replaceAll("https:////", "https://");
+                    return InkWell(
+                      onTap: () async {
+                        var similarInstruments = await widget.service
+                            .getInstrumentsByIds(
+                              widget.brokerageUser,
+                              Provider.of<InstrumentStore>(
+                                context,
+                                listen: false,
                               ),
-                          itemBuilder: (BuildContext context, int index) {
-                            var logoUrl = similar[index]["logo_url"]
-                                ?.toString()
-                                .replaceAll("https:////", "https://");
-                            return InkWell(
-                              onTap: () async {
-                                var similarInstruments = await widget.service
-                                    .getInstrumentsByIds(
-                                        widget.brokerageUser,
-                                        Provider.of<InstrumentStore>(context,
-                                            listen: false),
-                                        [similar[index]["instrument_id"]]);
-                                if (logoUrl != null &&
-                                    logoUrl != similarInstruments[0].logoUrl &&
-                                    auth.currentUser != null) {
-                                  similarInstruments[0].logoUrl = logoUrl;
-                                  await _firestoreService
-                                      .upsertInstrument(similarInstruments[0]);
-                                }
-                                if (context.mounted) {
-                                  Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                          builder: (context) =>
-                                              InstrumentWidget(
-                                                widget.brokerageUser,
-                                                widget.service,
-                                                similarInstruments[0],
-                                                analytics: widget.analytics,
-                                                observer: widget.observer,
-                                                generativeService:
-                                                    widget.generativeService,
-                                                user: widget.user,
-                                                userDocRef: widget.userDocRef,
-                                              )));
-                                }
-                              },
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 16.0, vertical: 12.0),
-                                child: Row(
-                                  children: [
-                                    Hero(
-                                      tag: 'logo_${similar[index]["symbol"]}',
-                                      child: logoUrl != null
-                                          ? ClipOval(
-                                              child: CachedNetworkImage(
-                                                imageUrl: logoUrl,
-                                                width: 40,
-                                                height: 40,
-                                                fit: BoxFit.cover,
-                                                errorWidget: (context, url,
-                                                        error) =>
-                                                    CircleAvatar(
-                                                        radius: 20,
-                                                        child: Text(
-                                                            similar[index]
-                                                                    ["symbol"]
-                                                                .substring(
-                                                                    0, 1),
-                                                            style:
-                                                                const TextStyle(
-                                                                    fontSize:
-                                                                        16))),
-                                              ),
-                                            )
-                                          : CircleAvatar(
+                              [similar[index]["instrument_id"]],
+                            );
+                        if (logoUrl != null &&
+                            logoUrl != similarInstruments[0].logoUrl &&
+                            auth.currentUser != null) {
+                          similarInstruments[0].logoUrl = logoUrl;
+                          await _firestoreService.upsertInstrument(
+                            similarInstruments[0],
+                          );
+                        }
+                        if (context.mounted) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => InstrumentWidget(
+                                widget.brokerageUser,
+                                widget.service,
+                                similarInstruments[0],
+                                analytics: widget.analytics,
+                                observer: widget.observer,
+                                generativeService: widget.generativeService,
+                                user: widget.user,
+                                userDocRef: widget.userDocRef,
+                              ),
+                            ),
+                          );
+                        }
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16.0,
+                          vertical: 12.0,
+                        ),
+                        child: Row(
+                          children: [
+                            Hero(
+                              tag: 'logo_${similar[index]["symbol"]}',
+                              child: logoUrl != null
+                                  ? ClipOval(
+                                      child: CachedNetworkImage(
+                                        imageUrl: logoUrl,
+                                        width: 40,
+                                        height: 40,
+                                        fit: BoxFit.cover,
+                                        errorWidget: (context, url, error) =>
+                                            CircleAvatar(
                                               radius: 20,
                                               child: Text(
-                                                  similar[index]["symbol"]
-                                                      .substring(0, 1),
-                                                  style: const TextStyle(
-                                                      fontSize: 16))),
-                                    ),
-                                    const SizedBox(width: 16),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            "${similar[index]["symbol"]}",
-                                            style: const TextStyle(
-                                                fontSize: 16,
-                                                fontWeight: FontWeight.w500),
-                                          ),
-                                          Text(
-                                            "${similar[index]["name"]}",
-                                            style: TextStyle(
-                                                fontSize: 14,
-                                                color: Theme.of(context)
-                                                    .textTheme
-                                                    .bodySmall
-                                                    ?.color),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ],
+                                                similar[index]["symbol"]
+                                                    .substring(0, 1),
+                                                style: const TextStyle(
+                                                  fontSize: 16,
+                                                ),
+                                              ),
+                                            ),
+                                      ),
+                                    )
+                                  : CircleAvatar(
+                                      radius: 20,
+                                      child: Text(
+                                        similar[index]["symbol"].substring(
+                                          0,
+                                          1,
+                                        ),
+                                        style: const TextStyle(fontSize: 16),
                                       ),
                                     ),
-                                    const Icon(
-                                      Icons.chevron_right,
-                                      color: Colors.grey,
-                                    )
-                                  ],
-                                ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    "${similar[index]["symbol"]}",
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  Text(
+                                    "${similar[index]["name"]}",
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Theme.of(
+                                        context,
+                                      ).textTheme.bodySmall?.color,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
                               ),
-                            );
-                          }),
-                    ),
-                    if (similar.length > 5)
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: TextButton.icon(
-                            onPressed: () {
-                              _showAllSimilarNotifier.value = !showAllSimilar;
-                            },
-                            icon: Icon(showAllSimilar
-                                ? Icons.expand_less
-                                : Icons.expand_more),
-                            label: Text(showAllSimilar
-                                ? 'Show Less'
-                                : 'Show All (${similar.length})')),
+                            ),
+                            const Icon(Icons.chevron_right, color: Colors.grey),
+                          ],
+                        ),
                       ),
-                    const SizedBox(height: 16),
-                  ]);
-            }));
+                    );
+                  },
+                ),
+              ),
+              if (similar.length > 5)
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    onPressed: () {
+                      _showAllSimilarNotifier.value = !showAllSimilar;
+                    },
+                    icon: Icon(
+                      showAllSimilar ? Icons.expand_less : Icons.expand_more,
+                    ),
+                    label: Text(
+                      showAllSimilar
+                          ? 'Show Less'
+                          : 'Show All (${similar.length})',
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 16),
+            ],
+          );
+        },
+      ),
+    );
   }
 
   void _showCreateListDialog(Function onListCreated) {
@@ -4860,69 +5374,77 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       "👀",
       "❤️",
       "⭐",
-      "⚠️"
+      "⚠️",
     ];
 
     showDialog(
       context: context,
       builder: (context) {
-        return StatefulBuilder(builder: (context, setStateDialog) {
-          return AlertDialog(
-            title: const Text("Create New List"),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: nameController,
-                  decoration: const InputDecoration(labelText: "List Name"),
-                ),
-                const SizedBox(height: 16),
-                const Text("Select Icon"),
-                Wrap(
-                  spacing: 8.0,
-                  children: emojis.map((emoji) {
-                    return ChoiceChip(
-                      label: Text(emoji, style: const TextStyle(fontSize: 24)),
-                      selected: selectedEmoji == emoji,
-                      onSelected: (bool selected) {
-                        setStateDialog(() {
-                          selectedEmoji = emoji;
-                        });
-                      },
-                    );
-                  }).toList(),
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                child: const Text("Cancel"),
-                onPressed: () => Navigator.pop(context),
+        return StatefulBuilder(
+          builder: (context, setStateDialog) {
+            return AlertDialog(
+              title: const Text("Create New List"),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: nameController,
+                    decoration: const InputDecoration(labelText: "List Name"),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text("Select Icon"),
+                  Wrap(
+                    spacing: 8.0,
+                    children: emojis.map((emoji) {
+                      return ChoiceChip(
+                        label: Text(
+                          emoji,
+                          style: const TextStyle(fontSize: 24),
+                        ),
+                        selected: selectedEmoji == emoji,
+                        onSelected: (bool selected) {
+                          setStateDialog(() {
+                            selectedEmoji = emoji;
+                          });
+                        },
+                      );
+                    }).toList(),
+                  ),
+                ],
               ),
-              TextButton(
-                child: const Text("Create"),
-                onPressed: () async {
-                  if (nameController.text.isNotEmpty) {
-                    try {
-                      await widget.service.createList(
-                          widget.brokerageUser, nameController.text,
-                          emoji: selectedEmoji);
-                      if (context.mounted) {
-                        Navigator.pop(context);
-                        onListCreated();
-                      }
-                    } catch (e) {
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context)
-                            .showSnackBar(SnackBar(content: Text("Error: $e")));
+              actions: [
+                TextButton(
+                  child: const Text("Cancel"),
+                  onPressed: () => Navigator.pop(context),
+                ),
+                TextButton(
+                  child: const Text("Create"),
+                  onPressed: () async {
+                    if (nameController.text.isNotEmpty) {
+                      try {
+                        await widget.service.createList(
+                          widget.brokerageUser,
+                          nameController.text,
+                          emoji: selectedEmoji,
+                        );
+                        if (context.mounted) {
+                          Navigator.pop(context);
+                          onListCreated();
+                        }
+                      } catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(
+                            context,
+                          ).showSnackBar(SnackBar(content: Text("Error: $e")));
+                        }
                       }
                     }
-                  }
-                },
-              ),
-            ],
-          );
-        });
+                  },
+                ),
+              ],
+            );
+          },
+        );
       },
     );
   }
@@ -4931,9 +5453,10 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     var futureAllLists = widget.service.getAllLists(widget.brokerageUser);
     Set<String>? selectedListIds;
     showDialog(
-        context: context,
-        builder: (context) {
-          return StatefulBuilder(builder: (context, setStateDialog) {
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setStateDialog) {
             return AlertDialog(
               title: const Text("Add to List"),
               content: FutureBuilder<List<Watchlist>>(
@@ -4941,7 +5464,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                 builder: (context, snapshot) {
                   if (snapshot.hasData) {
                     var allLists = snapshot.data!;
-                    selectedListIds ??= widget.instrument.listsObj
+                    selectedListIds ??=
+                        widget.instrument.listsObj
                             ?.map((e) => e['id'].toString())
                             .toSet() ??
                         {};
@@ -4956,8 +5480,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                           var isInList = selectedListIds!.contains(list.id);
                           return CheckboxListTile(
                             title: Text(
-                                "${list.iconEmoji ?? ''} ${list.displayName}"
-                                    .trim()),
+                              "${list.iconEmoji ?? ''} ${list.displayName}"
+                                  .trim(),
+                            ),
                             value: isInList,
                             onChanged: (value) async {
                               setStateDialog(() {
@@ -4970,19 +5495,23 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                               try {
                                 if (value == true) {
                                   await widget.service.addToList(
-                                      widget.brokerageUser,
-                                      list.id,
-                                      widget.instrument.id);
+                                    widget.brokerageUser,
+                                    list.id,
+                                    widget.instrument.id,
+                                  );
                                 } else {
                                   await widget.service.removeFromList(
-                                      widget.brokerageUser,
-                                      list.id,
-                                      widget.instrument.id);
+                                    widget.brokerageUser,
+                                    list.id,
+                                    widget.instrument.id,
+                                  );
                                 }
 
                                 // Refresh lists in main widget
                                 var newLists = await widget.service.getLists(
-                                    widget.brokerageUser, widget.instrument.id);
+                                  widget.brokerageUser,
+                                  widget.instrument.id,
+                                );
 
                                 if (mounted) {
                                   setState(() {
@@ -4999,7 +5528,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                                   }
                                 });
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text("Error: $e")));
+                                  SnackBar(content: Text("Error: $e")),
+                                );
                               }
                             },
                           );
@@ -5014,23 +5544,27 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               ),
               actions: [
                 TextButton(
-                    child: const Text("Create List"),
-                    onPressed: () {
-                      _showCreateListDialog(() {
-                        setStateDialog(() {
-                          futureAllLists =
-                              widget.service.getAllLists(widget.brokerageUser);
-                        });
+                  child: const Text("Create List"),
+                  onPressed: () {
+                    _showCreateListDialog(() {
+                      setStateDialog(() {
+                        futureAllLists = widget.service.getAllLists(
+                          widget.brokerageUser,
+                        );
                       });
-                    }),
+                    });
+                  },
+                ),
                 TextButton(
                   child: const Text("Close"),
                   onPressed: () => Navigator.pop(context),
-                )
+                ),
               ],
             );
-          });
-        });
+          },
+        );
+      },
+    );
   }
 
   Widget _buildListsWidget(Instrument instrument) {
@@ -5040,15 +5574,16 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
     return SliverToBoxAdapter(
       child: ValueListenableBuilder<bool>(
-          valueListenable: _showAllListsNotifier,
-          builder: (context, showAllLists, child) {
-            final rhDisplayCount = showAllLists
-                ? rhLists.length
-                : (rhLists.length > 3 ? 3 : rhLists.length);
+        valueListenable: _showAllListsNotifier,
+        builder: (context, showAllLists, child) {
+          final rhDisplayCount = showAllLists
+              ? rhLists.length
+              : (rhLists.length > 3 ? 3 : rhLists.length);
 
-            List<Widget> slivers = [];
+          List<Widget> slivers = [];
 
-            slivers.add(SliverToBoxAdapter(
+          slivers.add(
+            SliverToBoxAdapter(
               child: _buildSectionHeader(
                 title: "Watchlists & Lists",
                 icon: Icons.format_list_bulleted_outlined,
@@ -5058,63 +5593,97 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                   onPressed: _showAddToListDialog,
                 ),
               ),
-            ));
+            ),
+          );
 
-            if (userLists.isNotEmpty) {
-              if (rhLists.isNotEmpty) {
-                slivers.add(const SliverToBoxAdapter(
-                    child: Padding(
-                        padding: EdgeInsets.symmetric(
-                            horizontal: 16.0, vertical: 4.0),
-                        child: Text("Your Lists",
-                            style: TextStyle(fontWeight: FontWeight.bold)))));
-              }
-              slivers.add(SliverList(
-                delegate: SliverChildBuilderDelegate(
-                    (BuildContext context, int index) {
+          if (userLists.isNotEmpty) {
+            if (rhLists.isNotEmpty) {
+              slivers.add(
+                const SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 16.0,
+                      vertical: 4.0,
+                    ),
+                    child: Text(
+                      "Your Lists",
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+              );
+            }
+            slivers.add(
+              SliverList(
+                delegate: SliverChildBuilderDelegate((
+                  BuildContext context,
+                  int index,
+                ) {
                   return _buildListItem(userLists[index]);
                 }, childCount: userLists.length),
-              ));
-            }
+              ),
+            );
+          }
 
-            if (rhLists.isNotEmpty) {
-              if (userLists.isNotEmpty) {
-                slivers.add(const SliverToBoxAdapter(
-                    child: Padding(
-                        padding: EdgeInsets.symmetric(
-                            horizontal: 16.0, vertical: 4.0),
-                        child: Text("Robinhood Lists",
-                            style: TextStyle(fontWeight: FontWeight.bold)))));
-              }
-              slivers.add(SliverList(
-                delegate: SliverChildBuilderDelegate(
-                    (BuildContext context, int index) {
+          if (rhLists.isNotEmpty) {
+            if (userLists.isNotEmpty) {
+              slivers.add(
+                const SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 16.0,
+                      vertical: 4.0,
+                    ),
+                    child: Text(
+                      "Robinhood Lists",
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+              );
+            }
+            slivers.add(
+              SliverList(
+                delegate: SliverChildBuilderDelegate((
+                  BuildContext context,
+                  int index,
+                ) {
                   return _buildListItem(rhLists[index]);
                 }, childCount: rhDisplayCount),
-              ));
+              ),
+            );
 
-              if (rhLists.length > 3) {
-                slivers.add(SliverToBoxAdapter(
-                    child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: TextButton.icon(
+            if (rhLists.length > 3) {
+              slivers.add(
+                SliverToBoxAdapter(
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton.icon(
                       onPressed: () {
                         _showAllListsNotifier.value = !showAllLists;
                       },
                       icon: Icon(
-                          showAllLists ? Icons.expand_less : Icons.expand_more),
-                      label: Text(showAllLists
-                          ? 'Show Less'
-                          : 'Show All (${rhLists.length})')),
-                )));
-              }
-              slivers
-                  .add(const SliverToBoxAdapter(child: SizedBox(height: 16)));
+                        showAllLists ? Icons.expand_less : Icons.expand_more,
+                      ),
+                      label: Text(
+                        showAllLists
+                            ? 'Show Less'
+                            : 'Show All (${rhLists.length})',
+                      ),
+                    ),
+                  ),
+                ),
+              );
             }
+            slivers.add(const SliverToBoxAdapter(child: SizedBox(height: 16)));
+          }
 
-            return ShrinkWrappingViewport(
-                offset: ViewportOffset.zero(), slivers: slivers);
-          }),
+          return ShrinkWrappingViewport(
+            offset: ViewportOffset.zero(),
+            slivers: slivers,
+          );
+        },
+      ),
     );
   }
 
@@ -5135,13 +5704,14 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                   ),
                 )
               : (list["icon_emoji"] != null
-                  ? CircleAvatar(
-                      backgroundColor: Colors.transparent,
-                      child: Text(list["icon_emoji"],
-                          style: const TextStyle(fontSize: 24)))
-                  : const CircleAvatar(
-                      child: Icon(Icons.list),
-                    )),
+                    ? CircleAvatar(
+                        backgroundColor: Colors.transparent,
+                        child: Text(
+                          list["icon_emoji"],
+                          style: const TextStyle(fontSize: 24),
+                        ),
+                      )
+                    : const CircleAvatar(child: Icon(Icons.list))),
           title: Text(
             "${list["display_name"]}",
             style: const TextStyle(fontSize: 16.0, fontWeight: FontWeight.w500),
@@ -5151,29 +5721,31 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-                fontSize: 14,
-                color: Theme.of(context).textTheme.bodySmall?.color),
+              fontSize: 14,
+              color: Theme.of(context).textTheme.bodySmall?.color,
+            ),
           ),
           trailing: const Icon(Icons.chevron_right, color: Colors.grey),
           onTap: () async {
             Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (context) => ListWidget(widget.brokerageUser,
-                        widget.service, list["id"].toString(),
-                        analytics: widget.analytics,
-                        observer: widget.observer,
-                        generativeService: widget.generativeService,
-                        user: widget.user,
-                        userDocRef: widget.userDocRef,
-                        ownerType: list["owner_type"] ?? "robinhood")));
+              context,
+              MaterialPageRoute(
+                builder: (context) => ListWidget(
+                  widget.brokerageUser,
+                  widget.service,
+                  list["id"].toString(),
+                  analytics: widget.analytics,
+                  observer: widget.observer,
+                  generativeService: widget.generativeService,
+                  user: widget.user,
+                  userDocRef: widget.userDocRef,
+                  ownerType: list["owner_type"] ?? "robinhood",
+                ),
+              ),
+            );
           },
         ),
-        const Divider(
-          height: 1,
-          indent: 72,
-          endIndent: 16,
-        )
+        const Divider(height: 1, indent: 72, endIndent: 16),
       ],
     );
   }
@@ -5183,486 +5755,538 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
     return SliverToBoxAdapter(
       child: ValueListenableBuilder<bool>(
-          valueListenable: _showAllNewsNotifier,
-          builder: (context, showAllNews, child) {
-            final displayCount =
-                showAllNews ? news.length : (news.length > 3 ? 3 : news.length);
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildSectionHeader(
-                  title: "News & Catalysts",
-                  icon: Icons.newspaper_outlined,
-                  trailing: TextButton.icon(
-                    icon: const Icon(Icons.auto_awesome,
-                        size: 16, color: Colors.amber),
-                    label: const Text("AI Intelligence"),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => NewsIntelligenceWidget(
-                            symbol: instrument.symbol,
-                            rawArticles: instrument.newsObj,
-                          ),
+        valueListenable: _showAllNewsNotifier,
+        builder: (context, showAllNews, child) {
+          final displayCount = showAllNews
+              ? news.length
+              : (news.length > 3 ? 3 : news.length);
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildSectionHeader(
+                title: "News & Catalysts",
+                icon: Icons.newspaper_outlined,
+                trailing: TextButton.icon(
+                  icon: const Icon(
+                    Icons.auto_awesome,
+                    size: 16,
+                    color: Colors.amber,
+                  ),
+                  label: const Text("AI Intelligence"),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => NewsIntelligenceWidget(
+                          symbol: instrument.symbol,
+                          rawArticles: instrument.newsObj,
                         ),
-                      );
-                    },
+                      ),
+                    );
+                  },
+                ),
+              ),
+              Card(
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                elevation: 0,
+                color: Theme.of(
+                  context,
+                ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.25),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: BorderSide(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.outlineVariant.withValues(alpha: 0.4),
                   ),
                 ),
-                Card(
-                  margin:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  elevation: 0,
-                  color: Theme.of(context)
-                      .colorScheme
-                      .surfaceContainerHighest
-                      .withValues(alpha: 0.25),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    side: BorderSide(
-                      color: Theme.of(context)
-                          .colorScheme
-                          .outlineVariant
-                          .withValues(alpha: 0.4),
-                    ),
-                  ),
-                  child: ListView.separated(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: displayCount,
-                    separatorBuilder: (context, index) => const Divider(
-                      height: 1,
-                    ),
-                    itemBuilder: (BuildContext context, int index) {
-                      var item = news[index];
-                      return InkWell(
-                        onTap: () async {
-                          var url = item["url"];
-                          var uri = Uri.parse(url);
-                          await canLaunchUrl(uri)
-                              ? await launchUrl(uri)
-                              : throw 'Could not launch $url';
-                        },
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16.0, vertical: 12.0),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Text(
-                                          "${item["source"]}",
-                                          style: const TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 12),
+                child: ListView.separated(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: displayCount,
+                  separatorBuilder: (context, index) =>
+                      const Divider(height: 1),
+                  itemBuilder: (BuildContext context, int index) {
+                    var item = news[index];
+                    return InkWell(
+                      onTap: () async {
+                        var url = item["url"];
+                        var uri = Uri.parse(url);
+                        await canLaunchUrl(uri)
+                            ? await launchUrl(uri)
+                            : throw 'Could not launch $url';
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16.0,
+                          vertical: 12.0,
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Text(
+                                        "${item["source"]}",
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 12,
                                         ),
-                                        const SizedBox(width: 5),
-                                        Text(
-                                          "• ${formatDate.format(DateTime.parse(item["published_at"]!))}",
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .bodySmall,
-                                        ),
-                                      ],
+                                      ),
+                                      const SizedBox(width: 5),
+                                      Text(
+                                        "• ${formatDate.format(DateTime.parse(item["published_at"]!))}",
+                                        style: Theme.of(
+                                          context,
+                                        ).textTheme.bodySmall,
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    "${item["title"]}",
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w500,
                                     ),
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      "${item["title"]}",
-                                      style: const TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w500),
-                                      maxLines: 4,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ],
+                                    maxLines: 4,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            if (item["preview_image_url"] != null &&
+                                item["preview_image_url"]
+                                    .toString()
+                                    .isNotEmpty) ...[
+                              const SizedBox(width: 16),
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(8.0),
+                                child: CachedNetworkImage(
+                                  imageUrl: item["preview_image_url"],
+                                  width: 80,
+                                  height: 80,
+                                  fit: BoxFit.cover,
+                                  placeholder: (context, url) => Container(
+                                    color: Colors.grey.withValues(alpha: 0.1),
+                                  ),
+                                  errorWidget: (context, url, error) =>
+                                      const Icon(Icons.error),
                                 ),
                               ),
-                              if (item["preview_image_url"] != null &&
-                                  item["preview_image_url"]
-                                      .toString()
-                                      .isNotEmpty) ...[
-                                const SizedBox(width: 16),
-                                ClipRRect(
-                                  borderRadius: BorderRadius.circular(8.0),
-                                  child: CachedNetworkImage(
-                                    imageUrl: item["preview_image_url"],
-                                    width: 80,
-                                    height: 80,
-                                    fit: BoxFit.cover,
-                                    placeholder: (context, url) => Container(
-                                        color:
-                                            Colors.grey.withValues(alpha: 0.1)),
-                                    errorWidget: (context, url, error) =>
-                                        const Icon(Icons.error),
-                                  ),
-                                ),
-                              ]
                             ],
-                          ),
+                          ],
                         ),
-                      );
+                      ),
+                    );
+                  },
+                ),
+              ),
+              if (news.length > 3)
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    onPressed: () {
+                      _showAllNewsNotifier.value = !showAllNews;
                     },
+                    icon: Icon(
+                      showAllNews ? Icons.expand_less : Icons.expand_more,
+                    ),
+                    label: Text(
+                      showAllNews ? 'Show Less' : 'Show All (${news.length})',
+                    ),
                   ),
                 ),
-                if (news.length > 3)
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: TextButton.icon(
-                        onPressed: () {
-                          _showAllNewsNotifier.value = !showAllNews;
-                        },
-                        icon: Icon(showAllNews
-                            ? Icons.expand_less
-                            : Icons.expand_more),
-                        label: Text(showAllNews
-                            ? 'Show Less'
-                            : 'Show All (${news.length})')),
-                  ),
-                const SizedBox(height: 16),
-              ],
-            );
-          }),
+              const SizedBox(height: 16),
+            ],
+          );
+        },
+      ),
     );
   }
 
   Widget positionOrdersWidget(List<InstrumentOrder> positionOrders) {
     _updateBalances();
     var filteredPositionOrders = positionOrders
-        .where((element) =>
-            orderFilters.isEmpty || orderFilters.contains(element.state))
+        .where(
+          (element) =>
+              orderFilters.isEmpty || orderFilters.contains(element.state),
+        )
         .toList();
-    filteredPositionOrders.sort((a, b) =>
-        (b.updatedAt ?? DateTime(0)).compareTo(a.updatedAt ?? DateTime(0)));
+    filteredPositionOrders.sort(
+      (a, b) =>
+          (b.updatedAt ?? DateTime(0)).compareTo(a.updatedAt ?? DateTime(0)),
+    );
 
     return SliverToBoxAdapter(
-        child: ValueListenableBuilder<bool>(
-            valueListenable: _showAllPositionOrdersNotifier,
-            builder: (context, showAllPositionOrders, child) {
-              final displayCount = showAllPositionOrders
-                  ? filteredPositionOrders.length
-                  : (filteredPositionOrders.length > 3
-                      ? 3
-                      : filteredPositionOrders.length);
+      child: ValueListenableBuilder<bool>(
+        valueListenable: _showAllPositionOrdersNotifier,
+        builder: (context, showAllPositionOrders, child) {
+          final displayCount = showAllPositionOrders
+              ? filteredPositionOrders.length
+              : (filteredPositionOrders.length > 3
+                    ? 3
+                    : filteredPositionOrders.length);
 
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildSectionHeader(
-                    title: "Stock Orders",
-                    subtitle:
-                        "${formatCompactNumber.format(positionOrders.length)} orders • balance: ${positionOrdersBalance > 0 ? "+" : positionOrdersBalance < 0 ? "-" : ""}${formatCurrency.format(positionOrdersBalance.abs())}",
-                    icon: Icons.receipt_long_outlined,
-                    trailing: IconButton(
-                        icon: const Icon(Icons.filter_list),
-                        tooltip: 'Filter Orders',
-                        onPressed: () {
-                          showModalBottomSheet<void>(
-                            context: context,
-                            showDragHandle: true,
-                            constraints: const BoxConstraints(maxHeight: 260),
-                            builder: (BuildContext context) {
-                              return Column(
-                                mainAxisAlignment: MainAxisAlignment.start,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const ListTile(
-                                    leading: Icon(Icons.filter_list),
-                                    title: Text(
-                                      "Filter Stock Orders",
-                                      style: TextStyle(fontSize: 20.0),
-                                    ),
-                                  ),
-                                  orderFilterWidget,
-                                ],
-                              );
-                            },
-                          );
-                        }),
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildSectionHeader(
+                title: "Stock Orders",
+                subtitle:
+                    "${formatCompactNumber.format(positionOrders.length)} orders • balance: ${positionOrdersBalance > 0
+                        ? "+"
+                        : positionOrdersBalance < 0
+                        ? "-"
+                        : ""}${formatCurrency.format(positionOrdersBalance.abs())}",
+                icon: Icons.receipt_long_outlined,
+                trailing: IconButton(
+                  icon: const Icon(Icons.filter_list),
+                  tooltip: 'Filter Orders',
+                  onPressed: () {
+                    showModalBottomSheet<void>(
+                      context: context,
+                      showDragHandle: true,
+                      constraints: const BoxConstraints(maxHeight: 260),
+                      builder: (BuildContext context) {
+                        return Column(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const ListTile(
+                              leading: Icon(Icons.filter_list),
+                              title: Text(
+                                "Filter Stock Orders",
+                                style: TextStyle(fontSize: 20.0),
+                              ),
+                            ),
+                            orderFilterWidget,
+                          ],
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+              Card(
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                elevation: 0,
+                color: Theme.of(
+                  context,
+                ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.25),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: BorderSide(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.outlineVariant.withValues(alpha: 0.4),
                   ),
-                  Card(
-                    margin:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    elevation: 0,
-                    color: Theme.of(context)
-                        .colorScheme
-                        .surfaceContainerHighest
-                        .withValues(alpha: 0.25),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      side: BorderSide(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .outlineVariant
-                            .withValues(alpha: 0.4),
+                ),
+                child: ListView.separated(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: displayCount,
+                  separatorBuilder: (context, index) =>
+                      const Divider(height: 1, indent: 72, endIndent: 16),
+                  itemBuilder: (BuildContext context, int index) {
+                    var order = filteredPositionOrders[index];
+                    return ListTile(
+                      leading: CircleAvatar(
+                        child: Text(
+                          '${order.quantity!.round()}',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
+                      title: Text(
+                        "${order.side == "buy"
+                            ? "Buy"
+                            : order.side == "sell"
+                            ? "Sell"
+                            : order.side} ${order.quantity} at ${order.averagePrice != null ? formatCurrency.format(order.averagePrice) : (order.price != null ? formatCurrency.format(order.price) : "")}",
+                        style: const TextStyle(
+                          fontSize: 16.0,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      subtitle: Text(
+                        "${order.state} ${formatDate.format(order.updatedAt!)}${order.trailingPeg != null ? "\nTrailing: ${order.trailingPeg!['percentage'] != null ? "${order.trailingPeg!['percentage']}%" : (order.trailingPeg!['price'] != null ? formatCompactNumber.format(double.tryParse(order.trailingPeg!['price']['amount'] ?? "0")) : "")}" : ""}",
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Theme.of(context).textTheme.bodySmall?.color,
+                        ),
+                      ),
+                      trailing: Text(
+                        (order.side == "sell" ? "+" : "-") +
+                            (order.averagePrice != null
+                                ? formatCurrency.format(
+                                    order.averagePrice! * order.quantity!,
+                                  )
+                                : ""),
+                        style: const TextStyle(
+                          fontSize: 16.0,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.right,
+                      ),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => PositionOrderWidget(
+                              widget.brokerageUser,
+                              widget.service,
+                              order,
+                              generativeService: widget.generativeService,
+                              user: widget.user,
+                              userDocRef: widget.userDocRef,
+                              analytics: widget.analytics,
+                              observer: widget.observer,
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+              if (filteredPositionOrders.length > 3)
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    onPressed: () {
+                      _showAllPositionOrdersNotifier.value =
+                          !showAllPositionOrders;
+                    },
+                    icon: Icon(
+                      showAllPositionOrders
+                          ? Icons.expand_less
+                          : Icons.expand_more,
                     ),
-                    child: ListView.separated(
-                        padding: const EdgeInsets.symmetric(vertical: 4),
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: displayCount,
-                        separatorBuilder: (context, index) => const Divider(
-                              height: 1,
-                              indent: 72,
-                              endIndent: 16,
-                            ),
-                        itemBuilder: (BuildContext context, int index) {
-                          var order = filteredPositionOrders[index];
-                          return ListTile(
-                            leading: CircleAvatar(
-                                child: Text('${order.quantity!.round()}',
-                                    style: const TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold))),
-                            title: Text(
-                                "${order.side == "buy" ? "Buy" : order.side == "sell" ? "Sell" : order.side} ${order.quantity} at ${order.averagePrice != null ? formatCurrency.format(order.averagePrice) : (order.price != null ? formatCurrency.format(order.price) : "")}",
-                                style: const TextStyle(
-                                    fontSize: 16.0,
-                                    fontWeight: FontWeight.w500)),
-                            subtitle: Text(
-                                "${order.state} ${formatDate.format(order.updatedAt!)}${order.trailingPeg != null ? "\nTrailing: ${order.trailingPeg!['percentage'] != null ? "${order.trailingPeg!['percentage']}%" : (order.trailingPeg!['price'] != null ? formatCompactNumber.format(double.tryParse(order.trailingPeg!['price']['amount'] ?? "0")) : "")}" : ""}",
-                                style: TextStyle(
-                                    fontSize: 14,
-                                    color: Theme.of(context)
-                                        .textTheme
-                                        .bodySmall
-                                        ?.color)),
-                            trailing: Text(
-                              (order.side == "sell" ? "+" : "-") +
-                                  (order.averagePrice != null
-                                      ? formatCurrency.format(
-                                          order.averagePrice! * order.quantity!)
-                                      : ""),
-                              style: const TextStyle(
-                                  fontSize: 16.0, fontWeight: FontWeight.bold),
-                              textAlign: TextAlign.right,
-                            ),
-                            onTap: () {
-                              Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (context) => PositionOrderWidget(
-                                            widget.brokerageUser,
-                                            widget.service,
-                                            order,
-                                            generativeService:
-                                                widget.generativeService,
-                                            user: widget.user,
-                                            userDocRef: widget.userDocRef,
-                                            analytics: widget.analytics,
-                                            observer: widget.observer,
-                                          )));
-                            },
-                          );
-                        }),
+                    label: Text(
+                      showAllPositionOrders
+                          ? 'Show Less'
+                          : 'Show All (${filteredPositionOrders.length})',
+                    ),
                   ),
-                  if (filteredPositionOrders.length > 3)
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: TextButton.icon(
-                          onPressed: () {
-                            _showAllPositionOrdersNotifier.value =
-                                !showAllPositionOrders;
-                          },
-                          icon: Icon(showAllPositionOrders
-                              ? Icons.expand_less
-                              : Icons.expand_more),
-                          label: Text(showAllPositionOrders
-                              ? 'Show Less'
-                              : 'Show All (${filteredPositionOrders.length})')),
-                    ),
-                  const SizedBox(height: 16),
-                ],
-              );
-            }));
+                ),
+              const SizedBox(height: 16),
+            ],
+          );
+        },
+      ),
+    );
   }
 
   Widget _buildOptionOrdersWidget(List<OptionOrder> optionOrders) {
     _updateBalances();
     var filteredOptionOrders = optionOrders
-        .where((element) =>
-            orderFilters.isEmpty || orderFilters.contains(element.state))
+        .where(
+          (element) =>
+              orderFilters.isEmpty || orderFilters.contains(element.state),
+        )
         .toList();
-    filteredOptionOrders.sort((a, b) =>
-        (b.updatedAt ?? DateTime(0)).compareTo(a.updatedAt ?? DateTime(0)));
+    filteredOptionOrders.sort(
+      (a, b) =>
+          (b.updatedAt ?? DateTime(0)).compareTo(a.updatedAt ?? DateTime(0)),
+    );
 
     return SliverToBoxAdapter(
-        child: ValueListenableBuilder<bool>(
-            valueListenable: _showAllOptionOrdersNotifier,
-            builder: (context, showAllOptionOrders, child) {
-              final displayCount = showAllOptionOrders
-                  ? filteredOptionOrders.length
-                  : (filteredOptionOrders.length > 3
-                      ? 3
-                      : filteredOptionOrders.length);
+      child: ValueListenableBuilder<bool>(
+        valueListenable: _showAllOptionOrdersNotifier,
+        builder: (context, showAllOptionOrders, child) {
+          final displayCount = showAllOptionOrders
+              ? filteredOptionOrders.length
+              : (filteredOptionOrders.length > 3
+                    ? 3
+                    : filteredOptionOrders.length);
 
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildSectionHeader(
-                    title: "Option Orders",
-                    subtitle:
-                        "${formatCompactNumber.format(optionOrders.length)} orders • balance: ${optionOrdersPremiumBalance > 0 ? "+" : optionOrdersPremiumBalance < 0 ? "-" : ""}${formatCurrency.format(optionOrdersPremiumBalance.abs())}",
-                    icon: Icons.receipt_outlined,
-                    trailing: IconButton(
-                        icon: const Icon(Icons.filter_list),
-                        tooltip: 'Filter Orders',
-                        onPressed: () {
-                          showModalBottomSheet<void>(
-                            context: context,
-                            showDragHandle: true,
-                            constraints: const BoxConstraints(maxHeight: 260),
-                            builder: (BuildContext context) {
-                              return Column(
-                                mainAxisAlignment: MainAxisAlignment.start,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const ListTile(
-                                    leading: Icon(Icons.filter_list),
-                                    title: Text(
-                                      "Filter Option Orders",
-                                      style: TextStyle(fontSize: 20.0),
-                                    ),
-                                  ),
-                                  orderFilterWidget,
-                                ],
-                              );
-                            },
-                          );
-                        }),
-                  ),
-                  Card(
-                    margin:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    elevation: 0,
-                    color: Theme.of(context)
-                        .colorScheme
-                        .surfaceContainerHighest
-                        .withValues(alpha: 0.25),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      side: BorderSide(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .outlineVariant
-                            .withValues(alpha: 0.4),
-                      ),
-                    ),
-                    child: ListView.separated(
-                        padding: const EdgeInsets.symmetric(vertical: 4),
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: displayCount,
-                        separatorBuilder: (context, index) => const Divider(
-                              height: 1,
-                              indent: 72,
-                              endIndent: 16,
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildSectionHeader(
+                title: "Option Orders",
+                subtitle:
+                    "${formatCompactNumber.format(optionOrders.length)} orders • balance: ${optionOrdersPremiumBalance > 0
+                        ? "+"
+                        : optionOrdersPremiumBalance < 0
+                        ? "-"
+                        : ""}${formatCurrency.format(optionOrdersPremiumBalance.abs())}",
+                icon: Icons.receipt_outlined,
+                trailing: IconButton(
+                  icon: const Icon(Icons.filter_list),
+                  tooltip: 'Filter Orders',
+                  onPressed: () {
+                    showModalBottomSheet<void>(
+                      context: context,
+                      showDragHandle: true,
+                      constraints: const BoxConstraints(maxHeight: 260),
+                      builder: (BuildContext context) {
+                        return Column(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const ListTile(
+                              leading: Icon(Icons.filter_list),
+                              title: Text(
+                                "Filter Option Orders",
+                                style: TextStyle(fontSize: 20.0),
+                              ),
                             ),
-                        itemBuilder: (BuildContext context, int index) {
-                          var optionOrder = filteredOptionOrders[index];
+                            orderFilterWidget,
+                          ],
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+              Card(
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                elevation: 0,
+                color: Theme.of(
+                  context,
+                ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.25),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: BorderSide(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.outlineVariant.withValues(alpha: 0.4),
+                  ),
+                ),
+                child: ListView.separated(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: displayCount,
+                  separatorBuilder: (context, index) =>
+                      const Divider(height: 1, indent: 72, endIndent: 16),
+                  itemBuilder: (BuildContext context, int index) {
+                    var optionOrder = filteredOptionOrders[index];
 
-                          var subtitle = Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                    "${optionOrder.state.capitalize()} ${formatDate.format(optionOrder.updatedAt!)}",
-                                    style: TextStyle(
-                                        fontSize: 14,
-                                        color: Theme.of(context)
-                                            .textTheme
-                                            .bodySmall
-                                            ?.color)),
-                                if (optionOrder.optionEvents != null) ...[
-                                  Text(
-                                      "${optionOrder.optionEvents!.first.type == "expiration" ? "Expired" : (optionOrder.optionEvents!.first.type == "assignment" ? "Assigned" : (optionOrder.optionEvents!.first.type == "exercise" ? "Exercised" : optionOrder.optionEvents!.first.type))} ${formatCompactDate.format(optionOrder.optionEvents!.first.eventDate!)} at ${optionOrder.optionEvents!.first.underlyingPrice != null ? formatCurrency.format(optionOrder.optionEvents!.first.underlyingPrice) : ""}",
-                                      style: TextStyle(
-                                          fontSize: 14,
-                                          color: Theme.of(context)
-                                              .textTheme
-                                              .bodySmall
-                                              ?.color))
-                                ]
-                              ]);
+                    var subtitle = Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "${optionOrder.state.capitalize()} ${formatDate.format(optionOrder.updatedAt!)}",
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Theme.of(context).textTheme.bodySmall?.color,
+                          ),
+                        ),
+                        if (optionOrder.optionEvents != null) ...[
+                          Text(
+                            "${optionOrder.optionEvents!.first.type == "expiration" ? "Expired" : (optionOrder.optionEvents!.first.type == "assignment" ? "Assigned" : (optionOrder.optionEvents!.first.type == "exercise" ? "Exercised" : optionOrder.optionEvents!.first.type))} ${formatCompactDate.format(optionOrder.optionEvents!.first.eventDate!)} at ${optionOrder.optionEvents!.first.underlyingPrice != null ? formatCurrency.format(optionOrder.optionEvents!.first.underlyingPrice) : ""}",
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Theme.of(
+                                context,
+                              ).textTheme.bodySmall?.color,
+                            ),
+                          ),
+                        ],
+                      ],
+                    );
 
-                          return ListTile(
-                            leading: CircleAvatar(
-                                child: optionOrder.optionEvents != null
-                                    ? const Icon(Icons.check)
-                                    : Text('${optionOrder.quantity!.round()}',
-                                        style: const TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.bold))),
-                            title: Text(
-                                "${optionOrder.chainSymbol} \$${formatCompactNumber.format(optionOrder.legs.first.strikePrice)} ${optionOrder.strategy} ${formatCompactDate.format(optionOrder.legs.first.expirationDate!)}",
+                    return ListTile(
+                      leading: CircleAvatar(
+                        child: optionOrder.optionEvents != null
+                            ? const Icon(Icons.check)
+                            : Text(
+                                '${optionOrder.quantity!.round()}',
                                 style: const TextStyle(
-                                    fontSize: 16.0,
-                                    fontWeight: FontWeight.w500)),
-                            subtitle: subtitle,
-                            trailing: Text(
-                              (optionOrder.direction == "credit" ? "+" : "-") +
-                                  (optionOrder.processedPremium != null
-                                      ? formatCurrency
-                                          .format(optionOrder.processedPremium)
-                                      : ""),
-                              style: const TextStyle(
-                                  fontSize: 16.0, fontWeight: FontWeight.bold),
-                              textAlign: TextAlign.right,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                      ),
+                      title: Text(
+                        "${optionOrder.chainSymbol} \$${formatCompactNumber.format(optionOrder.legs.first.strikePrice)} ${optionOrder.strategy} ${formatCompactDate.format(optionOrder.legs.first.expirationDate!)}",
+                        style: const TextStyle(
+                          fontSize: 16.0,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      subtitle: subtitle,
+                      trailing: Text(
+                        (optionOrder.direction == "credit" ? "+" : "-") +
+                            (optionOrder.processedPremium != null
+                                ? formatCurrency.format(
+                                    optionOrder.processedPremium,
+                                  )
+                                : ""),
+                        style: const TextStyle(
+                          fontSize: 16.0,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.right,
+                      ),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => OptionOrderWidget(
+                              widget.brokerageUser,
+                              widget.service,
+                              optionOrder,
+                              generativeService: widget.generativeService,
+                              user: widget.user,
+                              userDocRef: widget.userDocRef,
+                              analytics: widget.analytics,
+                              observer: widget.observer,
                             ),
-                            onTap: () {
-                              Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (context) => OptionOrderWidget(
-                                            widget.brokerageUser,
-                                            widget.service,
-                                            optionOrder,
-                                            generativeService:
-                                                widget.generativeService,
-                                            user: widget.user,
-                                            userDocRef: widget.userDocRef,
-                                            analytics: widget.analytics,
-                                            observer: widget.observer,
-                                          )));
-                            },
-                          );
-                        }),
-                  ),
-                  if (filteredOptionOrders.length > 3)
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: TextButton.icon(
-                          onPressed: () {
-                            _showAllOptionOrdersNotifier.value =
-                                !showAllOptionOrders;
-                          },
-                          icon: Icon(showAllOptionOrders
-                              ? Icons.expand_less
-                              : Icons.expand_more),
-                          label: Text(showAllOptionOrders
-                              ? 'Show Less'
-                              : 'Show All (${filteredOptionOrders.length})')),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+              if (filteredOptionOrders.length > 3)
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    onPressed: () {
+                      _showAllOptionOrdersNotifier.value = !showAllOptionOrders;
+                    },
+                    icon: Icon(
+                      showAllOptionOrders
+                          ? Icons.expand_less
+                          : Icons.expand_more,
                     ),
-                  const SizedBox(height: 16),
-                ],
-              );
-            }));
+                    label: Text(
+                      showAllOptionOrders
+                          ? 'Show Less'
+                          : 'Show All (${filteredOptionOrders.length})',
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 16),
+            ],
+          );
+        },
+      ),
+    );
   }
 
   Widget get openClosedFilterWidget {
     return SizedBox(
-        height: 56,
-        child: ListView.builder(
-          padding: const EdgeInsets.all(4.0),
-          scrollDirection: Axis.horizontal,
-          itemBuilder: (context, index) {
-            return Row(children: [
+      height: 56,
+      child: ListView.builder(
+        padding: const EdgeInsets.all(4.0),
+        scrollDirection: Axis.horizontal,
+        itemBuilder: (context, index) {
+          return Row(
+            children: [
               Padding(
                 padding: const EdgeInsets.all(4.0),
                 child: FilterChip(
@@ -5784,116 +6408,120 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                 ),
               )
               */
-            ]);
-          },
-          itemCount: 1,
-        ));
+            ],
+          );
+        },
+        itemCount: 1,
+      ),
+    );
   }
 
   Widget get optionTypeFilterWidget {
     return SizedBox(
-        height: 56,
-        child: ListView.builder(
-          padding: const EdgeInsets.all(4.0),
-          scrollDirection: Axis.horizontal,
-          itemBuilder: (context, index) {
-            return Row(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(4.0),
-                  child: FilterChip(
-                    //avatar: const Icon(Icons.history_outlined),
-                    //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                    label: const Text('Long'), // Positions
-                    selected: positionFilters.contains("long"),
-                    onSelected: (bool value) {
-                      setState(() {
-                        if (value) {
-                          positionFilters.add("long");
-                        } else {
-                          positionFilters.removeWhere((String name) {
-                            return name == "long";
-                          });
-                        }
-                      });
-                    },
-                  ),
+      height: 56,
+      child: ListView.builder(
+        padding: const EdgeInsets.all(4.0),
+        scrollDirection: Axis.horizontal,
+        itemBuilder: (context, index) {
+          return Row(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(4.0),
+                child: FilterChip(
+                  //avatar: const Icon(Icons.history_outlined),
+                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                  label: const Text('Long'), // Positions
+                  selected: positionFilters.contains("long"),
+                  onSelected: (bool value) {
+                    setState(() {
+                      if (value) {
+                        positionFilters.add("long");
+                      } else {
+                        positionFilters.removeWhere((String name) {
+                          return name == "long";
+                        });
+                      }
+                    });
+                  },
                 ),
-                Padding(
-                  padding: const EdgeInsets.all(4.0),
-                  child: FilterChip(
-                    //avatar: const Icon(Icons.history_outlined),
-                    //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                    label: const Text('Short'), // Positions
-                    selected: positionFilters.contains("short"),
-                    onSelected: (bool value) {
-                      setState(() {
-                        if (value) {
-                          positionFilters.add("short");
-                        } else {
-                          positionFilters.removeWhere((String name) {
-                            return name == "short";
-                          });
-                        }
-                      });
-                    },
-                  ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(4.0),
+                child: FilterChip(
+                  //avatar: const Icon(Icons.history_outlined),
+                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                  label: const Text('Short'), // Positions
+                  selected: positionFilters.contains("short"),
+                  onSelected: (bool value) {
+                    setState(() {
+                      if (value) {
+                        positionFilters.add("short");
+                      } else {
+                        positionFilters.removeWhere((String name) {
+                          return name == "short";
+                        });
+                      }
+                    });
+                  },
                 ),
-                Padding(
-                  padding: const EdgeInsets.all(4.0),
-                  child: FilterChip(
-                    //avatar: const Icon(Icons.history_outlined),
-                    //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                    label: const Text('Call'), // Options
-                    selected: optionFilters.contains("call"),
-                    onSelected: (bool value) {
-                      setState(() {
-                        if (value) {
-                          optionFilters.add("call");
-                        } else {
-                          optionFilters.removeWhere((String name) {
-                            return name == "call";
-                          });
-                        }
-                      });
-                    },
-                  ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(4.0),
+                child: FilterChip(
+                  //avatar: const Icon(Icons.history_outlined),
+                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                  label: const Text('Call'), // Options
+                  selected: optionFilters.contains("call"),
+                  onSelected: (bool value) {
+                    setState(() {
+                      if (value) {
+                        optionFilters.add("call");
+                      } else {
+                        optionFilters.removeWhere((String name) {
+                          return name == "call";
+                        });
+                      }
+                    });
+                  },
                 ),
-                Padding(
-                  padding: const EdgeInsets.all(4.0),
-                  child: FilterChip(
-                    //avatar: const Icon(Icons.history_outlined),
-                    //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                    label: const Text('Put'), // Options
-                    selected: optionFilters.contains("put"),
-                    onSelected: (bool value) {
-                      setState(() {
-                        if (value) {
-                          optionFilters.add("put");
-                        } else {
-                          optionFilters.removeWhere((String name) {
-                            return name == "put";
-                          });
-                        }
-                      });
-                    },
-                  ),
-                )
-              ],
-            );
-          },
-          itemCount: 1,
-        ));
+              ),
+              Padding(
+                padding: const EdgeInsets.all(4.0),
+                child: FilterChip(
+                  //avatar: const Icon(Icons.history_outlined),
+                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                  label: const Text('Put'), // Options
+                  selected: optionFilters.contains("put"),
+                  onSelected: (bool value) {
+                    setState(() {
+                      if (value) {
+                        optionFilters.add("put");
+                      } else {
+                        optionFilters.removeWhere((String name) {
+                          return name == "put";
+                        });
+                      }
+                    });
+                  },
+                ),
+              ),
+            ],
+          );
+        },
+        itemCount: 1,
+      ),
+    );
   }
 
   Widget get orderFilterWidget {
     return SizedBox(
-        height: 56,
-        child: ListView.builder(
-          padding: const EdgeInsets.all(4.0),
-          scrollDirection: Axis.horizontal,
-          itemBuilder: (context, index) {
-            return Row(children: [
+      height: 56,
+      child: ListView.builder(
+        padding: const EdgeInsets.all(4.0),
+        scrollDirection: Axis.horizontal,
+        itemBuilder: (context, index) {
+          return Row(
+            children: [
               Padding(
                 padding: const EdgeInsets.all(4.0),
                 child: FilterChip(
@@ -5974,15 +6602,18 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                   },
                 ),
               ),
-            ]);
-          },
-          itemCount: 1,
-        ));
+            ],
+          );
+        },
+        itemCount: 1,
+      ),
+    );
   }
 
   Widget headerTitle(Instrument instrument, QuoteStore store) {
-    var quoteObj = store.items
-        .firstWhereOrNull((element) => element.symbol == instrument.symbol);
+    var quoteObj = store.items.firstWhereOrNull(
+      (element) => element.symbol == instrument.symbol,
+    );
     quoteObj ??= instrument.quoteObj;
 
     return Row(
@@ -5995,29 +6626,37 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               Row(
                 children: [
                   Flexible(
-                    child: Text(instrument.symbol,
-                        style: const TextStyle(
-                            fontSize: 16.0, fontWeight: FontWeight.bold),
-                        overflow: TextOverflow.ellipsis,
-                        maxLines: 1),
+                    child: Text(
+                      instrument.symbol,
+                      style: const TextStyle(
+                        fontSize: 16.0,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
                   ),
                   if (widget.brokerageUser.source == BrokerageSource.paper) ...[
                     const SizedBox(width: 4),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 4, vertical: 1),
+                        horizontal: 4,
+                        vertical: 1,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.amber.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(4),
                         border: Border.all(
-                            color: Colors.amber.withValues(alpha: 0.5)),
+                          color: Colors.amber.withValues(alpha: 0.5),
+                        ),
                       ),
                       child: const Text(
                         'PAPER',
                         style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.amber),
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.amber,
+                        ),
                       ),
                     ),
                   ],
@@ -6039,40 +6678,45 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               AnimatedPriceText(
-                price: quoteObj.lastExtendedHoursTradePrice ??
+                price:
+                    quoteObj.lastExtendedHoursTradePrice ??
                     quoteObj.lastTradePrice!,
                 format: formatCurrency,
                 style: const TextStyle(
-                    fontSize: 16.0, fontWeight: FontWeight.bold),
+                  fontSize: 16.0,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               Row(
                 children: [
                   Icon(
-                      quoteObj.changeToday > 0
-                          ? Icons.trending_up
-                          : (quoteObj.changeToday < 0
+                    quoteObj.changeToday > 0
+                        ? Icons.trending_up
+                        : (quoteObj.changeToday < 0
                               ? Icons.trending_down
                               : Icons.trending_flat),
-                      color: (quoteObj.changeToday > 0
-                          ? (Theme.of(context).brightness == Brightness.light
+                    color: (quoteObj.changeToday > 0
+                        ? (Theme.of(context).brightness == Brightness.light
                               ? Colors.green
                               : Colors.lightGreenAccent)
-                          : (quoteObj.changeToday < 0
+                        : (quoteObj.changeToday < 0
                               ? Colors.red
                               : Colors.grey)),
-                      size: 14.0),
+                    size: 14.0,
+                  ),
                   const SizedBox(width: 2),
                   Text(
                     formatPercentage.format(quoteObj.changePercentToday),
                     style: TextStyle(
-                        fontSize: 12.0,
-                        color: (quoteObj.changeToday > 0
-                            ? (Theme.of(context).brightness == Brightness.light
+                      fontSize: 12.0,
+                      color: (quoteObj.changeToday > 0
+                          ? (Theme.of(context).brightness == Brightness.light
                                 ? Colors.green
                                 : Colors.lightGreenAccent)
-                            : (quoteObj.changeToday < 0
+                          : (quoteObj.changeToday < 0
                                 ? Colors.red
-                                : Colors.grey))),
+                                : Colors.grey)),
+                    ),
                   ),
                 ],
               ),
@@ -6092,8 +6736,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       builder: (context, agenticProvider, child) {
         final enabledIndicators =
             agenticProvider.config.strategyConfig.enabledIndicators;
-        final enabledCount =
-            enabledIndicators.values.where((v) => v == true).length;
+        final enabledCount = enabledIndicators.values
+            .where((v) => v == true)
+            .length;
 
         // Recalculate signals based on only enabled indicators
         bool displayAllGreen = true;
@@ -6229,334 +6874,350 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         final Color borderColor = displayAllGreen
             ? (isDark ? Colors.green.shade700 : Colors.green.shade200)
             : displayAllRed
-                ? (isDark ? Colors.red.shade700 : Colors.red.shade200)
-                : (isDark ? Colors.orange.shade700 : Colors.orange.shade200);
+            ? (isDark ? Colors.red.shade700 : Colors.red.shade200)
+            : (isDark ? Colors.orange.shade700 : Colors.orange.shade200);
 
         return ValueListenableBuilder<bool>(
-            valueListenable: _showTechnicalDetailsNotifier,
-            builder: (context, showTechnicalDetails, child) {
-              return Container(
-                margin: const EdgeInsets.only(top: 12.0),
-                padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 16.0),
-                decoration: BoxDecoration(
-                  color: isDark
-                      ? Colors.grey.shade900.withValues(alpha: 0.5)
-                      : Colors.grey.shade50,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: borderColor,
-                    width: 2,
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    InkWell(
-                      onTap: () {
-                        _showTechnicalDetailsNotifier.value =
-                            !showTechnicalDetails;
-                      },
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 4.0),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.analytics_outlined,
-                              size: 20,
-                              color: isDark
-                                  ? Colors.grey.shade400
-                                  : Colors.grey.shade700,
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text(
-                                    'Technical Indicators',
-                                    style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16),
+          valueListenable: _showTechnicalDetailsNotifier,
+          builder: (context, showTechnicalDetails, child) {
+            return Container(
+              margin: const EdgeInsets.only(top: 12.0),
+              padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 16.0),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? Colors.grey.shade900.withValues(alpha: 0.5)
+                    : Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: borderColor, width: 2),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  InkWell(
+                    onTap: () {
+                      _showTechnicalDetailsNotifier.value =
+                          !showTechnicalDetails;
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4.0),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.analytics_outlined,
+                            size: 20,
+                            color: isDark
+                                ? Colors.grey.shade400
+                                : Colors.grey.shade700,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Technical Indicators',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
                                   ),
-                                  if (enabledCount > 0)
-                                    Row(
-                                      children: [
-                                        if (buyCount > 0)
-                                          Padding(
-                                            padding: const EdgeInsets.only(
-                                                right: 8.0),
-                                            child: Text(
-                                              '$buyCount Buy',
-                                              style: TextStyle(
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.bold,
-                                                color: Colors.green.shade700,
-                                              ),
-                                            ),
+                                ),
+                                if (enabledCount > 0)
+                                  Row(
+                                    children: [
+                                      if (buyCount > 0)
+                                        Padding(
+                                          padding: const EdgeInsets.only(
+                                            right: 8.0,
                                           ),
-                                        if (sellCount > 0)
-                                          Padding(
-                                            padding: const EdgeInsets.only(
-                                                right: 8.0),
-                                            child: Text(
-                                              '$sellCount Sell',
-                                              style: TextStyle(
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.bold,
-                                                color: Colors.red.shade700,
-                                              ),
-                                            ),
-                                          ),
-                                        if (holdCount > 0)
-                                          Text(
-                                            '$holdCount Hold',
+                                          child: Text(
+                                            '$buyCount Buy',
                                             style: TextStyle(
                                               fontSize: 12,
                                               fontWeight: FontWeight.bold,
-                                              color: Colors.grey.shade600,
+                                              color: Colors.green.shade700,
                                             ),
                                           ),
-                                      ],
-                                    ),
-                                ],
-                              ),
-                            ),
-                            IconButton(
-                              icon: Icon(
-                                Icons.settings,
-                                size: 20,
-                                color: isDark
-                                    ? Colors.grey.shade400
-                                    : Colors.grey.shade700,
-                              ),
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(),
-                              tooltip: 'Automated Trading: Entry Strategies',
-                              onPressed: () async {
-                                if (widget.user == null ||
-                                    widget.userDocRef == null) {
-                                  return;
-                                }
-                                final result = await Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        AgenticTradingSettingsWidget(
-                                      user: widget.user!,
-                                      userDocRef: widget.userDocRef!,
-                                      service: widget.service,
-                                      initialSection: 'entryStrategies',
-                                    ),
-                                  ),
-                                );
-                                if (result == true && mounted) {
-                                  final tradeSignalsProvider =
-                                      Provider.of<TradeSignalsProvider>(context,
-                                          listen: false);
-                                  tradeSignalsProvider.fetchTradeSignal(
-                                      widget.instrument.symbol,
-                                      interval: tradeSignalsProvider
-                                          .selectedInterval);
-                                }
-                              },
-                            ),
-                            const SizedBox(width: 4),
-                            IconButton(
-                              icon: Icon(
-                                Icons.info_outline,
-                                size: 20,
-                                color: isDark
-                                    ? Colors.grey.shade400
-                                    : Colors.grey.shade700,
-                              ),
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(),
-                              tooltip: 'Indicator Documentation',
-                              onPressed: () {
-                                showDialog(
-                                  context: context,
-                                  builder: (context) => AlertDialog(
-                                    title: const Text('Technical Indicators'),
-                                    content: SingleChildScrollView(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          _buildSignalStrengthDocumentation(),
-                                          const SizedBox(height: 16),
-                                          const Divider(),
-                                          const SizedBox(height: 16),
-                                          _buildDocSection('priceMovement'),
-                                          _buildDocSection('momentum'),
-                                          _buildDocSection('marketDirection'),
-                                          _buildDocSection('volume'),
-                                          _buildDocSection('macd'),
-                                          _buildDocSection('bollingerBands'),
-                                          _buildDocSection('stochastic'),
-                                          _buildDocSection('atr'),
-                                          _buildDocSection('obv'),
-                                          _buildDocSection('vwap'),
-                                          _buildDocSection('adx'),
-                                          _buildDocSection('williamsR'),
-                                          _buildDocSection('ichimoku'),
-                                          _buildDocSection('cci'),
-                                          _buildDocSection('sar'),
-                                          _buildDocSection('roc'),
-                                          _buildDocSection('chaikinMoneyFlow'),
-                                          _buildDocSection(
-                                              'fibonacciRetracements'),
-                                          _buildDocSection('pivotPoints'),
-                                          _buildDocSection('gammaExposure'),
-                                        ],
-                                      ),
-                                    ),
-                                    actions: [
-                                      TextButton(
-                                        onPressed: () => Navigator.pop(context),
-                                        child: const Text('Close'),
-                                      ),
+                                        ),
+                                      if (sellCount > 0)
+                                        Padding(
+                                          padding: const EdgeInsets.only(
+                                            right: 8.0,
+                                          ),
+                                          child: Text(
+                                            '$sellCount Sell',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.red.shade700,
+                                            ),
+                                          ),
+                                        ),
+                                      if (holdCount > 0)
+                                        Text(
+                                          '$holdCount Hold',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.grey.shade600,
+                                          ),
+                                        ),
                                     ],
                                   ),
-                                );
-                              },
+                              ],
                             ),
-                            const SizedBox(width: 4),
-                            Icon(
-                              showTechnicalDetails
-                                  ? Icons.keyboard_arrow_up
-                                  : Icons.keyboard_arrow_down,
+                          ),
+                          IconButton(
+                            icon: Icon(
+                              Icons.settings,
                               size: 20,
                               color: isDark
                                   ? Colors.grey.shade400
                                   : Colors.grey.shade700,
                             ),
-                          ],
-                        ),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                            tooltip: 'Automated Trading: Entry Strategies',
+                            onPressed: () async {
+                              if (widget.user == null ||
+                                  widget.userDocRef == null) {
+                                return;
+                              }
+                              final result = await Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      AgenticTradingSettingsWidget(
+                                        user: widget.user!,
+                                        userDocRef: widget.userDocRef!,
+                                        service: widget.service,
+                                        initialSection: 'entryStrategies',
+                                      ),
+                                ),
+                              );
+                              if (result == true && mounted) {
+                                final tradeSignalsProvider =
+                                    Provider.of<TradeSignalsProvider>(
+                                      context,
+                                      listen: false,
+                                    );
+                                tradeSignalsProvider.fetchTradeSignal(
+                                  widget.instrument.symbol,
+                                  interval:
+                                      tradeSignalsProvider.selectedInterval,
+                                );
+                              }
+                            },
+                          ),
+                          const SizedBox(width: 4),
+                          IconButton(
+                            icon: Icon(
+                              Icons.info_outline,
+                              size: 20,
+                              color: isDark
+                                  ? Colors.grey.shade400
+                                  : Colors.grey.shade700,
+                            ),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                            tooltip: 'Indicator Documentation',
+                            onPressed: () {
+                              showDialog(
+                                context: context,
+                                builder: (context) => AlertDialog(
+                                  title: const Text('Technical Indicators'),
+                                  content: SingleChildScrollView(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        _buildSignalStrengthDocumentation(),
+                                        const SizedBox(height: 16),
+                                        const Divider(),
+                                        const SizedBox(height: 16),
+                                        _buildDocSection('priceMovement'),
+                                        _buildDocSection('momentum'),
+                                        _buildDocSection('marketDirection'),
+                                        _buildDocSection('volume'),
+                                        _buildDocSection('macd'),
+                                        _buildDocSection('bollingerBands'),
+                                        _buildDocSection('stochastic'),
+                                        _buildDocSection('atr'),
+                                        _buildDocSection('obv'),
+                                        _buildDocSection('vwap'),
+                                        _buildDocSection('adx'),
+                                        _buildDocSection('williamsR'),
+                                        _buildDocSection('ichimoku'),
+                                        _buildDocSection('cci'),
+                                        _buildDocSection('sar'),
+                                        _buildDocSection('roc'),
+                                        _buildDocSection('chaikinMoneyFlow'),
+                                        _buildDocSection(
+                                          'fibonacciRetracements',
+                                        ),
+                                        _buildDocSection('pivotPoints'),
+                                        _buildDocSection('gammaExposure'),
+                                      ],
+                                    ),
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(context),
+                                      child: const Text('Close'),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
+                          const SizedBox(width: 4),
+                          Icon(
+                            showTechnicalDetails
+                                ? Icons.keyboard_arrow_up
+                                : Icons.keyboard_arrow_down,
+                            size: 20,
+                            color: isDark
+                                ? Colors.grey.shade400
+                                : Colors.grey.shade700,
+                          ),
+                        ],
                       ),
                     ),
-                    if (overallSignalStrength != null)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 12.0),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text(
-                                        enabledSignalStrength != null
-                                            ? 'Signal Strength (Adjusted)${enabledSignalStrength >= Constants.signalStrengthStrongMin ? (sellCount > buyCount ? ' - Strong Sell' : ' - Strong Buy') : enabledSignalStrength >= Constants.signalStrengthModerateMin ? (sellCount > buyCount ? ' - Moderate Sell' : ' - Moderate Buy') : ' - Weak Signal'}'
-                                            : 'Signal Strength',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .onSurfaceVariant,
-                                        ),
+                  ),
+                  if (overallSignalStrength != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12.0),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      enabledSignalStrength != null
+                                          ? 'Signal Strength (Adjusted)${enabledSignalStrength >= Constants.signalStrengthStrongMin
+                                                ? (sellCount > buyCount ? ' - Strong Sell' : ' - Strong Buy')
+                                                : enabledSignalStrength >= Constants.signalStrengthModerateMin
+                                                ? (sellCount > buyCount ? ' - Moderate Sell' : ' - Moderate Buy')
+                                                : ' - Weak Signal'}'
+                                          : 'Signal Strength',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.onSurfaceVariant,
                                       ),
-                                      Text(
-                                        '${enabledSignalStrength ?? overallSignalStrength}%',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.bold,
-                                          color: (enabledSignalStrength ??
-                                                      overallSignalStrength) >=
-                                                  Constants
-                                                      .signalStrengthStrongMin
-                                              ? Colors.green
-                                              : ((enabledSignalStrength ??
+                                    ),
+                                    Text(
+                                      '${enabledSignalStrength ?? overallSignalStrength}%',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color:
+                                            (enabledSignalStrength ??
+                                                    overallSignalStrength) >=
+                                                Constants
+                                                    .signalStrengthStrongMin
+                                            ? Colors.green
+                                            : ((enabledSignalStrength ??
                                                           overallSignalStrength) >=
                                                       Constants
                                                           .signalStrengthModerateMin
                                                   ? Colors.amber
                                                   : Colors.red),
-                                        ),
                                       ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 4),
-                                  LayoutBuilder(
-                                    builder: (context, constraints) {
-                                      final strength = enabledSignalStrength ??
-                                          overallSignalStrength;
-                                      return Stack(
-                                        children: [
-                                          Container(
-                                            height: 6,
-                                            width: constraints.maxWidth,
-                                            decoration: BoxDecoration(
-                                              color: Theme.of(context)
-                                                  .colorScheme
-                                                  .surfaceContainerHighest,
-                                              borderRadius:
-                                                  BorderRadius.circular(3),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                LayoutBuilder(
+                                  builder: (context, constraints) {
+                                    final strength =
+                                        enabledSignalStrength ??
+                                        overallSignalStrength;
+                                    return Stack(
+                                      children: [
+                                        Container(
+                                          height: 6,
+                                          width: constraints.maxWidth,
+                                          decoration: BoxDecoration(
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .surfaceContainerHighest,
+                                            borderRadius: BorderRadius.circular(
+                                              3,
                                             ),
                                           ),
-                                          Container(
-                                            height: 6,
-                                            width: constraints.maxWidth *
-                                                (strength / 100),
-                                            decoration: BoxDecoration(
-                                              gradient: LinearGradient(
-                                                colors: [
-                                                  strength >=
-                                                          Constants
-                                                              .signalStrengthStrongMin
-                                                      ? Colors.green.shade300
-                                                      : (strength >=
+                                        ),
+                                        Container(
+                                          height: 6,
+                                          width:
+                                              constraints.maxWidth *
+                                              (strength / 100),
+                                          decoration: BoxDecoration(
+                                            gradient: LinearGradient(
+                                              colors: [
+                                                strength >=
+                                                        Constants
+                                                            .signalStrengthStrongMin
+                                                    ? Colors.green.shade300
+                                                    : (strength >=
                                                               Constants
                                                                   .signalStrengthModerateMin
                                                           ? Colors
-                                                              .orange.shade300
+                                                                .orange
+                                                                .shade300
                                                           : Colors
-                                                              .red.shade300),
-                                                  strength >=
-                                                          Constants
-                                                              .signalStrengthStrongMin
-                                                      ? Colors.green
-                                                      : (strength >=
+                                                                .red
+                                                                .shade300),
+                                                strength >=
+                                                        Constants
+                                                            .signalStrengthStrongMin
+                                                    ? Colors.green
+                                                    : (strength >=
                                                               Constants
                                                                   .signalStrengthModerateMin
                                                           ? Colors.orange
                                                           : Colors.red),
-                                                ],
-                                              ),
-                                              borderRadius:
-                                                  BorderRadius.circular(3),
+                                              ],
+                                            ),
+                                            borderRadius: BorderRadius.circular(
+                                              3,
                                             ),
                                           ),
-                                        ],
-                                      );
-                                    },
-                                  ),
-                                ],
-                              ),
+                                        ),
+                                      ],
+                                    );
+                                  },
+                                ),
+                              ],
                             ),
-                            const SizedBox(width: 8),
-                          ],
-                        ),
+                          ),
+                          const SizedBox(width: 8),
+                        ],
                       ),
-                    if (showTechnicalDetails) ...[
-                      const SizedBox(height: 8),
-                      Builder(builder: (context) {
+                    ),
+                  if (showTechnicalDetails) ...[
+                    const SizedBox(height: 8),
+                    Builder(
+                      builder: (context) {
                         final List<Map<String, String>> indicatorDefs = [
                           {'label': 'Price Movement', 'key': 'priceMovement'},
                           {'label': 'RSI (Momentum)', 'key': 'momentum'},
                           {
                             'label': 'Market Direction',
-                            'key': 'marketDirection'
+                            'key': 'marketDirection',
                           },
                           {'label': 'Volume Analysis', 'key': 'volume'},
                           {'label': 'MACD', 'key': 'macd'},
                           {'label': 'Bollinger Bands', 'key': 'bollingerBands'},
                           {
                             'label': 'Stochastic Oscillator',
-                            'key': 'stochastic'
+                            'key': 'stochastic',
                           },
                           {'label': 'Average True Range', 'key': 'atr'},
                           {'label': 'On-Balance Volume', 'key': 'obv'},
@@ -6569,16 +7230,16 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                           {'label': 'Rate of Change', 'key': 'roc'},
                           {
                             'label': 'Chaikin Money Flow',
-                            'key': 'chaikinMoneyFlow'
+                            'key': 'chaikinMoneyFlow',
                           },
                           {
                             'label': 'Fibonacci Retracements',
-                            'key': 'fibonacciRetracements'
+                            'key': 'fibonacciRetracements',
                           },
                           {'label': 'Pivot Points', 'key': 'pivotPoints'},
                           {
                             'label': 'Gamma Exposure (GEX)',
-                            'key': 'gammaExposure'
+                            'key': 'gammaExposure',
                           },
                         ];
 
@@ -6593,10 +7254,11 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                               enabledIndicators[configKey] == true;
 
                           final row = _buildIndicatorRow(
-                              label,
-                              key,
-                              indicators[key] as Map<String, dynamic>?,
-                              isEnabled);
+                            label,
+                            key,
+                            indicators[key] as Map<String, dynamic>?,
+                            isEnabled,
+                          );
 
                           if (isEnabled) {
                             enabledList.add(row);
@@ -6608,13 +7270,12 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                         return Column(
                           children: [
                             if (enabledList.isNotEmpty)
-                              Column(
-                                children: enabledList,
-                              ),
+                              Column(children: enabledList),
                             if (disabledList.isNotEmpty)
                               Theme(
-                                data: Theme.of(context)
-                                    .copyWith(dividerColor: Colors.transparent),
+                                data: Theme.of(
+                                  context,
+                                ).copyWith(dividerColor: Colors.transparent),
                                 child: Material(
                                   color: Colors.transparent,
                                   child: ExpansionTile(
@@ -6636,29 +7297,37 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                                           const SizedBox(width: 8),
                                           Container(
                                             padding: const EdgeInsets.symmetric(
-                                                horizontal: 6, vertical: 2),
+                                              horizontal: 6,
+                                              vertical: 2,
+                                            ),
                                             decoration: BoxDecoration(
                                               color: _getSignalStrengthColor(
-                                                      overallSignalStrength)
-                                                  .withValues(alpha: 0.15),
+                                                overallSignalStrength,
+                                              ).withValues(alpha: 0.15),
                                               borderRadius:
                                                   BorderRadius.circular(4),
                                             ),
                                             child: Row(
                                               mainAxisSize: MainAxisSize.min,
                                               children: [
-                                                Icon(Icons.speed,
-                                                    size: 10,
-                                                    color: _getSignalStrengthColor(
-                                                        overallSignalStrength)),
+                                                Icon(
+                                                  Icons.speed,
+                                                  size: 10,
+                                                  color:
+                                                      _getSignalStrengthColor(
+                                                        overallSignalStrength,
+                                                      ),
+                                                ),
                                                 const SizedBox(width: 3),
                                                 Text(
                                                   '$overallSignalStrength% Overall',
                                                   style: TextStyle(
                                                     fontSize: 10.0,
                                                     fontWeight: FontWeight.bold,
-                                                    color: _getSignalStrengthColor(
-                                                        overallSignalStrength),
+                                                    color:
+                                                        _getSignalStrengthColor(
+                                                          overallSignalStrength,
+                                                        ),
                                                   ),
                                                 ),
                                               ],
@@ -6673,18 +7342,24 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                               ),
                           ],
                         );
-                      }),
-                    ],
+                      },
+                    ),
                   ],
-                ),
-              );
-            });
+                ],
+              ),
+            );
+          },
+        );
       },
     );
   }
 
-  Widget _buildIndicatorRow(String name, String key,
-      Map<String, dynamic>? indicator, bool isEnabled) {
+  Widget _buildIndicatorRow(
+    String name,
+    String key,
+    Map<String, dynamic>? indicator,
+    bool isEnabled,
+  ) {
     if (indicator == null) return const SizedBox.shrink();
 
     // Now that disabled indicators are shown in the collapsible `Disabled Indicators`
@@ -6765,13 +7440,16 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                                         const SizedBox(width: 8),
                                         Container(
                                           padding: const EdgeInsets.symmetric(
-                                              horizontal: 6, vertical: 2),
+                                            horizontal: 6,
+                                            vertical: 2,
+                                          ),
                                           decoration: BoxDecoration(
                                             color: isDark
                                                 ? Colors.grey.shade800
                                                 : Colors.grey.shade200,
-                                            borderRadius:
-                                                BorderRadius.circular(4),
+                                            borderRadius: BorderRadius.circular(
+                                              4,
+                                            ),
                                           ),
                                           child: Text(
                                             'DISABLED',
@@ -6789,8 +7467,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                                         const SizedBox(width: 4),
                                         AnimatedRotation(
                                           turns: isExpanded ? 0.5 : 0.0,
-                                          duration:
-                                              const Duration(milliseconds: 200),
+                                          duration: const Duration(
+                                            milliseconds: 200,
+                                          ),
                                           child: Icon(
                                             Icons.keyboard_arrow_down,
                                             size: 16,
@@ -6807,7 +7486,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                                   if (reason.isNotEmpty)
                                     Padding(
                                       padding: const EdgeInsets.only(
-                                          top: 2.0, right: 8.0),
+                                        top: 2.0,
+                                        right: 8.0,
+                                      ),
                                       child: Text(
                                         reason,
                                         style: TextStyle(
@@ -6829,7 +7510,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                       ),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 4),
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: bgColor,
                           borderRadius: BorderRadius.circular(6),
@@ -6857,117 +7540,130 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                             alignment: Alignment.centerLeft,
                             child: Padding(
                               padding: const EdgeInsets.only(
-                                  top: 8.0, right: 8.0, bottom: 4.0),
+                                top: 8.0,
+                                right: 8.0,
+                                bottom: 4.0,
+                              ),
                               child: Wrap(
                                 spacing: 6.0,
                                 runSpacing: 6.0,
                                 children: metadata.entries
-                                    .where((e) =>
-                                        e.value != null &&
-                                        (e.value is String ||
-                                            e.value is num ||
-                                            e.value is bool))
+                                    .where(
+                                      (e) =>
+                                          e.value != null &&
+                                          (e.value is String ||
+                                              e.value is num ||
+                                              e.value is bool),
+                                    )
                                     .map((e) {
-                                  var value = e.value;
-                                  if (value is double) {
-                                    if (value.abs() >= 10000) {
-                                      value = formatCompactNumber.format(value);
-                                    } else if (value.abs() < 1 && value != 0) {
-                                      value = value.toStringAsFixed(4);
-                                    } else {
-                                      value = value.toStringAsFixed(2);
-                                    }
-                                  }
+                                      var value = e.value;
+                                      if (value is double) {
+                                        if (value.abs() >= 10000) {
+                                          value = formatCompactNumber.format(
+                                            value,
+                                          );
+                                        } else if (value.abs() < 1 &&
+                                            value != 0) {
+                                          value = value.toStringAsFixed(4);
+                                        } else {
+                                          value = value.toStringAsFixed(2);
+                                        }
+                                      }
 
-                                  // Friendly label mapping
-                                  String label = e.key;
-                                  const labelMap = {
-                                    'ma5': 'SMA 5',
-                                    'ma10': 'SMA 10',
-                                    'ma20': 'SMA 20',
-                                    'ma50': 'SMA 50',
-                                    'ma200': 'SMA 200',
-                                    'ema12': 'EMA 12',
-                                    'ema26': 'EMA 26',
-                                    'rsi': 'RSI',
-                                    'k': '%K',
-                                    'd': '%D',
-                                    'upper': 'Upper',
-                                    'lower': 'Lower',
-                                    'middle': 'Mid',
-                                    'plusDI': '+DI',
-                                    'minusDI': '-DI',
-                                    'histogram': 'Hist',
-                                    'conversionLine': 'Tenkan',
-                                    'baseLine': 'Kijun',
-                                    'leadingSpanA': 'Span A',
-                                    'leadingSpanB': 'Span B',
-                                    'laggingSpan': 'Chikou',
-                                    'currentPrice': 'Price',
-                                    'volume': 'Vol',
-                                    'gammaExposure': 'GEX',
-                                  };
+                                      // Friendly label mapping
+                                      String label = e.key;
+                                      const labelMap = {
+                                        'ma5': 'SMA 5',
+                                        'ma10': 'SMA 10',
+                                        'ma20': 'SMA 20',
+                                        'ma50': 'SMA 50',
+                                        'ma200': 'SMA 200',
+                                        'ema12': 'EMA 12',
+                                        'ema26': 'EMA 26',
+                                        'rsi': 'RSI',
+                                        'k': '%K',
+                                        'd': '%D',
+                                        'upper': 'Upper',
+                                        'lower': 'Lower',
+                                        'middle': 'Mid',
+                                        'plusDI': '+DI',
+                                        'minusDI': '-DI',
+                                        'histogram': 'Hist',
+                                        'conversionLine': 'Tenkan',
+                                        'baseLine': 'Kijun',
+                                        'leadingSpanA': 'Span A',
+                                        'leadingSpanB': 'Span B',
+                                        'laggingSpan': 'Chikou',
+                                        'currentPrice': 'Price',
+                                        'volume': 'Vol',
+                                        'gammaExposure': 'GEX',
+                                      };
 
-                                  if (labelMap.containsKey(label)) {
-                                    label = labelMap[label]!;
-                                  } else {
-                                    // Format key: camelCase to Title Case
-                                    label = label.replaceAllMapped(
-                                        RegExp(r'([a-z])([A-Z])'),
-                                        (Match m) => '${m[1]} ${m[2]}');
-                                    label = label.isNotEmpty
-                                        ? '${label[0].toUpperCase()}${label.substring(1)}'
-                                        : label;
-                                  }
+                                      if (labelMap.containsKey(label)) {
+                                        label = labelMap[label]!;
+                                      } else {
+                                        // Format key: camelCase to Title Case
+                                        label = label.replaceAllMapped(
+                                          RegExp(r'([a-z])([A-Z])'),
+                                          (Match m) => '${m[1]} ${m[2]}',
+                                        );
+                                        label = label.isNotEmpty
+                                            ? '${label[0].toUpperCase()}${label.substring(1)}'
+                                            : label;
+                                      }
 
-                                  return Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 8, vertical: 4),
-                                    decoration: BoxDecoration(
-                                      color: isDark
-                                          ? Theme.of(context)
-                                              .colorScheme
-                                              .surfaceContainerHighest
-                                              .withValues(alpha: 0.3)
-                                          : Colors.grey.shade100,
-                                      borderRadius: BorderRadius.circular(6),
-                                      border: Border.all(
-                                        color: Theme.of(context)
-                                            .dividerColor
-                                            .withValues(alpha: 0.1),
-                                      ),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Text(
-                                          "$label: ",
-                                          style: TextStyle(
-                                            fontSize: 10,
-                                            fontWeight: FontWeight.w500,
+                                      return Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 4,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: isDark
+                                              ? Theme.of(context)
+                                                    .colorScheme
+                                                    .surfaceContainerHighest
+                                                    .withValues(alpha: 0.3)
+                                              : Colors.grey.shade100,
+                                          borderRadius: BorderRadius.circular(
+                                            6,
+                                          ),
+                                          border: Border.all(
                                             color: Theme.of(context)
-                                                .textTheme
-                                                .bodySmall
-                                                ?.color
-                                                ?.withValues(alpha: 0.7),
+                                                .dividerColor
+                                                .withValues(alpha: 0.1),
                                           ),
                                         ),
-                                        Text(
-                                          "$value",
-                                          style: TextStyle(
-                                            fontSize: 10,
-                                            fontWeight: FontWeight.bold,
-                                            fontFamily: 'Monospace',
-                                            color: Theme.of(context)
-                                                .textTheme
-                                                .bodyMedium
-                                                ?.color,
-                                          ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Text(
+                                              "$label: ",
+                                              style: TextStyle(
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.w500,
+                                                color: Theme.of(context)
+                                                    .textTheme
+                                                    .bodySmall
+                                                    ?.color
+                                                    ?.withValues(alpha: 0.7),
+                                              ),
+                                            ),
+                                            Text(
+                                              "$value",
+                                              style: TextStyle(
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.bold,
+                                                fontFamily: 'Monospace',
+                                                color: Theme.of(
+                                                  context,
+                                                ).textTheme.bodyMedium?.color,
+                                              ),
+                                            ),
+                                          ],
                                         ),
-                                      ],
-                                    ),
-                                  );
-                                }).toList(),
+                                      );
+                                    })
+                                    .toList(),
                               ),
                             ),
                           )
@@ -6988,9 +7684,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       children: [
         Text(
           'Signal Strength',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 8),
         Text(
@@ -7000,9 +7696,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         const SizedBox(height: 12),
         Text(
           'Formula:',
-          style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 4),
         Padding(
@@ -7010,82 +7706,94 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           child: Text(
             'signalStrength = (weightedScore + totalWeight) / (2 × totalWeight) × 100',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  fontFamily: 'monospace',
-                  color: Theme.of(context)
-                      .textTheme
-                      .bodySmall
-                      ?.color
-                      ?.withValues(alpha: 0.7),
-                ),
+              fontFamily: 'monospace',
+              color: Theme.of(
+                context,
+              ).textTheme.bodySmall?.color?.withValues(alpha: 0.7),
+            ),
           ),
         ),
         const SizedBox(height: 12),
         Text(
           'Indicator Weights:',
-          style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 8),
-        _buildWeightCategory(
-            'Critical (2.0)', ['Price Movement'], Colors.green),
+        _buildWeightCategory('Critical (2.0)', [
+          'Price Movement',
+        ], Colors.green),
         const SizedBox(height: 8),
-        _buildWeightCategory(
-            'High (1.5)', ['Momentum', 'MACD', 'Ichimoku'], Colors.blue),
+        _buildWeightCategory('High (1.5)', [
+          'Momentum',
+          'MACD',
+          'Ichimoku',
+        ], Colors.blue),
         const SizedBox(height: 8),
-        _buildWeightCategory(
-          'Standard (1.2)',
-          [
-            'Bollinger Bands',
-            'ADX',
-            'VWAP',
-            'Market Direction',
-            'Fibonacci',
-            'Pivot Points'
-          ],
-          Colors.orange,
-        ),
+        _buildWeightCategory('Standard (1.2)', [
+          'Bollinger Bands',
+          'ADX',
+          'VWAP',
+          'Market Direction',
+          'Fibonacci',
+          'Pivot Points',
+        ], Colors.orange),
         const SizedBox(height: 8),
-        _buildWeightCategory(
-          'Supporting (1.0)',
-          [
-            'Stochastic',
-            'ATR',
-            'OBV',
-            'CCI',
-            'Parabolic SAR',
-            'Williams %R',
-            'Volume',
-            'ROC',
-            'Chaikin Money Flow'
-          ],
-          Colors.grey,
-        ),
+        _buildWeightCategory('Supporting (1.0)', [
+          'Stochastic',
+          'ATR',
+          'OBV',
+          'CCI',
+          'Parabolic SAR',
+          'Williams %R',
+          'Volume',
+          'ROC',
+          'Chaikin Money Flow',
+        ], Colors.grey),
         const SizedBox(height: 12),
         Text(
           'Interpretation:',
-          style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 8),
         _buildStrengthRange(
-            '90-100%', 'Extreme — All indicators aligned', Colors.green),
+          '90-100%',
+          'Extreme — All indicators aligned',
+          Colors.green,
+        ),
         _buildStrengthRange(
-            '75-89%', 'Very Strong — High confidence BUY', Colors.green),
+          '75-89%',
+          'Very Strong — High confidence BUY',
+          Colors.green,
+        ),
         _buildStrengthRange(
-            '60-74%', 'Strong — Actionable BUY signal', Colors.green),
+          '60-74%',
+          'Strong — Actionable BUY signal',
+          Colors.green,
+        ),
         _buildStrengthRange(
-            '40-59%', 'Moderate — Mixed signals, HOLD', Colors.amber),
+          '40-59%',
+          'Moderate — Mixed signals, HOLD',
+          Colors.amber,
+        ),
         _buildStrengthRange('25-39%', 'Weak — Caution, rare SELL', Colors.red),
         _buildStrengthRange(
-            '0-24%', 'No Consensus — Avoid trading', Colors.red),
+          '0-24%',
+          'No Consensus — Avoid trading',
+          Colors.red,
+        ),
       ],
     );
   }
 
   Widget _buildWeightCategory(
-      String title, List<String> indicators, Color color) {
+    String title,
+    List<String> indicators,
+    Color color,
+  ) {
     return Container(
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
@@ -7098,16 +7806,16 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           Text(
             title,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: color,
-                ),
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
           ),
           const SizedBox(height: 4),
           Text(
             indicators.join(', '),
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  fontSize: 11,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(fontSize: 11),
           ),
         ],
       ),
@@ -7131,10 +7839,10 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             child: Text(
               range,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 10,
-                    color: color,
-                  ),
+                fontWeight: FontWeight.bold,
+                fontSize: 10,
+                color: color,
+              ),
               textAlign: TextAlign.center,
             ),
           ),
@@ -7163,9 +7871,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     final maxVal = data.reduce(math.max);
     final range = maxVal - minVal == 0 ? 1.0 : maxVal - minVal;
 
-    return CustomPaint(
-      painter: _SparklinePainter(data, color, minVal, range),
-    );
+    return CustomPaint(painter: _SparklinePainter(data, color, minVal, range));
   }
 
   Widget _buildSignalTypePill(String signalType) {
@@ -7178,15 +7884,15 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         color: isBuy
             ? Colors.green.withValues(alpha: 0.1)
             : (isSell
-                ? Colors.red.withValues(alpha: 0.1)
-                : Colors.grey.withValues(alpha: 0.1)),
+                  ? Colors.red.withValues(alpha: 0.1)
+                  : Colors.grey.withValues(alpha: 0.1)),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
           color: isBuy
               ? Colors.green.withValues(alpha: 0.3)
               : (isSell
-                  ? Colors.red.withValues(alpha: 0.3)
-                  : Colors.grey.withValues(alpha: 0.3)),
+                    ? Colors.red.withValues(alpha: 0.3)
+                    : Colors.grey.withValues(alpha: 0.3)),
         ),
       ),
       child: Row(
@@ -7235,7 +7941,10 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               Text(
                 '$strength%',
                 style: TextStyle(
-                    fontSize: 12, fontWeight: FontWeight.bold, color: color),
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                ),
               ),
               const SizedBox(height: 2),
               LinearProgressIndicator(
@@ -7269,8 +7978,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     if (value is Timestamp) return value.toDate();
     if (value is DateTime) return value;
     if (value is num) {
-      final milliseconds =
-          value > 1000000000000 ? value.toInt() : (value * 1000).toInt();
+      final milliseconds = value > 1000000000000
+          ? value.toInt()
+          : (value * 1000).toInt();
       return DateTime.fromMillisecondsSinceEpoch(milliseconds);
     }
     if (value is String) return DateTime.tryParse(value);
@@ -7342,7 +8052,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           'trading decision.';
     }
 
-    final hasCalculationMetadata = diagnostics.containsKey('lastAttemptAt') ||
+    final hasCalculationMetadata =
+        diagnostics.containsKey('lastAttemptAt') ||
         diagnostics.containsKey('lastSuccessfulCalculationAt') ||
         diagnostics.containsKey('calculationStatus') ||
         diagnostics.containsKey('marketDataAsOf');
@@ -7363,15 +8074,15 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     final age = DateTime.now().difference(lastSuccess);
     final isStale = interval == '15m'
         ? age >
-            (MarketHours.isMarketOpen()
-                ? const Duration(minutes: 45)
-                : const Duration(hours: 24))
+              (MarketHours.isMarketOpen()
+                  ? const Duration(minutes: 45)
+                  : const Duration(hours: 24))
         : interval == '1h'
-            ? age >
-                (MarketHours.isMarketOpen()
-                    ? const Duration(hours: 2)
-                    : const Duration(hours: 24))
-            : age > const Duration(hours: 96);
+        ? age >
+              (MarketHours.isMarketOpen()
+                  ? const Duration(hours: 2)
+                  : const Duration(hours: 24))
+        : age > const Duration(hours: 96);
     if (isStale) {
       return 'This signal may be stale for the selected interval. Confirm '
           'current prices and market conditions before making a trading '
@@ -7402,10 +8113,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             child: Text(
               value,
               textAlign: TextAlign.right,
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-              ),
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
             ),
           ),
         ],
@@ -7413,10 +8121,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     );
   }
 
-  void _showSignalDiagnostics(
-    Map<String, dynamic> signal,
-    String interval,
-  ) {
+  void _showSignalDiagnostics(Map<String, dynamic> signal, String interval) {
     final diagnostics = signal['diagnostics'] is Map
         ? Map<String, dynamic>.from(signal['diagnostics'] as Map)
         : <String, dynamic>{};
@@ -7471,9 +8176,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               ),
               _buildSignalDiagnosticRow(
                 'Calculation Status',
-                _signalCalculationStatusLabel(
-                  diagnostics['calculationStatus'],
-                ),
+                _signalCalculationStatusLabel(diagnostics['calculationStatus']),
               ),
               _buildSignalDiagnosticRow('Interval', interval),
               _buildSignalDiagnosticRow(
@@ -7548,8 +8251,10 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     }
   }
 
-  Widget _buildAgenticTradeSignals(Instrument instrument,
-      {bool summaryOnly = false}) {
+  Widget _buildAgenticTradeSignals(
+    Instrument instrument, {
+    bool summaryOnly = false,
+  }) {
     return SliverToBoxAdapter(
       key: tradeSignalKey,
       child: Column(
@@ -7559,7 +8264,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               final selectorSignal = provider.tradeSignal;
               final selectorMultiIndicator =
                   selectorSignal?['multiIndicatorResult'];
-              final hasBarDetails = selectorMultiIndicator is Map &&
+              final hasBarDetails =
+                  selectorMultiIndicator is Map &&
                   selectorMultiIndicator['bars'] != null;
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -7574,8 +8280,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                           icon: Icon(
                             Icons.notifications_outlined,
                             size: 20,
-                            color:
-                                Theme.of(context).colorScheme.onSurfaceVariant,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
                           ),
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),
@@ -7587,9 +8294,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                                 MaterialPageRoute(
                                   builder: (context) =>
                                       TradeSignalNotificationSettingsWidget(
-                                    user: widget.user!,
-                                    userDocRef: widget.userDocRef!,
-                                  ),
+                                        user: widget.user!,
+                                        userDocRef: widget.userDocRef!,
+                                      ),
                                 ),
                               );
                             }
@@ -7609,19 +8316,21 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                                         ),
                                       )
                                     : const Icon(Icons.shield_outlined),
-                                padding:
-                                    const EdgeInsets.symmetric(horizontal: 8.0),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8.0,
+                                ),
                                 constraints: const BoxConstraints(),
                                 tooltip:
                                     provider.tradeSignal!['assessment'] == null
-                                        ? 'Run Risk Guard'
-                                        : 'Re-assess Risk',
+                                    ? 'Run Risk Guard'
+                                    : 'Re-assess Risk',
                                 onPressed: isAssessingRisk
                                     ? null
                                     : () => _runRiskAssessment(
                                         provider.tradeSignal!,
                                         provider.tradeSignal!['signal'] ??
-                                            'HOLD'),
+                                            'HOLD',
+                                      ),
                               );
                             },
                           ),
@@ -7638,8 +8347,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                                       ),
                                     )
                                   : const Icon(Icons.refresh_outlined),
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 8.0),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8.0,
+                              ),
                               constraints: const BoxConstraints(),
                               tooltip: 'Generate Trade Signal',
                               onPressed: isGeneratingSignal
@@ -7657,19 +8367,21 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                               true)) ...[
                     Padding(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 16.0, vertical: 8.0),
+                        horizontal: 16.0,
+                        vertical: 8.0,
+                      ),
                       child: Container(
                         padding: const EdgeInsets.all(12.0),
                         decoration: BoxDecoration(
-                          color: provider.tradeSignal!['assessment']
-                                      ['approved'] ==
+                          color:
+                              provider.tradeSignal!['assessment']['approved'] ==
                                   true
                               ? Colors.green.withValues(alpha: 0.1)
                               : Colors.red.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: provider.tradeSignal!['assessment']
-                                        ['approved'] ==
+                            color:
+                                provider.tradeSignal!['assessment']['approved'] ==
                                     true
                                 ? Colors.green.shade300
                                 : Colors.red.shade300,
@@ -7678,36 +8390,42 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Row(children: [
-                              Icon(Icons.shield_outlined,
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.shield_outlined,
                                   size: 16,
-                                  color: provider.tradeSignal!['assessment']
-                                              ['approved'] ==
+                                  color:
+                                      provider.tradeSignal!['assessment']['approved'] ==
                                           true
                                       ? Colors.green.shade700
-                                      : Colors.red.shade700),
-                              const SizedBox(width: 8),
-                              Text("Risk Assessment",
+                                      : Colors.red.shade700,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  "Risk Assessment",
                                   style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
-                                      color: provider.tradeSignal!['assessment']
-                                                  ['approved'] ==
-                                              true
-                                          ? Colors.green.shade700
-                                          : Colors.red.shade700)),
-                            ]),
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color:
+                                        provider.tradeSignal!['assessment']['approved'] ==
+                                            true
+                                        ? Colors.green.shade700
+                                        : Colors.red.shade700,
+                                  ),
+                                ),
+                              ],
+                            ),
                             const SizedBox(height: 8),
                             Row(
                               children: [
                                 Icon(
-                                  provider.tradeSignal!['assessment']
-                                              ['approved'] ==
+                                  provider.tradeSignal!['assessment']['approved'] ==
                                           true
                                       ? Icons.check_circle
                                       : Icons.cancel,
-                                  color: provider.tradeSignal!['assessment']
-                                              ['approved'] ==
+                                  color:
+                                      provider.tradeSignal!['assessment']['approved'] ==
                                           true
                                       ? Colors.green.shade700
                                       : Colors.red.shade700,
@@ -7715,15 +8433,14 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                                 ),
                                 const SizedBox(width: 8),
                                 Text(
-                                  provider.tradeSignal!['assessment']
-                                              ['approved'] ==
+                                  provider.tradeSignal!['assessment']['approved'] ==
                                           true
                                       ? 'Trade Approved'
                                       : 'Trade Rejected',
                                   style: TextStyle(
                                     fontSize: 14,
-                                    color: provider.tradeSignal!['assessment']
-                                                ['approved'] ==
+                                    color:
+                                        provider.tradeSignal!['assessment']['approved'] ==
                                             true
                                         ? Colors.green.shade700
                                         : Colors.red.shade700,
@@ -7739,11 +8456,11 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                                 provider.tradeSignal!['assessment']['reason'] ??
                                     '',
                                 style: TextStyle(
-                                    fontSize: 13,
-                                    color: Theme.of(context)
-                                        .textTheme
-                                        .bodyMedium
-                                        ?.color),
+                                  fontSize: 13,
+                                  color: Theme.of(
+                                    context,
+                                  ).textTheme.bodyMedium?.color,
+                                ),
                               ),
                             ],
                           ],
@@ -7852,7 +8569,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                 );
               }
               final timestamp = DateTime.fromMillisecondsSinceEpoch(
-                  signal['timestamp'] as int);
+                signal['timestamp'] as int,
+              );
               var signalType = signal['signal'] ?? 'HOLD';
               // String? recalculatedReason;
               // final assessment = signal['assessment'] as Map<String, dynamic>?;
@@ -7973,7 +8691,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
-                              color: Theme.of(context).brightness ==
+                              color:
+                                  Theme.of(context).brightness ==
                                       Brightness.dark
                                   ? Colors.grey.shade300
                                   : Colors.grey.shade700,
@@ -7983,7 +8702,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                         const SizedBox(width: 8),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 2),
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: isMarketOpen
                                 ? Colors.amber.withValues(alpha: 0.15)
@@ -8050,22 +8771,23 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                                   Expanded(
                                     child: Padding(
                                       padding: const EdgeInsets.symmetric(
-                                          horizontal: 16),
+                                        horizontal: 16,
+                                      ),
                                       child: SizedBox(
                                         height: 30,
                                         child: _buildSparkline(
-                                            (multiIndicator!['sparkline']
-                                                    as List)
-                                                .map((e) =>
-                                                    (e as num).toDouble())
-                                                .toList(),
-                                            signalColor),
+                                          (multiIndicator!['sparkline'] as List)
+                                              .map((e) => (e as num).toDouble())
+                                              .toList(),
+                                          signalColor,
+                                        ),
                                       ),
                                     ),
                                   ),
                                 if (multiIndicator?['signalStrength'] != null)
                                   _buildStrengthBadge(
-                                      multiIndicator!['signalStrength'] as int),
+                                    multiIndicator!['signalStrength'] as int,
+                                  ),
                               ],
                             ),
                           ),
@@ -8081,85 +8803,100 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                               }
                               return Padding(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 16.0, vertical: 12.0),
+                                  horizontal: 16.0,
+                                  vertical: 12.0,
+                                ),
                                 child: Container(
                                   width: double.infinity,
                                   padding: const EdgeInsets.all(12),
                                   decoration: BoxDecoration(
                                     gradient: LinearGradient(
-                                      colors: Theme.of(context).brightness ==
+                                      colors:
+                                          Theme.of(context).brightness ==
                                               Brightness.dark
                                           ? [
-                                              Colors.purple.shade900
-                                                  .withValues(alpha: 0.3),
-                                              Colors.blue.shade900
-                                                  .withValues(alpha: 0.3)
+                                              Colors.purple.shade900.withValues(
+                                                alpha: 0.3,
+                                              ),
+                                              Colors.blue.shade900.withValues(
+                                                alpha: 0.3,
+                                              ),
                                             ]
                                           : [
                                               Colors.purple.shade50,
-                                              Colors.blue.shade50
+                                              Colors.blue.shade50,
                                             ],
                                       begin: Alignment.topLeft,
                                       end: Alignment.bottomRight,
                                     ),
                                     borderRadius: BorderRadius.circular(16),
                                     border: Border.all(
-                                      color: Theme.of(context).brightness ==
+                                      color:
+                                          Theme.of(context).brightness ==
                                               Brightness.dark
-                                          ? Colors.purpleAccent
-                                              .withValues(alpha: 0.2)
-                                          : Colors.purple
-                                              .withValues(alpha: 0.1),
+                                          ? Colors.purpleAccent.withValues(
+                                              alpha: 0.2,
+                                            )
+                                          : Colors.purple.withValues(
+                                              alpha: 0.1,
+                                            ),
                                     ),
                                   ),
                                   child: Column(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
-                                      Row(children: [
-                                        ShaderMask(
-                                          shaderCallback: (bounds) =>
-                                              const LinearGradient(
-                                            colors: [
-                                              Colors.purple,
-                                              Colors.blue
-                                            ],
-                                          ).createShader(bounds),
-                                          child: const Icon(
-                                            Icons.auto_awesome,
-                                            size: 18,
-                                            color: Colors.white,
+                                      Row(
+                                        children: [
+                                          ShaderMask(
+                                            shaderCallback: (bounds) =>
+                                                const LinearGradient(
+                                                  colors: [
+                                                    Colors.purple,
+                                                    Colors.blue,
+                                                  ],
+                                                ).createShader(bounds),
+                                            child: const Icon(
+                                              Icons.auto_awesome,
+                                              size: 18,
+                                              color: Colors.white,
+                                            ),
                                           ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Text("AI Insight",
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            "AI Insight",
                                             style: TextStyle(
-                                                fontSize: 14,
-                                                fontWeight: FontWeight.bold,
-                                                foreground: Paint()
-                                                  ..shader =
-                                                      const LinearGradient(
-                                                    colors: [
-                                                      Colors.purple,
-                                                      Colors.blue
-                                                    ],
-                                                  ).createShader(
-                                                          const Rect.fromLTWH(
-                                                              0.0,
-                                                              0.0,
-                                                              200.0,
-                                                              70.0))))
-                                      ]),
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.bold,
+                                              foreground: Paint()
+                                                ..shader =
+                                                    const LinearGradient(
+                                                      colors: [
+                                                        Colors.purple,
+                                                        Colors.blue,
+                                                      ],
+                                                    ).createShader(
+                                                      const Rect.fromLTWH(
+                                                        0.0,
+                                                        0.0,
+                                                        200.0,
+                                                        70.0,
+                                                      ),
+                                                    ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                       const SizedBox(height: 12),
                                       SelectableText(
                                         optimization['reasoning'],
                                         style: TextStyle(
-                                            fontSize: 14,
-                                            color: Theme.of(context)
-                                                .textTheme
-                                                .bodyMedium
-                                                ?.color,
-                                            height: 1.5),
+                                          fontSize: 14,
+                                          color: Theme.of(
+                                            context,
+                                          ).textTheme.bodyMedium?.color,
+                                          height: 1.5,
+                                        ),
                                       ),
                                     ],
                                   ),
@@ -8173,12 +8910,19 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                           if (summaryOnly)
                             Padding(
                               padding: const EdgeInsets.fromLTRB(
-                                  16.0, 4.0, 16.0, 16.0),
+                                16.0,
+                                4.0,
+                                16.0,
+                                16.0,
+                              ),
                               child: OutlinedButton.icon(
-                                icon: const Icon(Icons.analytics_outlined,
-                                    size: 18),
+                                icon: const Icon(
+                                  Icons.analytics_outlined,
+                                  size: 18,
+                                ),
                                 label: const Text(
-                                    'View Full Technical Analysis (19 Indicators)'),
+                                  'View Full Technical Analysis (19 Indicators)',
+                                ),
                                 style: OutlinedButton.styleFrom(
                                   minimumSize: const Size.fromHeight(44),
                                   shape: RoundedRectangleBorder(
@@ -8191,9 +8935,14 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                           else
                             Padding(
                               padding: const EdgeInsets.fromLTRB(
-                                  16.0, 0, 16.0, 16.0),
-                              child:
-                                  _buildMultiIndicatorDisplay(multiIndicator),
+                                16.0,
+                                0,
+                                16.0,
+                                16.0,
+                              ),
+                              child: _buildMultiIndicatorDisplay(
+                                multiIndicator,
+                              ),
                             ),
 
                         // Action Buttons
@@ -8331,8 +9080,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
   Iterable<Widget> getHeaderWidgets(QuoteStore quoteStore) sync* {
     var instrument = widget.instrument;
-    var quoteObj = quoteStore.items
-        .firstWhereOrNull((element) => element.symbol == instrument.symbol);
+    var quoteObj = quoteStore.items.firstWhereOrNull(
+      (element) => element.symbol == instrument.symbol,
+    );
     quoteObj ??= instrument.quoteObj;
 
     yield Align(
@@ -8343,19 +9093,21 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           Text(
             instrument.symbol,
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-                fontSize: 14, // 19
-                // style: TextStyle(
-                //     fontSize: 14.0,
-                color: Theme.of(context).appBarTheme.foregroundColor),
+              fontWeight: FontWeight.bold,
+              fontSize: 14, // 19
+              // style: TextStyle(
+              //     fontSize: 14.0,
+              color: Theme.of(context).appBarTheme.foregroundColor,
+            ),
             textAlign: TextAlign.left,
           ),
           const SizedBox(height: 4),
           Text(
             '${instrument.name != "" ? instrument.name : instrument.simpleName}',
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontSize: 13.0,
-                color: Theme.of(context).appBarTheme.foregroundColor),
+              fontSize: 13.0,
+              color: Theme.of(context).appBarTheme.foregroundColor,
+            ),
             textAlign: TextAlign.left,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,

@@ -57,18 +57,21 @@ class TaxOptimizationService {
         // For stocks, gainLoss is (marketValue - totalCost)
         // A negative gainLoss means a loss.
         if (pos.gainLoss < 0) {
-          suggestions.add(TaxHarvestingSuggestion(
-            symbol: pos.instrumentObj?.symbol ?? 'Unknown',
-            name: pos.instrumentObj?.name ?? 'Unknown',
-            quantity: pos.quantity!,
-            averageBuyPrice: pos.averageBuyPrice!,
-            currentPrice:
-                (pos.quantity! > 0) ? (pos.marketValue / pos.quantity!) : 0,
-            estimatedLoss: pos.gainLoss, // Negative value
-            totalCost: pos.totalCost,
-            type: 'stock',
-            position: pos,
-          ));
+          suggestions.add(
+            TaxHarvestingSuggestion(
+              symbol: pos.instrumentObj?.symbol ?? 'Unknown',
+              name: pos.instrumentObj?.name ?? 'Unknown',
+              quantity: pos.quantity!,
+              averageBuyPrice: pos.averageBuyPrice!,
+              currentPrice: (pos.quantity! > 0)
+                  ? (pos.marketValue / pos.quantity!)
+                  : 0,
+              estimatedLoss: pos.gainLoss, // Negative value
+              totalCost: pos.totalCost,
+              type: 'stock',
+              position: pos,
+            ),
+          );
         }
       }
     }
@@ -95,20 +98,23 @@ class TaxOptimizationService {
         }
 
         if (estimatedLoss < 0) {
-          suggestions.add(TaxHarvestingSuggestion(
-            symbol: pos.symbol,
-            name: pos.optionInstrument?.chainSymbol ??
-                pos.symbol, // Or strategy name
-            quantity: pos.quantity!,
-            averageBuyPrice: pos.averageOpenPrice!,
-            currentPrice: (pos.quantity! > 0)
-                ? (pos.marketValue / (pos.quantity! * 100))
-                : 0, // Per share price approximation
-            estimatedLoss: estimatedLoss,
-            totalCost: pos.totalCost,
-            type: 'option',
-            position: pos,
-          ));
+          suggestions.add(
+            TaxHarvestingSuggestion(
+              symbol: pos.symbol,
+              name:
+                  pos.optionInstrument?.chainSymbol ??
+                  pos.symbol, // Or strategy name
+              quantity: pos.quantity!,
+              averageBuyPrice: pos.averageOpenPrice!,
+              currentPrice: (pos.quantity! > 0)
+                  ? (pos.marketValue / (pos.quantity! * 100))
+                  : 0, // Per share price approximation
+              estimatedLoss: estimatedLoss,
+              totalCost: pos.totalCost,
+              type: 'option',
+              position: pos,
+            ),
+          );
         }
       }
     }

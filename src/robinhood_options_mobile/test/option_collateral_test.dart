@@ -22,11 +22,7 @@ void main() {
     });
 
     test('parses infinite cash collateral correctly', () {
-      final json = {
-        'amount': '0.0000',
-        'direction': 'debit',
-        'infinite': true,
-      };
+      final json = {'amount': '0.0000', 'direction': 'debit', 'infinite': true};
 
       final cash = OptionCollateralCash.fromJson(json);
       expect(cash.infinite, isTrue);
@@ -112,17 +108,13 @@ void main() {
       final breakdown = OptionCollateralBreakdown.fromJson({
         'cash': {'amount': '0.0000', 'direction': 'debit', 'infinite': false},
         'equities': [
-          {
-            'quantity': '0E-8',
-            'uncovered_shares': '0E-8',
-            'symbol': 'AMZN',
-          },
+          {'quantity': '0E-8', 'uncovered_shares': '0E-8', 'symbol': 'AMZN'},
           {
             'quantity': '100.00000000',
             'uncovered_shares': '0E-8',
             'symbol': 'AAPL',
-          }
-        ]
+          },
+        ],
       });
 
       expect(breakdown.equities.length, 2);
@@ -135,52 +127,64 @@ void main() {
 
   group('OptionChainCollateral Model Tests', () {
     test(
-        'parses real Robinhood API zero-collateral response with scientific notation and account_number',
-        () {
-      final json = {
-        "account_number": "5QR24141",
-        "collateral": {
-          "cash": {"amount": "0.0000", "direction": "debit", "infinite": false},
-          "equities": [
-            {
-              "quantity": "0E-8",
+      'parses real Robinhood API zero-collateral response with scientific notation and account_number',
+      () {
+        final json = {
+          "account_number": "5QR24141",
+          "collateral": {
+            "cash": {
+              "amount": "0.0000",
               "direction": "debit",
-              "uncovered_shares": "0E-8",
-              "instrument":
-                  "https://api.robinhood.com/instruments/c0bb3aec-bd1e-471e-a4f0-ca011cbec711/",
-              "symbol": "AMZN"
-            }
-          ]
-        },
-        "collateral_held_for_orders": {
-          "cash": {"amount": "0.0000", "direction": "debit", "infinite": false},
-          "equities": [
-            {
-              "quantity": "0E-8",
+              "infinite": false,
+            },
+            "equities": [
+              {
+                "quantity": "0E-8",
+                "direction": "debit",
+                "uncovered_shares": "0E-8",
+                "instrument":
+                    "https://api.robinhood.com/instruments/c0bb3aec-bd1e-471e-a4f0-ca011cbec711/",
+                "symbol": "AMZN",
+              },
+            ],
+          },
+          "collateral_held_for_orders": {
+            "cash": {
+              "amount": "0.0000",
               "direction": "debit",
-              "uncovered_shares": "0E-8",
-              "instrument":
-                  "https://api.robinhood.com/instruments/c0bb3aec-bd1e-471e-a4f0-ca011cbec711/",
-              "symbol": "AMZN"
-            }
-          ]
-        }
-      };
+              "infinite": false,
+            },
+            "equities": [
+              {
+                "quantity": "0E-8",
+                "direction": "debit",
+                "uncovered_shares": "0E-8",
+                "instrument":
+                    "https://api.robinhood.com/instruments/c0bb3aec-bd1e-471e-a4f0-ca011cbec711/",
+                "symbol": "AMZN",
+              },
+            ],
+          },
+        };
 
-      final collateral =
-          OptionChainCollateral.fromJson('chain_amzn', 'fallback_acct', json);
+        final collateral = OptionChainCollateral.fromJson(
+          'chain_amzn',
+          'fallback_acct',
+          json,
+        );
 
-      expect(collateral.chainId, 'chain_amzn');
-      expect(collateral.accountNumber, '5QR24141');
-      expect(collateral.totalCashLocked, 0.0);
-      expect(collateral.totalSharesLocked, 0.0);
-      expect(collateral.hasAnyCollateral, isFalse);
-      expect(collateral.collateral.hasCollateral, isFalse);
-      expect(collateral.collateral.activeEquities, isEmpty);
-      expect(collateral.collateralHeldForOrders.hasCollateral, isFalse);
-      expect(collateral.collateralHeldForOrders.activeEquities, isEmpty);
-      expect(collateral.collateral.equities.first.uncoveredShares, 0.0);
-    });
+        expect(collateral.chainId, 'chain_amzn');
+        expect(collateral.accountNumber, '5QR24141');
+        expect(collateral.totalCashLocked, 0.0);
+        expect(collateral.totalSharesLocked, 0.0);
+        expect(collateral.hasAnyCollateral, isFalse);
+        expect(collateral.collateral.hasCollateral, isFalse);
+        expect(collateral.collateral.activeEquities, isEmpty);
+        expect(collateral.collateralHeldForOrders.hasCollateral, isFalse);
+        expect(collateral.collateralHeldForOrders.activeEquities, isEmpty);
+        expect(collateral.collateral.equities.first.uncoveredShares, 0.0);
+      },
+    );
 
     test('parses full options chain collateral payload', () {
       final json = {
@@ -196,8 +200,8 @@ void main() {
               'direction': 'debit',
               'symbol': 'TSLA',
               'instrument': 'https://api.robinhood.com/instruments/tsla/',
-            }
-          ]
+            },
+          ],
         },
         'collateral_held_for_orders': {
           'cash': {
@@ -206,13 +210,9 @@ void main() {
             'infinite': false,
           },
           'equities': [
-            {
-              'quantity': '50.00000000',
-              'direction': 'debit',
-              'symbol': 'TSLA',
-            }
-          ]
-        }
+            {'quantity': '50.00000000', 'direction': 'debit', 'symbol': 'TSLA'},
+          ],
+        },
       };
 
       final collateral = OptionChainCollateral.fromJson(
@@ -256,13 +256,8 @@ void main() {
         'upgrade_subtitle': 'Unlock multi-leg strategies',
         'upgrade_url': 'https://robinhood.com/account/options/upgrade',
         'is_eligible': true,
-        'requirements': [
-          'Margin account enabled',
-        ],
-        'features': [
-          'Credit & debit spreads',
-          'Iron condors',
-        ],
+        'requirements': ['Margin account enabled'],
+        'features': ['Credit & debit spreads', 'Iron condors'],
       };
 
       final status = OptionUpgradeStatus.fromJson(json);
@@ -292,8 +287,10 @@ void main() {
     });
 
     test('generates sensible defaults when json is null', () {
-      final status = OptionUpgradeStatus.fromJson(null,
-          defaultAccountLevel: 'option_level_2');
+      final status = OptionUpgradeStatus.fromJson(
+        null,
+        defaultAccountLevel: 'option_level_2',
+      );
       expect(status.currentTier, 2);
       expect(status.targetTier, 3);
       expect(status.shouldShowUpgrade, isTrue);
@@ -305,12 +302,7 @@ void main() {
   group('DemoService Collateral & Upgrade Integration Tests', () {
     test('returns demo option chain collateral with cash and equity', () async {
       final demoService = DemoService();
-      final user = BrokerageUser(
-        BrokerageSource.demo,
-        'test_user',
-        null,
-        null,
-      );
+      final user = BrokerageUser(BrokerageSource.demo, 'test_user', null, null);
 
       final result = await demoService.getOptionChainCollateral(
         user,
@@ -333,15 +325,12 @@ void main() {
 
     test('returns demo options upgrade status', () async {
       final demoService = DemoService();
-      final user = BrokerageUser(
-        BrokerageSource.demo,
-        'test_user',
-        null,
-        null,
-      );
+      final user = BrokerageUser(BrokerageSource.demo, 'test_user', null, null);
 
-      final result =
-          await demoService.getOptionsUpgradeStatus(user, 'demo_acct');
+      final result = await demoService.getOptionsUpgradeStatus(
+        user,
+        'demo_acct',
+      );
       expect(result, isNotNull);
 
       final status = OptionUpgradeStatus.fromJson(result);

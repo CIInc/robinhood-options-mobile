@@ -24,13 +24,14 @@ class RebalancingWidget extends StatefulWidget {
   final Map<String, double>? initialAssetAllocation;
   final bool applyMacroGuidance;
 
-  const RebalancingWidget(
-      {super.key,
-      required this.user,
-      required this.userDocRef,
-      required this.account,
-      this.initialAssetAllocation,
-      this.applyMacroGuidance = false});
+  const RebalancingWidget({
+    super.key,
+    required this.user,
+    required this.userDocRef,
+    required this.account,
+    this.initialAssetAllocation,
+    this.applyMacroGuidance = false,
+  });
 
   @override
   State<RebalancingWidget> createState() => _RebalancingWidgetState();
@@ -51,10 +52,12 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
   Map<String, double>? _sectorTargetsBackup;
   bool _isEditing = false;
   int _viewMode = 0; // 0: Asset Class, 1: Sector
-  final NumberFormat formatCurrency =
-      NumberFormat.simpleCurrency(locale: "en_US");
-  final NumberFormat formatPercentage =
-      NumberFormat.decimalPercentPattern(decimalDigits: 1);
+  final NumberFormat formatCurrency = NumberFormat.simpleCurrency(
+    locale: "en_US",
+  );
+  final NumberFormat formatPercentage = NumberFormat.decimalPercentPattern(
+    decimalDigits: 1,
+  );
   double _driftThreshold = 100.0;
   late RebalancingConfig _rebalancingConfig;
 
@@ -118,7 +121,8 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-              'Total allocation must be 100%. Current: ${formatPercentage.format(sum)}'),
+            'Total allocation must be 100%. Current: ${formatPercentage.format(sum)}',
+          ),
           backgroundColor: Colors.red,
         ),
       );
@@ -129,8 +133,9 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
       await widget.userDocRef.update({'assetAllocationTargets': _assetTargets});
       widget.user.assetAllocationTargets = Map.from(_assetTargets);
     } else {
-      await widget.userDocRef
-          .update({'sectorAllocationTargets': _sectorTargets});
+      await widget.userDocRef.update({
+        'sectorAllocationTargets': _sectorTargets,
+      });
       widget.user.sectorAllocationTargets = Map.from(_sectorTargets);
     }
 
@@ -138,8 +143,9 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
       _isEditing = false;
     });
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Allocation targets saved')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Allocation targets saved')));
     }
   }
 
@@ -264,8 +270,10 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
                       const SizedBox(height: 16),
-                      Text('Drift Threshold for Recommendations',
-                          style: Theme.of(context).textTheme.titleMedium),
+                      Text(
+                        'Drift Threshold for Recommendations',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
                       const SizedBox(height: 8),
                       Row(
                         children: [
@@ -290,22 +298,28 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
                           ),
                           Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 6),
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
                             decoration: BoxDecoration(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .secondaryContainer,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.secondaryContainer,
                               borderRadius: BorderRadius.circular(8),
                             ),
-                            child: Text(formatCurrency.format(_driftThreshold),
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.bold)),
+                            child: Text(
+                              formatCurrency.format(_driftThreshold),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ),
                         ],
                       ),
                       Text(
-                          'Recommendations will be triggered if the drift exceeds this amount.',
-                          style: Theme.of(context).textTheme.bodySmall),
+                        'Recommendations will be triggered if the drift exceeds this amount.',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
                       const SizedBox(height: 24),
                       const Divider(),
                       const SizedBox(height: 16),
@@ -317,16 +331,19 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
                       SwitchListTile(
                         title: const Text('Enable Scheduler'),
                         subtitle: const Text(
-                            'Periodically check for portfolio drift and get notified.'),
+                          'Periodically check for portfolio drift and get notified.',
+                        ),
                         value: _rebalancingConfig.isEnabled,
                         onChanged: (value) {
                           setModalState(() {
-                            _rebalancingConfig =
-                                _rebalancingConfig.copyWith(isEnabled: value);
+                            _rebalancingConfig = _rebalancingConfig.copyWith(
+                              isEnabled: value,
+                            );
                           });
                           setState(() {
-                            _rebalancingConfig =
-                                _rebalancingConfig.copyWith(isEnabled: value);
+                            _rebalancingConfig = _rebalancingConfig.copyWith(
+                              isEnabled: value,
+                            );
                           });
                         },
                       ),
@@ -348,28 +365,36 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
                               }
                             },
                             items: RebalancingFrequency.values
-                                .map((f) => DropdownMenuItem(
-                                      value: f,
-                                      child: Text(f.name[0].toUpperCase() +
-                                          f.name.substring(1)),
-                                    ))
+                                .map(
+                                  (f) => DropdownMenuItem(
+                                    value: f,
+                                    child: Text(
+                                      f.name[0].toUpperCase() +
+                                          f.name.substring(1),
+                                    ),
+                                  ),
+                                )
                                 .toList(),
                           ),
                         ),
                         SwitchListTile(
-                          title:
-                              const Text('Auto-Execute (Paper/Experimental)'),
+                          title: const Text(
+                            'Auto-Execute (Paper/Experimental)',
+                          ),
                           subtitle: const Text(
-                              'Automatically place orders to rebalance (use with caution).'),
+                            'Automatically place orders to rebalance (use with caution).',
+                          ),
                           value: _rebalancingConfig.autoExecute,
                           onChanged: (value) {
                             setModalState(() {
                               _rebalancingConfig = _rebalancingConfig.copyWith(
-                                  autoExecute: value);
+                                autoExecute: value,
+                              );
                             });
                             setState(() {
                               _rebalancingConfig = _rebalancingConfig.copyWith(
-                                  autoExecute: value);
+                                autoExecute: value,
+                              );
                             });
                           },
                         ),
@@ -387,8 +412,8 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
                               Navigator.pop(context);
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
-                                    content:
-                                        Text('Rebalancing settings saved')),
+                                  content: Text('Rebalancing settings saved'),
+                                ),
                               );
                             }
                           },
@@ -440,7 +465,8 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                        'Define your investor profile to generate personalized allocation targets.'),
+                      'Define your investor profile to generate personalized allocation targets.',
+                    ),
                     const SizedBox(height: 20),
                     DropdownButtonFormField<String>(
                       initialValue: selectedRisk,
@@ -610,9 +636,9 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .surfaceContainerHighest,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.surfaceContainerHighest,
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Row(
@@ -630,37 +656,46 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
                       ),
                     ),
                     const SizedBox(height: 20),
-                    Text('Asset Allocation',
-                        style: Theme.of(context).textTheme.titleSmall),
+                    Text(
+                      'Asset Allocation',
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
                     const SizedBox(height: 8),
-                    ...(data['assets'] as Map<String, dynamic>)
-                        .entries
-                        .map((e) => Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(e.key),
-                                Text(
-                                    '${((e.value as num).toDouble() * 100).toStringAsFixed(1)}%'),
-                              ],
-                            )),
+                    ...(data['assets'] as Map<String, dynamic>).entries.map(
+                      (e) => Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(e.key),
+                          Text(
+                            '${((e.value as num).toDouble() * 100).toStringAsFixed(1)}%',
+                          ),
+                        ],
+                      ),
+                    ),
                     const SizedBox(height: 16),
-                    Text('Sector Allocation',
-                        style: Theme.of(context).textTheme.titleSmall),
+                    Text(
+                      'Sector Allocation',
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
                     const SizedBox(height: 8),
-                    ...(data['sectors'] as Map<String, dynamic>)
-                        .entries
+                    ...(data['sectors'] as Map<String, dynamic>).entries
                         .take(5) // Just show top 5 for preview
-                        .map((e) => Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(e.key),
-                                Text(
-                                    '${((e.value as num).toDouble() * 100).toStringAsFixed(1)}%'),
-                              ],
-                            )),
+                        .map(
+                          (e) => Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(e.key),
+                              Text(
+                                '${((e.value as num).toDouble() * 100).toStringAsFixed(1)}%',
+                              ),
+                            ],
+                          ),
+                        ),
                     if ((data['sectors'] as Map).length > 5)
-                      Text('...and ${(data['sectors'] as Map).length - 5} more',
-                          style: Theme.of(context).textTheme.bodySmall),
+                      Text(
+                        '...and ${(data['sectors'] as Map).length - 5} more',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
                   ],
                 ),
               ),
@@ -682,19 +717,22 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
                         _assetTargets.clear();
                         Map<String, dynamic> assets = data['assets'];
                         assets.forEach(
-                            (k, v) => _assetTargets[k] = (v as num).toDouble());
+                          (k, v) => _assetTargets[k] = (v as num).toDouble(),
+                        );
                       }
                       if (data['sectors'] != null) {
                         _sectorTargets.clear();
                         Map<String, dynamic> sectors = data['sectors'];
-                        sectors.forEach((k, v) =>
-                            _sectorTargets[k] = (v as num).toDouble());
+                        sectors.forEach(
+                          (k, v) => _sectorTargets[k] = (v as num).toDouble(),
+                        );
                       }
                     });
                     Navigator.of(context).pop();
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                          content: Text('Targets updated. Review and Save.')),
+                        content: Text('Targets updated. Review and Save.'),
+                      ),
                     );
                   },
                 ),
@@ -725,7 +763,8 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
           builder: (context) => AlertDialog(
             title: const Text('Discard Changes?'),
             content: const Text(
-                'You have unsaved changes. Are you sure you want to discard them?'),
+              'You have unsaved changes. Are you sure you want to discard them?',
+            ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context, false),
@@ -780,18 +819,21 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
                     children: [
                       Row(
                         children: [
-                          const Text('Total: ',
-                              style: TextStyle(fontWeight: FontWeight.bold)),
+                          const Text(
+                            'Total: ',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
                           Text(
-                            formatPercentage.format((_viewMode == 0
-                                    ? _assetTargets
-                                    : _sectorTargets)
-                                .values
-                                .fold(0.0, (a, b) => a + b)),
+                            formatPercentage.format(
+                              (_viewMode == 0 ? _assetTargets : _sectorTargets)
+                                  .values
+                                  .fold(0.0, (a, b) => a + b),
+                            ),
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 18,
-                              color: ((_viewMode == 0
+                              color:
+                                  ((_viewMode == 0
                                                       ? _assetTargets
                                                       : _sectorTargets)
                                                   .values
@@ -815,562 +857,696 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
                 ),
               )
             : null,
-        body: Consumer5<PortfolioStore, InstrumentPositionStore,
-            OptionPositionStore, ForexHoldingStore, FuturesPositionStore>(
-          builder: (context,
-              portfolioStore,
-              stockPositionStore,
-              optionPositionStore,
-              forexHoldingStore,
-              futuresPositionStore,
-              child) {
-            // Calculate current allocation
-            double stockEquity = 0;
-            double fixedIncomeEquity = 0;
-            final Map<String, double> sectorEquity = {};
+        body:
+            Consumer5<
+              PortfolioStore,
+              InstrumentPositionStore,
+              OptionPositionStore,
+              ForexHoldingStore,
+              FuturesPositionStore
+            >(
+              builder:
+                  (
+                    context,
+                    portfolioStore,
+                    stockPositionStore,
+                    optionPositionStore,
+                    forexHoldingStore,
+                    futuresPositionStore,
+                    child,
+                  ) {
+                    // Calculate current allocation
+                    double stockEquity = 0;
+                    double fixedIncomeEquity = 0;
+                    final Map<String, double> sectorEquity = {};
 
-            // Fixed income ETFs (treasury, money market, bonds)
-            final fixedIncomeSymbols = [
-              'SGOV', // iShares 0-3 Month Treasury
-              'BIL', // SPDR 1-3 Month T-Bill
-              'SHV', // iShares Short Treasury
-              'USFR', // WisdomTree Floating Rate Treasury
-              'TFLO', // iShares Treasury Floating Rate
-              'TBIL', // US Treasury 3 Month Bill
-              'BILS', // SPDR 1-12 Month T-Bill
-              'SHT', // iShares 1-3 Year Treasury
-              'GBIL', // Goldman Sachs 3 Month Treasury
-              'CLTL', // Invesco Treasury Collateral
-              'VGSH', // Vanguard Short-Term Treasury
-              'SCHO', // Schwab Short-Term Treasury
-              'AGG', // iShares Core U.S. Aggregate Bond
-              'BND', // Vanguard Total Bond Market
-              'TLT', // iShares 20+ Year Treasury
-              'IEF', // iShares 7-10 Year Treasury
-              'SHY', // iShares 1-3 Year Treasury
-              'LQD', // iShares Investment Grade Corporate
-              'TIP', // iShares TIPS Bond
-              'MUB', // iShares National Muni Bond
-            ];
+                    // Fixed income ETFs (treasury, money market, bonds)
+                    final fixedIncomeSymbols = [
+                      'SGOV', // iShares 0-3 Month Treasury
+                      'BIL', // SPDR 1-3 Month T-Bill
+                      'SHV', // iShares Short Treasury
+                      'USFR', // WisdomTree Floating Rate Treasury
+                      'TFLO', // iShares Treasury Floating Rate
+                      'TBIL', // US Treasury 3 Month Bill
+                      'BILS', // SPDR 1-12 Month T-Bill
+                      'SHT', // iShares 1-3 Year Treasury
+                      'GBIL', // Goldman Sachs 3 Month Treasury
+                      'CLTL', // Invesco Treasury Collateral
+                      'VGSH', // Vanguard Short-Term Treasury
+                      'SCHO', // Schwab Short-Term Treasury
+                      'AGG', // iShares Core U.S. Aggregate Bond
+                      'BND', // Vanguard Total Bond Market
+                      'TLT', // iShares 20+ Year Treasury
+                      'IEF', // iShares 7-10 Year Treasury
+                      'SHY', // iShares 1-3 Year Treasury
+                      'LQD', // iShares Investment Grade Corporate
+                      'TIP', // iShares TIPS Bond
+                      'MUB', // iShares National Muni Bond
+                    ];
 
-            for (var item in stockPositionStore.items) {
-              // Use marketValue for accurate allocation (was using cost basis before)
-              final equity = item.marketValue;
+                    for (var item in stockPositionStore.items) {
+                      // Use marketValue for accurate allocation (was using cost basis before)
+                      final equity = item.marketValue;
 
-              if (item.instrumentObj?.symbol != null &&
-                  fixedIncomeSymbols.contains(item.instrumentObj!.symbol)) {
-                fixedIncomeEquity += equity;
-              } else {
-                stockEquity += equity;
+                      if (item.instrumentObj?.symbol != null &&
+                          fixedIncomeSymbols.contains(
+                            item.instrumentObj!.symbol,
+                          )) {
+                        fixedIncomeEquity += equity;
+                      } else {
+                        stockEquity += equity;
 
-                final sector =
-                    item.instrumentObj?.fundamentalsObj?.sector ?? 'Unknown';
-                sectorEquity[sector] = (sectorEquity[sector] ?? 0) + equity;
-              }
-            }
+                        final sector =
+                            item.instrumentObj?.fundamentalsObj?.sector ??
+                            'Unknown';
+                        sectorEquity[sector] =
+                            (sectorEquity[sector] ?? 0) + equity;
+                      }
+                    }
 
-            double optionEquity = 0;
-            for (var item in optionPositionStore.items) {
-              // Use marketValue for accurate allocation
-              optionEquity += item.marketValue;
-            }
+                    double optionEquity = 0;
+                    for (var item in optionPositionStore.items) {
+                      // Use marketValue for accurate allocation
+                      optionEquity += item.marketValue;
+                    }
 
-            double cryptoEquity = 0;
-            double forexEquity = 0;
-            for (var item in forexHoldingStore.items) {
-              if (item.quantity != null &&
-                  item.quoteObj != null &&
-                  item.quoteObj!.markPrice != null) {
-                final val = item.quantity! * item.quoteObj!.markPrice!;
-                if (item.isFiatForex) {
-                  forexEquity += val;
-                } else {
-                  cryptoEquity += val;
-                }
-              }
-            }
+                    double cryptoEquity = 0;
+                    double forexEquity = 0;
+                    for (var item in forexHoldingStore.items) {
+                      if (item.quantity != null &&
+                          item.quoteObj != null &&
+                          item.quoteObj!.markPrice != null) {
+                        final val = item.quantity! * item.quoteObj!.markPrice!;
+                        if (item.isFiatForex) {
+                          forexEquity += val;
+                        } else {
+                          cryptoEquity += val;
+                        }
+                      }
+                    }
 
-            double futuresEquity = futuresPositionStore.equity > 0
-                ? futuresPositionStore.equity
-                : 0;
-            double cashEquity = widget.account.portfolioCash ?? 0;
+                    double futuresEquity = futuresPositionStore.equity > 0
+                        ? futuresPositionStore.equity
+                        : 0;
+                    double cashEquity = widget.account.portfolioCash ?? 0;
 
-            final totalEquity = stockEquity +
-                optionEquity +
-                cryptoEquity +
-                forexEquity +
-                futuresEquity +
-                fixedIncomeEquity +
-                cashEquity;
+                    final totalEquity =
+                        stockEquity +
+                        optionEquity +
+                        cryptoEquity +
+                        forexEquity +
+                        futuresEquity +
+                        fixedIncomeEquity +
+                        cashEquity;
 
-            if (totalEquity == 0) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.pie_chart_outline,
-                        size: 64, color: Theme.of(context).colorScheme.outline),
-                    const SizedBox(height: 16),
-                    Text('No portfolio data available',
-                        style: Theme.of(context).textTheme.titleMedium),
-                    const SizedBox(height: 8),
-                    Text('Add positions to see allocation analysis',
-                        style: Theme.of(context).textTheme.bodyMedium),
-                  ],
-                ),
-              );
-            }
+                    if (totalEquity == 0) {
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.pie_chart_outline,
+                              size: 64,
+                              color: Theme.of(context).colorScheme.outline,
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'No portfolio data available',
+                              style: Theme.of(context).textTheme.titleMedium,
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Add positions to see allocation analysis',
+                              style: Theme.of(context).textTheme.bodyMedium,
+                            ),
+                          ],
+                        ),
+                      );
+                    }
 
-            final currentAssetAllocation = {
-              'Stocks': stockEquity / totalEquity,
-              'Options': optionEquity / totalEquity,
-              'Crypto': cryptoEquity / totalEquity,
-              'Forex': forexEquity / totalEquity,
-              'Futures': futuresEquity / totalEquity,
-              'Fixed Income': fixedIncomeEquity / totalEquity,
-              'Cash': cashEquity / totalEquity,
-            };
+                    final currentAssetAllocation = {
+                      'Stocks': stockEquity / totalEquity,
+                      'Options': optionEquity / totalEquity,
+                      'Crypto': cryptoEquity / totalEquity,
+                      'Forex': forexEquity / totalEquity,
+                      'Futures': futuresEquity / totalEquity,
+                      'Fixed Income': fixedIncomeEquity / totalEquity,
+                      'Cash': cashEquity / totalEquity,
+                    };
 
-            final currentSectorAllocation = sectorEquity.map((key, value) =>
-                MapEntry(key, value / totalEquity)); // Sector % of TOTAL equity
+                    final currentSectorAllocation = sectorEquity.map(
+                      (key, value) => MapEntry(key, value / totalEquity),
+                    ); // Sector % of TOTAL equity
 
-            // Ensure all sectors in current allocation are in targets (init with 0 if missing)
-            if (_sectorTargets.isEmpty && currentSectorAllocation.isNotEmpty) {
-              // Initialize targets with current if empty
-              // Or just ensure keys exist
-            }
-            for (var key in currentSectorAllocation.keys) {
-              if (!_sectorTargets.containsKey(key)) {
-                _sectorTargets[key] = 0;
-              }
-            }
+                    // Ensure all sectors in current allocation are in targets (init with 0 if missing)
+                    if (_sectorTargets.isEmpty &&
+                        currentSectorAllocation.isNotEmpty) {
+                      // Initialize targets with current if empty
+                      // Or just ensure keys exist
+                    }
+                    for (var key in currentSectorAllocation.keys) {
+                      if (!_sectorTargets.containsKey(key)) {
+                        _sectorTargets[key] = 0;
+                      }
+                    }
 
-            final currentAllocation = _viewMode == 0
-                ? currentAssetAllocation
-                : currentSectorAllocation;
-            final targets = _viewMode == 0 ? _assetTargets : _sectorTargets;
+                    final currentAllocation = _viewMode == 0
+                        ? currentAssetAllocation
+                        : currentSectorAllocation;
+                    final targets = _viewMode == 0
+                        ? _assetTargets
+                        : _sectorTargets;
 
-            final allKeys = _viewMode == 0
-                ? [
-                    'Stocks',
-                    'Options',
-                    'Crypto',
-                    'Forex',
-                    'Futures',
-                    'Fixed Income',
-                    'Cash'
-                  ]
-                : {
-                    ...currentSectorAllocation.keys,
-                    ..._sectorTargets.keys,
-                    ..._standardSectors
-                  }.toList();
-            if (_viewMode == 1) {
-              allKeys.sort();
-            }
+                    final allKeys = _viewMode == 0
+                        ? [
+                            'Stocks',
+                            'Options',
+                            'Crypto',
+                            'Forex',
+                            'Futures',
+                            'Fixed Income',
+                            'Cash',
+                          ]
+                        : {
+                            ...currentSectorAllocation.keys,
+                            ..._sectorTargets.keys,
+                            ..._standardSectors,
+                          }.toList();
+                    if (_viewMode == 1) {
+                      allKeys.sort();
+                    }
 
-            final colorScheme = Theme.of(context).colorScheme;
-            var brightness = MediaQuery.of(context).platformBrightness;
+                    final colorScheme = Theme.of(context).colorScheme;
+                    var brightness = MediaQuery.of(context).platformBrightness;
 
-            // Helper function to get darker color in dark theme
-            Color getDarkerColorForTheme(Color color) {
-              if (brightness == Brightness.dark) {
-                return Color.lerp(color, Colors.black, 0.2) ?? color;
-              }
-              return color;
-            }
+                    // Helper function to get darker color in dark theme
+                    Color getDarkerColorForTheme(Color color) {
+                      if (brightness == Brightness.dark) {
+                        return Color.lerp(color, Colors.black, 0.2) ?? color;
+                      }
+                      return color;
+                    }
 
-            // var assetPalette = [
-            //   charts.ColorUtil.fromDartColor(
-            //       getDarkerColorForTheme(colorScheme.primary)),
-            //   charts.ColorUtil.fromDartColor(
-            //       getDarkerColorForTheme(colorScheme.secondary)),
-            //   charts.ColorUtil.fromDartColor(
-            //       getDarkerColorForTheme(colorScheme.tertiary)),
-            //   charts.ColorUtil.fromDartColor(
-            //       getDarkerColorForTheme(colorScheme.primaryContainer)),
-            // ];
-            final assetPalette = [
-              getDarkerColorForTheme(colorScheme.primary),
-              getDarkerColorForTheme(colorScheme.secondary),
-              getDarkerColorForTheme(colorScheme.tertiary),
-              getDarkerColorForTheme(colorScheme.inversePrimary),
-              getDarkerColorForTheme(colorScheme.primaryContainer),
-            ];
+                    // var assetPalette = [
+                    //   charts.ColorUtil.fromDartColor(
+                    //       getDarkerColorForTheme(colorScheme.primary)),
+                    //   charts.ColorUtil.fromDartColor(
+                    //       getDarkerColorForTheme(colorScheme.secondary)),
+                    //   charts.ColorUtil.fromDartColor(
+                    //       getDarkerColorForTheme(colorScheme.tertiary)),
+                    //   charts.ColorUtil.fromDartColor(
+                    //       getDarkerColorForTheme(colorScheme.primaryContainer)),
+                    // ];
+                    final assetPalette = [
+                      getDarkerColorForTheme(colorScheme.primary),
+                      getDarkerColorForTheme(colorScheme.secondary),
+                      getDarkerColorForTheme(colorScheme.tertiary),
+                      getDarkerColorForTheme(colorScheme.inversePrimary),
+                      getDarkerColorForTheme(colorScheme.primaryContainer),
+                    ];
 
-            final assetColors = {
-              'Stocks': assetPalette[0],
-              'Options': assetPalette[3],
-              'Crypto': assetPalette[2],
-              'Fixed Income': assetPalette[4],
-              'Cash': assetPalette[1],
-              'Futures': Colors.deepOrange,
-              'Forex': Colors.teal,
-            };
+                    final assetColors = {
+                      'Stocks': assetPalette[0],
+                      'Options': assetPalette[3],
+                      'Crypto': assetPalette[2],
+                      'Fixed Income': assetPalette[4],
+                      'Cash': assetPalette[1],
+                      'Futures': Colors.deepOrange,
+                      'Forex': Colors.teal,
+                    };
 
-            final sectorPalette = [
-              Colors.teal.shade800,
-              Colors.indigo.shade800,
-              Colors.orange.shade900,
-              Colors.pink.shade800,
-              Colors.green.shade900,
-              Colors.deepPurple.shade800,
-              Colors.lightBlue.shade900,
-              Colors.red.shade900,
-              Colors.brown.shade800,
-              Colors.cyan.shade900,
-              Colors.deepOrange.shade900,
-              Colors.blueGrey.shade800,
-            ];
-            // getDarkerColorForTheme(colorScheme.secondary),
-            // getDarkerColorForTheme(colorScheme.primary),
-            // getDarkerColorForTheme(colorScheme.tertiary),
-            // getDarkerColorForTheme(colorScheme.secondaryContainer),
-            // getDarkerColorForTheme(colorScheme.primaryContainer),
-            // getDarkerColorForTheme(colorScheme.tertiaryContainer),
-            // getDarkerColorForTheme(colorScheme.inversePrimary),
-            // getDarkerColorForTheme(colorScheme.errorContainer),
-            // getDarkerColorForTheme(colorScheme.surfaceTint),
-            // getDarkerColorForTheme(colorScheme.outline),
-            // getDarkerColorForTheme(colorScheme.outlineVariant),
+                    final sectorPalette = [
+                      Colors.teal.shade800,
+                      Colors.indigo.shade800,
+                      Colors.orange.shade900,
+                      Colors.pink.shade800,
+                      Colors.green.shade900,
+                      Colors.deepPurple.shade800,
+                      Colors.lightBlue.shade900,
+                      Colors.red.shade900,
+                      Colors.brown.shade800,
+                      Colors.cyan.shade900,
+                      Colors.deepOrange.shade900,
+                      Colors.blueGrey.shade800,
+                    ];
+                    // getDarkerColorForTheme(colorScheme.secondary),
+                    // getDarkerColorForTheme(colorScheme.primary),
+                    // getDarkerColorForTheme(colorScheme.tertiary),
+                    // getDarkerColorForTheme(colorScheme.secondaryContainer),
+                    // getDarkerColorForTheme(colorScheme.primaryContainer),
+                    // getDarkerColorForTheme(colorScheme.tertiaryContainer),
+                    // getDarkerColorForTheme(colorScheme.inversePrimary),
+                    // getDarkerColorForTheme(colorScheme.errorContainer),
+                    // getDarkerColorForTheme(colorScheme.surfaceTint),
+                    // getDarkerColorForTheme(colorScheme.outline),
+                    // getDarkerColorForTheme(colorScheme.outlineVariant),
 
-            // var sectorPalette = PieChart.makeShades(
-            //     charts.ColorUtil.fromDartColor(
-            //         getDarkerColorForTheme(colorScheme.secondary)),
-            //     sectorEquity.isNotEmpty ? sectorEquity.length : 1);
+                    // var sectorPalette = PieChart.makeShades(
+                    //     charts.ColorUtil.fromDartColor(
+                    //         getDarkerColorForTheme(colorScheme.secondary)),
+                    //     sectorEquity.isNotEmpty ? sectorEquity.length : 1);
 
-            final sectorColors = <String, Color>{};
-            if (_viewMode == 1) {
-              for (int i = 0; i < allKeys.length; i++) {
-                sectorColors[allKeys[i]] =
-                    sectorPalette[i % sectorPalette.length];
-                // sectorColors[allKeys[i]] = charts.ColorUtil.toDartColor(
-                //     sectorPalette[i % sectorPalette.length]);
-              }
-            }
+                    final sectorColors = <String, Color>{};
+                    if (_viewMode == 1) {
+                      for (int i = 0; i < allKeys.length; i++) {
+                        sectorColors[allKeys[i]] =
+                            sectorPalette[i % sectorPalette.length];
+                        // sectorColors[allKeys[i]] = charts.ColorUtil.toDartColor(
+                        //     sectorPalette[i % sectorPalette.length]);
+                      }
+                    }
 
-            Color getColor(String key) {
-              if (_viewMode == 0) {
-                return assetColors[key] ?? Colors.grey;
-              } else {
-                return sectorColors[key] ?? Colors.grey;
-              }
-            }
+                    Color getColor(String key) {
+                      if (_viewMode == 0) {
+                        return assetColors[key] ?? Colors.grey;
+                      } else {
+                        return sectorColors[key] ?? Colors.grey;
+                      }
+                    }
 
-            return Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: SegmentedButton<int>(
-                    segments: const [
-                      ButtonSegment(value: 0, label: Text('Asset Class')),
-                      ButtonSegment(value: 1, label: Text('Sector')),
-                    ],
-                    selected: {_viewMode},
-                    onSelectionChanged: (Set<int> newSelection) {
-                      setState(() {
-                        _viewMode = newSelection.first;
-                        _isEditing =
-                            false; // Exit edit mode when switching views
-                      });
-                    },
-                  ),
-                ),
-                Expanded(
-                  child: ListView(
-                    padding: const EdgeInsets.all(16.0),
-                    children: [
-                      if (_isEditing) ...[
-                        SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: Row(
+                    return Column(
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: SegmentedButton<int>(
+                            segments: const [
+                              ButtonSegment(
+                                value: 0,
+                                label: Text('Asset Class'),
+                              ),
+                              ButtonSegment(value: 1, label: Text('Sector')),
+                            ],
+                            selected: {_viewMode},
+                            onSelectionChanged: (Set<int> newSelection) {
+                              setState(() {
+                                _viewMode = newSelection.first;
+                                _isEditing =
+                                    false; // Exit edit mode when switching views
+                              });
+                            },
+                          ),
+                        ),
+                        Expanded(
+                          child: ListView(
+                            padding: const EdgeInsets.all(16.0),
                             children: [
-                              const Text('Presets: ',
-                                  style:
-                                      TextStyle(fontWeight: FontWeight.bold)),
-                              const SizedBox(width: 8),
-                              ...(_viewMode == 0
-                                      ? [
-                                          'Aggressive',
-                                          'Moderate',
-                                          'Conservative',
-                                          'All-Weather',
-                                          'All Equity'
-                                        ]
-                                      : ['Tech Heavy', 'Balanced', 'Defensive'])
-                                  .map((preset) => Padding(
-                                        padding:
-                                            const EdgeInsets.only(right: 8.0),
-                                        child: ActionChip(
-                                          label: Text(preset),
-                                          onPressed: () => _applyPreset(preset),
+                              if (_isEditing) ...[
+                                SingleChildScrollView(
+                                  scrollDirection: Axis.horizontal,
+                                  child: Row(
+                                    children: [
+                                      const Text(
+                                        'Presets: ',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
                                         ),
-                                      )),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      ...(_viewMode == 0
+                                              ? [
+                                                  'Aggressive',
+                                                  'Moderate',
+                                                  'Conservative',
+                                                  'All-Weather',
+                                                  'All Equity',
+                                                ]
+                                              : [
+                                                  'Tech Heavy',
+                                                  'Balanced',
+                                                  'Defensive',
+                                                ])
+                                          .map(
+                                            (preset) => Padding(
+                                              padding: const EdgeInsets.only(
+                                                right: 8.0,
+                                              ),
+                                              child: ActionChip(
+                                                label: Text(preset),
+                                                onPressed: () =>
+                                                    _applyPreset(preset),
+                                              ),
+                                            ),
+                                          ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                              ],
+                              if (!_isEditing) ...[
+                                Card(
+                                  elevation: 2,
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(16.0),
+                                    child: SizedBox(
+                                      height: 220,
+                                      child: Row(
+                                        children: [
+                                          Expanded(
+                                            child: Column(
+                                              children: [
+                                                Text(
+                                                  'Current',
+                                                  style: Theme.of(context)
+                                                      .textTheme
+                                                      .titleMedium
+                                                      ?.copyWith(
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                      ),
+                                                ),
+                                                const SizedBox(height: 8),
+                                                Expanded(
+                                                  child: PieChart(
+                                                    [
+                                                      charts.Series<
+                                                        PieChartData,
+                                                        String
+                                                      >(
+                                                        id: 'Current',
+                                                        domainFn:
+                                                            (
+                                                              PieChartData
+                                                              sales,
+                                                              _,
+                                                            ) => sales.label,
+                                                        measureFn:
+                                                            (
+                                                              PieChartData
+                                                              sales,
+                                                              _,
+                                                            ) => sales.value,
+                                                        colorFn:
+                                                            (
+                                                              PieChartData row,
+                                                              _,
+                                                            ) =>
+                                                                charts
+                                                                    .ColorUtil.fromDartColor(
+                                                                  getColor(
+                                                                    row.label,
+                                                                  ),
+                                                                ),
+                                                        insideLabelStyleAccessorFn: (PieChartData row, _) {
+                                                          final c = getColor(
+                                                            row.label,
+                                                          );
+                                                          return charts.TextStyleSpec(
+                                                            fontSize: 11,
+                                                            fontWeight: 'bold',
+                                                            color:
+                                                                c
+                                                                        .computeLuminance() >
+                                                                    0.45
+                                                                ? charts
+                                                                      .ColorUtil.fromDartColor(
+                                                                    const Color(
+                                                                      0xFF1E1E1E,
+                                                                    ),
+                                                                  )
+                                                                : charts
+                                                                      .MaterialPalette
+                                                                      .white,
+                                                          );
+                                                        },
+                                                        outsideLabelStyleAccessorFn:
+                                                            (
+                                                              PieChartData row,
+                                                              _,
+                                                            ) => charts.TextStyleSpec(
+                                                              fontSize: 11,
+                                                              fontWeight:
+                                                                  'bold',
+                                                              color: charts.ColorUtil.fromDartColor(
+                                                                Theme.of(
+                                                                      context,
+                                                                    )
+                                                                    .colorScheme
+                                                                    .onSurface,
+                                                              ),
+                                                            ),
+                                                        data: allKeys
+                                                            .where(
+                                                              (k) =>
+                                                                  (currentAllocation[k] ??
+                                                                      0) >
+                                                                  0,
+                                                            )
+                                                            .map(
+                                                              (
+                                                                k,
+                                                              ) => PieChartData(
+                                                                k,
+                                                                currentAllocation[k] ??
+                                                                    0,
+                                                              ),
+                                                            )
+                                                            .toList(),
+                                                        labelAccessorFn:
+                                                            (
+                                                              PieChartData row,
+                                                              _,
+                                                            ) =>
+                                                                '${row.label}\n${formatPercentage.format(row.value)}',
+                                                      ),
+                                                    ],
+                                                    animate: false,
+                                                    renderer: charts.ArcRendererConfig(
+                                                      arcWidth: 60,
+                                                      arcRendererDecorators: [
+                                                        charts.ArcLabelDecorator(
+                                                          labelPosition: charts
+                                                              .ArcLabelPosition
+                                                              .auto,
+                                                          showLeaderLines:
+                                                              false,
+                                                          insideLabelStyleSpec:
+                                                              const charts.TextStyleSpec(
+                                                                fontSize: 11,
+                                                                fontWeight:
+                                                                    'bold',
+                                                                color: charts
+                                                                    .MaterialPalette
+                                                                    .white,
+                                                              ),
+                                                          outsideLabelStyleSpec:
+                                                              charts.TextStyleSpec(
+                                                                fontSize: 11,
+                                                                fontWeight:
+                                                                    'bold',
+                                                                color: charts.ColorUtil.fromDartColor(
+                                                                  Theme.of(
+                                                                        context,
+                                                                      )
+                                                                      .colorScheme
+                                                                      .onSurface,
+                                                                ),
+                                                              ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                    onSelected: (p0) {},
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          const VerticalDivider(width: 32),
+                                          Expanded(
+                                            child: Column(
+                                              children: [
+                                                Text(
+                                                  'Target',
+                                                  style: Theme.of(context)
+                                                      .textTheme
+                                                      .titleMedium
+                                                      ?.copyWith(
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                      ),
+                                                ),
+                                                const SizedBox(height: 8),
+                                                Expanded(
+                                                  child: PieChart(
+                                                    [
+                                                      charts.Series<
+                                                        PieChartData,
+                                                        String
+                                                      >(
+                                                        id: 'Target',
+                                                        domainFn:
+                                                            (
+                                                              PieChartData
+                                                              sales,
+                                                              _,
+                                                            ) => sales.label,
+                                                        measureFn:
+                                                            (
+                                                              PieChartData
+                                                              sales,
+                                                              _,
+                                                            ) => sales.value,
+                                                        colorFn:
+                                                            (
+                                                              PieChartData row,
+                                                              _,
+                                                            ) =>
+                                                                charts
+                                                                    .ColorUtil.fromDartColor(
+                                                                  getColor(
+                                                                    row.label,
+                                                                  ),
+                                                                ),
+                                                        insideLabelStyleAccessorFn: (PieChartData row, _) {
+                                                          final c = getColor(
+                                                            row.label,
+                                                          );
+                                                          return charts.TextStyleSpec(
+                                                            fontSize: 11,
+                                                            fontWeight: 'bold',
+                                                            color:
+                                                                c
+                                                                        .computeLuminance() >
+                                                                    0.45
+                                                                ? charts
+                                                                      .ColorUtil.fromDartColor(
+                                                                    const Color(
+                                                                      0xFF1E1E1E,
+                                                                    ),
+                                                                  )
+                                                                : charts
+                                                                      .MaterialPalette
+                                                                      .white,
+                                                          );
+                                                        },
+                                                        outsideLabelStyleAccessorFn:
+                                                            (
+                                                              PieChartData row,
+                                                              _,
+                                                            ) => charts.TextStyleSpec(
+                                                              fontSize: 11,
+                                                              fontWeight:
+                                                                  'bold',
+                                                              color: charts.ColorUtil.fromDartColor(
+                                                                Theme.of(
+                                                                      context,
+                                                                    )
+                                                                    .colorScheme
+                                                                    .onSurface,
+                                                              ),
+                                                            ),
+                                                        data: allKeys
+                                                            .where(
+                                                              (k) =>
+                                                                  (targets[k] ??
+                                                                      0) >
+                                                                  0,
+                                                            )
+                                                            .map(
+                                                              (
+                                                                k,
+                                                              ) => PieChartData(
+                                                                k,
+                                                                targets[k] ?? 0,
+                                                              ),
+                                                            )
+                                                            .toList(),
+                                                        labelAccessorFn:
+                                                            (
+                                                              PieChartData row,
+                                                              _,
+                                                            ) =>
+                                                                '${row.label}\n${formatPercentage.format(row.value)}',
+                                                      ),
+                                                    ],
+                                                    animate: false,
+                                                    renderer: charts.ArcRendererConfig(
+                                                      arcWidth: 60,
+                                                      arcRendererDecorators: [
+                                                        charts.ArcLabelDecorator(
+                                                          labelPosition: charts
+                                                              .ArcLabelPosition
+                                                              .auto,
+                                                          showLeaderLines:
+                                                              false,
+                                                          insideLabelStyleSpec:
+                                                              const charts.TextStyleSpec(
+                                                                fontSize: 11,
+                                                                fontWeight:
+                                                                    'bold',
+                                                                color: charts
+                                                                    .MaterialPalette
+                                                                    .white,
+                                                              ),
+                                                          outsideLabelStyleSpec:
+                                                              charts.TextStyleSpec(
+                                                                fontSize: 11,
+                                                                fontWeight:
+                                                                    'bold',
+                                                                color: charts.ColorUtil.fromDartColor(
+                                                                  Theme.of(
+                                                                        context,
+                                                                      )
+                                                                      .colorScheme
+                                                                      .onSurface,
+                                                                ),
+                                                              ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                    onSelected: (p0) {},
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 20),
+                              ],
+                              ...allKeys.map((key) {
+                                final currentPct =
+                                    currentAllocation[key] ?? 0.0;
+                                final targetPct = targets[key] ?? 0.0;
+                                return _buildAllocationCard(
+                                  key,
+                                  currentPct * totalEquity,
+                                  currentPct,
+                                  targetPct,
+                                  totalEquity,
+                                  targets,
+                                  getColor(key),
+                                );
+                              }),
+                              const SizedBox(height: 20),
+                              if (!_isEditing)
+                                _buildRecommendations(
+                                  currentAllocation,
+                                  targets,
+                                  totalEquity,
+                                ),
                             ],
                           ),
                         ),
-                        const SizedBox(height: 16),
                       ],
-                      if (!_isEditing) ...[
-                        Card(
-                          elevation: 2,
-                          child: Padding(
-                            padding: const EdgeInsets.all(16.0),
-                            child: SizedBox(
-                              height: 220,
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: Column(
-                                      children: [
-                                        Text('Current',
-                                            style: Theme.of(context)
-                                                .textTheme
-                                                .titleMedium
-                                                ?.copyWith(
-                                                    fontWeight:
-                                                        FontWeight.bold)),
-                                        const SizedBox(height: 8),
-                                        Expanded(
-                                          child: PieChart(
-                                            [
-                                              charts.Series<PieChartData,
-                                                  String>(
-                                                id: 'Current',
-                                                domainFn:
-                                                    (PieChartData sales, _) =>
-                                                        sales.label,
-                                                measureFn:
-                                                    (PieChartData sales, _) =>
-                                                        sales.value,
-                                                colorFn: (PieChartData row,
-                                                        _) =>
-                                                    charts.ColorUtil
-                                                        .fromDartColor(getColor(
-                                                            row.label)),
-                                                insideLabelStyleAccessorFn:
-                                                    (PieChartData row, _) {
-                                                  final c = getColor(row.label);
-                                                  return charts.TextStyleSpec(
-                                                    fontSize: 11,
-                                                    fontWeight: 'bold',
-                                                    color: c.computeLuminance() >
-                                                            0.45
-                                                        ? charts.ColorUtil
-                                                            .fromDartColor(
-                                                                const Color(
-                                                                    0xFF1E1E1E))
-                                                        : charts.MaterialPalette
-                                                            .white,
-                                                  );
-                                                },
-                                                outsideLabelStyleAccessorFn:
-                                                    (PieChartData row, _) =>
-                                                        charts.TextStyleSpec(
-                                                  fontSize: 11,
-                                                  fontWeight: 'bold',
-                                                  color: charts.ColorUtil
-                                                      .fromDartColor(
-                                                          Theme.of(context)
-                                                              .colorScheme
-                                                              .onSurface),
-                                                ),
-                                                data: allKeys
-                                                    .where((k) =>
-                                                        (currentAllocation[k] ??
-                                                            0) >
-                                                        0)
-                                                    .map((k) => PieChartData(
-                                                        k,
-                                                        currentAllocation[k] ??
-                                                            0))
-                                                    .toList(),
-                                                labelAccessorFn: (PieChartData
-                                                            row,
-                                                        _) =>
-                                                    '${row.label}\n${formatPercentage.format(row.value)}',
-                                              )
-                                            ],
-                                            animate: false,
-                                            renderer: charts.ArcRendererConfig(
-                                              arcWidth: 60,
-                                              arcRendererDecorators: [
-                                                charts.ArcLabelDecorator(
-                                                  labelPosition: charts
-                                                      .ArcLabelPosition.auto,
-                                                  showLeaderLines: false,
-                                                  insideLabelStyleSpec:
-                                                      const charts
-                                                          .TextStyleSpec(
-                                                          fontSize: 11,
-                                                          fontWeight: 'bold',
-                                                          color: charts
-                                                              .MaterialPalette
-                                                              .white),
-                                                  outsideLabelStyleSpec:
-                                                      charts.TextStyleSpec(
-                                                          fontSize: 11,
-                                                          fontWeight: 'bold',
-                                                          color: charts
-                                                                  .ColorUtil
-                                                              .fromDartColor(Theme
-                                                                      .of(context)
-                                                                  .colorScheme
-                                                                  .onSurface)),
-                                                )
-                                              ],
-                                            ),
-                                            onSelected: (p0) {},
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  const VerticalDivider(width: 32),
-                                  Expanded(
-                                    child: Column(
-                                      children: [
-                                        Text('Target',
-                                            style: Theme.of(context)
-                                                .textTheme
-                                                .titleMedium
-                                                ?.copyWith(
-                                                    fontWeight:
-                                                        FontWeight.bold)),
-                                        const SizedBox(height: 8),
-                                        Expanded(
-                                          child: PieChart(
-                                            [
-                                              charts.Series<PieChartData,
-                                                  String>(
-                                                id: 'Target',
-                                                domainFn:
-                                                    (PieChartData sales, _) =>
-                                                        sales.label,
-                                                measureFn:
-                                                    (PieChartData sales, _) =>
-                                                        sales.value,
-                                                colorFn: (PieChartData row,
-                                                        _) =>
-                                                    charts.ColorUtil
-                                                        .fromDartColor(getColor(
-                                                            row.label)),
-                                                insideLabelStyleAccessorFn:
-                                                    (PieChartData row, _) {
-                                                  final c = getColor(row.label);
-                                                  return charts.TextStyleSpec(
-                                                    fontSize: 11,
-                                                    fontWeight: 'bold',
-                                                    color: c.computeLuminance() >
-                                                            0.45
-                                                        ? charts.ColorUtil
-                                                            .fromDartColor(
-                                                                const Color(
-                                                                    0xFF1E1E1E))
-                                                        : charts.MaterialPalette
-                                                            .white,
-                                                  );
-                                                },
-                                                outsideLabelStyleAccessorFn:
-                                                    (PieChartData row, _) =>
-                                                        charts.TextStyleSpec(
-                                                  fontSize: 11,
-                                                  fontWeight: 'bold',
-                                                  color: charts.ColorUtil
-                                                      .fromDartColor(
-                                                          Theme.of(context)
-                                                              .colorScheme
-                                                              .onSurface),
-                                                ),
-                                                data: allKeys
-                                                    .where((k) =>
-                                                        (targets[k] ?? 0) > 0)
-                                                    .map((k) => PieChartData(
-                                                        k, targets[k] ?? 0))
-                                                    .toList(),
-                                                labelAccessorFn: (PieChartData
-                                                            row,
-                                                        _) =>
-                                                    '${row.label}\n${formatPercentage.format(row.value)}',
-                                              )
-                                            ],
-                                            animate: false,
-                                            renderer: charts.ArcRendererConfig(
-                                              arcWidth: 60,
-                                              arcRendererDecorators: [
-                                                charts.ArcLabelDecorator(
-                                                  labelPosition: charts
-                                                      .ArcLabelPosition.auto,
-                                                  showLeaderLines: false,
-                                                  insideLabelStyleSpec:
-                                                      const charts
-                                                          .TextStyleSpec(
-                                                          fontSize: 11,
-                                                          fontWeight: 'bold',
-                                                          color: charts
-                                                              .MaterialPalette
-                                                              .white),
-                                                  outsideLabelStyleSpec:
-                                                      charts.TextStyleSpec(
-                                                          fontSize: 11,
-                                                          fontWeight: 'bold',
-                                                          color: charts
-                                                                  .ColorUtil
-                                                              .fromDartColor(Theme
-                                                                      .of(context)
-                                                                  .colorScheme
-                                                                  .onSurface)),
-                                                )
-                                              ],
-                                            ),
-                                            onSelected: (p0) {},
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                      ],
-                      ...allKeys.map((key) {
-                        final currentPct = currentAllocation[key] ?? 0.0;
-                        final targetPct = targets[key] ?? 0.0;
-                        return _buildAllocationCard(
-                            key,
-                            currentPct * totalEquity,
-                            currentPct,
-                            targetPct,
-                            totalEquity,
-                            targets,
-                            getColor(key));
-                      }),
-                      const SizedBox(height: 20),
-                      if (!_isEditing)
-                        _buildRecommendations(
-                            currentAllocation, targets, totalEquity),
-                    ],
-                  ),
-                ),
-              ],
-            );
-          },
-        ),
+                    );
+                  },
+            ),
       ),
     );
   }
 
   Widget _buildAllocationCard(
-      String title,
-      double currentAmount,
-      double currentPct,
-      double targetPct,
-      double totalEquity,
-      Map<String, double> targets,
-      Color color) {
+    String title,
+    double currentAmount,
+    double currentPct,
+    double targetPct,
+    double totalEquity,
+    Map<String, double> targets,
+    Color color,
+  ) {
     final diff = currentPct - targetPct;
     final driftAmount = diff * totalEquity;
 
@@ -1396,15 +1572,18 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    Text(title,
-                        style: Theme.of(context)
-                            .textTheme
-                            .titleMedium
-                            ?.copyWith(fontWeight: FontWeight.bold)),
+                    Text(
+                      title,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ],
                 ),
-                Text(formatCurrency.format(currentAmount),
-                    style: Theme.of(context).textTheme.titleMedium),
+                Text(
+                  formatCurrency.format(currentAmount),
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
               ],
             ),
             const SizedBox(height: 16),
@@ -1415,9 +1594,12 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
                 Row(
                   children: [
                     SizedBox(
-                        width: 60,
-                        child: Text('Current',
-                            style: Theme.of(context).textTheme.bodySmall)),
+                      width: 60,
+                      child: Text(
+                        'Current',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ),
                     Expanded(
                       child: Stack(
                         children: [
@@ -1443,10 +1625,13 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
                     ),
                     const SizedBox(width: 10),
                     SizedBox(
-                        width: 50,
-                        child: Text(formatPercentage.format(currentPct),
-                            textAlign: TextAlign.end,
-                            style: Theme.of(context).textTheme.bodySmall)),
+                      width: 50,
+                      child: Text(
+                        formatPercentage.format(currentPct),
+                        textAlign: TextAlign.end,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 8),
@@ -1454,9 +1639,12 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
                 Row(
                   children: [
                     SizedBox(
-                        width: 60,
-                        child: Text('Target',
-                            style: Theme.of(context).textTheme.bodySmall)),
+                      width: 60,
+                      child: Text(
+                        'Target',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ),
                     Expanded(
                       child: _isEditing
                           ? Row(
@@ -1465,8 +1653,10 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
                                   icon: const Icon(Icons.remove_circle_outline),
                                   onPressed: () {
                                     setState(() {
-                                      targets[title] =
-                                          (targetPct - 0.01).clamp(0.0, 1.0);
+                                      targets[title] = (targetPct - 0.01).clamp(
+                                        0.0,
+                                        1.0,
+                                      );
                                     });
                                   },
                                   padding: EdgeInsets.zero,
@@ -1491,8 +1681,10 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
                                   icon: const Icon(Icons.add_circle_outline),
                                   onPressed: () {
                                     setState(() {
-                                      targets[title] =
-                                          (targetPct + 0.01).clamp(0.0, 1.0);
+                                      targets[title] = (targetPct + 0.01).clamp(
+                                        0.0,
+                                        1.0,
+                                      );
                                     });
                                   },
                                   padding: EdgeInsets.zero,
@@ -1524,10 +1716,13 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
                     ),
                     const SizedBox(width: 10),
                     SizedBox(
-                        width: 50,
-                        child: Text(formatPercentage.format(targetPct),
-                            textAlign: TextAlign.end,
-                            style: Theme.of(context).textTheme.bodySmall)),
+                      width: 50,
+                      child: Text(
+                        formatPercentage.format(targetPct),
+                        textAlign: TextAlign.end,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ),
                   ],
                 ),
               ],
@@ -1545,11 +1740,10 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
                       Text(
                         formatCurrency.format(driftAmount.abs()),
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurface
-                                  .withValues(alpha: 0.6),
-                            ),
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.6),
+                        ),
                       ),
                       const SizedBox(width: 8),
                       Icon(
@@ -1561,8 +1755,9 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
                       Text(
                         formatPercentage.format(diff),
                         style: TextStyle(
-                          color:
-                              diff.abs() < 0.05 ? Colors.green : Colors.orange,
+                          color: diff.abs() < 0.05
+                              ? Colors.green
+                              : Colors.orange,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -1577,8 +1772,11 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
     );
   }
 
-  Widget _buildRecommendations(Map<String, double> currentAllocation,
-      Map<String, double> targets, double totalEquity) {
+  Widget _buildRecommendations(
+    Map<String, double> currentAllocation,
+    Map<String, double> targets,
+    double totalEquity,
+  ) {
     final recommendations = <Map<String, dynamic>>[];
 
     currentAllocation.forEach((key, currentPct) {
@@ -1596,8 +1794,11 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
     });
 
     // Sort by absolute amount descending
-    recommendations.sort((a, b) =>
-        (b['amount'] as double).abs().compareTo((a['amount'] as double).abs()));
+    recommendations.sort(
+      (a, b) => (b['amount'] as double).abs().compareTo(
+        (a['amount'] as double).abs(),
+      ),
+    );
 
     if (recommendations.isEmpty) {
       return Card(
@@ -1610,9 +1811,13 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
             children: [
               Icon(Icons.check_circle, color: Colors.green),
               SizedBox(width: 8),
-              Text('Portfolio is balanced!',
-                  style: TextStyle(
-                      color: Colors.green, fontWeight: FontWeight.bold)),
+              Text(
+                'Portfolio is balanced!',
+                style: TextStyle(
+                  color: Colors.green,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ],
           ),
         ),
@@ -1631,13 +1836,18 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.primaryContainer,
               borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(12), topRight: Radius.circular(12)),
+                topLeft: Radius.circular(12),
+                topRight: Radius.circular(12),
+              ),
             ),
-            child: Text('Rebalancing Recommendations',
-                style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).colorScheme.onPrimaryContainer)),
+            child: Text(
+              'Rebalancing Recommendations',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).colorScheme.onPrimaryContainer,
+              ),
+            ),
           ),
           ...recommendations.map((rec) {
             final key = rec['key'] as String;
@@ -1651,16 +1861,23 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
             return ListTile(
               leading: CircleAvatar(
                 backgroundColor: color.withValues(alpha: 0.1),
-                child:
-                    Icon(amount > 0 ? Icons.add : Icons.remove, color: color),
+                child: Icon(
+                  amount > 0 ? Icons.add : Icons.remove,
+                  color: color,
+                ),
               ),
-              title: Text('$action $key',
-                  style: const TextStyle(fontWeight: FontWeight.bold)),
+              title: Text(
+                '$action $key',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
               subtitle: Text('Target: ${formatPercentage.format(targetPct)}'),
               trailing: Text(
                 formatCurrency.format(amount.abs()),
                 style: TextStyle(
-                    color: color, fontWeight: FontWeight.bold, fontSize: 16),
+                  color: color,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
               ),
             );
           }),

@@ -59,12 +59,19 @@ class GroupPerformanceAnalyticsProvider extends ChangeNotifier {
       final startDate = period.getStartDate();
       final endDate = DateTime.now();
       final result = await _firestoreService.getGroupPerformanceAnalytics(
-          groupId, startDate, endDate);
+        groupId,
+        startDate,
+        endDate,
+      );
       _groupMetrics = GroupPerformanceMetrics.fromJson(
-          Map<String, dynamic>.from(result['groupMetrics'] as Map));
+        Map<String, dynamic>.from(result['groupMetrics'] as Map),
+      );
       _memberMetrics = (result['memberMetrics'] as List)
-          .map((member) => MemberPerformanceMetrics.fromJson(
-              Map<String, dynamic>.from(member as Map)))
+          .map(
+            (member) => MemberPerformanceMetrics.fromJson(
+              Map<String, dynamic>.from(member as Map),
+            ),
+          )
           .toList();
       _isLoading = false;
       _notifyListeners();
@@ -88,12 +95,14 @@ class GroupPerformanceAnalyticsProvider extends ChangeNotifier {
 
     // Header
     buffer.writeln(
-        'Member Name,Total Return %,Total Return \$,Win Rate %,Total Trades,Sharpe Ratio,Max Drawdown %');
+      'Member Name,Total Return %,Total Return \$,Win Rate %,Total Trades,Sharpe Ratio,Max Drawdown %',
+    );
 
     // Member data
     for (final member in sortedMemberMetrics) {
       buffer.writeln(
-          '${member.memberName},${member.totalReturnPercent.toStringAsFixed(2)},${member.totalReturnDollars.toStringAsFixed(2)},${member.winRate.toStringAsFixed(2)},${member.totalTrades},${member.sharpeRatio.toStringAsFixed(2)},${member.maxDrawdownPercent.toStringAsFixed(2)}');
+        '${member.memberName},${member.totalReturnPercent.toStringAsFixed(2)},${member.totalReturnDollars.toStringAsFixed(2)},${member.winRate.toStringAsFixed(2)},${member.totalTrades},${member.sharpeRatio.toStringAsFixed(2)},${member.maxDrawdownPercent.toStringAsFixed(2)}',
+      );
     }
 
     return buffer.toString();

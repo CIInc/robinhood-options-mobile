@@ -16,8 +16,9 @@ class OrderTemplateStore extends ChangeNotifier {
           .orderBy('createdAt', descending: true)
           .get();
 
-      _templates =
-          snapshot.docs.map((doc) => OrderTemplate.fromFirestore(doc)).toList();
+      _templates = snapshot.docs
+          .map((doc) => OrderTemplate.fromFirestore(doc))
+          .toList();
       notifyListeners();
     } catch (e) {
       debugPrint('Error loading templates: $e');

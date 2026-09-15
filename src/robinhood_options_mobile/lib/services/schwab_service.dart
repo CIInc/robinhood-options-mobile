@@ -110,12 +110,18 @@ class SchwabService implements IBrokerageService {
     // return user;
 
     var codeGrant = AuthorizationCodeGrant(
-        clientId, authEndpoint, tokenEndpoint, secret: sc,
-        onCredentialsRefreshed: (creds) {
-      debugPrint('Credentials refreshed ${creds.toJson()}');
-    });
-    Uri authUri = codeGrant
-        .getAuthorizationUrl(Uri.parse(redirectUrl), scopes: ['internal']);
+      clientId,
+      authEndpoint,
+      tokenEndpoint,
+      secret: sc,
+      onCredentialsRefreshed: (creds) {
+        debugPrint('Credentials refreshed ${creds.toJson()}');
+      },
+    );
+    Uri authUri = codeGrant.getAuthorizationUrl(
+      Uri.parse(redirectUrl),
+      scopes: ['internal'],
+    );
     var result = await FlutterWebAuth2.authenticate(
       url: authUri.toString(),
       callbackUrlScheme: 'investing-mobile',
@@ -128,12 +134,17 @@ class SchwabService implements IBrokerageService {
     );
 
     debugPrint('OAuth2 authorizationUrl created $authUri');
-    final client = await codeGrant
-        .handleAuthorizationResponse(Uri.parse(result).queryParameters);
+    final client = await codeGrant.handleAuthorizationResponse(
+      Uri.parse(result).queryParameters,
+    );
     debugPrint('OAuth2 client created');
     debugPrint(jsonEncode(client.credentials));
     var user = BrokerageUser(
-        BrokerageSource.schwab, '', client.credentials.toJson(), client);
+      BrokerageSource.schwab,
+      '',
+      client.credentials.toJson(),
+      client,
+    );
     //user.save(userStore).then((value) {});
     return user;
 
@@ -190,7 +201,7 @@ class SchwabService implements IBrokerageService {
       body: bodyStr,
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
-        "Authorization": AuthUtil.basicAuthHeader(clientId, sc)
+        "Authorization": AuthUtil.basicAuthHeader(clientId, sc),
       },
       encoding: Encoding.getByName('utf-8'),
     );
@@ -216,19 +227,25 @@ class SchwabService implements IBrokerageService {
     */
 
     final client = generateClient(
-        response,
-        tokenEndpoint, // .scAuthEndpoint
-        ['internal'],
-        ' ',
-        clientId,
-        sc,
-        null, (creds) {
-      debugPrint('Credentials refreshed ${creds.toJson()}');
-    });
+      response,
+      tokenEndpoint, // .scAuthEndpoint
+      ['internal'],
+      ' ',
+      clientId,
+      sc,
+      null,
+      (creds) {
+        debugPrint('Credentials refreshed ${creds.toJson()}');
+      },
+    );
     debugPrint('OAuth2 client created');
     debugPrint(jsonEncode(client.credentials));
     var user = BrokerageUser(
-        BrokerageSource.schwab, '', client.credentials.toJson(), client);
+      BrokerageSource.schwab,
+      '',
+      client.credentials.toJson(),
+      client,
+    );
     //user.save(userStore).then((value) {});
     return user;
   }
@@ -377,10 +394,14 @@ class SchwabService implements IBrokerageService {
   }
   */
   @override
-  Future<List<Account>> getAccounts(BrokerageUser user, AccountStore store,
-      PortfolioStore? portfolioStore, OptionPositionStore? optionPositionStore,
-      {InstrumentPositionStore? instrumentPositionStore,
-      DocumentReference? userDoc}) async {
+  Future<List<Account>> getAccounts(
+    BrokerageUser user,
+    AccountStore store,
+    PortfolioStore? portfolioStore,
+    OptionPositionStore? optionPositionStore, {
+    InstrumentPositionStore? instrumentPositionStore,
+    DocumentReference? userDoc,
+  }) async {
     var url = '$endpoint/trader/v1/accounts?fields=positions'; // orders
     var results = await getJson(user, url);
     //debugPrint(results);
@@ -404,20 +425,25 @@ class SchwabService implements IBrokerageService {
                         "COLLECTIVE_INVESTMENT") &&
                 instrumentPositionStore != null) {
               var stockPosition = InstrumentPosition.fromSchwabJson(
-                  positionJson,
-                  accountNumber: account.accountNumber);
+                positionJson,
+                accountNumber: account.accountNumber,
+              );
               instrumentPositionStore.addOrUpdate(stockPosition);
             } else if (positionJson['instrument']['assetType'] == "OPTION" &&
                 optionPositionStore != null) {
               // e.g. {shortQuantity: 0.0, averagePrice: 4.0066, currentDayProfitLoss: 7.0, currentDayProfitLossPercentage: 3.91, longQuantity: 1.0, settledLongQuantity: 1.0, settledShortQuantity: 0.0, instrument: {assetType: OPTION, cusip: 0UBER.BK60090000, symbol: UBER  260220C00090000, description: UBER TECHNOLOGIES INC 02/20/2026 $90 Call, netChange: 0.08, type: VANILLA, putCall: CALL, underlyingSymbol: UBER}, marketValue: 186.0, maintenanceRequirement: 0.0, averageLongPrice: 4.0, taxLotAverageLongPrice: 4.0066, longOpenProfitLoss: -214.66, previousSessionLongQuantity: 1.0, currentDayCost: 0.0}
-              var optionPosition =
-                  OptionAggregatePosition.fromSchwabJson(positionJson, account);
+              var optionPosition = OptionAggregatePosition.fromSchwabJson(
+                positionJson,
+                account,
+              );
 
               // TODO
               // var optionInstrument = await getOptionInstrument(user, optionPosition.symbol, optionPosition.direction, strike, fromDate)
               // optionPosition.instrumentObj = optionInstrument;
               var optionMarketData = await getOptionMarketData(
-                  user, optionPosition.optionInstrument!);
+                user,
+                optionPosition.optionInstrument!,
+              );
               optionPosition.optionInstrument!.optionMarketData =
                   optionMarketData;
               optionPositionStore.addOrUpdate(optionPosition);
@@ -436,10 +462,13 @@ class SchwabService implements IBrokerageService {
       var userSnapshot = await userDoc.get();
       var userModel = userSnapshot.data() as User;
       var bu = userModel.brokerageUsers.firstWhere(
-          (bu) => bu.userName == user.userName && bu.source == user.source);
+        (bu) => bu.userName == user.userName && bu.source == user.source,
+      );
       bu.accounts = accounts;
       await _firestoreService.updateUser(
-          userDoc as DocumentReference<User>, userModel);
+        userDoc as DocumentReference<User>,
+        userModel,
+      );
     }
     return accounts;
   }
@@ -556,11 +585,12 @@ https://api.schwabapi.com/marketdata/v1/chains?symbol=AAPL&contractType=CALL&inc
 }  
   */
   Future<OptionInstrument> getOptionInstrument(
-      BrokerageUser user,
-      String symbol,
-      String contractType,
-      double strike,
-      String fromDate) async {
+    BrokerageUser user,
+    String symbol,
+    String contractType,
+    double strike,
+    String fromDate,
+  ) async {
     var url =
         "$endpoint/marketdata/v1/chains?symbol=$symbol&contractType=$contractType&includeUnderlyingQuote=true&strategy=SINGLE&strike=${strike.toString()}&fromDate=$fromDate&toDate=2024-10-18";
     var resultJson = await getJson(user, url);
@@ -569,7 +599,7 @@ https://api.schwabapi.com/marketdata/v1/chains?symbol=AAPL&contractType=CALL&inc
     return oi;
   }
 
-/*
+  /*
 https://api.schwabapi.com/trader/v1/accounts/C0182387A893E4CE03E26C081206E282EE3E6E8FDC1AD9F7806D91040DA56801/transactions?startDate=2024-03-28T21%3A10%3A42.000Z&endDate=2024-05-10T21%3A10%3A42.000Z&types=TRADE
 [
   {
@@ -899,29 +929,38 @@ https://api.schwabapi.com/trader/v1/accounts/C0182387A893E4CE03E26C081206E282EE3
     }
     String responseStr = await user.oauth2Client!.read(Uri.parse(url));
     debugPrint(
-        "${(responseStr.length / 1000)}K in ${stopwatch.elapsed.inMilliseconds}ms $url");
+      "${(responseStr.length / 1000)}K in ${stopwatch.elapsed.inMilliseconds}ms $url",
+    );
     dynamic responseJson = jsonDecode(responseStr);
     return responseJson;
   }
 
   @override
   Future<List<Portfolio>> getPortfolios(
-      BrokerageUser user, PortfolioStore store) {
+    BrokerageUser user,
+    PortfolioStore store,
+  ) {
     // TODO: implement getPortfolios
     throw UnimplementedError();
   }
 
   @override
   Future<List<ForexHolding>> getNummusHoldings(
-      BrokerageUser user, ForexHoldingStore store,
-      {bool nonzero = true, DocumentReference? userDoc}) {
+    BrokerageUser user,
+    ForexHoldingStore store, {
+    bool nonzero = true,
+    DocumentReference? userDoc,
+  }) {
     // TODO: implement getNummusHoldings
     throw UnimplementedError();
   }
 
   @override
   Future<Instrument?> getInstrumentBySymbol(
-      BrokerageUser user, InstrumentStore store, String symbol) async {
+    BrokerageUser user,
+    InstrumentStore store,
+    String symbol,
+  ) async {
     var url =
         "$endpoint/marketdata/v1/instruments?symbol=$symbol&projection=symbol-search";
     var resultJson = await getJson(user, url);
@@ -934,34 +973,43 @@ https://api.schwabapi.com/trader/v1/accounts/C0182387A893E4CE03E26C081206E282EE3
 
   @override
   Future<List<OptionInstrument>> getOptionInstrumentByIds(
-      BrokerageUser user, List<String> ids) {
+    BrokerageUser user,
+    List<String> ids,
+  ) {
     // TODO: implement getOptionInstrumentByIds
     throw UnimplementedError();
   }
 
   @override
   Future<List<OptionMarketData>> getOptionMarketDataByIds(
-      BrokerageUser user, List<String> ids) {
+    BrokerageUser user,
+    List<String> ids,
+  ) {
     // TODO: implement getOptionMarketDataByIds
     throw UnimplementedError();
   }
 
   @override
-  Future<OptionPositionStore> getOptionPositionStore(BrokerageUser user,
-      OptionPositionStore store, InstrumentStore instrumentStore,
-      {bool nonzero = true, DocumentReference? userDoc}) {
+  Future<OptionPositionStore> getOptionPositionStore(
+    BrokerageUser user,
+    OptionPositionStore store,
+    InstrumentStore instrumentStore, {
+    bool nonzero = true,
+    DocumentReference? userDoc,
+  }) {
     // Schwab positions are loaded together with accounts by getAccounts.
     return Future.value(store);
   }
 
   @override
   Future<InstrumentPositionStore> getStockPositionStore(
-      BrokerageUser user,
-      InstrumentPositionStore store,
-      InstrumentStore instrumentStore,
-      QuoteStore quoteStore,
-      {bool nonzero = true,
-      DocumentReference? userDoc}) async {
+    BrokerageUser user,
+    InstrumentPositionStore store,
+    InstrumentStore instrumentStore,
+    QuoteStore quoteStore, {
+    bool nonzero = true,
+    DocumentReference? userDoc,
+  }) async {
     store.setLoading(true);
     try {
       // var instrumentIds = store.items.map((e) => e.instrumentId).toList();
@@ -974,9 +1022,9 @@ https://api.schwabapi.com/trader/v1/accounts/C0182387A893E4CE03E26C081206E282EE3
       //   store.update(position);
       // }
       var symbols = store.items
-          .where((e) =>
-              e.instrumentObj !=
-              null) // Figure out why in certain conditions, instrumentObj is null
+          .where(
+            (e) => e.instrumentObj != null,
+          ) // Figure out why in certain conditions, instrumentObj is null
           .map((e) => e.instrumentObj!.symbol)
           .toList();
       // Remove old quotes (that would be returned from cache) to get current ones
@@ -987,9 +1035,11 @@ https://api.schwabapi.com/trader/v1/accounts/C0182387A893E4CE03E26C081206E282EE3
       });
       var quoteObjs = await getQuoteByIds(user, quoteStore, symbols);
       for (var quoteObj in quoteObjs) {
-        var position = store.items.firstWhere((element) =>
-            element.instrumentObj != null &&
-            element.instrumentObj!.symbol == quoteObj.symbol);
+        var position = store.items.firstWhere(
+          (element) =>
+              element.instrumentObj != null &&
+              element.instrumentObj!.symbol == quoteObj.symbol,
+        );
         position.instrumentObj!.quoteObj = quoteObj;
         store.update(position);
       }
@@ -1001,31 +1051,38 @@ https://api.schwabapi.com/trader/v1/accounts/C0182387A893E4CE03E26C081206E282EE3
 
   @override
   Future<List<OptionAggregatePosition>> refreshOptionMarketData(
-      BrokerageUser user,
-      OptionPositionStore optionPositionStore,
-      OptionInstrumentStore optionInstrumentStore) {
+    BrokerageUser user,
+    OptionPositionStore optionPositionStore,
+    OptionInstrumentStore optionInstrumentStore,
+  ) {
     // TODO: implement refreshOptionMarketData
     throw UnimplementedError();
   }
 
   @override
   Future<List<OptionAggregatePosition>> getAggregateOptionPositions(
-      BrokerageUser user,
-      {bool nonzero = true}) {
+    BrokerageUser user, {
+    bool nonzero = true,
+  }) {
     // TODO: implement getAggregateOptionPositions
     throw UnimplementedError();
   }
 
   @override
   Future<List<Instrument>> getInstrumentsByIds(
-      BrokerageUser user, InstrumentStore store, List<String> ids) {
+    BrokerageUser user,
+    InstrumentStore store,
+    List<String> ids,
+  ) {
     // TODO: implement getInstrumentsByIds
     throw UnimplementedError();
   }
 
   @override
   Future<List<Instrument>> getListMostPopular(
-      BrokerageUser user, InstrumentStore instrumentStore) {
+    BrokerageUser user,
+    InstrumentStore instrumentStore,
+  ) {
     // TODO: implement getListMostPopular
     // throw UnimplementedError();
     return Future.value([]);
@@ -1033,7 +1090,9 @@ https://api.schwabapi.com/trader/v1/accounts/C0182387A893E4CE03E26C081206E282EE3
 
   @override
   Future<List<Instrument>> getTopMovers(
-      BrokerageUser user, InstrumentStore instrumentStore) {
+    BrokerageUser user,
+    InstrumentStore instrumentStore,
+  ) {
     // TODO: implement getListMovers
     // throw UnimplementedError();
     return Future.value([]);
@@ -1041,19 +1100,24 @@ https://api.schwabapi.com/trader/v1/accounts/C0182387A893E4CE03E26C081206E282EE3
 
   @override
   Stream<List> streamDividends(
-      BrokerageUser user, InstrumentStore instrumentStore,
-      {DocumentReference? userDoc}) async* {
+    BrokerageUser user,
+    InstrumentStore instrumentStore, {
+    DocumentReference? userDoc,
+  }) async* {
     yield [];
   }
 
   @override
-  Stream<List<Watchlist>> streamLists(BrokerageUser user,
-      InstrumentStore instrumentStore, QuoteStore quoteStore) {
+  Stream<List<Watchlist>> streamLists(
+    BrokerageUser user,
+    InstrumentStore instrumentStore,
+    QuoteStore quoteStore,
+  ) {
     // TODO: implement streamLists
     throw UnimplementedError();
   }
 
-/*
+  /*
 https://api.schwabapi.com/trader/v1/orders?fromEnteredTime=2024-09-28T23%3A59%3A59.000Z&toEnteredTime=2024-10-28T23%3A59%3A59.000Z
 [
   {
@@ -1137,9 +1201,12 @@ https://api.schwabapi.com/trader/v1/orders?fromEnteredTime=2024-09-28T23%3A59%3A
 ]
 */
   @override
-  Stream<List<InstrumentOrder>> streamPositionOrders(BrokerageUser user,
-      InstrumentOrderStore store, InstrumentStore instrumentStore,
-      {DocumentReference? userDoc}) async* {
+  Stream<List<InstrumentOrder>> streamPositionOrders(
+    BrokerageUser user,
+    InstrumentOrderStore store,
+    InstrumentStore instrumentStore, {
+    DocumentReference? userDoc,
+  }) async* {
     var toDate = DateTime.now();
     var fromDate = toDate.subtract(const Duration(days: 60));
     var fromEnteredTime = fromDate.toIso8601String();
@@ -1164,9 +1231,13 @@ https://api.schwabapi.com/trader/v1/orders?fromEnteredTime=2024-09-28T23%3A59%3A
   }
 
   @override
-  Stream<Watchlist> streamList(BrokerageUser user,
-      InstrumentStore instrumentStore, QuoteStore quoteStore, String key,
-      {String ownerType = "custom"}) {
+  Stream<Watchlist> streamList(
+    BrokerageUser user,
+    InstrumentStore instrumentStore,
+    QuoteStore quoteStore,
+    String key, {
+    String ownerType = "custom",
+  }) {
     // TODO: implement streamList
     throw UnimplementedError();
   }
@@ -1236,15 +1307,20 @@ https://api.schwabapi.com/trader/v1/orders?fromEnteredTime=2024-09-28T23%3A59%3A
   */
   @override
   Future<List<Quote>> getQuoteByIds(
-      BrokerageUser user, QuoteStore store, List<String> symbols,
-      {bool fromCache = true}) async {
+    BrokerageUser user,
+    QuoteStore store,
+    List<String> symbols, {
+    bool fromCache = true,
+  }) async {
     Iterable<Quote> cached = [];
     if (fromCache) {
       cached = store.items.where((element) => symbols.contains(element.symbol));
     }
     var nonCached = symbols
-        .where((element) =>
-            !cached.any((cachedQuote) => cachedQuote.symbol == element))
+        .where(
+          (element) =>
+              !cached.any((cachedQuote) => cachedQuote.symbol == element),
+        )
         .toSet()
         .toList();
     if (nonCached.isEmpty) {
@@ -1276,41 +1352,53 @@ https://api.schwabapi.com/trader/v1/orders?fromEnteredTime=2024-09-28T23%3A59%3A
   }
 
   @override
-  Future<List<InstrumentPosition>> refreshPositionQuote(BrokerageUser user,
-      InstrumentPositionStore store, QuoteStore quoteStore) {
+  Future<List<InstrumentPosition>> refreshPositionQuote(
+    BrokerageUser user,
+    InstrumentPositionStore store,
+    QuoteStore quoteStore,
+  ) {
     // TODO: implement refreshPositionQuote
     throw UnimplementedError();
   }
 
   @override
   Future<List<Fundamentals>> getFundamentalsById(
-      BrokerageUser user, List<String> instruments, InstrumentStore store) {
+    BrokerageUser user,
+    List<String> instruments,
+    InstrumentStore store,
+  ) {
     // TODO: implement getFundamentalsById
     throw UnimplementedError();
   }
 
   @override
   Future<PortfolioHistoricals> getPortfolioPerformance(
-      BrokerageUser user, PortfolioHistoricalsStore store, String account,
-      {Bounds chartBoundsFilter = Bounds.t24_7,
-      ChartDateSpan chartDateSpanFilter = ChartDateSpan.day}) async {
+    BrokerageUser user,
+    PortfolioHistoricalsStore store,
+    String account, {
+    Bounds chartBoundsFilter = Bounds.t24_7,
+    ChartDateSpan chartDateSpanFilter = ChartDateSpan.day,
+  }) async {
     throw UnimplementedError();
   }
 
   @override
   Future<PortfolioHistoricals> getPortfolioHistoricals(
-      BrokerageUser user,
-      PortfolioHistoricalsStore store,
-      String account,
-      Bounds chartBoundsFilter,
-      ChartDateSpan chartDateSpanFilter) {
+    BrokerageUser user,
+    PortfolioHistoricalsStore store,
+    String account,
+    Bounds chartBoundsFilter,
+    ChartDateSpan chartDateSpanFilter,
+  ) {
     // TODO: implement getPortfolioHistoricals
     throw UnimplementedError();
   }
 
   @override
-  Future<List<MidlandMoversItem>> getMovers(BrokerageUser user,
-      {String direction = "up"}) {
+  Future<List<MidlandMoversItem>> getMovers(
+    BrokerageUser user, {
+    String direction = "up",
+  }) {
     // TODO: implement getMovers
     // throw UnimplementedError();
     return Future.value([]);
@@ -1318,7 +1406,9 @@ https://api.schwabapi.com/trader/v1/orders?fromEnteredTime=2024-09-28T23%3A59%3A
 
   @override
   Future<List<ForexQuote>> getForexQuoteByIds(
-      BrokerageUser user, List<String> ids) async {
+    BrokerageUser user,
+    List<String> ids,
+  ) async {
     final yahooService = YahooService();
     try {
       return await yahooService.getForexQuotesByIds(ids);
@@ -1328,20 +1418,25 @@ https://api.schwabapi.com/trader/v1/orders?fromEnteredTime=2024-09-28T23%3A59%3A
   }
 
   @override
-  Future<Watchlist> getList(String key, BrokerageUser user,
-      {String ownerType = "custom"}) {
+  Future<Watchlist> getList(
+    String key,
+    BrokerageUser user, {
+    String ownerType = "custom",
+  }) {
     // TODO: implement getList
     throw UnimplementedError();
   }
 
   @override
   Future<List<ForexHolding>> refreshNummusHoldings(
-      BrokerageUser user, ForexHoldingStore store) {
+    BrokerageUser user,
+    ForexHoldingStore store,
+  ) {
     // TODO: implement refreshNummusHoldings
     throw UnimplementedError();
   }
 
-/*
+  /*
 https://api.schwabapi.com/trader/v1/orders?fromEnteredTime=2024-09-28T23%3A59%3A59.000Z&toEnteredTime=2024-10-28T23%3A59%3A59.000Z
 [
   {
@@ -1475,8 +1570,10 @@ https://api.schwabapi.com/trader/v1/orders?fromEnteredTime=2024-09-28T23%3A59%3A
 ]*/
   @override
   Stream<List<OptionOrder>> streamOptionOrders(
-      BrokerageUser user, OptionOrderStore store,
-      {DocumentReference? userDoc}) async* {
+    BrokerageUser user,
+    OptionOrderStore store, {
+    DocumentReference? userDoc,
+  }) async* {
     var toDate = DateTime.now();
     var fromDate = toDate.subtract(const Duration(days: 60));
     // Format: 2024-09-28T23:59:59.000Z
@@ -1504,30 +1601,32 @@ https://api.schwabapi.com/trader/v1/orders?fromEnteredTime=2024-09-28T23%3A59%3A
 
   @override
   Future placeOptionsOrder(
-      BrokerageUser user,
-      Account account,
-      OptionInstrument optionInstrument,
-      String side,
-      String positionEffect,
-      String creditOrDebit,
-      double price,
-      int quantity,
-      {String type = 'limit',
-      String trigger = 'immediate',
-      double? stopPrice,
-      String timeInForce = 'gtc',
-      Map<String, dynamic>? trailingPeg}) async {
+    BrokerageUser user,
+    Account account,
+    OptionInstrument optionInstrument,
+    String side,
+    String positionEffect,
+    String creditOrDebit,
+    double price,
+    int quantity, {
+    String type = 'limit',
+    String trigger = 'immediate',
+    double? stopPrice,
+    String timeInForce = 'gtc',
+    Map<String, dynamic>? trailingPeg,
+  }) async {
     var instruction = side.toUpperCase() == 'BUY'
         ? (positionEffect.toUpperCase() == 'OPEN'
-            ? 'BUY_TO_OPEN'
-            : 'BUY_TO_CLOSE')
+              ? 'BUY_TO_OPEN'
+              : 'BUY_TO_CLOSE')
         : (positionEffect.toUpperCase() == 'OPEN'
-            ? 'SELL_TO_OPEN'
-            : 'SELL_TO_CLOSE');
+              ? 'SELL_TO_OPEN'
+              : 'SELL_TO_CLOSE');
 
     var orderType = type.toUpperCase();
-    var duration =
-        timeInForce.toUpperCase() == 'GTC' ? 'GOOD_TILL_CANCEL' : 'DAY';
+    var duration = timeInForce.toUpperCase() == 'GTC'
+        ? 'GOOD_TILL_CANCEL'
+        : 'DAY';
 
     var body = {
       "orderType": orderType,
@@ -1539,9 +1638,9 @@ https://api.schwabapi.com/trader/v1/orders?fromEnteredTime=2024-09-28T23%3A59%3A
         {
           "instruction": instruction,
           "quantity": quantity,
-          "instrument": {"symbol": optionInstrument.id, "assetType": "OPTION"}
-        }
-      ]
+          "instrument": {"symbol": optionInstrument.id, "assetType": "OPTION"},
+        },
+      ],
     };
 
     if (orderType == 'STOP' || orderType == 'STOP_LIMIT') {
@@ -1552,12 +1651,14 @@ https://api.schwabapi.com/trader/v1/orders?fromEnteredTime=2024-09-28T23%3A59%3A
 
     var url = "$endpoint/trader/v1/accounts/${account.accountNumber}/orders";
 
-    var response = await user.oauth2Client!.post(Uri.parse(url),
-        body: jsonEncode(body),
-        headers: {
-          "content-type": "application/json",
-          "accept": "application/json"
-        });
+    var response = await user.oauth2Client!.post(
+      Uri.parse(url),
+      body: jsonEncode(body),
+      headers: {
+        "content-type": "application/json",
+        "accept": "application/json",
+      },
+    );
 
     if (response.statusCode != 201 && response.statusCode != 200) {
       throw Exception('Failed to place order: ${response.body}');
@@ -1571,18 +1672,20 @@ https://api.schwabapi.com/trader/v1/orders?fromEnteredTime=2024-09-28T23%3A59%3A
 
   @override
   Future placeMultiLegOptionsOrder(
-      BrokerageUser user,
-      Account account,
-      List<Map<String, dynamic>> legs,
-      String creditOrDebit,
-      double price,
-      int quantity,
-      {String type = 'limit',
-      String trigger = 'immediate',
-      String timeInForce = 'gtc'}) async {
+    BrokerageUser user,
+    Account account,
+    List<Map<String, dynamic>> legs,
+    String creditOrDebit,
+    double price,
+    int quantity, {
+    String type = 'limit',
+    String trigger = 'immediate',
+    String timeInForce = 'gtc',
+  }) async {
     var orderType = type.toUpperCase();
-    var duration =
-        timeInForce.toUpperCase() == 'GTC' ? 'GOOD_TILL_CANCEL' : 'DAY';
+    var duration = timeInForce.toUpperCase() == 'GTC'
+        ? 'GOOD_TILL_CANCEL'
+        : 'DAY';
 
     var orderLegCollection = legs.map((leg) {
       var side = leg['side'];
@@ -1592,16 +1695,16 @@ https://api.schwabapi.com/trader/v1/orders?fromEnteredTime=2024-09-28T23%3A59%3A
 
       var instruction = side.toUpperCase() == 'BUY'
           ? (positionEffect.toUpperCase() == 'OPEN'
-              ? 'BUY_TO_OPEN'
-              : 'BUY_TO_CLOSE')
+                ? 'BUY_TO_OPEN'
+                : 'BUY_TO_CLOSE')
           : (positionEffect.toUpperCase() == 'OPEN'
-              ? 'SELL_TO_OPEN'
-              : 'SELL_TO_CLOSE');
+                ? 'SELL_TO_OPEN'
+                : 'SELL_TO_CLOSE');
 
       return {
         "instruction": instruction,
         "quantity": quantity * legQuantity,
-        "instrument": {"symbol": optionInstrument.id, "assetType": "OPTION"}
+        "instrument": {"symbol": optionInstrument.id, "assetType": "OPTION"},
       };
     }).toList();
 
@@ -1611,17 +1714,19 @@ https://api.schwabapi.com/trader/v1/orders?fromEnteredTime=2024-09-28T23%3A59%3A
       "duration": duration,
       "orderStrategyType": "SINGLE", // TODO: Verify strategy type for multi-leg
       "price": price,
-      "orderLegCollection": orderLegCollection
+      "orderLegCollection": orderLegCollection,
     };
 
     var url = "$endpoint/trader/v1/accounts/${account.accountNumber}/orders";
 
-    var response = await user.oauth2Client!.post(Uri.parse(url),
-        body: jsonEncode(body),
-        headers: {
-          "content-type": "application/json",
-          "accept": "application/json"
-        });
+    var response = await user.oauth2Client!.post(
+      Uri.parse(url),
+      body: jsonEncode(body),
+      headers: {
+        "content-type": "application/json",
+        "accept": "application/json",
+      },
+    );
 
     if (response.statusCode != 201 && response.statusCode != 200) {
       throw Exception('Failed to place order: ${response.body}');
@@ -1635,30 +1740,34 @@ https://api.schwabapi.com/trader/v1/orders?fromEnteredTime=2024-09-28T23%3A59%3A
 
   @override
   Future placeInstrumentOrder(
-      BrokerageUser user,
-      Account account,
-      Instrument instrument,
-      String symbol,
-      String side,
-      double? price,
-      int quantity,
-      {String type = 'limit',
-      String trigger = 'immediate',
-      double? stopPrice,
-      String timeInForce = 'gtc',
-      Map<String, dynamic>? trailingPeg}) {
+    BrokerageUser user,
+    Account account,
+    Instrument instrument,
+    String symbol,
+    String side,
+    double? price,
+    int quantity, {
+    String type = 'limit',
+    String trigger = 'immediate',
+    double? stopPrice,
+    String timeInForce = 'gtc',
+    Map<String, dynamic>? trailingPeg,
+  }) {
     // TODO: implement placeInstrumentOrder
     throw UnimplementedError();
   }
 
   @override
   Future<Instrument> getInstrument(
-      BrokerageUser user, InstrumentStore store, String instrumentUrl) {
+    BrokerageUser user,
+    InstrumentStore store,
+    String instrumentUrl,
+  ) {
     // TODO: implement getInstrument
     throw UnimplementedError();
   }
 
-/*
+  /*
 https://api.schwabapi.com/marketdata/v1/instruments?symbol=Google&projection=search
 {
   "instruments": [
@@ -1708,7 +1817,8 @@ https://api.schwabapi.com/marketdata/v1/instruments?symbol=Google&projection=sea
   @override
   Future<Quote> getQuote(BrokerageUser user, QuoteStore store, String symbol) {
     // TODO: implement getQuote
-    return Future.value(Quote(
+    return Future.value(
+      Quote(
         lastTradePrice: 0,
         adjustedPreviousClose: 0,
         askSize: 0,
@@ -1720,22 +1830,31 @@ https://api.schwabapi.com/marketdata/v1/instruments?symbol=Google&projection=sea
         hasTraded: true,
         lastTradePriceSource: '',
         instrument: '',
-        instrumentId: ''));
+        instrumentId: '',
+      ),
+    );
   }
 
   @override
   Future<OptionHistoricals> getOptionHistoricals(
-      BrokerageUser user, OptionHistoricalsStore store, List<String> ids,
-      {Bounds chartBoundsFilter = Bounds.regular,
-      ChartDateSpan chartDateSpanFilter = ChartDateSpan.day}) {
+    BrokerageUser user,
+    OptionHistoricalsStore store,
+    List<String> ids, {
+    Bounds chartBoundsFilter = Bounds.regular,
+    ChartDateSpan chartDateSpanFilter = ChartDateSpan.day,
+  }) {
     // TODO: implement getOptionHistoricals
     return Future.value(
-        OptionHistoricals('', '', '', [], null, null, null, null, []));
+      OptionHistoricals('', '', '', [], null, null, null, null, []),
+    );
   }
 
   @override
   Future<List<OptionOrder>> getOptionOrders(
-      BrokerageUser user, OptionOrderStore store, String chainId) async {
+    BrokerageUser user,
+    OptionOrderStore store,
+    String chainId,
+  ) async {
     var toDate = DateTime.now();
     var fromDate = toDate.subtract(const Duration(days: 60));
     var fromEnteredTime = fromDate.toUtc().toIso8601String();
@@ -1766,42 +1885,70 @@ https://api.schwabapi.com/marketdata/v1/instruments?symbol=Google&projection=sea
 
   @override
   Future<Quote> refreshQuote(
-      BrokerageUser user, QuoteStore store, String symbol) {
+    BrokerageUser user,
+    QuoteStore store,
+    String symbol,
+  ) {
     // TODO: implement refreshQuote
     throw UnimplementedError();
   }
 
   @override
-  Future<InstrumentHistoricals> getInstrumentHistoricals(BrokerageUser user,
-      InstrumentHistoricalsStore store, String symbolOrInstrumentId,
-      {bool includeInactive = true,
-      Bounds chartBoundsFilter = Bounds.trading,
-      ChartDateSpan chartDateSpanFilter = ChartDateSpan.day,
-      String? chartInterval}) {
+  Future<InstrumentHistoricals> getInstrumentHistoricals(
+    BrokerageUser user,
+    InstrumentHistoricalsStore store,
+    String symbolOrInstrumentId, {
+    bool includeInactive = true,
+    Bounds chartBoundsFilter = Bounds.trading,
+    ChartDateSpan chartDateSpanFilter = ChartDateSpan.day,
+    String? chartInterval,
+  }) {
     // TODO: implement getInstrumentHistoricals
-    return Future.value(InstrumentHistoricals(
-        '', '', '', '', '', null, null, null, null, '', null, []));
+    return Future.value(
+      InstrumentHistoricals(
+        '',
+        '',
+        '',
+        '',
+        '',
+        null,
+        null,
+        null,
+        null,
+        '',
+        null,
+        [],
+      ),
+    );
   }
 
   @override
-  Future<List<InstrumentOrder>> getInstrumentOrders(BrokerageUser user,
-      InstrumentOrderStore store, List<String> instrumentUrls) {
+  Future<List<InstrumentOrder>> getInstrumentOrders(
+    BrokerageUser user,
+    InstrumentOrderStore store,
+    List<String> instrumentUrls,
+  ) {
     // TODO: implement getInstrumentOrders
     return Future.value([]);
   }
 
   @override
   Future<Fundamentals> getFundamentals(
-      BrokerageUser user, Instrument instrumentObj) {
+    BrokerageUser user,
+    Instrument instrumentObj,
+  ) {
     // TODO: implement getFundamentals
-    return Future.value(Fundamentals(
+    return Future.value(
+      Fundamentals(
         volume: 0,
         averageVolume: 0,
         averageVolume2Weeks: 0,
         high52Weeks: 0,
         low52Weeks: 0,
         marketCap: 0,
-        sharesOutstanding: 0));
+        sharesOutstanding: 0,
+      ),
+    );
   }
 
   @override
@@ -1817,19 +1964,28 @@ https://api.schwabapi.com/marketdata/v1/instruments?symbol=Google&projection=sea
 
   @override
   Future<void> addToList(
-      BrokerageUser user, String listId, String instrumentId) async {
+    BrokerageUser user,
+    String listId,
+    String instrumentId,
+  ) async {
     // TODO: implement addToList
   }
 
   @override
   Future<void> removeFromList(
-      BrokerageUser user, String listId, String instrumentId) async {
+    BrokerageUser user,
+    String listId,
+    String instrumentId,
+  ) async {
     // TODO: implement removeFromList
   }
 
   @override
-  Future<void> createList(BrokerageUser user, String name,
-      {String? emoji}) async {
+  Future<void> createList(
+    BrokerageUser user,
+    String name, {
+    String? emoji,
+  }) async {
     // TODO: implement createList
   }
 
@@ -1845,9 +2001,12 @@ https://api.schwabapi.com/marketdata/v1/instruments?symbol=Google&projection=sea
   }
 
   @override
-  Future<List> getDividends(BrokerageUser user, DividendStore dividendStore,
-      InstrumentStore instrumentStore,
-      {String? instrumentId}) {
+  Future<List> getDividends(
+    BrokerageUser user,
+    DividendStore dividendStore,
+    InstrumentStore instrumentStore, {
+    String? instrumentId,
+  }) {
     // TODO: implement getDividends
     return Future.value([]);
   }
@@ -1866,7 +2025,9 @@ https://api.schwabapi.com/marketdata/v1/instruments?symbol=Google&projection=sea
 
   @override
   Future<List<OptionEvent>> getOptionEventsByInstrumentUrl(
-      BrokerageUser user, String instrumentUrl) {
+    BrokerageUser user,
+    String instrumentUrl,
+  ) {
     // TODO: implement getOptionEventsByInstrumentUrl
     return Future.value([]);
   }
@@ -1890,25 +2051,42 @@ https://api.schwabapi.com/marketdata/v1/instruments?symbol=Google&projection=sea
   }
 
   @override
-  Future<ForexHistoricals> getForexHistoricals(BrokerageUser user, String id,
-      {Bounds chartBoundsFilter = Bounds.t24_7,
-      ChartDateSpan chartDateSpanFilter = ChartDateSpan.day}) async {
+  Future<ForexHistoricals> getForexHistoricals(
+    BrokerageUser user,
+    String id, {
+    Bounds chartBoundsFilter = Bounds.t24_7,
+    ChartDateSpan chartDateSpanFilter = ChartDateSpan.day,
+  }) async {
     final yahooService = YahooService();
     try {
-      return await yahooService.getForexHistoricals(id,
-          chartBoundsFilter: chartBoundsFilter,
-          chartDateSpanFilter: chartDateSpanFilter);
+      return await yahooService.getForexHistoricals(
+        id,
+        chartBoundsFilter: chartBoundsFilter,
+        chartDateSpanFilter: chartDateSpanFilter,
+      );
     } catch (_) {
       return ForexHistoricals(
-          'regular', '5m', 'day', id, id, null, null, null, null, []);
+        'regular',
+        '5m',
+        'day',
+        id,
+        id,
+        null,
+        null,
+        null,
+        null,
+        [],
+      );
     }
   }
 
   @override
   Future<FutureHistoricals?> getFuturesHistoricals(
-      BrokerageUser user, String id,
-      {Bounds chartBoundsFilter = Bounds.regular,
-      ChartDateSpan chartDateSpanFilter = ChartDateSpan.day}) {
+    BrokerageUser user,
+    String id, {
+    Bounds chartBoundsFilter = Bounds.regular,
+    ChartDateSpan chartDateSpanFilter = ChartDateSpan.day,
+  }) {
     // TODO: implement getFuturesHistoricals
     throw UnimplementedError();
   }
@@ -1920,7 +2098,17 @@ https://api.schwabapi.com/marketdata/v1/instruments?symbol=Google&projection=sea
       return await yahooService.getForexQuote(id);
     } catch (_) {
       return ForexQuote(
-          null, null, null, null, null, null, id, id, null, DateTime.now());
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        id,
+        id,
+        null,
+        DateTime.now(),
+      );
     }
   }
 
@@ -1945,21 +2133,23 @@ https://api.schwabapi.com/marketdata/v1/instruments?symbol=Google&projection=sea
       expirationDates.sort((a, b) => a.compareTo(b));
 
       return OptionChain(
-          id,
-          id,
-          true, // canOpenPosition
-          null, // cashComponent
-          expirationDates,
-          100.0, // tradeValueMultiplier
-          const MinTicks(0.05, 0.01, 3.00) // minTicks (default)
-          );
+        id,
+        id,
+        true, // canOpenPosition
+        null, // cashComponent
+        expirationDates,
+        100.0, // tradeValueMultiplier
+        const MinTicks(0.05, 0.01, 3.00), // minTicks (default)
+      );
     }
     throw Exception('Failed to get option chain');
   }
 
   @override
   Future<List<OptionChain>> getOptionChainsByIds(
-      BrokerageUser user, List<String> ids) async {
+    BrokerageUser user,
+    List<String> ids,
+  ) async {
     List<OptionChain> chains = [];
     for (var id in ids) {
       try {
@@ -2085,41 +2275,50 @@ https://api.schwabapi.com/marketdata/v1/instruments?symbol=Google&projection=sea
   */
   @override
   Future<OptionMarketData?> getOptionMarketData(
-      BrokerageUser user, OptionInstrument optionInstrument) async {
+    BrokerageUser user,
+    OptionInstrument optionInstrument,
+  ) async {
     var url =
         "$endpoint/marketdata/v1/chains?symbol=${optionInstrument.chainSymbol}&contractType=${optionInstrument.type}&includeUnderlyingQuote=true&strategy=SINGLE&strike=${optionInstrument.strikePrice.toString()}&fromDate=${DateFormat('yyyy-MM-dd').format(optionInstrument.expirationDate!)}&toDate=${DateFormat('yyyy-MM-dd').format(optionInstrument.expirationDate!)}";
     var resultJson = await getJson(user, url);
 
     var result = OptionMarketData.fromSchwabJson(
-        (((((resultJson['${optionInstrument.type.toLowerCase()}ExpDateMap']
-                                as Map)
-                            .entries
-                            .first)
-                        .value as Map)
-                    .entries
-                    .first)
-                .value as List)
-            .first);
+      (((((resultJson['${optionInstrument.type.toLowerCase()}ExpDateMap']
+                                      as Map)
+                                  .entries
+                                  .first)
+                              .value
+                          as Map)
+                      .entries
+                      .first)
+                  .value
+              as List)
+          .first,
+    );
     return result;
   }
 
   @override
   Stream<List<OptionEvent>> streamOptionEvents(
-      BrokerageUser user, OptionEventStore store,
-      {int pageSize = 20, DocumentReference? userDoc}) async* {
+    BrokerageUser user,
+    OptionEventStore store, {
+    int pageSize = 20,
+    DocumentReference? userDoc,
+  }) async* {
     // Schwab does not expose an option event feed yet, so emit an empty list to keep the History UI running.
     yield [];
   }
 
   @override
   Stream<List<OptionInstrument>> streamOptionInstruments(
-      BrokerageUser user,
-      OptionInstrumentStore store,
-      Instrument instrument,
-      String? expirationDates,
-      String? type,
-      {String? state = "active",
-      bool includeMarketData = false}) async* {
+    BrokerageUser user,
+    OptionInstrumentStore store,
+    Instrument instrument,
+    String? expirationDates,
+    String? type, {
+    String? state = "active",
+    bool includeMarketData = false,
+  }) async* {
     var fromDate =
         expirationDates ?? DateFormat('yyyy-MM-dd').format(DateTime.now());
     var toDate =
@@ -2173,73 +2372,78 @@ https://api.schwabapi.com/marketdata/v1/instruments?symbol=Google&projection=sea
     var type = json['putCall'].toString().toLowerCase(); // "call"
 
     var marketData = OptionMarketData(
-        double.tryParse(json['mark'].toString()), // adjustedMarkPrice
-        double.tryParse(json['ask'].toString()), // askPrice
-        int.tryParse(json['askSize'].toString()) ?? 0, // askSize
-        double.tryParse(json['bid'].toString()), // bidPrice
-        int.tryParse(json['bidSize'].toString()) ?? 0, // bidSize
-        null, // breakEvenPrice
-        double.tryParse(json['highPrice'].toString()), // highPrice
-        symbol, // instrument
-        symbol, // instrumentId
-        double.tryParse(json['last'].toString()), // lastTradePrice
-        int.tryParse(json['lastSize'].toString()) ?? 0, // lastTradeSize
-        double.tryParse(json['lowPrice'].toString()), // lowPrice
-        double.tryParse(json['mark'].toString()), // markPrice
-        int.tryParse(json['openInterest'].toString()) ?? 0, // openInterest
-        null, // previousCloseDate
-        double.tryParse(json['closePrice'].toString()), // previousClosePrice
-        int.tryParse(json['totalVolume'].toString()) ?? 0, // volume
-        instrument.symbol, // symbol
-        symbol, // occSymbol
-        null, // chanceOfProfitLong
-        null, // chanceOfProfitShort
-        double.tryParse(json['delta'].toString()), // delta
-        double.tryParse(json['gamma'].toString()), // gamma
-        double.tryParse(json['volatility'].toString()), // impliedVolatility
-        double.tryParse(json['rho'].toString()), // rho
-        double.tryParse(json['theta'].toString()), // theta
-        double.tryParse(json['vega'].toString()), // vega
-        null, // highFillRateBuyPrice
-        null, // highFillRateSellPrice
-        null, // lowFillRateBuyPrice
-        null, // lowFillRateSellPrice
-        DateTime.now() // updatedAt
-        );
+      double.tryParse(json['mark'].toString()), // adjustedMarkPrice
+      double.tryParse(json['ask'].toString()), // askPrice
+      int.tryParse(json['askSize'].toString()) ?? 0, // askSize
+      double.tryParse(json['bid'].toString()), // bidPrice
+      int.tryParse(json['bidSize'].toString()) ?? 0, // bidSize
+      null, // breakEvenPrice
+      double.tryParse(json['highPrice'].toString()), // highPrice
+      symbol, // instrument
+      symbol, // instrumentId
+      double.tryParse(json['last'].toString()), // lastTradePrice
+      int.tryParse(json['lastSize'].toString()) ?? 0, // lastTradeSize
+      double.tryParse(json['lowPrice'].toString()), // lowPrice
+      double.tryParse(json['mark'].toString()), // markPrice
+      int.tryParse(json['openInterest'].toString()) ?? 0, // openInterest
+      null, // previousCloseDate
+      double.tryParse(json['closePrice'].toString()), // previousClosePrice
+      int.tryParse(json['totalVolume'].toString()) ?? 0, // volume
+      instrument.symbol, // symbol
+      symbol, // occSymbol
+      null, // chanceOfProfitLong
+      null, // chanceOfProfitShort
+      double.tryParse(json['delta'].toString()), // delta
+      double.tryParse(json['gamma'].toString()), // gamma
+      double.tryParse(json['volatility'].toString()), // impliedVolatility
+      double.tryParse(json['rho'].toString()), // rho
+      double.tryParse(json['theta'].toString()), // theta
+      double.tryParse(json['vega'].toString()), // vega
+      null, // highFillRateBuyPrice
+      null, // highFillRateSellPrice
+      null, // lowFillRateBuyPrice
+      null, // lowFillRateSellPrice
+      DateTime.now(), // updatedAt
+    );
 
     var oi = OptionInstrument(
-        instrument.symbol, // chainId
-        instrument.symbol, // chainSymbol
-        null, // createdAt
-        expirationDate,
-        symbol, // id
-        null, // issueDate
-        const MinTicks(null, null, null),
-        "tradable", // rhsTradability
-        "active", // state
-        strike,
-        "tradable", // tradability
-        type,
-        null, // updatedAt
-        symbol, // url
-        null, // selloutDateTime
-        '', // longStrategyCode
-        '' // shortStrategyCode
-        );
+      instrument.symbol, // chainId
+      instrument.symbol, // chainSymbol
+      null, // createdAt
+      expirationDate,
+      symbol, // id
+      null, // issueDate
+      const MinTicks(null, null, null),
+      "tradable", // rhsTradability
+      "active", // state
+      strike,
+      "tradable", // tradability
+      type,
+      null, // updatedAt
+      symbol, // url
+      null, // selloutDateTime
+      '', // longStrategyCode
+      '', // shortStrategyCode
+    );
     oi.optionMarketData = marketData;
     return oi;
   }
 
   @override
   Stream<List> streamInterests(
-      BrokerageUser user, InstrumentStore instrumentStore,
-      {DocumentReference? userDoc}) async* {
+    BrokerageUser user,
+    InstrumentStore instrumentStore, {
+    DocumentReference? userDoc,
+  }) async* {
     yield [];
   }
 
   @override
-  Future<List> getInterests(BrokerageUser user, InterestStore dividendStore,
-      {String? instrumentId}) {
+  Future<List> getInterests(
+    BrokerageUser user,
+    InterestStore dividendStore, {
+    String? instrumentId,
+  }) {
     // TODO: implement getInterests
     throw UnimplementedError();
   }
@@ -2258,32 +2462,38 @@ https://api.schwabapi.com/marketdata/v1/instruments?symbol=Google&projection=sea
   }
 
   @override
-  Future<List<ComboOrder>> getComboOrders(BrokerageUser user,
-      {String? accountNumber, int? limit}) async {
+  Future<List<ComboOrder>> getComboOrders(
+    BrokerageUser user, {
+    String? accountNumber,
+    int? limit,
+  }) async {
     return [];
   }
 
   @override
   Stream<List<ComboOrder>> streamComboOrders(
-      BrokerageUser user, ComboOrderStore store,
-      {DocumentReference? userDoc,
-      String? symbol,
-      String? accountNumber}) async* {
+    BrokerageUser user,
+    ComboOrderStore store, {
+    DocumentReference? userDoc,
+    String? symbol,
+    String? accountNumber,
+  }) async* {
     yield [];
   }
 
   @override
   Future<dynamic> placeComboOrder(
-      BrokerageUser user,
-      Account account,
-      List<Map<String, dynamic>> legs,
-      String creditOrDebit,
-      double price,
-      int quantity,
-      {String type = 'limit',
-      String trigger = 'immediate',
-      String timeInForce = 'gtc',
-      String? openingStrategy}) async {
+    BrokerageUser user,
+    Account account,
+    List<Map<String, dynamic>> legs,
+    String creditOrDebit,
+    double price,
+    int quantity, {
+    String type = 'limit',
+    String trigger = 'immediate',
+    String timeInForce = 'gtc',
+    String? openingStrategy,
+  }) async {
     return {
       'status': 'not_supported',
       'message': 'Combo orders not supported for Schwab manual accounts.',
@@ -2301,49 +2511,66 @@ https://api.schwabapi.com/marketdata/v1/instruments?symbol=Google&projection=sea
 
   @override
   Future<dynamic> getRecentDayTrades(
-      BrokerageUser user, String accountNumber) async {
+    BrokerageUser user,
+    String accountNumber,
+  ) async {
     return null;
   }
 
   @override
-  Future<dynamic> getShortInterest(BrokerageUser user, String instrumentId,
-      {String? startDate}) async {
+  Future<dynamic> getShortInterest(
+    BrokerageUser user,
+    String instrumentId, {
+    String? startDate,
+  }) async {
     return null;
   }
 
   @override
   Future<dynamic> getShortingAvailability(
-      BrokerageUser user, String instrumentId) async {
+    BrokerageUser user,
+    String instrumentId,
+  ) async {
     return null;
   }
 
   @override
   Future<dynamic> getRetailSentiment(
-      BrokerageUser user, String instrumentId) async {
+    BrokerageUser user,
+    String instrumentId,
+  ) async {
     return null;
   }
 
   @override
   Future<dynamic> getInsiderSummary(
-      BrokerageUser user, String instrumentId) async {
+    BrokerageUser user,
+    String instrumentId,
+  ) async {
     return null;
   }
 
   @override
   Future<dynamic> getInsiderTransactions(
-      BrokerageUser user, String instrumentId) async {
+    BrokerageUser user,
+    String instrumentId,
+  ) async {
     return null;
   }
 
   @override
   Future<dynamic> getHedgeFundSummary(
-      BrokerageUser user, String instrumentId) async {
+    BrokerageUser user,
+    String instrumentId,
+  ) async {
     return null;
   }
 
   @override
   Future<dynamic> getHedgeFundTransactions(
-      BrokerageUser user, String instrumentId) async {
+    BrokerageUser user,
+    String instrumentId,
+  ) async {
     return null;
   }
 
@@ -2353,8 +2580,10 @@ https://api.schwabapi.com/marketdata/v1/instruments?symbol=Google&projection=sea
   }
 
   @override
-  Future<dynamic> getScreeners(BrokerageUser user,
-      {bool includeFilters = false}) async {
+  Future<dynamic> getScreeners(
+    BrokerageUser user, {
+    bool includeFilters = false,
+  }) async {
     return null;
   }
 
@@ -2390,44 +2619,55 @@ https://api.schwabapi.com/marketdata/v1/instruments?symbol=Google&projection=sea
 
   @override
   Future<dynamic> placeForexOrder(
-      BrokerageUser user,
-      String pairId,
-      String side, // 'buy' or 'sell'
-      double? price,
-      double quantity,
-      {String type = 'market', // market, limit
-      String timeInForce = 'gtc',
-      double? stopPrice}) {
+    BrokerageUser user,
+    String pairId,
+    String side, // 'buy' or 'sell'
+    double? price,
+    double quantity, {
+    String type = 'market', // market, limit
+    String timeInForce = 'gtc',
+    double? stopPrice,
+  }) {
     throw UnimplementedError();
   }
 
   @override
   Future<List<dynamic>> getFuturesOrders(
-      BrokerageUser user, String account) async {
+    BrokerageUser user,
+    String account,
+  ) async {
     return [];
   }
 
   @override
   Future<List<dynamic>> getFuturesContractsByIds(
-      BrokerageUser user, List<String> contractIds) async {
+    BrokerageUser user,
+    List<String> contractIds,
+  ) async {
     return [];
   }
 
   @override
   Future<dynamic> getFuturesContractBySymbol(
-      BrokerageUser user, String symbol) async {
+    BrokerageUser user,
+    String symbol,
+  ) async {
     return null;
   }
 
   @override
   Future<List<dynamic>> getFuturesContractsBySymbols(
-      BrokerageUser user, List<String> symbols) async {
+    BrokerageUser user,
+    List<String> symbols,
+  ) async {
     return [];
   }
 
   @override
   Future<List<dynamic>> getFuturesClosesByIds(
-      BrokerageUser user, List<String> contractIds) async {
+    BrokerageUser user,
+    List<String> contractIds,
+  ) async {
     return [];
   }
 
@@ -2445,38 +2685,48 @@ https://api.schwabapi.com/marketdata/v1/instruments?symbol=Google&projection=sea
     String timeInForce = 'GTC',
     String positionEffect = 'OPENING',
   }) {
-    return Future.error(
-      'Futures orders are not supported in SchwabService',
-    );
+    return Future.error('Futures orders are not supported in SchwabService');
   }
 
   @override
   Future<dynamic> getInstrumentBuyingPower(
-      BrokerageUser user, String accountNumber, String instrumentId) async {
+    BrokerageUser user,
+    String accountNumber,
+    String instrumentId,
+  ) async {
     return null;
   }
 
   @override
   Future<dynamic> getInstrumentWarnings(
-      BrokerageUser user, String instrumentId) async {
+    BrokerageUser user,
+    String instrumentId,
+  ) async {
     return null;
   }
 
   @override
   Future<dynamic> getOptionChainCollateral(
-      BrokerageUser user, String chainId, String accountNumber) async {
+    BrokerageUser user,
+    String chainId,
+    String accountNumber,
+  ) async {
     return null;
   }
 
   @override
   Future<dynamic> getOptionsUpgradeStatus(
-      BrokerageUser user, String accountNumber) async {
+    BrokerageUser user,
+    String accountNumber,
+  ) async {
     return null;
   }
 
   @override
-  Future<List<dynamic>> getStockLoanPayments(BrokerageUser user,
-      {String? accountNumber}) async {
+  Future<List<dynamic>> getStockLoanPayments(
+    BrokerageUser user, {
+    String? accountNumber,
+  }) async {
     return [];
   }
 
@@ -2506,7 +2756,9 @@ https://api.schwabapi.com/marketdata/v1/instruments?symbol=Google&projection=sea
   }
 
   @override
-  Future<List<AchRelationship>> getAchRelationshipsModel(BrokerageUser user) async {
+  Future<List<AchRelationship>> getAchRelationshipsModel(
+    BrokerageUser user,
+  ) async {
     return [];
   }
 
@@ -2527,13 +2779,17 @@ https://api.schwabapi.com/marketdata/v1/instruments?symbol=Google&projection=sea
 
   @override
   Future<dynamic> getTaxWithholdingStatus(
-      BrokerageUser user, String instrumentId) async {
+    BrokerageUser user,
+    String instrumentId,
+  ) async {
     return null;
   }
 
   @override
-  Future<List<AccountDocument>> getAccountDocumentsModel(BrokerageUser user,
-      {String? type}) async {
+  Future<List<AccountDocument>> getAccountDocumentsModel(
+    BrokerageUser user, {
+    String? type,
+  }) async {
     return [];
   }
 
@@ -2544,51 +2800,70 @@ https://api.schwabapi.com/marketdata/v1/instruments?symbol=Google&projection=sea
 
   @override
   Future<TaxWithholdingStatus?> getTaxWithholdingStatusModel(
-      BrokerageUser user, String instrumentId,
-      {String? symbol}) async {
+    BrokerageUser user,
+    String instrumentId, {
+    String? symbol,
+  }) async {
     return null;
   }
 
   @override
-  Future<List<dynamic>> getSplitPayments(BrokerageUser user,
-      {String? instrumentId}) async {
+  Future<List<dynamic>> getSplitPayments(
+    BrokerageUser user, {
+    String? instrumentId,
+  }) async {
     return [];
   }
 
   @override
-  Future<List<SplitPayment>> getSplitPaymentsModel(BrokerageUser user,
-      {String? instrumentId}) async {
+  Future<List<SplitPayment>> getSplitPaymentsModel(
+    BrokerageUser user, {
+    String? instrumentId,
+  }) async {
     return [];
   }
 
   @override
   Future<CorporateActionSplitsSummary> getCorporateActionSplitsSummary(
-      BrokerageUser user) async {
+    BrokerageUser user,
+  ) async {
     return const CorporateActionSplitsSummary();
   }
 
   @override
   Future<dynamic> getShareholderQaEvents(
-      BrokerageUser user, String instrumentId) async {
+    BrokerageUser user,
+    String instrumentId,
+  ) async {
     return null;
   }
 
   @override
   Future<ShareholderQaSection?> getShareholderQaSectionModel(
-      BrokerageUser user, String instrumentId,
-      {String? symbol}) async {
+    BrokerageUser user,
+    String instrumentId, {
+    String? symbol,
+  }) async {
     return null;
   }
 
   @override
-  Future<bool> upvoteQuestion(BrokerageUser user, String instrumentId,
-      String eventId, String questionId) async {
+  Future<bool> upvoteQuestion(
+    BrokerageUser user,
+    String instrumentId,
+    String eventId,
+    String questionId,
+  ) async {
     return false;
   }
 
   @override
-  Future<ShareholderQuestion?> submitQuestion(BrokerageUser user,
-      String instrumentId, String eventId, String questionText) async {
+  Future<ShareholderQuestion?> submitQuestion(
+    BrokerageUser user,
+    String instrumentId,
+    String eventId,
+    String questionText,
+  ) async {
     return null;
   }
 
@@ -2596,33 +2871,42 @@ https://api.schwabapi.com/marketdata/v1/instruments?symbol=Google&projection=sea
   Future<List<dynamic>> getExternalTokens(BrokerageUser user) async => [];
 
   @override
-  Future<List<ExternalToken>> getExternalTokensModel(BrokerageUser user) async => [];
+  Future<List<ExternalToken>> getExternalTokensModel(
+    BrokerageUser user,
+  ) async => [];
 
   @override
-  Future<bool> revokeExternalToken(BrokerageUser user, String tokenId) async => false;
+  Future<bool> revokeExternalToken(BrokerageUser user, String tokenId) async =>
+      false;
 
   @override
   Future<List<dynamic>> getNotificationStack(BrokerageUser user) async => [];
 
   @override
-  Future<List<NotificationItem>> getNotificationStackModel(BrokerageUser user) async => [];
+  Future<List<NotificationItem>> getNotificationStackModel(
+    BrokerageUser user,
+  ) async => [];
 
   @override
   Future<dynamic> getInboxThreads(BrokerageUser user) async => null;
 
   @override
-  Future<List<NotificationItem>> getInboxThreadsModel(BrokerageUser user) async => [];
+  Future<List<NotificationItem>> getInboxThreadsModel(
+    BrokerageUser user,
+  ) async => [];
 
   @override
   Future<dynamic> getSpendingAccount(BrokerageUser user) async => null;
 
   @override
-  Future<SpendingAccount?> getSpendingAccountModel(BrokerageUser user) async => null;
+  Future<SpendingAccount?> getSpendingAccountModel(BrokerageUser user) async =>
+      null;
 
   @override
   Future<dynamic> getRetirementHistory(BrokerageUser user) async => null;
 
   @override
-  Future<RetirementHistory> getRetirementHistoryModel(BrokerageUser user) async =>
-      const RetirementHistory();
+  Future<RetirementHistory> getRetirementHistoryModel(
+    BrokerageUser user,
+  ) async => const RetirementHistory();
 }

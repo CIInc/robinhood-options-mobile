@@ -37,10 +37,12 @@ class AnalyticsCsvExport {
       ],
     ];
 
-    final portfolioBase =
-        portfolioPrices.isNotEmpty ? portfolioPrices.first : 1.0;
-    final benchmarkBase =
-        benchmarkPrices.isNotEmpty ? benchmarkPrices.first : 1.0;
+    final portfolioBase = portfolioPrices.isNotEmpty
+        ? portfolioPrices.first
+        : 1.0;
+    final benchmarkBase = benchmarkPrices.isNotEmpty
+        ? benchmarkPrices.first
+        : 1.0;
     final dateFormat = DateFormat('yyyy-MM-dd');
 
     for (var i = 0; i < dates.length; i++) {
@@ -65,7 +67,8 @@ class AnalyticsCsvExport {
     final file = XFile.fromData(
       utf8.encode(Csv().encode(rows)),
       mimeType: 'text/csv',
-      name: 'portfolio_analytics_'
+      name:
+          'portfolio_analytics_'
           '${DateFormat('yyyyMMdd').format(DateTime.now())}.csv',
     );
 

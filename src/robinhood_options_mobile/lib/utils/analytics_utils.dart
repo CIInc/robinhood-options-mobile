@@ -51,11 +51,11 @@ class AnalyticsUtils {
   }
 
   static bool _hasAnyGreek(OptionMarketData marketData) => [
-        marketData.delta,
-        marketData.gamma,
-        marketData.theta,
-        marketData.vega
-      ].any((value) => value != null && value.isFinite);
+    marketData.delta,
+    marketData.gamma,
+    marketData.theta,
+    marketData.vega,
+  ].any((value) => value != null && value.isFinite);
 
   /// Projects portfolio value under simple proportional market shocks.
   ///
@@ -69,19 +69,25 @@ class AnalyticsUtils {
     final validExposures = exposures.values
         .where((value) => value.isFinite && value != 0)
         .toList();
-    final portfolioValue =
-        validExposures.fold<double>(0, (sum, value) => sum + value);
+    final portfolioValue = validExposures.fold<double>(
+      0,
+      (sum, value) => sum + value,
+    );
     if (!portfolioValue.isFinite || portfolioValue == 0) return const [];
 
     return shocks
         .where((shock) => shock.isFinite)
-        .map((shock) => {
-              'shock': shock,
-              'change': validExposures.fold<double>(
-                  0, (sum, value) => sum + value * shock),
-              'projectedValue': portfolioValue * (1 + shock),
-              'portfolioValue': portfolioValue,
-            })
+        .map(
+          (shock) => {
+            'shock': shock,
+            'change': validExposures.fold<double>(
+              0,
+              (sum, value) => sum + value * shock,
+            ),
+            'projectedValue': portfolioValue * (1 + shock),
+            'portfolioValue': portfolioValue,
+          },
+        )
         .toList();
   }
 
@@ -94,8 +100,10 @@ class AnalyticsUtils {
     final validExposures = exposures.values
         .where((value) => value.isFinite && value != 0)
         .toList();
-    final downsideLoss =
-        validExposures.fold<double>(0, (loss, value) => loss + value * -0.20);
+    final downsideLoss = validExposures.fold<double>(
+      0,
+      (loss, value) => loss + value * -0.20,
+    );
 
     double weightedSpread = 0;
     double totalWeight = 0;
@@ -165,8 +173,9 @@ class AnalyticsUtils {
   static double calculateVariance(List<double> values) {
     if (values.length < 2) return 0.0;
     double mean = calculateMean(values);
-    double sumSquaredDiff =
-        values.map((v) => pow(v - mean, 2).toDouble()).reduce((a, b) => a + b);
+    double sumSquaredDiff = values
+        .map((v) => pow(v - mean, 2).toDouble())
+        .reduce((a, b) => a + b);
     return sumSquaredDiff / (values.length - 1);
   }
 
@@ -185,13 +194,16 @@ class AnalyticsUtils {
     return sumProductDiff / (x.length - 1);
   }
 
-  static double calculateSharpeRatio(List<double> returns,
-      {double riskFreeRate = 0.04}) {
+  static double calculateSharpeRatio(
+    List<double> returns, {
+    double riskFreeRate = 0.04,
+  }) {
     if (returns.isEmpty) return 0.0;
     // Annualize risk free rate for daily returns
     double dailyRiskFreeRate = riskFreeRate / 252;
-    List<double> excessReturns =
-        returns.map((r) => r - dailyRiskFreeRate).toList();
+    List<double> excessReturns = returns
+        .map((r) => r - dailyRiskFreeRate)
+        .toList();
     double meanExcessReturn = calculateMean(excessReturns);
     double stdDevExcessReturn = calculateStdDev(excessReturns);
 
@@ -200,7 +212,9 @@ class AnalyticsUtils {
   }
 
   static double calculateBeta(
-      List<double> assetReturns, List<double> marketReturns) {
+    List<double> assetReturns,
+    List<double> marketReturns,
+  ) {
     if (assetReturns.length != marketReturns.length || assetReturns.isEmpty) {
       return 0.0;
     }
@@ -211,8 +225,11 @@ class AnalyticsUtils {
   }
 
   static double calculateAlpha(
-      List<double> assetReturns, List<double> marketReturns, double beta,
-      {double riskFreeRate = 0.04}) {
+    List<double> assetReturns,
+    List<double> marketReturns,
+    double beta, {
+    double riskFreeRate = 0.04,
+  }) {
     if (assetReturns.isEmpty || marketReturns.isEmpty) return 0.0;
     double dailyRiskFreeRate = riskFreeRate / 252;
     double meanAssetReturn = calculateMean(assetReturns);
@@ -220,7 +237,8 @@ class AnalyticsUtils {
 
     // Alpha = Rp - [Rf + Beta * (Rm - Rf)]
     // Annualized Alpha
-    double dailyAlpha = meanAssetReturn -
+    double dailyAlpha =
+        meanAssetReturn -
         (dailyRiskFreeRate + beta * (meanMarketReturn - dailyRiskFreeRate));
     return dailyAlpha * 252;
   }
@@ -250,18 +268,26 @@ class AnalyticsUtils {
   /// Calculates the Expectancy per trade
   /// Expectancy = (Avg Win * Win Rate) - (Avg Loss * Loss Rate)
   static double calculateExpectancy(
-      double avgWin, double winRate, double avgLoss, double lossRate) {
+    double avgWin,
+    double winRate,
+    double avgLoss,
+    double lossRate,
+  ) {
     return (avgWin * winRate) - (avgLoss * lossRate);
   }
 
   /// Calculates the Sortino Ratio
   /// Similar to Sharpe Ratio but only penalizes downside volatility
-  static double calculateSortinoRatio(List<double> returns,
-      {double riskFreeRate = 0.04, double targetReturn = 0.0}) {
+  static double calculateSortinoRatio(
+    List<double> returns, {
+    double riskFreeRate = 0.04,
+    double targetReturn = 0.0,
+  }) {
     if (returns.isEmpty) return 0.0;
     double dailyRiskFreeRate = riskFreeRate / 252;
-    List<double> excessReturns =
-        returns.map((r) => r - dailyRiskFreeRate).toList();
+    List<double> excessReturns = returns
+        .map((r) => r - dailyRiskFreeRate)
+        .toList();
     double meanExcessReturn = calculateMean(excessReturns);
 
     // Calculate downside deviation (only negative returns relative to target)
@@ -283,7 +309,10 @@ class AnalyticsUtils {
   /// Calculates the Calmar Ratio
   /// Annualized Return (CAGR) / Max Drawdown
   static double calculateCalmarRatio(
-      double totalReturn, double maxDrawdown, double periodYears) {
+    double totalReturn,
+    double maxDrawdown,
+    double periodYears,
+  ) {
     if (maxDrawdown == 0 || periodYears <= 0) return 0.0;
     double cagr = pow(1 + totalReturn, 1 / periodYears).toDouble() - 1;
     return cagr / maxDrawdown.abs();
@@ -343,12 +372,16 @@ class AnalyticsUtils {
     return (prices.last - prices.first) / prices.first;
   }
 
-  static double calculateTreynorRatio(List<double> returns, double beta,
-      {double riskFreeRate = 0.04}) {
+  static double calculateTreynorRatio(
+    List<double> returns,
+    double beta, {
+    double riskFreeRate = 0.04,
+  }) {
     if (returns.isEmpty || beta == 0) return 0.0;
     double dailyRiskFreeRate = riskFreeRate / 252;
-    List<double> excessReturns =
-        returns.map((r) => r - dailyRiskFreeRate).toList();
+    List<double> excessReturns = returns
+        .map((r) => r - dailyRiskFreeRate)
+        .toList();
     double meanExcessReturn = calculateMean(excessReturns);
 
     // Annualize mean excess return
@@ -358,7 +391,9 @@ class AnalyticsUtils {
   }
 
   static double calculateInformationRatio(
-      List<double> portfolioReturns, List<double> benchmarkReturns) {
+    List<double> portfolioReturns,
+    List<double> benchmarkReturns,
+  ) {
     if (portfolioReturns.length != benchmarkReturns.length ||
         portfolioReturns.isEmpty) {
       return 0.0;
@@ -378,8 +413,10 @@ class AnalyticsUtils {
     return (meanActiveReturn / trackingError) * sqrt(252);
   }
 
-  static double calculateOmegaRatio(List<double> returns,
-      {double threshold = 0.0}) {
+  static double calculateOmegaRatio(
+    List<double> returns, {
+    double threshold = 0.0,
+  }) {
     if (returns.isEmpty) return 0.0;
     double sumGains = 0.0;
     double sumLosses = 0.0;
@@ -396,23 +433,27 @@ class AnalyticsUtils {
     return sumGains / sumLosses;
   }
 
-  static double calculateVaR(List<double> returns,
-      {double confidenceLevel = 0.95}) {
+  static double calculateVaR(
+    List<double> returns, {
+    double confidenceLevel = 0.95,
+  }) {
     if (returns.isEmpty) return 0.0;
     List<double> sortedReturns = List.from(returns)..sort();
-    int index =
-        ((1 - confidenceLevel) * sortedReturns.length + 0.00001).floor();
+    int index = ((1 - confidenceLevel) * sortedReturns.length + 0.00001)
+        .floor();
     if (index < 0) index = 0;
     if (index >= sortedReturns.length) index = sortedReturns.length - 1;
     return sortedReturns[index];
   }
 
-  static double calculateCVaR(List<double> returns,
-      {double confidenceLevel = 0.95}) {
+  static double calculateCVaR(
+    List<double> returns, {
+    double confidenceLevel = 0.95,
+  }) {
     if (returns.isEmpty) return 0.0;
     List<double> sortedReturns = List.from(returns)..sort();
-    int index =
-        ((1 - confidenceLevel) * sortedReturns.length + 0.00001).floor();
+    int index = ((1 - confidenceLevel) * sortedReturns.length + 0.00001)
+        .floor();
     if (index < 0) index = 0;
     if (index >= sortedReturns.length) index = sortedReturns.length - 1;
 
@@ -426,7 +467,9 @@ class AnalyticsUtils {
   }
 
   static double calculateCorrelation(
-      List<double> assetReturns, List<double> marketReturns) {
+    List<double> assetReturns,
+    List<double> marketReturns,
+  ) {
     if (assetReturns.length != marketReturns.length || assetReturns.isEmpty) {
       return 0.0;
     }
@@ -828,10 +871,12 @@ class AnalyticsUtils {
       return {};
     }
 
-    List<double> portfolioReturns =
-        calculateDailyReturns(alignedPortfolioPrices);
-    List<double> benchmarkReturns =
-        calculateDailyReturns(alignedBenchmarkPrices);
+    List<double> portfolioReturns = calculateDailyReturns(
+      alignedPortfolioPrices,
+    );
+    List<double> benchmarkReturns = calculateDailyReturns(
+      alignedBenchmarkPrices,
+    );
 
     List<double> activeReturns = [];
     for (int i = 0; i < portfolioReturns.length; i++) {
@@ -840,8 +885,10 @@ class AnalyticsUtils {
 
     double sharpe = calculateSharpeRatio(portfolioReturns);
     double beta = calculateBeta(portfolioReturns, benchmarkReturns);
-    double correlation =
-        calculateCorrelation(portfolioReturns, benchmarkReturns);
+    double correlation = calculateCorrelation(
+      portfolioReturns,
+      benchmarkReturns,
+    );
     double alpha = calculateAlpha(portfolioReturns, benchmarkReturns, beta);
     double maxDrawdown = calculateMaxDrawdown(alignedPortfolioPrices);
     double volatility = calculateVolatility(portfolioReturns);
@@ -850,8 +897,9 @@ class AnalyticsUtils {
     double portfolioCumulative = fullPortfolioPrices.length >= 2
         ? calculateCumulativeReturn(fullPortfolioPrices)
         : calculateCumulativeReturn(alignedPortfolioPrices);
-    double benchmarkCumulative =
-        calculateCumulativeReturn(alignedBenchmarkPrices);
+    double benchmarkCumulative = calculateCumulativeReturn(
+      alignedBenchmarkPrices,
+    );
 
     double trackingError = activeReturns.isNotEmpty
         ? calculateStdDev(activeReturns) * sqrt(252)
@@ -899,11 +947,16 @@ class AnalyticsUtils {
 
     double sortino = calculateSortinoRatio(portfolioReturns);
     double treynor = calculateTreynorRatio(portfolioReturns, beta);
-    double informationRatio =
-        calculateInformationRatio(portfolioReturns, benchmarkReturns);
+    double informationRatio = calculateInformationRatio(
+      portfolioReturns,
+      benchmarkReturns,
+    );
 
-    double calmar =
-        calculateCalmarRatio(portfolioCumulative, maxDrawdown, periodYears);
+    double calmar = calculateCalmarRatio(
+      portfolioCumulative,
+      maxDrawdown,
+      periodYears,
+    );
     double omega = calculateOmegaRatio(portfolioReturns);
     double var95 = calculateVaR(portfolioReturns);
     double cvar95 = calculateCVaR(portfolioReturns);
@@ -930,8 +983,9 @@ class AnalyticsUtils {
     }
 
     double profitFactor = calculateProfitFactor(grossProfit, grossLoss);
-    double winRate =
-        (winCount + lossCount) > 0 ? winCount / (winCount + lossCount) : 0.0;
+    double winRate = (winCount + lossCount) > 0
+        ? winCount / (winCount + lossCount)
+        : 0.0;
     double avgWin = winCount > 0 ? totalWinAmt / winCount : 0.0;
     // Return negative value for Avg Loss to make it intuitive
     double avgLoss = lossCount > 0 ? -(totalLossAmt / lossCount) : 0.0;

@@ -74,8 +74,9 @@ void main() {
       );
     });
 
-    testWidgets('Auto-save should trigger when take profit is changed',
-        (WidgetTester tester) async {
+    testWidgets('Auto-save should trigger when take profit is changed', (
+      WidgetTester tester,
+    ) async {
       testUserDocRef = FirebaseFirestore.instance
           .collection('user')
           .doc('test_user_123')
@@ -92,7 +93,8 @@ void main() {
               ChangeNotifierProvider(create: (_) => AgenticTradingProvider()),
               ChangeNotifierProvider(create: (_) => TradeSignalsProvider()),
               ChangeNotifierProvider<BacktestingProvider>(
-                  create: (_) => MockBacktestingProvider()),
+                create: (_) => MockBacktestingProvider(),
+              ),
             ],
             child: AgenticTradingSettingsWidget(
               user: testUser,
@@ -109,8 +111,9 @@ void main() {
       expect(find.byType(AgenticTradingSettingsWidget), findsOneWidget);
     });
 
-    testWidgets('Auto-save should trigger when stop loss is changed',
-        (WidgetTester tester) async {
+    testWidgets('Auto-save should trigger when stop loss is changed', (
+      WidgetTester tester,
+    ) async {
       testUserDocRef = FirebaseFirestore.instance
           .collection('user')
           .doc('test_user_123')
@@ -127,7 +130,8 @@ void main() {
               ChangeNotifierProvider(create: (_) => AgenticTradingProvider()),
               ChangeNotifierProvider(create: (_) => TradeSignalsProvider()),
               ChangeNotifierProvider<BacktestingProvider>(
-                  create: (_) => MockBacktestingProvider()),
+                create: (_) => MockBacktestingProvider(),
+              ),
             ],
             child: AgenticTradingSettingsWidget(
               user: testUser,
@@ -149,18 +153,19 @@ void main() {
 class MockBrokerageService extends Fake implements IBrokerageService {
   @override
   Future<dynamic> placeInstrumentOrder(
-      BrokerageUser user,
-      Account account,
-      Instrument instrument,
-      String symbol,
-      String side,
-      double? price,
-      int quantity,
-      {String type = 'limit',
-      String trigger = 'immediate',
-      double? stopPrice,
-      String timeInForce = 'gtc',
-      Map<String, dynamic>? trailingPeg}) async {
+    BrokerageUser user,
+    Account account,
+    Instrument instrument,
+    String symbol,
+    String side,
+    double? price,
+    int quantity, {
+    String type = 'limit',
+    String trigger = 'immediate',
+    double? stopPrice,
+    String timeInForce = 'gtc',
+    Map<String, dynamic>? trailingPeg,
+  }) async {
     return {'id': 'mock_order_id', 'state': 'filled'};
   }
 }

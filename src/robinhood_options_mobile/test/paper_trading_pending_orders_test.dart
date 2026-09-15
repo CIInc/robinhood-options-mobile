@@ -16,51 +16,55 @@ class _UnusedFirestore extends Fake implements FirebaseFirestore {}
 void main() {
   Instrument makeInstrument({String symbol = 'AAPL'}) {
     return Instrument(
-        id: 'id_$symbol',
-        url: 'https://api.robinhood.com/instruments/$symbol/',
-        quote: 'quote',
-        fundamentals: 'fundamentals',
-        splits: 'splits',
-        state: 'active',
-        market: 'market',
-        name: '$symbol Inc.',
-        tradeable: true,
-        tradability: 'tradable',
-        symbol: symbol,
-        bloombergUnique: 'bloombergUnique',
-        country: 'US',
-        type: 'stock',
-        rhsTradability: 'tradable',
-        fractionalTradability: 'tradable',
-        isSpac: false,
-        isTest: false,
-        ipoAccessSupportsDsp: false,
-        dateCreated: DateTime.now());
+      id: 'id_$symbol',
+      url: 'https://api.robinhood.com/instruments/$symbol/',
+      quote: 'quote',
+      fundamentals: 'fundamentals',
+      splits: 'splits',
+      state: 'active',
+      market: 'market',
+      name: '$symbol Inc.',
+      tradeable: true,
+      tradability: 'tradable',
+      symbol: symbol,
+      bloombergUnique: 'bloombergUnique',
+      country: 'US',
+      type: 'stock',
+      rhsTradability: 'tradable',
+      fractionalTradability: 'tradable',
+      isSpac: false,
+      isTest: false,
+      ipoAccessSupportsDsp: false,
+      dateCreated: DateTime.now(),
+    );
   }
 
   OptionInstrument makeOptionInstrument({String id = 'opt_id'}) {
     return OptionInstrument(
-        'chain_id',
-        'AAPL',
-        DateTime.now(),
-        DateTime.now().add(const Duration(days: 30)),
-        id,
-        DateTime.now(),
-        const MinTicks(0.01, 0.01, 0.0),
-        'tradable',
-        'active',
-        150.0,
-        'tradable',
-        'call',
-        DateTime.now(),
-        'https://api.robinhood.com/options/instruments/$id/',
-        null,
-        'long',
-        'short');
+      'chain_id',
+      'AAPL',
+      DateTime.now(),
+      DateTime.now().add(const Duration(days: 30)),
+      id,
+      DateTime.now(),
+      const MinTicks(0.01, 0.01, 0.0),
+      'tradable',
+      'active',
+      150.0,
+      'tradable',
+      'call',
+      DateTime.now(),
+      'https://api.robinhood.com/options/instruments/$id/',
+      null,
+      'long',
+      'short',
+    );
   }
 
   PaperTradingStore makeStore() => PaperTradingStore(
-      firestore: _UnusedFirestore(), isMarketOpen: () => true);
+    firestore: _UnusedFirestore(),
+    isMarketOpen: () => true,
+  );
 
   group('immediate fills', () {
     test('market buy fills immediately at market price', () async {
@@ -80,47 +84,51 @@ void main() {
       expect(store.cashBalance, 100000.0 - 1500.0);
     });
 
-    test('marketable limit buy (limit above market) fills immediately',
-        () async {
-      final store = makeStore();
-      final result = await store.submitStockOrder(
-        instrument: makeInstrument(),
-        quantity: 10,
-        side: 'buy',
-        orderType: 'limit',
-        limitPrice: 155.0,
-        marketPrice: 150.0,
-      );
+    test(
+      'marketable limit buy (limit above market) fills immediately',
+      () async {
+        final store = makeStore();
+        final result = await store.submitStockOrder(
+          instrument: makeInstrument(),
+          quantity: 10,
+          side: 'buy',
+          orderType: 'limit',
+          limitPrice: 155.0,
+          marketPrice: 150.0,
+        );
 
-      expect(result.state, 'filled');
-      expect(store.pendingOrders, isEmpty);
-      // Fills at the market price, not the (worse) limit price.
-      expect(store.cashBalance, 100000.0 - 1500.0);
-    });
+        expect(result.state, 'filled');
+        expect(store.pendingOrders, isEmpty);
+        // Fills at the market price, not the (worse) limit price.
+        expect(store.cashBalance, 100000.0 - 1500.0);
+      },
+    );
 
     test('market order without a market price is rejected', () async {
       final store = makeStore();
       expect(
-          () => store.submitStockOrder(
-                instrument: makeInstrument(),
-                quantity: 10,
-                side: 'buy',
-                orderType: 'market',
-              ),
-          throwsException);
+        () => store.submitStockOrder(
+          instrument: makeInstrument(),
+          quantity: 10,
+          side: 'buy',
+          orderType: 'market',
+        ),
+        throwsException,
+      );
     });
 
     test('unsupported order types are rejected with a clear error', () async {
       final store = makeStore();
       expect(
-          () => store.submitStockOrder(
-                instrument: makeInstrument(),
-                quantity: 10,
-                side: 'buy',
-                orderType: 'trailing_stop',
-                marketPrice: 150.0,
-              ),
-          throwsException);
+        () => store.submitStockOrder(
+          instrument: makeInstrument(),
+          quantity: 10,
+          side: 'buy',
+          orderType: 'trailing_stop',
+          marketPrice: 150.0,
+        ),
+        throwsException,
+      );
     });
   });
 
@@ -170,32 +178,35 @@ void main() {
       expect(store.history.first['order_type'], 'limit');
     });
 
-    test('resting limit sell fills when the price rises to the limit',
-        () async {
-      final store = makeStore();
-      final instrument = makeInstrument();
-      await store.submitStockOrder(
+    test(
+      'resting limit sell fills when the price rises to the limit',
+      () async {
+        final store = makeStore();
+        final instrument = makeInstrument();
+        await store.submitStockOrder(
           instrument: instrument,
           quantity: 10,
           side: 'buy',
           orderType: 'market',
-          marketPrice: 150.0);
+          marketPrice: 150.0,
+        );
 
-      final result = await store.submitStockOrder(
-        instrument: instrument,
-        quantity: 10,
-        side: 'sell',
-        orderType: 'limit',
-        limitPrice: 160.0,
-        marketPrice: 150.0,
-      );
-      expect(result.state, 'confirmed');
+        final result = await store.submitStockOrder(
+          instrument: instrument,
+          quantity: 10,
+          side: 'sell',
+          orderType: 'limit',
+          limitPrice: 160.0,
+          marketPrice: 150.0,
+        );
+        expect(result.state, 'confirmed');
 
-      await store.evaluatePendingOrders(stockPrices: {'AAPL': 161.0});
-      expect(store.pendingOrders, isEmpty);
-      expect(store.positions, isEmpty);
-      expect(store.cashBalance, 100000.0 - 1500.0 + 1610.0);
-    });
+        await store.evaluatePendingOrders(stockPrices: {'AAPL': 161.0});
+        expect(store.pendingOrders, isEmpty);
+        expect(store.positions, isEmpty);
+        expect(store.cashBalance, 100000.0 - 1500.0 + 1610.0);
+      },
+    );
   });
 
   group('stop and stop-limit orders', () {
@@ -203,11 +214,12 @@ void main() {
       final store = makeStore();
       final instrument = makeInstrument();
       await store.submitStockOrder(
-          instrument: instrument,
-          quantity: 10,
-          side: 'buy',
-          orderType: 'market',
-          marketPrice: 150.0);
+        instrument: instrument,
+        quantity: 10,
+        side: 'buy',
+        orderType: 'market',
+        marketPrice: 150.0,
+      );
 
       final result = await store.submitStockOrder(
         instrument: instrument,
@@ -230,101 +242,112 @@ void main() {
       expect(store.cashBalance, 100000.0 - 1500.0 + 1380.0);
     });
 
-    test('stop-limit sell triggers on the stop, then fills on the limit',
-        () async {
-      final store = makeStore();
-      final instrument = makeInstrument();
-      await store.submitStockOrder(
+    test(
+      'stop-limit sell triggers on the stop, then fills on the limit',
+      () async {
+        final store = makeStore();
+        final instrument = makeInstrument();
+        await store.submitStockOrder(
           instrument: instrument,
           quantity: 10,
           side: 'buy',
           orderType: 'market',
-          marketPrice: 150.0);
+          marketPrice: 150.0,
+        );
 
-      await store.submitStockOrder(
-        instrument: instrument,
-        quantity: 10,
-        side: 'sell',
-        orderType: 'stop_limit',
-        stopPrice: 140.0,
-        limitPrice: 141.0,
-        marketPrice: 150.0,
-      );
+        await store.submitStockOrder(
+          instrument: instrument,
+          quantity: 10,
+          side: 'sell',
+          orderType: 'stop_limit',
+          stopPrice: 140.0,
+          limitPrice: 141.0,
+          marketPrice: 150.0,
+        );
 
-      // Stop not breached yet.
-      await store.evaluatePendingOrders(stockPrices: {'AAPL': 142.0});
-      expect(store.pendingOrders, hasLength(1));
-      expect(store.pendingOrders.first.triggered, isFalse);
+        // Stop not breached yet.
+        await store.evaluatePendingOrders(stockPrices: {'AAPL': 142.0});
+        expect(store.pendingOrders, hasLength(1));
+        expect(store.pendingOrders.first.triggered, isFalse);
 
-      // Stop breached, but limit (141) not marketable at 140.
-      await store.evaluatePendingOrders(stockPrices: {'AAPL': 140.0});
-      expect(store.pendingOrders, hasLength(1));
-      expect(store.pendingOrders.first.triggered, isTrue);
+        // Stop breached, but limit (141) not marketable at 140.
+        await store.evaluatePendingOrders(stockPrices: {'AAPL': 140.0});
+        expect(store.pendingOrders, hasLength(1));
+        expect(store.pendingOrders.first.triggered, isTrue);
 
-      // Price recovers past the limit: fills.
-      await store.evaluatePendingOrders(stockPrices: {'AAPL': 141.5});
-      expect(store.pendingOrders, isEmpty);
-      expect(store.positions, isEmpty);
-      expect(store.cashBalance, 100000.0 - 1500.0 + 1415.0);
-    });
+        // Price recovers past the limit: fills.
+        await store.evaluatePendingOrders(stockPrices: {'AAPL': 141.5});
+        expect(store.pendingOrders, isEmpty);
+        expect(store.positions, isEmpty);
+        expect(store.cashBalance, 100000.0 - 1500.0 + 1415.0);
+      },
+    );
   });
 
   group('reservations', () {
-    test('rejects a buy that exceeds available (unreserved) buying power',
-        () async {
-      final store = makeStore();
-      await store.submitStockOrder(
-        instrument: makeInstrument(symbol: 'MSFT'),
-        quantity: 300,
-        side: 'buy',
-        orderType: 'limit',
-        limitPrice: 300.0, // reserves 90,000
-        marketPrice: 400.0,
-      );
+    test(
+      'rejects a buy that exceeds available (unreserved) buying power',
+      () async {
+        final store = makeStore();
+        await store.submitStockOrder(
+          instrument: makeInstrument(symbol: 'MSFT'),
+          quantity: 300,
+          side: 'buy',
+          orderType: 'limit',
+          limitPrice: 300.0, // reserves 90,000
+          marketPrice: 400.0,
+        );
 
-      expect(
+        expect(
           () => store.submitStockOrder(
-                instrument: makeInstrument(symbol: 'GOOG'),
-                quantity: 100,
-                side: 'buy',
-                orderType: 'limit',
-                limitPrice: 200.0, // needs 20,000 > 10,000 available
-                marketPrice: 250.0,
-              ),
-          throwsException);
-    });
+            instrument: makeInstrument(symbol: 'GOOG'),
+            quantity: 100,
+            side: 'buy',
+            orderType: 'limit',
+            limitPrice: 200.0, // needs 20,000 > 10,000 available
+            marketPrice: 250.0,
+          ),
+          throwsException,
+        );
+      },
+    );
 
-    test('rejects sells whose quantity is already reserved by working orders',
-        () async {
-      final store = makeStore();
-      final instrument = makeInstrument();
-      await store.submitStockOrder(
+    test(
+      'rejects sells whose quantity is already reserved by working orders',
+      () async {
+        final store = makeStore();
+        final instrument = makeInstrument();
+        await store.submitStockOrder(
           instrument: instrument,
           quantity: 10,
           side: 'buy',
           orderType: 'market',
-          marketPrice: 150.0);
+          marketPrice: 150.0,
+        );
 
-      await store.submitStockOrder(
+        await store.submitStockOrder(
           instrument: instrument,
           quantity: 6,
           side: 'sell',
           orderType: 'limit',
           limitPrice: 200.0,
-          marketPrice: 150.0);
+          marketPrice: 150.0,
+        );
 
-      // Only 4 shares remain unreserved.
-      expect(
+        // Only 4 shares remain unreserved.
+        expect(
           () => store.submitStockOrder(
-                instrument: instrument,
-                quantity: 6,
-                side: 'sell',
-                orderType: 'limit',
-                limitPrice: 210.0,
-                marketPrice: 150.0,
-              ),
-          throwsException);
-    });
+            instrument: instrument,
+            quantity: 6,
+            side: 'sell',
+            orderType: 'limit',
+            limitPrice: 210.0,
+            marketPrice: 150.0,
+          ),
+          throwsException,
+        );
+      },
+    );
 
     test('cancel releases the reservation', () async {
       final store = makeStore();
@@ -347,34 +370,36 @@ void main() {
       expect(await store.cancelPendingOrder(result.id), isFalse);
     });
 
-    test('order that cannot be funded at trigger time is rejected, not retried',
-        () async {
-      final store = makeStore();
-      // Reserve 50,000 with a resting order.
-      await store.submitStockOrder(
-        instrument: makeInstrument(symbol: 'MSFT'),
-        quantity: 100,
-        side: 'buy',
-        orderType: 'limit',
-        limitPrice: 500.0,
-        marketPrice: 600.0,
-      );
-      // Immediate fill consumes 90,000 of the 100,000 cash (market orders
-      // check raw cash, not net-of-reservation buying power).
-      await store.submitStockOrder(
-        instrument: makeInstrument(symbol: 'AAPL'),
-        quantity: 600,
-        side: 'buy',
-        orderType: 'market',
-        marketPrice: 150.0,
-      );
-      expect(store.cashBalance, 10000.0);
+    test(
+      'order that cannot be funded at trigger time is rejected, not retried',
+      () async {
+        final store = makeStore();
+        // Reserve 50,000 with a resting order.
+        await store.submitStockOrder(
+          instrument: makeInstrument(symbol: 'MSFT'),
+          quantity: 100,
+          side: 'buy',
+          orderType: 'limit',
+          limitPrice: 500.0,
+          marketPrice: 600.0,
+        );
+        // Immediate fill consumes 90,000 of the 100,000 cash (market orders
+        // check raw cash, not net-of-reservation buying power).
+        await store.submitStockOrder(
+          instrument: makeInstrument(symbol: 'AAPL'),
+          quantity: 600,
+          side: 'buy',
+          orderType: 'market',
+          marketPrice: 150.0,
+        );
+        expect(store.cashBalance, 10000.0);
 
-      // The resting order triggers but can no longer be funded.
-      await store.evaluatePendingOrders(stockPrices: {'MSFT': 499.0});
-      expect(store.pendingOrders, isEmpty);
-      expect(store.history.first['state'], 'rejected');
-    });
+        // The resting order triggers but can no longer be funded.
+        await store.evaluatePendingOrders(stockPrices: {'MSFT': 499.0});
+        expect(store.pendingOrders, isEmpty);
+        expect(store.history.first['state'], 'rejected');
+      },
+    );
   });
 
   group('time in force', () {
@@ -396,8 +421,9 @@ void main() {
 
       // Next day: expired without filling.
       await store.evaluatePendingOrders(
-          stockPrices: {'AAPL': 139.0},
-          now: DateTime.now().add(const Duration(days: 1)));
+        stockPrices: {'AAPL': 139.0},
+        now: DateTime.now().add(const Duration(days: 1)),
+      );
       expect(store.pendingOrders, isEmpty);
       expect(store.positions, isEmpty);
       expect(store.history.first['state'], 'cancelled');
@@ -416,8 +442,9 @@ void main() {
       );
 
       await store.evaluatePendingOrders(
-          stockPrices: {'AAPL': 139.0},
-          now: DateTime.now().add(const Duration(days: 5)));
+        stockPrices: {'AAPL': 139.0},
+        now: DateTime.now().add(const Duration(days: 5)),
+      );
       expect(store.positions, hasLength(1));
       expect(store.pendingOrders, isEmpty);
     });
@@ -439,8 +466,10 @@ void main() {
       // Options reserve at the 100x contract multiplier.
       expect(store.reservedCash, 2 * 5.0 * 100);
 
-      await store
-          .evaluatePendingOrders(stockPrices: {}, optionMarks: {'opt_id': 4.5});
+      await store.evaluatePendingOrders(
+        stockPrices: {},
+        optionMarks: {'opt_id': 4.5},
+      );
       expect(store.pendingOrders, isEmpty);
       expect(store.optionPositions, hasLength(1));
       expect(store.optionPositions.first.quantity, 2);
@@ -450,7 +479,9 @@ void main() {
 
   group('market hours', () {
     PaperTradingStore makeClosedStore() => PaperTradingStore(
-        firestore: _UnusedFirestore(), isMarketOpen: () => false);
+      firestore: _UnusedFirestore(),
+      isMarketOpen: () => false,
+    );
 
     test('market order while closed queues for the open', () async {
       final store = makeClosedStore();
@@ -484,31 +515,34 @@ void main() {
       expect(store.positions, isEmpty);
     });
 
-    test('closed-market evaluation fills nothing, but GFD still expires',
-        () async {
-      final store = makeClosedStore();
-      await store.submitStockOrder(
-        instrument: makeInstrument(),
-        quantity: 10,
-        side: 'buy',
-        orderType: 'limit',
-        limitPrice: 140.0,
-        marketPrice: 150.0,
-        timeInForce: 'gfd',
-      );
+    test(
+      'closed-market evaluation fills nothing, but GFD still expires',
+      () async {
+        final store = makeClosedStore();
+        await store.submitStockOrder(
+          instrument: makeInstrument(),
+          quantity: 10,
+          side: 'buy',
+          orderType: 'limit',
+          limitPrice: 140.0,
+          marketPrice: 150.0,
+          timeInForce: 'gfd',
+        );
 
-      // Price crosses the limit, but the market is closed: no fill.
-      await store.evaluatePendingOrders(stockPrices: {'AAPL': 139.0});
-      expect(store.pendingOrders, hasLength(1));
-      expect(store.positions, isEmpty);
+        // Price crosses the limit, but the market is closed: no fill.
+        await store.evaluatePendingOrders(stockPrices: {'AAPL': 139.0});
+        expect(store.pendingOrders, hasLength(1));
+        expect(store.positions, isEmpty);
 
-      // The next day the GFD order expires even while closed.
-      await store.evaluatePendingOrders(
+        // The next day the GFD order expires even while closed.
+        await store.evaluatePendingOrders(
           stockPrices: {'AAPL': 139.0},
-          now: DateTime.now().add(const Duration(days: 1)));
-      expect(store.pendingOrders, isEmpty);
-      expect(store.history.first['state'], 'cancelled');
-    });
+          now: DateTime.now().add(const Duration(days: 1)),
+        );
+        expect(store.pendingOrders, isEmpty);
+        expect(store.history.first['state'], 'cancelled');
+      },
+    );
 
     test('queued market order fills at the first open-session price', () async {
       final store = makeClosedStore();
@@ -523,7 +557,9 @@ void main() {
       // Market opens with a gap up: fills at the observed price, not the
       // stale anchor.
       await store.evaluatePendingOrders(
-          stockPrices: {'AAPL': 152.0}, marketOpen: true);
+        stockPrices: {'AAPL': 152.0},
+        marketOpen: true,
+      );
       expect(store.pendingOrders, isEmpty);
       expect(store.positions.single.quantity, 10);
       expect(store.positions.single.averageBuyPrice, 152.0);
@@ -532,49 +568,58 @@ void main() {
 
     test('margin sweep is skipped while the market is closed', () async {
       final store = PaperTradingStore(
-          firestore: _UnusedFirestore(), isMarketOpen: () => true);
+        firestore: _UnusedFirestore(),
+        isMarketOpen: () => true,
+      );
       await store.resetAccount(initialCapital: 10000.0);
       await store.submitStockOrder(
-          instrument: makeInstrument(),
-          quantity: 100,
-          side: 'sell',
-          orderType: 'market',
-          marketPrice: 100.0);
+        instrument: makeInstrument(),
+        quantity: 100,
+        side: 'sell',
+        orderType: 'market',
+        marketPrice: 100.0,
+      );
 
       // Deficit exists at 180, but the market is closed: no liquidation.
-      final closed = await store
-          .processMarginCalls(stockPrices: {'AAPL': 180.0}, marketOpen: false);
+      final closed = await store.processMarginCalls(
+        stockPrices: {'AAPL': 180.0},
+        marketOpen: false,
+      );
       expect(closed, isFalse);
       expect(store.positions.single.quantity, -100);
 
       // Open: the sweep runs.
-      final open = await store
-          .processMarginCalls(stockPrices: {'AAPL': 180.0}, marketOpen: true);
+      final open = await store.processMarginCalls(
+        stockPrices: {'AAPL': 180.0},
+        marketOpen: true,
+      );
       expect(open, isTrue);
       expect(store.positions.single.quantity, greaterThan(-100));
     });
   });
 
   group('account lifecycle', () {
-    test('resetAccount clears working orders and custom capital sticks',
-        () async {
-      final store = makeStore();
-      await store.submitStockOrder(
-        instrument: makeInstrument(),
-        quantity: 10,
-        side: 'buy',
-        orderType: 'limit',
-        limitPrice: 140.0,
-        marketPrice: 150.0,
-      );
-      expect(store.pendingOrders, hasLength(1));
+    test(
+      'resetAccount clears working orders and custom capital sticks',
+      () async {
+        final store = makeStore();
+        await store.submitStockOrder(
+          instrument: makeInstrument(),
+          quantity: 10,
+          side: 'buy',
+          orderType: 'limit',
+          limitPrice: 140.0,
+          marketPrice: 150.0,
+        );
+        expect(store.pendingOrders, hasLength(1));
 
-      await store.resetAccount(initialCapital: 25000.0);
-      expect(store.pendingOrders, isEmpty);
-      expect(store.cashBalance, 25000.0);
-      expect(store.initialCapital, 25000.0);
-      expect(store.availableBuyingPower, 25000.0);
-    });
+        await store.resetAccount(initialCapital: 25000.0);
+        expect(store.pendingOrders, isEmpty);
+        expect(store.cashBalance, 25000.0);
+        expect(store.initialCapital, 25000.0);
+        expect(store.availableBuyingPower, 25000.0);
+      },
+    );
 
     test('pending orders round-trip through JSON', () {
       final order = PendingPaperOrder(

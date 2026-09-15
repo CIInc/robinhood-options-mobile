@@ -40,8 +40,10 @@ class PortfolioMoversWidget extends StatelessWidget {
     final ranked = _rank(positions);
     if (ranked.isEmpty) return const SizedBox.shrink();
 
-    final winners =
-        ranked.where((mover) => mover.gainLoss > 0).take(rowCount).toList();
+    final winners = ranked
+        .where((mover) => mover.gainLoss > 0)
+        .take(rowCount)
+        .toList();
     final losers = ranked.reversed
         .where((mover) => mover.gainLoss < 0)
         .take(rowCount)
@@ -60,12 +62,16 @@ class PortfolioMoversWidget extends StatelessWidget {
               Icon(Icons.swap_vert, color: theme.colorScheme.primary),
               const SizedBox(width: 12),
               Expanded(
-                child:
-                    Text("Today's Movers", style: theme.textTheme.titleLarge),
+                child: Text(
+                  "Today's Movers",
+                  style: theme.textTheme.titleLarge,
+                ),
               ),
               if (onTap != null)
-                Icon(Icons.chevron_right,
-                    color: theme.colorScheme.onSurfaceVariant),
+                Icon(
+                  Icons.chevron_right,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
             ],
           ),
           const SizedBox(height: 16),
@@ -77,8 +83,12 @@ class PortfolioMoversWidget extends StatelessWidget {
               ),
               const SizedBox(width: 16),
               Expanded(
-                child:
-                    _column(context, 'Losers', losers, theme.colorScheme.error),
+                child: _column(
+                  context,
+                  'Losers',
+                  losers,
+                  theme.colorScheme.error,
+                ),
               ),
             ],
           ),
@@ -97,32 +107,42 @@ class PortfolioMoversWidget extends StatelessWidget {
           position.marketValue <= 0) {
         continue;
       }
-      movers.add(PortfolioMover(
-        symbol: symbol,
-        gainLoss: position.gainLossToday,
-        gainLossPercent: position.gainLossPercentToday,
-      ));
+      movers.add(
+        PortfolioMover(
+          symbol: symbol,
+          gainLoss: position.gainLossToday,
+          gainLossPercent: position.gainLossPercentToday,
+        ),
+      );
     }
     movers.sort((a, b) => b.gainLoss.compareTo(a.gainLoss));
     return movers;
   }
 
-  Widget _column(BuildContext context, String heading,
-      List<PortfolioMover> movers, Color color) {
+  Widget _column(
+    BuildContext context,
+    String heading,
+    List<PortfolioMover> movers,
+    Color color,
+  ) {
     final theme = Theme.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           heading,
-          style: theme.textTheme.labelMedium
-              ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+          style: theme.textTheme.labelMedium?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
         ),
         const SizedBox(height: 8),
         if (movers.isEmpty)
-          Text('—',
-              style: theme.textTheme.bodyMedium
-                  ?.copyWith(color: theme.colorScheme.onSurfaceVariant))
+          Text(
+            '—',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          )
         else
           for (final mover in movers) _row(context, mover, color),
       ],
@@ -144,8 +164,9 @@ class PortfolioMoversWidget extends StatelessWidget {
               mover.symbol,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.titleSmall
-                  ?.copyWith(fontWeight: FontWeight.bold),
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
           const SizedBox(width: 4),
@@ -154,13 +175,16 @@ class PortfolioMoversWidget extends StatelessWidget {
             children: [
               Text(
                 showBalances ? currency.format(mover.gainLoss) : '\$••••',
-                style: theme.textTheme.bodyMedium
-                    ?.copyWith(color: color, fontWeight: FontWeight.bold),
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: color,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               Text(
                 percent.format(mover.gainLossPercent),
-                style: theme.textTheme.bodySmall
-                    ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
               ),
             ],
           ),

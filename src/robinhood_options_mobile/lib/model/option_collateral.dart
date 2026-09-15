@@ -29,10 +29,10 @@ class OptionCollateralCash {
   }
 
   Map<String, dynamic> toJson() => {
-        'amount': amount.toStringAsFixed(4),
-        'direction': direction,
-        'infinite': infinite,
-      };
+    'amount': amount.toStringAsFixed(4),
+    'direction': direction,
+    'infinite': infinite,
+  };
 
   String get formattedAmount =>
       infinite ? 'Unlimited' : _currencyFormat.format(amount);
@@ -73,12 +73,12 @@ class OptionCollateralEquity {
   }
 
   Map<String, dynamic> toJson() => {
-        'symbol': symbol,
-        'quantity': quantity.toString(),
-        'uncovered_shares': uncoveredShares.toString(),
-        'direction': direction,
-        if (instrumentUrl != null) 'instrument': instrumentUrl,
-      };
+    'symbol': symbol,
+    'quantity': quantity.toString(),
+    'uncovered_shares': uncoveredShares.toString(),
+    'direction': direction,
+    if (instrumentUrl != null) 'instrument': instrumentUrl,
+  };
 
   String get formattedQuantity => quantity % 1 == 0
       ? quantity.toInt().toString()
@@ -94,10 +94,7 @@ class OptionCollateralBreakdown {
   final OptionCollateralCash cash;
   final List<OptionCollateralEquity> equities;
 
-  const OptionCollateralBreakdown({
-    required this.cash,
-    required this.equities,
-  });
+  const OptionCollateralBreakdown({required this.cash, required this.equities});
 
   factory OptionCollateralBreakdown.fromJson(dynamic json) {
     if (json is! Map) {
@@ -115,16 +112,13 @@ class OptionCollateralBreakdown {
       }
     }
 
-    return OptionCollateralBreakdown(
-      cash: cash,
-      equities: equitiesList,
-    );
+    return OptionCollateralBreakdown(cash: cash, equities: equitiesList);
   }
 
   Map<String, dynamic> toJson() => {
-        'cash': cash.toJson(),
-        'equities': equities.map((e) => e.toJson()).toList(),
-      };
+    'cash': cash.toJson(),
+    'equities': equities.map((e) => e.toJson()).toList(),
+  };
 
   double get totalShares {
     double sum = 0.0;
@@ -178,7 +172,8 @@ class OptionChainCollateral {
       );
     }
 
-    final resolvedAccountNumber = (json['account_number'] != null &&
+    final resolvedAccountNumber =
+        (json['account_number'] != null &&
             json['account_number'].toString().trim().isNotEmpty)
         ? json['account_number'].toString().trim()
         : accountNumber;
@@ -188,18 +183,19 @@ class OptionChainCollateral {
       accountNumber: resolvedAccountNumber,
       collateral: OptionCollateralBreakdown.fromJson(json['collateral']),
       collateralHeldForOrders: OptionCollateralBreakdown.fromJson(
-          json['collateral_held_for_orders']),
+        json['collateral_held_for_orders'],
+      ),
       updatedAt: DateTime.now(),
     );
   }
 
   Map<String, dynamic> toJson() => {
-        'chain_id': chainId,
-        'account_number': accountNumber,
-        'collateral': collateral.toJson(),
-        'collateral_held_for_orders': collateralHeldForOrders.toJson(),
-        'updated_at': updatedAt.toIso8601String(),
-      };
+    'chain_id': chainId,
+    'account_number': accountNumber,
+    'collateral': collateral.toJson(),
+    'collateral_held_for_orders': collateralHeldForOrders.toJson(),
+    'updated_at': updatedAt.toIso8601String(),
+  };
 
   double get totalCashLocked =>
       collateral.cash.amount + collateralHeldForOrders.cash.amount;
@@ -220,7 +216,7 @@ class OptionChainCollateral {
 class OptionUpgradeStatus {
   final bool shouldShowUpgrade;
   final String
-      optionLevel; // 'option_level_1', 'option_level_2', 'option_level_3'
+  optionLevel; // 'option_level_1', 'option_level_2', 'option_level_3'
   final int currentTier;
   final int targetTier;
   final String title;
@@ -243,8 +239,10 @@ class OptionUpgradeStatus {
     required this.tierFeatures,
   });
 
-  factory OptionUpgradeStatus.fromJson(dynamic json,
-      {String? defaultAccountLevel}) {
+  factory OptionUpgradeStatus.fromJson(
+    dynamic json, {
+    String? defaultAccountLevel,
+  }) {
     if (json is! Map) {
       final level = defaultAccountLevel ?? 'option_level_2';
       final tier = _parseTier(level);
@@ -253,8 +251,9 @@ class OptionUpgradeStatus {
         optionLevel: level,
         currentTier: tier,
         targetTier: tier < 3 ? 3 : 3,
-        title:
-            tier < 3 ? 'Upgrade to Options Level 3' : 'Level 3 Options Active',
+        title: tier < 3
+            ? 'Upgrade to Options Level 3'
+            : 'Level 3 Options Active',
         subtitle: tier < 3
             ? 'Access multi-leg spreads, straddles, and iron condors.'
             : 'Multi-leg spread and complex options trading enabled.',
@@ -265,31 +264,37 @@ class OptionUpgradeStatus {
       );
     }
 
-    final rawLevel = json['option_level']?.toString() ??
+    final rawLevel =
+        json['option_level']?.toString() ??
         json['current_level']?.toString() ??
         defaultAccountLevel ??
         'option_level_2';
     final currentTier = _parseTier(rawLevel);
-    final targetTier = (json['target_tier'] as num?)?.toInt() ??
+    final targetTier =
+        (json['target_tier'] as num?)?.toInt() ??
         (currentTier < 3 ? 3 : currentTier);
 
-    final shouldShow = json['should_show_options_upgrade'] == true ||
+    final shouldShow =
+        json['should_show_options_upgrade'] == true ||
         json['should_show_upgrade'] == true ||
         (currentTier < 3 && json['should_show_options_upgrade'] != false);
 
-    final title = json['upgrade_title']?.toString() ??
+    final title =
+        json['upgrade_title']?.toString() ??
         json['title']?.toString() ??
         (currentTier < 3
             ? 'Upgrade to Options Level $targetTier'
             : 'Options Level $currentTier Active');
 
-    final subtitle = json['upgrade_subtitle']?.toString() ??
+    final subtitle =
+        json['upgrade_subtitle']?.toString() ??
         json['subtitle']?.toString() ??
         (currentTier < 3
             ? 'Unlock multi-leg strategies including Spreads and Iron Condors.'
             : 'All advanced options strategies are enabled on this account.');
 
-    final upgradeUrl = json['upgrade_url']?.toString() ??
+    final upgradeUrl =
+        json['upgrade_url']?.toString() ??
         json['action_url']?.toString() ??
         json['url']?.toString();
 
@@ -328,17 +333,17 @@ class OptionUpgradeStatus {
   }
 
   Map<String, dynamic> toJson() => {
-        'should_show_options_upgrade': shouldShowUpgrade,
-        'option_level': optionLevel,
-        'current_tier': currentTier,
-        'target_tier': targetTier,
-        'upgrade_title': title,
-        'upgrade_subtitle': subtitle,
-        if (upgradeUrl != null) 'upgrade_url': upgradeUrl,
-        'is_eligible': isEligible,
-        'requirements': requirements,
-        'features': tierFeatures,
-      };
+    'should_show_options_upgrade': shouldShowUpgrade,
+    'option_level': optionLevel,
+    'current_tier': currentTier,
+    'target_tier': targetTier,
+    'upgrade_title': title,
+    'upgrade_subtitle': subtitle,
+    if (upgradeUrl != null) 'upgrade_url': upgradeUrl,
+    'is_eligible': isEligible,
+    'requirements': requirements,
+    'features': tierFeatures,
+  };
 
   static int _parseTier(String level) {
     final lower = level.toLowerCase();
@@ -356,9 +361,7 @@ class OptionUpgradeStatus {
         'Options risk profile suitable for multi-leg strategies',
       ];
     }
-    return [
-      'Account approved for all supported options strategies',
-    ];
+    return ['Account approved for all supported options strategies'];
   }
 
   static List<String> _defaultFeatures(int tier) {

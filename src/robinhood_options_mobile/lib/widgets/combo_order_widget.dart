@@ -58,17 +58,23 @@ class _ComboOrderWidgetState extends State<ComboOrderWidget> {
   @override
   Widget build(BuildContext context) {
     final quoteStore = Provider.of<QuoteStore>(context, listen: false);
-    final instrumentStore =
-        Provider.of<InstrumentStore>(context, listen: false);
+    final instrumentStore = Provider.of<InstrumentStore>(
+      context,
+      listen: false,
+    );
 
     final symbol = widget.comboOrder.primarySymbol;
-    final cachedQuote =
-        quoteStore.items.where((element) => element.symbol == symbol);
+    final cachedQuote = quoteStore.items.where(
+      (element) => element.symbol == symbol,
+    );
     if (cachedQuote.isNotEmpty) {
       futureQuote = Future.value(cachedQuote.first);
     } else {
-      futureQuote =
-          widget.service.getQuote(widget.brokerageUser, quoteStore, symbol);
+      futureQuote = widget.service.getQuote(
+        widget.brokerageUser,
+        quoteStore,
+        symbol,
+      );
     }
 
     return Scaffold(
@@ -78,7 +84,10 @@ class _ComboOrderWidgetState extends State<ComboOrderWidget> {
           final quote = quoteSnapshot.data;
           if (quote != null && quote.instrument.isNotEmpty) {
             futureInstrument = widget.service.getInstrument(
-                widget.brokerageUser, instrumentStore, quote.instrument);
+              widget.brokerageUser,
+              instrumentStore,
+              quote.instrument,
+            );
           } else {
             futureInstrument = Future.value(null);
           }
@@ -144,12 +153,15 @@ class _ComboOrderWidgetState extends State<ComboOrderWidget> {
         ),
         SliverToBoxAdapter(
           child: Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16.0,
+              vertical: 8.0,
+            ),
             child: Card(
               elevation: 2,
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16)),
+                borderRadius: BorderRadius.circular(16),
+              ),
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
@@ -189,7 +201,8 @@ class _ComboOrderWidgetState extends State<ComboOrderWidget> {
                           ),
                           backgroundColor: stateColor.withValues(alpha: 0.15),
                           side: BorderSide(
-                              color: stateColor.withValues(alpha: 0.4)),
+                            color: stateColor.withValues(alpha: 0.4),
+                          ),
                         ),
                       ],
                     ),
@@ -240,8 +253,11 @@ class _ComboOrderWidgetState extends State<ComboOrderWidget> {
                         },
                         child: Row(
                           children: [
-                            Icon(Icons.show_chart,
-                                size: 18, color: theme.colorScheme.primary),
+                            Icon(
+                              Icons.show_chart,
+                              size: 18,
+                              color: theme.colorScheme.primary,
+                            ),
                             const SizedBox(width: 8),
                             Text(
                               'View ${order.primarySymbol} Overview',
@@ -251,8 +267,11 @@ class _ComboOrderWidgetState extends State<ComboOrderWidget> {
                               ),
                             ),
                             const Spacer(),
-                            Icon(Icons.chevron_right,
-                                size: 18, color: theme.colorScheme.primary),
+                            Icon(
+                              Icons.chevron_right,
+                              size: 18,
+                              color: theme.colorScheme.primary,
+                            ),
                           ],
                         ),
                       ),
@@ -265,11 +284,14 @@ class _ComboOrderWidgetState extends State<ComboOrderWidget> {
         ),
         SliverToBoxAdapter(
           child: Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16.0,
+              vertical: 4.0,
+            ),
             child: Card(
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16)),
+                borderRadius: BorderRadius.circular(16),
+              ),
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
@@ -291,11 +313,14 @@ class _ComboOrderWidgetState extends State<ComboOrderWidget> {
         ),
         SliverToBoxAdapter(
           child: Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16.0,
+              vertical: 4.0,
+            ),
             child: Card(
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16)),
+                borderRadius: BorderRadius.circular(16),
+              ),
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
@@ -309,24 +334,45 @@ class _ComboOrderWidgetState extends State<ComboOrderWidget> {
                     ),
                     const SizedBox(height: 12),
                     _buildDataRow(
-                        'Order Type', order.type.toUpperCase(), theme),
-                    _buildDataRow('Time in Force',
-                        order.timeInForce.toUpperCase(), theme),
+                      'Order Type',
+                      order.type.toUpperCase(),
+                      theme,
+                    ),
                     _buildDataRow(
-                        'Trigger', order.trigger.toUpperCase(), theme),
+                      'Time in Force',
+                      order.timeInForce.toUpperCase(),
+                      theme,
+                    ),
+                    _buildDataRow(
+                      'Trigger',
+                      order.trigger.toUpperCase(),
+                      theme,
+                    ),
                     if (order.stopPrice != null)
-                      _buildDataRow('Stop Price',
-                          formatCurrency.format(order.stopPrice), theme),
-                    _buildDataRow('Order ID',
-                        order.id.isNotEmpty ? order.id : 'N/A', theme),
+                      _buildDataRow(
+                        'Stop Price',
+                        formatCurrency.format(order.stopPrice),
+                        theme,
+                      ),
+                    _buildDataRow(
+                      'Order ID',
+                      order.id.isNotEmpty ? order.id : 'N/A',
+                      theme,
+                    ),
                     if (order.refId.isNotEmpty)
                       _buildDataRow('Ref ID', order.refId, theme),
                     if (order.createdAt != null)
-                      _buildDataRow('Submitted',
-                          formatMediumDate.format(order.createdAt!), theme),
+                      _buildDataRow(
+                        'Submitted',
+                        formatMediumDate.format(order.createdAt!),
+                        theme,
+                      ),
                     if (order.updatedAt != null)
-                      _buildDataRow('Updated',
-                          formatMediumDate.format(order.updatedAt!), theme),
+                      _buildDataRow(
+                        'Updated',
+                        formatMediumDate.format(order.updatedAt!),
+                        theme,
+                      ),
                   ],
                 ),
               ),
@@ -343,7 +389,8 @@ class _ComboOrderWidgetState extends State<ComboOrderWidget> {
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
                 onPressed: _isCancelling ? null : _confirmCancelOrder,
                 icon: _isCancelling
@@ -359,7 +406,9 @@ class _ComboOrderWidgetState extends State<ComboOrderWidget> {
                 label: Text(
                   _isCancelling ? 'Cancelling Order...' : 'Cancel Combo Order',
                   style: const TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 16),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
                 ),
               ),
             ),
@@ -370,9 +419,7 @@ class _ComboOrderWidgetState extends State<ComboOrderWidget> {
             child: DisclaimerWidget(),
           ),
         ),
-        const SliverToBoxAdapter(
-          child: SizedBox(height: 32),
-        ),
+        const SliverToBoxAdapter(child: SizedBox(height: 32)),
       ],
     );
   }
@@ -536,19 +583,22 @@ class _ComboOrderWidgetState extends State<ComboOrderWidget> {
       setState(() => _isCancelling = true);
       try {
         await widget.service.cancelComboOrder(
-            widget.brokerageUser, widget.comboOrder.cancelUrl!);
+          widget.brokerageUser,
+          widget.comboOrder.cancelUrl!,
+        );
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-                content: Text('Combo order cancelled successfully.')),
+              content: Text('Combo order cancelled successfully.'),
+            ),
           );
           Navigator.pop(context);
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to cancel order: $e')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Failed to cancel order: $e')));
         }
       } finally {
         if (mounted) {

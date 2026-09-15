@@ -70,20 +70,24 @@ class _PortfolioChartWidgetState extends State<PortfolioChartWidget> {
   Widget build(BuildContext context) {
     return Selector<PortfolioHistoricalsStore, PortfolioHistoricals?>(
       selector: (context, store) {
-        final baseData = store.items.firstWhereOrNull((element) =>
-            element.span == convertChartSpanFilter(_chartDateSpanFilter));
+        final baseData = store.items.firstWhereOrNull(
+          (element) =>
+              element.span == convertChartSpanFilter(_chartDateSpanFilter),
+        );
 
         // Append hour data if available for fresher updates on all date filters
         if (baseData != null) {
-          final hourData = store.items.firstWhereOrNull((element) =>
-              element.span == convertChartSpanFilter(ChartDateSpan.hour));
+          final hourData = store.items.firstWhereOrNull(
+            (element) =>
+                element.span == convertChartSpanFilter(ChartDateSpan.hour),
+          );
 
           if (hourData != null && hourData.equityHistoricals.isNotEmpty) {
             // Find the latest timestamp in base data
             final baseMaxDate = baseData.equityHistoricals.isNotEmpty
                 ? baseData.equityHistoricals
-                    .map((e) => e.beginsAt!)
-                    .reduce((a, b) => a.isAfter(b) ? a : b)
+                      .map((e) => e.beginsAt!)
+                      .reduce((a, b) => a.isAfter(b) ? a : b)
                 : DateTime(2000);
 
             // Append hour data points that are newer than base data
@@ -133,13 +137,12 @@ class _PortfolioChartWidgetState extends State<PortfolioChartWidget> {
                   Text(
                     'Loading performance data...',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurface
-                              .withValues(alpha: 0.6),
-                          fontWeight: FontWeight.w500,
-                          letterSpacing: 0.2,
-                        ),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withValues(alpha: 0.6),
+                      fontWeight: FontWeight.w500,
+                      letterSpacing: 0.2,
+                    ),
                   ),
                 ],
               ),
@@ -162,21 +165,23 @@ class _PortfolioChartWidgetState extends State<PortfolioChartWidget> {
             // Same length - check if last timestamp changed
             final currentLast =
                 portfolioHistoricals.equityHistoricals.isNotEmpty
-                    ? portfolioHistoricals.equityHistoricals.last.beginsAt
-                    : null;
-            final previousLast = _previousPortfolioHistoricals!
-                    .equityHistoricals.isNotEmpty
+                ? portfolioHistoricals.equityHistoricals.last.beginsAt
+                : null;
+            final previousLast =
+                _previousPortfolioHistoricals!.equityHistoricals.isNotEmpty
                 ? _previousPortfolioHistoricals!.equityHistoricals.last.beginsAt
                 : null;
             final currentFirst =
                 portfolioHistoricals.equityHistoricals.isNotEmpty
-                    ? portfolioHistoricals.equityHistoricals.first.beginsAt
-                    : null;
+                ? portfolioHistoricals.equityHistoricals.first.beginsAt
+                : null;
             final previousFirst =
                 _previousPortfolioHistoricals!.equityHistoricals.isNotEmpty
-                    ? _previousPortfolioHistoricals!
-                        .equityHistoricals.first.beginsAt
-                    : null;
+                ? _previousPortfolioHistoricals!
+                      .equityHistoricals
+                      .first
+                      .beginsAt
+                : null;
 
             if (currentLast != null &&
                 previousLast != null &&
@@ -219,14 +224,17 @@ class _PortfolioChartWidgetState extends State<PortfolioChartWidget> {
         changeInPeriod = close - open;
         changePercentInPeriod = (close / open) - 1;
 
-        var provider = Provider.of<PortfolioHistoricalsSelectionStore>(context,
-            listen: false);
+        var provider = Provider.of<PortfolioHistoricalsSelectionStore>(
+          context,
+          listen: false,
+        );
         TimeSeriesChart historicalChart = TimeSeriesChart(
           [
             charts.Series<EquityHistorical, DateTime>(
               id: 'Adjusted Equity',
               colorFn: (_, __) => charts.ColorUtil.fromDartColor(
-                  Theme.of(context).colorScheme.primary),
+                Theme.of(context).colorScheme.primary,
+              ),
               domainFn: (EquityHistorical history, _) => history.beginsAt!,
               measureFn: (EquityHistorical history, index) =>
                   history.adjustedOpenEquity,
@@ -237,24 +245,28 @@ class _PortfolioChartWidgetState extends State<PortfolioChartWidget> {
             ),
             if (allHistoricals.any((element) => element.openEquity! > 0)) ...[
               charts.Series<EquityHistorical, DateTime>(
-                  id: 'Equity',
-                  colorFn: (_, __) => charts.MaterialPalette.green.shadeDefault,
-                  domainFn: (EquityHistorical history, _) => history.beginsAt!,
-                  measureFn: (EquityHistorical history, index) =>
-                      history.openEquity,
-                  data: allHistoricals),
+                id: 'Equity',
+                colorFn: (_, __) => charts.MaterialPalette.green.shadeDefault,
+                domainFn: (EquityHistorical history, _) => history.beginsAt!,
+                measureFn: (EquityHistorical history, index) =>
+                    history.openEquity,
+                data: allHistoricals,
+              ),
             ],
-            if (allHistoricals.any((element) =>
-                element.openMarketValue != null &&
-                element.openMarketValue! > 0)) ...[
+            if (allHistoricals.any(
+              (element) =>
+                  element.openMarketValue != null &&
+                  element.openMarketValue! > 0,
+            )) ...[
               charts.Series<EquityHistorical, DateTime>(
-                  id: 'Market Value',
-                  colorFn: (_, __) => charts.MaterialPalette.red.shadeDefault,
-                  domainFn: (EquityHistorical history, _) => history.beginsAt!,
-                  measureFn: (EquityHistorical history, index) =>
-                      history.openMarketValue,
-                  data: allHistoricals),
-            ]
+                id: 'Market Value',
+                colorFn: (_, __) => charts.MaterialPalette.red.shadeDefault,
+                domainFn: (EquityHistorical history, _) => history.beginsAt!,
+                measureFn: (EquityHistorical history, index) =>
+                    history.openMarketValue,
+                data: allHistoricals,
+              ),
+            ],
           ],
           key: ValueKey('portfolio-history-$showBalances'),
           animate: shouldAnimate,
@@ -263,8 +275,8 @@ class _PortfolioChartWidgetState extends State<PortfolioChartWidget> {
           close: close,
           showRangeAnnotationValues: showBalances,
           hidePrimaryMeasureAxisValues: !showBalances,
-          seriesLegend: (allHistoricals
-                      .any((element) => element.openEquity! > 0) ||
+          seriesLegend:
+              (allHistoricals.any((element) => element.openEquity! > 0) ||
                   allHistoricals.any((element) => element.openMarketValue! > 0))
               ? charts.SeriesLegend(
                   horizontalFirst: true,
@@ -281,372 +293,134 @@ class _PortfolioChartWidgetState extends State<PortfolioChartWidget> {
             }
             provider.selectionChanged(model?.selectedDatum.first.datum);
           },
-          symbolRenderer: TextSymbolRenderer(() {
-            firstHistorical = dataToShow.equityHistoricals[0];
-            open = firstHistorical!.adjustedOpenEquity!;
-            if (provider.selection != null) {
-              changeInPeriod = provider.selection!.adjustedCloseEquity! - open;
-              changePercentInPeriod =
-                  provider.selection!.adjustedCloseEquity! / open - 1;
-            } else {
-              changeInPeriod = close - open;
-              changePercentInPeriod = (close / open) - 1;
-            }
-            final date = formatCompactDateTimeWithHour.format(
+          symbolRenderer: TextSymbolRenderer(
+            () {
+              firstHistorical = dataToShow.equityHistoricals[0];
+              open = firstHistorical!.adjustedOpenEquity!;
+              if (provider.selection != null) {
+                changeInPeriod =
+                    provider.selection!.adjustedCloseEquity! - open;
+                changePercentInPeriod =
+                    provider.selection!.adjustedCloseEquity! / open - 1;
+              } else {
+                changeInPeriod = close - open;
+                changePercentInPeriod = (close / open) - 1;
+              }
+              final date = formatCompactDateTimeWithHour.format(
                 provider.selection != null
                     ? provider.selection!.beginsAt!.toLocal()
-                    : lastHistorical!.beginsAt!.toLocal());
-            final value = showBalances
-                ? formatCurrency.format(provider.selection != null
-                    ? provider.selection!.adjustedCloseEquity
-                    : close)
-                : '••••••';
-            return '$value\n$date';
-          },
-              marginBottom: 16,
-              backgroundColor: Theme.of(context).colorScheme.inverseSurface,
-              textColor: Theme.of(context).colorScheme.onInverseSurface),
+                    : lastHistorical!.beginsAt!.toLocal(),
+              );
+              final value = showBalances
+                  ? formatCurrency.format(
+                      provider.selection != null
+                          ? provider.selection!.adjustedCloseEquity
+                          : close,
+                    )
+                  : '••••••';
+              return '$value\n$date';
+            },
+            marginBottom: 16,
+            backgroundColor: Theme.of(context).colorScheme.inverseSurface,
+            textColor: Theme.of(context).colorScheme.onInverseSurface,
+          ),
         );
 
-        return Column(children: [
-          Consumer<PortfolioHistoricalsSelectionStore>(
+        return Column(
+          children: [
+            Consumer<PortfolioHistoricalsSelectionStore>(
               builder: (context, value, child) {
-            var selection = value.selection;
-            if (selection != null) {
-              changeInPeriod = selection.adjustedCloseEquity! - open;
-              changePercentInPeriod = selection.adjustedCloseEquity! / open - 1;
-            } else {
-              changeInPeriod = close - open;
-              changePercentInPeriod = close / open - 1;
-            }
-            String? returnText = widget.brokerageUser.getDisplayText(
-                changeInPeriod,
-                displayValue: DisplayValue.totalReturn);
-            String? returnPercentText = widget.brokerageUser.getDisplayText(
-                changePercentInPeriod,
-                displayValue: DisplayValue.totalReturnPercent);
+                var selection = value.selection;
+                if (selection != null) {
+                  changeInPeriod = selection.adjustedCloseEquity! - open;
+                  changePercentInPeriod =
+                      selection.adjustedCloseEquity! / open - 1;
+                } else {
+                  changeInPeriod = close - open;
+                  changePercentInPeriod = close / open - 1;
+                }
+                String? returnText = widget.brokerageUser.getDisplayText(
+                  changeInPeriod,
+                  displayValue: DisplayValue.totalReturn,
+                );
+                String? returnPercentText = widget.brokerageUser.getDisplayText(
+                  changePercentInPeriod,
+                  displayValue: DisplayValue.totalReturnPercent,
+                );
 
-            if (widget.isFullScreen) {
-              // Compact single-line header for full screen with some styling
-              final primary = Theme.of(context).colorScheme.primary;
-              final positive = Colors.green;
-              final negative = Colors.red;
-              final neutralColor =
-                  Theme.of(context).colorScheme.onSurfaceVariant;
+                if (widget.isFullScreen) {
+                  // Compact single-line header for full screen with some styling
+                  final primary = Theme.of(context).colorScheme.primary;
+                  final positive = Colors.green;
+                  final negative = Colors.red;
+                  final neutralColor = Theme.of(
+                    context,
+                  ).colorScheme.onSurfaceVariant;
 
-              final changeColor = changeInPeriod > 0
-                  ? positive
-                  : (changeInPeriod < 0 ? negative : neutralColor);
-              final changePercentColor = changePercentInPeriod > 0
-                  ? positive
-                  : (changePercentInPeriod < 0 ? negative : neutralColor);
+                  final changeColor = changeInPeriod > 0
+                      ? positive
+                      : (changeInPeriod < 0 ? negative : neutralColor);
+                  final changePercentColor = changePercentInPeriod > 0
+                      ? positive
+                      : (changePercentInPeriod < 0 ? negative : neutralColor);
 
-              return SizedBox(
-                height: 72,
-                child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      // Portfolio Value Badge
-                      Expanded(
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 8),
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                primary.withValues(alpha: 0.12),
-                                Theme.of(context)
-                                    .colorScheme
-                                    .surfaceContainerHighest,
-                              ],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(
-                                color: primary.withValues(alpha: 0.3)),
-                            boxShadow: [
-                              BoxShadow(
-                                color: primary.withValues(alpha: 0.08),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                'PORTFOLIO',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w700,
-                                  letterSpacing: 0.5,
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onSurfaceVariant,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Expanded(
-                                child: FittedBox(
-                                  alignment: Alignment.centerLeft,
-                                  fit: BoxFit.scaleDown,
-                                  child: showBalances
-                                      ? AnimatedPriceText(
-                                          price: selection != null
-                                              ? selection.adjustedCloseEquity!
-                                              : close,
-                                          format: formatCurrency,
-                                          style: TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w700,
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .onSurface,
-                                          ),
-                                        )
-                                      : Text(
-                                          '\$••••••',
-                                          style: TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w700,
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .onSurface,
-                                          ),
-                                        ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      // Change Badge
-                      Expanded(
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 8),
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                changeColor.withValues(alpha: 0.12),
-                                Theme.of(context)
-                                    .colorScheme
-                                    .surfaceContainerHighest,
-                              ],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(
-                                color: changeColor.withValues(alpha: 0.3)),
-                            boxShadow: [
-                              BoxShadow(
-                                color: changeColor.withValues(alpha: 0.08),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                '${_chartDateSpanFilter.label} CHANGE',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w700,
-                                  letterSpacing: 0.5,
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onSurfaceVariant,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Expanded(
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      changeInPeriod >= 0
-                                          ? Icons.trending_up_rounded
-                                          : Icons.trending_down_rounded,
-                                      size: 16,
-                                      color: changeColor,
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Expanded(
-                                      child: FittedBox(
-                                        alignment: Alignment.centerLeft,
-                                        fit: BoxFit.scaleDown,
-                                        child: Text(
-                                          showBalances ? returnText : '••••••',
-                                          style: TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w600,
-                                            color: changeColor,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      // Change % Badge
-                      Expanded(
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 8),
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                changePercentColor.withValues(alpha: 0.12),
-                                Theme.of(context)
-                                    .colorScheme
-                                    .surfaceContainerHighest,
-                              ],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(
-                                color:
-                                    changePercentColor.withValues(alpha: 0.3)),
-                            boxShadow: [
-                              BoxShadow(
-                                color:
-                                    changePercentColor.withValues(alpha: 0.08),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                '${_chartDateSpanFilter.label} CHANGE %',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w700,
-                                  letterSpacing: 0.5,
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onSurfaceVariant,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Expanded(
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      changePercentInPeriod >= 0
-                                          ? Icons.percent_rounded
-                                          : Icons.percent_outlined,
-                                      size: 16,
-                                      color: changePercentColor,
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Expanded(
-                                      child: FittedBox(
-                                        alignment: Alignment.centerLeft,
-                                        fit: BoxFit.scaleDown,
-                                        child: Text(
-                                          returnPercentText,
-                                          style: TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w600,
-                                            color: changePercentColor,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            }
-
-            return SizedBox(
-                child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  child: LayoutBuilder(builder: (context, constraints) {
-                    final primary = Theme.of(context).colorScheme.primary;
-                    final positive = Colors.green;
-                    final negative = Colors.red;
-                    final neutralColor =
-                        Theme.of(context).colorScheme.onSurfaceVariant;
-
-                    final changeColor = changeInPeriod > 0
-                        ? positive
-                        : (changeInPeriod < 0 ? negative : neutralColor);
-
-                    return Container(
-                      width: double.infinity,
+                  return SizedBox(
+                    height: 72,
+                    child: Padding(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 20, vertical: 20),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            primary.withValues(alpha: 0.12),
-                            Theme.of(context)
-                                .colorScheme
-                                .surfaceContainerHighest
-                                .withValues(alpha: 0.4),
-                          ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(24),
-                        border: Border.all(
-                          color: primary.withValues(alpha: 0.2),
-                          width: 1,
-                        ),
+                        horizontal: 8,
+                        vertical: 4,
                       ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Column(
+                          // Portfolio Value Badge
+                          Expanded(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 8,
+                              ),
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    primary.withValues(alpha: 0.12),
+                                    Theme.of(
+                                      context,
+                                    ).colorScheme.surfaceContainerHighest,
+                                  ],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: primary.withValues(alpha: 0.3),
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: primary.withValues(alpha: 0.08),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Text(
-                                    'PORTFOLIO VALUE',
+                                    'PORTFOLIO',
                                     style: TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w800,
-                                      letterSpacing: 1.1,
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurfaceVariant,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                      letterSpacing: 0.5,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurfaceVariant,
                                     ),
                                   ),
-                                  const SizedBox(height: 4),
-                                  SizedBox(
-                                    width: constraints.maxWidth - 100,
+                                  const SizedBox(height: 2),
+                                  Expanded(
                                     child: FittedBox(
                                       alignment: Alignment.centerLeft,
                                       fit: BoxFit.scaleDown,
@@ -654,213 +428,514 @@ class _PortfolioChartWidgetState extends State<PortfolioChartWidget> {
                                           ? AnimatedPriceText(
                                               price: selection != null
                                                   ? selection
-                                                      .adjustedCloseEquity!
+                                                        .adjustedCloseEquity!
                                                   : close,
                                               format: formatCurrency,
                                               style: TextStyle(
-                                                fontSize: 32,
-                                                fontWeight: FontWeight.w900,
-                                                color: Theme.of(context)
-                                                    .colorScheme
-                                                    .onSurface,
-                                                letterSpacing: -1.0,
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.w700,
+                                                color: Theme.of(
+                                                  context,
+                                                ).colorScheme.onSurface,
                                               ),
                                             )
                                           : Text(
                                               '\$••••••',
                                               style: TextStyle(
-                                                fontSize: 32,
-                                                fontWeight: FontWeight.w900,
-                                                color: Theme.of(context)
-                                                    .colorScheme
-                                                    .onSurface,
-                                                letterSpacing: -1.0,
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.w700,
+                                                color: Theme.of(
+                                                  context,
+                                                ).colorScheme.onSurface,
                                               ),
                                             ),
                                     ),
                                   ),
                                 ],
                               ),
-                              IconButton(
-                                icon: Icon(
-                                  showBalances
-                                      ? Icons.visibility_outlined
-                                      : Icons.visibility_off_outlined,
-                                  color: primary,
-                                  size: 22,
-                                ),
-                                onPressed: () {
-                                  HapticFeedback.mediumImpact();
-                                  accountStore.toggleShowBalances();
-                                },
-                              ),
-                            ],
+                            ),
                           ),
-                          const SizedBox(height: 12),
-                          Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 16, vertical: 9),
-                                decoration: BoxDecoration(
-                                  color: changeColor.withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
-                                    color: changeColor.withValues(alpha: 0.15),
-                                  ),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      changeInPeriod >= 0
-                                          ? Icons.trending_up_rounded
-                                          : Icons.trending_down_rounded,
-                                      size: 20,
-                                      color: changeColor,
-                                    ),
-                                    const SizedBox(width: 10),
-                                    Text(
-                                      showBalances
-                                          ? '$returnText ($returnPercentText)'
-                                          : '•••••• ($returnPercentText)',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w800,
-                                        color: changeColor,
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                          const SizedBox(width: 8),
+                          // Change Badge
+                          Expanded(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 8,
                               ),
-                              const Spacer(),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.end,
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    changeColor.withValues(alpha: 0.12),
+                                    Theme.of(
+                                      context,
+                                    ).colorScheme.surfaceContainerHighest,
+                                  ],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: changeColor.withValues(alpha: 0.3),
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: changeColor.withValues(alpha: 0.08),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Text(
-                                    '${_chartDateSpanFilter.label} · ${formatCompactDate.format(
-                                      selection != null
-                                          ? selection.beginsAt!.toLocal()
-                                          : lastHistorical!.beginsAt!.toLocal(),
-                                    )}',
+                                    '${_chartDateSpanFilter.label} CHANGE',
                                     style: TextStyle(
                                       fontSize: 11,
                                       fontWeight: FontWeight.w700,
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurface,
+                                      letterSpacing: 0.5,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurfaceVariant,
                                     ),
                                   ),
-                                  Text(
-                                    DateFormat.jm().format(
-                                      selection != null
-                                          ? selection.beginsAt!.toLocal()
-                                          : lastHistorical!.beginsAt!.toLocal(),
-                                    ),
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurfaceVariant,
+                                  const SizedBox(height: 2),
+                                  Expanded(
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          changeInPeriod >= 0
+                                              ? Icons.trending_up_rounded
+                                              : Icons.trending_down_rounded,
+                                          size: 16,
+                                          color: changeColor,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Expanded(
+                                          child: FittedBox(
+                                            alignment: Alignment.centerLeft,
+                                            fit: BoxFit.scaleDown,
+                                            child: Text(
+                                              showBalances
+                                                  ? returnText
+                                                  : '••••••',
+                                              style: TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.w600,
+                                                color: changeColor,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
                                 ],
                               ),
-                            ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          // Change % Badge
+                          Expanded(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 8,
+                              ),
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    changePercentColor.withValues(alpha: 0.12),
+                                    Theme.of(
+                                      context,
+                                    ).colorScheme.surfaceContainerHighest,
+                                  ],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: changePercentColor.withValues(
+                                    alpha: 0.3,
+                                  ),
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: changePercentColor.withValues(
+                                      alpha: 0.08,
+                                    ),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    '${_chartDateSpanFilter.label} CHANGE %',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                      letterSpacing: 0.5,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Expanded(
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          changePercentInPeriod >= 0
+                                              ? Icons.percent_rounded
+                                              : Icons.percent_outlined,
+                                          size: 16,
+                                          color: changePercentColor,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Expanded(
+                                          child: FittedBox(
+                                            alignment: Alignment.centerLeft,
+                                            fit: BoxFit.scaleDown,
+                                            child: Text(
+                                              returnPercentText,
+                                              style: TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.w600,
+                                                color: changePercentColor,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ),
                         ],
                       ),
-                    );
-                  }),
-                )
-              ],
-            ));
-          }),
-          widget.isFullScreen
-              ? Expanded(
-                  child: Padding(
-                  padding: const EdgeInsets.fromLTRB(10.0, 0.0, 10.0, 10.0),
-                  child: Stack(
+                    ),
+                  );
+                }
+
+                return SizedBox(
+                  child: Column(
                     children: [
-                      _showCandles && showBalances
-                          ? Candlesticks(
-                              candles: _generateCandles(allHistoricals),
-                            )
-                          : historicalChart,
-                      if (showBalances)
-                        Positioned(
-                          top: 0,
-                          right: 0,
-                          child: IconButton(
-                            icon: Icon(_showCandles
-                                ? Icons.show_chart
-                                : Icons.candlestick_chart),
-                            onPressed: () {
-                              setState(() {
-                                _showCandles = !_showCandles;
-                              });
-                            },
-                          ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: LayoutBuilder(
+                          builder: (context, constraints) {
+                            final primary = Theme.of(
+                              context,
+                            ).colorScheme.primary;
+                            final positive = Colors.green;
+                            final negative = Colors.red;
+                            final neutralColor = Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant;
+
+                            final changeColor = changeInPeriod > 0
+                                ? positive
+                                : (changeInPeriod < 0
+                                      ? negative
+                                      : neutralColor);
+
+                            return Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 20,
+                                vertical: 20,
+                              ),
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    primary.withValues(alpha: 0.12),
+                                    Theme.of(context)
+                                        .colorScheme
+                                        .surfaceContainerHighest
+                                        .withValues(alpha: 0.4),
+                                  ],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                                borderRadius: BorderRadius.circular(24),
+                                border: Border.all(
+                                  color: primary.withValues(alpha: 0.2),
+                                  width: 1,
+                                ),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'PORTFOLIO VALUE',
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.w800,
+                                              letterSpacing: 1.1,
+                                              color: Theme.of(
+                                                context,
+                                              ).colorScheme.onSurfaceVariant,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          SizedBox(
+                                            width: constraints.maxWidth - 100,
+                                            child: FittedBox(
+                                              alignment: Alignment.centerLeft,
+                                              fit: BoxFit.scaleDown,
+                                              child: showBalances
+                                                  ? AnimatedPriceText(
+                                                      price: selection != null
+                                                          ? selection
+                                                                .adjustedCloseEquity!
+                                                          : close,
+                                                      format: formatCurrency,
+                                                      style: TextStyle(
+                                                        fontSize: 32,
+                                                        fontWeight:
+                                                            FontWeight.w900,
+                                                        color: Theme.of(
+                                                          context,
+                                                        ).colorScheme.onSurface,
+                                                        letterSpacing: -1.0,
+                                                      ),
+                                                    )
+                                                  : Text(
+                                                      '\$••••••',
+                                                      style: TextStyle(
+                                                        fontSize: 32,
+                                                        fontWeight:
+                                                            FontWeight.w900,
+                                                        color: Theme.of(
+                                                          context,
+                                                        ).colorScheme.onSurface,
+                                                        letterSpacing: -1.0,
+                                                      ),
+                                                    ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      IconButton(
+                                        icon: Icon(
+                                          showBalances
+                                              ? Icons.visibility_outlined
+                                              : Icons.visibility_off_outlined,
+                                          color: primary,
+                                          size: 22,
+                                        ),
+                                        onPressed: () {
+                                          HapticFeedback.mediumImpact();
+                                          accountStore.toggleShowBalances();
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 16,
+                                          vertical: 9,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: changeColor.withValues(
+                                            alpha: 0.1,
+                                          ),
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                          border: Border.all(
+                                            color: changeColor.withValues(
+                                              alpha: 0.15,
+                                            ),
+                                          ),
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(
+                                              changeInPeriod >= 0
+                                                  ? Icons.trending_up_rounded
+                                                  : Icons.trending_down_rounded,
+                                              size: 20,
+                                              color: changeColor,
+                                            ),
+                                            const SizedBox(width: 10),
+                                            Text(
+                                              showBalances
+                                                  ? '$returnText ($returnPercentText)'
+                                                  : '•••••• ($returnPercentText)',
+                                              style: TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.w800,
+                                                color: changeColor,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      const Spacer(),
+                                      Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.end,
+                                        children: [
+                                          Text(
+                                            '${_chartDateSpanFilter.label} · ${formatCompactDate.format(selection != null ? selection.beginsAt!.toLocal() : lastHistorical!.beginsAt!.toLocal())}',
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w700,
+                                              color: Theme.of(
+                                                context,
+                                              ).colorScheme.onSurface,
+                                            ),
+                                          ),
+                                          Text(
+                                            DateFormat.jm().format(
+                                              selection != null
+                                                  ? selection.beginsAt!
+                                                        .toLocal()
+                                                  : lastHistorical!.beginsAt!
+                                                        .toLocal(),
+                                            ),
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              color: Theme.of(
+                                                context,
+                                              ).colorScheme.onSurfaceVariant,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
                         ),
+                      ),
                     ],
                   ),
-                ))
-              : Stack(
-                  children: [
-                    SizedBox(
-                        height: 300,
-                        child: Padding(
-                          padding:
-                              const EdgeInsets.fromLTRB(10.0, 0.0, 10.0, 10.0),
-                          child: historicalChart,
-                        )),
-                    Positioned(
-                      top: 0,
-                      right: 0,
-                      child: IconButton(
-                        icon: const Icon(Icons.fullscreen),
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                  FullScreenPortfolioChartWidget(
-                                brokerageUser: widget.brokerageUser,
-                                chartDateSpanFilter: widget.chartDateSpanFilter,
-                                chartBoundsFilter: widget.chartBoundsFilter,
-                                onFilterChanged: widget.onFilterChanged,
+                );
+              },
+            ),
+            widget.isFullScreen
+                ? Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(10.0, 0.0, 10.0, 10.0),
+                      child: Stack(
+                        children: [
+                          _showCandles && showBalances
+                              ? Candlesticks(
+                                  candles: _generateCandles(allHistoricals),
+                                )
+                              : historicalChart,
+                          if (showBalances)
+                            Positioned(
+                              top: 0,
+                              right: 0,
+                              child: IconButton(
+                                icon: Icon(
+                                  _showCandles
+                                      ? Icons.show_chart
+                                      : Icons.candlestick_chart,
+                                ),
+                                onPressed: () {
+                                  setState(() {
+                                    _showCandles = !_showCandles;
+                                  });
+                                },
                               ),
                             ),
-                          );
-                        },
+                        ],
                       ),
                     ),
-                  ],
-                ),
-          SizedBox(
+                  )
+                : Stack(
+                    children: [
+                      SizedBox(
+                        height: 300,
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(
+                            10.0,
+                            0.0,
+                            10.0,
+                            10.0,
+                          ),
+                          child: historicalChart,
+                        ),
+                      ),
+                      Positioned(
+                        top: 0,
+                        right: 0,
+                        child: IconButton(
+                          icon: const Icon(Icons.fullscreen),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    FullScreenPortfolioChartWidget(
+                                      brokerageUser: widget.brokerageUser,
+                                      chartDateSpanFilter:
+                                          widget.chartDateSpanFilter,
+                                      chartBoundsFilter:
+                                          widget.chartBoundsFilter,
+                                      onFilterChanged: widget.onFilterChanged,
+                                    ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+            SizedBox(
               height: 56,
               child: ListView.builder(
                 padding: const EdgeInsets.all(5.0),
                 scrollDirection: Axis.horizontal,
                 itemBuilder: (context, index) {
-                  return Row(children: [
-                    _buildChip(ChartDateSpan.hour),
-                    _buildChip(ChartDateSpan.day),
-                    _buildChip(ChartDateSpan.week),
-                    _buildChip(ChartDateSpan.month),
-                    _buildChip(ChartDateSpan.month_3),
-                    _buildChip(ChartDateSpan.ytd),
-                    _buildChip(ChartDateSpan.year),
-                    _buildChip(ChartDateSpan.all),
-                    Container(width: 10),
-                    _buildBoundsChip('Regular Hours', Bounds.regular),
-                    _buildBoundsChip('24/7 Hours', Bounds.t24_7),
-                  ]);
+                  return Row(
+                    children: [
+                      _buildChip(ChartDateSpan.hour),
+                      _buildChip(ChartDateSpan.day),
+                      _buildChip(ChartDateSpan.week),
+                      _buildChip(ChartDateSpan.month),
+                      _buildChip(ChartDateSpan.month_3),
+                      _buildChip(ChartDateSpan.ytd),
+                      _buildChip(ChartDateSpan.year),
+                      _buildChip(ChartDateSpan.all),
+                      Container(width: 10),
+                      _buildBoundsChip('Regular Hours', Bounds.regular),
+                      _buildBoundsChip('24/7 Hours', Bounds.t24_7),
+                    ],
+                  );
                 },
                 itemCount: 1,
-              )),
-          if (widget.isFullScreen) const SizedBox(height: 25),
-        ]);
+              ),
+            ),
+            if (widget.isFullScreen) const SizedBox(height: 25),
+          ],
+        );
       },
     );
   }
@@ -924,12 +999,16 @@ class _PortfolioChartWidgetState extends State<PortfolioChartWidget> {
 
       // Calculate High/Low from the chunk
       double high = chunk
-          .map((e) =>
-              math.max(e.adjustedOpenEquity ?? 0, e.adjustedCloseEquity ?? 0))
+          .map(
+            (e) =>
+                math.max(e.adjustedOpenEquity ?? 0, e.adjustedCloseEquity ?? 0),
+          )
           .reduce(math.max);
       double low = chunk
-          .map((e) =>
-              math.min(e.adjustedOpenEquity ?? 0, e.adjustedCloseEquity ?? 0))
+          .map(
+            (e) =>
+                math.min(e.adjustedOpenEquity ?? 0, e.adjustedCloseEquity ?? 0),
+          )
           .reduce(math.min);
 
       // Ensure values are positive to avoid log10(0) errors in candlesticks package
@@ -947,14 +1026,16 @@ class _PortfolioChartWidgetState extends State<PortfolioChartWidget> {
       // Volume is not available in EquityHistorical, set to 1 to avoid log10(0) error
       double volume = 1;
 
-      candles.add(Candle(
-        date: chunk.first.beginsAt!,
-        high: high,
-        low: low,
-        open: open,
-        close: close,
-        volume: volume,
-      ));
+      candles.add(
+        Candle(
+          date: chunk.first.beginsAt!,
+          high: high,
+          low: low,
+          open: open,
+          close: close,
+          volume: volume,
+        ),
+      );
     }
     // Candlesticks package expects newest first
     return candles.reversed.toList();

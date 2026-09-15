@@ -71,22 +71,25 @@ class _PriceTargetsWidgetState extends State<PriceTargetsWidget> {
 
         if (snapshot.hasError) {
           return Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16.0,
+              vertical: 8.0,
+            ),
             child: Card(
               elevation: 1,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
                 side: BorderSide(
-                  color: Theme.of(context)
-                      .colorScheme
-                      .outlineVariant
-                      .withValues(alpha: 0.4),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.outlineVariant.withValues(alpha: 0.4),
                 ),
               ),
               child: ListTile(
-                leading: Icon(Icons.error_outline,
-                    color: Theme.of(context).colorScheme.error),
+                leading: Icon(
+                  Icons.error_outline,
+                  color: Theme.of(context).colorScheme.error,
+                ),
                 title: const Text('AI price targets unavailable'),
                 subtitle: Text('${snapshot.error}'),
                 trailing: IconButton(
@@ -122,17 +125,15 @@ class _PriceTargetsWidgetState extends State<PriceTargetsWidget> {
             Card(
               margin: const EdgeInsets.fromLTRB(16, 4, 16, 8),
               elevation: 0,
-              color: Theme.of(context)
-                  .colorScheme
-                  .surfaceContainerHighest
-                  .withValues(alpha: 0.25),
+              color: Theme.of(
+                context,
+              ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.25),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
                 side: BorderSide(
-                  color: Theme.of(context)
-                      .colorScheme
-                      .outlineVariant
-                      .withValues(alpha: 0.4),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.outlineVariant.withValues(alpha: 0.4),
                 ),
               ),
               child: Padding(
@@ -156,10 +157,9 @@ class _PriceTargetsWidgetState extends State<PriceTargetsWidget> {
                       const SizedBox(height: 14),
                       Text(
                         analysis.summary,
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodyMedium
-                            ?.copyWith(height: 1.4),
+                        style: Theme.of(
+                          context,
+                        ).textTheme.bodyMedium?.copyWith(height: 1.4),
                       ),
                     ],
                     if (_isExpanded) ...[
@@ -213,10 +213,9 @@ class _PriceTargetsWidgetState extends State<PriceTargetsWidget> {
             Container(
               padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
-                color: Theme.of(context)
-                    .colorScheme
-                    .primary
-                    .withValues(alpha: 0.1),
+                color: Theme.of(
+                  context,
+                ).colorScheme.primary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(
@@ -235,16 +234,13 @@ class _PriceTargetsWidgetState extends State<PriceTargetsWidget> {
                 Text(
                   title,
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 19,
-                      ),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 19,
+                  ),
                 ),
                 if (subtitle != null) ...[
                   const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
+                  Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
                 ],
               ],
             ),
@@ -275,9 +271,7 @@ class _PriceTargetsWidgetState extends State<PriceTargetsWidget> {
             decoration: BoxDecoration(
               color: confidenceColor.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: confidenceColor.withValues(alpha: 0.3),
-              ),
+              border: Border.all(color: confidenceColor.withValues(alpha: 0.3)),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -300,21 +294,24 @@ class _PriceTargetsWidgetState extends State<PriceTargetsWidget> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color:
-                  Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+              color: Theme.of(
+                context,
+              ).colorScheme.primary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: Theme.of(context)
-                    .colorScheme
-                    .primary
-                    .withValues(alpha: 0.25),
+                color: Theme.of(
+                  context,
+                ).colorScheme.primary.withValues(alpha: 0.25),
               ),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.schedule,
-                    size: 14, color: Theme.of(context).colorScheme.primary),
+                Icon(
+                  Icons.schedule,
+                  size: 14,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
                 const SizedBox(width: 4),
                 Text(
                   analysis.investmentHorizon!,
@@ -331,23 +328,24 @@ class _PriceTargetsWidgetState extends State<PriceTargetsWidget> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: Theme.of(context)
-                  .colorScheme
-                  .secondary
-                  .withValues(alpha: 0.1),
+              color: Theme.of(
+                context,
+              ).colorScheme.secondary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: Theme.of(context)
-                    .colorScheme
-                    .secondary
-                    .withValues(alpha: 0.25),
+                color: Theme.of(
+                  context,
+                ).colorScheme.secondary.withValues(alpha: 0.25),
               ),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.balance,
-                    size: 14, color: Theme.of(context).colorScheme.secondary),
+                Icon(
+                  Icons.balance,
+                  size: 14,
+                  color: Theme.of(context).colorScheme.secondary,
+                ),
                 const SizedBox(width: 4),
                 Text(
                   'Fair Value: \$${analysis.fairValue!.price.toStringAsFixed(2)}',
@@ -365,7 +363,9 @@ class _PriceTargetsWidgetState extends State<PriceTargetsWidget> {
   }
 
   Widget _buildTargetsAndFairValueRow(
-      BuildContext context, PriceTargetAnalysis analysis) {
+    BuildContext context,
+    PriceTargetAnalysis analysis,
+  ) {
     return Row(
       children: [
         if (analysis.bearishTarget != null) ...[
@@ -450,10 +450,9 @@ class _PriceTargetsWidgetState extends State<PriceTargetsWidget> {
             fit: BoxFit.scaleDown,
             child: Text(
               value,
-              style: Theme.of(context)
-                  .textTheme
-                  .titleMedium
-                  ?.copyWith(fontWeight: FontWeight.bold),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
           ),
           if (subtitle != null) ...[
@@ -461,9 +460,9 @@ class _PriceTargetsWidgetState extends State<PriceTargetsWidget> {
             Text(
               subtitle,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    fontSize: 10,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
+                fontSize: 10,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -474,10 +473,13 @@ class _PriceTargetsWidgetState extends State<PriceTargetsWidget> {
   }
 
   Widget _buildConfidenceIndicator(
-      BuildContext context, PriceTargetAnalysis analysis) {
+    BuildContext context,
+    PriceTargetAnalysis analysis,
+  ) {
     final score = analysis.confidenceScore!;
-    final color =
-        score > 70 ? Colors.green : (score > 40 ? Colors.orange : Colors.red);
+    final color = score > 70
+        ? Colors.green
+        : (score > 40 ? Colors.orange : Colors.red);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -487,10 +489,9 @@ class _PriceTargetsWidgetState extends State<PriceTargetsWidget> {
           children: [
             Text(
               'Model Confidence',
-              style: Theme.of(context)
-                  .textTheme
-                  .bodySmall
-                  ?.copyWith(fontWeight: FontWeight.w600),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
             ),
             Text(
               '${score.toStringAsFixed(0)}%',
@@ -508,10 +509,9 @@ class _PriceTargetsWidgetState extends State<PriceTargetsWidget> {
           child: LinearProgressIndicator(
             value: (score / 100).clamp(0.0, 1.0),
             minHeight: 8,
-            backgroundColor: Theme.of(context)
-                .colorScheme
-                .surfaceContainerHighest
-                .withValues(alpha: 0.5),
+            backgroundColor: Theme.of(
+              context,
+            ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
             color: color,
           ),
         ),
@@ -520,43 +520,52 @@ class _PriceTargetsWidgetState extends State<PriceTargetsWidget> {
   }
 
   Widget _buildLevelsSection(
-      BuildContext context, PriceTargetAnalysis analysis) {
+    BuildContext context,
+    PriceTargetAnalysis analysis,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (analysis.supportLevels.isNotEmpty) ...[
           Text(
             'Support Levels',
-            style: Theme.of(context)
-                .textTheme
-                .bodySmall
-                ?.copyWith(fontWeight: FontWeight.bold),
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 6),
           Wrap(
             spacing: 8.0,
             runSpacing: 6.0,
             children: analysis.supportLevels
-                .map((l) => Tooltip(
-                      message: l.description,
-                      triggerMode: TooltipTriggerMode.tap,
-                      showDuration: const Duration(seconds: 3),
-                      child: Chip(
-                        visualDensity: VisualDensity.compact,
-                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                        avatar: const Icon(Icons.arrow_downward,
-                            size: 14, color: Colors.green),
-                        label: Text(
-                          '\$${l.price.toStringAsFixed(2)}',
-                          style: const TextStyle(
-                              fontSize: 12, fontWeight: FontWeight.bold),
-                        ),
-                        backgroundColor: Colors.green.withValues(alpha: 0.08),
-                        side: BorderSide(
-                            color: Colors.green.withValues(alpha: 0.25)),
+                .map(
+                  (l) => Tooltip(
+                    message: l.description,
+                    triggerMode: TooltipTriggerMode.tap,
+                    showDuration: const Duration(seconds: 3),
+                    child: Chip(
+                      visualDensity: VisualDensity.compact,
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      avatar: const Icon(
+                        Icons.arrow_downward,
+                        size: 14,
+                        color: Colors.green,
                       ),
-                    ))
+                      label: Text(
+                        '\$${l.price.toStringAsFixed(2)}',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      backgroundColor: Colors.green.withValues(alpha: 0.08),
+                      side: BorderSide(
+                        color: Colors.green.withValues(alpha: 0.25),
+                      ),
+                    ),
+                  ),
+                )
                 .toList(),
           ),
         ],
@@ -566,36 +575,43 @@ class _PriceTargetsWidgetState extends State<PriceTargetsWidget> {
         if (analysis.resistanceLevels.isNotEmpty) ...[
           Text(
             'Resistance Levels',
-            style: Theme.of(context)
-                .textTheme
-                .bodySmall
-                ?.copyWith(fontWeight: FontWeight.bold),
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 6),
           Wrap(
             spacing: 8.0,
             runSpacing: 6.0,
             children: analysis.resistanceLevels
-                .map((l) => Tooltip(
-                      message: l.description,
-                      triggerMode: TooltipTriggerMode.tap,
-                      showDuration: const Duration(seconds: 3),
-                      child: Chip(
-                        visualDensity: VisualDensity.compact,
-                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                        avatar: const Icon(Icons.arrow_upward,
-                            size: 14, color: Colors.red),
-                        label: Text(
-                          '\$${l.price.toStringAsFixed(2)}',
-                          style: const TextStyle(
-                              fontSize: 12, fontWeight: FontWeight.bold),
-                        ),
-                        backgroundColor: Colors.red.withValues(alpha: 0.08),
-                        side: BorderSide(
-                            color: Colors.red.withValues(alpha: 0.25)),
+                .map(
+                  (l) => Tooltip(
+                    message: l.description,
+                    triggerMode: TooltipTriggerMode.tap,
+                    showDuration: const Duration(seconds: 3),
+                    child: Chip(
+                      visualDensity: VisualDensity.compact,
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      avatar: const Icon(
+                        Icons.arrow_upward,
+                        size: 14,
+                        color: Colors.red,
                       ),
-                    ))
+                      label: Text(
+                        '\$${l.price.toStringAsFixed(2)}',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      backgroundColor: Colors.red.withValues(alpha: 0.08),
+                      side: BorderSide(
+                        color: Colors.red.withValues(alpha: 0.25),
+                      ),
+                    ),
+                  ),
+                )
                 .toList(),
           ),
         ],
@@ -604,7 +620,9 @@ class _PriceTargetsWidgetState extends State<PriceTargetsWidget> {
   }
 
   Widget _buildDetailedSection(
-      BuildContext context, PriceTargetAnalysis analysis) {
+    BuildContext context,
+    PriceTargetAnalysis analysis,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -613,16 +631,14 @@ class _PriceTargetsWidgetState extends State<PriceTargetsWidget> {
             width: double.infinity,
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Theme.of(context)
-                  .colorScheme
-                  .surfaceContainerHighest
-                  .withValues(alpha: 0.2),
+              color: Theme.of(
+                context,
+              ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: Theme.of(context)
-                    .colorScheme
-                    .outlineVariant
-                    .withValues(alpha: 0.35),
+                color: Theme.of(
+                  context,
+                ).colorScheme.outlineVariant.withValues(alpha: 0.35),
               ),
             ),
             child: Column(
@@ -630,15 +646,17 @@ class _PriceTargetsWidgetState extends State<PriceTargetsWidget> {
               children: [
                 Row(
                   children: [
-                    Icon(Icons.balance,
-                        size: 16, color: Theme.of(context).colorScheme.primary),
+                    Icon(
+                      Icons.balance,
+                      size: 16,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
                     const SizedBox(width: 6),
                     Text(
                       'Valuation Methodology',
-                      style: Theme.of(context)
-                          .textTheme
-                          .titleSmall
-                          ?.copyWith(fontWeight: FontWeight.bold),
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ],
                 ),
@@ -646,9 +664,9 @@ class _PriceTargetsWidgetState extends State<PriceTargetsWidget> {
                 Text(
                   analysis.fairValue!.method,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        fontStyle: FontStyle.italic,
-                        height: 1.3,
-                      ),
+                    fontStyle: FontStyle.italic,
+                    height: 1.3,
+                  ),
                 ),
               ],
             ),
@@ -683,9 +701,7 @@ class _PriceTargetsWidgetState extends State<PriceTargetsWidget> {
             decoration: BoxDecoration(
               color: Colors.orange.withValues(alpha: 0.06),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: Colors.orange.withValues(alpha: 0.25),
-              ),
+              border: Border.all(color: Colors.orange.withValues(alpha: 0.25)),
             ),
             padding: const EdgeInsets.all(12),
             child: Column(
@@ -693,8 +709,11 @@ class _PriceTargetsWidgetState extends State<PriceTargetsWidget> {
               children: [
                 Row(
                   children: const [
-                    Icon(Icons.warning_amber_rounded,
-                        size: 16, color: Colors.orange),
+                    Icon(
+                      Icons.warning_amber_rounded,
+                      size: 16,
+                      color: Colors.orange,
+                    ),
                     SizedBox(width: 6),
                     Text(
                       'Key Risk Factors',
@@ -713,17 +732,19 @@ class _PriceTargetsWidgetState extends State<PriceTargetsWidget> {
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('• ',
-                            style: TextStyle(
-                                color: Colors.orange,
-                                fontWeight: FontWeight.bold)),
+                        const Text(
+                          '• ',
+                          style: TextStyle(
+                            color: Colors.orange,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                         Expanded(
                           child: Text(
                             risk,
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodySmall
-                                ?.copyWith(height: 1.3),
+                            style: Theme.of(
+                              context,
+                            ).textTheme.bodySmall?.copyWith(height: 1.3),
                           ),
                         ),
                       ],
@@ -740,10 +761,10 @@ class _PriceTargetsWidgetState extends State<PriceTargetsWidget> {
             alignment: Alignment.centerRight,
             child: Text(
               'Last updated: ${_dateFormat.format(analysis.lastUpdated!.toLocal())}',
-              style: Theme.of(context)
-                  .textTheme
-                  .bodySmall
-                  ?.copyWith(color: Theme.of(context).hintColor, fontSize: 11),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).hintColor,
+                fontSize: 11,
+              ),
             ),
           ),
       ],
@@ -787,10 +808,9 @@ class _PriceTargetsWidgetState extends State<PriceTargetsWidget> {
               ),
               Text(
                 '\$${level.price.toStringAsFixed(2)}',
-                style: Theme.of(context)
-                    .textTheme
-                    .titleSmall
-                    ?.copyWith(fontWeight: FontWeight.bold),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
               ),
             ],
           ),
@@ -798,8 +818,9 @@ class _PriceTargetsWidgetState extends State<PriceTargetsWidget> {
             const SizedBox(height: 6),
             Text(
               level.description,
-              style:
-                  Theme.of(context).textTheme.bodySmall?.copyWith(height: 1.3),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(height: 1.3),
             ),
           ],
         ],

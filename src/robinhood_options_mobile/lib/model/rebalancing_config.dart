@@ -1,16 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-enum RebalancingFrequency {
-  daily,
-  weekly,
-  monthly,
-}
+enum RebalancingFrequency { daily, weekly, monthly }
 
 class RebalancingConfig {
   bool isEnabled;
   RebalancingFrequency frequency;
   double
-      driftThreshold; // Drift amount (currency) to trigger notification/action
+  driftThreshold; // Drift amount (currency) to trigger notification/action
   bool autoExecute; // Whether to automatically execute or just notify
   DateTime? lastRun;
 

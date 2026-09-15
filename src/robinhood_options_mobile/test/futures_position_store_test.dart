@@ -6,12 +6,8 @@ void main() {
     test('aggregates numeric and string margin values', () {
       final store = FuturesPositionStore()
         ..addAll([
-          {
-            'marginRequirement': '1250.50',
-          },
-          {
-            'marginRequirement': 750,
-          },
+          {'marginRequirement': '1250.50'},
+          {'marginRequirement': 750},
           {'marginRequirement': 'invalid'},
         ]);
 

@@ -71,7 +71,9 @@ class _GammaExposureWidgetState extends State<GammaExposureWidget> {
   }
 
   double _computeTotalNetGexAtSpot(
-      List<Map<String, dynamic>> chains, double spotPrice) {
+    List<Map<String, dynamic>> chains,
+    double spotPrice,
+  ) {
     final nowMs = DateTime.now().millisecondsSinceEpoch;
     double netGex = 0.0;
     for (var chain in chains) {
@@ -128,7 +130,10 @@ class _GammaExposureWidgetState extends State<GammaExposureWidget> {
   }
 
   GammaExposureData _computeGexFromChains(
-      String symbol, double spotPrice, List<Map<String, dynamic>> chains) {
+    String symbol,
+    double spotPrice,
+    List<Map<String, dynamic>> chains,
+  ) {
     final nowMs = DateTime.now().millisecondsSinceEpoch;
     final Map<double, Map<String, double>> strikeMap = {};
 
@@ -169,15 +174,16 @@ class _GammaExposureWidgetState extends State<GammaExposureWidget> {
         final oi = (opt['openInterest'] as num?)?.toDouble() ?? 0.0;
 
         strikeMap.putIfAbsent(
-            strike,
-            () => {
-                  'callGamma': 0.0,
-                  'putGamma': 0.0,
-                  'callOI': 0.0,
-                  'putOI': 0.0,
-                  'callGEX': 0.0,
-                  'putGEX': 0.0,
-                });
+          strike,
+          () => {
+            'callGamma': 0.0,
+            'putGamma': 0.0,
+            'callOI': 0.0,
+            'putOI': 0.0,
+            'callGEX': 0.0,
+            'putGEX': 0.0,
+          },
+        );
 
         final entry = strikeMap[strike]!;
         final dollarGexForOnePercentMove =
@@ -210,16 +216,18 @@ class _GammaExposureWidgetState extends State<GammaExposureWidget> {
       final putGexVal = vals['putGEX']!;
       final netGexVal = callGexVal - putGexVal;
 
-      gexByStrike.add(GexStrikeLevel(
-        strike: strike,
-        callGamma: vals['callGamma']!,
-        putGamma: vals['putGamma']!,
-        callOI: vals['callOI']!,
-        putOI: vals['putOI']!,
-        callGEX: callGexVal,
-        putGEX: putGexVal,
-        netGEX: netGexVal,
-      ));
+      gexByStrike.add(
+        GexStrikeLevel(
+          strike: strike,
+          callGamma: vals['callGamma']!,
+          putGamma: vals['putGamma']!,
+          callOI: vals['callOI']!,
+          putOI: vals['putOI']!,
+          callGEX: callGexVal,
+          putGEX: putGexVal,
+          netGEX: netGexVal,
+        ),
+      );
 
       totalCallGEX += callGexVal;
       totalPutGEX += putGexVal;
@@ -241,7 +249,8 @@ class _GammaExposureWidgetState extends State<GammaExposureWidget> {
         if (prev.netGEX != 0 &&
             curr.netGEX != 0 &&
             (prev.netGEX.sign != curr.netGEX.sign)) {
-          final crossingStrike = prev.strike +
+          final crossingStrike =
+              prev.strike +
               (curr.strike - prev.strike) *
                   prev.netGEX.abs() /
                   (prev.netGEX.abs() + curr.netGEX.abs());
@@ -351,7 +360,8 @@ class _GammaExposureWidgetState extends State<GammaExposureWidget> {
     }
 
     // Prioritize provided spot price, else regular market price
-    final double spotPrice = widget.spotPrice ??
+    final double spotPrice =
+        widget.spotPrice ??
         (firstChain['quote']['regularMarketPrice'] as num?)?.toDouble() ??
         0.0;
     if (spotPrice <= 0) {
@@ -365,16 +375,19 @@ class _GammaExposureWidgetState extends State<GammaExposureWidget> {
     }
 
     final now = DateTime.now();
-    final List<DateTime> filteredDates = expirationDates.map((d) {
-      if (d is DateTime) return d;
-      return DateTime.fromMillisecondsSinceEpoch((d as int) * 1000);
-    }).where((date) {
-      final days = date.difference(now).inDays;
-      if (_selectedFilter == '0-7') return days >= -1 && days <= 7;
-      if (_selectedFilter == '8-30') return days > 7 && days <= 30;
-      if (_selectedFilter == '30+') return days > 30;
-      return true;
-    }).toList();
+    final List<DateTime> filteredDates = expirationDates
+        .map((d) {
+          if (d is DateTime) return d;
+          return DateTime.fromMillisecondsSinceEpoch((d as int) * 1000);
+        })
+        .where((date) {
+          final days = date.difference(now).inDays;
+          if (_selectedFilter == '0-7') return days >= -1 && days <= 7;
+          if (_selectedFilter == '8-30') return days > 7 && days <= 30;
+          if (_selectedFilter == '30+') return days > 30;
+          return true;
+        })
+        .toList();
 
     if (filteredDates.isEmpty) {
       throw Exception('No expiration dates matching filter: $_selectedFilter');
@@ -422,8 +435,9 @@ class _GammaExposureWidgetState extends State<GammaExposureWidget> {
       _selectedStrike = null;
     });
     try {
-      final callable =
-          FirebaseFunctions.instance.httpsCallable('getGammaExposure');
+      final callable = FirebaseFunctions.instance.httpsCallable(
+        'getGammaExposure',
+      );
       final result = await callable.call<Map<String, dynamic>>({
         'symbol': widget.symbol,
         if (widget.spotPrice != null) 'spotPrice': widget.spotPrice,
@@ -433,7 +447,8 @@ class _GammaExposureWidgetState extends State<GammaExposureWidget> {
       final responseMap = Map<String, dynamic>.from(result.data as Map);
       if (responseMap['status'] == 'ok' && responseMap['data'] != null) {
         final data = GammaExposureData.fromJson(
-            Map<String, dynamic>.from(responseMap['data'] as Map));
+          Map<String, dynamic>.from(responseMap['data'] as Map),
+        );
         if (mounted) {
           setState(() {
             _data = data;
@@ -442,12 +457,14 @@ class _GammaExposureWidgetState extends State<GammaExposureWidget> {
         }
       } else {
         debugPrint(
-            'Server GEX returned error status, try using client-side fallback...');
+          'Server GEX returned error status, try using client-side fallback...',
+        );
         await _fetchGEXClientSide();
       }
     } catch (e) {
       debugPrint(
-          'Server GEX call failed: $e. Try using client-side fallback...');
+        'Server GEX call failed: $e. Try using client-side fallback...',
+      );
       try {
         await _fetchGEXClientSide();
       } catch (clientErr) {
@@ -479,13 +496,19 @@ class _GammaExposureWidgetState extends State<GammaExposureWidget> {
             children: [
               Icon(Icons.adjust, color: theme.colorScheme.outline),
               const SizedBox(height: 8),
-              Text('GEX data unavailable',
-                  style: theme.textTheme.bodySmall
-                      ?.copyWith(color: theme.colorScheme.outline)),
+              Text(
+                'GEX data unavailable',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.outline,
+                ),
+              ),
               if (_error != null)
-                Text(_error!,
-                    style: theme.textTheme.labelSmall
-                        ?.copyWith(color: theme.colorScheme.error)),
+                Text(
+                  _error!,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: theme.colorScheme.error,
+                  ),
+                ),
             ],
           ),
         ),
@@ -519,76 +542,84 @@ class _GammaExposureWidgetState extends State<GammaExposureWidget> {
   }
 
   Widget _buildRegimeAndClosestLevels(
-      BuildContext context, GammaExposureData gex) {
+    BuildContext context,
+    GammaExposureData gex,
+  ) {
     final theme = Theme.of(context);
     final isDampening = gex.dealerPositioning == DealerPositioning.longGamma;
     final isAmplifying = gex.dealerPositioning == DealerPositioning.shortGamma;
     final regimeColor = isDampening
         ? Colors.green
         : isAmplifying
-            ? Colors.red
-            : theme.colorScheme.outline;
+        ? Colors.red
+        : theme.colorScheme.outline;
     final regimeLabel = isDampening
         ? 'Dampening'
         : isAmplifying
-            ? 'Amplifying'
-            : 'Balanced';
+        ? 'Amplifying'
+        : 'Balanced';
     final regimeDescription = isDampening
         ? 'Dealer hedging may suppress moves and favor range-bound price action.'
         : isAmplifying
-            ? 'Dealer hedging may reinforce moves and increase realized volatility.'
-            : 'Dealer positioning is near neutral with no strong hedging regime.';
+        ? 'Dealer hedging may reinforce moves and increase realized volatility.'
+        : 'Dealer positioning is near neutral with no strong hedging regime.';
 
-    final levels = <({
-      String label,
-      String role,
-      double value,
-      Color color,
-      IconData icon,
-    })>[
-      if (gex.callWall != null)
-        (
-          label: 'Call Wall',
-          role: 'Resistance',
-          value: gex.callWall!,
-          color: Colors.green,
-          icon: Icons.arrow_upward,
-        ),
-      if (gex.putWall != null)
-        (
-          label: 'Put Wall',
-          role: 'Support',
-          value: gex.putWall!,
-          color: Colors.red,
-          icon: Icons.arrow_downward,
-        ),
-      if (gex.gammaFlip != null)
-        (
-          label: 'Gamma Flip',
-          role: 'Regime boundary',
-          value: gex.gammaFlip!,
-          color: Colors.orange,
-          icon: Icons.swap_vert,
-        ),
-      if (gex.pTrans != null && gex.pTrans != gex.gammaFlip)
-        (
-          label: 'Positive Transition',
-          role: 'Upper transition',
-          value: gex.pTrans!,
-          color: Colors.teal,
-          icon: Icons.trending_up,
-        ),
-      if (gex.nTrans != null && gex.nTrans != gex.gammaFlip)
-        (
-          label: 'Negative Transition',
-          role: 'Lower transition',
-          value: gex.nTrans!,
-          color: Colors.deepOrange,
-          icon: Icons.trending_down,
-        ),
-    ]..sort((a, b) => (a.value - gex.spotPrice)
-        .abs()
-        .compareTo((b.value - gex.spotPrice).abs()));
+    final levels =
+        <
+            ({
+              String label,
+              String role,
+              double value,
+              Color color,
+              IconData icon,
+            })
+          >[
+            if (gex.callWall != null)
+              (
+                label: 'Call Wall',
+                role: 'Resistance',
+                value: gex.callWall!,
+                color: Colors.green,
+                icon: Icons.arrow_upward,
+              ),
+            if (gex.putWall != null)
+              (
+                label: 'Put Wall',
+                role: 'Support',
+                value: gex.putWall!,
+                color: Colors.red,
+                icon: Icons.arrow_downward,
+              ),
+            if (gex.gammaFlip != null)
+              (
+                label: 'Gamma Flip',
+                role: 'Regime boundary',
+                value: gex.gammaFlip!,
+                color: Colors.orange,
+                icon: Icons.swap_vert,
+              ),
+            if (gex.pTrans != null && gex.pTrans != gex.gammaFlip)
+              (
+                label: 'Positive Transition',
+                role: 'Upper transition',
+                value: gex.pTrans!,
+                color: Colors.teal,
+                icon: Icons.trending_up,
+              ),
+            if (gex.nTrans != null && gex.nTrans != gex.gammaFlip)
+              (
+                label: 'Negative Transition',
+                role: 'Lower transition',
+                value: gex.nTrans!,
+                color: Colors.deepOrange,
+                icon: Icons.trending_down,
+              ),
+          ]
+          ..sort(
+            (a, b) => (a.value - gex.spotPrice).abs().compareTo(
+              (b.value - gex.spotPrice).abs(),
+            ),
+          );
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -698,8 +729,11 @@ class _GammaExposureWidgetState extends State<GammaExposureWidget> {
                       ),
                       if (matchingStrike != null) ...[
                         const SizedBox(width: 8),
-                        Icon(Icons.chevron_right,
-                            size: 16, color: theme.colorScheme.outline),
+                        Icon(
+                          Icons.chevron_right,
+                          size: 16,
+                          color: theme.colorScheme.outline,
+                        ),
                       ],
                     ],
                   ),
@@ -725,8 +759,8 @@ class _GammaExposureWidgetState extends State<GammaExposureWidget> {
         _showChart && selectedIndex >= 0 && selectedIndex >= strikes.length / 2;
     final overlayTop = _showChart && selectedIndex >= 0
         ? (placeAbove
-            ? selectedIndex * rowHeight - 6
-            : (selectedIndex + 1) * rowHeight + 6)
+              ? selectedIndex * rowHeight - 6
+              : (selectedIndex + 1) * rowHeight + 6)
         : 8.0;
 
     return Stack(
@@ -756,35 +790,35 @@ class _GammaExposureWidgetState extends State<GammaExposureWidget> {
   Widget _buildTransitionMap(BuildContext context, GammaExposureData gex) {
     final levels =
         <({String label, String description, double value, Color color})>[
-      if (gex.nTrans != null)
-        (
-          label: 'N Trans',
-          description: 'Lower regime transition',
-          value: gex.nTrans!,
-          color: Colors.red,
-        ),
-      if (gex.pTrans != null)
-        (
-          label: 'P Trans',
-          description: 'Upper regime transition',
-          value: gex.pTrans!,
-          color: Colors.green,
-        ),
-      if (gex.cotmp != null)
-        (
-          label: 'Put Mass',
-          description: 'Put concentration center',
-          value: gex.cotmp!,
-          color: Colors.orange,
-        ),
-      if (gex.plusGex != null)
-        (
-          label: '+GEX Target',
-          description: 'Positive gamma target',
-          value: gex.plusGex!,
-          color: Colors.teal,
-        ),
-    ];
+          if (gex.nTrans != null)
+            (
+              label: 'N Trans',
+              description: 'Lower regime transition',
+              value: gex.nTrans!,
+              color: Colors.red,
+            ),
+          if (gex.pTrans != null)
+            (
+              label: 'P Trans',
+              description: 'Upper regime transition',
+              value: gex.pTrans!,
+              color: Colors.green,
+            ),
+          if (gex.cotmp != null)
+            (
+              label: 'Put Mass',
+              description: 'Put concentration center',
+              value: gex.cotmp!,
+              color: Colors.orange,
+            ),
+          if (gex.plusGex != null)
+            (
+              label: '+GEX Target',
+              description: 'Positive gamma target',
+              value: gex.plusGex!,
+              color: Colors.teal,
+            ),
+        ];
     if (levels.isEmpty) return const SizedBox.shrink();
 
     final theme = Theme.of(context);
@@ -822,33 +856,35 @@ class _GammaExposureWidgetState extends State<GammaExposureWidget> {
                 spacing: 8,
                 runSpacing: 12,
                 children: levels
-                    .map((level) => SizedBox(
-                          width: itemWidth,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                level.label,
-                                style: theme.textTheme.labelSmall?.copyWith(
-                                  color: theme.colorScheme.outline,
-                                ),
+                    .map(
+                      (level) => SizedBox(
+                        width: itemWidth,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              level.label,
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: theme.colorScheme.outline,
                               ),
-                              Text(
-                                '\$${level.value.toStringAsFixed(2)}',
-                                style: theme.textTheme.titleSmall?.copyWith(
-                                  color: level.color,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                            ),
+                            Text(
+                              '\$${level.value.toStringAsFixed(2)}',
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                color: level.color,
+                                fontWeight: FontWeight.bold,
                               ),
-                              Text(
-                                level.description,
-                                style: theme.textTheme.labelSmall?.copyWith(
-                                  color: theme.colorScheme.onSurfaceVariant,
-                                ),
+                            ),
+                            Text(
+                              level.description,
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
                               ),
-                            ],
-                          ),
-                        ))
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
                     .toList(),
               );
             },
@@ -908,8 +944,9 @@ class _GammaExposureWidgetState extends State<GammaExposureWidget> {
               Container(
                 height: 6,
                 decoration: BoxDecoration(
-                  color:
-                      theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+                  color: theme.colorScheme.outlineVariant.withValues(
+                    alpha: 0.5,
+                  ),
                   borderRadius: BorderRadius.circular(3),
                 ),
               ),
@@ -928,7 +965,7 @@ class _GammaExposureWidgetState extends State<GammaExposureWidget> {
                         color: Colors.blue.withValues(alpha: 0.4),
                         blurRadius: 4,
                         spreadRadius: 1,
-                      )
+                      ),
                     ],
                   ),
                 ),
@@ -939,11 +976,12 @@ class _GammaExposureWidgetState extends State<GammaExposureWidget> {
                   gex.gammaFlip! <= upperBound)
                 Align(
                   alignment: Alignment(
-                      ((gex.gammaFlip! - lowerBound) /
-                                  (upperBound - lowerBound)) *
-                              2 -
-                          1,
-                      0),
+                    ((gex.gammaFlip! - lowerBound) /
+                                (upperBound - lowerBound)) *
+                            2 -
+                        1,
+                    0,
+                  ),
                   child: Container(
                     height: 10,
                     width: 10,
@@ -962,34 +1000,58 @@ class _GammaExposureWidgetState extends State<GammaExposureWidget> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Floor (Put Wall)',
-                      style: theme.textTheme.labelSmall?.copyWith(
-                          color: theme.colorScheme.outline, fontSize: 10)),
-                  Text('\$${lowerBound.toStringAsFixed(1)}',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                          fontWeight: FontWeight.bold, color: Colors.red)),
+                  Text(
+                    'Floor (Put Wall)',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.outline,
+                      fontSize: 10,
+                    ),
+                  ),
+                  Text(
+                    '\$${lowerBound.toStringAsFixed(1)}',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.red,
+                    ),
+                  ),
                 ],
               ),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Text('Current Spot',
-                      style: theme.textTheme.labelSmall?.copyWith(
-                          color: theme.colorScheme.outline, fontSize: 10)),
-                  Text('\$${gex.spotPrice.toStringAsFixed(1)}',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                          fontWeight: FontWeight.bold, color: Colors.blue)),
+                  Text(
+                    'Current Spot',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.outline,
+                      fontSize: 10,
+                    ),
+                  ),
+                  Text(
+                    '\$${gex.spotPrice.toStringAsFixed(1)}',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blue,
+                    ),
+                  ),
                 ],
               ),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text('Ceiling (Call Wall)',
-                      style: theme.textTheme.labelSmall?.copyWith(
-                          color: theme.colorScheme.outline, fontSize: 10)),
-                  Text('\$${upperBound.toStringAsFixed(1)}',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                          fontWeight: FontWeight.bold, color: Colors.green)),
+                  Text(
+                    'Ceiling (Call Wall)',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.outline,
+                      fontSize: 10,
+                    ),
+                  ),
+                  Text(
+                    '\$${upperBound.toStringAsFixed(1)}',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.green,
+                    ),
+                  ),
                 ],
               ),
             ],
@@ -1025,21 +1087,26 @@ class _GammaExposureWidgetState extends State<GammaExposureWidget> {
   }
 
   Widget _buildGexSensitivityDashboard(
-      BuildContext context, GammaExposureData gex) {
+    BuildContext context,
+    GammaExposureData gex,
+  ) {
     if (gex.gexSensitivity == null) return const SizedBox.shrink();
 
     final theme = Theme.of(context);
     final sens = gex.gexSensitivity!;
 
-    Widget sensitivityRow(String label, double value,
-        {bool isCurrent = false}) {
+    Widget sensitivityRow(
+      String label,
+      double value, {
+      bool isCurrent = false,
+    }) {
       final sign = value >= 0 ? '+' : '';
       final valueColor = value >= 0 ? Colors.green : Colors.red;
       final valueStr = value.abs() >= 1e9
           ? '$sign\$${(value / 1e9).toStringAsFixed(2)}B'
           : value.abs() >= 1e6
-              ? '$sign\$${(value / 1e6).toStringAsFixed(0)}M'
-              : '$sign\$${value.toStringAsFixed(0)}';
+          ? '$sign\$${(value / 1e6).toStringAsFixed(0)}M'
+          : '$sign\$${value.toStringAsFixed(0)}';
 
       return Container(
         decoration: isCurrent
@@ -1047,7 +1114,8 @@ class _GammaExposureWidgetState extends State<GammaExposureWidget> {
                 color: theme.colorScheme.primary.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                    color: theme.colorScheme.primary.withValues(alpha: 0.3)),
+                  color: theme.colorScheme.primary.withValues(alpha: 0.3),
+                ),
               )
             : null,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -1090,8 +1158,11 @@ class _GammaExposureWidgetState extends State<GammaExposureWidget> {
         children: [
           Row(
             children: [
-              Icon(Icons.analytics_outlined,
-                  size: 16, color: theme.colorScheme.primary),
+              Icon(
+                Icons.analytics_outlined,
+                size: 16,
+                color: theme.colorScheme.primary,
+              ),
               const SizedBox(width: 8),
               Text(
                 'Spot-Shift GEX Sensitivity (Stress Test)',
@@ -1135,8 +1206,11 @@ class _GammaExposureWidgetState extends State<GammaExposureWidget> {
               const Divider(height: 4, indent: 8, endIndent: 8),
               sensitivityRow('-1.0% Price Shift', sens.spotMinus1Pct),
               const Divider(height: 4, indent: 8, endIndent: 8),
-              sensitivityRow('Current Price (Spot)', sens.spotCurrent,
-                  isCurrent: true),
+              sensitivityRow(
+                'Current Price (Spot)',
+                sens.spotCurrent,
+                isCurrent: true,
+              ),
               const Divider(height: 4, indent: 8, endIndent: 8),
               sensitivityRow('+1.0% Price Shift', sens.spotPlus1Pct),
               const Divider(height: 4, indent: 8, endIndent: 8),
@@ -1149,7 +1223,9 @@ class _GammaExposureWidgetState extends State<GammaExposureWidget> {
   }
 
   Widget _buildSelectedStrikeDetails(
-      BuildContext context, GammaExposureData gex) {
+    BuildContext context,
+    GammaExposureData gex,
+  ) {
     if (_selectedStrike == null) return const SizedBox.shrink();
 
     final s = _selectedStrike!;
@@ -1189,16 +1265,22 @@ class _GammaExposureWidgetState extends State<GammaExposureWidget> {
                   runSpacing: 4,
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
-                    Icon(Icons.info_outline,
-                        size: 16, color: theme.colorScheme.primary),
+                    Icon(
+                      Icons.info_outline,
+                      size: 16,
+                      color: theme.colorScheme.primary,
+                    ),
                     Text(
                       'Strike \$${s.strike.toStringAsFixed(1)}',
-                      style: theme.textTheme.titleSmall
-                          ?.copyWith(fontWeight: FontWeight.bold),
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 6, vertical: 2),
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
                         color: theme.colorScheme.primary.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(4),
@@ -1236,9 +1318,12 @@ class _GammaExposureWidgetState extends State<GammaExposureWidget> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Net GEX Volume',
-                        style: theme.textTheme.labelSmall
-                            ?.copyWith(color: theme.colorScheme.outline)),
+                    Text(
+                      'Net GEX Volume',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.outline,
+                      ),
+                    ),
                     const SizedBox(height: 4),
                     Text(
                       _formatGEX(s.netGEX),
@@ -1254,9 +1339,12 @@ class _GammaExposureWidgetState extends State<GammaExposureWidget> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Call / Put Open Interest',
-                        style: theme.textTheme.labelSmall
-                            ?.copyWith(color: theme.colorScheme.outline)),
+                    Text(
+                      'Call / Put Open Interest',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.outline,
+                      ),
+                    ),
                     const SizedBox(height: 4),
                     Text(
                       '${_formatOI(s.callOI)} / ${_formatOI(s.putOI)}',
@@ -1276,14 +1364,19 @@ class _GammaExposureWidgetState extends State<GammaExposureWidget> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Call GEX Contribution',
-                        style: theme.textTheme.labelSmall
-                            ?.copyWith(color: theme.colorScheme.outline)),
+                    Text(
+                      'Call GEX Contribution',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.outline,
+                      ),
+                    ),
                     const SizedBox(height: 4),
                     Text(
                       _formatGEX(s.callGEX),
                       style: theme.textTheme.bodyMedium?.copyWith(
-                          color: Colors.green, fontWeight: FontWeight.bold),
+                        color: Colors.green,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ],
                 ),
@@ -1292,14 +1385,19 @@ class _GammaExposureWidgetState extends State<GammaExposureWidget> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Put GEX Contribution',
-                        style: theme.textTheme.labelSmall
-                            ?.copyWith(color: theme.colorScheme.outline)),
+                    Text(
+                      'Put GEX Contribution',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.outline,
+                      ),
+                    ),
                     const SizedBox(height: 4),
                     Text(
                       _formatGEX(s.putGEX),
                       style: theme.textTheme.bodyMedium?.copyWith(
-                          color: Colors.red, fontWeight: FontWeight.bold),
+                        color: Colors.red,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ],
                 ),
@@ -1439,7 +1537,7 @@ class _GammaExposureWidgetState extends State<GammaExposureWidget> {
     final freshnessColor = isStale ? Colors.orange : Colors.green;
     final activeFilterLabel =
         filterLabels[gex.expirationFilter ?? _selectedFilter] ??
-            filterLabels[_selectedFilter]!;
+        filterLabels[_selectedFilter]!;
 
     final expirationSelector = DropdownButtonHideUnderline(
       child: DropdownButton<String>(
@@ -1453,10 +1551,7 @@ class _GammaExposureWidgetState extends State<GammaExposureWidget> {
         items: filterLabels.entries.map((entry) {
           return DropdownMenuItem<String>(
             value: entry.key,
-            child: Text(
-              entry.value,
-              overflow: TextOverflow.ellipsis,
-            ),
+            child: Text(entry.value, overflow: TextOverflow.ellipsis),
           );
         }).toList(),
         onChanged: (String? val) {
@@ -1502,8 +1597,11 @@ class _GammaExposureWidgetState extends State<GammaExposureWidget> {
       children: [
         Row(
           children: [
-            Icon(Icons.schedule,
-                size: 16, color: theme.colorScheme.onSurfaceVariant),
+            Icon(
+              Icons.schedule,
+              size: 16,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
             const SizedBox(width: 6),
             Expanded(
               child: Text(
@@ -1618,16 +1716,19 @@ class _GammaExposureWidgetState extends State<GammaExposureWidget> {
           ],
           rows: strikes.map((s) {
             final isAtm = (s.strike - gex.spotPrice).abs() < (strikeStep / 2);
-            final isMaxGamma = gex.maxGammaStrike != null &&
+            final isMaxGamma =
+                gex.maxGammaStrike != null &&
                 (s.strike - gex.maxGammaStrike!).abs() < 0.01;
-            final isFlip = gex.gammaFlip != null &&
+            final isFlip =
+                gex.gammaFlip != null &&
                 (s.strike - gex.gammaFlip!).abs() < 0.01;
             final isCallWall =
                 gex.callWall != null && (s.strike - gex.callWall!).abs() < 0.01;
             final isPutWall =
                 gex.putWall != null && (s.strike - gex.putWall!).abs() < 0.01;
 
-            final isSelected = _selectedStrike != null &&
+            final isSelected =
+                _selectedStrike != null &&
                 (_selectedStrike!.strike - s.strike).abs() < 0.01;
 
             final netGexColor = s.netGEX >= 0 ? Colors.green : Colors.red;
@@ -1666,7 +1767,8 @@ class _GammaExposureWidgetState extends State<GammaExposureWidget> {
                       Text(
                         '\$${s.strike.toStringAsFixed(1)}',
                         style: theme.textTheme.bodyMedium?.copyWith(
-                          fontWeight: (isAtm ||
+                          fontWeight:
+                              (isAtm ||
                                   isMaxGamma ||
                                   isFlip ||
                                   isCallWall ||
@@ -1679,72 +1781,97 @@ class _GammaExposureWidgetState extends State<GammaExposureWidget> {
                       if (isAtm)
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 4, vertical: 2),
+                            horizontal: 4,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: theme.colorScheme.primary,
                             borderRadius: BorderRadius.circular(4),
                           ),
-                          child: const Text('ATM',
-                              style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 8,
-                                  fontWeight: FontWeight.bold)),
+                          child: const Text(
+                            'ATM',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 8,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
                       if (isMaxGamma)
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 4, vertical: 2),
+                            horizontal: 4,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.amber,
                             borderRadius: BorderRadius.circular(4),
                           ),
-                          child: const Text('MAX',
-                              style: TextStyle(
-                                  color: Colors.black,
-                                  fontSize: 8,
-                                  fontWeight: FontWeight.bold)),
+                          child: const Text(
+                            'MAX',
+                            style: TextStyle(
+                              color: Colors.black,
+                              fontSize: 8,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
                       if (isFlip)
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 4, vertical: 2),
+                            horizontal: 4,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.orange,
                             borderRadius: BorderRadius.circular(4),
                           ),
-                          child: const Text('FLIP',
-                              style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 8,
-                                  fontWeight: FontWeight.bold)),
+                          child: const Text(
+                            'FLIP',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 8,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
                       if (isCallWall)
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 4, vertical: 2),
+                            horizontal: 4,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.green,
                             borderRadius: BorderRadius.circular(4),
                           ),
-                          child: const Text('C-WALL',
-                              style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 8,
-                                  fontWeight: FontWeight.bold)),
+                          child: const Text(
+                            'C-WALL',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 8,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
                       if (isPutWall)
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 4, vertical: 2),
+                            horizontal: 4,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.red,
                             borderRadius: BorderRadius.circular(4),
                           ),
-                          child: const Text('P-WALL',
-                              style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 8,
-                                  fontWeight: FontWeight.bold)),
+                          child: const Text(
+                            'P-WALL',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 8,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
                     ],
                   ),
@@ -1772,15 +1899,15 @@ class _GammaExposureWidgetState extends State<GammaExposureWidget> {
     final theme = Theme.of(context);
     final positioningColor =
         gex.dealerPositioning == DealerPositioning.longGamma
-            ? Colors.green
-            : gex.dealerPositioning == DealerPositioning.shortGamma
-                ? Colors.red
-                : theme.colorScheme.outline;
+        ? Colors.green
+        : gex.dealerPositioning == DealerPositioning.shortGamma
+        ? Colors.red
+        : theme.colorScheme.outline;
     final positioningIcon = gex.dealerPositioning == DealerPositioning.longGamma
         ? Icons.compress
         : gex.dealerPositioning == DealerPositioning.shortGamma
-            ? Icons.expand
-            : Icons.remove;
+        ? Icons.expand
+        : Icons.remove;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1792,108 +1919,159 @@ class _GammaExposureWidgetState extends State<GammaExposureWidget> {
           children: [
             Chip(
               avatar: Icon(positioningIcon, size: 16, color: positioningColor),
-              label: Text(gex.dealerPositioning.displayLabel,
-                  style: theme.textTheme.labelMedium
-                      ?.copyWith(color: positioningColor)),
+              label: Text(
+                gex.dealerPositioning.displayLabel,
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: positioningColor,
+                ),
+              ),
               side: BorderSide(color: positioningColor.withValues(alpha: 0.3)),
               backgroundColor: positioningColor.withValues(alpha: 0.08),
               padding: const EdgeInsets.symmetric(horizontal: 4),
             ),
             if (_isClientFallback)
               Chip(
-                avatar: Icon(Icons.flash_on,
-                    size: 14, color: theme.colorScheme.secondary),
-                label: Text('Local Calc',
-                    style: theme.textTheme.labelMedium?.copyWith(
-                        color: theme.colorScheme.secondary,
-                        fontWeight: FontWeight.bold)),
+                avatar: Icon(
+                  Icons.flash_on,
+                  size: 14,
+                  color: theme.colorScheme.secondary,
+                ),
+                label: Text(
+                  'Local Calc',
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: theme.colorScheme.secondary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
                 side: BorderSide(
-                    color: theme.colorScheme.secondary.withValues(alpha: 0.3)),
-                backgroundColor:
-                    theme.colorScheme.secondary.withValues(alpha: 0.08),
+                  color: theme.colorScheme.secondary.withValues(alpha: 0.3),
+                ),
+                backgroundColor: theme.colorScheme.secondary.withValues(
+                  alpha: 0.08,
+                ),
                 padding: const EdgeInsets.symmetric(horizontal: 4),
               ),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Spot',
-                    style: theme.textTheme.labelSmall
-                        ?.copyWith(color: theme.colorScheme.outline)),
-                Text('\$${gex.spotPrice.toStringAsFixed(2)}',
-                    style: theme.textTheme.titleSmall
-                        ?.copyWith(fontWeight: FontWeight.bold)),
+                Text(
+                  'Spot',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: theme.colorScheme.outline,
+                  ),
+                ),
+                Text(
+                  '\$${gex.spotPrice.toStringAsFixed(2)}',
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ],
             ),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Net GEX',
-                    style: theme.textTheme.labelSmall
-                        ?.copyWith(color: theme.colorScheme.outline)),
-                Text(gex.formattedNetGEX,
-                    style: theme.textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color:
-                            gex.totalNetGEX >= 0 ? Colors.green : Colors.red)),
+                Text(
+                  'Net GEX',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: theme.colorScheme.outline,
+                  ),
+                ),
+                Text(
+                  gex.formattedNetGEX,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: gex.totalNetGEX >= 0 ? Colors.green : Colors.red,
+                  ),
+                ),
               ],
             ),
             if (gex.gammaFlip != null)
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Gamma Flip',
-                      style: theme.textTheme.labelSmall
-                          ?.copyWith(color: theme.colorScheme.outline)),
-                  Text('\$${gex.gammaFlip!.toStringAsFixed(0)}',
-                      style: theme.textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: gex.spotPrice > gex.gammaFlip!
-                              ? Colors.green
-                              : Colors.orange)),
+                  Text(
+                    'Gamma Flip',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.outline,
+                    ),
+                  ),
+                  Text(
+                    '\$${gex.gammaFlip!.toStringAsFixed(0)}',
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: gex.spotPrice > gex.gammaFlip!
+                          ? Colors.green
+                          : Colors.orange,
+                    ),
+                  ),
                 ],
               ),
             if (gex.maxGammaStrike != null)
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Max Gamma',
-                      style: theme.textTheme.labelSmall
-                          ?.copyWith(color: theme.colorScheme.outline)),
-                  Text('\$${gex.maxGammaStrike!.toStringAsFixed(0)}',
-                      style: theme.textTheme.titleSmall
-                          ?.copyWith(fontWeight: FontWeight.bold)),
+                  Text(
+                    'Max Gamma',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.outline,
+                    ),
+                  ),
+                  Text(
+                    '\$${gex.maxGammaStrike!.toStringAsFixed(0)}',
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ],
               ),
             if (gex.callWall != null)
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Call Wall (Res)',
-                      style: theme.textTheme.labelSmall
-                          ?.copyWith(color: theme.colorScheme.outline)),
-                  Text('\$${gex.callWall!.toStringAsFixed(0)}',
-                      style: theme.textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.bold, color: Colors.green)),
+                  Text(
+                    'Call Wall (Res)',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.outline,
+                    ),
+                  ),
+                  Text(
+                    '\$${gex.callWall!.toStringAsFixed(0)}',
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.green,
+                    ),
+                  ),
                 ],
               ),
             if (gex.putWall != null)
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Put Wall (Sup)',
-                      style: theme.textTheme.labelSmall
-                          ?.copyWith(color: theme.colorScheme.outline)),
-                  Text('\$${gex.putWall!.toStringAsFixed(0)}',
-                      style: theme.textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.bold, color: Colors.red)),
+                  Text(
+                    'Put Wall (Sup)',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.outline,
+                    ),
+                  ),
+                  Text(
+                    '\$${gex.putWall!.toStringAsFixed(0)}',
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.red,
+                    ),
+                  ),
                 ],
               ),
           ],
         ),
         const SizedBox(height: 6),
-        Text(gex.dealerPositioning.description,
-            style: theme.textTheme.bodySmall
-                ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+        Text(
+          gex.dealerPositioning.description,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
         const SizedBox(height: 12),
         // GEX Ratio Visual progress bar
         Column(
@@ -1933,13 +2111,15 @@ class _GammaExposureWidgetState extends State<GammaExposureWidget> {
                   children: [
                     Expanded(
                       flex: (gex.gexRatio * 100).round().clamp(1, 99),
-                      child:
-                          Container(color: Colors.green.withValues(alpha: 0.8)),
+                      child: Container(
+                        color: Colors.green.withValues(alpha: 0.8),
+                      ),
                     ),
                     Expanded(
                       flex: ((1 - gex.gexRatio) * 100).round().clamp(1, 99),
-                      child:
-                          Container(color: Colors.red.withValues(alpha: 0.8)),
+                      child: Container(
+                        color: Colors.red.withValues(alpha: 0.8),
+                      ),
                     ),
                   ],
                 ),
@@ -1968,8 +2148,10 @@ class _GammaExposureWidgetState extends State<GammaExposureWidget> {
         onTapUp: (details) {
           final double y = details.localPosition.dy;
           final double barHeight = chartHeight / strikes.length;
-          final int index =
-              (y / barHeight).floor().clamp(0, strikes.length - 1);
+          final int index = (y / barHeight).floor().clamp(
+            0,
+            strikes.length - 1,
+          );
           setState(() {
             _selectedStrike = strikes[index];
           });
@@ -1977,8 +2159,10 @@ class _GammaExposureWidgetState extends State<GammaExposureWidget> {
         onLongPressStart: (details) {
           final double y = details.localPosition.dy;
           final double barHeight = chartHeight / strikes.length;
-          final int index =
-              (y / barHeight).floor().clamp(0, strikes.length - 1);
+          final int index = (y / barHeight).floor().clamp(
+            0,
+            strikes.length - 1,
+          );
           setState(() {
             _selectedStrike = strikes[index];
           });
@@ -1986,8 +2170,10 @@ class _GammaExposureWidgetState extends State<GammaExposureWidget> {
         onLongPressMoveUpdate: (details) {
           final double y = details.localPosition.dy;
           final double barHeight = chartHeight / strikes.length;
-          final int index =
-              (y / barHeight).floor().clamp(0, strikes.length - 1);
+          final int index = (y / barHeight).floor().clamp(
+            0,
+            strikes.length - 1,
+          );
           setState(() {
             _selectedStrike = strikes[index];
           });
@@ -2026,9 +2212,12 @@ class _GammaExposureWidgetState extends State<GammaExposureWidget> {
             children: [
               Container(width: 16, height: 2, color: Colors.orange),
               const SizedBox(width: 4),
-              Text('Gamma Flip',
-                  style: theme.textTheme.labelSmall
-                      ?.copyWith(color: theme.colorScheme.outline)),
+              Text(
+                'Gamma Flip',
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.outline,
+                ),
+              ),
             ],
           ),
         if (gex.callWall != null)
@@ -2037,9 +2226,12 @@ class _GammaExposureWidgetState extends State<GammaExposureWidget> {
             children: [
               Container(width: 16, height: 2, color: Colors.green),
               const SizedBox(width: 4),
-              Text('Call Wall',
-                  style: theme.textTheme.labelSmall
-                      ?.copyWith(color: theme.colorScheme.outline)),
+              Text(
+                'Call Wall',
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.outline,
+                ),
+              ),
             ],
           ),
         if (gex.putWall != null)
@@ -2048,22 +2240,29 @@ class _GammaExposureWidgetState extends State<GammaExposureWidget> {
             children: [
               Container(width: 16, height: 2, color: Colors.red),
               const SizedBox(width: 4),
-              Text('Put Wall',
-                  style: theme.textTheme.labelSmall
-                      ?.copyWith(color: theme.colorScheme.outline)),
+              Text(
+                'Put Wall',
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.outline,
+                ),
+              ),
             ],
           ),
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-                width: 2,
-                height: 12,
-                color: theme.colorScheme.primary.withValues(alpha: 0.7)),
+              width: 2,
+              height: 12,
+              color: theme.colorScheme.primary.withValues(alpha: 0.7),
+            ),
             const SizedBox(width: 4),
-            Text('Spot',
-                style: theme.textTheme.labelSmall
-                    ?.copyWith(color: theme.colorScheme.outline)),
+            Text(
+              'Spot',
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.outline,
+              ),
+            ),
           ],
         ),
       ],
@@ -2075,16 +2274,20 @@ class _GammaExposureWidgetState extends State<GammaExposureWidget> {
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-            width: 12,
-            height: 12,
-            decoration: BoxDecoration(
-                color: color, borderRadius: BorderRadius.circular(2))),
+          width: 12,
+          height: 12,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
         const SizedBox(width: 4),
-        Text(label,
-            style: Theme.of(context)
-                .textTheme
-                .labelSmall
-                ?.copyWith(color: Theme.of(context).colorScheme.outline)),
+        Text(
+          label,
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+            color: Theme.of(context).colorScheme.outline,
+          ),
+        ),
       ],
     );
   }
@@ -2188,9 +2391,17 @@ class _GexBarChartPainter extends CustomPainter {
 
       final barRect = isPositive
           ? Rect.fromLTWH(
-              centerX, y + barHeight * 0.15, barWidth, barHeight * 0.7)
-          : Rect.fromLTWH(centerX - barWidth, y + barHeight * 0.15, barWidth,
-              barHeight * 0.7);
+              centerX,
+              y + barHeight * 0.15,
+              barWidth,
+              barHeight * 0.7,
+            )
+          : Rect.fromLTWH(
+              centerX - barWidth,
+              y + barHeight * 0.15,
+              barWidth,
+              barHeight * 0.7,
+            );
 
       canvas.drawRRect(
         RRect.fromRectAndRadius(barRect, const Radius.circular(2)),
@@ -2200,15 +2411,18 @@ class _GexBarChartPainter extends CustomPainter {
       // Strike label
       final tp = TextPainter(
         text: TextSpan(
-            text: '\$${s.strike.toStringAsFixed(0)}',
-            style: TextStyle(
-                fontSize: 9,
-                color: (s.strike - spotPrice).abs() <
-                        (strikes.isNotEmpty
-                            ? (strikes[1].strike - strikes[0].strike).abs() / 2
-                            : 1)
-                    ? textColor
-                    : outlineColor.withValues(alpha: 0.7))),
+          text: '\$${s.strike.toStringAsFixed(0)}',
+          style: TextStyle(
+            fontSize: 9,
+            color:
+                (s.strike - spotPrice).abs() <
+                    (strikes.isNotEmpty
+                        ? (strikes[1].strike - strikes[0].strike).abs() / 2
+                        : 1)
+                ? textColor
+                : outlineColor.withValues(alpha: 0.7),
+          ),
+        ),
         textDirection: TextDirection.ltr,
       )..layout(maxWidth: labelWidth - 2);
       tp.paint(canvas, Offset(0, y + barHeight / 2 - tp.height / 2));
@@ -2243,11 +2457,17 @@ class _GexBarChartPainter extends CustomPainter {
   }
 
   void _drawHorizontalLine(
-      Canvas canvas, Size size, double barAreaStart, double barAreaWidth) {
+    Canvas canvas,
+    Size size,
+    double barAreaStart,
+    double barAreaWidth,
+  ) {
     // Find the y position of the row closest to spot price
-    final spotIdx = strikes.indexWhere((s) =>
-        (s.strike - spotPrice).abs() ==
-        strikes.map((s2) => (s2.strike - spotPrice).abs()).reduce(min));
+    final spotIdx = strikes.indexWhere(
+      (s) =>
+          (s.strike - spotPrice).abs() ==
+          strikes.map((s2) => (s2.strike - spotPrice).abs()).reduce(min),
+    );
     if (spotIdx < 0) return;
     final barHeight = size.height / strikes.length;
     final y = spotIdx * barHeight + barHeight / 2;
@@ -2261,11 +2481,17 @@ class _GexBarChartPainter extends CustomPainter {
     );
   }
 
-  void _drawFlipLine(Canvas canvas, Size size, double barAreaStart,
-      double barAreaWidth, double barHeight) {
+  void _drawFlipLine(
+    Canvas canvas,
+    Size size,
+    double barAreaStart,
+    double barAreaWidth,
+    double barHeight,
+  ) {
     if (gammaFlip == null) return;
-    final flipIdx =
-        strikes.indexWhere((s) => (s.strike - gammaFlip!).abs() < 0.02);
+    final flipIdx = strikes.indexWhere(
+      (s) => (s.strike - gammaFlip!).abs() < 0.02,
+    );
     if (flipIdx < 0) return;
     final y = flipIdx * barHeight + barHeight / 2;
     final dashPaint = Paint()
@@ -2278,8 +2504,13 @@ class _GexBarChartPainter extends CustomPainter {
     }
   }
 
-  void _drawCallWallLine(Canvas canvas, Size size, double barAreaStart,
-      double barAreaWidth, double barHeight) {
+  void _drawCallWallLine(
+    Canvas canvas,
+    Size size,
+    double barAreaStart,
+    double barAreaWidth,
+    double barHeight,
+  ) {
     if (callWall == null) return;
     final idx = strikes.indexWhere((s) => (s.strike - callWall!).abs() < 0.02);
     if (idx < 0) return;
@@ -2294,8 +2525,13 @@ class _GexBarChartPainter extends CustomPainter {
     }
   }
 
-  void _drawPutWallLine(Canvas canvas, Size size, double barAreaStart,
-      double barAreaWidth, double barHeight) {
+  void _drawPutWallLine(
+    Canvas canvas,
+    Size size,
+    double barAreaStart,
+    double barAreaWidth,
+    double barHeight,
+  ) {
     if (putWall == null) return;
     final idx = strikes.indexWhere((s) => (s.strike - putWall!).abs() < 0.02);
     if (idx < 0) return;
@@ -2352,7 +2588,11 @@ class _GexSensitivityCurvePainter extends CustomPainter {
       ..color = zeroLineColor.withValues(alpha: 0.2)
       ..strokeWidth = 1.0;
     _drawDashedLine(
-        canvas, Offset(0, centerY), Offset(width, centerY), zeroLinePaint);
+      canvas,
+      Offset(0, centerY),
+      Offset(width, centerY),
+      zeroLinePaint,
+    );
 
     final double stepX = width / (values.length - 1);
     final points = <Offset>[];

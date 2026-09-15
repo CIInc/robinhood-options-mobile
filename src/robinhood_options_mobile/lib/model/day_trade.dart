@@ -30,10 +30,12 @@ class DayTrade {
   }) : dropOffDate = dropOffDate ?? computeDropOffDate(executionDate);
 
   factory DayTrade.fromJson(dynamic json, {String defaultType = 'equity'}) {
-    final symbol = json['symbol'] ??
+    final symbol =
+        json['symbol'] ??
         json['ticker'] ??
         (json['instrument_symbol'] ?? 'UNKNOWN');
-    final rawDate = json['trade_execution_date'] ??
+    final rawDate =
+        json['trade_execution_date'] ??
         json['date'] ??
         json['created_at'] ??
         json['timestamp'];
@@ -57,7 +59,8 @@ class DayTrade {
     final type =
         json['type'] ?? (json['option'] != null ? 'option' : defaultType);
 
-    final id = json['id'] ??
+    final id =
+        json['id'] ??
         '${symbol}_${ts.millisecondsSinceEpoch}_${json['count'] ?? 1}';
 
     return DayTrade(
@@ -178,17 +181,18 @@ class DayTradeSummary {
     this.dayTradeBuyingPower,
     this.dayTradeRatio,
     this.accountType,
-  })  : equityDayTrades = equityDayTrades ??
-            dayTrades.where((t) => t.type == 'equity').toList(),
-        optionDayTrades = optionDayTrades ??
-            dayTrades.where((t) => t.type == 'option').toList();
+  }) : equityDayTrades =
+           equityDayTrades ??
+           dayTrades.where((t) => t.type == 'equity').toList(),
+       optionDayTrades =
+           optionDayTrades ??
+           dayTrades.where((t) => t.type == 'option').toList();
 
   /// Total active (non-expired) day trades in rolling 5-day window.
   int get activeDayTradeCount {
-    return dayTrades.where((t) => !t.isExpired).fold<int>(
-          0,
-          (sum, trade) => sum + trade.count,
-        );
+    return dayTrades
+        .where((t) => !t.isExpired)
+        .fold<int>(0, (sum, trade) => sum + trade.count);
   }
 
   /// Max day trades permitted in a margin account before PDT designation (3).
@@ -345,12 +349,13 @@ class DayTradeSummary {
       dayTrades: trades,
       equityDayTrades: eqTrades,
       optionDayTrades: optTrades,
-      isPatternDayTrader: isPatternDayTrader ||
+      isPatternDayTrader:
+          isPatternDayTrader ||
           (json != null && json['is_pattern_day_trader'] == true),
       dayTradesProtection:
           (json != null && json['day_trades_protection'] != null)
-              ? json['day_trades_protection'] == true
-              : dayTradesProtection,
+          ? json['day_trades_protection'] == true
+          : dayTradesProtection,
       markedPatternDayTraderDate: markedPatternDayTraderDate,
       patternDayTraderExpiryDate: patternDayTraderExpiryDate,
       isPdtForever: isPdtForever,
@@ -369,10 +374,10 @@ class DayTradeSummary {
       'option_day_trades': optionDayTrades.map((t) => t.toJson()).toList(),
       'is_pattern_day_trader': isPatternDayTrader,
       'day_trades_protection': dayTradesProtection,
-      'marked_pattern_day_trader_date':
-          markedPatternDayTraderDate?.toIso8601String(),
-      'pattern_day_trader_expiry_date':
-          patternDayTraderExpiryDate?.toIso8601String(),
+      'marked_pattern_day_trader_date': markedPatternDayTraderDate
+          ?.toIso8601String(),
+      'pattern_day_trader_expiry_date': patternDayTraderExpiryDate
+          ?.toIso8601String(),
       'is_pdt_forever': isPdtForever,
       'portfolio_equity': portfolioEquity,
       'day_trade_buying_power': dayTradeBuyingPower,

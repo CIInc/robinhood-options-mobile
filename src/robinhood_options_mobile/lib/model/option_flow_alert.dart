@@ -36,7 +36,8 @@ class OptionFlowAlert {
       id: id,
       uid: map['uid'] as String? ?? '',
       symbol: map['symbol'] as String? ?? '',
-      minPremium: (map['minPremium'] as num?)?.toDouble() ??
+      minPremium:
+          (map['minPremium'] as num?)?.toDouble() ??
           (map['targetPremium'] as num?)?.toDouble() ??
           50000.0,
       minVolume: (map['minVolume'] as num?)?.toInt(),
@@ -45,7 +46,7 @@ class OptionFlowAlert {
       expirationRange: map['expirationRange'] as String? ?? 'any',
       flags:
           (map['flags'] as List<dynamic>?)?.map((e) => e.toString()).toList() ??
-              const [],
+          const [],
       isActive: map['isActive'] as bool? ?? true,
       createdAt: map['createdAt'] is Timestamp
           ? (map['createdAt'] as Timestamp).toDate()

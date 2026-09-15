@@ -19,8 +19,10 @@ void main() {
     );
 
     final storeToSave = BrokerageUserStore([cachedUser], 0);
-    final userJson =
-        jsonEncode(storeToSave.toJson(), toEncodable: Constants.toEncodable);
+    final userJson = jsonEncode(
+      storeToSave.toJson(),
+      toEncodable: Constants.toEncodable,
+    );
 
     SharedPreferences.setMockInitialValues({
       Constants.preferencesUserKey: userJson,
@@ -39,15 +41,17 @@ void main() {
     expect(store.currentUser!.source, BrokerageSource.demo);
   });
 
-  test('BrokerageUserStore handles empty cache gracefully without throwing',
-      () async {
-    SharedPreferences.setMockInitialValues({});
+  test(
+    'BrokerageUserStore handles empty cache gracefully without throwing',
+    () async {
+      SharedPreferences.setMockInitialValues({});
 
-    final store = BrokerageUserStore([], 0);
-    final loaded = await store.load();
+      final store = BrokerageUserStore([], 0);
+      final loaded = await store.load();
 
-    expect(loaded, isEmpty);
-    expect(store.items, isEmpty);
-    expect(store.currentUser, isNull);
-  });
+      expect(loaded, isEmpty);
+      expect(store.items, isEmpty);
+      expect(store.currentUser, isNull);
+    },
+  );
 }

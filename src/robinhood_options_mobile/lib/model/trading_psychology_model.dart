@@ -93,7 +93,7 @@ class EmotionLog {
   final String notes;
   final String? symbol;
   final String?
-      sessionType; // 'Pre-Market', 'Trade Entry', 'Trade Exit', 'Post-Market', 'Weekly Review'
+  sessionType; // 'Pre-Market', 'Trade Entry', 'Trade Exit', 'Post-Market', 'Weekly Review'
   final List<String> tags;
   final double? sessionPnl;
 
@@ -136,24 +136,29 @@ class EmotionLog {
       id: id ?? json['id']?.toString() ?? '',
       timestamp: parsedDate,
       emotion: parsedEmotion,
-      energyLevel: (json['energy_level'] as num?)?.toInt() ??
+      energyLevel:
+          (json['energy_level'] as num?)?.toInt() ??
           (json['energyLevel'] as num?)?.toInt() ??
           3,
-      confidenceLevel: (json['confidence_level'] as num?)?.toInt() ??
+      confidenceLevel:
+          (json['confidence_level'] as num?)?.toInt() ??
           (json['confidenceLevel'] as num?)?.toInt() ??
           3,
-      marketSentiment: json['market_sentiment']?.toString() ??
+      marketSentiment:
+          json['market_sentiment']?.toString() ??
           json['marketSentiment']?.toString() ??
           'Neutral',
       notes: json['notes']?.toString() ?? '',
       symbol: json['symbol']?.toString(),
-      sessionType: json['session_type']?.toString() ??
+      sessionType:
+          json['session_type']?.toString() ??
           json['sessionType']?.toString() ??
           'Pre-Market',
       tags: json['tags'] != null
           ? List<String>.from(json['tags'] as List<dynamic>)
           : const [],
-      sessionPnl: (json['session_pnl'] as num?)?.toDouble() ??
+      sessionPnl:
+          (json['session_pnl'] as num?)?.toDouble() ??
           (json['sessionPnl'] as num?)?.toDouble(),
     );
   }
@@ -193,13 +198,15 @@ class DetectedBias {
 
   factory DetectedBias.fromJson(Map<String, dynamic> json) {
     return DetectedBias(
-      name: json['name']?.toString() ??
+      name:
+          json['name']?.toString() ??
           json['bias_name']?.toString() ??
           'Cognitive Bias',
       severity: json['severity']?.toString() ?? 'Moderate',
       description: json['description']?.toString() ?? '',
       evidence: json['evidence']?.toString() ?? '',
-      mitigation: json['mitigation']?.toString() ??
+      mitigation:
+          json['mitigation']?.toString() ??
           json['antidote']?.toString() ??
           json['mitigation_strategy']?.toString() ??
           '',
@@ -251,14 +258,14 @@ class DetectedBias {
 class TradingPsychologyScore {
   final int overallScore; // 0-100
   final int
-      emotionalStability; // 0-100: tilt resistance & composure under drawdowns
+  emotionalStability; // 0-100: tilt resistance & composure under drawdowns
   final int disciplinePatience; // 0-100: waiting for setups & limit order usage
   final int
-      biasResistance; // 0-100: avoiding FOMO, revenge trading, disposition effect
+  biasResistance; // 0-100: avoiding FOMO, revenge trading, disposition effect
   final int riskTemperament; // 0-100: stop loss adherence, rational sizing
   final String summary;
   final String
-      verdict; // e.g. 'Zen Operator', 'Disciplined', 'Developing', 'Emotionally Vulnerable'
+  verdict; // e.g. 'Zen Operator', 'Disciplined', 'Developing', 'Emotionally Vulnerable'
 
   TradingPsychologyScore({
     required this.overallScore,
@@ -278,28 +285,34 @@ class TradingPsychologyScore {
   }
 
   factory TradingPsychologyScore.fromJson(Map<String, dynamic> json) {
-    final overall = (json['overall_score'] as num?)?.toInt() ??
+    final overall =
+        (json['overall_score'] as num?)?.toInt() ??
         (json['overallScore'] as num?)?.toInt() ??
         (json['score'] as num?)?.toInt() ??
         65;
 
-    final breakdown = json['breakdown'] as Map<String, dynamic>? ??
+    final breakdown =
+        json['breakdown'] as Map<String, dynamic>? ??
         json['psychology_breakdown'] as Map<String, dynamic>? ??
         {};
 
-    final stability = (breakdown['emotional_stability'] as num?)?.toInt() ??
+    final stability =
+        (breakdown['emotional_stability'] as num?)?.toInt() ??
         (json['emotional_stability'] as num?)?.toInt() ??
         (overall * 0.95).round().clamp(0, 100);
 
-    final discipline = (breakdown['discipline_patience'] as num?)?.toInt() ??
+    final discipline =
+        (breakdown['discipline_patience'] as num?)?.toInt() ??
         (json['discipline_patience'] as num?)?.toInt() ??
         overall;
 
-    final bias = (breakdown['bias_resistance'] as num?)?.toInt() ??
+    final bias =
+        (breakdown['bias_resistance'] as num?)?.toInt() ??
         (json['bias_resistance'] as num?)?.toInt() ??
         (overall * 0.9).round().clamp(0, 100);
 
-    final risk = (breakdown['risk_temperament'] as num?)?.toInt() ??
+    final risk =
+        (breakdown['risk_temperament'] as num?)?.toInt() ??
         (json['risk_temperament'] as num?)?.toInt() ??
         (overall * 1.05).round().clamp(0, 100);
 
@@ -309,7 +322,8 @@ class TradingPsychologyScore {
       disciplinePatience: discipline,
       biasResistance: bias,
       riskTemperament: risk,
-      summary: json['summary']?.toString() ??
+      summary:
+          json['summary']?.toString() ??
           json['psychology_summary']?.toString() ??
           '',
       verdict: json['verdict']?.toString(),
@@ -344,11 +358,11 @@ class TradingPatternMetrics {
   final double limitOrderRate; // % Limit orders
   final double protectionRate; // % orders with stop triggers
   final int
-      rapidFireClusteringCount; // trades executed within 10m of each other
+  rapidFireClusteringCount; // trades executed within 10m of each other
   final Duration averageWinHoldingDuration;
   final Duration averageLossHoldingDuration;
   final double
-      holdingTimeAsymmetryRatio; // loss duration / win duration (>1.5 indicates holding losers too long)
+  holdingTimeAsymmetryRatio; // loss duration / win duration (>1.5 indicates holding losers too long)
   final double sizingVarianceRatio; // coefficient of variation in trade sizing
   final Map<int, int> timeOfDayDistribution; // hour -> count
   final List<DetectedBias> detectedBiases;
@@ -368,7 +382,8 @@ class TradingPatternMetrics {
 
   /// Factory computing patterns directly from trade logs
   factory TradingPatternMetrics.fromTradeLogs(
-      List<Map<String, dynamic>> trades) {
+    List<Map<String, dynamic>> trades,
+  ) {
     if (trades.isEmpty) {
       return TradingPatternMetrics();
     }
@@ -409,10 +424,12 @@ class TradingPatternMetrics {
     }
 
     final totalMeasured = limitOrders + marketOrders;
-    final limitRate =
-        totalMeasured > 0 ? (limitOrders / totalMeasured) * 100 : 0.0;
-    final protRate =
-        trades.isNotEmpty ? (protectedOrders / trades.length) * 100 : 0.0;
+    final limitRate = totalMeasured > 0
+        ? (limitOrders / totalMeasured) * 100
+        : 0.0;
+    final protRate = trades.isNotEmpty
+        ? (protectedOrders / trades.length) * 100
+        : 0.0;
 
     return TradingPatternMetrics(
       totalTradesAnalyzed: trades.length,

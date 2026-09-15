@@ -18,9 +18,11 @@ class CustomAlertService {
         .collection('alerts')
         .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => CustomAlert.fromFirestore(doc))
-            .toList());
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => CustomAlert.fromFirestore(doc))
+              .toList(),
+        );
   }
 
   Future<void> createAlert(CustomAlert alert) async {
