@@ -297,6 +297,17 @@ export const onInstrumentOrderCreated = onDocumentCreated(
         return;
       }
 
+      // Fetch source user details once before loop
+      let sourceUserName = "A trader";
+      try {
+        const sourceUserDoc = await db.collection("user").doc(userId).get();
+        if (sourceUserDoc.exists) {
+          sourceUserName = sourceUserDoc.data()?.name || "A trader";
+        }
+      } catch (error) {
+        logger.error("Error fetching source user details", { userId, error });
+      }
+
       // Process each group
       for (const groupDoc of groupsSnapshot.docs) {
         const group = groupDoc.data() as InvestorGroup;
@@ -460,10 +471,6 @@ export const onInstrumentOrderCreated = onDocumentCreated(
               );
             }
 
-            // Get source user name for notification
-            const sourceUserDoc = await db.collection("user").doc(userId).get();
-            const sourceUserName = sourceUserDoc.data()?.name || "A trader";
-
             // Send notification to target user
             await sendCopyTradeNotification(
               memberId,
@@ -584,6 +591,17 @@ export const onOptionOrderCreated = onDocumentCreated(
       if (groupsSnapshot.empty) {
         logger.info("User not in any investor groups", { userId });
         return;
+      }
+
+      // Fetch source user details once before loop
+      let sourceUserName = "A trader";
+      try {
+        const sourceUserDoc = await db.collection("user").doc(userId).get();
+        if (sourceUserDoc.exists) {
+          sourceUserName = sourceUserDoc.data()?.name || "A trader";
+        }
+      } catch (error) {
+        logger.error("Error fetching source user details", { userId, error });
       }
 
       // Process each group
@@ -773,10 +791,6 @@ export const onOptionOrderCreated = onDocumentCreated(
                 }
               );
             }
-
-            // Get source user name for notification
-            const sourceUserDoc = await db.collection("user").doc(userId).get();
-            const sourceUserName = sourceUserDoc.data()?.name || "A trader";
 
             // Send notification to target user
             await sendCopyTradeNotification(
