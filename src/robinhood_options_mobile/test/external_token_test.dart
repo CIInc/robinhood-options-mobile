@@ -138,7 +138,8 @@ void main() {
       expect(token.formattedUpdated, isNotEmpty);
     });
 
-    test('parses real Robinhood Financial Aggregator (Yodlee / Charles Schwab)', () {
+    test('parses real Robinhood Financial Aggregator (Yodlee / Charles Schwab)',
+        () {
       final json = {
         'oauth_application': {
           'client_id': 'ZChWJMwkQdmTTCOyHieGIJu4I6ktHPlbhH2PhtQ5',
@@ -148,7 +149,8 @@ void main() {
         },
         'fourth_party_application': {
           'display_name': 'Charles Schwab',
-          'logo_url': 'https://cdn.yodlee.com/COBLOGO/OBAggregator_generic_icon.svg',
+          'logo_url':
+              'https://cdn.yodlee.com/COBLOGO/OBAggregator_generic_icon.svg',
         },
         'id': '8300476890',
         'created': '2026-09-14T16:01:00.953562-04:00',
@@ -166,7 +168,8 @@ void main() {
       expect(token.primaryTitle, 'Charles Schwab');
       expect(token.subtitle, 'Connected via Yodlee');
       expect(token.typeLabel, 'Linked Service');
-      expect(token.fourthPartyLogoUrl, 'https://cdn.yodlee.com/COBLOGO/OBAggregator_generic_icon.svg');
+      expect(token.fourthPartyLogoUrl,
+          'https://cdn.yodlee.com/COBLOGO/OBAggregator_generic_icon.svg');
       expect(token.isActive, isTrue);
     });
 
@@ -197,7 +200,8 @@ void main() {
       expect(token.isActive, isTrue);
     });
 
-    test('evaluates trade permissions and relative time helpers accurately', () {
+    test('evaluates trade permissions and relative time helpers accurately',
+        () {
       final agentToken = ExternalToken(
         id: 'tok_agent',
         applicationName: 'Robinhood Trading MCP',
@@ -229,7 +233,8 @@ void main() {
       expect(readOnlyToken.relativeLastActive, '2d ago');
     });
 
-    testWidgets('ConnectedAgentsWidget renders correctly with overview and tokens',
+    testWidgets(
+        'ConnectedAgentsWidget renders correctly with overview and tokens',
         (WidgetTester tester) async {
       tester.view.physicalSize = const Size(1200, 2400);
       tester.view.devicePixelRatio = 1.0;
@@ -286,7 +291,8 @@ void main() {
       expect(find.text('Technical Details (JSON)'), findsOneWidget);
 
       // Close bottom sheet (drag down or tap outside)
-      Navigator.of(tester.element(find.text('Identifiers & Credentials'))).pop();
+      Navigator.of(tester.element(find.text('Identifiers & Credentials')))
+          .pop();
       await tester.pumpAndSettle();
 
       // Test toggling to compact view
@@ -361,7 +367,8 @@ void main() {
       expect(revoked, isTrue);
 
       final updatedTokens = await service.getExternalTokensModel(user);
-      final revokedToken = updatedTokens.firstWhere((t) => t.id == firstToken.id);
+      final revokedToken =
+          updatedTokens.firstWhere((t) => t.id == firstToken.id);
       expect(revokedToken.isActive, isFalse);
       expect(revokedToken.statusLabel, 'Revoked');
     });

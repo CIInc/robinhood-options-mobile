@@ -177,7 +177,8 @@ void main() {
       expect(title, isNot(contains('selled')));
     });
 
-    test('accounts for pending orders with proper type and title phrasing', () async {
+    test('accounts for pending orders with proper type and title phrasing',
+        () async {
       final trades = [
         GroupActivity(
           id: '',
@@ -220,7 +221,8 @@ void main() {
       expect(data['type'], equals('order'));
       expect(data['quantity'], equals(1));
 
-      final activity = GroupActivity.fromJson(data, activitiesSnap.docs.first.id);
+      final activity =
+          GroupActivity.fromJson(data, activitiesSnap.docs.first.id);
       expect(activity.isPending, isTrue);
     });
 
@@ -262,9 +264,8 @@ void main() {
 
       expect(count, equals(1));
 
-      final feed = await firestoreService
-          .getGroupActivitiesStream(testGroupId)
-          .first;
+      final feed =
+          await firestoreService.getGroupActivitiesStream(testGroupId).first;
 
       expect(feed.length, equals(1));
       final item = feed.first;
@@ -348,7 +349,8 @@ void main() {
       });
     });
 
-    testWidgets('shows Share Recent Trades button in empty state and opens modal',
+    testWidgets(
+        'shows Share Recent Trades button in empty state and opens modal',
         (tester) async {
       tester.view.physicalSize = const Size(800, 2400);
       tester.view.devicePixelRatio = 1.0;
@@ -371,7 +373,8 @@ void main() {
 
       // Empty state verification
       expect(find.text('No Activity Yet'), findsOneWidget);
-      final shareBtn = find.widgetWithText(ElevatedButton, 'Share Recent Trades');
+      final shareBtn =
+          find.widgetWithText(ElevatedButton, 'Share Recent Trades');
       expect(shareBtn, findsOneWidget);
 
       // Tap to open sheet
@@ -380,7 +383,8 @@ void main() {
 
       // Verify bottom sheet opened
       expect(find.text('Share Recent Trades'), findsWidgets);
-      expect(find.textContaining('Post your trades to Alpha Club'), findsOneWidget);
+      expect(find.textContaining('Post your trades to Alpha Club'),
+          findsOneWidget);
       expect(find.textContaining('Posting as:'), findsOneWidget);
 
       // Verify candidate demo trades
@@ -407,7 +411,8 @@ void main() {
       expect(find.text('4 of 4 selected'), findsOneWidget);
 
       // Tap Share Selected Trades
-      final submitBtn = find.widgetWithText(ElevatedButton, 'Share 4 Trades to Feed');
+      final submitBtn =
+          find.widgetWithText(ElevatedButton, 'Share 4 Trades to Feed');
       expect(submitBtn, findsOneWidget);
       await tester.tap(submitBtn);
       await tester.pumpAndSettle();
@@ -423,7 +428,8 @@ void main() {
       expect(find.text('SPY'), findsOneWidget);
     });
 
-    testWidgets('AppBar Share Recent Trades action opens modal', (tester) async {
+    testWidgets('AppBar Share Recent Trades action opens modal',
+        (tester) async {
       tester.view.physicalSize = const Size(800, 2400);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() => tester.view.resetPhysicalSize());
@@ -529,7 +535,8 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      final shareBtn = find.widgetWithText(ElevatedButton, 'Share Recent Trades');
+      final shareBtn =
+          find.widgetWithText(ElevatedButton, 'Share Recent Trades');
       expect(shareBtn, findsOneWidget);
       await tester.tap(shareBtn);
       await tester.pumpAndSettle();

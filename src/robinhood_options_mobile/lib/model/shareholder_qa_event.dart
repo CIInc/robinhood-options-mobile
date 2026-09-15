@@ -142,8 +142,7 @@ class ShareholderQuestion {
     this.answer,
   });
 
-  bool get isAnswered =>
-      status.toLowerCase() == 'answered' || answer != null;
+  bool get isAnswered => status.toLowerCase() == 'answered' || answer != null;
 
   String get formattedVotes => _formatCompactNumber(votesCount);
   String get formattedShares => _formatCompactNumber(sharesRepresented);
@@ -316,7 +315,8 @@ class ShareholderQaEvent {
   }
 
   String get formattedTotalVotes => _formatCompactNumber(totalVotesCount);
-  String get formattedTotalShares => _formatCompactNumber(totalSharesRepresented);
+  String get formattedTotalShares =>
+      _formatCompactNumber(totalSharesRepresented);
   String get formattedUserShares => _formatCompactNumber(userSharesRepresented);
 
   String get formattedEventDate {
@@ -363,28 +363,25 @@ class ShareholderQaEvent {
       eventType: json['event_type']?.toString() ??
           json['type']?.toString() ??
           'earnings',
-      status: json['status']?.toString() ??
-          json['state']?.toString() ??
-          'active',
+      status:
+          json['status']?.toString() ?? json['state']?.toString() ?? 'active',
       companyName: json['company_name']?.toString() ??
           json['company']?.toString() ??
           defaultSymbol ??
           '',
       symbol: (json['symbol']?.toString() ?? defaultSymbol ?? '').toUpperCase(),
-      instrumentId: json['instrument_id']?.toString() ??
-          defaultInstrumentId ??
-          '',
+      instrumentId:
+          json['instrument_id']?.toString() ?? defaultInstrumentId ?? '',
       startTime: _parseDateTime(json['start_time'] ?? json['starts_at']),
       endTime: _parseDateTime(json['end_time'] ?? json['ends_at']),
-      eventDate: _parseDateTime(json['event_date'] ??
-          json['date'] ??
-          json['start_time']),
-      submissionDeadline: _parseDateTime(json['submission_deadline'] ??
-          json['question_submission_deadline']),
-      votingDeadline: _parseDateTime(
-          json['voting_deadline'] ?? json['vote_deadline']),
-      description: json['description']?.toString() ??
-          json['summary']?.toString(),
+      eventDate: _parseDateTime(
+          json['event_date'] ?? json['date'] ?? json['start_time']),
+      submissionDeadline: _parseDateTime(
+          json['submission_deadline'] ?? json['question_submission_deadline']),
+      votingDeadline:
+          _parseDateTime(json['voting_deadline'] ?? json['vote_deadline']),
+      description:
+          json['description']?.toString() ?? json['summary']?.toString(),
       bannerUrl: json['banner_url']?.toString() ??
           json['header_image_url']?.toString(),
       webcastUrl: json['webcast_url']?.toString() ??

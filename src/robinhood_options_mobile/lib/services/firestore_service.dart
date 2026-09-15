@@ -1271,8 +1271,8 @@ class FirestoreService {
   }
 
   /// Update user privacy settings for a group
-  Future<void> updateUserGroupPrivacySettings(
-      String groupId, String userId, GroupActivityPrivacySettings settings) async {
+  Future<void> updateUserGroupPrivacySettings(String groupId, String userId,
+      GroupActivityPrivacySettings settings) async {
     try {
       await investorGroupCollection
           .doc(groupId)
@@ -1303,7 +1303,8 @@ class FirestoreService {
     try {
       final privacy = await getUserGroupPrivacySettings(groupId, userId);
       if (!privacy.shareTrades) {
-        debugPrint("Trade not shared to group $groupId due to user privacy setting");
+        debugPrint(
+            "Trade not shared to group $groupId due to user privacy setting");
         return null;
       }
 
@@ -1436,7 +1437,6 @@ class FirestoreService {
   }
 
   /// Group Performance Analytics Methods
-
 
   Future<Map<String, dynamic>> getGroupPerformanceAnalytics(
     String groupId,

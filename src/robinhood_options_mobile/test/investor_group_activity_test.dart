@@ -88,7 +88,8 @@ void main() {
       expect(activity.formattedQuantity, equals('***'));
     });
 
-    test('GroupActivity correctly handles anonymity when isAnonymous is true', () {
+    test('GroupActivity correctly handles anonymity when isAnonymous is true',
+        () {
       final now = DateTime.now();
       final activity = GroupActivity(
         id: 'act-anon',
@@ -181,7 +182,8 @@ void main() {
 
     test('copyWith updates specific fields', () {
       const original = GroupActivityPrivacySettings();
-      final updated = original.copyWith(anonymous: true, showTradeAmounts: false);
+      final updated =
+          original.copyWith(anonymous: true, showTradeAmounts: false);
 
       expect(updated.shareTrades, isTrue);
       expect(updated.showTradeAmounts, isFalse);
@@ -209,7 +211,8 @@ void main() {
       });
     });
 
-    test('recordGroupActivity and getGroupActivitiesStream work correctly', () async {
+    test('recordGroupActivity and getGroupActivitiesStream work correctly',
+        () async {
       final activity = GroupActivity(
         id: 'act-1',
         groupId: testGroupId,
@@ -224,12 +227,12 @@ void main() {
         price: 150.0,
       );
 
-      final docRef = await firestoreService.recordGroupActivity(testGroupId, activity);
+      final docRef =
+          await firestoreService.recordGroupActivity(testGroupId, activity);
       expect(docRef.id, isNotEmpty);
 
-      final activities = await firestoreService
-          .getGroupActivitiesStream(testGroupId)
-          .first;
+      final activities =
+          await firestoreService.getGroupActivitiesStream(testGroupId).first;
 
       expect(activities.length, equals(1));
       expect(activities.first.title, equals('Trader 1 bought AAPL'));
@@ -237,7 +240,9 @@ void main() {
       expect(activities.first.quantity, equals(10.0));
     });
 
-    test('getUserGroupPrivacySettings and updateUserGroupPrivacySettings work correctly', () async {
+    test(
+        'getUserGroupPrivacySettings and updateUserGroupPrivacySettings work correctly',
+        () async {
       // Default should be permissive
       final initial = await firestoreService.getUserGroupPrivacySettings(
           testGroupId, 'user-privacy-test');
@@ -312,9 +317,8 @@ void main() {
       );
       expect(ref3, isNotNull);
 
-      final activities = await firestoreService
-          .getGroupActivitiesStream(testGroupId)
-          .first;
+      final activities =
+          await firestoreService.getGroupActivitiesStream(testGroupId).first;
 
       final anonActivity = activities.firstWhere((a) => a.symbol == 'GOOGL');
       expect(anonActivity.isAnonymous, isTrue);

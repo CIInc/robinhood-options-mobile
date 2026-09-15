@@ -312,12 +312,11 @@ class _InvestorGroupActivityFeedWidgetState
                 children: [
                   CircleAvatar(
                     radius: 20,
-                    backgroundColor:
-                        theme.primaryColor.withValues(alpha: 0.15),
-                    backgroundImage: activity.userPhotoUrl != null &&
-                            !activity.isAnonymous
-                        ? NetworkImage(activity.userPhotoUrl!)
-                        : null,
+                    backgroundColor: theme.primaryColor.withValues(alpha: 0.15),
+                    backgroundImage:
+                        activity.userPhotoUrl != null && !activity.isAnonymous
+                            ? NetworkImage(activity.userPhotoUrl!)
+                            : null,
                     child: activity.userPhotoUrl == null || activity.isAnonymous
                         ? (activity.isAnonymous
                             ? const Icon(Icons.person_outline, size: 20)
@@ -404,8 +403,8 @@ class _InvestorGroupActivityFeedWidgetState
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
-                                color: theme.colorScheme.primary
-                                    .withValues(alpha: _isDarkTheme ? 0.2 : 0.1),
+                                color: theme.colorScheme.primary.withValues(
+                                    alpha: _isDarkTheme ? 0.2 : 0.1),
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: Text(
@@ -422,8 +421,8 @@ class _InvestorGroupActivityFeedWidgetState
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
-                                color: Colors.grey
-                                    .withValues(alpha: _isDarkTheme ? 0.2 : 0.1),
+                                color: Colors.grey.withValues(
+                                    alpha: _isDarkTheme ? 0.2 : 0.1),
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: Text(
@@ -440,8 +439,8 @@ class _InvestorGroupActivityFeedWidgetState
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
-                                color: Colors.orange
-                                    .withValues(alpha: _isDarkTheme ? 0.25 : 0.15),
+                                color: Colors.orange.withValues(
+                                    alpha: _isDarkTheme ? 0.25 : 0.15),
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: Text(
@@ -572,7 +571,8 @@ class _InvestorGroupActivityFeedWidgetState
               if (activity.isAnonymous)
                 _buildDetailRow('Privacy', 'Posted Anonymously'),
               if (activity.assetType != null)
-                _buildDetailRow('Asset Type', activity.assetType!.toUpperCase()),
+                _buildDetailRow(
+                    'Asset Type', activity.assetType!.toUpperCase()),
               if (activity.side != null)
                 _buildDetailRow(
                   'Action',
@@ -603,7 +603,8 @@ class _InvestorGroupActivityFeedWidgetState
                           : null,
                 ),
               if (activity.orderType != null)
-                _buildDetailRow('Order Type', activity.orderType!.toUpperCase()),
+                _buildDetailRow(
+                    'Order Type', activity.orderType!.toUpperCase()),
               if (activity.details?['state'] != null || activity.isPending)
                 _buildDetailRow(
                   'Order Status',
@@ -1118,17 +1119,15 @@ class _ShareRecentTradesModalState extends State<_ShareRecentTradesModal> {
       try {
         final iStore =
             Provider.of<InstrumentOrderStore>(context, listen: false);
-        instOrders = iStore.items
-            .where((o) => isOrderIncluded(o.state))
-            .toList();
+        instOrders =
+            iStore.items.where((o) => isOrderIncluded(o.state)).toList();
       } catch (_) {}
 
       List<OptionOrder> optOrders = [];
       try {
         final oStore = Provider.of<OptionOrderStore>(context, listen: false);
-        optOrders = oStore.items
-            .where((o) => isOrderIncluded(o.state))
-            .toList();
+        optOrders =
+            oStore.items.where((o) => isOrderIncluded(o.state)).toList();
       } catch (_) {}
 
       if (instOrders.isEmpty && optOrders.isEmpty) {
@@ -1136,8 +1135,7 @@ class _ShareRecentTradesModalState extends State<_ShareRecentTradesModal> {
           final userDoc =
               widget.firestoreService.userCollection.doc(widget.currentUid);
           final iSnap = await userDoc
-              .collection(
-                  widget.firestoreService.instrumentOrderCollectionName)
+              .collection(widget.firestoreService.instrumentOrderCollectionName)
               .orderBy('created_at', descending: true)
               .limit(15)
               .get();
@@ -1413,402 +1411,402 @@ class _ShareRecentTradesModalState extends State<_ShareRecentTradesModal> {
       child: SizedBox(
         height: MediaQuery.of(context).size.height * 0.85,
         child: Column(
-        children: [
-          // Drag handle
-          Center(
-            child: Container(
-              margin: const EdgeInsets.only(top: 12, bottom: 8),
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey.withValues(alpha: 0.3),
-                borderRadius: BorderRadius.circular(2),
+          children: [
+            // Drag handle
+            Center(
+              child: Container(
+                margin: const EdgeInsets.only(top: 12, bottom: 8),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
             ),
-          ),
-          // Header
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Share Recent Trades',
-                        style: TextStyle(
-                            fontSize: 20, fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Post your trades to ${widget.groupName}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: _getSecondaryTextColor(),
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.close),
-                  onPressed: () => Navigator.pop(context),
-                ),
-              ],
-            ),
-          ),
-          const Divider(height: 1),
-
-          // Privacy Callout Banner
-          Container(
-            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainerHighest
-                  .withValues(alpha: 0.4),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: theme.colorScheme.outline.withValues(alpha: 0.2),
-              ),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.shield_outlined,
-                    color: theme.colorScheme.primary, size: 24),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Posting as: ${widget.privacySettings.anonymous ? 'Anonymous Member' : widget.currentDisplayName}',
-                        style: const TextStyle(
-                            fontSize: 12, fontWeight: FontWeight.w600),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Amounts: ${widget.privacySettings.showTradeAmounts ? 'Visible' : 'Hidden (\$***)'}',
-                        style: TextStyle(
-                            fontSize: 11, color: _getSecondaryTextColor()),
-                      ),
-                    ],
-                  ),
-                ),
-                TextButton(
-                  onPressed: widget.onOpenPrivacySettings,
-                  child: const Text('Edit', style: TextStyle(fontSize: 12)),
-                ),
-              ],
-            ),
-          ),
-
-          if (_isSampleData)
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.blue.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
-              ),
-              child: const Row(
+            // Header
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Icon(Icons.info_outline, color: Colors.blue, size: 18),
-                  SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Share Recent Trades',
+                          style: TextStyle(
+                              fontSize: 20, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Post your trades to ${widget.groupName}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: _getSecondaryTextColor(),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+
+            // Privacy Callout Banner
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainerHighest
+                    .withValues(alpha: 0.4),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: theme.colorScheme.outline.withValues(alpha: 0.2),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.shield_outlined,
+                      color: theme.colorScheme.primary, size: 24),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Posting as: ${widget.privacySettings.anonymous ? 'Anonymous Member' : widget.currentDisplayName}',
+                          style: const TextStyle(
+                              fontSize: 12, fontWeight: FontWeight.w600),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Amounts: ${widget.privacySettings.showTradeAmounts ? 'Visible' : 'Hidden (\$***)'}',
+                          style: TextStyle(
+                              fontSize: 11, color: _getSecondaryTextColor()),
+                        ),
+                      ],
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: widget.onOpenPrivacySettings,
+                    child: const Text('Edit', style: TextStyle(fontSize: 12)),
+                  ),
+                ],
+              ),
+            ),
+
+            if (_isSampleData)
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.info_outline, color: Colors.blue, size: 18),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'No order history found. Showing sample demo trades ready to seed.',
+                        style: TextStyle(fontSize: 11, color: Colors.blue),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+            // Selection controls bar
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
                   Expanded(
                     child: Text(
-                      'No order history found. Showing sample demo trades ready to seed.',
-                      style: TextStyle(fontSize: 11, color: Colors.blue),
+                      '${_selectedIndices.length} of ${_candidateTrades.length} selected',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: _getSecondaryTextColor(),
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: _candidateTrades.isEmpty
+                        ? null
+                        : () {
+                            setState(() {
+                              if (_selectedIndices.length ==
+                                  _candidateTrades.length) {
+                                _selectedIndices.clear();
+                              } else {
+                                _selectedIndices.addAll(List.generate(
+                                    _candidateTrades.length, (i) => i));
+                              }
+                            });
+                          },
+                    child: Text(
+                      _selectedIndices.length == _candidateTrades.length
+                          ? 'Deselect All'
+                          : 'Select All',
+                      style: const TextStyle(fontSize: 13),
                     ),
                   ),
                 ],
               ),
             ),
 
-          // Selection controls bar
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Text(
-                    '${_selectedIndices.length} of ${_candidateTrades.length} selected',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                      color: _getSecondaryTextColor(),
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                TextButton(
-                  onPressed: _candidateTrades.isEmpty
-                      ? null
-                      : () {
-                          setState(() {
-                            if (_selectedIndices.length ==
-                                _candidateTrades.length) {
-                              _selectedIndices.clear();
-                            } else {
-                              _selectedIndices.addAll(List.generate(
-                                  _candidateTrades.length, (i) => i));
+            // Candidate Trades List
+            Expanded(
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _candidateTrades.isEmpty
+                      ? Center(
+                          child: Text(
+                            'No recent trades available to share.',
+                            style: TextStyle(color: _getSecondaryTextColor()),
+                          ),
+                        )
+                      : ListView.separated(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 4),
+                          itemCount: _candidateTrades.length,
+                          separatorBuilder: (context, index) =>
+                              const Divider(height: 1),
+                          itemBuilder: (context, index) {
+                            final trade = _candidateTrades[index];
+                            final isSelected = _selectedIndices.contains(index);
+                            final isBuy = trade.isBuy;
+                            final isOption = trade.assetType == 'option';
+                            final companyName = trade.details?['companyName'] ??
+                                trade.details?['name'];
+
+                            // Option metadata formatting
+                            final strikePrice = trade.details?['strikePrice'];
+                            final optionType = trade.details?['optionType'];
+                            final expDateStr = trade.details?['expirationDate'];
+                            DateTime? expDate;
+                            if (expDateStr != null) {
+                              try {
+                                expDate = DateTime.parse(expDateStr.toString());
+                              } catch (_) {}
                             }
-                          });
-                        },
-                  child: Text(
-                    _selectedIndices.length == _candidateTrades.length
-                        ? 'Deselect All'
-                        : 'Select All',
-                    style: const TextStyle(fontSize: 13),
-                  ),
-                ),
-              ],
-            ),
-          ),
+                            String? optionDetailText;
+                            if (strikePrice != null && optionType != null) {
+                              final expFormatted = expDate != null
+                                  ? DateFormat('MMM d').format(expDate)
+                                  : '';
+                              optionDetailText =
+                                  '\$${strikePrice % 1 == 0 ? strikePrice.toInt() : strikePrice} ${optionType.toString().toUpperCase()}${expFormatted.isNotEmpty ? ' • Exp $expFormatted' : ''}';
+                            }
 
-          // Candidate Trades List
-          Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : _candidateTrades.isEmpty
-                    ? Center(
-                        child: Text(
-                          'No recent trades available to share.',
-                          style: TextStyle(color: _getSecondaryTextColor()),
-                        ),
-                      )
-                    : ListView.separated(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 4),
-                        itemCount: _candidateTrades.length,
-                        separatorBuilder: (context, index) =>
-                            const Divider(height: 1),
-                        itemBuilder: (context, index) {
-                          final trade = _candidateTrades[index];
-                          final isSelected = _selectedIndices.contains(index);
-                          final isBuy = trade.isBuy;
-                          final isOption = trade.assetType == 'option';
-                          final companyName = trade.details?['companyName'] ??
-                              trade.details?['name'];
-
-                          // Option metadata formatting
-                          final strikePrice = trade.details?['strikePrice'];
-                          final optionType = trade.details?['optionType'];
-                          final expDateStr = trade.details?['expirationDate'];
-                          DateTime? expDate;
-                          if (expDateStr != null) {
-                            try {
-                              expDate = DateTime.parse(expDateStr.toString());
-                            } catch (_) {}
-                          }
-                          String? optionDetailText;
-                          if (strikePrice != null && optionType != null) {
-                            final expFormatted = expDate != null
-                                ? DateFormat('MMM d').format(expDate)
-                                : '';
-                            optionDetailText =
-                                '\$${strikePrice % 1 == 0 ? strikePrice.toInt() : strikePrice} ${optionType.toString().toUpperCase()}${expFormatted.isNotEmpty ? ' • Exp $expFormatted' : ''}';
-                          }
-
-                          return CheckboxListTile(
-                            value: isSelected,
-                            onChanged: (val) {
-                              setState(() {
-                                if (val == true) {
-                                  _selectedIndices.add(index);
-                                } else {
-                                  _selectedIndices.remove(index);
-                                }
-                              });
-                            },
-                            contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 2),
-                            secondary: Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: (isBuy ? Colors.green : Colors.red)
-                                    .withValues(alpha: 0.12),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Icon(
-                                isOption
-                                    ? Icons.candlestick_chart
-                                    : (isBuy
-                                        ? Icons.arrow_upward
-                                        : Icons.arrow_downward),
-                                color: isBuy ? Colors.green : Colors.red,
-                                size: 20,
-                              ),
-                            ),
-                            title: Row(
-                              children: [
-                                Flexible(
-                                  child: Text(
-                                    trade.symbol ??
-                                        (isOption ? 'OPTION' : 'STOCK'),
-                                    style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 15),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
+                            return CheckboxListTile(
+                              value: isSelected,
+                              onChanged: (val) {
+                                setState(() {
+                                  if (val == true) {
+                                    _selectedIndices.add(index);
+                                  } else {
+                                    _selectedIndices.remove(index);
+                                  }
+                                });
+                              },
+                              contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 2),
+                              secondary: Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: (isBuy ? Colors.green : Colors.red)
+                                      .withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(10),
                                 ),
-                                const SizedBox(width: 8),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 6, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: (isBuy ? Colors.green : Colors.red)
-                                        .withValues(alpha: 0.15),
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: Text(
-                                    (trade.side ?? 'trade').toUpperCase(),
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold,
-                                      color:
-                                          isBuy ? Colors.green : Colors.red,
+                                child: Icon(
+                                  isOption
+                                      ? Icons.candlestick_chart
+                                      : (isBuy
+                                          ? Icons.arrow_upward
+                                          : Icons.arrow_downward),
+                                  color: isBuy ? Colors.green : Colors.red,
+                                  size: 20,
+                                ),
+                              ),
+                              title: Row(
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      trade.symbol ??
+                                          (isOption ? 'OPTION' : 'STOCK'),
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 15),
+                                      overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
-                                ),
-                                if (isOption) ...[
-                                  const SizedBox(width: 4),
+                                  const SizedBox(width: 8),
                                   Container(
                                     padding: const EdgeInsets.symmetric(
                                         horizontal: 6, vertical: 2),
                                     decoration: BoxDecoration(
-                                      color:
-                                          Colors.purple.withValues(alpha: 0.15),
-                                      borderRadius: BorderRadius.circular(4),
-                                    ),
-                                    child: const Text(
-                                      'OPTION',
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.purple,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                                if (trade.details?['state'] != null &&
-                                    trade.details!['state'] != 'filled') ...[
-                                  const SizedBox(width: 4),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 6, vertical: 2),
-                                    decoration: BoxDecoration(
-                                      color:
-                                          Colors.orange.withValues(alpha: 0.15),
+                                      color: (isBuy ? Colors.green : Colors.red)
+                                          .withValues(alpha: 0.15),
                                       borderRadius: BorderRadius.circular(4),
                                     ),
                                     child: Text(
-                                      trade.details!['state']
-                                          .toString()
-                                          .toUpperCase(),
-                                      style: const TextStyle(
+                                      (trade.side ?? 'trade').toUpperCase(),
+                                      style: TextStyle(
                                         fontSize: 10,
                                         fontWeight: FontWeight.bold,
-                                        color: Colors.orange,
+                                        color:
+                                            isBuy ? Colors.green : Colors.red,
                                       ),
                                     ),
                                   ),
+                                  if (isOption) ...[
+                                    const SizedBox(width: 4),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: Colors.purple
+                                            .withValues(alpha: 0.15),
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: const Text(
+                                        'OPTION',
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.purple,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                  if (trade.details?['state'] != null &&
+                                      trade.details!['state'] != 'filled') ...[
+                                    const SizedBox(width: 4),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: Colors.orange
+                                            .withValues(alpha: 0.15),
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: Text(
+                                        trade.details!['state']
+                                            .toString()
+                                            .toUpperCase(),
+                                        style: const TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.orange,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ],
-                              ],
-                            ),
-                            subtitle: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                if (companyName != null &&
-                                    companyName.toString().isNotEmpty) ...[
+                              ),
+                              subtitle: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  if (companyName != null &&
+                                      companyName.toString().isNotEmpty) ...[
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      companyName.toString(),
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w500,
+                                        color: _getSecondaryTextColor(),
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
+                                  if (optionDetailText != null) ...[
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      optionDetailText,
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w500,
+                                        color: _getSecondaryTextColor(),
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
                                   const SizedBox(height: 2),
                                   Text(
-                                    companyName.toString(),
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w500,
-                                      color: _getSecondaryTextColor(),
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
+                                    '${trade.quantity != null ? (trade.quantity! % 1 == 0 ? trade.quantity!.toInt().toString() : trade.quantity!.toStringAsFixed(2)) : ''} ${isOption ? 'contract(s)' : 'share(s)'} @ ${trade.price != null ? currencyFormatter.format(trade.price) : ''}',
+                                    style: const TextStyle(fontSize: 12),
                                   ),
-                                ],
-                                if (optionDetailText != null) ...[
-                                  const SizedBox(height: 2),
                                   Text(
-                                    optionDetailText,
+                                    dateFormatter.format(trade.timestamp),
                                     style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w500,
+                                      fontSize: 11,
                                       color: _getSecondaryTextColor(),
                                     ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 ],
-                                const SizedBox(height: 2),
-                                Text(
-                                  '${trade.quantity != null ? (trade.quantity! % 1 == 0 ? trade.quantity!.toInt().toString() : trade.quantity!.toStringAsFixed(2)) : ''} ${isOption ? 'contract(s)' : 'share(s)'} @ ${trade.price != null ? currencyFormatter.format(trade.price) : ''}',
-                                  style: const TextStyle(fontSize: 12),
-                                ),
-                                Text(
-                                  dateFormatter.format(trade.timestamp),
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    color: _getSecondaryTextColor(),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-                        },
-                      ),
-          ),
+                              ),
+                            );
+                          },
+                        ),
+            ),
 
-          // Bottom Action Button
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton.icon(
-                  icon: _isSharing
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2, color: Colors.white),
-                        )
-                      : const Icon(Icons.share),
-                  label: Text(
-                    _isSharing
-                        ? 'Sharing...'
-                        : 'Share ${_selectedIndices.length} Trade${_selectedIndices.length == 1 ? '' : 's'} to Feed',
-                    style: const TextStyle(
-                        fontSize: 15, fontWeight: FontWeight.bold),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+            // Bottom Action Button
+            SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton.icon(
+                    icon: _isSharing
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: Colors.white),
+                          )
+                        : const Icon(Icons.share),
+                    label: Text(
+                      _isSharing
+                          ? 'Sharing...'
+                          : 'Share ${_selectedIndices.length} Trade${_selectedIndices.length == 1 ? '' : 's'} to Feed',
+                      style: const TextStyle(
+                          fontSize: 15, fontWeight: FontWeight.bold),
                     ),
+                    style: ElevatedButton.styleFrom(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    onPressed: (_isSharing || _selectedIndices.isEmpty)
+                        ? null
+                        : _shareSelected,
                   ),
-                  onPressed: (_isSharing || _selectedIndices.isEmpty)
-                      ? null
-                      : _shareSelected,
                 ),
               ),
             ),
-          ),
-        ],
-      ),
+          ],
+        ),
       ),
     );
   }

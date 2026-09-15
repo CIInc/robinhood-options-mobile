@@ -987,7 +987,8 @@ class PlaidService implements IBrokerageService {
   }
 
   @override
-  Future<List<AchRelationship>> getAchRelationshipsModel(BrokerageUser user) async {
+  Future<List<AchRelationship>> getAchRelationshipsModel(
+      BrokerageUser user) async {
     return [];
   }
 
@@ -1144,33 +1145,42 @@ class PlaidService implements IBrokerageService {
   Future<List<dynamic>> getExternalTokens(BrokerageUser user) async => [];
 
   @override
-  Future<List<ExternalToken>> getExternalTokensModel(BrokerageUser user) async => [];
+  Future<List<ExternalToken>> getExternalTokensModel(
+          BrokerageUser user) async =>
+      [];
 
   @override
-  Future<bool> revokeExternalToken(BrokerageUser user, String tokenId) async => false;
+  Future<bool> revokeExternalToken(BrokerageUser user, String tokenId) async =>
+      false;
 
   @override
   Future<List<dynamic>> getNotificationStack(BrokerageUser user) async => [];
 
   @override
-  Future<List<NotificationItem>> getNotificationStackModel(BrokerageUser user) async => [];
+  Future<List<NotificationItem>> getNotificationStackModel(
+          BrokerageUser user) async =>
+      [];
 
   @override
   Future<dynamic> getInboxThreads(BrokerageUser user) async => null;
 
   @override
-  Future<List<NotificationItem>> getInboxThreadsModel(BrokerageUser user) async => [];
+  Future<List<NotificationItem>> getInboxThreadsModel(
+          BrokerageUser user) async =>
+      [];
 
   @override
   Future<dynamic> getSpendingAccount(BrokerageUser user) async => null;
 
   @override
-  Future<SpendingAccount?> getSpendingAccountModel(BrokerageUser user) async => null;
+  Future<SpendingAccount?> getSpendingAccountModel(BrokerageUser user) async =>
+      null;
 
   @override
   Future<dynamic> getRetirementHistory(BrokerageUser user) async => null;
 
   @override
-  Future<RetirementHistory> getRetirementHistoryModel(BrokerageUser user) async =>
+  Future<RetirementHistory> getRetirementHistoryModel(
+          BrokerageUser user) async =>
       const RetirementHistory();
 }

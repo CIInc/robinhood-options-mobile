@@ -484,7 +484,8 @@ void main() {
       expect(cat1 == cat3, isFalse);
     });
 
-    testWidgets('Activity badge reflects order count and is displayed correctly',
+    testWidgets(
+        'Activity badge reflects order count and is displayed correctly',
         (WidgetTester tester) async {
       final categoriesWithActivityBadge = [
         const InstrumentCategory(
@@ -541,4 +542,3 @@ void main() {
     });
   });
 }
-

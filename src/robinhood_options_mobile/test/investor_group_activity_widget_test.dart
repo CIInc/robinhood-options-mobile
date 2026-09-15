@@ -65,8 +65,8 @@ class MockActivityFirestoreService extends Fake implements FirestoreService {
   }
 
   @override
-  Future<void> updateUserGroupPrivacySettings(
-      String groupId, String userId, GroupActivityPrivacySettings settings) async {
+  Future<void> updateUserGroupPrivacySettings(String groupId, String userId,
+      GroupActivityPrivacySettings settings) async {
     privacySettings = settings;
   }
 }
@@ -135,13 +135,15 @@ void main() {
     ),
   ];
 
-  testWidgets('InvestorGroupActivityFeedWidget renders activity list with filters and chips',
+  testWidgets(
+      'InvestorGroupActivityFeedWidget renders activity list with filters and chips',
       (WidgetTester tester) async {
     tester.view.physicalSize = const Size(800, 2400);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(() => tester.view.resetPhysicalSize());
 
-    final mockFirestore = MockActivityFirestoreService(mockActivities: testActivities);
+    final mockFirestore =
+        MockActivityFirestoreService(mockActivities: testActivities);
 
     await tester.pumpWidget(
       MaterialApp(
@@ -178,7 +180,8 @@ void main() {
     expect(find.text('TSLA'), findsOneWidget);
   });
 
-  testWidgets('InvestorGroupActivityFeedWidget shows empty state when no activities exist',
+  testWidgets(
+      'InvestorGroupActivityFeedWidget shows empty state when no activities exist',
       (WidgetTester tester) async {
     tester.view.physicalSize = const Size(800, 2400);
     tester.view.devicePixelRatio = 1.0;
@@ -205,13 +208,15 @@ void main() {
     expect(find.text('No Activity Yet'), findsOneWidget);
   });
 
-  testWidgets('InvestorGroupActivityFeedWidget opens trade details sheet on tap',
+  testWidgets(
+      'InvestorGroupActivityFeedWidget opens trade details sheet on tap',
       (WidgetTester tester) async {
     tester.view.physicalSize = const Size(800, 2400);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(() => tester.view.resetPhysicalSize());
 
-    final mockFirestore = MockActivityFirestoreService(mockActivities: testActivities);
+    final mockFirestore =
+        MockActivityFirestoreService(mockActivities: testActivities);
 
     await tester.pumpWidget(
       MaterialApp(
@@ -246,7 +251,8 @@ void main() {
     tester.view.devicePixelRatio = 1.0;
     addTearDown(() => tester.view.resetPhysicalSize());
 
-    final mockFirestore = MockActivityFirestoreService(mockActivities: testActivities);
+    final mockFirestore =
+        MockActivityFirestoreService(mockActivities: testActivities);
 
     await tester.pumpWidget(
       MaterialApp(

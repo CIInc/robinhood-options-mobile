@@ -845,7 +845,6 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
   }
 
   Widget _buildWatchlistsCard(InvestorGroup group, bool isMember) {
-
     if (!isMember) {
       return Card(
         elevation: 0,

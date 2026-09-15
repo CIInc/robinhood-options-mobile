@@ -26,7 +26,8 @@ void main() {
     0.0,
   );
 
-  testWidgets('BankingWidget renders Transfers tab with hero metrics, banner, and transfers list',
+  testWidgets(
+      'BankingWidget renders Transfers tab with hero metrics, banner, and transfers list',
       (WidgetTester tester) async {
     tester.view.physicalSize = const Size(800, 2400);
     tester.view.devicePixelRatio = 1.0;
@@ -105,7 +106,8 @@ void main() {
     await tester.pumpAndSettle();
   });
 
-  testWidgets('BankingWidget renders Linked Accounts tab with connected banks and guidelines',
+  testWidgets(
+      'BankingWidget renders Linked Accounts tab with connected banks and guidelines',
       (WidgetTester tester) async {
     tester.view.physicalSize = const Size(800, 2400);
     tester.view.devicePixelRatio = 1.0;
