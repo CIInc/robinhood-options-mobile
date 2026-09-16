@@ -34,7 +34,8 @@ class NotificationResponse {
 class NotificationItem {
   final String cardId;
   final String? loadId;
-  final String category; // 'market', 'feature', 'account', 'security', 'orders', 'options', 'crypto', 'futures', 'dividends', 'ipo', 'announcements'
+  final String
+      category; // 'market', 'feature', 'account', 'security', 'orders', 'options', 'crypto', 'futures', 'dividends', 'ipo', 'announcements'
   final String type;
   final String title;
   final String message;
@@ -132,7 +133,8 @@ class NotificationItem {
       catStr = rawCat.toLowerCase();
     }
 
-    final tType = (json['type'] ?? json['thread_type'] ?? 'announcement').toString();
+    final tType =
+        (json['type'] ?? json['thread_type'] ?? 'announcement').toString();
     final tTitle = (json['display_name'] ??
             json['title'] ??
             json['subject'] ??

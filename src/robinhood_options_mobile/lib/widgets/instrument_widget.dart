@@ -418,12 +418,14 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       hasPosition =
           stockStore.items.any((e) => e.instrument == instrument.url) ||
               optStore.items.any((e) => e.symbol == instrument.symbol);
-      final comboCount = comboStore.items.where((order) =>
-          order.primarySymbol.toUpperCase() ==
-              instrument.symbol.toUpperCase() ||
-          order.legs.any((l) =>
-              l.symbol != null &&
-              l.symbol!.toUpperCase() == instrument.symbol.toUpperCase())).length;
+      final comboCount = comboStore.items
+          .where((order) =>
+              order.primarySymbol.toUpperCase() ==
+                  instrument.symbol.toUpperCase() ||
+              order.legs.any((l) =>
+                  l.symbol != null &&
+                  l.symbol!.toUpperCase() == instrument.symbol.toUpperCase()))
+          .length;
       orderCount = (instrument.positionOrders?.length ?? 0) +
           (instrument.optionOrders?.length ?? 0) +
           comboCount;
@@ -4639,7 +4641,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                 endIndent: 16,
               ),
               itemBuilder: (BuildContext context, int index) {
-                var rawSplit = splits[index]; // Note: Assumes splitsObj existence
+                var rawSplit =
+                    splits[index]; // Note: Assumes splitsObj existence
                 model.Split splitObj;
                 if (rawSplit is model.Split) {
                   splitObj = rawSplit;
@@ -4658,8 +4661,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                     style: const TextStyle(
                         fontSize: 16.0, fontWeight: FontWeight.w500),
                   ),
-                  subtitle: Text(
-                      "Ex-Date: $dateStr",
+                  subtitle: Text("Ex-Date: $dateStr",
                       style: TextStyle(
                           fontSize: 14,
                           color: Theme.of(context).textTheme.bodySmall?.color)),

@@ -71,6 +71,7 @@ Developer workflows (notes an agent should surface when changing code):
 - Pod / iOS problems: if `pod install` fails, the README instructs `rm -rf ./ios/Pods; rm ./ios/Podfile.lock; flutter clean; flutter pub get; flutter build ios` and/or `pod repo update`.
 - Linting & functions: JS/TS linting is mandatory for all Cloud Functions. Always check and fix lint errors when editing `.ts` functions using `npm run lint` or `npm run build` in the `src/robinhood_options_mobile/functions` directory before proposing changes. The `build` and `deploy` commands in `package.json` automatically run `npm run lint`. Use `-- --fix` to auto-apply fixable rules when necessary.
 - Secrets: do NOT add API keys to the repo. Use `firebase functions:secrets:set` or the `firebase` project secret manager as used in README.
+- **GitHub Issues & Roadmap Sync:** All active features and epics are tracked across `ROADMAP.md` and GitHub Issues. When addressing a feature or bug, inspect the corresponding issue (`gh issue view <num>`) for acceptance criteria and constraints. Reference the issue in commits (`feat: ... (#<num>)` or `closes #<num>`). When updating documentation (`update-docs` skill), reconcile `ROADMAP.md` checkboxes and stats with current GitHub issue states.
 
 What to change vs what to avoid (safety/side-effects):
 - Make UI/logic changes in Dart files under `lib/` and update corresponding stores in `lib/model/`.

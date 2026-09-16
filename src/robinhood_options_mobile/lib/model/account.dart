@@ -74,8 +74,8 @@ class Account {
         portfolioCash = parseDouble(json['portfolio_cash']),
         accountNumber = json['account_number'] ?? '',
         type = json['type'] ?? '',
-        brokerageAccountType =
-            json['brokerage_account_type']?.toString() ?? json['account_type']?.toString(),
+        brokerageAccountType = json['brokerage_account_type']?.toString() ??
+            json['account_type']?.toString(),
         buyingPower = parseDouble(json['buying_power']),
         optionLevel = json['option_level'] ?? '',
         cashHeldForOptionsCollateral =
@@ -132,10 +132,13 @@ class Account {
             : null,
         accountNumber = json['securitiesAccount']['accountNumber'],
         type = json['securitiesAccount']['type'] ?? '',
-        brokerageAccountType =
-            json['securitiesAccount']['type']?.toString().toLowerCase().contains('ira') == true
-                ? json['securitiesAccount']['type']?.toString()
-                : 'individual',
+        brokerageAccountType = json['securitiesAccount']['type']
+                    ?.toString()
+                    .toLowerCase()
+                    .contains('ira') ==
+                true
+            ? json['securitiesAccount']['type']?.toString()
+            : 'individual',
         buyingPower = json['securitiesAccount']['currentBalances'] != null
             ? parseDouble(
                 json['securitiesAccount']['currentBalances']['buyingPower'])
@@ -159,7 +162,8 @@ class Account {
         portfolioCash = parseDouble(json['accounts'][0]['balances']['current']),
         accountNumber = json['accounts'][0]['mask'],
         type = json['accounts'][0]['type'],
-        brokerageAccountType = json['accounts'][0]['subtype']?.toString() ?? 'individual',
+        brokerageAccountType =
+            json['accounts'][0]['subtype']?.toString() ?? 'individual',
         buyingPower = parseDouble(json['accounts'][0]['balances']['current']),
         optionLevel =
             '', // TODO: From getUser() /userprincipals/. Use .authorizations.optionTradingLevel

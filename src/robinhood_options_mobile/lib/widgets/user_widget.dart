@@ -1049,9 +1049,7 @@ class _UserWidgetState extends State<UserWidget> {
                                     ),
 
                                     const Divider(
-                                        height: 1,
-                                        indent: 16,
-                                        endIndent: 16),
+                                        height: 1, indent: 16, endIndent: 16),
 
                                     // -------------------------------------------------------------
                                     // 2. SIGNALS & ALERTS
@@ -1122,9 +1120,7 @@ class _UserWidgetState extends State<UserWidget> {
                                     ),
 
                                     const Divider(
-                                        height: 1,
-                                        indent: 16,
-                                        endIndent: 16),
+                                        height: 1, indent: 16, endIndent: 16),
 
                                     // -------------------------------------------------------------
                                     // 3. RISK & MARGIN SAFEGUARDS
@@ -1215,9 +1211,7 @@ class _UserWidgetState extends State<UserWidget> {
                                     ),
 
                                     const Divider(
-                                        height: 1,
-                                        indent: 16,
-                                        endIndent: 16),
+                                        height: 1, indent: 16, endIndent: 16),
 
                                     // -------------------------------------------------------------
                                     // 4. BANKING & DOCUMENTS
@@ -1239,12 +1233,10 @@ class _UserWidgetState extends State<UserWidget> {
                                         child:
                                             const Icon(Icons.account_balance),
                                       ),
-                                      title: const Text(
-                                          'Banking & Transfers'),
+                                      title: const Text('Banking & Transfers'),
                                       subtitle: const Text(
                                           'Manage deposits, withdrawals & linked bank accounts'),
-                                      trailing:
-                                          const Icon(Icons.chevron_right),
+                                      trailing: const Icon(Icons.chevron_right),
                                       onTap: () async {
                                         if (widget.brokerageUser != null &&
                                             widget.service != null) {
@@ -1277,15 +1269,13 @@ class _UserWidgetState extends State<UserWidget> {
                                         foregroundColor: Theme.of(context)
                                             .colorScheme
                                             .onSecondaryContainer,
-                                        child:
-                                            const Icon(Icons.receipt_long),
+                                        child: const Icon(Icons.receipt_long),
                                       ),
                                       title: const Text(
                                           'Tax Documents & Statements'),
                                       subtitle: const Text(
                                           'Download Form 1099, monthly statements & ADR fees'),
-                                      trailing:
-                                          const Icon(Icons.chevron_right),
+                                      trailing: const Icon(Icons.chevron_right),
                                       onTap: () async {
                                         if (widget.brokerageUser != null &&
                                             widget.service != null) {
@@ -1318,15 +1308,13 @@ class _UserWidgetState extends State<UserWidget> {
                                         foregroundColor: Theme.of(context)
                                             .colorScheme
                                             .onSecondaryContainer,
-                                        child:
-                                            const Icon(Icons.call_split),
+                                        child: const Icon(Icons.call_split),
                                       ),
                                       title: const Text(
                                           'Corporate Actions & Splits'),
                                       subtitle: const Text(
                                           'Stock split adjustments, cash-in-lieu & ratios'),
-                                      trailing:
-                                          const Icon(Icons.chevron_right),
+                                      trailing: const Icon(Icons.chevron_right),
                                       onTap: () async {
                                         if (widget.brokerageUser != null &&
                                             widget.service != null) {
@@ -1366,8 +1354,7 @@ class _UserWidgetState extends State<UserWidget> {
                                           'Stock Lending & Cash Sweeps'),
                                       subtitle: const Text(
                                           'Earn yield on loaned shares & FDIC cash sweeps'),
-                                      trailing:
-                                          const Icon(Icons.chevron_right),
+                                      trailing: const Icon(Icons.chevron_right),
                                       onTap: () async {
                                         if (widget.brokerageUser != null &&
                                             widget.service != null) {
@@ -1400,7 +1387,8 @@ class _UserWidgetState extends State<UserWidget> {
                                         foregroundColor: Theme.of(context)
                                             .colorScheme
                                             .onSecondaryContainer,
-                                        child: const Icon(Icons.savings_outlined),
+                                        child:
+                                            const Icon(Icons.savings_outlined),
                                       ),
                                       title: const Text('Retirement & IRA'),
                                       subtitle: const Text(
@@ -1409,10 +1397,10 @@ class _UserWidgetState extends State<UserWidget> {
                                       onTap: () async {
                                         if (widget.brokerageUser != null &&
                                             widget.service != null) {
-                                          final currentAccount = Provider.of<AccountStore>(
-                                                  context,
-                                                  listen: false)
-                                              .selectedAccount;
+                                          final currentAccount =
+                                              Provider.of<AccountStore>(context,
+                                                      listen: false)
+                                                  .selectedAccount;
                                           Navigator.push(
                                             context,
                                             MaterialPageRoute(
@@ -1443,9 +1431,11 @@ class _UserWidgetState extends State<UserWidget> {
                                         foregroundColor: Theme.of(context)
                                             .colorScheme
                                             .onSecondaryContainer,
-                                        child: const Icon(Icons.extension_outlined),
+                                        child: const Icon(
+                                            Icons.extension_outlined),
                                       ),
-                                      title: const Text('Connected Agents & Apps'),
+                                      title:
+                                          const Text('Connected Agents & Apps'),
                                       subtitle: const Text(
                                           'Manage OAuth tokens, trading agents & app access'),
                                       trailing: const Icon(Icons.chevron_right),
@@ -1481,7 +1471,8 @@ class _UserWidgetState extends State<UserWidget> {
                                         foregroundColor: Theme.of(context)
                                             .colorScheme
                                             .onSecondaryContainer,
-                                        child: const Icon(Icons.notifications_outlined),
+                                        child: const Icon(
+                                            Icons.notifications_outlined),
                                       ),
                                       title: const Text('Notification Center'),
                                       subtitle: const Text(
@@ -1512,9 +1503,7 @@ class _UserWidgetState extends State<UserWidget> {
                                     ),
 
                                     const Divider(
-                                        height: 1,
-                                        indent: 16,
-                                        endIndent: 16),
+                                        height: 1, indent: 16, endIndent: 16),
 
                                     // -------------------------------------------------------------
                                     // 5. PROFILE & COMMUNITY
@@ -1568,7 +1557,8 @@ class _UserWidgetState extends State<UserWidget> {
                                         child: const Icon(
                                             Icons.how_to_vote_outlined),
                                       ),
-                                      title: const Text('Shareholder Q&A (Say)'),
+                                      title:
+                                          const Text('Shareholder Q&A (Say)'),
                                       subtitle: const Text(
                                           'Participate in verified earnings calls & shareholder questions'),
                                       trailing: const Icon(Icons.chevron_right),

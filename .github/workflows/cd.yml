@@ -190,6 +190,41 @@ jobs:
           path: src/robinhood_options_mobile/build/app/outputs/bundle/release/app-release.aab
         continue-on-error: false
 
+      - name: Prepare Google Play Release Notes
+        env:
+          RELEASE_NOTES: ${{ needs.check_version.outputs.release_notes }}
+        run: |
+          mkdir -p distribution/whatsnew
+          python3 -c '
+          import os
+          notes = os.environ.get("RELEASE_NOTES", "").strip()
+          # Clean markdown bold/code markers
+          notes = notes.replace("**", "").replace("`", "")
+          # Google Play Console strictly enforces a 500 character limit on release notes
+          if len(notes) > 500:
+              lines = notes.splitlines()
+              result = []
+              curr = 0
+              for line in lines:
+                  line = line.strip()
+                  if not line:
+                      continue
+                  add = len(line) + (1 if result else 0)
+                  if curr + add <= 500:
+                      result.append(line)
+                      curr += add
+                  else:
+                      break
+              if result:
+                  notes = "\n".join(result)
+              else:
+                  notes = notes[:497].rsplit(" ", 1)[0] + "..."
+          with open("distribution/whatsnew/whatsnew-en-US", "w", encoding="utf-8") as f:
+              f.write(notes)
+          '
+          echo "Generated Google Play release notes (whatsnew-en-US):"
+          cat distribution/whatsnew/whatsnew-en-US
+
       - name: Publish Google Play Internal Release
         uses: r0adkll/upload-google-play@v1.1.5
         with:
@@ -198,6 +233,7 @@ jobs:
           releaseFiles: src/robinhood_options_mobile/build/app/outputs/bundle/release/app-release.aab
           track: internal
           status: completed
+          whatsNewDirectory: src/robinhood_options_mobile/distribution/whatsnew
         continue-on-error: false
 
   build_ios:
@@ -205,7 +241,10 @@ jobs:
     needs: [analyze_and_test, check_version]
     if: needs.check_version.outputs.new_version == 'true'
     runs-on: macos-latest # Uses latest available macOS runner
-    timeout-minutes: 45
+    timeout-minutes: 60
+    env:
+      APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+      APP_STORE_CONNECT_API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
     defaults:
       run:
         working-directory: src/robinhood_options_mobile
@@ -266,6 +305,24 @@ jobs:
           # Create ExportOptions.plist
           echo "${{ secrets.IOS_EXPORT_OPTIONS_PLIST }}" > ios/ExportOptions.plist
 
+      - name: Prepare TestFlight Test Details
+        env:
+          RELEASE_NOTES: ${{ needs.check_version.outputs.release_notes }}
+        run: |
+          mkdir -p ios/TestFlight TestFlight
+          python3 -c '
+          import os
+          notes = os.environ.get("RELEASE_NOTES", "").strip()
+          # TestFlight "What to Test" allows up to 4000 characters
+          if len(notes) > 4000:
+              notes = notes[:3997] + "..."
+          for path in ["ios/TestFlight/WhatToTest.en-US.txt", "TestFlight/WhatToTest.en-US.txt"]:
+              with open(path, "w", encoding="utf-8") as f:
+                  f.write(notes)
+          '
+          echo "Generated TestFlight WhatToTest.en-US.txt:"
+          cat ios/TestFlight/WhatToTest.en-US.txt
+
       - name: Build iOS IPA
         # run: flutter build ipa --release --export-options-plist=ios/ExportOptions.plist
         run: |
@@ -316,22 +373,32 @@ jobs:
           path: src/robinhood_options_mobile/build/ios/ipa/*.ipa
           # path: build/ios/ipa/*.ipa
 
-      - name: Upload to App Store
+      - name: Resolve IPA path
+        id: resolve_ipa
         run: |
-          # Check if API Key secrets are available
-          if [ -n "${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}" ] && [ -n "${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}" ]; then
-            echo "Using API Key for authentication"
-            
-            # Setup Private Key file
-            mkdir -p ~/.appstoreconnect/private_keys
-            echo "${{ secrets.APP_STORE_CONNECT_API_PRIVATE_KEY }}" > ~/.appstoreconnect/private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}.p8
-            
-            xcrun altool --upload-app --type ios -f build/ios/ipa/*.ipa --apiKey "${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}" --apiIssuer "${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}"
-          else
-            echo "Using Username/Password for authentication"
-            xcrun altool --upload-app --type ios -f build/ios/ipa/*.ipa --username "${{ secrets.APP_STORE_CONNECT_USERNAME }}" --password "${{ secrets.APP_STORE_CONNECT_PASSWORD }}"
-            # --verbose
+          IPA_PATH=$(find build/ios/ipa -maxdepth 1 -name "*.ipa" | head -n 1)
+          if [ -z "$IPA_PATH" ]; then
+            echo "Error: No IPA found in build/ios/ipa" >&2
+            exit 1
           fi
+          echo "Found IPA: $IPA_PATH"
+          echo "ipa_path=$IPA_PATH" >> $GITHUB_OUTPUT
+
+      - name: Upload to TestFlight with Test Details (API Key)
+        if: env.APP_STORE_CONNECT_API_KEY_ID != '' && env.APP_STORE_CONNECT_API_ISSUER_ID != ''
+        uses: apple-actions/upload-testflight-build@v5
+        with:
+          app-path: src/robinhood_options_mobile/${{ steps.resolve_ipa.outputs.ipa_path }}
+          issuer-id: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
+          api-key-id: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          api-private-key: ${{ secrets.APP_STORE_CONNECT_API_PRIVATE_KEY }}
+          release-notes: ${{ needs.check_version.outputs.release_notes }}
+
+      - name: Upload to App Store (Legacy Username/Password fallback)
+        if: env.APP_STORE_CONNECT_API_KEY_ID == '' || env.APP_STORE_CONNECT_API_ISSUER_ID == ''
+        run: |
+          echo "Using Username/Password for authentication"
+          xcrun altool --upload-app --type ios -f build/ios/ipa/*.ipa --username "${{ secrets.APP_STORE_CONNECT_USERNAME }}" --password "${{ secrets.APP_STORE_CONNECT_PASSWORD }}"
 
   create_release:
     name: Create GitHub Release

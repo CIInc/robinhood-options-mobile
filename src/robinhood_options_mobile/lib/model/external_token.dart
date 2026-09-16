@@ -64,7 +64,8 @@ class ExternalToken {
       }
     }
 
-    final id = (json['id'] ?? json['token_id'] ?? json['client_id'] ?? '').toString();
+    final id =
+        (json['id'] ?? json['token_id'] ?? json['client_id'] ?? '').toString();
 
     // 1. Check oauth_application or application or client
     final oauthApp = json['oauth_application'] is Map
@@ -80,12 +81,21 @@ class ExternalToken {
 
     final appName = (oauthApp != null
             ? (oauthApp['name'] ?? oauthApp['application_name'])
-            : (json['application_name'] ?? json['client_name'] ?? json['name'] ?? 'Connected App'))
+            : (json['application_name'] ??
+                json['client_name'] ??
+                json['name'] ??
+                'Connected App'))
         .toString();
 
-    final appDesc = oauthApp != null ? oauthApp['description']?.toString() : json['description']?.toString();
-    final appUrl = oauthApp != null ? (oauthApp['url'] ?? oauthApp['website'])?.toString() : json['url']?.toString();
-    final iconUrl = (oauthApp != null ? (oauthApp['icon'] ?? oauthApp['icon_url']) : null) ??
+    final appDesc = oauthApp != null
+        ? oauthApp['description']?.toString()
+        : json['description']?.toString();
+    final appUrl = oauthApp != null
+        ? (oauthApp['url'] ?? oauthApp['website'])?.toString()
+        : json['url']?.toString();
+    final iconUrl = (oauthApp != null
+            ? (oauthApp['icon'] ?? oauthApp['icon_url'])
+            : null) ??
         json['icon_url']?.toString();
 
     // 2. Check fourth_party_application
@@ -108,13 +118,19 @@ class ExternalToken {
     if (rawScopes is List) {
       parsedScopes = rawScopes.map((s) => s.toString()).toList();
     } else if (rawScopes is String) {
-      parsedScopes = rawScopes.split(RegExp(r'[\s,]+')).where((s) => s.isNotEmpty).toList();
+      parsedScopes = rawScopes
+          .split(RegExp(r'[\s,]+'))
+          .where((s) => s.isNotEmpty)
+          .toList();
     }
 
     // 4. Dates
-    final createdAt = parseDate(json['created'] ?? json['created_at'] ?? json['issued_at']);
-    final updatedAt = parseDate(json['updated'] ?? json['updated_at'] ?? json['last_used_at']);
-    final initialLogin = parseDate(json['initial_login_time'] ?? json['initial_login']);
+    final createdAt =
+        parseDate(json['created'] ?? json['created_at'] ?? json['issued_at']);
+    final updatedAt = parseDate(
+        json['updated'] ?? json['updated_at'] ?? json['last_used_at']);
+    final initialLogin =
+        parseDate(json['initial_login_time'] ?? json['initial_login']);
     final expiresAt = parseDate(json['expires_at'] ?? json['expiration_date']);
     final lastUsed = updatedAt ?? parseDate(json['last_used_at']);
 
@@ -123,7 +139,8 @@ class ExternalToken {
         json['active'] ??
         (json['revoked'] == true
             ? false
-            : (json['status'] == null || json['status'].toString().toLowerCase() == 'active'));
+            : (json['status'] == null ||
+                json['status'].toString().toLowerCase() == 'active'));
 
     return ExternalToken(
       id: id,
@@ -147,7 +164,8 @@ class ExternalToken {
     );
   }
 
-  bool get isExpired => expiresAt != null && expiresAt!.isBefore(DateTime.now());
+  bool get isExpired =>
+      expiresAt != null && expiresAt!.isBefore(DateTime.now());
 
   /// True if this token represents an AI agent, trading bot, or MCP client
   bool get isAgent {
@@ -176,7 +194,8 @@ class ExternalToken {
       if (applicationName.isNotEmpty && applicationName != 'Connected App') {
         return applicationName;
       }
-      if (fourthPartyDisplayName != null && fourthPartyDisplayName!.isNotEmpty) {
+      if (fourthPartyDisplayName != null &&
+          fourthPartyDisplayName!.isNotEmpty) {
         return fourthPartyDisplayName!;
       }
     }
@@ -189,7 +208,8 @@ class ExternalToken {
   /// Clean secondary subtitle explaining context
   String? get subtitle {
     if (isAgent) {
-      if (fourthPartyDisplayName != null && fourthPartyDisplayName!.isNotEmpty) {
+      if (fourthPartyDisplayName != null &&
+          fourthPartyDisplayName!.isNotEmpty) {
         return 'Token: $fourthPartyDisplayName';
       }
       return 'Autonomous AI Trading Agent';
@@ -227,13 +247,18 @@ class ExternalToken {
     return Icons.apps_outlined;
   }
 
-  String get formattedCreatedAt => createdAt != null ? _dateFormat.format(createdAt!) : 'Unknown';
-  String get formattedUpdatedAt => updatedAt != null ? _dateFormat.format(updatedAt!) : 'Unknown';
+  String get formattedCreatedAt =>
+      createdAt != null ? _dateFormat.format(createdAt!) : 'Unknown';
+  String get formattedUpdatedAt =>
+      updatedAt != null ? _dateFormat.format(updatedAt!) : 'Unknown';
   String get formattedUpdated => formattedUpdatedAt;
-  String get formattedInitialLogin =>
-      initialLoginTime != null ? _dateFormat.format(initialLoginTime!) : 'Unknown';
-  String get formattedExpiresAt => expiresAt != null ? _dateFormat.format(expiresAt!) : 'Never';
-  String get formattedLastUsed => lastUsedAt != null ? _dateTimeFormat.format(lastUsedAt!) : 'Never';
+  String get formattedInitialLogin => initialLoginTime != null
+      ? _dateFormat.format(initialLoginTime!)
+      : 'Unknown';
+  String get formattedExpiresAt =>
+      expiresAt != null ? _dateFormat.format(expiresAt!) : 'Never';
+  String get formattedLastUsed =>
+      lastUsedAt != null ? _dateTimeFormat.format(lastUsedAt!) : 'Never';
 
   String get statusLabel {
     if (!isActive) return 'Revoked';
@@ -254,7 +279,9 @@ class ExternalToken {
     if (isAgent) return true;
     return scopes.any((s) {
       final lower = s.toLowerCase();
-      return lower.contains('trade') || lower.contains('order') || lower.contains('write');
+      return lower.contains('trade') ||
+          lower.contains('order') ||
+          lower.contains('write');
     });
   }
 
@@ -295,17 +322,22 @@ class ExternalToken {
       'id': id,
       if (clientId != null) 'client_id': clientId,
       'application_name': applicationName,
-      if (applicationDescription != null) 'application_description': applicationDescription,
+      if (applicationDescription != null)
+        'application_description': applicationDescription,
       if (applicationUrl != null) 'application_url': applicationUrl,
-      if (applicationIconUrl != null) 'application_icon_url': applicationIconUrl,
-      if (fourthPartyDisplayName != null) 'fourth_party_display_name': fourthPartyDisplayName,
-      if (fourthPartyLogoUrl != null) 'fourth_party_logo_url': fourthPartyLogoUrl,
+      if (applicationIconUrl != null)
+        'application_icon_url': applicationIconUrl,
+      if (fourthPartyDisplayName != null)
+        'fourth_party_display_name': fourthPartyDisplayName,
+      if (fourthPartyLogoUrl != null)
+        'fourth_party_logo_url': fourthPartyLogoUrl,
       if (agentId != null) 'agent_id': agentId,
       if (agenticAccounts.isNotEmpty) 'agentic_accounts': agenticAccounts,
       'scopes': scopes,
       if (createdAt != null) 'created_at': createdAt!.toIso8601String(),
       if (updatedAt != null) 'updated_at': updatedAt!.toIso8601String(),
-      if (initialLoginTime != null) 'initial_login_time': initialLoginTime!.toIso8601String(),
+      if (initialLoginTime != null)
+        'initial_login_time': initialLoginTime!.toIso8601String(),
       if (expiresAt != null) 'expires_at': expiresAt!.toIso8601String(),
       if (lastUsedAt != null) 'last_used_at': lastUsedAt!.toIso8601String(),
       'is_active': isActive,

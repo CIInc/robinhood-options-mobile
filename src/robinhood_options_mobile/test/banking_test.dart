@@ -58,7 +58,8 @@ void main() {
       final transfer = AchTransfer.fromJson(json);
       expect(transfer.id, 'ach_102');
       expect(transfer.account, 'ACCT12345');
-      expect(transfer.cancelUrl, 'https://api.robinhood.com/ach/transfers/ach_102/cancel/');
+      expect(transfer.cancelUrl,
+          'https://api.robinhood.com/ach/transfers/ach_102/cancel/');
       expect(transfer.direction, 'withdraw');
       expect(transfer.amount, 450.75);
       expect(transfer.isWithdrawal, isTrue);
@@ -218,7 +219,8 @@ void main() {
         ),
       ];
 
-      final summary = AchSummary.fromTransfersAndRelationships(transfers, relationships);
+      final summary =
+          AchSummary.fromTransfersAndRelationships(transfers, relationships);
 
       expect(summary.totalDeposited, 5000.0);
       expect(summary.totalWithdrawn, 1200.0);
@@ -255,11 +257,13 @@ void main() {
       expect(pending.amount, 1000.0);
       expect(pending.cancelUrl, isNotNull);
 
-      final completedDeposits = transfers.where((t) => t.isDeposit && t.isCompleted);
+      final completedDeposits =
+          transfers.where((t) => t.isDeposit && t.isCompleted);
       expect(completedDeposits, isNotEmpty);
     });
 
-    test('returns demo ACH relationships with verified Chase and Ally', () async {
+    test('returns demo ACH relationships with verified Chase and Ally',
+        () async {
       final service = DemoService();
       final relationships = await service.getAchRelationshipsModel(user);
 
