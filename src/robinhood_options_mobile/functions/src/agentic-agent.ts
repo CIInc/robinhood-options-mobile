@@ -35,9 +35,11 @@ export async function handleAgenticDecision(
   });
 
   const model = vertexAI.getGenerativeModel({
-    model: "gemini-2.5-flash-lite",
+    model: "gemini-3.1-flash-lite",
     generationConfig: {
       responseMimeType: "application/json",
+      maxOutputTokens: 250,
+      temperature: 0.1,
     },
   });
 
@@ -180,6 +182,8 @@ Output ONLY the JSON.
       contents: [{ role: "user", parts: [{ text: fullPrompt }] }],
       generationConfig: {
         responseMimeType: "application/json",
+        maxOutputTokens: 250,
+        temperature: 0.1,
       },
     });
 

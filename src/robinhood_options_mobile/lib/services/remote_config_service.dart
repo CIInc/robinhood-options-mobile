@@ -27,7 +27,7 @@ class RemoteConfigService {
 
     await _remoteConfig.setDefaults(const {
       'min_app_version': '0.0.0',
-      'ai_model_name': 'gemini-2.5-flash-lite',
+      'ai_model_name': 'gemini-3.1-flash-lite',
       'show_personalized_ads': true,
       'experiment_group': 'default',
     });

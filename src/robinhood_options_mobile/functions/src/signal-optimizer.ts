@@ -8,9 +8,11 @@ const vertexAI = new VertexAI({
 });
 
 const model = vertexAI.getGenerativeModel({
-  model: "gemini-2.5-flash-lite",
+  model: "gemini-3.1-flash-lite",
   generationConfig: {
     responseMimeType: "application/json",
+    maxOutputTokens: 120,
+    temperature: 0.1,
   },
 });
 
@@ -52,10 +54,10 @@ export async function optimizeSignal(
 
   try {
     const indicators = multiIndicatorResult.indicators;
-    const lastPrices = marketData.closes.slice(-10);
-    const lastVolumes = (marketData.volumes || []).slice(-10);
-    const lastHighs = (marketData.highs || []).slice(-10);
-    const lastLows = (marketData.lows || []).slice(-10);
+    const lastPrices = marketData.closes.slice(-5);
+    const lastVolumes = (marketData.volumes || []).slice(-5);
+    const lastHighs = (marketData.highs || []).slice(-5);
+    const lastLows = (marketData.lows || []).slice(-5);
     const marketTrend = marketIndexData.closes.slice(-5);
     const marketVolTrend = (marketIndexData.volumes || []).slice(-5);
 
@@ -114,7 +116,7 @@ Output JSON:{confidenceScore(0-100),refinedSignal(BUY/SELL/HOLD),reasoning}`;
       confidenceScore: optimization.confidenceScore,
       refinedSignal: optimization.refinedSignal,
       reasoning: optimization.reasoning,
-      mlModel: "gemini-2.5-flash-lite",
+      mlModel: "gemini-3.1-flash-lite",
     };
   } catch (error) {
     logger.error("Error optimizing signal with ML", error);

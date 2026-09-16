@@ -65,6 +65,17 @@ All notable changes to this project will be documented in this file.
   - Added unit test coverage in `functions/tests/copy-trading.test.ts`.
 - **Agentic Trading Gamma Exposure (GEX) Fallback:**
   - Enhanced fallback handling in `functions/src/agentic-agent.ts` and `functions/src/gamma-exposure.ts` to gracefully fallback to deterministic technical and macro indicators when dealer gamma levels or zero-crossing strikes are unavailable.
+- **Gemini 2.5 Retirement & Migration to Gemini 3.1 Flash-Lite with Token & Cost Optimizations:**
+  - Reviewed the retirement schedule of Google Gemini 2.5 (Pro, Flash, Flash-Lite slated for discontinuation no earlier than October 16, 2026) and migrated all AI models to **Gemini 3.1 Flash-Lite** (`gemini-3.1-flash-lite`) for low latency, sub-second response, and high-throughput execution.
+  - **Token & Cost Optimizations:** Implemented systematic output token bounds, input prompt compression, and server-side caching to offset the pricing difference between 2.5 Flash-Lite and 3.1 Flash-Lite:
+    - Added strict output limits (`maxOutputTokens: 120` on `signal-optimizer.ts`, `250` on `agentic-agent.ts`, `400` on `analyzePriceTargets`, `450` on `macro-agent.ts`, and `800` on `generateContent31`/`generateContent25`), curbing billable generation and reasoning tokens by 50%–70%.
+    - Enforced tight sampling temperatures (`0.1 - 0.4`) for deterministic, compact responses without rambling.
+    - Compressed input vectors in `signal-optimizer.ts` (pruning historical price/volume series from 10 points to 5 points) and trimmed verbose prompt definitions in `generative_service.dart`.
+    - Implemented shared Firestore caching with a 2-hour TTL for macroeconomic AI narratives in `macro-agent.ts`, preventing duplicate LLM calls across concurrent users.
+  - **Cloud Functions:** Upgraded `generateContent25` and `analyzePriceTargets` in `gemini.ts`, `macro-agent.ts`, `agentic-agent.ts`, and `signal-optimizer.ts` to `gemini-3.1-flash-lite`.
+  - **New Primary Callables:** Exported `generateContent31` (along with `generateContent35`, `generateContent38`, and `generateContent3` compatibility aliases) in `index.ts` with Google Search grounding tool support while maintaining backward compatibility on `generateContent25` for existing app versions.
+  - **Flutter Client:** Updated default `ai_model_name` in `RemoteConfigService` and model initialization in `GenerativeService` to `gemini-3.1-flash-lite` with `GenerationConfig(maxOutputTokens: 1024, temperature: 0.5)`. Added cascading fallback invocation (`generateContent31` -> `generateContent35` -> `generateContent38` -> `generateContent25`) and robust candidate response parsing in `generateContentFromServer` and `generateContent`.
+  - **Test & Docs:** Updated mock AI models in `test/firebase_mocks.dart` and refreshed all references across documentation (`README.md`, `price-targets.md`, `ai-asset-allocation.md`, `mcp-integration.md`, `agentic-trading.md`).
 
 ## [0.45.0] - 2026-09-14
 **Multi-Account & Retirement Expansion, Corporate Action Split Adjustments, Cash-in-Lieu Tracking, Securities Lending (SLIP), High-Yield Cash Sweeps, Banking/ACH Transfers, Tax Documents & Shareholder Say Q&A Engagement**

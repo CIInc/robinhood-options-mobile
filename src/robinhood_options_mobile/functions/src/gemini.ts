@@ -66,7 +66,7 @@ import { VertexAI, type Tool } from "@google-cloud/vertexai";
 //     return response;
 //   });
 
-export const generateContent25 = https.onCall({ secrets: ["GEMINI_API_KEY"] },
+export const generateContent31 = https.onCall({ secrets: ["GEMINI_API_KEY"] },
   async (request) => {
     logger.info(request.data, { structuredData: true });
     if (process.env.GEMINI_API_KEY == null) {
@@ -83,8 +83,48 @@ export const generateContent25 = https.onCall({ secrets: ["GEMINI_API_KEY"] },
     } as Tool;
 
     const model = vertexAI.getGenerativeModel({
-      model: "gemini-2.5-flash-lite",
+      model: "gemini-3.1-flash-lite",
       tools: [googleSearchTool],
+      generationConfig: {
+        maxOutputTokens: 800,
+        temperature: 0.4,
+      },
+    });
+
+    const { response } = await model.generateContent({
+      contents: [{ role: "user", parts: [{ text: request.data.prompt }] }],
+    });
+    return response;
+  });
+
+export const generateContent35 = generateContent31;
+export const generateContent38 = generateContent31;
+export const generateContent3 = generateContent31;
+
+export const generateContent25 = https.onCall({ secrets: ["GEMINI_API_KEY"] },
+  async (request) => {
+    logger.info(request.data, { structuredData: true });
+    if (process.env.GEMINI_API_KEY == null) {
+      throw new https.HttpsError(
+        "unavailable", "GEMINI_API_KEY not found.");
+    }
+    const vertexAI = new VertexAI({
+      project: "realizealpha", // process.env.GOOGLE_PROJECT_ID,
+      location: "us-central1", // process.env.GOOGLE_VERTEXAI_LOCATION,
+    });
+
+    const googleSearchTool = {
+      googleSearch: {},
+    } as Tool;
+
+    // Upgraded to gemini-3.1-flash-lite for lowest token cost and high-throughput inference
+    const model = vertexAI.getGenerativeModel({
+      model: "gemini-3.1-flash-lite",
+      tools: [googleSearchTool],
+      generationConfig: {
+        maxOutputTokens: 800,
+        temperature: 0.4,
+      },
     });
 
     const { response } = await model.generateContent({
@@ -110,8 +150,12 @@ export const analyzePriceTargets = https.onCall({ secrets: ["GEMINI_API_KEY"] },
     } as Tool;
 
     const model = vertexAI.getGenerativeModel({
-      model: "gemini-2.5-flash-lite",
+      model: "gemini-3.1-flash-lite",
       tools: [googleSearchTool],
+      generationConfig: {
+        maxOutputTokens: 400,
+        temperature: 0.2,
+      },
     });
 
     const symbol = request.data.symbol;
