@@ -8,13 +8,15 @@ import 'package:robinhood_options_mobile/widgets/analytics_style_card.dart';
 class RollingStatisticsDashboard extends StatelessWidget {
   final PortfolioAnalyticsController controller;
 
-  const RollingStatisticsDashboard({super.key, required this.controller});
+  const RollingStatisticsDashboard({
+    super.key,
+    required this.controller,
+  });
 
   @override
   Widget build(BuildContext context) {
     final metrics = controller.metrics;
-    final points =
-        (metrics['rollingStatistics'] as List?)
+    final points = (metrics['rollingStatistics'] as List?)
             ?.whereType<Map>()
             .map((point) => Map<String, dynamic>.from(point))
             .toList() ??
@@ -31,12 +33,11 @@ class RollingStatisticsDashboard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Rolling Statistics',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                    Text('Rolling Statistics',
+                        style: Theme.of(context)
+                            .textTheme
+                            .titleMedium
+                            ?.copyWith(fontWeight: FontWeight.bold)),
                     const SizedBox(height: 2),
                     Text(
                       'Volatility, beta & correlation vs ${controller.selectedBenchmark}',
@@ -63,21 +64,11 @@ class RollingStatisticsDashboard extends StatelessWidget {
             _latestSummary(context, points.last),
             const SizedBox(height: 16),
             _metricChart(
-              context,
-              points,
-              'Volatility',
-              'volatility',
-              Colors.orange,
-              percent: true,
-            ),
+                context, points, 'Volatility', 'volatility', Colors.orange,
+                percent: true),
             _metricChart(context, points, 'Beta', 'beta', Colors.blue),
             _metricChart(
-              context,
-              points,
-              'Correlation',
-              'correlation',
-              Colors.teal,
-            ),
+                context, points, 'Correlation', 'correlation', Colors.teal),
           ],
         ],
       ),
@@ -104,17 +95,13 @@ class RollingStatisticsDashboard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    values[i].$1,
-                    style: Theme.of(context).textTheme.labelSmall,
-                  ),
+                  Text(values[i].$1,
+                      style: Theme.of(context).textTheme.labelSmall),
                   const SizedBox(height: 3),
                   Text(
                     '${(values[i].$2 * (values[i].$3 == '%' ? 100 : 1)).toStringAsFixed(2)}${values[i].$3}',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: values[i].$4,
-                      fontWeight: FontWeight.bold,
-                    ),
+                        color: values[i].$4, fontWeight: FontWeight.bold),
                   ),
                 ],
               ),
@@ -147,12 +134,11 @@ class RollingStatisticsDashboard extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          title,
-          style: Theme.of(
-            context,
-          ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.bold),
-        ),
+        Text(title,
+            style: Theme.of(context)
+                .textTheme
+                .labelLarge
+                ?.copyWith(fontWeight: FontWeight.bold)),
         SizedBox(
           height: 116,
           child: charts.TimeSeriesChart(

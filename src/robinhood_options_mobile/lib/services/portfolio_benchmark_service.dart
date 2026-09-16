@@ -89,9 +89,8 @@ class PortfolioBenchmarkService {
     for (var i = 0; i < timestamps.length && i < adjcloses.length; i++) {
       final close = adjcloses[i];
       if (close == null) continue;
-      final date = DateTime.fromMillisecondsSinceEpoch(
-        (timestamps[i] as int) * 1000,
-      );
+      final date =
+          DateTime.fromMillisecondsSinceEpoch((timestamps[i] as int) * 1000);
       byDate[_dateKey(date)] = (close as num).toDouble();
     }
     return byDate;

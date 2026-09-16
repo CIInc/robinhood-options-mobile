@@ -38,7 +38,9 @@ class _FullScreenInstrumentChartWidgetState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('${widget.instrument.symbol} Chart')),
+      appBar: AppBar(
+        title: Text('${widget.instrument.symbol} Chart'),
+      ),
       body: InstrumentChartWidget(
         instrument: widget.instrument,
         chartDateSpanFilter: _chartDateSpanFilter,

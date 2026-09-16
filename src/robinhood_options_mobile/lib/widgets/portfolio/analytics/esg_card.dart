@@ -34,25 +34,19 @@ class EsgCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'ESG Analysis',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
+              Text('ESG Analysis',
+                  style: Theme.of(context).textTheme.titleLarge),
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
                   color: scoreColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
                   totalScore.toStringAsFixed(1),
-                  style: TextStyle(
-                    color: scoreColor,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style:
+                      TextStyle(color: scoreColor, fontWeight: FontWeight.bold),
                 ),
               ),
             ],
@@ -61,8 +55,8 @@ class EsgCard extends StatelessWidget {
           Text(
             'Environmental, Social, and Governance Score',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
           ),
           const SizedBox(height: 24),
           _bar(context, 'Environmental', environmentalScore, Colors.green),
@@ -79,14 +73,12 @@ class EsgCard extends StatelessWidget {
               Text(
                 'Based on weighted average of portfolio holdings.',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+              ),
+              Icon(Icons.chevron_right,
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-              ),
-              Icon(
-                Icons.chevron_right,
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                size: 16,
-              ),
+                  size: 16),
             ],
           ),
         ],
@@ -140,8 +132,8 @@ class EsgCard extends StatelessWidget {
                       Color scoreColor = score.totalScore >= 70
                           ? Colors.green
                           : (score.totalScore >= 50
-                                ? Colors.orange
-                                : Colors.red);
+                              ? Colors.orange
+                              : Colors.red);
 
                       return ListTile(
                         title: Text(
@@ -167,7 +159,10 @@ class EsgCard extends StatelessWidget {
                             ),
                             Text(
                               score.rating,
-                              style: TextStyle(color: scoreColor, fontSize: 12),
+                              style: TextStyle(
+                                color: scoreColor,
+                                fontSize: 12,
+                              ),
                             ),
                           ],
                         ),
@@ -194,12 +189,10 @@ class EsgCard extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(label, style: Theme.of(context).textTheme.bodyMedium),
-            Text(
-              score.toStringAsFixed(1),
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
-            ),
+            Text(score.toStringAsFixed(1),
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    )),
           ],
         ),
         const SizedBox(height: 8),

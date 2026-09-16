@@ -38,9 +38,8 @@ void main() {
     0.0,
   );
 
-  testWidgets('OptionCollateralWidget renders collateral tab with metrics', (
-    WidgetTester tester,
-  ) async {
+  testWidgets('OptionCollateralWidget renders collateral tab with metrics',
+      (WidgetTester tester) async {
     tester.view.physicalSize = const Size(800, 1200);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(() => tester.view.resetPhysicalSize());
@@ -90,9 +89,8 @@ void main() {
     expect(find.text('Credit Spreads (Level 3)'), findsOneWidget);
   });
 
-  testWidgets('OptionCollateralWidget switches to Tier Upgrades tab', (
-    WidgetTester tester,
-  ) async {
+  testWidgets('OptionCollateralWidget switches to Tier Upgrades tab',
+      (WidgetTester tester) async {
     tester.view.physicalSize = const Size(800, 1400);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(() => tester.view.resetPhysicalSize());
@@ -130,86 +128,76 @@ void main() {
   });
 
   testWidgets(
-    'OptionCollateralWidget renders approved state for Level 3 account',
-    (WidgetTester tester) async {
-      tester.view.physicalSize = const Size(800, 1200);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(() => tester.view.resetPhysicalSize());
+      'OptionCollateralWidget renders approved state for Level 3 account',
+      (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(800, 1200);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() => tester.view.resetPhysicalSize());
 
-      final demoService = DemoService();
+    final demoService = DemoService();
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: OptionCollateralWidget(
-            brokerageUser: testUser,
-            service: demoService,
-            account: testAccountL3,
-            chainId: 'chain_spy',
-            symbol: 'SPY',
-            initialTabIndex: 1,
-          ),
+    await tester.pumpWidget(
+      MaterialApp(
+        home: OptionCollateralWidget(
+          brokerageUser: testUser,
+          service: demoService,
+          account: testAccountL3,
+          chainId: 'chain_spy',
+          symbol: 'SPY',
+          initialTabIndex: 1,
         ),
-      );
+      ),
+    );
 
-      await tester.pumpAndSettle();
+    await tester.pumpAndSettle();
 
-      // Verify L3 badge and approval banner
-      expect(find.text('Account Approved for Level 3 Options'), findsOneWidget);
-    },
-  );
+    // Verify L3 badge and approval banner
+    expect(find.text('Account Approved for Level 3 Options'), findsOneWidget);
+  });
 
   testWidgets(
-    'OptionCollateralWidget handles Robinhood zero collateral response with 0E-8 gracefully',
-    (WidgetTester tester) async {
-      tester.view.physicalSize = const Size(800, 1200);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(() => tester.view.resetPhysicalSize());
+      'OptionCollateralWidget handles Robinhood zero collateral response with 0E-8 gracefully',
+      (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(800, 1200);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() => tester.view.resetPhysicalSize());
 
-      final service = _ZeroCollateralMockService();
+    final service = _ZeroCollateralMockService();
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: OptionCollateralWidget(
-            brokerageUser: testUser,
-            service: service,
-            account: testAccountL2,
-            chainId: 'chain_amzn',
-            symbol: 'AMZN',
-          ),
+    await tester.pumpWidget(
+      MaterialApp(
+        home: OptionCollateralWidget(
+          brokerageUser: testUser,
+          service: service,
+          account: testAccountL2,
+          chainId: 'chain_amzn',
+          symbol: 'AMZN',
         ),
-      );
+      ),
+    );
 
-      await tester.pumpAndSettle();
+    await tester.pumpAndSettle();
 
-      // Verify header account number from payload
-      expect(find.textContaining('5QR24141'), findsOneWidget);
+    // Verify header account number from payload
+    expect(find.textContaining('5QR24141'), findsOneWidget);
 
-      // Verify $0.00 total locked and category cash metrics
-      expect(find.text('\$0.00'), findsWidgets);
+    // Verify $0.00 total locked and category cash metrics
+    expect(find.text('\$0.00'), findsWidgets);
 
-      // Verify that empty 0E-8 AMZN equities are filtered out and not rendered as active tiles
-      expect(
-        find.text('Equities Collateral (Covered Contracts)'),
-        findsNothing,
-      );
-      expect(find.text('0 shares'), findsNothing);
+    // Verify that empty 0E-8 AMZN equities are filtered out and not rendered as active tiles
+    expect(find.text('Equities Collateral (Covered Contracts)'), findsNothing);
+    expect(find.text('0 shares'), findsNothing);
 
-      // Both active positions and pending orders should display no collateral held
-      expect(
-        find.text('No collateral currently held in this category.'),
-        findsNWidgets(2),
-      );
-    },
-  );
+    // Both active positions and pending orders should display no collateral held
+    expect(find.text('No collateral currently held in this category.'),
+        findsNWidgets(2));
+  });
 }
 
 class _ZeroCollateralMockService extends DemoService {
   @override
   Future<dynamic> getOptionChainCollateral(
-    BrokerageUser user,
-    String chainId,
-    String accountNumber,
-  ) async {
+      BrokerageUser user, String chainId, String accountNumber) async {
     return {
       "account_number": "5QR24141",
       "collateral": {
@@ -221,9 +209,9 @@ class _ZeroCollateralMockService extends DemoService {
             "uncovered_shares": "0E-8",
             "instrument":
                 "https://api.robinhood.com/instruments/c0bb3aec-bd1e-471e-a4f0-ca011cbec711/",
-            "symbol": "AMZN",
-          },
-        ],
+            "symbol": "AMZN"
+          }
+        ]
       },
       "collateral_held_for_orders": {
         "cash": {"amount": "0.0000", "direction": "debit", "infinite": false},
@@ -234,10 +222,10 @@ class _ZeroCollateralMockService extends DemoService {
             "uncovered_shares": "0E-8",
             "instrument":
                 "https://api.robinhood.com/instruments/c0bb3aec-bd1e-471e-a4f0-ca011cbec711/",
-            "symbol": "AMZN",
-          },
-        ],
-      },
+            "symbol": "AMZN"
+          }
+        ]
+      }
     };
   }
 }

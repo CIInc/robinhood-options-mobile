@@ -77,11 +77,10 @@ Map<String, dynamic> buildBenchmarkPayload(
 
 class FakeYahooService extends YahooService {
   @override
-  Future<dynamic> getMarketIndexHistoricals({
-    String symbol = "^GSP",
-    String range = "ytd",
-    String interval = "1d",
-  }) async {
+  Future<dynamic> getMarketIndexHistoricals(
+      {String symbol = "^GSP",
+      String range = "ytd",
+      String interval = "1d"}) async {
     return buildBenchmarkPayload([100, 102, 104, 106]);
   }
 }
@@ -114,85 +113,79 @@ void main() {
   group('Portfolio Greeks', () {
     test('scales Greeks by contracts and reverses credit exposure', () {
       final longPosition = OptionAggregatePosition(
-        'long',
-        'chain',
-        'acct',
-        'AAPL',
-        'single',
-        null,
-        [],
-        2,
-        null,
-        null,
-        'debit',
-        'debit',
-        100,
-        null,
-        null,
-        '',
-      );
+          'long',
+          'chain',
+          'acct',
+          'AAPL',
+          'single',
+          null,
+          [],
+          2,
+          null,
+          null,
+          'debit',
+          'debit',
+          100,
+          null,
+          null,
+          '');
       longPosition.optionInstrument = _optionInstrument(
         const OptionMarketData(
-          null,
-          null,
-          0,
-          null,
-          0,
-          null,
-          null,
-          '',
-          '',
-          null,
-          0,
-          null,
-          null,
-          0,
-          null,
-          null,
-          0,
-          'AAPL',
-          '',
-          null,
-          null,
-          0.5,
-          0.02,
-          null,
-          null,
-          -0.1,
-          0.3,
-          null,
-          null,
-          null,
-          null,
-          null,
-        ),
+            null,
+            null,
+            0,
+            null,
+            0,
+            null,
+            null,
+            '',
+            '',
+            null,
+            0,
+            null,
+            null,
+            0,
+            null,
+            null,
+            0,
+            'AAPL',
+            '',
+            null,
+            null,
+            0.5,
+            0.02,
+            null,
+            null,
+            -0.1,
+            0.3,
+            null,
+            null,
+            null,
+            null,
+            null),
       );
       final shortPosition = OptionAggregatePosition(
-        'short',
-        'chain',
-        'acct',
-        'AAPL',
-        'single',
-        null,
-        [],
-        1,
-        null,
-        null,
-        'credit',
-        'credit',
-        100,
-        null,
-        null,
-        '',
-      );
-      shortPosition.optionInstrument = _optionInstrument(
-        longPosition.optionInstrument!.optionMarketData!,
-      );
+          'short',
+          'chain',
+          'acct',
+          'AAPL',
+          'single',
+          null,
+          [],
+          1,
+          null,
+          null,
+          'credit',
+          'credit',
+          100,
+          null,
+          null,
+          '');
+      shortPosition.optionInstrument =
+          _optionInstrument(longPosition.optionInstrument!.optionMarketData!);
 
-      final totals = AnalyticsUtils.aggregateOptionGreeks([
-        longPosition,
-        shortPosition,
-      ]);
+      final totals =
+          AnalyticsUtils.aggregateOptionGreeks([longPosition, shortPosition]);
 
       expect(totals['delta'], closeTo(50, 0.001));
       expect(totals['gamma'], closeTo(2, 0.001));
@@ -214,19 +207,12 @@ void main() {
 
     test('yields no metrics when the benchmark never overlaps', () async {
       final controller = PortfolioAnalyticsController(
-        portfolioHistoricalsFuture: Future.value(
-          buildHistoricals([100, 101, 102, 103]),
-        ),
+        portfolioHistoricalsFuture:
+            Future.value(buildHistoricals([100, 101, 102, 103])),
         benchmarkHistoricals: {
           // A year later, so no trading day aligns.
-          'SPY': Future.value(
-            buildBenchmarkPayload([
-              100,
-              101,
-              102,
-              103,
-            ], start: DateTime(2027, 1, 5, 12)),
-          ),
+          'SPY': Future.value(buildBenchmarkPayload([100, 101, 102, 103],
+              start: DateTime(2027, 1, 5, 12))),
         },
       );
       await controller.ensureLoaded();
@@ -237,9 +223,8 @@ void main() {
     test('computes excess return against the benchmark', () async {
       final controller = PortfolioAnalyticsController(
         // Portfolio +20%, benchmark +10% over the same window.
-        portfolioHistoricalsFuture: Future.value(
-          buildHistoricals([100, 105, 110, 120]),
-        ),
+        portfolioHistoricalsFuture:
+            Future.value(buildHistoricals([100, 105, 110, 120])),
         benchmarkHistoricals: {
           'SPY': Future.value(buildBenchmarkPayload([100, 103, 106, 110])),
         },
@@ -254,9 +239,8 @@ void main() {
 
     test('exposes the aligned series the CSV export needs', () async {
       final controller = PortfolioAnalyticsController(
-        portfolioHistoricalsFuture: Future.value(
-          buildHistoricals([100, 105, 110, 120]),
-        ),
+        portfolioHistoricalsFuture:
+            Future.value(buildHistoricals([100, 105, 110, 120])),
         benchmarkHistoricals: {
           'SPY': Future.value(buildBenchmarkPayload([100, 103, 106, 110])),
         },
@@ -264,25 +248,15 @@ void main() {
       await controller.ensureLoaded();
 
       expect(controller.metrics['alignedDates'], hasLength(4));
-      expect(controller.metrics['alignedPortfolioPrices'], [
-        100.0,
-        105.0,
-        110.0,
-        120.0,
-      ]);
-      expect(controller.metrics['alignedBenchmarkPrices'], [
-        100.0,
-        103.0,
-        106.0,
-        110.0,
-      ]);
+      expect(controller.metrics['alignedPortfolioPrices'],
+          [100.0, 105.0, 110.0, 120.0]);
+      expect(controller.metrics['alignedBenchmarkPrices'],
+          [100.0, 103.0, 106.0, 110.0]);
     });
 
     test('exposes rolling volatility, beta, and correlation', () async {
       final portfolio = List<double>.generate(
-        35,
-        (i) => 100.0 * (1 + i * 0.002 + (i.isEven ? 0.001 : -0.001)),
-      );
+          35, (i) => 100.0 * (1 + i * 0.002 + (i.isEven ? 0.001 : -0.001)));
       final benchmark = List<double>.generate(35, (i) => 100.0 + i * 0.1);
       final controller = PortfolioAnalyticsController(
         portfolioHistoricalsFuture: Future.value(buildHistoricals(portfolio)),
@@ -349,9 +323,8 @@ void main() {
 
     test('switching benchmark recomputes against the new series', () async {
       final controller = PortfolioAnalyticsController(
-        portfolioHistoricalsFuture: Future.value(
-          buildHistoricals([100, 105, 110, 120]),
-        ),
+        portfolioHistoricalsFuture:
+            Future.value(buildHistoricals([100, 105, 110, 120])),
         benchmarkHistoricals: {
           'SPY': Future.value(buildBenchmarkPayload([100, 103, 106, 110])),
           // QQQ matches the portfolio exactly, so excess return goes to zero.
@@ -370,9 +343,8 @@ void main() {
 
     test('selecting the current benchmark is a no-op', () async {
       final controller = PortfolioAnalyticsController(
-        portfolioHistoricalsFuture: Future.value(
-          buildHistoricals([100, 105, 110, 120]),
-        ),
+        portfolioHistoricalsFuture:
+            Future.value(buildHistoricals([100, 105, 110, 120])),
         benchmarkHistoricals: {
           'SPY': Future.value(buildBenchmarkPayload([100, 103, 106, 110])),
         },
@@ -386,30 +358,27 @@ void main() {
       expect(notifications, 0);
     });
 
-    test(
-      'falls back to the store historicals, preferring the year span',
-      () async {
-        final controller = PortfolioAnalyticsController(
-          fallbackHistoricals: [
-            buildHistoricals([100, 100, 100, 100], span: '3month'),
-            buildHistoricals([100, 105, 110, 120], span: 'year'),
-          ],
-          benchmarkHistoricals: {
-            'SPY': Future.value(buildBenchmarkPayload([100, 103, 106, 110])),
-          },
-        );
-        await controller.ensureLoaded();
+    test('falls back to the store historicals, preferring the year span',
+        () async {
+      final controller = PortfolioAnalyticsController(
+        fallbackHistoricals: [
+          buildHistoricals([100, 100, 100, 100], span: '3month'),
+          buildHistoricals([100, 105, 110, 120], span: 'year'),
+        ],
+        benchmarkHistoricals: {
+          'SPY': Future.value(buildBenchmarkPayload([100, 103, 106, 110])),
+        },
+      );
+      await controller.ensureLoaded();
 
-        // The year span was chosen, so the +20% series drove the metrics.
-        expect(controller.metrics['excessReturn'], closeTo(0.10, 0.001));
-      },
-    );
+      // The year span was chosen, so the +20% series drove the metrics.
+      expect(controller.metrics['excessReturn'], closeTo(0.10, 0.001));
+    });
 
     test('a custom benchmark is added and selected', () async {
       final controller = PortfolioAnalyticsController(
-        portfolioHistoricalsFuture: Future.value(
-          buildHistoricals([100, 105, 110, 120]),
-        ),
+        portfolioHistoricalsFuture:
+            Future.value(buildHistoricals([100, 105, 110, 120])),
         yahooService: FakeYahooService(),
       );
 
@@ -434,9 +403,8 @@ void main() {
 
     test('surfaces a failure instead of throwing', () async {
       final controller = PortfolioAnalyticsController(
-        portfolioHistoricalsFuture: Future.error(
-          StateError('historicals unavailable'),
-        ),
+        portfolioHistoricalsFuture:
+            Future.error(StateError('historicals unavailable')),
       );
       await controller.ensureLoaded();
 
@@ -444,44 +412,40 @@ void main() {
       expect(controller.hasMetrics, isFalse);
       expect(controller.isLoading, isFalse);
     });
-    test(
-      'updateInputs recomputes in place without replacing the instance',
-      () async {
-        final controller = PortfolioAnalyticsController(
-          portfolioHistoricalsFuture: Future.value(
-            buildHistoricals([100, 105, 110, 120]),
-          ),
-          benchmarkHistoricals: {
-            'SPY': Future.value(buildBenchmarkPayload([100, 103, 106, 110])),
-          },
-          span: ChartDateSpan.ytd,
-        );
-        await controller.ensureLoaded();
-        expect(controller.metrics['excessReturn'], closeTo(0.10, 0.001));
+    test('updateInputs recomputes in place without replacing the instance',
+        () async {
+      final controller = PortfolioAnalyticsController(
+        portfolioHistoricalsFuture:
+            Future.value(buildHistoricals([100, 105, 110, 120])),
+        benchmarkHistoricals: {
+          'SPY': Future.value(buildBenchmarkPayload([100, 103, 106, 110])),
+        },
+        span: ChartDateSpan.ytd,
+      );
+      await controller.ensureLoaded();
+      expect(controller.metrics['excessReturn'], closeTo(0.10, 0.001));
 
-        var notified = 0;
-        controller.addListener(() => notified++);
+      var notified = 0;
+      controller.addListener(() => notified++);
 
-        // Simulates the Portfolio page reloading historicals for a new period.
-        controller.updateInputs(
-          portfolioHistoricalsFuture: Future.value(
-            buildHistoricals([100, 102, 104, 106]),
-          ),
-          benchmarkHistoricals: {
-            'SPY': Future.value(buildBenchmarkPayload([100, 103, 106, 110])),
-          },
-          span: ChartDateSpan.year_5,
-        );
-        await Future<void>.delayed(Duration.zero);
+      // Simulates the Portfolio page reloading historicals for a new period.
+      controller.updateInputs(
+        portfolioHistoricalsFuture:
+            Future.value(buildHistoricals([100, 102, 104, 106])),
+        benchmarkHistoricals: {
+          'SPY': Future.value(buildBenchmarkPayload([100, 103, 106, 110])),
+        },
+        span: ChartDateSpan.year_5,
+      );
+      await Future<void>.delayed(Duration.zero);
 
-        // Same instance, new numbers: a pushed Performance or Risk page stays
-        // attached and sees the update rather than being stranded on a disposed
-        // controller.
-        expect(controller.span, ChartDateSpan.year_5);
-        expect(controller.metrics['excessReturn'], closeTo(-0.04, 0.001));
-        expect(notified, greaterThan(0));
-      },
-    );
+      // Same instance, new numbers: a pushed Performance or Risk page stays
+      // attached and sees the update rather than being stranded on a disposed
+      // controller.
+      expect(controller.span, ChartDateSpan.year_5);
+      expect(controller.metrics['excessReturn'], closeTo(-0.04, 0.001));
+      expect(notified, greaterThan(0));
+    });
 
     test('updateInputs re-runs even after a completed load', () async {
       final controller = PortfolioAnalyticsController();
@@ -489,9 +453,8 @@ void main() {
       expect(controller.hasMetrics, isFalse);
 
       controller.updateInputs(
-        portfolioHistoricalsFuture: Future.value(
-          buildHistoricals([100, 105, 110, 120]),
-        ),
+        portfolioHistoricalsFuture:
+            Future.value(buildHistoricals([100, 105, 110, 120])),
         benchmarkHistoricals: {
           'SPY': Future.value(buildBenchmarkPayload([100, 103, 106, 110])),
         },
@@ -501,37 +464,31 @@ void main() {
       expect(controller.hasMetrics, isTrue);
     });
 
-    test(
-      'recovers when historicals arrive after an input-less first load',
-      () async {
-        // Reproduces the Portfolio page's startup order: the controller is built
-        // before the account resolves, so the first load has nothing to work
-        // from. It must not latch that empty result.
-        final controller = PortfolioAnalyticsController();
-        await controller.ensureLoaded();
+    test('recovers when historicals arrive after an input-less first load',
+        () async {
+      // Reproduces the Portfolio page's startup order: the controller is built
+      // before the account resolves, so the first load has nothing to work
+      // from. It must not latch that empty result.
+      final controller = PortfolioAnalyticsController();
+      await controller.ensureLoaded();
 
-        expect(controller.hasInputs, isFalse);
-        expect(
-          controller.hasComputed,
-          isFalse,
-          reason: 'an input-less load must not count as computed',
-        );
-        expect(controller.hasMetrics, isFalse);
+      expect(controller.hasInputs, isFalse);
+      expect(controller.hasComputed, isFalse,
+          reason: 'an input-less load must not count as computed');
+      expect(controller.hasMetrics, isFalse);
 
-        controller.updateInputs(
-          portfolioHistoricalsFuture: Future.value(
-            buildHistoricals([100, 105, 110, 120]),
-          ),
-          benchmarkHistoricals: {
-            'SPY': Future.value(buildBenchmarkPayload([100, 103, 106, 110])),
-          },
-        );
-        await Future<void>.delayed(Duration.zero);
+      controller.updateInputs(
+        portfolioHistoricalsFuture:
+            Future.value(buildHistoricals([100, 105, 110, 120])),
+        benchmarkHistoricals: {
+          'SPY': Future.value(buildBenchmarkPayload([100, 103, 106, 110])),
+        },
+      );
+      await Future<void>.delayed(Duration.zero);
 
-        expect(controller.hasComputed, isTrue);
-        expect(controller.metrics['excessReturn'], closeTo(0.10, 0.001));
-      },
-    );
+      expect(controller.hasComputed, isTrue);
+      expect(controller.metrics['excessReturn'], closeTo(0.10, 0.001));
+    });
 
     test('a later ensureLoaded runs once inputs exist', () async {
       final controller = PortfolioAnalyticsController();
@@ -539,9 +496,8 @@ void main() {
       expect(controller.hasComputed, isFalse);
 
       // Inputs appear without going through updateInputs.
-      controller.portfolioHistoricalsFuture = Future.value(
-        buildHistoricals([100, 105, 110, 120]),
-      );
+      controller.portfolioHistoricalsFuture =
+          Future.value(buildHistoricals([100, 105, 110, 120]));
       controller.benchmarkHistoricals = {
         'SPY': Future.value(buildBenchmarkPayload([100, 103, 106, 110])),
       };
@@ -553,13 +509,11 @@ void main() {
 
     test('an empty result from real inputs counts as computed', () async {
       final controller = PortfolioAnalyticsController(
-        portfolioHistoricalsFuture: Future.value(
-          buildHistoricals([100, 101, 102, 103]),
-        ),
+        portfolioHistoricalsFuture:
+            Future.value(buildHistoricals([100, 101, 102, 103])),
         benchmarkHistoricals: {
-          'SPY': Future.value(
-            buildBenchmarkPayload([100, 101], start: DateTime(2027, 1, 5, 12)),
-          ),
+          'SPY': Future.value(buildBenchmarkPayload([100, 101],
+              start: DateTime(2027, 1, 5, 12))),
         },
       );
       await controller.ensureLoaded();
@@ -571,53 +525,52 @@ void main() {
     });
 
     test(
-      'getBenchmarkFuture returns benchmark future and refreshes on updateInputs',
-      () async {
-        final spyFuture = Future.value(
-          buildBenchmarkPayload([100, 103, 106, 110]),
-        );
-        final controller = PortfolioAnalyticsController(
-          benchmarkHistoricals: {'SPY': spyFuture},
-          yahooService: FakeYahooService(),
-        );
+        'getBenchmarkFuture returns benchmark future and refreshes on updateInputs',
+        () async {
+      final spyFuture =
+          Future.value(buildBenchmarkPayload([100, 103, 106, 110]));
+      final controller = PortfolioAnalyticsController(
+        benchmarkHistoricals: {
+          'SPY': spyFuture,
+        },
+        yahooService: FakeYahooService(),
+      );
 
-        expect(controller.getBenchmarkFuture('SPY'), same(spyFuture));
-        expect(controller.getBenchmarkFuture('QQQ'), isNull);
+      expect(controller.getBenchmarkFuture('SPY'), same(spyFuture));
+      expect(controller.getBenchmarkFuture('QQQ'), isNull);
 
-        await controller.addCustomBenchmark('AAPL');
-        expect(controller.getBenchmarkFuture('AAPL'), isNotNull);
+      await controller.addCustomBenchmark('AAPL');
+      expect(controller.getBenchmarkFuture('AAPL'), isNotNull);
 
-        controller.updateInputs(
-          benchmarkHistoricals: {'SPY': spyFuture},
-          span: ChartDateSpan.rolling_30,
-        );
-        expect(controller.span, ChartDateSpan.rolling_30);
-        expect(controller.getBenchmarkFuture('AAPL'), isNotNull);
-      },
-    );
+      controller.updateInputs(
+        benchmarkHistoricals: {'SPY': spyFuture},
+        span: ChartDateSpan.rolling_30,
+      );
+      expect(controller.span, ChartDateSpan.rolling_30);
+      expect(controller.getBenchmarkFuture('AAPL'), isNotNull);
+    });
   });
 }
 
 OptionInstrument _optionInstrument(OptionMarketData marketData) {
   final instrument = OptionInstrument(
-    '',
-    '',
-    null,
-    null,
-    '',
-    null,
-    const MinTicks(null, null, null),
-    '',
-    '',
-    null,
-    '',
-    '',
-    null,
-    '',
-    null,
-    '',
-    '',
-  );
+      '',
+      '',
+      null,
+      null,
+      '',
+      null,
+      const MinTicks(null, null, null),
+      '',
+      '',
+      null,
+      '',
+      '',
+      null,
+      '',
+      null,
+      '',
+      '');
   instrument.optionMarketData = marketData;
   return instrument;
 }

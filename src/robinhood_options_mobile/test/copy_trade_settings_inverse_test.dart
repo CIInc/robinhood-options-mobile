@@ -4,7 +4,10 @@ import 'package:robinhood_options_mobile/model/investor_group.dart';
 void main() {
   group('CopyTradeSettings', () {
     test('should serialize and deserialize inverse field correctly', () {
-      final settings = CopyTradeSettings(enabled: true, inverse: true);
+      final settings = CopyTradeSettings(
+        enabled: true,
+        inverse: true,
+      );
 
       final json = settings.toJson();
       expect(json['inverse'], true);
@@ -14,7 +17,9 @@ void main() {
     });
 
     test('should default inverse to false if missing', () {
-      final json = {'enabled': true};
+      final json = {
+        'enabled': true,
+      };
 
       final deserialized = CopyTradeSettings.fromJson(json);
       expect(deserialized.inverse, false);

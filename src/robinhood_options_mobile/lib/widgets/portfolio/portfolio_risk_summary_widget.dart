@@ -69,26 +69,19 @@ class PortfolioRiskSummaryWidget extends StatelessWidget {
           label: 'Top 5',
           value: percent.format(concentration.top5),
         ),
-        DisclosureTile(label: 'Holdings', value: '${concentration.count}'),
+        DisclosureTile(
+          label: 'Holdings',
+          value: '${concentration.count}',
+        ),
       ],
       advanced: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _bar(
-            context,
-            'Top 1 Holding',
-            concentration.top1,
-            warnAbove: 0.20,
-            alertAbove: 0.30,
-          ),
+          _bar(context, 'Top 1 Holding', concentration.top1,
+              warnAbove: 0.20, alertAbove: 0.30),
           const SizedBox(height: 12),
-          _bar(
-            context,
-            'Top 3 Holdings',
-            concentration.top3,
-            warnAbove: 0.50,
-            alertAbove: 0.70,
-          ),
+          _bar(context, 'Top 3 Holdings', concentration.top3,
+              warnAbove: 0.50, alertAbove: 0.70),
           const SizedBox(height: 12),
           _bar(context, 'Top 5 Holdings', concentration.top5),
           const SizedBox(height: 12),
@@ -97,15 +90,12 @@ class PortfolioRiskSummaryWidget extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'Herfindahl-Hirschman Index (HHI)',
-                style: theme.textTheme.bodySmall,
-              ),
+              Text('Herfindahl-Hirschman Index (HHI)',
+                  style: theme.textTheme.bodySmall),
               Text(
                 concentration.hhi.toStringAsFixed(4),
-                style: theme.textTheme.bodySmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                style: theme.textTheme.bodySmall
+                    ?.copyWith(fontWeight: FontWeight.bold),
               ),
             ],
           ),
@@ -140,10 +130,8 @@ class PortfolioRiskSummaryWidget extends StatelessWidget {
             Text(label, style: theme.textTheme.bodyMedium),
             Text(
               percent.format(value),
-              style: theme.textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
+              style: theme.textTheme.bodyMedium
+                  ?.copyWith(fontWeight: FontWeight.bold, color: color),
             ),
           ],
         ),
@@ -187,15 +175,12 @@ class _ConcentrationMetrics {
   double get score => (hhi / 0.4).clamp(0.0, 1.0) * 100;
 
   static _ConcentrationMetrics? from(List<InstrumentPosition> positions) {
-    final active = positions
-        .where((position) => position.marketValue > 0)
-        .toList();
+    final active =
+        positions.where((position) => position.marketValue > 0).toList();
     if (active.isEmpty) return null;
 
-    final total = active.fold<double>(
-      0,
-      (sum, position) => sum + position.marketValue,
-    );
+    final total =
+        active.fold<double>(0, (sum, position) => sum + position.marketValue);
     if (total <= 0) return null;
 
     active.sort((a, b) => b.marketValue.compareTo(a.marketValue));

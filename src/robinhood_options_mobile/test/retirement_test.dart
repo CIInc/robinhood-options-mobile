@@ -61,7 +61,10 @@ void main() {
     });
 
     test('uses known IRS limits when limit not supplied', () {
-      final json = {'year': 2024, 'amount': '4000.00'};
+      final json = {
+        'year': 2024,
+        'amount': '4000.00',
+      };
 
       final contrib = RetirementContribution.fromJson(json);
       expect(contrib.limit, 7000.0);
@@ -143,7 +146,12 @@ void main() {
 
     test('integrates with DemoService', () async {
       final service = DemoService();
-      final user = BrokerageUser(BrokerageSource.demo, 'demo_user', null, null);
+      final user = BrokerageUser(
+        BrokerageSource.demo,
+        'demo_user',
+        null,
+        null,
+      );
 
       final history = await service.getRetirementHistoryModel(user);
 

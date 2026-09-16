@@ -38,9 +38,8 @@ class ForexHoldingStore extends ChangeNotifier {
   }
 
   bool update(ForexHolding item) {
-    var index = _items.indexWhere(
-      (element) => element.currencyCode == item.currencyCode,
-    );
+    var index = _items
+        .indexWhere((element) => element.currencyCode == item.currencyCode);
     if (index == -1) {
       return false;
     }

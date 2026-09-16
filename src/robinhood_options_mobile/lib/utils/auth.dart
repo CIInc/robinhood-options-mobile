@@ -38,25 +38,18 @@ class AuthUtil {
     return _userRole!;
   }
 
-  void openLogin(
-    BuildContext context,
-    FirestoreService firestoreService,
-    FirebaseAnalytics analytics,
-    FirebaseAnalyticsObserver observer, {
-    BrokerageSource? initialSource,
-    String? initialUserName,
-  }) async {
+  void openLogin(BuildContext context, FirestoreService firestoreService,
+      FirebaseAnalytics analytics, FirebaseAnalyticsObserver observer,
+      {BrokerageSource? initialSource, String? initialUserName}) async {
     final BrokerageUser? result = await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (BuildContext context) => LoginWidget(
-          analytics: analytics,
-          observer: observer,
-          initialSource: initialSource,
-          initialUserName: initialUserName,
-        ),
-      ),
-    );
+        context,
+        MaterialPageRoute(
+            builder: (BuildContext context) => LoginWidget(
+                  analytics: analytics,
+                  observer: observer,
+                  initialSource: initialSource,
+                  initialUserName: initialUserName,
+                )));
 
     if (result != null) {
       if (!context.mounted) return;
@@ -76,12 +69,10 @@ class AuthUtil {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context)
         ..removeCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(
-            content: Text("Logged in ${result.userName}"),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        ..showSnackBar(SnackBar(
+          content: Text("Logged in ${result.userName}"),
+          behavior: SnackBarBehavior.floating,
+        ));
     }
   }
 
@@ -95,11 +86,9 @@ class AuthUtil {
 
   static final DeviceInfoPlugin deviceInfoPlugin = DeviceInfoPlugin();
 
-  Future<User> setUser(
-    FirestoreService store, {
-    required BrokerageUserStore? brokerageUserStore,
-    DateTime? lastVisited,
-  }) async {
+  Future<User> setUser(FirestoreService store,
+      {required BrokerageUserStore? brokerageUserStore,
+      DateTime? lastVisited}) async {
     var value = await userRole();
     debugPrint(value.enumValue());
 
@@ -109,9 +98,8 @@ class AuthUtil {
     } else {
       switch (defaultTargetPlatform) {
         case TargetPlatform.android:
-          deviceData = _readAndroidBuildData(
-            await deviceInfoPlugin.androidInfo,
-          );
+          deviceData =
+              _readAndroidBuildData(await deviceInfoPlugin.androidInfo);
           break;
         case TargetPlatform.iOS:
           deviceData = _readIosDeviceInfo(await deviceInfoPlugin.iosInfo);
@@ -120,16 +108,15 @@ class AuthUtil {
           deviceData = _readLinuxDeviceInfo(await deviceInfoPlugin.linuxInfo);
           break;
         case TargetPlatform.windows:
-          deviceData = _readWindowsDeviceInfo(
-            await deviceInfoPlugin.windowsInfo,
-          );
+          deviceData =
+              _readWindowsDeviceInfo(await deviceInfoPlugin.windowsInfo);
           break;
         case TargetPlatform.macOS:
           deviceData = _readMacOsDeviceInfo(await deviceInfoPlugin.macOsInfo);
           break;
         case TargetPlatform.fuchsia:
           deviceData = <String, dynamic>{
-            'Error:': 'Fuchsia platform isn\'t supported',
+            'Error:': 'Fuchsia platform isn\'t supported'
           };
           break;
       }
@@ -148,20 +135,17 @@ class AuthUtil {
       // You may set the permission requests to "provisional" which allows the user to choose what type
       // of notifications they would like to receive once the user receives a notification.
       final settings = await FirebaseMessaging.instance.requestPermission(
-        alert: true,
-        badge: true,
-        sound: true,
-        carPlay: true,
-        // provisional: true
-      );
+          alert: true, badge: true, sound: true, carPlay: true
+          // provisional: true
+          );
 
       if (settings.authorizationStatus == AuthorizationStatus.authorized) {
         await FirebaseMessaging.instance
             .setForegroundNotificationPresentationOptions(
-              alert: true, // Required to display a heads up notification
-              badge: true,
-              sound: true,
-            );
+          alert: true, // Required to display a heads up notification
+          badge: true,
+          sound: true,
+        );
 
         // For apple platforms, ensure the APNS token is available before making any FCM plugin API calls
         apnsToken = await FirebaseMessaging.instance.getAPNSToken();
@@ -177,8 +161,7 @@ class AuthUtil {
         }
       } else {
         debugPrint(
-          'The notification permission was not granted and blocked instead.',
-        );
+            'The notification permission was not granted and blocked instead.');
       }
     }
     final firebaseUser = auth.currentUser;
@@ -192,11 +175,10 @@ class AuthUtil {
       user = document.data()!;
     } else {
       user = User(
-        devices: [],
-        dateCreated: DateTime.now(), //.toUtc(),
-        // dateUpdated: DateTime.now(), //.toUtc(),
-        brokerageUsers: [],
-      );
+          devices: [],
+          dateCreated: DateTime.now(), //.toUtc(),
+          // dateUpdated: DateTime.now(), //.toUtc(),
+          brokerageUsers: []);
     }
     user.name = firebaseUser.displayName;
     user.nameLower = firebaseUser.displayName?.toLowerCase();
@@ -217,9 +199,8 @@ class AuthUtil {
     } else if (deviceData.keys.contains("host")) {
       deviceId = deviceData["host"];
     }
-    var device = user.devices.firstWhereOrNull(
-      (element) => element.id == deviceId,
-    );
+    var device =
+        user.devices.firstWhereOrNull((element) => element.id == deviceId);
     if (device == null) {
       device = Device(id: deviceId, dateCreated: DateTime.now()); //.toUtc()
       user.devices.add(device);

@@ -7,7 +7,7 @@ extension EnumExtensions on Enum {
 extension StringExtensions on String {
   E parseEnum<E extends Enum>(List<E> values, E defaultValue) {
     final Map<String, E> statusMap = {
-      for (var status in values) status.enumValue(): status,
+      for (var status in values) status.enumValue(): status
     };
 
     if (statusMap.containsKey(this)) {

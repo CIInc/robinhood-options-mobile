@@ -37,46 +37,45 @@ class ForexQuote {
   final DateTime? updatedAt;
 
   const ForexQuote(
-    this.askPrice,
-    this.bidPrice,
-    this.markPrice,
-    this.highPrice,
-    this.lowPrice,
-    this.openPrice,
-    this.symbol,
-    this.id,
-    this.volume,
-    this.updatedAt,
-  );
+      this.askPrice,
+      this.bidPrice,
+      this.markPrice,
+      this.highPrice,
+      this.lowPrice,
+      this.openPrice,
+      this.symbol,
+      this.id,
+      this.volume,
+      this.updatedAt);
 
   ForexQuote.fromJson(dynamic json)
-    : askPrice = parseDouble(json['ask_price']),
-      bidPrice = parseDouble(json['bid_price']),
-      markPrice = parseDouble(json['mark_price']),
-      highPrice = parseDouble(json['high_price']),
-      lowPrice = parseDouble(json['low_price']),
-      openPrice = parseDouble(json['open_price']),
-      symbol = json['symbol'],
-      id = json['id'],
-      volume = parseDouble(json['volume']),
-      updatedAt = json['updated_at'] is Timestamp
-          ? (json['updated_at'] as Timestamp).toDate()
-          : (json['updated_at'] is String
+      : askPrice = parseDouble(json['ask_price']),
+        bidPrice = parseDouble(json['bid_price']),
+        markPrice = parseDouble(json['mark_price']),
+        highPrice = parseDouble(json['high_price']),
+        lowPrice = parseDouble(json['low_price']),
+        openPrice = parseDouble(json['open_price']),
+        symbol = json['symbol'],
+        id = json['id'],
+        volume = parseDouble(json['volume']),
+        updatedAt = json['updated_at'] is Timestamp
+            ? (json['updated_at'] as Timestamp).toDate()
+            : (json['updated_at'] is String
                 ? DateTime.tryParse(json['updated_at'])
                 : null);
 
   Map<String, dynamic> toJson() => {
-    'ask_price': askPrice,
-    'bid_price': bidPrice,
-    'mark_price': markPrice,
-    'high_price': highPrice,
-    'low_price': lowPrice,
-    'open_price': openPrice,
-    'symbol': symbol,
-    'id': id,
-    'volume': volume,
-    'updated_at': updatedAt, //?.toIso8601String(),
-  };
+        'ask_price': askPrice,
+        'bid_price': bidPrice,
+        'mark_price': markPrice,
+        'high_price': highPrice,
+        'low_price': lowPrice,
+        'open_price': openPrice,
+        'symbol': symbol,
+        'id': id,
+        'volume': volume,
+        'updated_at': updatedAt, //?.toIso8601String(),
+      };
 
   double get changeToday {
     return markPrice! - openPrice!;

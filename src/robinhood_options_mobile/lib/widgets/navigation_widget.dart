@@ -138,14 +138,14 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
     return user.source == BrokerageSource.robinhood
         ? RobinhoodService()
         : user.source == BrokerageSource.schwab
-        ? SchwabService()
-        : user.source == BrokerageSource.fidelity
-        ? FidelityService()
-        : user.source == BrokerageSource.plaid
-        ? PlaidService()
-        : user.source == BrokerageSource.paper
-        ? PaperService()
-        : DemoService();
+            ? SchwabService()
+            : user.source == BrokerageSource.fidelity
+                ? FidelityService()
+                : user.source == BrokerageSource.plaid
+                    ? PlaidService()
+                    : user.source == BrokerageSource.paper
+                        ? PaperService()
+                        : DemoService();
   }
 
   Future<List<dynamic>> _loadData(BrokerageUserStore userStore) async {
@@ -168,12 +168,10 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
       service = _getService(userStore.currentUser!);
 
       var futureUserInfo = service!.getUser(userStore.currentUser!);
-      futureArr.add(
-        futureUserInfo.catchError((e) {
-          debugPrint('Error loading user info: $e');
-          return Future.value(null);
-        }),
-      );
+      futureArr.add(futureUserInfo.catchError((e) {
+        debugPrint('Error loading user info: $e');
+        return Future.value(null);
+      }));
     } else {
       service = null;
     }
@@ -185,10 +183,8 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
       // Initialize PaperTradingStore
       if (mounted) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          Provider.of<PaperTradingStore>(
-            context,
-            listen: false,
-          ).setUser(auth.currentUser);
+          Provider.of<PaperTradingStore>(context, listen: false)
+              .setUser(auth.currentUser);
         });
       }
     }
@@ -209,8 +205,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
     if (Platform.isAndroid) {
       await flutterLocalNotificationsPlugin
           .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin
-          >()
+              AndroidFlutterLocalNotificationsPlugin>()
           ?.requestNotificationsPermission();
     }
 
@@ -220,31 +215,26 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
         DarwinInitializationSettings();
     const InitializationSettings initializationSettings =
         InitializationSettings(
-          android: initializationSettingsAndroid,
-          iOS: initializationSettingsDarwin,
-        );
+            android: initializationSettingsAndroid,
+            iOS: initializationSettingsDarwin);
     await flutterLocalNotificationsPlugin.initialize(
-      settings: initializationSettings,
-      onDidReceiveNotificationResponse:
-          (NotificationResponse notificationResponse) {
-            if (notificationResponse.payload != null) {
-              try {
-                final data = jsonDecode(notificationResponse.payload!);
-                _handleMessageData(
-                  data,
-                  actionId: notificationResponse.actionId,
-                );
-              } catch (e) {
-                debugPrint('Error handling notification payload: $e');
-              }
+        settings: initializationSettings,
+        onDidReceiveNotificationResponse:
+            (NotificationResponse notificationResponse) {
+          if (notificationResponse.payload != null) {
+            try {
+              final data = jsonDecode(notificationResponse.payload!);
+              _handleMessageData(data, actionId: notificationResponse.actionId);
+            } catch (e) {
+              debugPrint('Error handling notification payload: $e');
             }
-          },
-    );
+          }
+        });
 
     // Get any messages which caused the application to open from
     // a terminated state.
-    RemoteMessage? initialMessage = await FirebaseMessaging.instance
-        .getInitialMessage();
+    RemoteMessage? initialMessage =
+        await FirebaseMessaging.instance.getInitialMessage();
 
     if (initialMessage != null) {
       _handleMessage(initialMessage);
@@ -269,16 +259,11 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     if (message.notification!.title != null)
-                      Text(
-                        message.notification!.title!,
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
+                      Text(message.notification!.title!,
+                          style: const TextStyle(fontWeight: FontWeight.bold)),
                     if (message.notification!.body != null)
-                      Text(
-                        message.notification!.body!,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                      Text(message.notification!.body!,
+                          maxLines: 2, overflow: TextOverflow.ellipsis),
                   ],
                 ),
                 behavior: SnackBarBehavior.floating,
@@ -309,13 +294,12 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
         await file.writeAsBytes(response.bodyBytes);
 
         bigPictureStyleInformation = BigPictureStyleInformation(
-          FilePathAndroidBitmap(filePath),
-          largeIcon: FilePathAndroidBitmap(filePath),
-          contentTitle: message.notification?.title,
-          summaryText: message.notification?.body,
-          htmlFormatContentTitle: true,
-          htmlFormatSummaryText: true,
-        );
+            FilePathAndroidBitmap(filePath),
+            largeIcon: FilePathAndroidBitmap(filePath),
+            contentTitle: message.notification?.title,
+            summaryText: message.notification?.body,
+            htmlFormatContentTitle: true,
+            htmlFormatSummaryText: true);
       } catch (e) {
         debugPrint('Error loading notification image: $e');
       }
@@ -323,39 +307,31 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
 
     final AndroidNotificationDetails androidPlatformChannelSpecifics =
         AndroidNotificationDetails(
-          'trade_signals',
-          'Trade Signals',
-          channelDescription: 'Notifications for trade signals',
-          styleInformation: bigPictureStyleInformation,
-          importance: Importance.max,
-          priority: Priority.high,
-          actions: <AndroidNotificationAction>[
-            if (message.data['type'] == 'trade_signal') ...[
-              const AndroidNotificationAction(
-                'TRADE',
-                'Trade',
-                showsUserInterface: true,
-              ),
-            ],
-            const AndroidNotificationAction(
-              'VIEW',
-              'View',
-              showsUserInterface: true,
-            ),
-          ],
-        );
-
-    final NotificationDetails platformChannelSpecifics = NotificationDetails(
-      android: androidPlatformChannelSpecifics,
+      'trade_signals',
+      'Trade Signals',
+      channelDescription: 'Notifications for trade signals',
+      styleInformation: bigPictureStyleInformation,
+      importance: Importance.max,
+      priority: Priority.high,
+      actions: <AndroidNotificationAction>[
+        if (message.data['type'] == 'trade_signal') ...[
+          const AndroidNotificationAction('TRADE', 'Trade',
+              showsUserInterface: true),
+        ],
+        const AndroidNotificationAction('VIEW', 'View',
+            showsUserInterface: true),
+      ],
     );
+
+    final NotificationDetails platformChannelSpecifics =
+        NotificationDetails(android: androidPlatformChannelSpecifics);
 
     await flutterLocalNotificationsPlugin.show(
-      id: 0,
-      title: message.notification?.title,
-      body: message.notification?.body,
-      notificationDetails: platformChannelSpecifics,
-      payload: jsonEncode(message.data),
-    );
+        id: 0,
+        title: message.notification?.title,
+        body: message.notification?.body,
+        notificationDetails: platformChannelSpecifics,
+        payload: jsonEncode(message.data));
   }
 
   void _handleMessage(RemoteMessage message) {
@@ -367,14 +343,10 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
       final symbol = data['symbol'];
       final signal = data['signal']; // BUY or SELL
       if (symbol != null) {
-        final userStore = Provider.of<BrokerageUserStore>(
-          context,
-          listen: false,
-        );
-        final instrumentStore = Provider.of<InstrumentStore>(
-          context,
-          listen: false,
-        );
+        final userStore =
+            Provider.of<BrokerageUserStore>(context, listen: false);
+        final instrumentStore =
+            Provider.of<InstrumentStore>(context, listen: false);
         if (userStore.items.isNotEmpty) {
           var brokerageUser = userStore.currentUser ?? userStore.items.first;
           service = _getService(brokerageUser);
@@ -382,23 +354,23 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
           service!
               .getInstrumentBySymbol(brokerageUser, instrumentStore, symbol)
               .then((instrument) {
-                if (instrument != null) {
-                  final positionType = signal == 'BUY' ? 'Buy' : 'Sell';
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => TradeInstrumentWidget(
-                        brokerageUser,
-                        service!,
-                        analytics: widget.analytics,
-                        observer: widget.observer,
-                        instrument: instrument,
-                        positionType: positionType,
-                      ),
-                    ),
-                  );
-                }
-              });
+            if (instrument != null) {
+              final positionType = signal == 'BUY' ? 'Buy' : 'Sell';
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => TradeInstrumentWidget(
+                    brokerageUser,
+                    service!,
+                    analytics: widget.analytics,
+                    observer: widget.observer,
+                    instrument: instrument,
+                    positionType: positionType,
+                  ),
+                ),
+              );
+            }
+          });
         }
       }
       return;
@@ -415,14 +387,10 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
         data['type'] == 'custom_alert') {
       final symbol = data['symbol'];
       if (symbol != null) {
-        final userStore = Provider.of<BrokerageUserStore>(
-          context,
-          listen: false,
-        );
-        final instrumentStore = Provider.of<InstrumentStore>(
-          context,
-          listen: false,
-        );
+        final userStore =
+            Provider.of<BrokerageUserStore>(context, listen: false);
+        final instrumentStore =
+            Provider.of<InstrumentStore>(context, listen: false);
         if (userStore.items.isNotEmpty) {
           var brokerageUser = userStore.currentUser ?? userStore.items.first;
           service = _getService(brokerageUser);
@@ -430,24 +398,22 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
           service!
               .getInstrumentBySymbol(brokerageUser, instrumentStore, symbol)
               .then((instrument) {
-                if (instrument != null) {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
+            if (instrument != null) {
+              Navigator.push(
+                  context,
+                  MaterialPageRoute(
                       builder: (context) => InstrumentWidget(
-                        brokerageUser,
-                        service!,
-                        instrument,
-                        analytics: widget.analytics,
-                        observer: widget.observer,
-                        generativeService: _generativeService,
-                        user: user,
-                        userDocRef: userDoc,
-                      ),
-                    ),
-                  );
-                }
-              });
+                            brokerageUser,
+                            service!,
+                            instrument,
+                            analytics: widget.analytics,
+                            observer: widget.observer,
+                            generativeService: _generativeService,
+                            user: user,
+                            userDocRef: userDoc,
+                          )));
+            }
+          });
         }
       }
     } else if (data['type'] == 'options_flow_alert') {
@@ -457,10 +423,9 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
         MaterialPageRoute(
           builder: (context) => OptionsFlowWidget(
             initialSymbol: symbol,
-            brokerageUser: Provider.of<BrokerageUserStore>(
-              context,
-              listen: false,
-            ).currentUser,
+            brokerageUser:
+                Provider.of<BrokerageUserStore>(context, listen: false)
+                    .currentUser,
             service: service,
             analytics: widget.analytics,
             observer: widget.observer,
@@ -477,14 +442,10 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
           eventType == 'take_profit' ||
           eventType == 'stop_loss') {
         if (symbol != null) {
-          final userStore = Provider.of<BrokerageUserStore>(
-            context,
-            listen: false,
-          );
-          final instrumentStore = Provider.of<InstrumentStore>(
-            context,
-            listen: false,
-          );
+          final userStore =
+              Provider.of<BrokerageUserStore>(context, listen: false);
+          final instrumentStore =
+              Provider.of<InstrumentStore>(context, listen: false);
           if (userStore.items.isNotEmpty) {
             var brokerageUser = userStore.currentUser ?? userStore.items.first;
             service = _getService(brokerageUser);
@@ -492,24 +453,22 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
             service!
                 .getInstrumentBySymbol(brokerageUser, instrumentStore, symbol)
                 .then((instrument) {
-                  if (instrument != null) {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
+              if (instrument != null) {
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
                         builder: (context) => InstrumentWidget(
-                          brokerageUser,
-                          service!,
-                          instrument,
-                          analytics: widget.analytics,
-                          observer: widget.observer,
-                          generativeService: _generativeService,
-                          user: user,
-                          userDocRef: userDoc,
-                        ),
-                      ),
-                    );
-                  }
-                });
+                              brokerageUser,
+                              service!,
+                              instrument,
+                              analytics: widget.analytics,
+                              observer: widget.observer,
+                              generativeService: _generativeService,
+                              user: user,
+                              userDocRef: userDoc,
+                            )));
+              }
+            });
           }
         }
       } else if (eventType == 'emergency_stop') {
@@ -548,9 +507,8 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
     setupInteractedMessage();
 
     // Listen for FCM token refresh to retry subscriptions if APNS was slow
-    _fcmTokenSubscription = FirebaseMessaging.instance.onTokenRefresh.listen((
-      _,
-    ) {
+    _fcmTokenSubscription =
+        FirebaseMessaging.instance.onTokenRefresh.listen((_) {
       _syncMacroSubscription();
     });
 
@@ -582,10 +540,8 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
     }
 
     if (auth.currentUser != null) {
-      _firestoreService.updateUserField(
-        auth.currentUser!.uid,
-        lastVisited: DateTime.now(),
-      );
+      _firestoreService.updateUserField(auth.currentUser!.uid,
+          lastVisited: DateTime.now());
     }
 
     // web not supported
@@ -720,201 +676,176 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
     }
 
     return FutureBuilder(
-      future: _initFuture,
-      builder: (context1, dataSnapshot) {
-        if (dataSnapshot.hasData &&
-            dataSnapshot.connectionState == ConnectionState.done) {
-          // userInfo = dataSnapshot.data!;
-          var snapshots = dataSnapshot.data as List<dynamic>;
-          packageInfo = snapshots.firstWhereOrNull(
-            (dynamic element) => element is PackageInfo,
-          );
+        future: _initFuture,
+        builder: (context1, dataSnapshot) {
+          if (dataSnapshot.hasData &&
+              dataSnapshot.connectionState == ConnectionState.done) {
+            // userInfo = dataSnapshot.data!;
+            var snapshots = dataSnapshot.data as List<dynamic>;
+            packageInfo = snapshots
+                .firstWhereOrNull((dynamic element) => element is PackageInfo);
 
-          if (packageInfo != null &&
-              RemoteConfigService.instance.isUpdateRequired(
-                packageInfo!.version,
-              )) {
-            return const Scaffold(
-              body: Padding(
-                padding: EdgeInsets.all(20.0),
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.system_update, size: 64, color: Colors.blue),
-                      SizedBox(height: 20),
-                      Text(
-                        "Update Required",
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
+            if (packageInfo != null &&
+                RemoteConfigService.instance
+                    .isUpdateRequired(packageInfo!.version)) {
+              return const Scaffold(
+                body: Padding(
+                  padding: EdgeInsets.all(20.0),
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.system_update, size: 64, color: Colors.blue),
+                        SizedBox(height: 20),
+                        Text(
+                          "Update Required",
+                          style: TextStyle(
+                              fontSize: 24, fontWeight: FontWeight.bold),
                         ),
-                      ),
-                      SizedBox(height: 10),
-                      Text(
-                        "A new version of the app is available. Please update to continue using the app.",
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
+                        SizedBox(height: 10),
+                        Text(
+                          "A new version of the app is available. Please update to continue using the app.",
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            );
-          }
+              );
+            }
 
-          // packageInfo = dataSnapshot.data![0] as PackageInfo;
-          userInfo =
-              snapshots.firstWhereOrNull(
-                    (dynamic element) => element is UserInfo,
-                  )
-                  as UserInfo?;
-          // userInfo = dataSnapshot.data!.length > 1
-          //     ? dataSnapshot.data![1] as UserInfo
-          //     : null;
-          DocumentSnapshot<User>? userSnapshot =
-              snapshots.firstWhereOrNull(
-                    (dynamic element) => element is DocumentSnapshot<User>,
-                  )
-                  as DocumentSnapshot<User>?;
-          // DocumentSnapshot<User>? userSnapshot = dataSnapshot.data!.length > 2
-          //     ? dataSnapshot.data![2] as DocumentSnapshot<User>
-          //     : null;
-          if (userStore.currentUser != null &&
-              userStore.currentUser!.userInfo == null &&
-              userInfo != null) {
-            userStore.currentUser!.userInfo = userInfo;
-            userStore.save();
-          }
-          if (userSnapshot != null) {
-            user = userSnapshot.data();
-            _syncMacroSubscription();
-            if (user != null) {
-              if (userStore.items.isEmpty && user!.brokerageUsers.isNotEmpty) {
-                for (var bu in user!.brokerageUsers) {
-                  userStore.addOrUpdate(bu);
-                }
-                userStore.save();
-              } else if (userStore.items.isNotEmpty &&
-                  userStore.items.length != user!.brokerageUsers.length) {
-                user!.brokerageUsers = userStore.items.toList();
-                if (userDoc != null) {
-                  _firestoreService.updateUser(userDoc!, user!);
-                }
-              }
+            // packageInfo = dataSnapshot.data![0] as PackageInfo;
+            userInfo = snapshots.firstWhereOrNull(
+                (dynamic element) => element is UserInfo) as UserInfo?;
+            // userInfo = dataSnapshot.data!.length > 1
+            //     ? dataSnapshot.data![1] as UserInfo
+            //     : null;
+            DocumentSnapshot<User>? userSnapshot = snapshots.firstWhereOrNull(
+                    (dynamic element) => element is DocumentSnapshot<User>)
+                as DocumentSnapshot<User>?;
+            // DocumentSnapshot<User>? userSnapshot = dataSnapshot.data!.length > 2
+            //     ? dataSnapshot.data![2] as DocumentSnapshot<User>
+            //     : null;
+            if (userStore.currentUser != null &&
+                userStore.currentUser!.userInfo == null &&
+                userInfo != null) {
+              userStore.currentUser!.userInfo = userInfo;
+              userStore.save();
             }
-            var brokerageUser = userStore.currentUser;
-            if (brokerageUser != null && userInfo != null) {
-              brokerageUser.userInfo = userInfo;
+            if (userSnapshot != null) {
+              user = userSnapshot.data();
+              _syncMacroSubscription();
               if (user != null) {
-                var matchingBu = user!.brokerageUsers.firstWhereOrNull(
-                  (bu) =>
-                      bu.userName == brokerageUser.userName &&
-                      bu.source == brokerageUser.source,
-                );
-                if (matchingBu != null) {
-                  matchingBu.userInfo = userInfo;
+                if (userStore.items.isEmpty &&
+                    user!.brokerageUsers.isNotEmpty) {
+                  for (var bu in user!.brokerageUsers) {
+                    userStore.addOrUpdate(bu);
+                  }
+                  userStore.save();
+                } else if (userStore.items.isNotEmpty &&
+                    userStore.items.length != user!.brokerageUsers.length) {
+                  user!.brokerageUsers = userStore.items.toList();
+                  if (userDoc != null) {
+                    _firestoreService.updateUser(userDoc!, user!);
+                  }
                 }
-                if (userDoc != null) {
-                  _firestoreService.updateUser(userDoc!, user!);
+              }
+              var brokerageUser = userStore.currentUser;
+              if (brokerageUser != null && userInfo != null) {
+                brokerageUser.userInfo = userInfo;
+                if (user != null) {
+                  var matchingBu = user!.brokerageUsers.firstWhereOrNull((bu) =>
+                      bu.userName == brokerageUser.userName &&
+                      bu.source == brokerageUser.source);
+                  if (matchingBu != null) {
+                    matchingBu.userInfo = userInfo;
+                  }
+                  if (userDoc != null) {
+                    _firestoreService.updateUser(userDoc!, user!);
+                  }
                 }
               }
             }
-          }
-          /*
+            /*
                     List<dynamic> data = dataSnapshot.data as List<dynamic>;
                     userInfo = data.isNotEmpty ? data[0] as UserInfo : null;
                     accounts =
                         data.length > 1 ? data[1] as List<Account> : null;
                         */
-          _buildTabs(userStore);
-        } else if (dataSnapshot.hasError) {
-          debugPrint("${dataSnapshot.error}");
-          // Allow navigation even if data loading fails (e.g. no brokerage linked)
-          _buildTabs(userStore);
-          // return buildScaffold(userStore,
-          //     message: "${dataSnapshot.error}", onLogin: () => _openLogin());
-        }
-
-        // Pre-load AgenticTradingProvider config with User (if logged in) after build completes
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          // Set User ID for TradeSignalNotificationsStore
-          Provider.of<TradeSignalNotificationsStore>(
-            context,
-            listen: false,
-          ).setUserId(auth.currentUser?.uid);
-          Provider.of<OptionFlowNotificationsStore>(
-            context,
-            listen: false,
-          ).setUserId(auth.currentUser?.uid);
-
-          final agenticProvider = Provider.of<AgenticTradingProvider>(
-            context,
-            listen: false,
-          );
-          agenticProvider.loadConfigFromUser(user?.agenticTradingConfig);
-
-          // Load automated buy trades from Firestore
-          agenticProvider.loadAutomatedBuyTradesFromFirestore(userDoc);
-          // Load auto-trade history from Firestore
-          agenticProvider.loadAutoTradeHistoryFromFirestore(userDoc);
-          // Load pending orders from Firestore
-          agenticProvider.loadPendingOrdersFromFirestore(userDoc);
-
-          // Start auto-trade timer via provider (prevents duplicate starts)
-          if (service != null) {
-            agenticProvider.startAutoTradeTimer(
-              context: context,
-              brokerageService: service,
-              userDocRef: userDoc,
-            );
+            _buildTabs(userStore);
+          } else if (dataSnapshot.hasError) {
+            debugPrint("${dataSnapshot.error}");
+            // Allow navigation even if data loading fails (e.g. no brokerage linked)
+            _buildTabs(userStore);
+            // return buildScaffold(userStore,
+            //     message: "${dataSnapshot.error}", onLogin: () => _openLogin());
           }
 
-          final futuresProvider = Provider.of<FuturesAutoTradingProvider>(
-            context,
-            listen: false,
-          );
-          futuresProvider.loadConfigFromUser(user?.futuresTradingConfig);
-          futuresProvider.loadAutoTradeHistoryFromFirestore(userDoc);
-          futuresProvider.loadPendingOrdersFromFirestore(userDoc);
+          // Pre-load AgenticTradingProvider config with User (if logged in) after build completes
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            // Set User ID for TradeSignalNotificationsStore
+            Provider.of<TradeSignalNotificationsStore>(context, listen: false)
+                .setUserId(auth.currentUser?.uid);
+            Provider.of<OptionFlowNotificationsStore>(context, listen: false)
+                .setUserId(auth.currentUser?.uid);
 
-          if (service != null) {
-            futuresProvider.startAutoTradeTimer(
-              context: context,
-              brokerageService: service,
-              userDocRef: userDoc,
-            );
-          }
+            final agenticProvider =
+                Provider.of<AgenticTradingProvider>(context, listen: false);
+            agenticProvider.loadConfigFromUser(user?.agenticTradingConfig);
 
-          // Initialize CopyTradingProvider
-          if (auth.currentUser != null &&
-              userStore.currentUser != null &&
-              service != null) {
-            final copyTradingProvider = Provider.of<CopyTradingProvider>(
-              context,
-              listen: false,
-            );
-            copyTradingProvider.initialize(
-              auth.currentUser!.uid,
-              userStore.currentUser!,
-              service!,
-            );
-          }
+            // Load automated buy trades from Firestore
+            agenticProvider.loadAutomatedBuyTradesFromFirestore(userDoc);
+            // Load auto-trade history from Firestore
+            agenticProvider.loadAutoTradeHistoryFromFirestore(userDoc);
+            // Load pending orders from Firestore
+            agenticProvider.loadPendingOrdersFromFirestore(userDoc);
 
-          // Dismiss native splash screen once initial frame is rendered
-          FlutterNativeSplash.remove();
+            // Start auto-trade timer via provider (prevents duplicate starts)
+            if (service != null) {
+              agenticProvider.startAutoTradeTimer(
+                context: context,
+                brokerageService: service,
+                userDocRef: userDoc,
+              );
+            }
+
+            final futuresProvider =
+                Provider.of<FuturesAutoTradingProvider>(context, listen: false);
+            futuresProvider.loadConfigFromUser(user?.futuresTradingConfig);
+            futuresProvider.loadAutoTradeHistoryFromFirestore(userDoc);
+            futuresProvider.loadPendingOrdersFromFirestore(userDoc);
+
+            if (service != null) {
+              futuresProvider.startAutoTradeTimer(
+                context: context,
+                brokerageService: service,
+                userDocRef: userDoc,
+              );
+            }
+
+            // Initialize CopyTradingProvider
+            if (auth.currentUser != null &&
+                userStore.currentUser != null &&
+                service != null) {
+              final copyTradingProvider =
+                  Provider.of<CopyTradingProvider>(context, listen: false);
+              copyTradingProvider.initialize(
+                  auth.currentUser!.uid, userStore.currentUser!, service!);
+            }
+
+            // Dismiss native splash screen once initial frame is rendered
+            FlutterNativeSplash.remove();
+          });
+
+          widget.analytics.setUserId(id: userInfo?.username ?? 'anonymous');
+          widget.analytics.setUserProperty(
+              name: 'experiment_group',
+              value: RemoteConfigService.instance.experimentGroup);
+
+          return buildScaffold(userStore);
+          // TODO: Figure out why adding a loading message property breaks the other tabs
+          // , message: "Loading...", onLogin: null
         });
-
-        widget.analytics.setUserId(id: userInfo?.username ?? 'anonymous');
-        widget.analytics.setUserProperty(
-          name: 'experiment_group',
-          value: RemoteConfigService.instance.experimentGroup,
-        );
-
-        return buildScaffold(userStore);
-        // TODO: Figure out why adding a loading message property breaks the other tabs
-        // , message: "Loading...", onLogin: null
-      },
-    );
   }
 
   void initTabs(BrokerageUserStore userStore) {
@@ -936,23 +867,18 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
     }
 
     // Attach a listener to the stream
-    linkStreamSubscription = appLinks.uriLinkStream.listen(
-      (Uri? link) async {
-        await _handleDeepLink(link);
-      },
-      onError: (err) {
-        // Handle exception by warning the user their action did not succeed
-        debugPrint('linkStreamError:$err');
-      },
-    );
+    linkStreamSubscription = appLinks.uriLinkStream.listen((Uri? link) async {
+      await _handleDeepLink(link);
+    }, onError: (err) {
+      // Handle exception by warning the user their action did not succeed
+      debugPrint('linkStreamError:$err');
+    });
   }
 
-  Future<void> _navigateToWatchlist(
-    BuildContext context, {
-    required bool isGroupWatchlist,
-    String? groupId,
-    String? watchlistId,
-  }) async {
+  Future<void> _navigateToWatchlist(BuildContext context,
+      {required bool isGroupWatchlist,
+      String? groupId,
+      String? watchlistId}) async {
     // Switch to the Search tab (index 2) which contains the watchlist functionality
     _onPageChanged(2);
 
@@ -1015,14 +941,10 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
   }
 
   Future<void> _navigateToInstrument(
-    BuildContext context,
-    String symbol,
-  ) async {
+      BuildContext context, String symbol) async {
     final userStore = Provider.of<BrokerageUserStore>(context, listen: false);
-    final instrumentStore = Provider.of<InstrumentStore>(
-      context,
-      listen: false,
-    );
+    final instrumentStore =
+        Provider.of<InstrumentStore>(context, listen: false);
 
     if (userStore.items.isNotEmpty) {
       var brokerageUser = userStore.currentUser ?? userStore.items.first;
@@ -1031,35 +953,30 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
       service ??= brokerageUser.source == BrokerageSource.robinhood
           ? RobinhoodService()
           : brokerageUser.source == BrokerageSource.schwab
-          ? SchwabService()
-          : brokerageUser.source == BrokerageSource.fidelity
-          ? FidelityService()
-          : brokerageUser.source == BrokerageSource.plaid
-          ? PlaidService()
-          : DemoService();
+              ? SchwabService()
+              : brokerageUser.source == BrokerageSource.fidelity
+                  ? FidelityService()
+                  : brokerageUser.source == BrokerageSource.plaid
+                      ? PlaidService()
+                      : DemoService();
 
-      final instrument = await service!.getInstrumentBySymbol(
-        brokerageUser,
-        instrumentStore,
-        symbol,
-      );
+      final instrument = await service!
+          .getInstrumentBySymbol(brokerageUser, instrumentStore, symbol);
 
       if (instrument != null && context.mounted) {
         Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => InstrumentWidget(
-              brokerageUser,
-              service!,
-              instrument,
-              analytics: widget.analytics,
-              observer: widget.observer,
-              generativeService: _generativeService,
-              user: user,
-              userDocRef: userDoc,
-            ),
-          ),
-        );
+            context,
+            MaterialPageRoute(
+                builder: (context) => InstrumentWidget(
+                      brokerageUser,
+                      service!,
+                      instrument,
+                      analytics: widget.analytics,
+                      observer: widget.observer,
+                      generativeService: _generativeService,
+                      user: user,
+                      userDocRef: userDoc,
+                    )));
       }
     }
   }
@@ -1117,12 +1034,8 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
       String? groupId = link.queryParameters['groupId'];
       String? watchlistId = link.queryParameters['watchlistId'];
       if (groupId != null && watchlistId != null) {
-        await _navigateToWatchlist(
-          context,
-          isGroupWatchlist: true,
-          groupId: groupId,
-          watchlistId: watchlistId,
-        );
+        await _navigateToWatchlist(context,
+            isGroupWatchlist: true, groupId: groupId, watchlistId: watchlistId);
       }
     }
     // realizealpha://signals OR https://realizealpha.com/signals
@@ -1158,10 +1071,8 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
         await Future.delayed(const Duration(milliseconds: 100));
         final navigatorState = navigatorKeys[4]?.currentState;
         if (navigatorState != null) {
-          final userStore = Provider.of<BrokerageUserStore>(
-            context,
-            listen: false,
-          );
+          final userStore =
+              Provider.of<BrokerageUserStore>(context, listen: false);
           navigatorState.push(
             MaterialPageRoute(
               builder: (context) => InvestorGroupDetailWidget(
@@ -1186,21 +1097,18 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
         final apnsToken = await FirebaseMessaging.instance.getAPNSToken();
         if (apnsToken == null) {
           debugPrint(
-            'APNS token not ready, will retry macro subscription sync later',
-          );
+              'APNS token not ready, will retry macro subscription sync later');
           return;
         }
       }
 
       try {
         if (user?.tradeSignalNotificationSettings?.macroAlerts ?? true) {
-          await FirebaseMessaging.instance.subscribeToTopic(
-            'macro-assessment-shift',
-          );
+          await FirebaseMessaging.instance
+              .subscribeToTopic('macro-assessment-shift');
         } else {
-          await FirebaseMessaging.instance.unsubscribeFromTopic(
-            'macro-assessment-shift',
-          );
+          await FirebaseMessaging.instance
+              .unsubscribeFromTopic('macro-assessment-shift');
         }
       } catch (e) {
         debugPrint('Error syncing macro subscription: $e');
@@ -1254,12 +1162,10 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
 
   void _buildTabs(BrokerageUserStore userStore) {
     debugPrint(
-      "_buildTabs userStore items: ${userStore.items.length} currentUser: ${userStore.currentUser}",
-    );
+        "_buildTabs userStore items: ${userStore.items.length} currentUser: ${userStore.currentUser}");
     tabPages = [
       HomePage(
-        userStore.currentUser,
-        userInfo,
+        userStore.currentUser, userInfo,
         service,
         generativeService: _generativeService,
         user: user,
@@ -1275,28 +1181,22 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
         //onAccountsChanged: _handleAccountChanged
       ),
       //const HomePage(title: 'Orders'),
-      HistoryPage(
-        userStore.currentUser,
-        service,
-        user: user,
-        userDoc:
-            userDoc, // _firestoreService.userCollection.doc(auth.currentUser!.uid),
-        analytics: widget.analytics,
-        observer: widget.observer,
-        generativeService: _generativeService,
-        navigatorKey: navigatorKeys[1],
-        onLogin: _openLogin,
-      ),
-      SearchWidget(
-        userStore.currentUser,
-        service,
-        user: user,
-        analytics: widget.analytics,
-        observer: widget.observer,
-        generativeService: _generativeService,
-        navigatorKey: navigatorKeys[2],
-        userDocRef: userDoc,
-      ),
+      HistoryPage(userStore.currentUser, service,
+          user: user,
+          userDoc:
+              userDoc, // _firestoreService.userCollection.doc(auth.currentUser!.uid),
+          analytics: widget.analytics,
+          observer: widget.observer,
+          generativeService: _generativeService,
+          navigatorKey: navigatorKeys[1],
+          onLogin: _openLogin),
+      SearchWidget(userStore.currentUser, service,
+          user: user,
+          analytics: widget.analytics,
+          observer: widget.observer,
+          generativeService: _generativeService,
+          navigatorKey: navigatorKeys[2],
+          userDocRef: userDoc),
       TradeSignalsPage(
         user: user,
         userDocRef: userDoc,
@@ -1326,11 +1226,8 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
     ];
   }
 
-  Scaffold buildScaffold(
-    BrokerageUserStore userStore, {
-    String? message,
-    VoidCallback? onLogin,
-  }) {
+  Scaffold buildScaffold(BrokerageUserStore userStore,
+      {String? message, VoidCallback? onLogin}) {
     return Scaffold(
       /*
       appBar: AppBar(
@@ -1352,34 +1249,34 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
       */
       // drawer: userStore.items.isEmpty ? null : _buildDrawer(userStore),
       body: // userStore.items.isEmpty ||
-      message != null
-          ? CustomScrollView(
-              slivers: [
-                ExpandedSliverAppBar(
-                  title: Text(Constants.appTitle),
-                  auth: auth,
-                  firestoreService: _firestoreService,
-                  automaticallyImplyLeading: false,
-                  analytics: widget.analytics,
-                  observer: widget.observer,
-                  user: userStore.currentUser,
-                  firestoreUser: user,
-                  userDocRef: userDoc,
-                  service: service,
+          message != null
+              ? CustomScrollView(
+                  slivers: [
+                    ExpandedSliverAppBar(
+                      title: Text(Constants.appTitle),
+                      auth: auth,
+                      firestoreService: _firestoreService,
+                      automaticallyImplyLeading: false,
+                      analytics: widget.analytics,
+                      observer: widget.observer,
+                      user: userStore.currentUser,
+                      firestoreUser: user,
+                      userDocRef: userDoc,
+                      service: service,
+                    ),
+                    SliverFillRemaining(
+                      child: WelcomeWidget(
+                        message: message,
+                        onLogin: onLogin ?? _openLogin,
+                      ),
+                    ),
+                  ],
+                )
+              : PageView(
+                  controller: _pageController,
+                  physics: const NeverScrollableScrollPhysics(),
+                  children: tabPages,
                 ),
-                SliverFillRemaining(
-                  child: WelcomeWidget(
-                    message: message,
-                    onLogin: onLogin ?? _openLogin,
-                  ),
-                ),
-              ],
-            )
-          : PageView(
-              controller: _pageController,
-              physics: const NeverScrollableScrollPhysics(),
-              children: tabPages,
-            ),
       bottomNavigationBar: NavigationBar(
         // backgroundColor: Colors.black.withValues(alpha: 0.05),
         height:
@@ -1389,13 +1286,22 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
             icon: Icon(Icons.account_balance), //home
             label: 'Portfolio',
           ),
-          NavigationDestination(icon: Icon(Icons.history), label: 'History'),
-          NavigationDestination(icon: Icon(Icons.search), label: 'Search'),
+          NavigationDestination(
+            icon: Icon(Icons.history),
+            label: 'History',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.search),
+            label: 'Search',
+          ),
           NavigationDestination(
             icon: Icon(Icons.insights),
             label: 'Signals', // Trade Signals
           ),
-          NavigationDestination(icon: Icon(Icons.groups), label: 'Investors'),
+          NavigationDestination(
+            icon: Icon(Icons.groups),
+            label: 'Investors',
+          ),
           // NavigationDestination(
           //   icon: Icon(Icons.account_circle), // manage_accounts //person
           //   label: 'Accounts',
@@ -1412,8 +1318,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
         selectedIndex: _pageIndex > tabPages.length - 1 ? 0 : _pageIndex,
         onDestinationSelected: _onPageChanged,
       ),
-      floatingActionButton:
-          message == null &&
+      floatingActionButton: message == null &&
               _pageIndex != 4 &&
               !(_pageIndex == 3 &&
                   user != null &&
@@ -1906,12 +1811,12 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
 
   Future<void> _openLogin() async {
     final BrokerageUser? result = await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (BuildContext context) =>
-            LoginWidget(analytics: widget.analytics, observer: widget.observer),
-      ),
-    );
+        context,
+        MaterialPageRoute(
+            builder: (BuildContext context) => LoginWidget(
+                  analytics: widget.analytics,
+                  observer: widget.observer,
+                )));
 
     if (result != null) {
       if (!mounted) return;
@@ -1927,15 +1832,11 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
 
       if (auth.currentUser != null) {
         var userStore = Provider.of<BrokerageUserStore>(context, listen: false);
-        user = await authUtil.setUser(
-          _firestoreService,
-          brokerageUserStore: userStore,
-        );
+        user = await authUtil.setUser(_firestoreService,
+            brokerageUserStore: userStore);
         if (result.source == BrokerageSource.paper) {
-          Provider.of<PaperTradingStore>(
-            context,
-            listen: false,
-          ).setUser(auth.currentUser);
+          Provider.of<PaperTradingStore>(context, listen: false)
+              .setUser(auth.currentUser);
         }
       }
 
@@ -1944,12 +1845,10 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
       if (mounted) {
         ScaffoldMessenger.of(context)
           ..removeCurrentSnackBar()
-          ..showSnackBar(
-            SnackBar(
-              content: Text("Logged in ${result.userName}"),
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
+          ..showSnackBar(SnackBar(
+            content: Text("Logged in ${result.userName}"),
+            behavior: SnackBarBehavior.floating,
+          ));
       }
     }
   }

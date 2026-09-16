@@ -51,17 +51,13 @@ class _ActionCenterWidgetState extends State<ActionCenterWidget> {
                 Icon(Icons.bolt, color: theme.colorScheme.primary),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Text(
-                    'Action Center',
-                    style: theme.textTheme.titleLarge,
-                  ),
+                  child:
+                      Text('Action Center', style: theme.textTheme.titleLarge),
                 ),
                 if (actionable > 0)
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 3,
-                    ),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
                     decoration: BoxDecoration(
                       color: theme.colorScheme.errorContainer,
                       borderRadius: BorderRadius.circular(12),
@@ -81,9 +77,8 @@ class _ActionCenterWidgetState extends State<ActionCenterWidget> {
           if (hiddenCount > 0 || _showAll)
             TextButton(
               onPressed: () => setState(() => _showAll = !_showAll),
-              child: Text(
-                _showAll ? 'Show less' : 'Show all $hiddenCount more',
-              ),
+              child:
+                  Text(_showAll ? 'Show less' : 'Show all $hiddenCount more'),
             ),
         ],
       ),
@@ -106,9 +101,8 @@ class _ActionCenterWidgetState extends State<ActionCenterWidget> {
       ),
       title: Text(
         alert.title,
-        style: theme.textTheme.titleSmall?.copyWith(
-          fontWeight: FontWeight.bold,
-        ),
+        style:
+            theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
       ),
       subtitle: Text(alert.detail, style: theme.textTheme.bodySmall),
       trailing: Row(
@@ -117,16 +111,12 @@ class _ActionCenterWidgetState extends State<ActionCenterWidget> {
           if (alert.metric != null)
             Text(
               alert.metric!,
-              style: theme.textTheme.titleSmall?.copyWith(
-                color: color,
-                fontWeight: FontWeight.bold,
-              ),
+              style: theme.textTheme.titleSmall
+                  ?.copyWith(color: color, fontWeight: FontWeight.bold),
             ),
           if (alert.target != PortfolioAlertTarget.none)
-            Icon(
-              Icons.chevron_right,
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
+            Icon(Icons.chevron_right,
+                color: theme.colorScheme.onSurfaceVariant),
         ],
       ),
       onTap: alert.target == PortfolioAlertTarget.none

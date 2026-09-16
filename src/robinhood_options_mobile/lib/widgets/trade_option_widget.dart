@@ -68,8 +68,7 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
   void initState() {
     super.initState();
     positionType = widget.positionType;
-    _isPaperTrade =
-        widget.user.source == BrokerageSource.paper ||
+    _isPaperTrade = widget.user.source == BrokerageSource.paper ||
         widget.initialIsPaperTrade;
     widget.analytics.logScreenView(screenName: 'Trade Option');
 
@@ -141,24 +140,20 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
                 if (_isPaperTrade) ...[
                   const SizedBox(width: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 4,
-                      vertical: 1,
-                    ),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
                     decoration: BoxDecoration(
                       color: Colors.amber.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(4),
                       border: Border.all(
-                        color: Colors.amber.withValues(alpha: 0.5),
-                      ),
+                          color: Colors.amber.withValues(alpha: 0.5)),
                     ),
                     child: const Text(
                       'PAPER',
                       style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.amber,
-                      ),
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.amber),
                     ),
                   ),
                 ],
@@ -237,11 +232,9 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
           // Paper Trading Toggle
           SwitchListTile(
             title: const Text("Paper Trade"),
-            subtitle: Text(
-              widget.user.source == BrokerageSource.paper
-                  ? "Paper account — trades are always simulated"
-                  : "Simulate this trade with virtual money",
-            ),
+            subtitle: Text(widget.user.source == BrokerageSource.paper
+                ? "Paper account — trades are always simulated"
+                : "Simulate this trade with virtual money"),
             value: _isPaperTrade,
             // Locked on for paper accounts: a no-op handler keeps the
             // enabled (amber) styling so it doesn't read as unavailable.
@@ -254,10 +247,8 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
                     });
                   },
             activeThumbColor: Colors.amber,
-            secondary: Icon(
-              Icons.school,
-              color: _isPaperTrade ? Colors.amber : null,
-            ),
+            secondary:
+                Icon(Icons.school, color: _isPaperTrade ? Colors.amber : null),
           ),
           const SizedBox(height: 16),
 
@@ -279,19 +270,18 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
                 _updateEstimates();
               });
             },
-            items:
-                <String>[
-                  'Market',
-                  'Limit',
-                  'Stop',
-                  'Stop Limit',
-                  'Trailing Stop',
-                ].map<DropdownMenuItem<String>>((String value) {
-                  return DropdownMenuItem<String>(
-                    value: value,
-                    child: Text(value),
-                  );
-                }).toList(),
+            items: <String>[
+              'Market',
+              'Limit',
+              'Stop',
+              'Stop Limit',
+              'Trailing Stop',
+            ].map<DropdownMenuItem<String>>((String value) {
+              return DropdownMenuItem<String>(
+                value: value,
+                child: Text(value),
+              );
+            }).toList(),
           ),
           const SizedBox(height: 16),
 
@@ -377,12 +367,11 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
               },
               items: <String>['Percentage', 'Amount']
                   .map<DropdownMenuItem<String>>((String value) {
-                    return DropdownMenuItem<String>(
-                      value: value,
-                      child: Text(value),
-                    );
-                  })
-                  .toList(),
+                return DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(value),
+                );
+              }).toList(),
             ),
             const SizedBox(height: 16),
             TextFormField(
@@ -426,21 +415,19 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
             },
             items: <String>['gtc', 'gfd', 'ioc', 'opg']
                 .map<DropdownMenuItem<String>>((String value) {
-                  return DropdownMenuItem<String>(
-                    value: value,
-                    child: Text(value.toUpperCase()),
-                  );
-                })
-                .toList(),
+              return DropdownMenuItem<String>(
+                value: value,
+                child: Text(value.toUpperCase()),
+              );
+            }).toList(),
           ),
           const SizedBox(height: 24),
 
           // Summary Section
           Card(
             elevation: 0,
-            color: theme.colorScheme.surfaceContainerHighest.withValues(
-              alpha: 0.5,
-            ),
+            color: theme.colorScheme.surfaceContainerHighest
+                .withValues(alpha: 0.5),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
             ),
@@ -607,9 +594,8 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
           const SizedBox(height: 24),
           Card(
             elevation: 0,
-            color: theme.colorScheme.surfaceContainerHighest.withValues(
-              alpha: 0.5,
-            ),
+            color: theme.colorScheme.surfaceContainerHighest
+                .withValues(alpha: 0.5),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
             ),
@@ -822,13 +808,12 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
         'multiplier': 100,
       };
 
-      final result = await FirebaseFunctions.instance
-          .httpsCallable('riskguardTask')
-          .call({
-            'proposal': proposal,
-            'portfolioState': portfolioState,
-            'config': agenticProvider.config,
-          });
+      final result =
+          await FirebaseFunctions.instance.httpsCallable('riskguardTask').call({
+        'proposal': proposal,
+        'portfolioState': portfolioState,
+        'config': agenticProvider.config,
+      });
 
       final data = result.data;
       if (data['approved'] == true) {
@@ -908,10 +893,10 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
       final result = await FirebaseFunctions.instance
           .httpsCallable('calculatePositionSize')
           .call({
-            'symbol': widget.optionInstrument?.chainSymbol,
-            'portfolioState': portfolioState,
-            'config': agenticProvider.config,
-          });
+        'symbol': widget.optionInstrument?.chainSymbol,
+        'portfolioState': portfolioState,
+        'config': agenticProvider.config,
+      });
 
       final data = result.data;
       if (data['status'] == 'success') {
@@ -985,46 +970,37 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
   Future<void> _placePaperOrder() async {
     try {
       final result =
-          await Provider.of<PaperTradingStore>(
-            context,
-            listen: false,
-          ).submitOptionOrder(
-            optionInstrument: widget.optionInstrument!,
-            quantity: double.parse(quantityCtl.text),
-            side: (positionType ?? "Buy").toLowerCase(),
-            orderType: orderType.toLowerCase().replaceAll(' ', '_'),
-            limitPrice: double.tryParse(priceCtl.text),
-            stopPrice: double.tryParse(stopPriceCtl.text),
-            marketPrice: widget.optionInstrument?.optionMarketData?.markPrice,
-            timeInForce: timeInForce,
-            trailType: orderType == 'Trailing Stop'
-                ? trailingType.toLowerCase()
-                : null,
-            trailValue: orderType == 'Trailing Stop'
-                ? double.tryParse(trailingAmountCtl.text)
-                : null,
-          );
+          await Provider.of<PaperTradingStore>(context, listen: false)
+              .submitOptionOrder(
+        optionInstrument: widget.optionInstrument!,
+        quantity: double.parse(quantityCtl.text),
+        side: (positionType ?? "Buy").toLowerCase(),
+        orderType: orderType.toLowerCase().replaceAll(' ', '_'),
+        limitPrice: double.tryParse(priceCtl.text),
+        stopPrice: double.tryParse(stopPriceCtl.text),
+        marketPrice: widget.optionInstrument?.optionMarketData?.markPrice,
+        timeInForce: timeInForce,
+        trailType:
+            orderType == 'Trailing Stop' ? trailingType.toLowerCase() : null,
+        trailValue: orderType == 'Trailing Stop'
+            ? double.tryParse(trailingAmountCtl.text)
+            : null,
+      );
 
       if (!mounted) return;
       Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            result.state == 'filled'
-                ? "Paper order filled!"
-                : "Paper order placed — working until it triggers.",
-          ),
-          backgroundColor: Colors.green,
-        ),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(result.state == 'filled'
+            ? "Paper order filled!"
+            : "Paper order placed — working until it triggers."),
+        backgroundColor: Colors.green,
+      ));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Paper Trade Error: $e"),
-          backgroundColor: Colors.red,
-        ),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text("Paper Trade Error: $e"),
+        backgroundColor: Colors.red,
+      ));
     } finally {
       if (mounted) {
         setState(() {

@@ -10,35 +10,30 @@ class OptionLegExecution {
   final DateTime? timestamp;
 
   OptionLegExecution(
-    this.id,
-    this.price,
-    this.quantity,
-    this.settlementDate,
-    this.timestamp,
-  );
+      this.id, this.price, this.quantity, this.settlementDate, this.timestamp);
 
   OptionLegExecution.fromJson(dynamic json)
-    : id = json['id'],
-      price = parseDouble(json['price']),
-      quantity = parseDouble(json['quantity']),
-      settlementDate = json['settlement_date'] is Timestamp
-          ? (json['settlement_date'] as Timestamp).toDate()
-          : (json['settlement_date'] is String
+      : id = json['id'],
+        price = parseDouble(json['price']),
+        quantity = parseDouble(json['quantity']),
+        settlementDate = json['settlement_date'] is Timestamp
+            ? (json['settlement_date'] as Timestamp).toDate()
+            : (json['settlement_date'] is String
                 ? DateTime.tryParse(json['settlement_date'])
                 : null),
-      timestamp = json['timestamp'] is Timestamp
-          ? (json['timestamp'] as Timestamp).toDate()
-          : (json['timestamp'] is String
+        timestamp = json['timestamp'] is Timestamp
+            ? (json['timestamp'] as Timestamp).toDate()
+            : (json['timestamp'] is String
                 ? DateTime.tryParse(json['timestamp'])
                 : null);
 
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'price': price,
-    'quantity': quantity,
-    'settlement_date': settlementDate,
-    'timestamp': timestamp,
-  };
+        'id': id,
+        'price': price,
+        'quantity': quantity,
+        'settlement_date': settlementDate,
+        'timestamp': timestamp
+      };
 
   static List<OptionLegExecution> fromJsonArray(dynamic json) {
     List<OptionLegExecution> legs = [];

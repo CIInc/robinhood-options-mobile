@@ -4,21 +4,20 @@ import 'package:robinhood_options_mobile/model/carry_trade_model.dart';
 void main() {
   group('Central Bank Rates', () {
     test(
-      'returns standard central bank rates with correct real rate calculation',
-      () {
-        final rates = CarryTradeOptimizer.getCentralBankRates();
-        expect(rates.isNotEmpty, isTrue);
+        'returns standard central bank rates with correct real rate calculation',
+        () {
+      final rates = CarryTradeOptimizer.getCentralBankRates();
+      expect(rates.isNotEmpty, isTrue);
 
-        final usdRate = rates.firstWhere((r) => r.currencyCode == 'USD');
-        expect(usdRate.rate, 5.25);
-        expect(usdRate.inflationRate, 2.8);
-        expect(usdRate.realRate, closeTo(2.45, 0.01));
+      final usdRate = rates.firstWhere((r) => r.currencyCode == 'USD');
+      expect(usdRate.rate, 5.25);
+      expect(usdRate.inflationRate, 2.8);
+      expect(usdRate.realRate, closeTo(2.45, 0.01));
 
-        final jpyRate = rates.firstWhere((r) => r.currencyCode == 'JPY');
-        expect(jpyRate.rate, 0.25);
-        expect(jpyRate.direction, 'hiking');
-      },
-    );
+      final jpyRate = rates.firstWhere((r) => r.currencyCode == 'JPY');
+      expect(jpyRate.rate, 0.25);
+      expect(jpyRate.direction, 'hiking');
+    });
   });
 
   group('CurrencyCarryPair Calculations', () {
@@ -68,90 +67,79 @@ void main() {
     });
 
     test(
-      'evaluates unwind risk based on low-yield funding currencies and volatility',
-      () {
-        const highVolUsdJpy = CurrencyCarryPair(
-          symbol: 'USD/JPY',
-          baseCurrency: 'USD',
-          quoteCurrency: 'JPY',
-          baseRate: 5.25,
-          quoteRate: 0.25,
-          currentPrice: 154.20,
-          volatility: 12.5,
-        );
-        expect(highVolUsdJpy.unwindRisk, UnwindRiskLevel.extreme);
+        'evaluates unwind risk based on low-yield funding currencies and volatility',
+        () {
+      const highVolUsdJpy = CurrencyCarryPair(
+        symbol: 'USD/JPY',
+        baseCurrency: 'USD',
+        quoteCurrency: 'JPY',
+        baseRate: 5.25,
+        quoteRate: 0.25,
+        currentPrice: 154.20,
+        volatility: 12.5,
+      );
+      expect(highVolUsdJpy.unwindRisk, UnwindRiskLevel.extreme);
 
-        const moderateVolUsdJpy = CurrencyCarryPair(
-          symbol: 'USD/JPY',
-          baseCurrency: 'USD',
-          quoteCurrency: 'JPY',
-          baseRate: 5.25,
-          quoteRate: 0.25,
-          currentPrice: 154.20,
-          volatility: 8.5,
-        );
-        expect(moderateVolUsdJpy.unwindRisk, UnwindRiskLevel.low);
-      },
-    );
+      const moderateVolUsdJpy = CurrencyCarryPair(
+        symbol: 'USD/JPY',
+        baseCurrency: 'USD',
+        quoteCurrency: 'JPY',
+        baseRate: 5.25,
+        quoteRate: 0.25,
+        currentPrice: 154.20,
+        volatility: 8.5,
+      );
+      expect(moderateVolUsdJpy.unwindRisk, UnwindRiskLevel.low);
+    });
   });
 
   group('CarryTradeOptimizer Basket Builder', () {
     test(
-      'optimizes capital allocation across strategies with normalized weights',
-      () {
-        const capital = 20000.0;
+        'optimizes capital allocation across strategies with normalized weights',
+        () {
+      const capital = 20000.0;
 
-        final maxYieldBasket = CarryTradeOptimizer.optimizeBasket(
-          capital,
-          CarryStrategyType.maxYield,
-        );
-        expect(maxYieldBasket.isNotEmpty, isTrue);
+      final maxYieldBasket = CarryTradeOptimizer.optimizeBasket(
+        capital,
+        CarryStrategyType.maxYield,
+      );
+      expect(maxYieldBasket.isNotEmpty, isTrue);
 
-        final totalWeight = maxYieldBasket.fold(
-          0.0,
-          (acc, a) => acc + a.weight,
-        );
-        expect(totalWeight, closeTo(1.0, 0.001));
+      final totalWeight = maxYieldBasket.fold(0.0, (acc, a) => acc + a.weight);
+      expect(totalWeight, closeTo(1.0, 0.001));
 
-        final totalNotional = maxYieldBasket.fold(
-          0.0,
-          (acc, a) => acc + a.notionalAmount,
-        );
-        expect(totalNotional, closeTo(capital, 0.01));
+      final totalNotional =
+          maxYieldBasket.fold(0.0, (acc, a) => acc + a.notionalAmount);
+      expect(totalNotional, closeTo(capital, 0.01));
 
-        final totalDailyCarry = maxYieldBasket.fold(
-          0.0,
-          (acc, a) => acc + a.expectedDailyCarry,
-        );
-        expect(totalDailyCarry, greaterThan(0));
+      final totalDailyCarry =
+          maxYieldBasket.fold(0.0, (acc, a) => acc + a.expectedDailyCarry);
+      expect(totalDailyCarry, greaterThan(0));
 
-        final riskAdjustedBasket = CarryTradeOptimizer.optimizeBasket(
-          capital,
-          CarryStrategyType.riskAdjusted,
-        );
-        expect(riskAdjustedBasket.isNotEmpty, isTrue);
+      final riskAdjustedBasket = CarryTradeOptimizer.optimizeBasket(
+        capital,
+        CarryStrategyType.riskAdjusted,
+      );
+      expect(riskAdjustedBasket.isNotEmpty, isTrue);
 
-        final diversifiedBasket = CarryTradeOptimizer.optimizeBasket(
-          capital,
-          CarryStrategyType.diversified,
-        );
-        expect(diversifiedBasket.isNotEmpty, isTrue);
-      },
-    );
+      final diversifiedBasket = CarryTradeOptimizer.optimizeBasket(
+        capital,
+        CarryStrategyType.diversified,
+      );
+      expect(diversifiedBasket.isNotEmpty, isTrue);
+    });
 
-    test(
-      'respects RISK_OFF macro regime during risk-adjusted optimization',
-      () {
-        final basket = CarryTradeOptimizer.optimizeBasket(
-          10000.0,
-          CarryStrategyType.riskAdjusted,
-          macroRegime: 'RISK_OFF',
-        );
-        for (var alloc in basket) {
-          expect(alloc.pair.unwindRisk, isNot(UnwindRiskLevel.extreme));
-        }
-      },
-    );
+    test('respects RISK_OFF macro regime during risk-adjusted optimization',
+        () {
+      final basket = CarryTradeOptimizer.optimizeBasket(
+        10000.0,
+        CarryStrategyType.riskAdjusted,
+        macroRegime: 'RISK_OFF',
+      );
+      for (var alloc in basket) {
+        expect(alloc.pair.unwindRisk, isNot(UnwindRiskLevel.extreme));
+      }
+    });
 
     test('supports copyWith on CurrencyCarryPair', () {
       final base = CarryTradeOptimizer.getCarryPairs().first;
@@ -160,15 +148,13 @@ void main() {
       expect(updated.symbol, base.symbol);
     });
 
-    test(
-      'fetches live/delayed carry pairs from market data provider',
-      () async {
-        final livePairs = await CarryTradeOptimizer.fetchLiveCarryPairs();
-        expect(livePairs.isNotEmpty, isTrue);
-        for (var pair in livePairs) {
-          expect(pair.currentPrice, greaterThan(0));
-        }
-      },
-    );
+    test('fetches live/delayed carry pairs from market data provider',
+        () async {
+      final livePairs = await CarryTradeOptimizer.fetchLiveCarryPairs();
+      expect(livePairs.isNotEmpty, isTrue);
+      for (var pair in livePairs) {
+        expect(pair.currentPrice, greaterThan(0));
+      }
+    });
   });
 }

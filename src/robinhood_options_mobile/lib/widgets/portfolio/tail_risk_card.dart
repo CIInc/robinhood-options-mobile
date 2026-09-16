@@ -25,9 +25,7 @@ class TailRiskCard extends StatelessWidget {
       }
     }
     final assessment = AnalyticsUtils.calculateTailRiskAndLiquidity(
-      exposures,
-      optionPositions,
-    );
+        exposures, optionPositions);
     final score = assessment['liquidityScore']!;
     final theme = Theme.of(context);
     final hasData = assessment['pricedContracts']! > 0 || exposures.isNotEmpty;
@@ -47,15 +45,11 @@ class TailRiskCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Tail Risk & Liquidity',
-                      style: theme.textTheme.titleLarge,
-                    ),
+                    Text('Tail Risk & Liquidity',
+                        style: theme.textTheme.titleLarge),
                     const SizedBox(height: 2),
-                    Text(
-                      'Downside screen and option exit conditions',
-                      style: theme.textTheme.bodySmall,
-                    ),
+                    Text('Downside screen and option exit conditions',
+                        style: theme.textTheme.bodySmall),
                   ],
                 ),
               ),
@@ -63,10 +57,8 @@ class TailRiskCard extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           if (!hasData)
-            Text(
-              'Risk assessment needs priced holdings.',
-              style: theme.textTheme.bodyMedium,
-            )
+            Text('Risk assessment needs priced holdings.',
+                style: theme.textTheme.bodyMedium)
           else ...[
             Row(
               children: [
@@ -94,8 +86,8 @@ class TailRiskCard extends StatelessWidget {
               score < 40
                   ? 'Wide spreads or shallow quotes may make exits costly. Review hedges before increasing exposure.'
                   : score < 70
-                  ? 'Liquidity is mixed. Prefer limit orders and confirm the spread before adjusting risk.'
-                  : 'Quoted liquidity is healthy. Continue monitoring downside concentration as positions change.',
+                      ? 'Liquidity is mixed. Prefer limit orders and confirm the spread before adjusting risk.'
+                      : 'Quoted liquidity is healthy. Continue monitoring downside concentration as positions change.',
               style: theme.textTheme.bodySmall,
             ),
             const SizedBox(height: 8),
@@ -114,11 +106,7 @@ class TailRiskCard extends StatelessWidget {
   }
 
   Widget _metric(
-    BuildContext context,
-    String label,
-    String value,
-    Color color,
-  ) {
+      BuildContext context, String label, String value, Color color) {
     final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.all(10),
@@ -131,13 +119,9 @@ class TailRiskCard extends StatelessWidget {
         children: [
           Text(label, style: theme.textTheme.labelSmall),
           const SizedBox(height: 4),
-          Text(
-            value,
-            style: theme.textTheme.titleMedium?.copyWith(
-              color: color,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+          Text(value,
+              style: theme.textTheme.titleMedium
+                  ?.copyWith(color: color, fontWeight: FontWeight.bold)),
         ],
       ),
     );

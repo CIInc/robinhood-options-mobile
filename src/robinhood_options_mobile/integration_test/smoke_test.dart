@@ -10,9 +10,8 @@ void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   group('Full App Smoke Integrity Test', () {
-    testWidgets('Complete app navigation and feature verification', (
-      WidgetTester tester,
-    ) async {
+    testWidgets('Complete app navigation and feature verification',
+        (WidgetTester tester) async {
       // 1. Setup
       SharedPreferences.setMockInitialValues({});
       // SharedPreferences.setMockInitialValues({
@@ -69,17 +68,13 @@ void main() {
 
       // 4. Verify Home (Portfolio) Tab
       // Welcome screen should be gone
-      expect(
-        find.text('Welcome to RealizeAlpha', skipOffstage: true),
-        findsNothing,
-      );
+      expect(find.text('Welcome to RealizeAlpha', skipOffstage: true),
+          findsNothing);
 
       // We should be on Portfolio tab (Index 0)
       // Check for common Portfolio widgets
-      expect(
-        find.byIcon(Icons.account_balance),
-        findsOneWidget,
-      ); // Navigation Icon
+      expect(find.byIcon(Icons.account_balance),
+          findsOneWidget); // Navigation Icon
       // PortfolioChartWidget usually has time range buttons '1D', '1W' etc.
       expect(find.text('1D'), findsAtLeastNWidgets(1));
       // AllocationWidget usually has 'Allocation' text or similar logic
@@ -203,8 +198,7 @@ void main() {
         // await tester.pumpAndSettle();
       } else {
         debugPrint(
-          'Chain button not found - maybe constrained API in test environment',
-        );
+            'Chain button not found - maybe constrained API in test environment');
       }
 
       // Go back from Instrument Details

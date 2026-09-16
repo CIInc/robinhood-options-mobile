@@ -121,11 +121,9 @@ class _GroupWatchlistDetailWidgetState
         // Filter by search
         if (_searchController.text.isNotEmpty) {
           symbols = symbols
-              .where(
-                (s) => s.symbol.toUpperCase().contains(
-                  _searchController.text.toUpperCase(),
-                ),
-              )
+              .where((s) => s.symbol
+                  .toUpperCase()
+                  .contains(_searchController.text.toUpperCase()))
               .toList();
         }
 
@@ -136,10 +134,8 @@ class _GroupWatchlistDetailWidgetState
           children: [
             // Search bar
             Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 16.0,
-                vertical: 8.0,
-              ),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
               child: Row(
                 children: [
                   Expanded(
@@ -210,10 +206,8 @@ class _GroupWatchlistDetailWidgetState
             // Action bar
             if (isEditor)
               Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16.0,
-                  vertical: 4.0,
-                ),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
                 child: SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
@@ -242,9 +236,10 @@ class _GroupWatchlistDetailWidgetState
                             Container(
                               padding: const EdgeInsets.all(20),
                               decoration: BoxDecoration(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.primary.withOpacity(0.1),
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .primary
+                                    .withOpacity(0.1),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Icon(
@@ -260,7 +255,9 @@ class _GroupWatchlistDetailWidgetState
                               _searchController.text.isNotEmpty
                                   ? 'No symbols found'
                                   : 'No Symbols Yet',
-                              style: Theme.of(context).textTheme.titleLarge
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleLarge
                                   ?.copyWith(fontWeight: FontWeight.bold),
                             ),
                             const SizedBox(height: 8),
@@ -285,18 +282,15 @@ class _GroupWatchlistDetailWidgetState
                     )
                   : ListView.builder(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
-                      ),
+                          horizontal: 16, vertical: 8),
                       itemCount: symbols.length,
                       itemBuilder: (context, index) {
                         final symbol = symbols[index];
                         final alertCount = symbol.alerts.length;
                         final isDark =
                             Theme.of(context).brightness == Brightness.dark;
-                        final borderColor = isDark
-                            ? Colors.grey[700]!
-                            : Colors.grey[200]!;
+                        final borderColor =
+                            isDark ? Colors.grey[700]! : Colors.grey[200]!;
 
                         return Card(
                           elevation: 0,
@@ -317,9 +311,10 @@ class _GroupWatchlistDetailWidgetState
                                   Container(
                                     padding: const EdgeInsets.all(10),
                                     decoration: BoxDecoration(
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.primary.withOpacity(0.1),
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .primary
+                                          .withOpacity(0.1),
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     child: Text(
@@ -328,9 +323,9 @@ class _GroupWatchlistDetailWidgetState
                                           : '?',
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.primary,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .primary,
                                         fontSize: 18,
                                       ),
                                     ),
@@ -359,8 +354,7 @@ class _GroupWatchlistDetailWidgetState
                                           children: [
                                             if (symbol.addedBy.isNotEmpty)
                                               FutureBuilder<
-                                                DocumentSnapshot<User>
-                                              >(
+                                                  DocumentSnapshot<User>>(
                                                 future: _firestoreService
                                                     .userCollection
                                                     .doc(symbol.addedBy)
@@ -368,10 +362,11 @@ class _GroupWatchlistDetailWidgetState
                                                 builder: (context, snapshot) {
                                                   if (!snapshot.hasData ||
                                                       !snapshot.data!.exists) {
-                                                    return const SizedBox.shrink();
+                                                    return const SizedBox
+                                                        .shrink();
                                                   }
-                                                  final user = snapshot.data!
-                                                      .data();
+                                                  final user =
+                                                      snapshot.data!.data();
                                                   final name =
                                                       user?.name ?? 'Unknown';
                                                   return Text(
@@ -387,8 +382,7 @@ class _GroupWatchlistDetailWidgetState
                                                                   .bodySmall
                                                                   ?.color
                                                                   ?.withOpacity(
-                                                                    0.7,
-                                                                  ),
+                                                                      0.7),
                                                         ),
                                                   );
                                                 },
@@ -397,13 +391,12 @@ class _GroupWatchlistDetailWidgetState
                                               Container(
                                                 padding:
                                                     const EdgeInsets.symmetric(
-                                                      horizontal: 8,
-                                                      vertical: 2,
-                                                    ),
+                                                        horizontal: 8,
+                                                        vertical: 2),
                                                 decoration: BoxDecoration(
                                                   color: isDark
                                                       ? Colors.orange[900]!
-                                                            .withOpacity(0.3)
+                                                          .withOpacity(0.3)
                                                       : Colors.orange[100]!,
                                                   borderRadius:
                                                       BorderRadius.circular(6),
@@ -427,9 +420,9 @@ class _GroupWatchlistDetailWidgetState
                                                         fontSize: 10,
                                                         color: isDark
                                                             ? Colors
-                                                                  .orange[400]!
+                                                                .orange[400]!
                                                             : Colors
-                                                                  .orange[800]!,
+                                                                .orange[800]!,
                                                         fontWeight:
                                                             FontWeight.w600,
                                                       ),
@@ -447,14 +440,11 @@ class _GroupWatchlistDetailWidgetState
                                       icon: const Icon(Icons.delete_outline),
                                       onPressed: () {
                                         _showDeleteSymbolConfirmation(
-                                          context,
-                                          symbol.symbol,
-                                        );
+                                            context, symbol.symbol);
                                       },
                                       tooltip: 'Remove symbol',
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.error,
+                                      color:
+                                          Theme.of(context).colorScheme.error,
                                     ),
                                 ],
                               ),
@@ -525,9 +515,10 @@ class _GroupWatchlistDetailWidgetState
                       Container(
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.primary.withOpacity(0.1),
+                          color: Theme.of(context)
+                              .colorScheme
+                              .primary
+                              .withOpacity(0.1),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Icon(
@@ -539,9 +530,10 @@ class _GroupWatchlistDetailWidgetState
                       const SizedBox(height: 16),
                       Text(
                         'No Symbols to Alert On',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: Theme.of(context)
+                            .textTheme
+                            .titleLarge
+                            ?.copyWith(fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 8),
                       Text(
@@ -614,9 +606,7 @@ class _GroupWatchlistDetailWidgetState
                   Expanded(
                     child: ListView.builder(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
+                          horizontal: 12, vertical: 8),
                       itemCount: symbols.length,
                       itemBuilder: (context, index) {
                         final symbol = symbols[index];
@@ -632,8 +622,7 @@ class _GroupWatchlistDetailWidgetState
                           padding: const EdgeInsets.only(bottom: 12),
                           child: Container(
                             decoration: BoxDecoration(
-                              color:
-                                  Theme.of(context).brightness ==
+                              color: Theme.of(context).brightness ==
                                       Brightness.dark
                                   ? Colors.grey[850]
                                   : Colors.grey[50],
@@ -657,9 +646,9 @@ class _GroupWatchlistDetailWidgetState
                                         final name = user?.name ?? 'Unknown';
                                         return Text(
                                           'Added by $name',
-                                          style: Theme.of(
-                                            context,
-                                          ).textTheme.bodySmall,
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodySmall,
                                         );
                                       },
                                     )
@@ -669,28 +658,29 @@ class _GroupWatchlistDetailWidgetState
                                   Container(
                                     padding: const EdgeInsets.all(8),
                                     decoration: BoxDecoration(
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.primary.withOpacity(0.15),
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .primary
+                                          .withOpacity(0.15),
                                       borderRadius: BorderRadius.circular(6),
                                     ),
                                     child: Text(
                                       symbol.symbol[0],
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.primary,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .primary,
                                       ),
                                     ),
                                   ),
                                   const SizedBox(width: 12),
-                                  Expanded(child: Text(symbol.symbol)),
+                                  Expanded(
+                                    child: Text(symbol.symbol),
+                                  ),
                                   Container(
                                     padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 4,
-                                    ),
+                                        horizontal: 8, vertical: 4),
                                     decoration: BoxDecoration(
                                       color: Colors.orange.withOpacity(0.2),
                                       borderRadius: BorderRadius.circular(4),
@@ -713,88 +703,84 @@ class _GroupWatchlistDetailWidgetState
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
-                                      ...symbolAlerts.map(
-                                        (alert) => Padding(
-                                          padding: const EdgeInsets.symmetric(
-                                            vertical: 8,
-                                          ),
-                                          child: Row(
-                                            children: [
-                                              Container(
-                                                padding: const EdgeInsets.all(
-                                                  4,
-                                                ),
-                                                decoration: BoxDecoration(
-                                                  color: alert.active
-                                                      ? Colors.green
+                                      ...symbolAlerts.map((alert) => Padding(
+                                            padding: const EdgeInsets.symmetric(
+                                                vertical: 8),
+                                            child: Row(
+                                              children: [
+                                                Container(
+                                                  padding:
+                                                      const EdgeInsets.all(4),
+                                                  decoration: BoxDecoration(
+                                                    color: alert.active
+                                                        ? Colors.green
                                                             .withOpacity(0.1)
-                                                      : Colors.grey.withOpacity(
-                                                          0.1,
-                                                        ),
-                                                  borderRadius:
-                                                      BorderRadius.circular(3),
-                                                ),
-                                                child: Icon(
-                                                  alert.active
-                                                      ? Icons.check_circle
-                                                      : Icons.pause_circle,
-                                                  size: 16,
-                                                  color: alert.active
-                                                      ? Colors.green
-                                                      : Colors.grey,
-                                                ),
-                                              ),
-                                              const SizedBox(width: 8),
-                                              Expanded(
-                                                child: Column(
-                                                  crossAxisAlignment:
-                                                      CrossAxisAlignment.start,
-                                                  children: [
-                                                    Text(
-                                                      alert.type ==
-                                                              'price_above'
-                                                          ? 'Price above \$${alert.threshold.toStringAsFixed(2)}'
-                                                          : 'Price below \$${alert.threshold.toStringAsFixed(2)}',
-                                                      style: Theme.of(
-                                                        context,
-                                                      ).textTheme.labelMedium,
-                                                    ),
-                                                    const SizedBox(height: 2),
-                                                    Text(
-                                                      alert.active
-                                                          ? 'Active'
-                                                          : 'Inactive',
-                                                      style: TextStyle(
-                                                        fontSize: 12,
-                                                        color: alert.active
-                                                            ? Colors.green
-                                                            : Colors.grey,
-                                                        fontWeight:
-                                                            FontWeight.w500,
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                              if (isEditor)
-                                                IconButton(
-                                                  icon: const Icon(
-                                                    Icons.delete_outline,
+                                                        : Colors.grey
+                                                            .withOpacity(0.1),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            3),
                                                   ),
-                                                  onPressed: () {
-                                                    _showDeleteAlertConfirmation(
-                                                      context,
-                                                      symbol.symbol,
-                                                      alert.id,
-                                                    );
-                                                  },
-                                                  iconSize: 20,
-                                                  color: Colors.red[600],
+                                                  child: Icon(
+                                                    alert.active
+                                                        ? Icons.check_circle
+                                                        : Icons.pause_circle,
+                                                    size: 16,
+                                                    color: alert.active
+                                                        ? Colors.green
+                                                        : Colors.grey,
+                                                  ),
                                                 ),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
+                                                const SizedBox(width: 8),
+                                                Expanded(
+                                                  child: Column(
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment
+                                                            .start,
+                                                    children: [
+                                                      Text(
+                                                        alert.type ==
+                                                                'price_above'
+                                                            ? 'Price above \$${alert.threshold.toStringAsFixed(2)}'
+                                                            : 'Price below \$${alert.threshold.toStringAsFixed(2)}',
+                                                        style: Theme.of(context)
+                                                            .textTheme
+                                                            .labelMedium,
+                                                      ),
+                                                      const SizedBox(height: 2),
+                                                      Text(
+                                                        alert.active
+                                                            ? 'Active'
+                                                            : 'Inactive',
+                                                        style: TextStyle(
+                                                          fontSize: 12,
+                                                          color: alert.active
+                                                              ? Colors.green
+                                                              : Colors.grey,
+                                                          fontWeight:
+                                                              FontWeight.w500,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                                if (isEditor)
+                                                  IconButton(
+                                                    icon: const Icon(
+                                                        Icons.delete_outline),
+                                                    onPressed: () {
+                                                      _showDeleteAlertConfirmation(
+                                                        context,
+                                                        symbol.symbol,
+                                                        alert.id,
+                                                      );
+                                                    },
+                                                    iconSize: 20,
+                                                    color: Colors.red[600],
+                                                  ),
+                                              ],
+                                            ),
+                                          )),
                                       if (isEditor) ...[
                                         const SizedBox(height: 12),
                                         SizedBox(
@@ -802,9 +788,7 @@ class _GroupWatchlistDetailWidgetState
                                           child: OutlinedButton.icon(
                                             onPressed: () {
                                               _showAddAlertDialog(
-                                                context,
-                                                symbol.symbol,
-                                              );
+                                                  context, symbol.symbol);
                                             },
                                             icon: const Icon(Icons.add),
                                             label: const Text('Add Alert'),
@@ -860,9 +844,10 @@ class _GroupWatchlistDetailWidgetState
               // Watchlist Info Section
               Text(
                 'Watchlist Details',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                style: Theme.of(context)
+                    .textTheme
+                    .headlineSmall
+                    ?.copyWith(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
               Container(
@@ -872,7 +857,9 @@ class _GroupWatchlistDetailWidgetState
                       ? Colors.grey[850]
                       : Colors.grey[50],
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: Theme.of(context).dividerColor),
+                  border: Border.all(
+                    color: Theme.of(context).dividerColor,
+                  ),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -886,10 +873,7 @@ class _GroupWatchlistDetailWidgetState
                       builder: (context, snapshot) {
                         final name = snapshot.data?.data()?.name ?? 'Unknown';
                         return _buildSettingsRow(
-                          'Created By',
-                          name,
-                          Icons.person_outline,
-                        );
+                            'Created By', name, Icons.person_outline);
                       },
                     ),
                     if (watchlist.description.isNotEmpty) ...[
@@ -911,12 +895,7 @@ class _GroupWatchlistDetailWidgetState
               // Members Section,
               if (isCreator || isEditor) ...[
                 ..._buildMembersSection(
-                  context,
-                  isCreator,
-                  watchlist,
-                  userId,
-                  userId,
-                ),
+                    context, isCreator, watchlist, userId, userId),
                 const SizedBox(height: 32),
                 _buildActionsSection(context, watchlist, isCreator),
               ],
@@ -939,8 +918,8 @@ class _GroupWatchlistDetailWidgetState
     final bgColor = isCurrentUser
         ? Theme.of(context).colorScheme.primary.withOpacity(0.05)
         : (Theme.of(context).brightness == Brightness.dark
-              ? Colors.grey[800]
-              : Colors.white);
+            ? Colors.grey[800]
+            : Colors.white);
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
@@ -992,8 +971,8 @@ class _GroupWatchlistDetailWidgetState
                     return Text(
                       isCurrentUser ? '$displayName (You)' : displayName,
                       style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
+                            fontWeight: FontWeight.w600,
+                          ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     );
@@ -1052,7 +1031,11 @@ class _GroupWatchlistDetailWidgetState
   Widget _buildSettingsRow(String label, String value, IconData icon) {
     return Row(
       children: [
-        Icon(icon, size: 18, color: Theme.of(context).colorScheme.primary),
+        Icon(
+          icon,
+          size: 18,
+          color: Theme.of(context).colorScheme.primary,
+        ),
         const SizedBox(width: 12),
         Expanded(
           child: Column(
@@ -1060,16 +1043,18 @@ class _GroupWatchlistDetailWidgetState
             children: [
               Text(
                 label,
-                style: Theme.of(
-                  context,
-                ).textTheme.labelSmall?.copyWith(color: Colors.grey[600]),
+                style: Theme.of(context)
+                    .textTheme
+                    .labelSmall
+                    ?.copyWith(color: Colors.grey[600]),
               ),
               const SizedBox(height: 4),
               Text(
                 value,
-                style: Theme.of(
-                  context,
-                ).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w600),
+                style: Theme.of(context)
+                    .textTheme
+                    .labelMedium
+                    ?.copyWith(fontWeight: FontWeight.w600),
               ),
             ],
           ),
@@ -1081,7 +1066,10 @@ class _GroupWatchlistDetailWidgetState
   Widget _buildSettingsDivider() {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12),
-      child: Divider(color: Theme.of(context).dividerColor, height: 1),
+      child: Divider(
+        color: Theme.of(context).dividerColor,
+        height: 1,
+      ),
     );
   }
 
@@ -1104,9 +1092,10 @@ class _GroupWatchlistDetailWidgetState
           const SizedBox(height: 16),
           Text(
             'Loading $section...',
-            style: Theme.of(
-              context,
-            ).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
+            style: Theme.of(context)
+                .textTheme
+                .bodyMedium
+                ?.copyWith(color: Colors.grey[600]),
           ),
         ],
       ),
@@ -1141,9 +1130,9 @@ class _GroupWatchlistDetailWidgetState
             Text(
               error,
               textAlign: TextAlign.center,
-              style: Theme.of(
-                context,
-              ).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Colors.grey[600],
+                  ),
             ),
             const SizedBox(height: 24),
             ElevatedButton.icon(
@@ -1169,11 +1158,17 @@ class _GroupWatchlistDetailWidgetState
         decoration: BoxDecoration(
           color: color.withOpacity(0.1),
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: color.withOpacity(0.3)),
+          border: Border.all(
+            color: color.withOpacity(0.3),
+          ),
         ),
         child: Column(
           children: [
-            Icon(icon, size: 24, color: color),
+            Icon(
+              icon,
+              size: 24,
+              color: color,
+            ),
             const SizedBox(height: 8),
             Text(
               '$count',
@@ -1227,7 +1222,9 @@ class _GroupWatchlistDetailWidgetState
       decoration: BoxDecoration(
         color: color.withOpacity(0.15),
         borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(
+          color: color.withOpacity(0.3),
+        ),
       ),
       child: Text(
         getRoleLabel(),
@@ -1295,7 +1292,9 @@ class _GroupWatchlistDetailWidgetState
               Navigator.of(context).pop();
               _removeSymbol(context, symbol);
             },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red[600]),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red[600],
+            ),
             child: const Text('Delete'),
           ),
         ],
@@ -1330,7 +1329,9 @@ class _GroupWatchlistDetailWidgetState
               Navigator.of(context).pop();
               _deleteAlert(context, symbol, alertId);
             },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red[600]),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red[600],
+            ),
             child: const Text('Delete'),
           ),
         ],
@@ -1357,7 +1358,9 @@ class _GroupWatchlistDetailWidgetState
       }
     } on FirebaseFunctionsException catch (e) {
       if (mounted) {
-        messenger.showSnackBar(SnackBar(content: Text('Error: ${e.message}')));
+        messenger.showSnackBar(
+          SnackBar(content: Text('Error: ${e.message}')),
+        );
       }
     }
   }
@@ -1379,7 +1382,9 @@ class _GroupWatchlistDetailWidgetState
       }
     } on FirebaseFunctionsException catch (e) {
       if (mounted) {
-        messenger.showSnackBar(SnackBar(content: Text('Error: ${e.message}')));
+        messenger.showSnackBar(
+          SnackBar(content: Text('Error: ${e.message}')),
+        );
       }
     }
   }
@@ -1469,11 +1474,15 @@ class _GroupWatchlistDetailWidgetState
       });
 
       if (mounted) {
-        messenger.showSnackBar(const SnackBar(content: Text('Alert created')));
+        messenger.showSnackBar(
+          const SnackBar(content: Text('Alert created')),
+        );
       }
     } on FirebaseFunctionsException catch (e) {
       if (mounted) {
-        messenger.showSnackBar(SnackBar(content: Text('Error: ${e.message}')));
+        messenger.showSnackBar(
+          SnackBar(content: Text('Error: ${e.message}')),
+        );
       }
     }
   }
@@ -1494,11 +1503,15 @@ class _GroupWatchlistDetailWidgetState
       });
 
       if (mounted) {
-        messenger.showSnackBar(const SnackBar(content: Text('Alert deleted')));
+        messenger.showSnackBar(
+          const SnackBar(content: Text('Alert deleted')),
+        );
       }
     } on FirebaseFunctionsException catch (e) {
       if (mounted) {
-        messenger.showSnackBar(SnackBar(content: Text('Error: ${e.message}')));
+        messenger.showSnackBar(
+          SnackBar(content: Text('Error: ${e.message}')),
+        );
       }
     }
   }
@@ -1525,7 +1538,9 @@ class _GroupWatchlistDetailWidgetState
       }
     } on FirebaseFunctionsException catch (e) {
       if (mounted) {
-        messenger.showSnackBar(SnackBar(content: Text('Error: ${e.message}')));
+        messenger.showSnackBar(
+          SnackBar(content: Text('Error: ${e.message}')),
+        );
       }
     }
   }
@@ -1568,11 +1583,18 @@ class _GroupWatchlistDetailWidgetState
     );
   }
 
-  void _showRemoveMemberConfirmation(BuildContext context, String memberId) {
+  void _showRemoveMemberConfirmation(
+    BuildContext context,
+    String memberId,
+  ) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        icon: Icon(Icons.warning_outlined, color: Colors.orange[700], size: 32),
+        icon: Icon(
+          Icons.warning_outlined,
+          color: Colors.orange[700],
+          size: 32,
+        ),
         title: const Text('Remove Member?'),
         content: Text(
           'Are you sure you want to remove $memberId from this watchlist? They will no longer have access.',
@@ -1587,7 +1609,9 @@ class _GroupWatchlistDetailWidgetState
               Navigator.of(context).pop();
               _removeMember(context, memberId);
             },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red[600]),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red[600],
+            ),
             child: const Text('Remove'),
           ),
         ],
@@ -1595,7 +1619,10 @@ class _GroupWatchlistDetailWidgetState
     );
   }
 
-  Future<void> _removeMember(BuildContext context, String memberId) async {
+  Future<void> _removeMember(
+    BuildContext context,
+    String memberId,
+  ) async {
     final messenger = ScaffoldMessenger.of(context);
     try {
       final functions = FirebaseFunctions.instance;
@@ -1612,7 +1639,9 @@ class _GroupWatchlistDetailWidgetState
       }
     } on FirebaseFunctionsException catch (e) {
       if (mounted) {
-        messenger.showSnackBar(SnackBar(content: Text('Error: ${e.message}')));
+        messenger.showSnackBar(
+          SnackBar(content: Text('Error: ${e.message}')),
+        );
       }
     }
   }
@@ -1627,16 +1656,17 @@ class _GroupWatchlistDetailWidgetState
     return [
       Text(
         'Members',
-        style: Theme.of(
-          context,
-        ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+        style: Theme.of(context)
+            .textTheme
+            .headlineSmall
+            ?.copyWith(fontWeight: FontWeight.bold),
       ),
       const SizedBox(height: 12),
       Text(
         'Manage who has access to this watchlist',
-        style: Theme.of(
-          context,
-        ).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Colors.grey[600],
+            ),
       ),
       const SizedBox(height: 16),
       _buildRoleInfoCards(),
@@ -1692,18 +1722,16 @@ class _GroupWatchlistDetailWidgetState
 
           return Column(
             children: sortedMembers
-                .map(
-                  (memberId) => _buildMemberTile(
-                    context,
-                    memberId,
-                    memberId == watchlist.createdBy
-                        ? 'creator'
-                        : (watchlist.permissions[memberId] ?? 'viewer'),
-                    isCreator,
-                    userId,
-                    watchlist.createdBy,
-                  ),
-                )
+                .map((memberId) => _buildMemberTile(
+                      context,
+                      memberId,
+                      memberId == watchlist.createdBy
+                          ? 'creator'
+                          : (watchlist.permissions[memberId] ?? 'viewer'),
+                      isCreator,
+                      userId,
+                      watchlist.createdBy,
+                    ))
                 .toList(),
           );
         },
@@ -1719,7 +1747,9 @@ class _GroupWatchlistDetailWidgetState
             ? Colors.grey[900]
             : Colors.grey[50],
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Theme.of(context).dividerColor),
+        border: Border.all(
+          color: Theme.of(context).dividerColor,
+        ),
       ),
       child: Column(
         children: [
@@ -1763,7 +1793,13 @@ class _GroupWatchlistDetailWidgetState
             color: color.withOpacity(0.15),
             borderRadius: BorderRadius.circular(6),
           ),
-          child: Center(child: Icon(icon, size: 16, color: color)),
+          child: Center(
+            child: Icon(
+              icon,
+              size: 16,
+              color: color,
+            ),
+          ),
         ),
         const SizedBox(width: 12),
         Expanded(
@@ -1772,16 +1808,16 @@ class _GroupWatchlistDetailWidgetState
             children: [
               Text(
                 role,
-                style: Theme.of(
-                  context,
-                ).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w600),
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
               ),
               const SizedBox(height: 2),
               Text(
                 description,
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Colors.grey[600],
+                    ),
               ),
             ],
           ),
@@ -1828,16 +1864,17 @@ class _GroupWatchlistDetailWidgetState
       children: [
         Text(
           'Actions',
-          style: Theme.of(
-            context,
-          ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+          style: Theme.of(context)
+              .textTheme
+              .headlineSmall
+              ?.copyWith(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 12),
         Text(
           'Manage this watchlist',
-          style: Theme.of(
-            context,
-          ).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Colors.grey[600],
+              ),
         ),
         const SizedBox(height: 16),
         Container(
@@ -1847,7 +1884,9 @@ class _GroupWatchlistDetailWidgetState
                 ? Colors.grey[900]
                 : Colors.grey[50],
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: Theme.of(context).dividerColor),
+            border: Border.all(
+              color: Theme.of(context).dividerColor,
+            ),
           ),
           child: Column(
             children: [
@@ -1905,9 +1944,8 @@ class _GroupWatchlistDetailWidgetState
                 leading: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.primary.withOpacity(0.1),
+                    color:
+                        Theme.of(context).colorScheme.primary.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
@@ -2052,9 +2090,9 @@ class _GroupWatchlistDetailWidgetState
                       } catch (e) {
                         setState(() => isLoading = false);
                         if (mounted) {
-                          ScaffoldMessenger.of(
-                            context,
-                          ).showSnackBar(SnackBar(content: Text('Error: $e')));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Error: $e')),
+                          );
                         }
                       }
                     },
@@ -2146,14 +2184,15 @@ class _GroupWatchlistDetailWidgetState
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: Text('Error: $e'),
-                              backgroundColor: Colors.red,
-                            ),
+                                content: Text('Error: $e'),
+                                backgroundColor: Colors.red),
                           );
                         }
                       }
                     },
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+              ),
               child: isLoading
                   ? const SizedBox(
                       width: 20,
@@ -2172,9 +2211,7 @@ class _GroupWatchlistDetailWidgetState
   }
 
   void _setAsWidgetWatchlist(
-    BuildContext context,
-    GroupWatchlist watchlist,
-  ) async {
+      BuildContext context, GroupWatchlist watchlist) async {
     try {
       await HomeWidgetService.setSelectedGroupWatchlist(
         widget.groupId,

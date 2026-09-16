@@ -9,9 +9,8 @@ void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   group('App Integration Tests', () {
-    testWidgets('App launch, search navigation, login and instrument detail', (
-      WidgetTester tester,
-    ) async {
+    testWidgets('App launch, search navigation, login and instrument detail',
+        (WidgetTester tester) async {
       SharedPreferences.setMockInitialValues({});
 
       app.main();
@@ -24,8 +23,7 @@ void main() {
       // 1. Verify Welcome Screen
       if (find.text('Welcome to RealizeAlpha').evaluate().isEmpty) {
         debugPrint(
-          "Widgets found: ${find.byType(Text).evaluate().map((e) => (e.widget as Text).data).toList()}",
-        );
+            "Widgets found: ${find.byType(Text).evaluate().map((e) => (e.widget as Text).data).toList()}");
         // Pump more if needed
         await tester.pump(const Duration(seconds: 2));
       }
@@ -68,16 +66,12 @@ void main() {
 
       // 5. Verify Logged In State
       // Welcome Screen should be gone
-      expect(
-        find.text('Welcome to RealizeAlpha', skipOffstage: true),
-        findsNothing,
-      );
+      expect(find.text('Welcome to RealizeAlpha', skipOffstage: true),
+          findsNothing);
 
       // "Link Brokerage Account" should be gone
-      expect(
-        find.text('Link Brokerage Account', skipOffstage: true),
-        findsNothing,
-      );
+      expect(find.text('Link Brokerage Account', skipOffstage: true),
+          findsNothing);
 
       // 6. Navigate to Search Tab (Index 2) again as Logged In User
       final searchTab = find.descendant(

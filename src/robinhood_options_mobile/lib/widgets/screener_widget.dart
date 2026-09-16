@@ -149,26 +149,33 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
       slivers: [
         // 1. Active Preset Hero Card (if a curated preset is active)
         if (activePreset != null)
-          SliverToBoxAdapter(child: _buildActivePresetHeroCard()),
+          SliverToBoxAdapter(
+            child: _buildActivePresetHeroCard(),
+          ),
 
         // 2. Filter Controls (collapsible when active preset is present)
         if (activePreset == null || filtersExpanded)
-          SliverToBoxAdapter(child: _buildScreenerPanel())
+          SliverToBoxAdapter(
+            child: _buildScreenerPanel(),
+          )
         else
-          SliverToBoxAdapter(child: _buildCollapsedFiltersBar()),
+          SliverToBoxAdapter(
+            child: _buildCollapsedFiltersBar(),
+          ),
 
         // 3. Loading State Indicator
-        if (screenerLoading) SliverToBoxAdapter(child: _buildLoadingState()),
+        if (screenerLoading)
+          SliverToBoxAdapter(
+            child: _buildLoadingState(),
+          ),
 
         // 4. Error State
         if (errorText != null)
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.all(16.0),
-              child: Text(
-                'Error: $errorText',
-                style: const TextStyle(color: Colors.red),
-              ),
+              child: Text('Error: $errorText',
+                  style: const TextStyle(color: Colors.red)),
             ),
           ),
 
@@ -189,7 +196,9 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
 
         // 7. Empty State
         if (screenerResults != null && screenerResults!.isEmpty)
-          SliverToBoxAdapter(child: _buildEmptyState()),
+          SliverToBoxAdapter(
+            child: _buildEmptyState(),
+          ),
       ],
     );
 
@@ -208,9 +217,7 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
               Text(
                 'Curated Screener • ${activePreset!.category}',
                 style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.normal,
-                ),
+                    fontSize: 12, fontWeight: FontWeight.normal),
               ),
           ],
         ),
@@ -300,10 +307,8 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
               children: [
                 Expanded(
                   child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 7,
-                      vertical: 4,
-                    ),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
                     decoration: BoxDecoration(
                       color: categoryColor.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(6),
@@ -333,24 +338,19 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
                 if (preset.iconEmoji != null && preset.iconEmoji!.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.only(right: 5),
-                    child: Text(
-                      preset.iconEmoji!,
-                      style: const TextStyle(fontSize: 14),
-                    ),
+                    child: Text(preset.iconEmoji!,
+                        style: const TextStyle(fontSize: 14)),
                   ),
                 if (screenerResults != null)
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 3,
-                    ),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                     decoration: BoxDecoration(
                       color: colorScheme.surface,
                       borderRadius: BorderRadius.circular(6),
                       border: Border.all(
-                        color: colorScheme.outlineVariant.withValues(
-                          alpha: 0.5,
-                        ),
+                        color:
+                            colorScheme.outlineVariant.withValues(alpha: 0.5),
                         width: 0.8,
                       ),
                     ),
@@ -400,9 +400,8 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
                   ClipRRect(
                     borderRadius: BorderRadius.circular(8),
                     child: Container(
-                      color: colorScheme.surfaceContainerHighest.withValues(
-                        alpha: 0.4,
-                      ),
+                      color: colorScheme.surfaceContainerHighest
+                          .withValues(alpha: 0.4),
                       padding: const EdgeInsets.all(2),
                       child: Image.network(
                         illustrationUrl,
@@ -427,16 +426,13 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
                 children: preset.criteria.map((c) {
                   return Container(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 3.5,
-                    ),
+                        horizontal: 8, vertical: 3.5),
                     decoration: BoxDecoration(
                       color: colorScheme.surface,
                       borderRadius: BorderRadius.circular(6),
                       border: Border.all(
-                        color: colorScheme.outlineVariant.withValues(
-                          alpha: 0.7,
-                        ),
+                        color:
+                            colorScheme.outlineVariant.withValues(alpha: 0.7),
                         width: 0.8,
                       ),
                     ),
@@ -459,10 +455,8 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
                 FilledButton.tonalIcon(
                   style: FilledButton.styleFrom(
                     visualDensity: VisualDensity.compact,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   ),
                   icon: Icon(
                     filtersExpanded ? Icons.tune : Icons.tune_outlined,
@@ -483,10 +477,8 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
                 OutlinedButton.icon(
                   style: OutlinedButton.styleFrom(
                     visualDensity: VisualDensity.compact,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   ),
                   icon: const Icon(Icons.swap_horiz, size: 15),
                   label: const Text('Switch', style: TextStyle(fontSize: 12)),
@@ -516,7 +508,9 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
       decoration: BoxDecoration(
         color: scheme.surfaceContainerHighest.withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.4)),
+        border: Border.all(
+          color: scheme.outlineVariant.withValues(alpha: 0.4),
+        ),
       ),
       child: ListTile(
         dense: true,
@@ -568,7 +562,10 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
             const SizedBox(height: 6),
             Text(
               'Filtering universe and ranking matches...',
-              style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
+              style: TextStyle(
+                fontSize: 12,
+                color: scheme.onSurfaceVariant,
+              ),
             ),
           ],
         ),
@@ -603,9 +600,7 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
                         Flexible(
                           child: Container(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 3,
-                            ),
+                                horizontal: 8, vertical: 3),
                             decoration: BoxDecoration(
                               color: Theme.of(context)
                                   .colorScheme
@@ -616,13 +611,11 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(
-                                  Icons.check,
-                                  size: 12,
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onPrimaryContainer,
-                                ),
+                                Icon(Icons.check,
+                                    size: 12,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onPrimaryContainer),
                                 const SizedBox(width: 4),
                                 Flexible(
                                   child: Text(
@@ -630,9 +623,9 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
                                     style: TextStyle(
                                       fontSize: 11,
                                       fontWeight: FontWeight.bold,
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.onPrimaryContainer,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onPrimaryContainer,
                                     ),
                                     overflow: TextOverflow.ellipsis,
                                   ),
@@ -668,9 +661,10 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.onSurface.withValues(alpha: 0.6),
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withValues(alpha: 0.6),
                   ),
                 ),
                 SizedBox(
@@ -681,50 +675,43 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
                     value: screenerSortBy,
                     underline: Container(
                       height: 1,
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.outlineVariant.withValues(alpha: 0.3),
+                      color: Theme.of(context)
+                          .colorScheme
+                          .outlineVariant
+                          .withValues(alpha: 0.3),
                     ),
                     items: const [
                       DropdownMenuItem(
-                        value: 'symbol',
-                        child: Text('Symbol', style: TextStyle(fontSize: 13)),
-                      ),
+                          value: 'symbol',
+                          child:
+                              Text('Symbol', style: TextStyle(fontSize: 13))),
                       DropdownMenuItem(
-                        value: 'marketCap',
-                        child: Text(
-                          'Market Cap',
-                          style: TextStyle(fontSize: 13),
-                        ),
-                      ),
+                          value: 'marketCap',
+                          child: Text('Market Cap',
+                              style: TextStyle(fontSize: 13))),
                       DropdownMenuItem(
-                        value: 'pe',
-                        child: Text(
-                          'P/E Ratio',
-                          style: TextStyle(fontSize: 13),
-                        ),
-                      ),
+                          value: 'pe',
+                          child: Text('P/E Ratio',
+                              style: TextStyle(fontSize: 13))),
                       DropdownMenuItem(
-                        value: 'dividend',
-                        child: Text('Dividend', style: TextStyle(fontSize: 13)),
-                      ),
+                          value: 'dividend',
+                          child:
+                              Text('Dividend', style: TextStyle(fontSize: 13))),
                       DropdownMenuItem(
-                        value: 'price',
-                        child: Text('Price', style: TextStyle(fontSize: 13)),
-                      ),
+                          value: 'price',
+                          child: Text('Price', style: TextStyle(fontSize: 13))),
                       DropdownMenuItem(
-                        value: 'volume',
-                        child: Text('Volume', style: TextStyle(fontSize: 13)),
-                      ),
+                          value: 'volume',
+                          child:
+                              Text('Volume', style: TextStyle(fontSize: 13))),
                     ],
                     onChanged: (value) {
                       if (value != null) {
                         setState(() {
                           screenerSortBy = value;
                           if (screenerResults != null) {
-                            sortedResults = _sortScreenerResults(
-                              screenerResults!,
-                            );
+                            sortedResults =
+                                _sortScreenerResults(screenerResults!);
                           }
                         });
                       }
@@ -749,12 +736,12 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
           crossAxisSpacing: 4.0,
           mainAxisExtent: 144.0,
         ),
-        delegate: SliverChildBuilderDelegate((
-          BuildContext context,
-          int gridIndex,
-        ) {
-          return _buildListGridItem(results, gridIndex, widget.brokerageUser);
-        }, childCount: count),
+        delegate: SliverChildBuilderDelegate(
+          (BuildContext context, int gridIndex) {
+            return _buildListGridItem(results, gridIndex, widget.brokerageUser);
+          },
+          childCount: count,
+        ),
       ),
     );
   }
@@ -763,9 +750,12 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
     return SliverPadding(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       sliver: SliverList(
-        delegate: SliverChildBuilderDelegate((BuildContext context, int index) {
-          return _buildListRowItem(results, index, widget.brokerageUser);
-        }, childCount: count),
+        delegate: SliverChildBuilderDelegate(
+          (BuildContext context, int index) {
+            return _buildListRowItem(results, index, widget.brokerageUser);
+          },
+          childCount: count,
+        ),
       ),
     );
   }
@@ -806,13 +796,12 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.search_off,
-              size: 48,
-              color: Theme.of(
-                context,
-              ).colorScheme.onSurface.withValues(alpha: 0.3),
-            ),
+            Icon(Icons.search_off,
+                size: 48,
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSurface
+                    .withValues(alpha: 0.3)),
             const SizedBox(height: 16),
             Text(
               activePreset != null
@@ -821,9 +810,10 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w500,
-                color: Theme.of(
-                  context,
-                ).colorScheme.onSurface.withValues(alpha: 0.6),
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSurface
+                    .withValues(alpha: 0.6),
               ),
             ),
             const SizedBox(height: 8),
@@ -831,9 +821,10 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
               'Try adjusting your filter criteria or relax restrictions',
               style: TextStyle(
                 fontSize: 12,
-                color: Theme.of(
-                  context,
-                ).colorScheme.onSurface.withValues(alpha: 0.4),
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSurface
+                    .withValues(alpha: 0.4),
               ),
             ),
             const SizedBox(height: 16),
@@ -869,14 +860,12 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(height: 8),
-          Text(
-            'Quick Presets',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: Theme.of(context).colorScheme.onSurface,
-            ),
-          ),
+          Text('Quick Presets',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Theme.of(context).colorScheme.onSurface,
+              )),
           SizedBox(height: 8),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
@@ -905,15 +894,11 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
                 FilledButton.tonalIcon(
                   onPressed: _showRobinhoodPresetsModal,
                   icon: const Icon(Icons.auto_awesome, size: 16),
-                  label: const Text(
-                    'Curated Presets',
-                    style: TextStyle(fontSize: 13),
-                  ),
+                  label: const Text('Curated Presets',
+                      style: TextStyle(fontSize: 13)),
                   style: FilledButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   ),
                 ),
                 SizedBox(width: 8),
@@ -941,12 +926,10 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
           DropdownButtonFormField<String>(
             initialValue: screenerSector,
             items: sectors
-                .map(
-                  (s) => DropdownMenuItem(
-                    value: s == 'All' ? null : s,
-                    child: Text(s),
-                  ),
-                )
+                .map((s) => DropdownMenuItem(
+                      value: s == 'All' ? null : s,
+                      child: Text(s),
+                    ))
                 .toList(),
             decoration: InputDecoration(
               labelText: 'Sector',
@@ -972,31 +955,29 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
                 ),
               ),
               filled: true,
-              fillColor: Theme.of(
-                context,
-              ).colorScheme.primaryContainer.withValues(alpha: 0.08),
+              fillColor: Theme.of(context)
+                  .colorScheme
+                  .primaryContainer
+                  .withValues(alpha: 0.08),
               labelStyle: TextStyle(
                 fontWeight: FontWeight.w500,
-                color: Theme.of(
-                  context,
-                ).colorScheme.onSurface.withValues(alpha: 0.7),
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSurface
+                    .withValues(alpha: 0.7),
               ),
-              contentPadding: EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 12,
-              ),
+              contentPadding:
+                  EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             ),
             onChanged: (v) => setState(() => screenerSector = v),
           ),
           SizedBox(height: 12),
-          Text(
-            'Market Cap',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: Theme.of(context).colorScheme.onSurface,
-            ),
-          ),
+          Text('Market Cap',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Theme.of(context).colorScheme.onSurface,
+              )),
           SizedBox(height: 4),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
@@ -1041,438 +1022,409 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
             ),
           ),
           SizedBox(height: 8),
-          Row(
-            children: [
-              Flexible(
-                child: TextField(
-                  controller: marketCapMinCtl,
-                  decoration: InputDecoration(
-                    labelText: 'Min (USD)',
-                    hintText: '1000000000',
-                    helperText: '\$1B = 1,000,000,000',
-                    helperMaxLines: 1,
-                    isDense: true,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(
-                        color: Theme.of(context).colorScheme.outlineVariant,
-                        width: 1.0,
-                      ),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(
-                        color: Theme.of(context).colorScheme.outlineVariant,
-                        width: 1.0,
-                      ),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(
-                        color: Theme.of(context).colorScheme.primary,
-                        width: 1.5,
-                      ),
-                    ),
-                    filled: true,
-                    fillColor: Theme.of(
-                      context,
-                    ).colorScheme.primaryContainer.withValues(alpha: 0.05),
-                    contentPadding: EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 12,
+          Row(children: [
+            Flexible(
+              child: TextField(
+                controller: marketCapMinCtl,
+                decoration: InputDecoration(
+                  labelText: 'Min (USD)',
+                  hintText: '1000000000',
+                  helperText: '\$1B = 1,000,000,000',
+                  helperMaxLines: 1,
+                  isDense: true,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).colorScheme.outlineVariant,
+                      width: 1.0,
                     ),
                   ),
-                  keyboardType: TextInputType.number,
-                  onChanged: (v) =>
-                      setState(() => screenerMarketCapMin = int.tryParse(v)),
-                ),
-              ),
-              SizedBox(width: 12),
-              Flexible(
-                child: TextField(
-                  controller: marketCapMaxCtl,
-                  decoration: InputDecoration(
-                    labelText: 'Max (USD)',
-                    hintText: '100000000000',
-                    helperText: '\$100B = 100,000,000,000',
-                    helperMaxLines: 1,
-                    isDense: true,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(
-                        color: Theme.of(context).colorScheme.outlineVariant,
-                        width: 1.0,
-                      ),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(
-                        color: Theme.of(context).colorScheme.outlineVariant,
-                        width: 1.0,
-                      ),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(
-                        color: Theme.of(context).colorScheme.primary,
-                        width: 1.5,
-                      ),
-                    ),
-                    filled: true,
-                    fillColor: Theme.of(
-                      context,
-                    ).colorScheme.primaryContainer.withValues(alpha: 0.05),
-                    contentPadding: EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 12,
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).colorScheme.outlineVariant,
+                      width: 1.0,
                     ),
                   ),
-                  keyboardType: TextInputType.number,
-                  onChanged: (v) =>
-                      setState(() => screenerMarketCapMax = int.tryParse(v)),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).colorScheme.primary,
+                      width: 1.5,
+                    ),
+                  ),
+                  filled: true,
+                  fillColor: Theme.of(context)
+                      .colorScheme
+                      .primaryContainer
+                      .withValues(alpha: 0.05),
+                  contentPadding:
+                      EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                 ),
+                keyboardType: TextInputType.number,
+                onChanged: (v) =>
+                    setState(() => screenerMarketCapMin = int.tryParse(v)),
               ),
-            ],
-          ),
+            ),
+            SizedBox(width: 12),
+            Flexible(
+              child: TextField(
+                controller: marketCapMaxCtl,
+                decoration: InputDecoration(
+                  labelText: 'Max (USD)',
+                  hintText: '100000000000',
+                  helperText: '\$100B = 100,000,000,000',
+                  helperMaxLines: 1,
+                  isDense: true,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).colorScheme.outlineVariant,
+                      width: 1.0,
+                    ),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).colorScheme.outlineVariant,
+                      width: 1.0,
+                    ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).colorScheme.primary,
+                      width: 1.5,
+                    ),
+                  ),
+                  filled: true,
+                  fillColor: Theme.of(context)
+                      .colorScheme
+                      .primaryContainer
+                      .withValues(alpha: 0.05),
+                  contentPadding:
+                      EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                ),
+                keyboardType: TextInputType.number,
+                onChanged: (v) =>
+                    setState(() => screenerMarketCapMax = int.tryParse(v)),
+              ),
+            ),
+          ]),
           SizedBox(height: 12),
-          Text(
-            'P/E Ratio',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: Theme.of(context).colorScheme.onSurface,
-            ),
-          ),
-          Text(
-            'Value: <15, Growth: >20',
-            style: TextStyle(
-              fontSize: 11,
-              color: Theme.of(
-                context,
-              ).colorScheme.onSurface.withValues(alpha: 0.6),
-            ),
-          ),
+          Text('P/E Ratio',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Theme.of(context).colorScheme.onSurface,
+              )),
+          Text('Value: <15, Growth: >20',
+              style: TextStyle(
+                fontSize: 11,
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSurface
+                    .withValues(alpha: 0.6),
+              )),
           SizedBox(height: 4),
-          Row(
-            children: [
-              Flexible(
-                child: TextField(
-                  controller: peMinCtl,
-                  decoration: InputDecoration(
-                    labelText: 'Min',
-                    hintText: '10',
-                    isDense: true,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(
-                        color: Theme.of(context).colorScheme.outlineVariant,
-                        width: 1.0,
-                      ),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(
-                        color: Theme.of(context).colorScheme.outlineVariant,
-                        width: 1.0,
-                      ),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(
-                        color: Theme.of(context).colorScheme.primary,
-                        width: 1.5,
-                      ),
-                    ),
-                    filled: true,
-                    fillColor: Theme.of(
-                      context,
-                    ).colorScheme.primaryContainer.withValues(alpha: 0.05),
-                    contentPadding: EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 12,
+          Row(children: [
+            Flexible(
+              child: TextField(
+                controller: peMinCtl,
+                decoration: InputDecoration(
+                  labelText: 'Min',
+                  hintText: '10',
+                  isDense: true,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).colorScheme.outlineVariant,
+                      width: 1.0,
                     ),
                   ),
-                  keyboardType: TextInputType.numberWithOptions(decimal: true),
-                  onChanged: (v) =>
-                      setState(() => screenerPeMin = int.tryParse(v)),
-                ),
-              ),
-              SizedBox(width: 12),
-              Flexible(
-                child: TextField(
-                  controller: peMaxCtl,
-                  decoration: InputDecoration(
-                    labelText: 'Max',
-                    hintText: '30',
-                    isDense: true,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(
-                        color: Theme.of(context).colorScheme.outlineVariant,
-                        width: 1.0,
-                      ),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(
-                        color: Theme.of(context).colorScheme.outlineVariant,
-                        width: 1.0,
-                      ),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(
-                        color: Theme.of(context).colorScheme.primary,
-                        width: 1.5,
-                      ),
-                    ),
-                    filled: true,
-                    fillColor: Theme.of(
-                      context,
-                    ).colorScheme.primaryContainer.withValues(alpha: 0.05),
-                    contentPadding: EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 12,
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).colorScheme.outlineVariant,
+                      width: 1.0,
                     ),
                   ),
-                  keyboardType: TextInputType.numberWithOptions(decimal: true),
-                  onChanged: (v) =>
-                      setState(() => screenerPeMax = int.tryParse(v)),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).colorScheme.primary,
+                      width: 1.5,
+                    ),
+                  ),
+                  filled: true,
+                  fillColor: Theme.of(context)
+                      .colorScheme
+                      .primaryContainer
+                      .withValues(alpha: 0.05),
+                  contentPadding:
+                      EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                 ),
+                keyboardType: TextInputType.numberWithOptions(decimal: true),
+                onChanged: (v) =>
+                    setState(() => screenerPeMin = int.tryParse(v)),
               ),
-            ],
-          ),
+            ),
+            SizedBox(width: 12),
+            Flexible(
+              child: TextField(
+                controller: peMaxCtl,
+                decoration: InputDecoration(
+                  labelText: 'Max',
+                  hintText: '30',
+                  isDense: true,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).colorScheme.outlineVariant,
+                      width: 1.0,
+                    ),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).colorScheme.outlineVariant,
+                      width: 1.0,
+                    ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).colorScheme.primary,
+                      width: 1.5,
+                    ),
+                  ),
+                  filled: true,
+                  fillColor: Theme.of(context)
+                      .colorScheme
+                      .primaryContainer
+                      .withValues(alpha: 0.05),
+                  contentPadding:
+                      EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                ),
+                keyboardType: TextInputType.numberWithOptions(decimal: true),
+                onChanged: (v) =>
+                    setState(() => screenerPeMax = int.tryParse(v)),
+              ),
+            ),
+          ]),
           SizedBox(height: 12),
-          Text(
-            'Dividend Yield (%)',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: Theme.of(context).colorScheme.onSurface,
-            ),
-          ),
-          Text(
-            'High dividend: >3%',
-            style: TextStyle(
-              fontSize: 11,
-              color: Theme.of(
-                context,
-              ).colorScheme.onSurface.withValues(alpha: 0.6),
-            ),
-          ),
+          Text('Dividend Yield (%)',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Theme.of(context).colorScheme.onSurface,
+              )),
+          Text('High dividend: >3%',
+              style: TextStyle(
+                fontSize: 11,
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSurface
+                    .withValues(alpha: 0.6),
+              )),
           SizedBox(height: 4),
-          Row(
-            children: [
-              Flexible(
-                child: TextField(
-                  controller: dividendYieldMinCtl,
-                  decoration: InputDecoration(
-                    labelText: 'Min',
-                    hintText: '2',
-                    suffixText: '%',
-                    isDense: true,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(
-                        color: Theme.of(context).colorScheme.outlineVariant,
-                        width: 1.0,
-                      ),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(
-                        color: Theme.of(context).colorScheme.outlineVariant,
-                        width: 1.0,
-                      ),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(
-                        color: Theme.of(context).colorScheme.primary,
-                        width: 1.5,
-                      ),
-                    ),
-                    filled: true,
-                    fillColor: Theme.of(
-                      context,
-                    ).colorScheme.primaryContainer.withValues(alpha: 0.05),
-                    contentPadding: EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 12,
+          Row(children: [
+            Flexible(
+              child: TextField(
+                controller: dividendYieldMinCtl,
+                decoration: InputDecoration(
+                  labelText: 'Min',
+                  hintText: '2',
+                  suffixText: '%',
+                  isDense: true,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).colorScheme.outlineVariant,
+                      width: 1.0,
                     ),
                   ),
-                  keyboardType: TextInputType.numberWithOptions(decimal: true),
-                  onChanged: (v) => setState(
-                    () => screenerDividendYieldMin = int.tryParse(v),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).colorScheme.outlineVariant,
+                      width: 1.0,
+                    ),
                   ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).colorScheme.primary,
+                      width: 1.5,
+                    ),
+                  ),
+                  filled: true,
+                  fillColor: Theme.of(context)
+                      .colorScheme
+                      .primaryContainer
+                      .withValues(alpha: 0.05),
+                  contentPadding:
+                      EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                 ),
+                keyboardType: TextInputType.numberWithOptions(decimal: true),
+                onChanged: (v) =>
+                    setState(() => screenerDividendYieldMin = int.tryParse(v)),
               ),
-              SizedBox(width: 12),
-              Flexible(
-                child: TextField(
-                  controller: dividendYieldMaxCtl,
-                  decoration: InputDecoration(
-                    labelText: 'Max',
-                    hintText: '5',
-                    suffixText: '%',
-                    isDense: true,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(
-                        color: Theme.of(context).colorScheme.outlineVariant,
-                        width: 1.0,
-                      ),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(
-                        color: Theme.of(context).colorScheme.outlineVariant,
-                        width: 1.0,
-                      ),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(
-                        color: Theme.of(context).colorScheme.primary,
-                        width: 1.5,
-                      ),
-                    ),
-                    filled: true,
-                    fillColor: Theme.of(
-                      context,
-                    ).colorScheme.primaryContainer.withValues(alpha: 0.05),
-                    contentPadding: EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 12,
-                    ),
-                  ),
-                  keyboardType: TextInputType.numberWithOptions(decimal: true),
-                  onChanged: (v) => setState(
-                    () => screenerDividendYieldMax = int.tryParse(v),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: 12),
-          Text(
-            'Price Range (\$)',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: Theme.of(context).colorScheme.onSurface,
             ),
-          ),
+            SizedBox(width: 12),
+            Flexible(
+              child: TextField(
+                controller: dividendYieldMaxCtl,
+                decoration: InputDecoration(
+                  labelText: 'Max',
+                  hintText: '5',
+                  suffixText: '%',
+                  isDense: true,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).colorScheme.outlineVariant,
+                      width: 1.0,
+                    ),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).colorScheme.outlineVariant,
+                      width: 1.0,
+                    ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).colorScheme.primary,
+                      width: 1.5,
+                    ),
+                  ),
+                  filled: true,
+                  fillColor: Theme.of(context)
+                      .colorScheme
+                      .primaryContainer
+                      .withValues(alpha: 0.05),
+                  contentPadding:
+                      EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                ),
+                keyboardType: TextInputType.numberWithOptions(decimal: true),
+                onChanged: (v) =>
+                    setState(() => screenerDividendYieldMax = int.tryParse(v)),
+              ),
+            ),
+          ]),
+          SizedBox(height: 12),
+          Text('Price Range (\$)',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Theme.of(context).colorScheme.onSurface,
+              )),
           SizedBox(height: 4),
-          Row(
-            children: [
-              Flexible(
-                child: TextField(
-                  controller: priceMinCtl,
-                  decoration: InputDecoration(
-                    labelText: 'Min',
-                    hintText: '10',
-                    prefixText: '\$',
-                    isDense: true,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(
-                        color: Theme.of(context).colorScheme.outlineVariant,
-                        width: 1.0,
-                      ),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(
-                        color: Theme.of(context).colorScheme.outlineVariant,
-                        width: 1.0,
-                      ),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(
-                        color: Theme.of(context).colorScheme.primary,
-                        width: 1.5,
-                      ),
-                    ),
-                    filled: true,
-                    fillColor: Theme.of(
-                      context,
-                    ).colorScheme.primaryContainer.withValues(alpha: 0.05),
-                    contentPadding: EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 12,
+          Row(children: [
+            Flexible(
+              child: TextField(
+                controller: priceMinCtl,
+                decoration: InputDecoration(
+                  labelText: 'Min',
+                  hintText: '10',
+                  prefixText: '\$',
+                  isDense: true,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).colorScheme.outlineVariant,
+                      width: 1.0,
                     ),
                   ),
-                  keyboardType: TextInputType.numberWithOptions(decimal: true),
-                  onChanged: (v) =>
-                      setState(() => screenerPriceMin = double.tryParse(v)),
-                ),
-              ),
-              SizedBox(width: 12),
-              Flexible(
-                child: TextField(
-                  controller: priceMaxCtl,
-                  decoration: InputDecoration(
-                    labelText: 'Max',
-                    hintText: '500',
-                    prefixText: '\$',
-                    isDense: true,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(
-                        color: Theme.of(context).colorScheme.outlineVariant,
-                        width: 1.0,
-                      ),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(
-                        color: Theme.of(context).colorScheme.outlineVariant,
-                        width: 1.0,
-                      ),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(
-                        color: Theme.of(context).colorScheme.primary,
-                        width: 1.5,
-                      ),
-                    ),
-                    filled: true,
-                    fillColor: Theme.of(
-                      context,
-                    ).colorScheme.primaryContainer.withValues(alpha: 0.05),
-                    contentPadding: EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 12,
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).colorScheme.outlineVariant,
+                      width: 1.0,
                     ),
                   ),
-                  keyboardType: TextInputType.numberWithOptions(decimal: true),
-                  onChanged: (v) =>
-                      setState(() => screenerPriceMax = double.tryParse(v)),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).colorScheme.primary,
+                      width: 1.5,
+                    ),
+                  ),
+                  filled: true,
+                  fillColor: Theme.of(context)
+                      .colorScheme
+                      .primaryContainer
+                      .withValues(alpha: 0.05),
+                  contentPadding:
+                      EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                 ),
+                keyboardType: TextInputType.numberWithOptions(decimal: true),
+                onChanged: (v) =>
+                    setState(() => screenerPriceMin = double.tryParse(v)),
               ),
-            ],
-          ),
+            ),
+            SizedBox(width: 12),
+            Flexible(
+              child: TextField(
+                controller: priceMaxCtl,
+                decoration: InputDecoration(
+                  labelText: 'Max',
+                  hintText: '500',
+                  prefixText: '\$',
+                  isDense: true,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).colorScheme.outlineVariant,
+                      width: 1.0,
+                    ),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).colorScheme.outlineVariant,
+                      width: 1.0,
+                    ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).colorScheme.primary,
+                      width: 1.5,
+                    ),
+                  ),
+                  filled: true,
+                  fillColor: Theme.of(context)
+                      .colorScheme
+                      .primaryContainer
+                      .withValues(alpha: 0.05),
+                  contentPadding:
+                      EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                ),
+                keyboardType: TextInputType.numberWithOptions(decimal: true),
+                onChanged: (v) =>
+                    setState(() => screenerPriceMax = double.tryParse(v)),
+              ),
+            ),
+          ]),
           SizedBox(height: 12),
-          Text(
-            'Volume',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: Theme.of(context).colorScheme.onSurface,
-            ),
-          ),
-          Text(
-            'Minimum average daily volume',
-            style: TextStyle(
-              fontSize: 11,
-              color: Theme.of(
-                context,
-              ).colorScheme.onSurface.withValues(alpha: 0.6),
-            ),
-          ),
+          Text('Volume',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Theme.of(context).colorScheme.onSurface,
+              )),
+          Text('Minimum average daily volume',
+              style: TextStyle(
+                fontSize: 11,
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSurface
+                    .withValues(alpha: 0.6),
+              )),
           SizedBox(height: 4),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
@@ -1538,13 +1490,12 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
                 ),
               ),
               filled: true,
-              fillColor: Theme.of(
-                context,
-              ).colorScheme.primaryContainer.withValues(alpha: 0.05),
-              contentPadding: EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 12,
-              ),
+              fillColor: Theme.of(context)
+                  .colorScheme
+                  .primaryContainer
+                  .withValues(alpha: 0.05),
+              contentPadding:
+                  EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             ),
             keyboardType: TextInputType.number,
             onChanged: (v) =>
@@ -1576,15 +1527,19 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
                   onPressed: screenerLoading ? null : _runScreener,
                   label: Text(
                     screenerLoading ? 'Screening...' : 'Run Screener',
-                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                    ),
                   ),
                   style: FilledButton.styleFrom(
                     padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     backgroundColor: Theme.of(context).colorScheme.primary,
                     foregroundColor: Theme.of(context).colorScheme.onPrimary,
-                    disabledBackgroundColor: Theme.of(
-                      context,
-                    ).colorScheme.primary.withValues(alpha: 0.5),
+                    disabledBackgroundColor: Theme.of(context)
+                        .colorScheme
+                        .primary
+                        .withValues(alpha: 0.5),
                   ),
                 ),
               ),
@@ -1614,8 +1569,7 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
         screenerDividendYieldMax != null &&
         screenerDividendYieldMin! > screenerDividendYieldMax!) {
       setState(
-        () => errorText = 'Dividend Yield Min cannot be greater than Max.',
-      );
+          () => errorText = 'Dividend Yield Min cannot be greater than Max.');
       return;
     }
     if (screenerPriceMin != null &&
@@ -1753,19 +1707,17 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
               spacing: 6,
               runSpacing: 6,
               children: _activeFilterLabels
-                  .map(
-                    (label) => Chip(
-                      label: Text(label),
-                      visualDensity: VisualDensity.compact,
-                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      labelStyle: TextStyle(
-                        fontSize: 11,
-                        color: scheme.onSecondaryContainer,
-                      ),
-                      backgroundColor: scheme.secondaryContainer,
-                      side: BorderSide.none,
-                    ),
-                  )
+                  .map((label) => Chip(
+                        label: Text(label),
+                        visualDensity: VisualDensity.compact,
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        labelStyle: TextStyle(
+                          fontSize: 11,
+                          color: scheme.onSecondaryContainer,
+                        ),
+                        backgroundColor: scheme.secondaryContainer,
+                        side: BorderSide.none,
+                      ))
                   .toList(),
             ),
           ),
@@ -1781,12 +1733,8 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
   }
 
   List<String> get _activeFilterLabels {
-    String? range(
-      String label,
-      num? minimum,
-      num? maximum, {
-      String suffix = '',
-    }) {
+    String? range(String label, num? minimum, num? maximum,
+        {String suffix = ''}) {
       if (minimum == null && maximum == null) return null;
       final bounds = [
         if (minimum != null) '>= ${_formatFilterValue(minimum)}',
@@ -1799,12 +1747,8 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
       if (screenerSector != null) 'Sector: $screenerSector',
       range('Cap', screenerMarketCapMin, screenerMarketCapMax),
       range('P/E', screenerPeMin, screenerPeMax),
-      range(
-        'Yield',
-        screenerDividendYieldMin,
-        screenerDividendYieldMax,
-        suffix: '%',
-      ),
+      range('Yield', screenerDividendYieldMin, screenerDividendYieldMax,
+          suffix: '%'),
       range('Price', screenerPriceMin, screenerPriceMax, suffix: ' USD'),
       if (screenerVolumeMin != null)
         'Volume >= ${_formatFilterValue(screenerVolumeMin!)}',
@@ -1819,18 +1763,15 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
 
   Widget _buildQuickFilterChip(String label, VoidCallback onTap) {
     return ActionChip(
-      label: Text(
-        label,
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w500,
-          color: Theme.of(context).colorScheme.primary,
-        ),
-      ),
+      label: Text(label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            color: Theme.of(context).colorScheme.primary,
+          )),
       onPressed: onTap,
-      backgroundColor: Theme.of(
-        context,
-      ).colorScheme.primaryContainer.withValues(alpha: 0.2),
+      backgroundColor:
+          Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.2),
       side: BorderSide(
         color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
         width: 1,
@@ -1865,9 +1806,8 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
           'Every factor must match. Add as many as you need.',
           style: TextStyle(
             fontSize: 11,
-            color: Theme.of(
-              context,
-            ).colorScheme.onSurface.withValues(alpha: 0.6),
+            color:
+                Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
           ),
         ),
         if (customCriteria.isEmpty)
@@ -1877,9 +1817,10 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
               'No custom factors added',
               style: TextStyle(
                 fontSize: 12,
-                color: Theme.of(
-                  context,
-                ).colorScheme.onSurface.withValues(alpha: 0.5),
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSurface
+                    .withValues(alpha: 0.5),
               ),
             ),
           )
@@ -1908,8 +1849,9 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
     if (criterion.field.isText) {
       return '${criterion.field.label}: ${criterion.textValue}';
     }
-    String? formatBound(double? value) =>
-        value?.toStringAsFixed(value % 1 == 0 ? 0 : 2);
+    String? formatBound(double? value) => value?.toStringAsFixed(
+          value % 1 == 0 ? 0 : 2,
+        );
     final minimum = formatBound(criterion.minimum);
     final maximum = formatBound(criterion.maximum);
     final range = [
@@ -1940,10 +1882,11 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
         ),
         foregroundColor: Theme.of(context).colorScheme.primary,
       ),
-      child: Text(
-        label,
-        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
-      ),
+      child: Text(label,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+          )),
     );
   }
 
@@ -2060,19 +2003,15 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
         screenerVolumeMin = 1000000;
         volumeMinCtl.text = '1000000';
       } else if (lowerName.contains('52-week high')) {
-        customCriteria.add(
-          const ScreenerCriterion(
-            field: ScreenerField.fiftyTwoWeekPosition,
-            minimum: 97,
-          ),
-        );
+        customCriteria.add(const ScreenerCriterion(
+          field: ScreenerField.fiftyTwoWeekPosition,
+          minimum: 97,
+        ));
       } else if (lowerName.contains('52-week low')) {
-        customCriteria.add(
-          const ScreenerCriterion(
-            field: ScreenerField.fiftyTwoWeekPosition,
-            maximum: 5,
-          ),
-        );
+        customCriteria.add(const ScreenerCriterion(
+          field: ScreenerField.fiftyTwoWeekPosition,
+          maximum: 5,
+        ));
       }
 
       for (final crit in preset.criteria) {
@@ -2154,11 +2093,8 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
                 List<RobinhoodScreenerPreset> presets = [];
                 if (raw is Map<String, dynamic> && raw['results'] is List) {
                   presets = (raw['results'] as List)
-                      .map(
-                        (p) => RobinhoodScreenerPreset.fromJson(
-                          p as Map<String, dynamic>,
-                        ),
-                      )
+                      .map((p) => RobinhoodScreenerPreset.fromJson(
+                          p as Map<String, dynamic>))
                       .toList();
                 }
 
@@ -2180,8 +2116,10 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
                       children: [
                         Text(
                           'Curated Screener Presets',
-                          style: Theme.of(context).textTheme.titleLarge
-                              ?.copyWith(fontWeight: FontWeight.bold),
+                          style:
+                              Theme.of(context).textTheme.titleLarge?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
                         ),
                         IconButton(
                           icon: const Icon(Icons.close),
@@ -2193,8 +2131,9 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
                     Text(
                       'Select a Robinhood curated preset to automatically load its filtering criteria into the screener.',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
                     ),
                     const SizedBox(height: 16),
                     ...presets.map((preset) {
@@ -2228,9 +2167,7 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
                                   children: [
                                     Container(
                                       padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                        vertical: 4,
-                                      ),
+                                          horizontal: 8, vertical: 4),
                                       decoration: BoxDecoration(
                                         color: Theme.of(context)
                                             .colorScheme
@@ -2243,44 +2180,43 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
                                         style: TextStyle(
                                           fontSize: 11,
                                           fontWeight: FontWeight.bold,
-                                          color: Theme.of(
-                                            context,
-                                          ).colorScheme.onPrimaryContainer,
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onPrimaryContainer,
                                         ),
                                       ),
                                     ),
                                     if (preset.isFeatured) ...[
                                       const SizedBox(width: 8),
-                                      const Icon(
-                                        Icons.star,
-                                        size: 16,
-                                        color: Colors.amber,
-                                      ),
+                                      const Icon(Icons.star,
+                                          size: 16, color: Colors.amber),
                                     ],
                                     const Spacer(),
-                                    Icon(
-                                      Icons.arrow_forward,
-                                      size: 18,
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.primary,
-                                    ),
+                                    Icon(Icons.arrow_forward,
+                                        size: 18,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .primary),
                                   ],
                                 ),
                                 const SizedBox(height: 8),
                                 Text(
                                   preset.name,
-                                  style: Theme.of(context).textTheme.titleMedium
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .titleMedium
                                       ?.copyWith(fontWeight: FontWeight.bold),
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
                                   preset.description,
-                                  style: Theme.of(context).textTheme.bodySmall
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
                                       ?.copyWith(
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.onSurfaceVariant,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurfaceVariant,
                                       ),
                                 ),
                                 if (preset.criteria.isNotEmpty) ...[
@@ -2291,20 +2227,17 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
                                     children: preset.criteria.map((c) {
                                       return Container(
                                         padding: const EdgeInsets.symmetric(
-                                          horizontal: 8,
-                                          vertical: 3,
-                                        ),
+                                            horizontal: 8, vertical: 3),
                                         decoration: BoxDecoration(
-                                          color: Theme.of(
-                                            context,
-                                          ).colorScheme.surface,
-                                          borderRadius: BorderRadius.circular(
-                                            6,
-                                          ),
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .surface,
+                                          borderRadius:
+                                              BorderRadius.circular(6),
                                           border: Border.all(
-                                            color: Theme.of(
-                                              context,
-                                            ).colorScheme.outlineVariant,
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .outlineVariant,
                                             width: 0.8,
                                           ),
                                         ),
@@ -2384,19 +2317,14 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
   }
 
   Widget _buildListGridItem(
-    List<Instrument> instruments,
-    int index,
-    BrokerageUser user,
-  ) {
+      List<Instrument> instruments, int index, BrokerageUser user) {
     final instrumentObj = instruments[index];
     final hasQuote = instrumentObj.quoteObj != null;
-    final lastTradePrice = hasQuote
-        ? instrumentObj.quoteObj!.lastTradePrice
-        : null;
+    final lastTradePrice =
+        hasQuote ? instrumentObj.quoteObj!.lastTradePrice : null;
     final changeToday = hasQuote ? instrumentObj.quoteObj!.changeToday : 0.0;
-    final changePercentToday = hasQuote
-        ? instrumentObj.quoteObj!.changePercentToday
-        : 0.0;
+    final changePercentToday =
+        hasQuote ? instrumentObj.quoteObj!.changePercentToday : 0.0;
     final fundamentals = instrumentObj.fundamentalsObj;
 
     String? keyMetricLabel;
@@ -2435,8 +2363,8 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
           color: changeToday > 0
               ? Colors.green.withValues(alpha: 0.3)
               : (changeToday < 0
-                    ? Colors.red.withValues(alpha: 0.3)
-                    : Colors.grey.withValues(alpha: 0.2)),
+                  ? Colors.red.withValues(alpha: 0.3)
+                  : Colors.grey.withValues(alpha: 0.2)),
           width: 1.5,
         ),
       ),
@@ -2483,13 +2411,11 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
                   if (keyMetricLabel != null)
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 5,
-                        vertical: 1.5,
-                      ),
+                          horizontal: 5, vertical: 1.5),
                       decoration: BoxDecoration(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.surfaceContainerHighest,
+                        color: Theme.of(context)
+                            .colorScheme
+                            .surfaceContainerHighest,
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
@@ -2530,8 +2456,8 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
                       changeToday > 0
                           ? Icons.trending_up
                           : (changeToday < 0
-                                ? Icons.trending_down
-                                : Icons.trending_flat),
+                              ? Icons.trending_down
+                              : Icons.trending_flat),
                       color: changeToday > 0
                           ? Colors.green
                           : (changeToday < 0 ? Colors.red : Colors.grey),
@@ -2557,9 +2483,8 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
                 Text(
                   'No quote data',
                   style: TextStyle(
-                    fontSize: 12.0,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
+                      fontSize: 12.0,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant),
                 ),
               ],
               const SizedBox(height: 6),
@@ -2568,9 +2493,10 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
                   instrumentObj.fundamentalsObj?.description ?? '',
                   style: TextStyle(
                     fontSize: 11.0,
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.onSurface.withValues(alpha: 0.6),
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withValues(alpha: 0.6),
                   ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
@@ -2584,19 +2510,14 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
   }
 
   Widget _buildListRowItem(
-    List<Instrument> instruments,
-    int index,
-    BrokerageUser user,
-  ) {
+      List<Instrument> instruments, int index, BrokerageUser user) {
     final instrumentObj = instruments[index];
     final hasQuote = instrumentObj.quoteObj != null;
-    final lastTradePrice = hasQuote
-        ? instrumentObj.quoteObj!.lastTradePrice
-        : null;
+    final lastTradePrice =
+        hasQuote ? instrumentObj.quoteObj!.lastTradePrice : null;
     final changeToday = hasQuote ? instrumentObj.quoteObj!.changeToday : 0.0;
-    final changePercentToday = hasQuote
-        ? instrumentObj.quoteObj!.changePercentToday
-        : 0.0;
+    final changePercentToday =
+        hasQuote ? instrumentObj.quoteObj!.changePercentToday : 0.0;
     final fundamentals = instrumentObj.fundamentalsObj;
     final sector = fundamentals?.sector;
 
@@ -2606,9 +2527,10 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(10.0),
         side: BorderSide(
-          color: Theme.of(
-            context,
-          ).colorScheme.outlineVariant.withValues(alpha: 0.4),
+          color: Theme.of(context)
+              .colorScheme
+              .outlineVariant
+              .withValues(alpha: 0.4),
           width: 0.8,
         ),
       ),
@@ -2624,14 +2546,11 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
             if (sector != null && sector.isNotEmpty)
               Flexible(
                 child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 6,
-                    vertical: 2,
-                  ),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.surfaceContainerHighest,
+                    color:
+                        Theme.of(context).colorScheme.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
@@ -2654,10 +2573,8 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
             if (lastTradePrice != null)
               Text(
                 formatCurrency.format(lastTradePrice),
-                style: const TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 15,
-                ),
+                style:
+                    const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
               ),
             if (hasQuote)
               Text(
@@ -2697,8 +2614,7 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
 
     if (fundamentals?.marketCap != null) {
       metrics.add(
-        'Cap: \$${formatCompactNumber.format(fundamentals!.marketCap!)}',
-      );
+          'Cap: \$${formatCompactNumber.format(fundamentals!.marketCap!)}');
     }
     if (fundamentals?.dividendYield != null &&
         fundamentals!.dividendYield! > 0) {
@@ -2709,8 +2625,7 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
     }
     if (fundamentals?.averageVolume != null) {
       metrics.add(
-        'Vol: ${formatCompactNumber.format(fundamentals!.averageVolume!)}',
-      );
+          'Vol: ${formatCompactNumber.format(fundamentals!.averageVolume!)}');
     }
 
     if (metrics.isEmpty) {
@@ -2774,12 +2689,10 @@ class _ScreenerCriterionDialogState extends State<_ScreenerCriterionDialog> {
               initialValue: field,
               decoration: const InputDecoration(labelText: 'Factor'),
               items: ScreenerField.values
-                  .map(
-                    (value) => DropdownMenuItem(
-                      value: value,
-                      child: Text(value.label),
-                    ),
-                  )
+                  .map((value) => DropdownMenuItem(
+                        value: value,
+                        child: Text(value.label),
+                      ))
                   .toList(),
               onChanged: (value) {
                 if (value != null) setState(() => field = value);
@@ -2840,7 +2753,10 @@ class _ScreenerCriterionDialogState extends State<_ScreenerCriterionDialog> {
           onPressed: () => Navigator.pop(context),
           child: const Text('Cancel'),
         ),
-        FilledButton(onPressed: _submit, child: const Text('Add factor')),
+        FilledButton(
+          onPressed: _submit,
+          child: const Text('Add factor'),
+        ),
       ],
     );
   }

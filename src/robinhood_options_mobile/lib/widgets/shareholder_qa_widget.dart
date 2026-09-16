@@ -28,8 +28,7 @@ class ShareholderQaWidget extends StatefulWidget {
 class _ShareholderQaWidgetState extends State<ShareholderQaWidget> {
   Future<ShareholderQaSection?>? _futureQaSection;
   ShareholderQaSection? _qaSection;
-  String _filterType =
-      'top_shares'; // 'top_shares', 'most_votes', 'answered', 'my_votes'
+  String _filterType = 'top_shares'; // 'top_shares', 'most_votes', 'answered', 'my_votes'
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
   final Set<String> _optimisticVotes = {};
@@ -55,30 +54,22 @@ class _ShareholderQaWidgetState extends State<ShareholderQaWidget> {
   void _loadData() {
     setState(() {
       _futureQaSection = widget.service
-          .getShareholderQaSectionModel(
-            widget.brokerageUser,
-            effectiveInstrumentId,
-            symbol: effectiveSymbol,
-          )
+          .getShareholderQaSectionModel(widget.brokerageUser, effectiveInstrumentId,
+              symbol: effectiveSymbol)
           .then((section) {
-            if (mounted) {
-              setState(() {
-                _qaSection = section;
-              });
-            }
-            return section;
+        if (mounted) {
+          setState(() {
+            _qaSection = section;
           });
+        }
+        return section;
+      });
     });
   }
 
-  Future<void> _handleVote(
-    ShareholderQaEvent event,
-    ShareholderQuestion question,
-  ) async {
-    final currentlyVoted =
-        _optimisticVotes.contains(question.id) ||
-        (!_optimisticVotes.contains('unvoted_${question.id}') &&
-            question.isUserVoted);
+  Future<void> _handleVote(ShareholderQaEvent event, ShareholderQuestion question) async {
+    final currentlyVoted = _optimisticVotes.contains(question.id) ||
+        (!_optimisticVotes.contains('unvoted_${question.id}') && question.isUserVoted);
 
     setState(() {
       if (currentlyVoted) {
@@ -108,17 +99,12 @@ class _ShareholderQaWidgetState extends State<ShareholderQaWidget> {
         }
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Failed to update vote. Please try again.'),
-        ),
+        const SnackBar(content: Text('Failed to update vote. Please try again.')),
       );
     }
   }
 
-  void _showSubmitQuestionSheet(
-    BuildContext context,
-    ShareholderQaEvent event,
-  ) {
+  void _showSubmitQuestionSheet(BuildContext context, ShareholderQaEvent event) {
     final textController = TextEditingController();
     bool isSubmitting = false;
 
@@ -152,17 +138,15 @@ class _ShareholderQaWidgetState extends State<ShareholderQaWidget> {
                     children: [
                       Row(
                         children: [
-                          Icon(
-                            Icons.how_to_vote,
-                            color: Theme.of(
-                              sheetInnerContext,
-                            ).colorScheme.primary,
-                            size: 24,
-                          ),
+                          Icon(Icons.how_to_vote,
+                              color: Theme.of(sheetInnerContext).colorScheme.primary,
+                              size: 24),
                           const SizedBox(width: 8),
                           Text(
                             'Ask Management',
-                            style: Theme.of(context).textTheme.titleLarge
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleLarge
                                 ?.copyWith(fontWeight: FontWeight.bold),
                           ),
                         ],
@@ -177,46 +161,46 @@ class _ShareholderQaWidgetState extends State<ShareholderQaWidget> {
                   Text(
                     event.title,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
                   ),
                   const SizedBox(height: 12),
                   // Shareholder badge notification
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.primaryContainer.withValues(alpha: 0.4),
+                      color: Theme.of(context)
+                          .colorScheme
+                          .primaryContainer
+                          .withValues(alpha: 0.4),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.primary.withValues(alpha: 0.3),
+                        color: Theme.of(context)
+                            .colorScheme
+                            .primary
+                            .withValues(alpha: 0.3),
                       ),
                     ),
                     child: Row(
                       children: [
-                        Icon(
-                          Icons.verified,
-                          color: Theme.of(context).colorScheme.primary,
-                          size: 16,
-                        ),
+                        Icon(Icons.verified,
+                            color: Theme.of(context).colorScheme.primary,
+                            size: 16),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             userShares > 0
                                 ? 'Submitting as verified owner of ${userShares.toStringAsFixed(userShares == userShares.roundToDouble() ? 0 : 1)} shares.'
                                 : 'Submitting as a verified shareholder.',
-                            style: Theme.of(context).textTheme.bodySmall
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodySmall
                                 ?.copyWith(
                                   fontWeight: FontWeight.w600,
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onSurface,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurface,
                                 ),
                           ),
                         ),
@@ -234,9 +218,10 @@ class _ShareholderQaWidgetState extends State<ShareholderQaWidget> {
                       hintText:
                           'Ask about business strategy, financial results, or future roadmap...',
                       hintStyle: TextStyle(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurfaceVariant
+                            .withValues(alpha: 0.7),
                       ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -252,9 +237,9 @@ class _ShareholderQaWidgetState extends State<ShareholderQaWidget> {
                   Text(
                     'Guidelines: Focus on long-term strategy, unit economics, or execution. Avoid profanity or investment recommendations.',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      fontSize: 11,
-                    ),
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          fontSize: 11,
+                        ),
                   ),
                   const SizedBox(height: 16),
                   SizedBox(
@@ -264,13 +249,12 @@ class _ShareholderQaWidgetState extends State<ShareholderQaWidget> {
                       onPressed: canSubmit
                           ? () async {
                               setSheetState(() => isSubmitting = true);
-                              final submitted = await widget.service
-                                  .submitQuestion(
-                                    widget.brokerageUser,
-                                    effectiveInstrumentId,
-                                    event.id,
-                                    textController.text.trim(),
-                                  );
+                              final submitted = await widget.service.submitQuestion(
+                                widget.brokerageUser,
+                                effectiveInstrumentId,
+                                event.id,
+                                textController.text.trim(),
+                              );
                               if (sheetContext.mounted) {
                                 Navigator.pop(sheetContext);
                               }
@@ -279,8 +263,7 @@ class _ShareholderQaWidgetState extends State<ShareholderQaWidget> {
                                 ScaffoldMessenger.of(this.context).showSnackBar(
                                   const SnackBar(
                                     content: Text(
-                                      'Question submitted successfully for earnings Q&A!',
-                                    ),
+                                        'Question submitted successfully for earnings Q&A!'),
                                   ),
                                 );
                                 _loadData();
@@ -288,8 +271,7 @@ class _ShareholderQaWidgetState extends State<ShareholderQaWidget> {
                                 ScaffoldMessenger.of(this.context).showSnackBar(
                                   const SnackBar(
                                     content: Text(
-                                      'Could not submit question. Please try again later.',
-                                    ),
+                                        'Could not submit question. Please try again later.'),
                                   ),
                                 );
                               }
@@ -305,9 +287,7 @@ class _ShareholderQaWidgetState extends State<ShareholderQaWidget> {
                               ),
                             )
                           : const Icon(Icons.send),
-                      label: Text(
-                        isSubmitting ? 'Submitting...' : 'Submit Question',
-                      ),
+                      label: Text(isSubmitting ? 'Submitting...' : 'Submit Question'),
                     ),
                   ),
                 ],
@@ -328,10 +308,9 @@ class _ShareholderQaWidgetState extends State<ShareholderQaWidget> {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Shareholder Q&A',
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
+            Text('Shareholder Q&A',
+                style:
+                    const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             Text(
               effectiveSymbol,
               style: TextStyle(
@@ -364,22 +343,15 @@ class _ShareholderQaWidgetState extends State<ShareholderQaWidget> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(
-                      Icons.error_outline,
-                      size: 48,
-                      color: theme.colorScheme.error,
-                    ),
+                    Icon(Icons.error_outline,
+                        size: 48, color: theme.colorScheme.error),
                     const SizedBox(height: 12),
-                    Text(
-                      'Failed to load shareholder Q&A',
-                      style: theme.textTheme.titleMedium,
-                    ),
+                    Text('Failed to load shareholder Q&A',
+                        style: theme.textTheme.titleMedium),
                     const SizedBox(height: 8),
-                    Text(
-                      '${snapshot.error}',
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.bodySmall,
-                    ),
+                    Text('${snapshot.error}',
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.bodySmall),
                     const SizedBox(height: 16),
                     ElevatedButton(
                       onPressed: _loadData,
@@ -410,10 +382,7 @@ class _ShareholderQaWidgetState extends State<ShareholderQaWidget> {
                 ),
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 4,
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                     child: _buildShareholderVerificationBanner(event),
                   ),
                 ),
@@ -455,17 +424,14 @@ class _ShareholderQaWidgetState extends State<ShareholderQaWidget> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.forum_outlined,
-              size: 64,
-              color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
-            ),
+            Icon(Icons.forum_outlined,
+                size: 64,
+                color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5)),
             const SizedBox(height: 16),
             Text(
               'No Active Shareholder Q&A',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+              style: theme.textTheme.titleMedium
+                  ?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Text(
@@ -510,9 +476,7 @@ class _ShareholderQaWidgetState extends State<ShareholderQaWidget> {
                     children: [
                       Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 3,
-                        ),
+                            horizontal: 8, vertical: 3),
                         decoration: BoxDecoration(
                           color: badgeBg,
                           borderRadius: BorderRadius.circular(6),
@@ -521,8 +485,8 @@ class _ShareholderQaWidgetState extends State<ShareholderQaWidget> {
                           isClosed
                               ? 'CONCLUDED'
                               : (event.isVotingOpen
-                                    ? 'VOTING OPEN'
-                                    : 'Q&A ACTIVE'),
+                                  ? 'VOTING OPEN'
+                                  : 'Q&A ACTIVE'),
                           style: TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
@@ -545,9 +509,7 @@ class _ShareholderQaWidgetState extends State<ShareholderQaWidget> {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.primaryContainer.withValues(
-                      alpha: 0.5,
-                    ),
+                    color: theme.colorScheme.primaryContainer.withValues(alpha: 0.5),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
@@ -583,11 +545,8 @@ class _ShareholderQaWidgetState extends State<ShareholderQaWidget> {
               const SizedBox(height: 12),
               Row(
                 children: [
-                  Icon(
-                    Icons.schedule,
-                    size: 14,
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
+                  Icon(Icons.schedule,
+                      size: 14, color: theme.colorScheme.onSurfaceVariant),
                   const SizedBox(width: 4),
                   Text(
                     'Voting deadline: ${event.formattedDeadline}',
@@ -667,9 +626,7 @@ class _ShareholderQaWidgetState extends State<ShareholderQaWidget> {
                     const SizedBox(width: 6),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 2,
-                      ),
+                          horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
                         color: Colors.blue.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(4),
@@ -727,10 +684,8 @@ class _ShareholderQaWidgetState extends State<ShareholderQaWidget> {
               )
             : null,
         isDense: true,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 12,
-          vertical: 10,
-        ),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
           borderSide: BorderSide(color: theme.colorScheme.outlineVariant),
@@ -748,17 +703,12 @@ class _ShareholderQaWidgetState extends State<ShareholderQaWidget> {
         children: [
           _buildFilterChip('Top (Shares)', 'top_shares', Icons.bar_chart),
           const SizedBox(width: 8),
-          _buildFilterChip(
-            'Most Votes',
-            'most_votes',
-            Icons.thumb_up_alt_outlined,
-          ),
+          _buildFilterChip('Most Votes', 'most_votes', Icons.thumb_up_alt_outlined),
           const SizedBox(width: 8),
           _buildFilterChip(
-            'Answered (${event.questions.where((q) => q.isAnswered).length})',
-            'answered',
-            Icons.check_circle_outline,
-          ),
+              'Answered (${event.questions.where((q) => q.isAnswered).length})',
+              'answered',
+              Icons.check_circle_outline),
           const SizedBox(width: 8),
           _buildFilterChip('My Votes', 'my_votes', Icons.how_to_vote),
         ],
@@ -773,13 +723,11 @@ class _ShareholderQaWidgetState extends State<ShareholderQaWidget> {
     return FilterChip(
       selected: isSelected,
       label: Text(label),
-      avatar: Icon(
-        icon,
-        size: 14,
-        color: isSelected
-            ? theme.colorScheme.onPrimary
-            : theme.colorScheme.onSurfaceVariant,
-      ),
+      avatar: Icon(icon,
+          size: 14,
+          color: isSelected
+              ? theme.colorScheme.onPrimary
+              : theme.colorScheme.onSurfaceVariant),
       onSelected: (_) {
         setState(() {
           _filterType = value;
@@ -802,8 +750,7 @@ class _ShareholderQaWidgetState extends State<ShareholderQaWidget> {
       questions = questions.where((q) {
         return q.text.toLowerCase().contains(_searchQuery) ||
             q.authorDisplayName.toLowerCase().contains(_searchQuery) ||
-            (q.answer?.answerText.toLowerCase().contains(_searchQuery) ??
-                false);
+            (q.answer?.answerText.toLowerCase().contains(_searchQuery) ?? false);
       }).toList();
     }
 
@@ -812,8 +759,7 @@ class _ShareholderQaWidgetState extends State<ShareholderQaWidget> {
       questions = questions.where((q) => q.isAnswered).toList();
     } else if (_filterType == 'my_votes') {
       questions = questions.where((q) {
-        final isVoted =
-            _optimisticVotes.contains(q.id) ||
+        final isVoted = _optimisticVotes.contains(q.id) ||
             (!_optimisticVotes.contains('unvoted_${q.id}') && q.isUserVoted);
         return isVoted;
       }).toList();
@@ -824,9 +770,7 @@ class _ShareholderQaWidgetState extends State<ShareholderQaWidget> {
       questions.sort((a, b) => b.votesCount.compareTo(a.votesCount));
     } else {
       // Default: top by shares represented
-      questions.sort(
-        (a, b) => b.sharesRepresented.compareTo(a.sharesRepresented),
-      );
+      questions.sort((a, b) => b.sharesRepresented.compareTo(a.sharesRepresented));
     }
 
     if (questions.isEmpty) {
@@ -837,11 +781,8 @@ class _ShareholderQaWidgetState extends State<ShareholderQaWidget> {
             child: Center(
               child: Column(
                 children: [
-                  Icon(
-                    Icons.search_off,
-                    size: 40,
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
+                  Icon(Icons.search_off,
+                      size: 40, color: theme.colorScheme.onSurfaceVariant),
                   const SizedBox(height: 8),
                   Text(
                     _searchQuery.isNotEmpty
@@ -861,27 +802,25 @@ class _ShareholderQaWidgetState extends State<ShareholderQaWidget> {
 
     return [
       SliverList(
-        delegate: SliverChildBuilderDelegate((context, index) {
-          final question = questions[index];
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-            child: _buildQuestionCard(event, question, index + 1),
-          );
-        }, childCount: questions.length),
+        delegate: SliverChildBuilderDelegate(
+          (context, index) {
+            final question = questions[index];
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+              child: _buildQuestionCard(event, question, index + 1),
+            );
+          },
+          childCount: questions.length,
+        ),
       ),
     ];
   }
 
   Widget _buildQuestionCard(
-    ShareholderQaEvent event,
-    ShareholderQuestion question,
-    int rank,
-  ) {
+      ShareholderQaEvent event, ShareholderQuestion question, int rank) {
     final theme = Theme.of(context);
-    final isVoted =
-        _optimisticVotes.contains(question.id) ||
-        (!_optimisticVotes.contains('unvoted_${question.id}') &&
-            question.isUserVoted);
+    final isVoted = _optimisticVotes.contains(question.id) ||
+        (!_optimisticVotes.contains('unvoted_${question.id}') && question.isUserVoted);
 
     final isAnswered = question.isAnswered;
 
@@ -904,10 +843,8 @@ class _ShareholderQaWidgetState extends State<ShareholderQaWidget> {
             Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 6,
-                    vertical: 2,
-                  ),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
                     color: theme.colorScheme.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(4),
@@ -936,10 +873,8 @@ class _ShareholderQaWidgetState extends State<ShareholderQaWidget> {
                 ),
                 if (isAnswered)
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 3,
-                    ),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
                       color: Colors.teal.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(6),
@@ -979,11 +914,8 @@ class _ShareholderQaWidgetState extends State<ShareholderQaWidget> {
               children: [
                 Row(
                   children: [
-                    Icon(
-                      Icons.people_outline,
-                      size: 14,
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
+                    Icon(Icons.people_outline,
+                        size: 14, color: theme.colorScheme.onSurfaceVariant),
                     const SizedBox(width: 4),
                     Text(
                       '${question.formattedVotes} votes',
@@ -993,11 +925,8 @@ class _ShareholderQaWidgetState extends State<ShareholderQaWidget> {
                       ),
                     ),
                     const SizedBox(width: 10),
-                    Icon(
-                      Icons.pie_chart_outline,
-                      size: 14,
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
+                    Icon(Icons.pie_chart_outline,
+                        size: 14, color: theme.colorScheme.onSurfaceVariant),
                     const SizedBox(width: 4),
                     Text(
                       '${question.formattedShares} shares${question.percentageOfTotalShares != null ? " (${question.percentageOfTotalShares!.toStringAsFixed(1)}%)" : ""}',
@@ -1020,9 +949,7 @@ class _ShareholderQaWidgetState extends State<ShareholderQaWidget> {
                         : theme.colorScheme.onSurfaceVariant,
                     visualDensity: VisualDensity.compact,
                   ),
-                  icon: Icon(
-                    isVoted ? Icons.thumb_up : Icons.thumb_up_outlined,
-                  ),
+                  icon: Icon(isVoted ? Icons.thumb_up : Icons.thumb_up_outlined),
                   tooltip: isVoted ? 'Remove Vote' : 'Upvote Question',
                   onPressed: event.isVotingOpen
                       ? () => _handleVote(event, question)
@@ -1049,12 +976,10 @@ class _ShareholderQaWidgetState extends State<ShareholderQaWidget> {
                       children: [
                         CircleAvatar(
                           radius: 12,
-                          backgroundColor: Colors.teal.withValues(alpha: 0.2),
-                          child: const Icon(
-                            Icons.record_voice_over,
-                            size: 12,
-                            color: Colors.teal,
-                          ),
+                          backgroundColor:
+                              Colors.teal.withValues(alpha: 0.2),
+                          child: const Icon(Icons.record_voice_over,
+                              size: 12, color: Colors.teal),
                         ),
                         const SizedBox(width: 8),
                         Expanded(
@@ -1069,9 +994,7 @@ class _ShareholderQaWidgetState extends State<ShareholderQaWidget> {
                         if (question.answer!.formattedTimestamp.isNotEmpty)
                           Container(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 2,
-                            ),
+                                horizontal: 6, vertical: 2),
                             decoration: BoxDecoration(
                               color: Colors.teal.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(4),
@@ -1142,9 +1065,7 @@ class ShareholderQaCard extends StatelessWidget {
           return const SizedBox.shrink();
         }
 
-        final topQuestion = event.questions.isNotEmpty
-            ? event.questions.first
-            : null;
+        final topQuestion = event.questions.isNotEmpty ? event.questions.first : null;
 
         return Card(
           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -1179,11 +1100,8 @@ class ShareholderQaCard extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      Icon(
-                        Icons.how_to_vote_outlined,
-                        size: 20,
-                        color: theme.colorScheme.primary,
-                      ),
+                      Icon(Icons.how_to_vote_outlined,
+                          size: 20, color: theme.colorScheme.primary),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
@@ -1195,9 +1113,7 @@ class ShareholderQaCard extends StatelessWidget {
                       ),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 2,
-                        ),
+                            horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
                           color: event.isOpen
                               ? Colors.teal.withValues(alpha: 0.15)
@@ -1228,11 +1144,8 @@ class ShareholderQaCard extends StatelessWidget {
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      Icon(
-                        Icons.people_outline,
-                        size: 12,
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
+                      Icon(Icons.people_outline,
+                          size: 12, color: theme.colorScheme.onSurfaceVariant),
                       const SizedBox(width: 4),
                       Text(
                         '${event.formattedTotalVotes} votes • ${event.formattedTotalShares} shares voting',
@@ -1268,11 +1181,8 @@ class ShareholderQaCard extends StatelessWidget {
                               ),
                               if (topQuestion.isAnswered) ...[
                                 const SizedBox(width: 6),
-                                const Icon(
-                                  Icons.check,
-                                  size: 10,
-                                  color: Colors.teal,
-                                ),
+                                const Icon(Icons.check,
+                                    size: 10, color: Colors.teal),
                                 const SizedBox(width: 2),
                                 Text(
                                   'Answered',

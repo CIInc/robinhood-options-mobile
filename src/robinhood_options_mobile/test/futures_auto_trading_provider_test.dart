@@ -57,29 +57,21 @@ void main() {
       expect(provider.config.strategyConfig.stopLossPct, equals(3.5));
       expect(provider.config.strategyConfig.takeProfitPct, equals(7.0));
       expect(provider.config.strategyConfig.trailingStopEnabled, equals(true));
-      expect(
-        provider.config.strategyConfig.trailingStopAtrMultiplier,
-        equals(3.0),
-      );
+      expect(provider.config.strategyConfig.trailingStopAtrMultiplier,
+          equals(3.0));
       expect(provider.config.strategyConfig.autoExitEnabled, equals(true));
       expect(provider.config.strategyConfig.autoExitBufferMinutes, equals(20));
       expect(
-        provider.config.strategyConfig.allowContractRollover,
-        equals(true),
-      );
+          provider.config.strategyConfig.allowContractRollover, equals(true));
       expect(provider.config.strategyConfig.skipRiskGuard, equals(true));
       expect(
-        provider.config.strategyConfig.multiIntervalAnalysis,
-        equals(true),
-      );
+          provider.config.strategyConfig.multiIntervalAnalysis, equals(true));
 
       // Verify Firestore update
       final doc = await userDocRef.get();
       expect(doc.data()!['futuresTradingConfig'], isNotNull);
-      expect(
-        doc.data()!['futuresTradingConfig']['autoTradeEnabled'],
-        equals(true),
-      );
+      expect(doc.data()!['futuresTradingConfig']['autoTradeEnabled'],
+          equals(true));
     });
 
     test('highWaterMarks tracking', () {

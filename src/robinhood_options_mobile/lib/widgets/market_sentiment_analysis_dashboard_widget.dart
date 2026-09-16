@@ -54,15 +54,12 @@ class _SentimentAnalysisDashboardWidgetState
   }
 
   void _refreshData({bool forceRefresh = false}) {
-    _marketSentimentFuture = _sentimentService.getMarketSentiment(
-      forceRefresh: forceRefresh,
-    );
-    _trendingSentimentFuture = _sentimentService.getTrendingSentiment(
-      forceRefresh: forceRefresh,
-    );
-    _sentimentFeedFuture = _sentimentService.getSentimentFeed(
-      forceRefresh: forceRefresh,
-    );
+    _marketSentimentFuture =
+        _sentimentService.getMarketSentiment(forceRefresh: forceRefresh);
+    _trendingSentimentFuture =
+        _sentimentService.getTrendingSentiment(forceRefresh: forceRefresh);
+    _sentimentFeedFuture =
+        _sentimentService.getSentimentFeed(forceRefresh: forceRefresh);
     setState(() {});
   }
 
@@ -84,7 +81,7 @@ class _SentimentAnalysisDashboardWidgetState
           await Future.wait([
             _marketSentimentFuture,
             _trendingSentimentFuture,
-            _sentimentFeedFuture,
+            _sentimentFeedFuture
           ]);
         },
         child: SingleChildScrollView(
@@ -153,7 +150,10 @@ class _SentimentAnalysisDashboardWidgetState
               shadowColor: color.withValues(alpha: 0.3),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(24.0),
-                side: BorderSide(color: color.withValues(alpha: 0.2), width: 1),
+                side: BorderSide(
+                  color: color.withValues(alpha: 0.2),
+                  width: 1,
+                ),
               ),
               child: Container(
                 padding: const EdgeInsets.all(24.0),
@@ -182,36 +182,34 @@ class _SentimentAnalysisDashboardWidgetState
                                 fontSize: 13,
                                 letterSpacing: 1.2,
                                 fontWeight: FontWeight.bold,
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurfaceVariant,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant,
                               ),
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              DateFormat.yMMMd().add_Hm().format(
-                                data.timestamp,
-                              ),
+                              DateFormat.yMMMd()
+                                  .add_Hm()
+                                  .format(data.timestamp),
                               style: TextStyle(
                                 fontSize: 12,
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurface.withValues(alpha: 0.5),
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurface
+                                    .withValues(alpha: 0.5),
                               ),
                             ),
                           ],
                         ),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
-                          ),
+                              horizontal: 12, vertical: 6),
                           decoration: BoxDecoration(
                             color: color.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color: color.withValues(alpha: 0.2),
-                            ),
+                            border:
+                                Border.all(color: color.withValues(alpha: 0.2)),
                           ),
                           child: Row(
                             children: [
@@ -227,7 +225,7 @@ class _SentimentAnalysisDashboardWidgetState
                               ),
                             ],
                           ),
-                        ),
+                        )
                       ],
                     ),
                     const SizedBox(height: 32),
@@ -264,28 +262,28 @@ class _SentimentAnalysisDashboardWidgetState
                                 fontSize: 12,
                                 letterSpacing: 0.5,
                                 fontWeight: FontWeight.w600,
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurfaceVariant,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant,
                               ),
                             ),
                           ],
-                        ),
+                        )
                       ],
                     ),
                     const SizedBox(height: 32),
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.surface.withValues(alpha: 0.5),
+                        color: Theme.of(context)
+                            .colorScheme
+                            .surface
+                            .withValues(alpha: 0.5),
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
-                          color: Theme.of(
-                            context,
-                          ).dividerColor.withValues(alpha: 0.5),
-                        ),
+                            color: Theme.of(context)
+                                .dividerColor
+                                .withValues(alpha: 0.5)),
                       ),
                       child: Column(
                         children: [
@@ -312,9 +310,10 @@ class _SentimentAnalysisDashboardWidgetState
                             style: TextStyle(
                               fontSize: 15,
                               height: 1.5,
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.onSurface.withValues(alpha: 0.9),
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurface
+                                  .withValues(alpha: 0.9),
                             ),
                           ),
                         ],
@@ -344,9 +343,8 @@ class _SentimentAnalysisDashboardWidgetState
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               itemBuilder: (context, index) {
                 return Shimmer.fromColors(
-                  baseColor: Theme.of(
-                    context,
-                  ).colorScheme.surfaceContainerHighest,
+                  baseColor:
+                      Theme.of(context).colorScheme.surfaceContainerHighest,
                   highlightColor: Theme.of(context).colorScheme.surface,
                   child: Container(
                     width: 175,
@@ -407,24 +405,18 @@ class _SentimentAnalysisDashboardWidgetState
                                 Text(
                                   item.symbol ?? "",
                                   style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold),
                                 ),
                                 if (item.source == SentimentSource.alphaAgent)
-                                  const Icon(
-                                    Icons.psychology,
-                                    size: 16,
-                                    color: Colors.purple,
-                                  ),
+                                  const Icon(Icons.psychology,
+                                      size: 16, color: Colors.purple),
                               ],
                             ),
                             const SizedBox(height: 8),
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 2,
-                              ),
+                                  horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
                                 color: color.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(6),
@@ -435,19 +427,17 @@ class _SentimentAnalysisDashboardWidgetState
                                   Text(
                                     item.score.toStringAsFixed(0),
                                     style: TextStyle(
-                                      color: color,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 12,
-                                    ),
+                                        color: color,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 12),
                                   ),
                                   const SizedBox(width: 4),
                                   Text(
                                     item.sentimentLabel,
                                     style: TextStyle(
-                                      color: color,
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 11,
-                                    ),
+                                        color: color,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 11),
                                   ),
                                 ],
                               ),
@@ -459,11 +449,10 @@ class _SentimentAnalysisDashboardWidgetState
                                 maxLines: 3,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
-                                  fontSize: 12,
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onSurfaceVariant,
-                                ),
+                                    fontSize: 12,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant),
                               ),
                             ),
                           ],
@@ -483,40 +472,30 @@ class _SentimentAnalysisDashboardWidgetState
 
   void _navigateToInstrument(String symbol) async {
     if (widget.service == null || widget.brokerageUser == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Please link a brokerage account to view details."),
-        ),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text("Please link a brokerage account to view details.")));
       return;
     }
 
-    final instrumentStore = Provider.of<InstrumentStore>(
-      context,
-      listen: false,
-    );
-    final instrument = await widget.service!.getInstrumentBySymbol(
-      widget.brokerageUser!,
-      instrumentStore,
-      symbol,
-    );
+    final instrumentStore =
+        Provider.of<InstrumentStore>(context, listen: false);
+    final instrument = await widget.service!
+        .getInstrumentBySymbol(widget.brokerageUser!, instrumentStore, symbol);
 
     if (instrument != null && mounted) {
       Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => InstrumentWidget(
-            widget.brokerageUser!,
-            widget.service!,
-            instrument,
-            analytics: widget.analytics!,
-            observer: widget.observer!,
-            generativeService: widget.generativeService!,
-            user: widget.user!,
-            userDocRef: widget.userDocRef!,
-          ),
-        ),
-      );
+          context,
+          MaterialPageRoute(
+              builder: (context) => InstrumentWidget(
+                    widget.brokerageUser!,
+                    widget.service!,
+                    instrument,
+                    analytics: widget.analytics!,
+                    observer: widget.observer!,
+                    generativeService: widget.generativeService!,
+                    user: widget.user!,
+                    userDocRef: widget.userDocRef!,
+                  )));
     }
   }
 
@@ -532,9 +511,8 @@ class _SentimentAnalysisDashboardWidgetState
             separatorBuilder: (context, index) => const Divider(),
             itemBuilder: (context, index) {
               return Shimmer.fromColors(
-                baseColor: Theme.of(
-                  context,
-                ).colorScheme.surfaceContainerHighest,
+                baseColor:
+                    Theme.of(context).colorScheme.surfaceContainerHighest,
                 highlightColor: Theme.of(context).colorScheme.surface,
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -616,32 +594,25 @@ class _SentimentAnalysisDashboardWidgetState
                                         child: Text(
                                           item.title,
                                           style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 16,
-                                          ),
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 16),
                                         ),
                                       ),
                                       if (item.sentimentScore != 0)
                                         Container(
-                                          margin: const EdgeInsets.only(
-                                            left: 8,
-                                          ),
+                                          margin:
+                                              const EdgeInsets.only(left: 8),
                                           padding: const EdgeInsets.symmetric(
-                                            horizontal: 8,
-                                            vertical: 4,
-                                          ),
+                                              horizontal: 8, vertical: 4),
                                           decoration: BoxDecoration(
                                             color: scoreColor.withValues(
-                                              alpha: 0.1,
-                                            ),
-                                            borderRadius: BorderRadius.circular(
-                                              8,
-                                            ),
+                                                alpha: 0.1),
+                                            borderRadius:
+                                                BorderRadius.circular(8),
                                           ),
                                           child: Text(
-                                            item.sentimentScore.toStringAsFixed(
-                                              0,
-                                            ),
+                                            item.sentimentScore
+                                                .toStringAsFixed(0),
                                             style: TextStyle(
                                               color: scoreColor,
                                               fontWeight: FontWeight.bold,
@@ -659,39 +630,35 @@ class _SentimentAnalysisDashboardWidgetState
                                         style: TextStyle(
                                           fontSize: 13,
                                           fontWeight: FontWeight.w600,
-                                          color: Theme.of(
-                                            context,
-                                          ).colorScheme.onSurface,
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onSurface,
                                         ),
                                       ),
                                       Padding(
                                         padding: const EdgeInsets.symmetric(
-                                          horizontal: 6.0,
-                                        ),
-                                        child: Icon(
-                                          Icons.circle,
-                                          size: 4,
-                                          color: Theme.of(
-                                            context,
-                                          ).colorScheme.outline,
-                                        ),
+                                            horizontal: 6.0),
+                                        child: Icon(Icons.circle,
+                                            size: 4,
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .outline),
                                       ),
                                       Text(
-                                        DateFormat.yMMMd().add_Hm().format(
-                                          item.publishedAt,
-                                        ),
+                                        DateFormat.yMMMd()
+                                            .add_Hm()
+                                            .format(item.publishedAt),
                                         style: TextStyle(
-                                          fontSize: 12,
-                                          color: Theme.of(
-                                            context,
-                                          ).colorScheme.onSurfaceVariant,
-                                        ),
+                                            fontSize: 12,
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onSurfaceVariant),
                                       ),
                                     ],
                                   ),
                                 ],
                               ),
-                            ),
+                            )
                           ],
                         ),
                         if (item.relatedSymbols.isNotEmpty) ...[
@@ -712,9 +679,7 @@ class _SentimentAnalysisDashboardWidgetState
                                   borderRadius: BorderRadius.circular(20),
                                   child: Container(
                                     padding: const EdgeInsets.symmetric(
-                                      horizontal: 10,
-                                      vertical: 4,
-                                    ),
+                                        horizontal: 10, vertical: 4),
                                     decoration: BoxDecoration(
                                       color: Theme.of(context)
                                           .colorScheme
@@ -722,9 +687,9 @@ class _SentimentAnalysisDashboardWidgetState
                                           .withValues(alpha: 0.5),
                                       borderRadius: BorderRadius.circular(20),
                                       border: Border.all(
-                                        color: Theme.of(
-                                          context,
-                                        ).dividerColor.withValues(alpha: 0.5),
+                                        color: Theme.of(context)
+                                            .dividerColor
+                                            .withValues(alpha: 0.5),
                                       ),
                                     ),
                                     child: Text(
@@ -732,9 +697,9 @@ class _SentimentAnalysisDashboardWidgetState
                                       style: TextStyle(
                                         fontSize: 12,
                                         fontWeight: FontWeight.w500,
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.onSurface,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurface,
                                       ),
                                     ),
                                   ),

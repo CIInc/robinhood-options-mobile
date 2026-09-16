@@ -76,17 +76,13 @@ class RiskAnalyticsCard extends StatelessWidget {
             if (i > 0) const SizedBox(height: 24),
             Row(
               children: [
-                Icon(
-                  groups[i].icon,
-                  size: 18,
-                  color: theme.colorScheme.primary,
-                ),
+                Icon(groups[i].icon,
+                    size: 18, color: theme.colorScheme.primary),
                 const SizedBox(width: 8),
                 Text(
                   groups[i].title,
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: theme.textTheme.titleSmall
+                      ?.copyWith(fontWeight: FontWeight.bold),
                 ),
               ],
             ),
@@ -108,225 +104,117 @@ class RiskAnalyticsCard extends StatelessWidget {
       // Stored as a positive magnitude; drawdown reads as a loss.
       var maxDrawdown = data['maxDrawdown'] as double?;
       if (maxDrawdown != null && maxDrawdown > 0) maxDrawdown = -maxDrawdown;
-      risk.add(
-        MetricPresentation.buildStatItem(
-          context,
-          'Max Drawdown',
-          maxDrawdown,
-          isPercent: true,
-          badThreshold: -0.2,
-        ),
-      );
+      risk.add(MetricPresentation.buildStatItem(
+          context, 'Max Drawdown', maxDrawdown,
+          isPercent: true, badThreshold: -0.2));
     }
     if (data.containsKey('currentDrawdown')) {
-      risk.add(
-        MetricPresentation.buildStatItem(
-          context,
-          'Current Drawdown',
-          data['currentDrawdown'],
-          isPercent: true,
-          badThreshold: -0.1,
-        ),
-      );
+      risk.add(MetricPresentation.buildStatItem(
+          context, 'Current Drawdown', data['currentDrawdown'],
+          isPercent: true, badThreshold: -0.1));
     }
     if (data.containsKey('volatility')) {
-      risk.add(
-        MetricPresentation.buildStatItem(
-          context,
-          'Volatility',
-          data['volatility'],
-          isPercent: true,
-          reverseColor: true,
-          badThreshold: 0.2,
-        ),
-      );
+      risk.add(MetricPresentation.buildStatItem(
+          context, 'Volatility', data['volatility'],
+          isPercent: true, reverseColor: true, badThreshold: 0.2));
     }
     if (data.containsKey('var95')) {
-      risk.add(
-        MetricPresentation.buildStatItem(
-          context,
-          'VaR (95%)',
-          data['var95'],
-          isPercent: true,
-          badThreshold: -0.02,
-        ),
-      );
+      risk.add(MetricPresentation.buildStatItem(
+          context, 'VaR (95%)', data['var95'],
+          isPercent: true, badThreshold: -0.02));
     }
     if (data.containsKey('cvar95')) {
-      risk.add(
-        MetricPresentation.buildStatItem(
-          context,
-          'CVaR (95%)',
-          data['cvar95'],
-          isPercent: true,
-          badThreshold: -0.03,
-        ),
-      );
+      risk.add(MetricPresentation.buildStatItem(
+          context, 'CVaR (95%)', data['cvar95'],
+          isPercent: true, badThreshold: -0.03));
     }
     if (risk.isNotEmpty) {
-      groups.add(
-        _MetricGroup('Risk Metrics', Icons.warning_amber_rounded, risk),
-      );
+      groups
+          .add(_MetricGroup('Risk Metrics', Icons.warning_amber_rounded, risk));
     }
 
     final riskAdjusted = <Widget>[];
     if (data.containsKey('sharpe')) {
-      riskAdjusted.add(
-        MetricPresentation.buildStatItem(
-          context,
-          'Sharpe',
-          data['sharpe'],
-          goodThreshold: 1.0,
-          badThreshold: 0.0,
-        ),
-      );
+      riskAdjusted.add(MetricPresentation.buildStatItem(
+          context, 'Sharpe', data['sharpe'],
+          goodThreshold: 1.0, badThreshold: 0.0));
     }
     if (data.containsKey('sortino')) {
-      riskAdjusted.add(
-        MetricPresentation.buildStatItem(
-          context,
-          'Sortino',
-          data['sortino'],
-          goodThreshold: 1.0,
-          badThreshold: 0.0,
-        ),
-      );
+      riskAdjusted.add(MetricPresentation.buildStatItem(
+          context, 'Sortino', data['sortino'],
+          goodThreshold: 1.0, badThreshold: 0.0));
     }
     if (data.containsKey('treynor')) {
-      riskAdjusted.add(
-        MetricPresentation.buildStatItem(
-          context,
-          'Treynor',
-          data['treynor'],
-          goodThreshold: 0.05,
-        ),
-      );
+      riskAdjusted.add(MetricPresentation.buildStatItem(
+          context, 'Treynor', data['treynor'],
+          goodThreshold: 0.05));
     }
     if (data.containsKey('informationRatio')) {
-      riskAdjusted.add(
-        MetricPresentation.buildStatItem(
-          context,
-          'Info Ratio',
-          data['informationRatio'],
-          goodThreshold: 0.5,
-        ),
-      );
+      riskAdjusted.add(MetricPresentation.buildStatItem(
+          context, 'Info Ratio', data['informationRatio'],
+          goodThreshold: 0.5));
     }
     if (data.containsKey('calmar')) {
-      riskAdjusted.add(
-        MetricPresentation.buildStatItem(
-          context,
-          'Calmar',
-          data['calmar'],
-          goodThreshold: 0.5,
-        ),
-      );
+      riskAdjusted.add(MetricPresentation.buildStatItem(
+          context, 'Calmar', data['calmar'],
+          goodThreshold: 0.5));
     }
     if (data.containsKey('omega')) {
-      riskAdjusted.add(
-        MetricPresentation.buildStatItem(
-          context,
-          'Omega',
-          data['omega'],
-          goodThreshold: 1.0,
-        ),
-      );
+      riskAdjusted.add(MetricPresentation.buildStatItem(
+          context, 'Omega', data['omega'],
+          goodThreshold: 1.0));
     }
     if (riskAdjusted.isNotEmpty) {
-      groups.add(
-        _MetricGroup('Risk-Adjusted Return', Icons.trending_up, riskAdjusted),
-      );
+      groups.add(_MetricGroup(
+          'Risk-Adjusted Return', Icons.trending_up, riskAdjusted));
     }
 
     final market = <Widget>[];
     if (data.containsKey('beta')) {
-      market.add(
-        MetricPresentation.buildStatItem(
-          context,
-          'Beta',
-          data['beta'],
-          neutralValue: 1.0,
-          reverseColor: true,
-        ),
-      );
+      market.add(MetricPresentation.buildStatItem(context, 'Beta', data['beta'],
+          neutralValue: 1.0, reverseColor: true));
     }
     if (data.containsKey('correlation')) {
-      market.add(
-        MetricPresentation.buildStatItem(
-          context,
-          'Correlation',
-          data['correlation'],
-          goodThreshold: 0.7,
-          badThreshold: 0.3,
-        ),
-      );
+      market.add(MetricPresentation.buildStatItem(
+          context, 'Correlation', data['correlation'],
+          goodThreshold: 0.7, badThreshold: 0.3));
     }
     if (data.containsKey('alpha')) {
-      market.add(
-        MetricPresentation.buildStatItem(
-          context,
-          'Alpha',
-          data['alpha'],
-          isPercent: true,
-          goodThreshold: 0.0,
-        ),
-      );
+      market.add(MetricPresentation.buildStatItem(
+          context, 'Alpha', data['alpha'],
+          isPercent: true, goodThreshold: 0.0));
     }
     if (data.containsKey('trackingError')) {
-      market.add(
-        MetricPresentation.buildStatItem(
-          context,
-          'Tracking Error',
-          data['trackingError'],
+      market.add(MetricPresentation.buildStatItem(
+          context, 'Tracking Error', data['trackingError'],
           isPercent: true,
           reverseColor: true,
           badThreshold: 0.1,
-          goodThreshold: 0.05,
-        ),
-      );
+          goodThreshold: 0.05));
     }
     if (market.isNotEmpty) {
-      groups.add(
-        _MetricGroup('Market Comparison', Icons.compare_arrows, market),
-      );
+      groups
+          .add(_MetricGroup('Market Comparison', Icons.compare_arrows, market));
     }
 
     final edge = <Widget>[];
     if (data.containsKey('kellyCriterion')) {
-      edge.add(
-        MetricPresentation.buildStatItem(
-          context,
-          'Kelly Criterion',
-          data['kellyCriterion'],
-          isPercent: true,
-          goodThreshold: 0.05,
-          badThreshold: 0.0,
-        ),
-      );
+      edge.add(MetricPresentation.buildStatItem(
+          context, 'Kelly Criterion', data['kellyCriterion'],
+          isPercent: true, goodThreshold: 0.05, badThreshold: 0.0));
     }
     if (data.containsKey('ulcerIndex')) {
-      edge.add(
-        MetricPresentation.buildStatItem(
-          context,
-          'Ulcer Index',
-          data['ulcerIndex'],
+      edge.add(MetricPresentation.buildStatItem(
+          context, 'Ulcer Index', data['ulcerIndex'],
           isPercent: true,
           reverseColor: true,
           badThreshold: 0.15,
-          goodThreshold: 0.05,
-        ),
-      );
+          goodThreshold: 0.05));
     }
     if (data.containsKey('tailRatio')) {
-      edge.add(
-        MetricPresentation.buildStatItem(
-          context,
-          'Tail Ratio',
-          data['tailRatio'],
-          goodThreshold: 1.1,
-          badThreshold: 0.9,
-        ),
-      );
+      edge.add(MetricPresentation.buildStatItem(
+          context, 'Tail Ratio', data['tailRatio'],
+          goodThreshold: 1.1, badThreshold: 0.9));
     }
     if (edge.isNotEmpty) {
       groups.add(_MetricGroup('Advanced Edge', Icons.psychology_rounded, edge));

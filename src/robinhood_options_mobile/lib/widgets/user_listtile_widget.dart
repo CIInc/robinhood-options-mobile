@@ -11,15 +11,14 @@ import 'package:robinhood_options_mobile/utils/auth.dart';
 import 'package:robinhood_options_mobile/widgets/user_widget.dart';
 
 class UserListTile extends StatelessWidget {
-  const UserListTile({
-    super.key,
-    required this.document,
-    this.showNavigation = true,
-    required this.analytics,
-    required this.observer,
-    required this.brokerageUser,
-    required this.service,
-  });
+  const UserListTile(
+      {super.key,
+      required this.document,
+      this.showNavigation = true,
+      required this.analytics,
+      required this.observer,
+      required this.brokerageUser,
+      required this.service});
 
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
@@ -42,57 +41,51 @@ class UserListTile extends StatelessWidget {
         : const CircleAvatar(radius: 20, child: Icon(Icons.account_circle));
 
     return ListTile(
-      leading: Hero(
-        tag: 'user_${document.id}',
-        placeholderBuilder: (context, size, child) {
-          return heroAsset;
-        },
-        child: heroAsset,
-      ),
-      title: Text(user.name ?? user.providerId?.capitalize() ?? 'Guest'),
-      subtitle: Text(
-        user.email ?? user.phoneNumber ?? '',
-      ), // (${user.role.getValue()})
-      trailing: showNavigation ? const Icon(Icons.chevron_right) : null,
-      onTap: showNavigation
-          ? () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (BuildContext context) => Scaffold(
-                    appBar: AppBar(
-                      title: Text(
-                        user.name ?? user.providerId?.capitalize() ?? '',
-                      ),
-                    ),
-                    body: UserWidget(
-                      auth,
-                      userId: document.id,
-                      isProfileView: true,
-                      onSignout: () async {
-                        // Reset userRole
-                        final authUtil = AuthUtil(auth);
-                        userRole = await authUtil.userRole();
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Signed out'),
-                              behavior: SnackBarBehavior.floating,
-                            ),
-                          );
-                          Navigator.pop(context);
-                        }
-                      },
-                      analytics: analytics,
-                      observer: observer,
-                      brokerageUser: brokerageUser,
-                      service: service,
-                    ),
-                  ),
-                ),
-              );
-            }
-          : null,
-    );
+        leading: Hero(
+            tag: 'user_${document.id}',
+            placeholderBuilder: (context, size, child) {
+              return heroAsset;
+            },
+            child: heroAsset),
+        title: Text(user.name ?? user.providerId?.capitalize() ?? 'Guest'),
+        subtitle: Text(
+            user.email ?? user.phoneNumber ?? ''), // (${user.role.getValue()})
+        trailing: showNavigation ? const Icon(Icons.chevron_right) : null,
+        onTap: showNavigation
+            ? () {
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (BuildContext context) => Scaffold(
+                              appBar: AppBar(
+                                title: Text(user.name ??
+                                    user.providerId?.capitalize() ??
+                                    ''),
+                              ),
+                              body: UserWidget(
+                                auth,
+                                userId: document.id,
+                                isProfileView: true,
+                                onSignout: () async {
+                                  // Reset userRole
+                                  final authUtil = AuthUtil(auth);
+                                  userRole = await authUtil.userRole();
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(
+                                            content: Text('Signed out'),
+                                            behavior:
+                                                SnackBarBehavior.floating));
+                                    Navigator.pop(context);
+                                  }
+                                },
+                                analytics: analytics,
+                                observer: observer,
+                                brokerageUser: brokerageUser,
+                                service: service,
+                              ),
+                            )));
+              }
+            : null);
   }
 }

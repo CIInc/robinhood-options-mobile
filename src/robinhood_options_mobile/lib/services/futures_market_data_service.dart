@@ -43,8 +43,8 @@ class FuturesMarketDataService {
       final maxCacheAge = interval == '15m'
           ? Duration(minutes: 15).inMilliseconds
           : interval == '30m'
-          ? Duration(minutes: 30).inMilliseconds
-          : Duration(hours: 1).inMilliseconds;
+              ? Duration(minutes: 30).inMilliseconds
+              : Duration(hours: 1).inMilliseconds;
       return cacheAge < maxCacheAge;
     }
   }
@@ -74,10 +74,8 @@ class FuturesMarketDataService {
         if (chart != null && _isCacheFresh(updated, interval)) {
           final parsed = _parseChartData(chart);
           if (parsed.closes.isNotEmpty) {
-            debugPrint(
-              '✅ CACHE HIT: Loaded cached $interval data for '
-              '$decodedSymbol (age: ${DateTime.now().millisecondsSinceEpoch - (updated ?? 0)}ms)',
-            );
+            debugPrint('✅ CACHE HIT: Loaded cached $interval data for '
+                '$decodedSymbol (age: ${DateTime.now().millisecondsSinceEpoch - (updated ?? 0)}ms)');
             return parsed;
           }
         }
@@ -109,11 +107,8 @@ class FuturesMarketDataService {
       debugPrint('🌐 Fetching $interval data for $symbol (range: $dataRange)');
 
       // Fetch from Yahoo using shared service method
-      final result = await _yahooService.getChartData(
-        symbol,
-        dataRange,
-        interval,
-      );
+      final result =
+          await _yahooService.getChartData(symbol, dataRange, interval);
 
       if (result == null) {
         debugPrint('❌ No data returned from Yahoo for $symbol');
@@ -128,7 +123,10 @@ class FuturesMarketDataService {
       }
 
       // Cache the raw result matching backend logic
-      await _cacheToFirestore(cacheKey: cacheKey, result: result);
+      await _cacheToFirestore(
+        cacheKey: cacheKey,
+        result: result,
+      );
 
       return _parseChartData(result);
     } catch (e) {
@@ -168,8 +166,7 @@ class FuturesMarketDataService {
       final highs = _parseArray(quote['high']);
       final lows = _parseArray(quote['low']);
       final closes = _parseArray(quote['close']);
-      final volumes =
-          (quote['volume'] as List?)
+      final volumes = (quote['volume'] as List?)
               ?.map((v) => (v as num?)?.toInt() ?? 0)
               .toList() ??
           [];
@@ -299,9 +296,8 @@ class FuturesMarketDataService {
     Duration staleDuration = const Duration(days: 7),
   }) async {
     try {
-      final cutoffTime = DateTime.now()
-          .subtract(staleDuration)
-          .millisecondsSinceEpoch;
+      final cutoffTime =
+          DateTime.now().subtract(staleDuration).millisecondsSinceEpoch;
       final snapshot = await _firestore
           .collection('charts')
           .where('updated', isLessThan: cutoffTime)

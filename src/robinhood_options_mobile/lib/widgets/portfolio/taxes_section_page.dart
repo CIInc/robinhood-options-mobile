@@ -26,10 +26,8 @@ class _TaxesSectionPageState extends State<TaxesSectionPage> {
   void initState() {
     super.initState();
     // ESG depends on holdings rather than historicals, so it loads separately.
-    final positions = Provider.of<InstrumentPositionStore>(
-      context,
-      listen: false,
-    ).items;
+    final positions =
+        Provider.of<InstrumentPositionStore>(context, listen: false).items;
     widget.sectionContext.analyticsController.loadEsg(positions);
   }
 
@@ -68,29 +66,27 @@ class _TaxesSectionPageState extends State<TaxesSectionPage> {
 
     final suggestions =
         TaxOptimizationService.calculateTaxHarvestingOpportunities(
-          instrumentPositions: stockStore.items,
-          optionPositions: optionStore.items,
-        );
-    final totalLoss = suggestions.fold<double>(
-      0,
-      (sum, suggestion) => sum + suggestion.estimatedLoss,
+      instrumentPositions: stockStore.items,
+      optionPositions: optionStore.items,
     );
+    final totalLoss = suggestions.fold<double>(
+        0, (sum, suggestion) => sum + suggestion.estimatedLoss);
     final urgency = TaxOptimizationService.getSeasonalityUrgency();
 
     void openFullTool() => Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => TaxOptimizationWidget(
-          user: ctx.brokerageUser,
-          service: ctx.service,
-          analytics: ctx.analytics,
-          observer: ctx.observer,
-          generativeService: ctx.generativeService,
-          appUser: ctx.appUser,
-          userDocRef: ctx.userDocRef,
-        ),
-      ),
-    );
+          context,
+          MaterialPageRoute(
+            builder: (context) => TaxOptimizationWidget(
+              user: ctx.brokerageUser,
+              service: ctx.service,
+              analytics: ctx.analytics,
+              observer: ctx.observer,
+              generativeService: ctx.generativeService,
+              appUser: ctx.appUser,
+              userDocRef: ctx.userDocRef,
+            ),
+          ),
+        );
 
     if (suggestions.isEmpty) {
       return AnalyticsStyleCard(
@@ -103,24 +99,17 @@ class _TaxesSectionPageState extends State<TaxesSectionPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Tax Loss Harvesting',
-                    style: theme.textTheme.titleLarge,
-                  ),
+                  Text('Tax Loss Harvesting',
+                      style: theme.textTheme.titleLarge),
                   const SizedBox(height: 4),
-                  Text(
-                    'No harvestable losses right now.',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
+                  Text('No harvestable losses right now.',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant)),
                 ],
               ),
             ),
-            Icon(
-              Icons.chevron_right,
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
+            Icon(Icons.chevron_right,
+                color: theme.colorScheme.onSurfaceVariant),
           ],
         ),
       );
@@ -136,18 +125,14 @@ class _TaxesSectionPageState extends State<TaxesSectionPage> {
               Icon(Icons.savings_outlined, color: theme.colorScheme.primary),
               const SizedBox(width: 12),
               Expanded(
-                child: Text(
-                  'Tax Loss Harvesting',
-                  style: theme.textTheme.titleLarge,
-                  overflow: TextOverflow.ellipsis,
-                ),
+                child: Text('Tax Loss Harvesting',
+                    style: theme.textTheme.titleLarge,
+                    overflow: TextOverflow.ellipsis),
               ),
               if (urgency > 0) ...[
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 6,
-                    vertical: 2,
-                  ),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
                     color: urgency == 2 ? Colors.red : Colors.orange,
                     borderRadius: BorderRadius.circular(4),
@@ -155,18 +140,15 @@ class _TaxesSectionPageState extends State<TaxesSectionPage> {
                   child: Text(
                     urgency == 2 ? 'URGENT' : 'SEASON',
                     style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                    ),
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold),
                   ),
                 ),
                 const SizedBox(width: 8),
               ],
-              Icon(
-                Icons.chevron_right,
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
+              Icon(Icons.chevron_right,
+                  color: theme.colorScheme.onSurfaceVariant),
             ],
           ),
           const SizedBox(height: 20),
@@ -177,19 +159,17 @@ class _TaxesSectionPageState extends State<TaxesSectionPage> {
               Text(
                 currency.format(totalLoss),
                 style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.red,
-                ),
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.red),
               ),
               const SizedBox(width: 8),
               Text(
                 'Potential Loss',
                 style: TextStyle(
-                  fontSize: 14,
-                  color: theme.colorScheme.onSurfaceVariant,
-                  fontWeight: FontWeight.w500,
-                ),
+                    fontSize: 14,
+                    color: theme.colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w500),
               ),
             ],
           ),
@@ -198,9 +178,8 @@ class _TaxesSectionPageState extends State<TaxesSectionPage> {
             '${suggestions.length} '
             '${suggestions.length == 1 ? 'opportunity' : 'opportunities'} '
             'available to harvest.',
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
+            style: theme.textTheme.bodyMedium
+                ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
           ),
         ],
       ),

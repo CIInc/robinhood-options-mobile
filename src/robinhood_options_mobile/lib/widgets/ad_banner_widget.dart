@@ -7,11 +7,8 @@ import 'package:robinhood_options_mobile/constants.dart';
 class AdBannerWidget extends StatefulWidget {
   final AdSize size;
   final bool searchBanner;
-  const AdBannerWidget({
-    super.key,
-    this.size = AdSize.banner,
-    this.searchBanner = false,
-  });
+  const AdBannerWidget(
+      {super.key, this.size = AdSize.banner, this.searchBanner = false});
 
   @override
   State<StatefulWidget> createState() {
@@ -34,12 +31,12 @@ class _AdBannerWidget extends State<AdBannerWidget>
     final adUnitId = kDebugMode
         ? Constants.testAdUnit
         : (widget.searchBanner
-              ? (Platform.isAndroid
-                    ? Constants.searchBannerAndroidAdUnit
-                    : Constants.searchBanneriOSAdUnit)
-              : (Platform.isAndroid
-                    ? Constants.homeBannerAndroidAdUnit
-                    : Constants.homeBanneriOSAdUnit));
+            ? (Platform.isAndroid
+                ? Constants.searchBannerAndroidAdUnit
+                : Constants.searchBanneriOSAdUnit)
+            : (Platform.isAndroid
+                ? Constants.homeBannerAndroidAdUnit
+                : Constants.homeBanneriOSAdUnit));
     _bannerAd = BannerAd(
       adUnitId: adUnitId,
       size: widget.size,

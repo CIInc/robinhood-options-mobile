@@ -65,25 +65,18 @@ class _OptionOrdersWidgetState extends State<OptionOrdersWidget> {
     // var orderFilters = widget.orderFilters;
     var optionOrdersPremiumBalance = optionOrders.isNotEmpty
         ? optionOrders
-                  .map(
-                    (e) =>
-                        (e.processedPremium != null ? e.processedPremium! : 0) *
-                        (e.direction == "credit" ? 1 : -1),
-                  )
-                  .reduce((a, b) => a + b)
-              as double
+            .map((e) =>
+                (e.processedPremium != null ? e.processedPremium! : 0) *
+                (e.direction == "credit" ? 1 : -1))
+            .reduce((a, b) => a + b) as double
         : 0;
 
     var filteredOptionOrders = optionOrders
-        .where(
-          (element) =>
-              orderFilters.isEmpty || orderFilters.contains(element.state),
-        )
+        .where((element) =>
+            orderFilters.isEmpty || orderFilters.contains(element.state))
         .toList();
-    filteredOptionOrders.sort(
-      (a, b) =>
-          (b.updatedAt ?? DateTime(0)).compareTo(a.updatedAt ?? DateTime(0)),
-    );
+    filteredOptionOrders.sort((a, b) =>
+        (b.updatedAt ?? DateTime(0)).compareTo(a.updatedAt ?? DateTime(0)));
 
     final displayCount = _showAllOptionOrders
         ? filteredOptionOrders.length
@@ -92,61 +85,52 @@ class _OptionOrdersWidgetState extends State<OptionOrdersWidget> {
 
     return SliverStickyHeader(
       header: Material(
-        //elevation: 2,
-        child: Container(
-          //height: 208.0, //60.0,
-          //padding: EdgeInsets.symmetric(horizontal: 16.0),
-          alignment: Alignment.centerLeft,
-          child: ListTile(
-            title: const Text(
-              "Option Orders",
-              style: TextStyle(fontSize: 20.0),
-            ),
-            subtitle: Text(
-              "${formatCompactNumber.format(optionOrders.length)} orders - balance: ${optionOrdersPremiumBalance > 0
-                  ? "+"
-                  : optionOrdersPremiumBalance < 0
-                  ? "-"
-                  : ""}${formatCurrency.format(optionOrdersPremiumBalance.abs())}",
-            ),
-            trailing: IconButton(
-              icon: const Icon(Icons.filter_list),
-              onPressed: () {
-                showModalBottomSheet<void>(
-                  context: context,
-                  showDragHandle: true,
-                  constraints: const BoxConstraints(maxHeight: 260),
-                  builder: (BuildContext context) {
-                    return Column(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        ListTile(
-                          // tileColor:
-                          //     Theme.of(context).colorScheme.surface,
-                          leading: const Icon(Icons.filter_list),
-                          title: const Text(
-                            "Filter Option Orders",
-                            style: TextStyle(
-                              fontSize: 20.0,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          /*
+          //elevation: 2,
+          child: Container(
+              //height: 208.0, //60.0,
+              //padding: EdgeInsets.symmetric(horizontal: 16.0),
+              alignment: Alignment.centerLeft,
+              child: ListTile(
+                title: const Text(
+                  "Option Orders",
+                  style: TextStyle(fontSize: 20.0),
+                ),
+                subtitle: Text(
+                    "${formatCompactNumber.format(optionOrders.length)} orders - balance: ${optionOrdersPremiumBalance > 0 ? "+" : optionOrdersPremiumBalance < 0 ? "-" : ""}${formatCurrency.format(optionOrdersPremiumBalance.abs())}"),
+                trailing: IconButton(
+                    icon: const Icon(Icons.filter_list),
+                    onPressed: () {
+                      showModalBottomSheet<void>(
+                        context: context,
+                        showDragHandle: true,
+                        constraints: const BoxConstraints(maxHeight: 260),
+                        builder: (BuildContext context) {
+                          return Column(
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              ListTile(
+                                // tileColor:
+                                //     Theme.of(context).colorScheme.surface,
+                                leading: const Icon(Icons.filter_list),
+                                title: const Text(
+                                  "Filter Option Orders",
+                                  style: TextStyle(
+                                      fontSize: 20.0,
+                                      fontWeight: FontWeight.bold),
+                                ),
+                                /*
                                   trailing: TextButton(
                                       child: const Text("APPLY"),
                                       onPressed: () => Navigator.pop(context))*/
-                        ),
-                        orderFilterWidget,
-                      ],
-                    );
-                  },
-                );
-              },
-            ),
-          ),
-        ),
-      ),
+                              ),
+                              orderFilterWidget,
+                            ],
+                          );
+                        },
+                      );
+                    }),
+              ))),
       sliver: SliverList(
         // delegate: SliverChildListDelegate(widgets),
         delegate: SliverChildBuilderDelegate((BuildContext context, int index) {
@@ -154,45 +138,39 @@ class _OptionOrdersWidgetState extends State<OptionOrdersWidget> {
             return Align(
               alignment: Alignment.centerLeft,
               child: TextButton.icon(
-                onPressed: () {
-                  setState(() {
-                    _showAllOptionOrders = !_showAllOptionOrders;
-                  });
-                },
-                icon: Icon(
-                  _showAllOptionOrders ? Icons.expand_less : Icons.expand_more,
-                ),
-                label: Text(
-                  _showAllOptionOrders
+                  onPressed: () {
+                    setState(() {
+                      _showAllOptionOrders = !_showAllOptionOrders;
+                    });
+                  },
+                  icon: Icon(_showAllOptionOrders
+                      ? Icons.expand_less
+                      : Icons.expand_more),
+                  label: Text(_showAllOptionOrders
                       ? 'Show Less'
-                      : 'Show All (${filteredOptionOrders.length})',
-                ),
-              ),
+                      : 'Show All (${filteredOptionOrders.length})')),
             );
           }
 
           var optionOrder = filteredOptionOrders[index];
-          var subtitle = Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+          var subtitle =
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(
+                "${optionOrder.state.capitalize()} ${formatDate.format(optionOrder.updatedAt!)}"),
+            if (optionOrder.optionEvents != null) ...[
               Text(
-                "${optionOrder.state.capitalize()} ${formatDate.format(optionOrder.updatedAt!)}",
-              ),
-              if (optionOrder.optionEvents != null) ...[
-                Text(
-                  "${optionOrder.optionEvents!.first.type == "expiration" ? "Expired" : (optionOrder.optionEvents!.first.type == "assignment" ? "Assigned" : (optionOrder.optionEvents!.first.type == "exercise" ? "Exercised" : optionOrder.optionEvents!.first.type))} ${formatCompactDate.format(optionOrder.optionEvents!.first.eventDate!)} at ${optionOrder.optionEvents!.first.underlyingPrice != null ? formatCurrency.format(optionOrder.optionEvents!.first.underlyingPrice) : ""}",
-                  //style: TextStyle(fontSize: 16.0)
-                ),
-              ],
-            ],
-          );
+                "${optionOrder.optionEvents!.first.type == "expiration" ? "Expired" : (optionOrder.optionEvents!.first.type == "assignment" ? "Assigned" : (optionOrder.optionEvents!.first.type == "exercise" ? "Exercised" : optionOrder.optionEvents!.first.type))} ${formatCompactDate.format(optionOrder.optionEvents!.first.eventDate!)} at ${optionOrder.optionEvents!.first.underlyingPrice != null ? formatCurrency.format(optionOrder.optionEvents!.first.underlyingPrice) : ""}",
+                //style: TextStyle(fontSize: 16.0)
+              )
+            ]
+          ]);
 
           return Card(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                ListTile(
-                  leading: CircleAvatar(
+              child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              ListTile(
+                leading: CircleAvatar(
                     //backgroundImage: AssetImage(user.profilePicture),
                     /*
                     backgroundColor: optionOrder.optionEvents != null
@@ -201,32 +179,24 @@ class _OptionOrdersWidgetState extends State<OptionOrdersWidget> {
                         */
                     child: optionOrder.optionEvents != null
                         ? const Icon(Icons.check)
-                        : Text(
-                            '${optionOrder.quantity!.round()}',
-                            style: const TextStyle(fontSize: 17),
-                          ),
-                  ),
-                  title: Text(
-                    "${optionOrder.chainSymbol} \$${formatCompactNumber.format(optionOrder.legs.first.strikePrice)} ${optionOrder.strategy} ${formatCompactDate.format(optionOrder.legs.first.expirationDate!)}",
-                  ), // , style: TextStyle(fontSize: 18.0)),
-                  subtitle: subtitle,
-                  trailing: Wrap(
-                    spacing: 8,
-                    children: [
-                      Text(
-                        (optionOrder.direction == "credit" ? "+" : "-") +
-                            (optionOrder.processedPremium != null
-                                ? formatCurrency.format(
-                                    optionOrder.processedPremium,
-                                  )
-                                : ""),
-                        style: const TextStyle(fontSize: 18.0),
-                        textAlign: TextAlign.right,
-                      ),
-                    ],
-                  ),
+                        : Text('${optionOrder.quantity!.round()}',
+                            style: const TextStyle(fontSize: 17))),
+                title: Text(
+                    "${optionOrder.chainSymbol} \$${formatCompactNumber.format(optionOrder.legs.first.strikePrice)} ${optionOrder.strategy} ${formatCompactDate.format(optionOrder.legs.first.expirationDate!)}"), // , style: TextStyle(fontSize: 18.0)),
+                subtitle: subtitle,
+                trailing: Wrap(spacing: 8, children: [
+                  Text(
+                    (optionOrder.direction == "credit" ? "+" : "-") +
+                        (optionOrder.processedPremium != null
+                            ? formatCurrency
+                                .format(optionOrder.processedPremium)
+                            : ""),
+                    style: const TextStyle(fontSize: 18.0),
+                    textAlign: TextAlign.right,
+                  )
+                ]),
 
-                  /*Wrap(
+                /*Wrap(
             spacing: 12,
             children: [
               Column(children: [
@@ -257,28 +227,25 @@ class _OptionOrdersWidgetState extends State<OptionOrdersWidget> {
               )
             ],
           ),*/
-                  isThreeLine: optionOrder.optionEvents != null,
-                  onTap: () {
-                    Navigator.push(
+                isThreeLine: optionOrder.optionEvents != null,
+                onTap: () {
+                  Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => OptionOrderWidget(
-                          widget.brokerageUser,
-                          widget.service,
-                          optionOrder,
-                          analytics: widget.analytics,
-                          observer: widget.observer,
-                          generativeService: widget.generativeService,
-                          user: widget.authUser,
-                          userDocRef: widget.userDocRef,
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ],
-            ),
-          );
+                          builder: (context) => OptionOrderWidget(
+                                widget.brokerageUser,
+                                widget.service,
+                                optionOrder,
+                                analytics: widget.analytics,
+                                observer: widget.observer,
+                                generativeService: widget.generativeService,
+                                user: widget.authUser,
+                                userDocRef: widget.userDocRef,
+                              )));
+                },
+              ),
+            ],
+          ));
         }, childCount: displayCount + (showButton ? 1 : 0)),
       ),
     );
@@ -287,13 +254,12 @@ class _OptionOrdersWidgetState extends State<OptionOrdersWidget> {
   Widget get orderFilterWidget {
     // var orderFilters = widget.orderFilters;
     return SizedBox(
-      height: 56,
-      child: ListView.builder(
-        padding: const EdgeInsets.all(4.0),
-        scrollDirection: Axis.horizontal,
-        itemBuilder: (context, index) {
-          return Row(
-            children: [
+        height: 56,
+        child: ListView.builder(
+          padding: const EdgeInsets.all(4.0),
+          scrollDirection: Axis.horizontal,
+          itemBuilder: (context, index) {
+            return Row(children: [
               Padding(
                 padding: const EdgeInsets.all(4.0),
                 child: FilterChip(
@@ -372,11 +338,9 @@ class _OptionOrdersWidgetState extends State<OptionOrdersWidget> {
                   },
                 ),
               ),
-            ],
-          );
-        },
-        itemCount: 1,
-      ),
-    );
+            ]);
+          },
+          itemCount: 1,
+        ));
   }
 }

@@ -20,15 +20,20 @@ void main() {
         ),
         useMaterial3: true,
       ),
-      home: Scaffold(body: child),
+      home: Scaffold(
+        body: child,
+      ),
     );
   }
 
   group('WelcomeWidget Tests', () {
-    testWidgets('renders default brand title, badge, and features', (
-      WidgetTester tester,
-    ) async {
-      await tester.pumpWidget(createTestableWidget(const WelcomeWidget()));
+    testWidgets('renders default brand title, badge, and features',
+        (WidgetTester tester) async {
+      await tester.pumpWidget(
+        createTestableWidget(
+          const WelcomeWidget(),
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('Welcome to ${Constants.appTitle}'), findsOneWidget);
@@ -44,21 +49,21 @@ void main() {
       expect(find.text('Fidelity'), findsOneWidget);
     });
 
-    testWidgets('renders contextual message banner when provided', (
-      WidgetTester tester,
-    ) async {
+    testWidgets('renders contextual message banner when provided',
+        (WidgetTester tester) async {
       const testMessage = 'Session expired. Please log in again.';
       await tester.pumpWidget(
-        createTestableWidget(const WelcomeWidget(message: testMessage)),
+        createTestableWidget(
+          const WelcomeWidget(message: testMessage),
+        ),
       );
       await tester.pumpAndSettle();
 
       expect(find.text(testMessage), findsOneWidget);
     });
 
-    testWidgets('handles onLogin callback and custom actionLabel', (
-      WidgetTester tester,
-    ) async {
+    testWidgets('handles onLogin callback and custom actionLabel',
+        (WidgetTester tester) async {
       bool loginCalled = false;
       await tester.pumpWidget(
         createTestableWidget(
@@ -72,10 +77,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final buttonFinder = find.widgetWithText(
-        FilledButton,
-        'Connect Brokerage',
-      );
+      final buttonFinder =
+          find.widgetWithText(FilledButton, 'Connect Brokerage');
       expect(buttonFinder, findsOneWidget);
 
       await tester.ensureVisible(buttonFinder);
@@ -85,9 +88,8 @@ void main() {
       expect(loginCalled, isTrue);
     });
 
-    testWidgets('handles onExploreDemo callback when provided', (
-      WidgetTester tester,
-    ) async {
+    testWidgets('handles onExploreDemo callback when provided',
+        (WidgetTester tester) async {
       bool demoCalled = false;
       await tester.pumpWidget(
         createTestableWidget(
@@ -100,10 +102,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final demoButtonFinder = find.widgetWithText(
-        OutlinedButton,
-        'Explore Demo / Paper Mode',
-      );
+      final demoButtonFinder =
+          find.widgetWithText(OutlinedButton, 'Explore Demo / Paper Mode');
       expect(demoButtonFinder, findsOneWidget);
 
       await tester.ensureVisible(demoButtonFinder);
@@ -113,9 +113,8 @@ void main() {
       expect(demoCalled, isTrue);
     });
 
-    testWidgets('respects custom title and showFeatures=false', (
-      WidgetTester tester,
-    ) async {
+    testWidgets('respects custom title and showFeatures=false',
+        (WidgetTester tester) async {
       await tester.pumpWidget(
         createTestableWidget(
           const WelcomeWidget(

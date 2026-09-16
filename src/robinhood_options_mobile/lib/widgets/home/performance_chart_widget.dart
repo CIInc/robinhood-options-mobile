@@ -81,14 +81,11 @@ class _PerformanceChartWidgetState extends State<PerformanceChartWidget> {
             var dayHistoricals = portfolioHistoricalsStore.items
                 .singleWhereOrNull((e) => e.span == 'day');
             if (dayHistoricals != null &&
-                !portfolioHistoricals.equityHistoricals.any(
-                  (e) =>
-                      e.beginsAt ==
-                      dayHistoricals.equityHistoricals.last.beginsAt,
-                )) {
-              portfolioHistoricals.equityHistoricals.add(
-                dayHistoricals.equityHistoricals.last,
-              );
+                !portfolioHistoricals.equityHistoricals.any((e) =>
+                    e.beginsAt ==
+                    dayHistoricals.equityHistoricals.last.beginsAt)) {
+              portfolioHistoricals.equityHistoricals
+                  .add(dayHistoricals.equityHistoricals.last);
             }
 
             Map<String, dynamic>? chartResult(dynamic data) {
@@ -112,23 +109,23 @@ class _PerformanceChartWidgetState extends State<PerformanceChartWidget> {
                 sp500Result?['meta']?['currentTradingPeriod']?['regular'];
             final sp500PreviousClose =
                 (sp500Result?['meta']?['chartPreviousClose'] as num?)
-                    ?.toDouble() ??
-                0.0;
+                        ?.toDouble() ??
+                    0.0;
             final nasdaqPreviousClose =
                 (nasdaqResult?['meta']?['chartPreviousClose'] as num?)
-                    ?.toDouble() ??
-                0.0;
+                        ?.toDouble() ??
+                    0.0;
             final dowPreviousClose =
                 (dowResult?['meta']?['chartPreviousClose'] as num?)
-                    ?.toDouble() ??
-                0.0;
+                        ?.toDouble() ??
+                    0.0;
             var russell2000PreviousClose = russell2000 != null
                 ? (russellResult?['meta']?['chartPreviousClose'] as num?)
-                      ?.toDouble()
+                    ?.toDouble()
                 : null;
             var customBenchmarkPreviousClose = customBenchmarkData != null
                 ? (customResult?['meta']?['chartPreviousClose'] as num?)
-                      ?.toDouble()
+                    ?.toDouble()
                 : null;
 
             final regularStart = (regularsp500?['start'] as num?)?.toInt() ?? 0;
@@ -178,9 +175,7 @@ class _PerformanceChartWidgetState extends State<PerformanceChartWidget> {
             }
 
             List<Map<String, dynamic>> processMarketData(
-              dynamic data,
-              double previousClose,
-            ) {
+                dynamic data, double previousClose) {
               if (data == null ||
                   data['chart'] == null ||
                   data['chart']['result'] == null ||
@@ -199,20 +194,17 @@ class _PerformanceChartWidgetState extends State<PerformanceChartWidget> {
                   (result0['indicators']['adjclose'][0]['adjclose'] as List);
 
               var list = <Map<String, dynamic>>[];
-              for (
-                var index = 0;
-                index < timestamps.length && index < adjcloses.length;
-                index++
-              ) {
+              for (var index = 0;
+                  index < timestamps.length && index < adjcloses.length;
+                  index++) {
                 final numerator = adjcloses[index];
                 final close = (numerator as num?)?.toDouble();
                 if (close != null) {
                   list.add({
                     'date': DateTime.fromMillisecondsSinceEpoch(
-                      (((timestamps[index] as num) + enddiffsp500) * 1000)
-                          .toInt(),
-                    ),
-                    'close': close,
+                        (((timestamps[index] as num) + enddiffsp500) * 1000)
+                            .toInt()),
+                    'close': close
                   });
                 }
               }
@@ -248,30 +240,23 @@ class _PerformanceChartWidgetState extends State<PerformanceChartWidget> {
             }
 
             var seriesDatasp500 = processMarketData(sp500, sp500PreviousClose);
-            var seriesDatanasdaq = processMarketData(
-              nasdaq,
-              nasdaqPreviousClose,
-            );
+            var seriesDatanasdaq =
+                processMarketData(nasdaq, nasdaqPreviousClose);
             var seriesDatadow = processMarketData(dow, dowPreviousClose);
             var seriesDatarussell2000 =
                 russell2000 != null && russell2000PreviousClose != null
-                ? processMarketData(russell2000, russell2000PreviousClose)
-                : <Map<String, dynamic>>[];
-            var seriesDataCustom =
-                customBenchmarkData != null &&
+                    ? processMarketData(russell2000, russell2000PreviousClose)
+                    : <Map<String, dynamic>>[];
+            var seriesDataCustom = customBenchmarkData != null &&
                     customBenchmarkPreviousClose != null
                 ? processMarketData(
-                    customBenchmarkData,
-                    customBenchmarkPreviousClose,
-                  )
+                    customBenchmarkData, customBenchmarkPreviousClose)
                 : <Map<String, dynamic>>[];
 
             var equityList = portfolioHistoricals.equityHistoricals
-                .where(
-                  (e) =>
-                      e.beginsAt != null &&
-                      (e.adjustedCloseEquity != null || e.closeEquity != null),
-                )
+                .where((e) =>
+                    e.beginsAt != null &&
+                    (e.adjustedCloseEquity != null || e.closeEquity != null))
                 .toList();
 
             if (cutoff != null) {
@@ -282,15 +267,13 @@ class _PerformanceChartWidgetState extends State<PerformanceChartWidget> {
 
             double seriesOpenportfolio = 0.0;
             if (equityList.isNotEmpty) {
-              seriesOpenportfolio =
-                  equityList.first.adjustedOpenEquity ??
+              seriesOpenportfolio = equityList.first.adjustedOpenEquity ??
                   equityList.first.openEquity ??
                   equityList.first.adjustedCloseEquity ??
                   equityList.first.closeEquity ??
                   0.0;
               if (seriesOpenportfolio == 0.0) {
-                seriesOpenportfolio =
-                    equityList.first.adjustedCloseEquity ??
+                seriesOpenportfolio = equityList.first.adjustedCloseEquity ??
                     equityList.first.closeEquity ??
                     1.0;
               }
@@ -308,57 +291,42 @@ class _PerformanceChartWidgetState extends State<PerformanceChartWidget> {
 
             if (widget.benchmarkChartDateSpanFilter == ChartDateSpan.ytd &&
                 seriesDataportfolio.isNotEmpty) {
-              seriesDataportfolio.insert(0, {
-                'date': newYearsDay,
-                'value': 0.0,
-              });
+              seriesDataportfolio
+                  .insert(0, {'date': newYearsDay, 'value': 0.0});
             }
 
             final allValues = <double>[
-              ...seriesDatasp500.map(
-                (e) => (e['value'] as num?)?.toDouble() ?? 0.0,
-              ),
-              ...seriesDatanasdaq.map(
-                (e) => (e['value'] as num?)?.toDouble() ?? 0.0,
-              ),
-              ...seriesDatadow.map(
-                (e) => (e['value'] as num?)?.toDouble() ?? 0.0,
-              ),
-              ...seriesDatarussell2000.map(
-                (e) => (e['value'] as num?)?.toDouble() ?? 0.0,
-              ),
-              ...seriesDataCustom.map(
-                (e) => (e['value'] as num?)?.toDouble() ?? 0.0,
-              ),
-              ...seriesDataportfolio.map(
-                (e) => (e['value'] as num?)?.toDouble() ?? 0.0,
-              ),
+              ...seriesDatasp500
+                  .map((e) => (e['value'] as num?)?.toDouble() ?? 0.0),
+              ...seriesDatanasdaq
+                  .map((e) => (e['value'] as num?)?.toDouble() ?? 0.0),
+              ...seriesDatadow
+                  .map((e) => (e['value'] as num?)?.toDouble() ?? 0.0),
+              ...seriesDatarussell2000
+                  .map((e) => (e['value'] as num?)?.toDouble() ?? 0.0),
+              ...seriesDataCustom
+                  .map((e) => (e['value'] as num?)?.toDouble() ?? 0.0),
+              ...seriesDataportfolio
+                  .map((e) => (e['value'] as num?)?.toDouble() ?? 0.0),
             ];
             var extents = allValues.isNotEmpty
                 ? charts.NumericExtents.fromValues(allValues)
                 : const charts.NumericExtents(-0.1, 0.1);
-            extents = charts.NumericExtents(
-              extents.min - (extents.width * 0.1),
-              extents.max + (extents.width * 0.1),
-            );
+            extents = charts.NumericExtents(extents.min - (extents.width * 0.1),
+                extents.max + (extents.width * 0.1));
             var brightness = Theme.of(context).brightness;
             var axisLabelColor = charts.MaterialPalette.gray.shade500;
             if (brightness == Brightness.light) {
               axisLabelColor = charts.MaterialPalette.gray.shade700;
             }
-            var chartSelectionStore = Provider.of<ChartSelectionStore>(
-              context,
-              listen: false,
-            );
+            var chartSelectionStore =
+                Provider.of<ChartSelectionStore>(context, listen: false);
 
             if (seriesDataportfolio.isNotEmpty) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
-                chartSelectionStore.selectionChanged(
-                  MapEntry(
+                chartSelectionStore.selectionChanged(MapEntry(
                     seriesDataportfolio.last['date'] as DateTime,
-                    seriesDataportfolio.last['value'] as double,
-                  ),
-                );
+                    seriesDataportfolio.last['value'] as double));
               });
             }
 
@@ -381,8 +349,7 @@ class _PerformanceChartWidgetState extends State<PerformanceChartWidget> {
                 charts.Series<dynamic, DateTime>(
                   id: 'Portfolio',
                   colorFn: (_, index) => charts.ColorUtil.fromDartColor(
-                    Colors.accents[0 % Colors.accents.length],
-                  ),
+                      Colors.accents[0 % Colors.accents.length]),
                   domainFn: (dynamic data, _) => data['date'],
                   measureFn: (dynamic data, index) => data['value'],
                   data: seriesDataportfolio,
@@ -391,8 +358,7 @@ class _PerformanceChartWidgetState extends State<PerformanceChartWidget> {
                   charts.Series<dynamic, DateTime>(
                     id: 'S&P 500',
                     colorFn: (_, index) => charts.ColorUtil.fromDartColor(
-                      Colors.accents[4 % Colors.accents.length],
-                    ),
+                        Colors.accents[4 % Colors.accents.length]),
                     domainFn: (dynamic data, _) => data['date'],
                     measureFn: (dynamic data, index) => data['value'],
                     data: seriesDatasp500,
@@ -401,8 +367,7 @@ class _PerformanceChartWidgetState extends State<PerformanceChartWidget> {
                   charts.Series<dynamic, DateTime>(
                     id: 'Nasdaq',
                     colorFn: (_, index) => charts.ColorUtil.fromDartColor(
-                      Colors.accents[2 % Colors.accents.length],
-                    ),
+                        Colors.accents[2 % Colors.accents.length]),
                     domainFn: (dynamic data, _) => data['date'],
                     measureFn: (dynamic data, index) => data['value'],
                     data: seriesDatanasdaq,
@@ -411,8 +376,7 @@ class _PerformanceChartWidgetState extends State<PerformanceChartWidget> {
                   charts.Series<dynamic, DateTime>(
                     id: 'Dow 30',
                     colorFn: (_, index) => charts.ColorUtil.fromDartColor(
-                      Colors.accents[6 % Colors.accents.length],
-                    ),
+                        Colors.accents[6 % Colors.accents.length]),
                     domainFn: (dynamic data, _) => data['date'],
                     measureFn: (dynamic data, index) => data['value'],
                     data: seriesDatadow,
@@ -423,11 +387,10 @@ class _PerformanceChartWidgetState extends State<PerformanceChartWidget> {
                   charts.Series<dynamic, DateTime>(
                     id: 'Russell 2000',
                     colorFn: (_, index) => charts.ColorUtil.fromDartColor(
-                      brightness == Brightness.light
-                          ? Colors.accents[5 %
-                                Colors.accents.length] // Colors.brown
-                          : Colors.accents[8 % Colors.accents.length],
-                    ),
+                        brightness == Brightness.light
+                            ? Colors.accents[
+                                5 % Colors.accents.length] // Colors.brown
+                            : Colors.accents[8 % Colors.accents.length]),
                     domainFn: (dynamic data, _) => data['date'],
                     measureFn: (dynamic data, index) => data['value'],
                     data: seriesDatarussell2000,
@@ -438,11 +401,10 @@ class _PerformanceChartWidgetState extends State<PerformanceChartWidget> {
                   charts.Series<dynamic, DateTime>(
                     id: widget.customBenchmarkSymbol!,
                     colorFn: (_, index) => charts.ColorUtil.fromDartColor(
-                      brightness == Brightness.light
-                          ? Colors.accents[10 %
-                                Colors.accents.length] // Another color
-                          : Colors.accents[3 % Colors.accents.length],
-                    ),
+                        brightness == Brightness.light
+                            ? Colors.accents[
+                                10 % Colors.accents.length] // Another color
+                            : Colors.accents[3 % Colors.accents.length]),
                     domainFn: (dynamic data, _) => data['date'],
                     measureFn: (dynamic data, index) => data['value'],
                     data: seriesDataCustom,
@@ -452,11 +414,9 @@ class _PerformanceChartWidgetState extends State<PerformanceChartWidget> {
               zeroBound: false,
               selectionMode: common.SelectionMode.selectOverlapping,
               primaryMeasureAxis: charts.PercentAxisSpec(
-                viewport: extents,
-                renderSpec: charts.GridlineRendererSpec(
-                  labelStyle: charts.TextStyleSpec(color: axisLabelColor),
-                ),
-              ),
+                  viewport: extents,
+                  renderSpec: charts.GridlineRendererSpec(
+                      labelStyle: charts.TextStyleSpec(color: axisLabelColor))),
               seriesLegend: charts.SeriesLegend(
                 horizontalFirst: true,
                 desiredMaxColumns: 2,
@@ -467,98 +427,69 @@ class _PerformanceChartWidgetState extends State<PerformanceChartWidget> {
                     measure != null ? formatPercentage.format(measure) : '',
               ),
               onSelected: (charts.SelectionModel? model) {
-                chartSelectionStore.selectionChanged(
-                  model != null
-                      ? MapEntry(
-                          model.selectedDatum.first.datum['date'],
-                          model.selectedDatum.first.datum['value'],
-                        )
-                      : null,
-                );
+                chartSelectionStore.selectionChanged(model != null
+                    ? MapEntry(model.selectedDatum.first.datum['date'],
+                        model.selectedDatum.first.datum['value'])
+                    : null);
               },
-              initialSelection: charts.InitialSelection(
-                selectedDataConfig: [
-                  if (seriesDataportfolio.isNotEmpty)
-                    charts.SeriesDatumConfig<DateTime>(
-                      'Portfolio',
-                      seriesDataportfolio.last['date'] as DateTime,
-                    ),
-                  if ((selectedSeriesId == null ||
-                          selectedSeriesId == 'S&P 500') &&
-                      seriesDatasp500.isNotEmpty)
-                    charts.SeriesDatumConfig<DateTime>(
-                      'S&P 500',
-                      seriesDatasp500.last['date'] as DateTime,
-                    ),
-                  if ((selectedSeriesId == null ||
-                          selectedSeriesId == 'Nasdaq') &&
-                      seriesDatanasdaq.isNotEmpty)
-                    charts.SeriesDatumConfig<DateTime>(
-                      'Nasdaq',
-                      seriesDatanasdaq.last['date'] as DateTime,
-                    ),
-                  if ((selectedSeriesId == null ||
-                          selectedSeriesId == 'Dow 30') &&
-                      seriesDatadow.isNotEmpty)
-                    charts.SeriesDatumConfig<DateTime>(
-                      'Dow 30',
-                      seriesDatadow.last['date'] as DateTime,
-                    ),
-                  if (seriesDatarussell2000.isNotEmpty &&
-                      (selectedSeriesId == null ||
-                          selectedSeriesId == 'Russell 2000'))
-                    charts.SeriesDatumConfig<DateTime>(
-                      'Russell 2000',
-                      seriesDatarussell2000.last['date'] as DateTime,
-                    ),
-                  if (seriesDataCustom.isNotEmpty &&
-                      (selectedSeriesId == null ||
-                          selectedSeriesId == widget.customBenchmarkSymbol))
-                    charts.SeriesDatumConfig<DateTime>(
+              initialSelection: charts.InitialSelection(selectedDataConfig: [
+                if (seriesDataportfolio.isNotEmpty)
+                  charts.SeriesDatumConfig<DateTime>('Portfolio',
+                      seriesDataportfolio.last['date'] as DateTime),
+                if ((selectedSeriesId == null ||
+                        selectedSeriesId == 'S&P 500') &&
+                    seriesDatasp500.isNotEmpty)
+                  charts.SeriesDatumConfig<DateTime>(
+                      'S&P 500', seriesDatasp500.last['date'] as DateTime),
+                if ((selectedSeriesId == null ||
+                        selectedSeriesId == 'Nasdaq') &&
+                    seriesDatanasdaq.isNotEmpty)
+                  charts.SeriesDatumConfig<DateTime>(
+                      'Nasdaq', seriesDatanasdaq.last['date'] as DateTime),
+                if ((selectedSeriesId == null ||
+                        selectedSeriesId == 'Dow 30') &&
+                    seriesDatadow.isNotEmpty)
+                  charts.SeriesDatumConfig<DateTime>(
+                      'Dow 30', seriesDatadow.last['date'] as DateTime),
+                if (seriesDatarussell2000.isNotEmpty &&
+                    (selectedSeriesId == null ||
+                        selectedSeriesId == 'Russell 2000'))
+                  charts.SeriesDatumConfig<DateTime>('Russell 2000',
+                      seriesDatarussell2000.last['date'] as DateTime),
+                if (seriesDataCustom.isNotEmpty &&
+                    (selectedSeriesId == null ||
+                        selectedSeriesId == widget.customBenchmarkSymbol))
+                  charts.SeriesDatumConfig<DateTime>(
                       widget.customBenchmarkSymbol!,
-                      seriesDataCustom.last['date'] as DateTime,
-                    ),
-                ],
-                shouldPreserveSelectionOnDraw: true,
-              ),
-              symbolRenderer: TextSymbolRenderer(
-                () {
-                  return chartSelectionStore.selection != null
-                      ? formatCompactDateTimeWithHour.format(
-                          (chartSelectionStore.selection as MapEntry).key
-                              .toLocal(),
-                        )
-                      : '';
-                },
-                marginBottom: 16,
-                backgroundColor: Theme.of(context).colorScheme.inverseSurface,
-                textColor: Theme.of(context).colorScheme.onInverseSurface,
-              ),
+                      seriesDataCustom.last['date'] as DateTime),
+              ], shouldPreserveSelectionOnDraw: true),
+              symbolRenderer: TextSymbolRenderer(() {
+                return chartSelectionStore.selection != null
+                    ? formatCompactDateTimeWithHour.format(
+                        (chartSelectionStore.selection as MapEntry)
+                            .key
+                            .toLocal())
+                    : '';
+              },
+                  marginBottom: 16,
+                  backgroundColor: Theme.of(context).colorScheme.inverseSurface,
+                  textColor: Theme.of(context).colorScheme.onInverseSurface),
             );
             return widget.isFullScreen
                 ? Expanded(
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(
-                        10.0,
-                        10.0,
-                        10.0,
-                        10.0,
-                      ),
+                      padding:
+                          const EdgeInsets.fromLTRB(10.0, 10.0, 10.0, 10.0),
                       child: marketIndicesChart,
                     ),
                   )
                 : SizedBox(
                     height: 380,
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(
-                        10.0,
-                        10.0,
-                        10.0,
-                        10.0,
-                      ),
+                      padding:
+                          const EdgeInsets.fromLTRB(10.0, 10.0, 10.0, 10.0),
                       child: marketIndicesChart,
-                    ),
-                  );
+                    ));
           }
         }
         debugPrint("${snapshot.error}");

@@ -61,39 +61,30 @@ class OptionChain {
   //   final double? underlying_instruments;
   final MinTicks minTicks;
 
-  OptionChain(
-    this.id,
-    this.symbol,
-    this.canOpenPosition,
-    this.cashComponent,
-    this.expirationDates,
-    this.tradeValueMultiplier,
-    this.minTicks,
-  );
+  OptionChain(this.id, this.symbol, this.canOpenPosition, this.cashComponent,
+      this.expirationDates, this.tradeValueMultiplier, this.minTicks);
 
   OptionChain.fromJson(dynamic json)
-    : id = json['id'],
-      symbol = json['symbol'],
-      canOpenPosition = json['can_open_position'],
-      cashComponent = parseDouble(json['cash_component']),
-      expirationDates = json['expiration_dates']
-          .map<DateTime>(
-            (e) => e is Timestamp ? (e).toDate() : DateTime.parse(e),
-          )
-          .toList(),
-      tradeValueMultiplier = parseDouble(json['trade_value_multiplier']),
-      minTicks = MinTicks(
-        parseDouble(json['min_ticks']['above_tick']),
-        parseDouble(json['min_ticks']['below_tick']),
-        parseDouble(json['min_ticks']['cutoff_price']),
-      );
+      : id = json['id'],
+        symbol = json['symbol'],
+        canOpenPosition = json['can_open_position'],
+        cashComponent = parseDouble(json['cash_component']),
+        expirationDates = json['expiration_dates']
+            .map<DateTime>(
+                (e) => e is Timestamp ? (e).toDate() : DateTime.parse(e))
+            .toList(),
+        tradeValueMultiplier = parseDouble(json['trade_value_multiplier']),
+        minTicks = MinTicks(
+            parseDouble(json['min_ticks']['above_tick']),
+            parseDouble(json['min_ticks']['below_tick']),
+            parseDouble(json['min_ticks']['cutoff_price']));
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'symbol': symbol,
-    'can_open_position': canOpenPosition,
-    'cash_component': cashComponent,
-    'expiration_dates': expirationDates.map((e) => e), // .toIso8601String()
-    'trade_value_multiplier': tradeValueMultiplier,
-    'min_ticks': minTicks.toJson(),
-  };
+        'id': id,
+        'symbol': symbol,
+        'can_open_position': canOpenPosition,
+        'cash_component': cashComponent,
+        'expiration_dates': expirationDates.map((e) => e), // .toIso8601String()
+        'trade_value_multiplier': tradeValueMultiplier,
+        'min_ticks': minTicks.toJson()
+      };
 }

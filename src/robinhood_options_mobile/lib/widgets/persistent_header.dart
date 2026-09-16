@@ -8,22 +8,21 @@ class PersistentHeader extends SliverPersistentHeaderDelegate {
 
   @override
   Widget build(
-    BuildContext context,
-    double shrinkOffset,
-    bool overlapsContent,
-  ) {
+      BuildContext context, double shrinkOffset, bool overlapsContent) {
     if (widget != null) {
       return widget!;
     }
     return Material(
-      //elevation: 1,
-      child: SizedBox(
-        height: size,
-        child: Center(
-          child: Text(title, style: const TextStyle(fontSize: 18.0)),
+        //elevation: 1,
+        child: SizedBox(
+      height: size,
+      child: Center(
+        child: Text(
+          title,
+          style: const TextStyle(fontSize: 18.0),
         ),
       ),
-    );
+    ));
   }
 
   @override

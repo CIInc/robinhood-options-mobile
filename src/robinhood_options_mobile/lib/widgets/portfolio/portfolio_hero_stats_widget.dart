@@ -41,34 +41,28 @@ class PortfolioHeroStatsWidget extends StatelessWidget {
 
     if (benchmark != null) {
       final excess = benchmark!.excessReturn;
-      stats.add(
-        _stat(
-          context,
-          label: 'vs ${benchmark!.symbol}',
-          value: '${excess >= 0 ? '+' : ''}${percent.format(excess)}',
-          valueColor: excess >= 0 ? Colors.green : theme.colorScheme.error,
-          onTap: onBenchmarkTap,
-        ),
-      );
+      stats.add(_stat(
+        context,
+        label: 'vs ${benchmark!.symbol}',
+        value: '${excess >= 0 ? '+' : ''}${percent.format(excess)}',
+        valueColor: excess >= 0 ? Colors.green : theme.colorScheme.error,
+        onTap: onBenchmarkTap,
+      ));
     }
     if (buyingPower != null) {
-      stats.add(
-        _stat(
-          context,
-          label: 'Buying Power',
-          value: showBalances ? currency.format(buyingPower) : '\$••••••',
-        ),
-      );
+      stats.add(_stat(
+        context,
+        label: 'Buying Power',
+        value: showBalances ? currency.format(buyingPower) : '\$••••••',
+      ));
     }
     if (cashWeight != null) {
-      stats.add(
-        _stat(
-          context,
-          label: 'Cash',
-          value: percent.format(cashWeight),
-          valueColor: cashWeight >= 0.30 ? Colors.orange : null,
-        ),
-      );
+      stats.add(_stat(
+        context,
+        label: 'Cash',
+        value: percent.format(cashWeight),
+        valueColor: cashWeight >= 0.30 ? Colors.orange : null,
+      ));
     }
 
     if (stats.isEmpty) return const SizedBox.shrink();
@@ -78,9 +72,8 @@ class PortfolioHeroStatsWidget extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 4),
         decoration: BoxDecoration(
-          color: theme.colorScheme.surfaceContainerHighest.withValues(
-            alpha: 0.35,
-          ),
+          color:
+              theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
           borderRadius: BorderRadius.circular(16),
         ),
         child: Row(
@@ -91,9 +84,8 @@ class PortfolioHeroStatsWidget extends StatelessWidget {
                   height: 32,
                   child: VerticalDivider(
                     width: 1,
-                    color: theme.colorScheme.outlineVariant.withValues(
-                      alpha: 0.6,
-                    ),
+                    color:
+                        theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
                   ),
                 ),
               Expanded(child: stats[i]),
@@ -129,9 +121,8 @@ class PortfolioHeroStatsWidget extends StatelessWidget {
           label,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
+          style: theme.textTheme.bodySmall
+              ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
         ),
       ],
     );

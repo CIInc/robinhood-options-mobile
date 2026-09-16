@@ -7,7 +7,10 @@ import 'package:robinhood_options_mobile/widgets/analytics_style_card.dart';
 class PortfolioStressTestCard extends StatelessWidget {
   final List<InstrumentPosition> positions;
 
-  const PortfolioStressTestCard({super.key, required this.positions});
+  const PortfolioStressTestCard({
+    super.key,
+    required this.positions,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -20,9 +23,8 @@ class PortfolioStressTestCard extends StatelessWidget {
     }
     final scenarios = AnalyticsUtils.calculateStressScenarios(exposures);
     final theme = Theme.of(context);
-    final portfolioValue = scenarios.isEmpty
-        ? 0.0
-        : scenarios.first['portfolioValue'] ?? 0.0;
+    final portfolioValue =
+        scenarios.isEmpty ? 0.0 : scenarios.first['portfolioValue'] ?? 0.0;
 
     return AnalyticsStyleCard(
       child: Column(
@@ -30,10 +32,8 @@ class PortfolioStressTestCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(
-                Icons.warning_amber_outlined,
-                color: theme.colorScheme.primary,
-              ),
+              Icon(Icons.warning_amber_outlined,
+                  color: theme.colorScheme.primary),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -41,10 +41,8 @@ class PortfolioStressTestCard extends StatelessWidget {
                   children: [
                     Text('Stress Test', style: theme.textTheme.titleLarge),
                     const SizedBox(height: 2),
-                    Text(
-                      'Projected impact of broad market moves',
-                      style: theme.textTheme.bodySmall,
-                    ),
+                    Text('Projected impact of broad market moves',
+                        style: theme.textTheme.bodySmall),
                   ],
                 ),
               ),
@@ -52,10 +50,8 @@ class PortfolioStressTestCard extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           if (scenarios.isEmpty)
-            Text(
-              'Stress testing needs priced holdings.',
-              style: theme.textTheme.bodyMedium,
-            )
+            Text('Stress testing needs priced holdings.',
+                style: theme.textTheme.bodyMedium)
           else ...[
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -65,20 +61,14 @@ class PortfolioStressTestCard extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  Icon(
-                    Icons.account_balance_wallet_outlined,
-                    size: 18,
-                    color: theme.colorScheme.primary,
-                  ),
+                  Icon(Icons.account_balance_wallet_outlined,
+                      size: 18, color: theme.colorScheme.primary),
                   const SizedBox(width: 8),
                   Text('Net priced exposure', style: theme.textTheme.bodySmall),
                   const Spacer(),
-                  Text(
-                    _formatCurrency(portfolioValue, showSign: false),
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  Text(_formatCurrency(portfolioValue, showSign: false),
+                      style: theme.textTheme.titleSmall
+                          ?.copyWith(fontWeight: FontWeight.bold)),
                 ],
               ),
             ),
@@ -116,9 +106,8 @@ class PortfolioStressTestCard extends StatelessWidget {
                   child: Text(
                     'Illustrative, not a forecast',
                     textAlign: TextAlign.end,
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
+                    style: theme.textTheme.labelSmall
+                        ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                   ),
                 ),
               ],
@@ -149,17 +138,12 @@ class PortfolioStressTestCard extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(
-              '${shock >= 0 ? '+' : ''}${(shock * 100).toStringAsFixed(0)}%',
-              style: theme.textTheme.labelLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+            Text('${shock >= 0 ? '+' : ''}${(shock * 100).toStringAsFixed(0)}%',
+                style: theme.textTheme.labelLarge
+                    ?.copyWith(fontWeight: FontWeight.bold)),
             const SizedBox(height: 3),
-            Text(
-              _formatCurrency(change),
-              style: theme.textTheme.labelMedium?.copyWith(color: color),
-            ),
+            Text(_formatCurrency(change),
+                style: theme.textTheme.labelMedium?.copyWith(color: color)),
           ],
         ),
       ),

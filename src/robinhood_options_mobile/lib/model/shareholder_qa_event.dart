@@ -74,39 +74,34 @@ class ShareholderAnswer {
   factory ShareholderAnswer.fromJson(Map<String, dynamic> json) {
     return ShareholderAnswer(
       id: json['id']?.toString(),
-      answerText:
-          json['answer_text']?.toString() ??
+      answerText: json['answer_text']?.toString() ??
           json['text']?.toString() ??
           json['answer']?.toString() ??
           '',
-      answeredBy:
-          json['answered_by']?.toString() ??
+      answeredBy: json['answered_by']?.toString() ??
           json['speaker']?.toString() ??
           'Company Leadership',
-      answeredByTitle:
-          json['answered_by_title']?.toString() ??
+      answeredByTitle: json['answered_by_title']?.toString() ??
           json['title']?.toString() ??
           json['speaker_title']?.toString(),
       answeredAt: _parseDateTime(json['answered_at'] ?? json['created_at']),
-      videoTimestampSeconds: _parseInt(
-        json['video_timestamp_seconds'] ??
-            json['timestamp_seconds'] ??
-            json['timestamp'],
-      ),
+      videoTimestampSeconds: _parseInt(json['video_timestamp_seconds'] ??
+          json['timestamp_seconds'] ??
+          json['timestamp']),
       sourceUrl: json['source_url']?.toString() ?? json['url']?.toString(),
     );
   }
 
   Map<String, dynamic> toJson() => {
-    if (id != null) 'id': id,
-    'answer_text': answerText,
-    'answered_by': answeredBy,
-    if (answeredByTitle != null) 'answered_by_title': answeredByTitle,
-    if (answeredAt != null) 'answered_at': answeredAt!.toIso8601String(),
-    if (videoTimestampSeconds != null)
-      'video_timestamp_seconds': videoTimestampSeconds,
-    if (sourceUrl != null) 'source_url': sourceUrl,
-  };
+        if (id != null) 'id': id,
+        'answer_text': answerText,
+        'answered_by': answeredBy,
+        if (answeredByTitle != null) 'answered_by_title': answeredByTitle,
+        if (answeredAt != null) 'answered_at': answeredAt!.toIso8601String(),
+        if (videoTimestampSeconds != null)
+          'video_timestamp_seconds': videoTimestampSeconds,
+        if (sourceUrl != null) 'source_url': sourceUrl,
+      };
 
   String get formattedTimestamp {
     if (videoTimestampSeconds == null) return '';
@@ -147,15 +142,14 @@ class ShareholderQuestion {
     this.answer,
   });
 
-  bool get isAnswered => status.toLowerCase() == 'answered' || answer != null;
+  bool get isAnswered =>
+      status.toLowerCase() == 'answered' || answer != null;
 
   String get formattedVotes => _formatCompactNumber(votesCount);
   String get formattedShares => _formatCompactNumber(sharesRepresented);
 
-  factory ShareholderQuestion.fromJson(
-    Map<String, dynamic> json, {
-    String? defaultEventId,
-  }) {
+  factory ShareholderQuestion.fromJson(Map<String, dynamic> json,
+      {String? defaultEventId}) {
     ShareholderAnswer? parsedAnswer;
     if (json['answer'] is Map<String, dynamic>) {
       parsedAnswer = ShareholderAnswer.fromJson(json['answer']);
@@ -166,52 +160,36 @@ class ShareholderQuestion {
     return ShareholderQuestion(
       id: json['id']?.toString() ?? '',
       eventId: json['event_id']?.toString() ?? defaultEventId ?? '',
-      text:
-          json['text']?.toString() ??
+      text: json['text']?.toString() ??
           json['question_text']?.toString() ??
           json['title']?.toString() ??
           '',
-      status:
-          json['status']?.toString() ??
+      status: json['status']?.toString() ??
           (parsedAnswer != null ? 'answered' : 'approved'),
-      authorDisplayName:
-          json['author_display_name']?.toString() ??
+      authorDisplayName: json['author_display_name']?.toString() ??
           json['author_name']?.toString() ??
           json['author']?.toString() ??
           'Verified Shareholder',
-      isVerifiedShareholder:
-          _parseBool(
-            json['is_verified_shareholder'] ??
-                json['verified'] ??
-                json['is_verified'],
-          ) ??
+      isVerifiedShareholder: _parseBool(json['is_verified_shareholder'] ??
+              json['verified'] ??
+              json['is_verified']) ??
           true,
-      votesCount:
-          _parseInt(
-            json['votes_count'] ??
-                json['num_votes'] ??
-                json['votes'] ??
-                json['upvotes'],
-          ) ??
+      votesCount: _parseInt(json['votes_count'] ??
+              json['num_votes'] ??
+              json['votes'] ??
+              json['upvotes']) ??
           0,
-      sharesRepresented:
-          _parseDouble(
-            json['shares_represented'] ??
-                json['total_shares'] ??
-                json['shares'] ??
-                json['num_shares'],
-          ) ??
+      sharesRepresented: _parseDouble(json['shares_represented'] ??
+              json['total_shares'] ??
+              json['shares'] ??
+              json['num_shares']) ??
           0.0,
       percentageOfTotalShares: _parseDouble(
-        json['percentage_of_total_shares'] ?? json['shares_percentage'],
-      ),
-      isUserVoted:
-          _parseBool(
-            json['is_user_voted'] ??
-                json['user_voted'] ??
-                json['has_voted'] ??
-                json['voted'],
-          ) ??
+          json['percentage_of_total_shares'] ?? json['shares_percentage']),
+      isUserVoted: _parseBool(json['is_user_voted'] ??
+              json['user_voted'] ??
+              json['has_voted'] ??
+              json['voted']) ??
           false,
       createdAt: _parseDateTime(json['created_at'] ?? json['date']),
       answer: parsedAnswer,
@@ -219,20 +197,20 @@ class ShareholderQuestion {
   }
 
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'event_id': eventId,
-    'text': text,
-    'status': status,
-    'author_display_name': authorDisplayName,
-    'is_verified_shareholder': isVerifiedShareholder,
-    'votes_count': votesCount,
-    'shares_represented': sharesRepresented,
-    if (percentageOfTotalShares != null)
-      'percentage_of_total_shares': percentageOfTotalShares,
-    'is_user_voted': isUserVoted,
-    if (createdAt != null) 'created_at': createdAt!.toIso8601String(),
-    if (answer != null) 'answer': answer!.toJson(),
-  };
+        'id': id,
+        'event_id': eventId,
+        'text': text,
+        'status': status,
+        'author_display_name': authorDisplayName,
+        'is_verified_shareholder': isVerifiedShareholder,
+        'votes_count': votesCount,
+        'shares_represented': sharesRepresented,
+        if (percentageOfTotalShares != null)
+          'percentage_of_total_shares': percentageOfTotalShares,
+        'is_user_voted': isUserVoted,
+        if (createdAt != null) 'created_at': createdAt!.toIso8601String(),
+        if (answer != null) 'answer': answer!.toJson(),
+      };
 
   ShareholderQuestion copyWith({
     String? id,
@@ -338,8 +316,7 @@ class ShareholderQaEvent {
   }
 
   String get formattedTotalVotes => _formatCompactNumber(totalVotesCount);
-  String get formattedTotalShares =>
-      _formatCompactNumber(totalSharesRepresented);
+  String get formattedTotalShares => _formatCompactNumber(totalSharesRepresented);
   String get formattedUserShares => _formatCompactNumber(userSharesRepresented);
 
   String get formattedEventDate {
@@ -354,13 +331,9 @@ class ShareholderQaEvent {
     return DateFormat('MMM d, h:mm a').format(dl.toLocal());
   }
 
-  factory ShareholderQaEvent.fromJson(
-    Map<String, dynamic> json, {
-    String? defaultInstrumentId,
-    String? defaultSymbol,
-  }) {
-    final eventId =
-        json['id']?.toString() ??
+  factory ShareholderQaEvent.fromJson(Map<String, dynamic> json,
+      {String? defaultInstrumentId, String? defaultSymbol}) {
+    final eventId = json['id']?.toString() ??
         json['event_id']?.toString() ??
         'qa_event_${DateTime.now().millisecondsSinceEpoch}';
 
@@ -377,112 +350,92 @@ class ShareholderQaEvent {
           .toList();
     }
 
-    final totalQ =
-        _parseInt(
-          json['total_questions_count'] ??
-              json['num_questions'] ??
-              json['questions_count'],
-        ) ??
+    final totalQ = _parseInt(json['total_questions_count'] ??
+            json['num_questions'] ??
+            json['questions_count']) ??
         parsedQuestions.length;
 
     return ShareholderQaEvent(
       id: eventId,
-      title:
-          json['title']?.toString() ??
+      title: json['title']?.toString() ??
           json['name']?.toString() ??
           '${defaultSymbol ?? ""} Shareholder Q&A',
-      eventType:
-          json['event_type']?.toString() ??
+      eventType: json['event_type']?.toString() ??
           json['type']?.toString() ??
           'earnings',
-      status:
-          json['status']?.toString() ?? json['state']?.toString() ?? 'active',
-      companyName:
-          json['company_name']?.toString() ??
+      status: json['status']?.toString() ??
+          json['state']?.toString() ??
+          'active',
+      companyName: json['company_name']?.toString() ??
           json['company']?.toString() ??
           defaultSymbol ??
           '',
       symbol: (json['symbol']?.toString() ?? defaultSymbol ?? '').toUpperCase(),
-      instrumentId:
-          json['instrument_id']?.toString() ?? defaultInstrumentId ?? '',
+      instrumentId: json['instrument_id']?.toString() ??
+          defaultInstrumentId ??
+          '',
       startTime: _parseDateTime(json['start_time'] ?? json['starts_at']),
       endTime: _parseDateTime(json['end_time'] ?? json['ends_at']),
-      eventDate: _parseDateTime(
-        json['event_date'] ?? json['date'] ?? json['start_time'],
-      ),
-      submissionDeadline: _parseDateTime(
-        json['submission_deadline'] ?? json['question_submission_deadline'],
-      ),
+      eventDate: _parseDateTime(json['event_date'] ??
+          json['date'] ??
+          json['start_time']),
+      submissionDeadline: _parseDateTime(json['submission_deadline'] ??
+          json['question_submission_deadline']),
       votingDeadline: _parseDateTime(
-        json['voting_deadline'] ?? json['vote_deadline'],
-      ),
-      description:
-          json['description']?.toString() ?? json['summary']?.toString(),
-      bannerUrl:
-          json['banner_url']?.toString() ??
+          json['voting_deadline'] ?? json['vote_deadline']),
+      description: json['description']?.toString() ??
+          json['summary']?.toString(),
+      bannerUrl: json['banner_url']?.toString() ??
           json['header_image_url']?.toString(),
-      webcastUrl:
-          json['webcast_url']?.toString() ??
+      webcastUrl: json['webcast_url']?.toString() ??
           json['stream_url']?.toString() ??
           json['url']?.toString(),
       totalQuestionsCount: totalQ,
-      totalVotesCount:
-          _parseInt(
-            json['total_votes_count'] ??
-                json['num_votes'] ??
-                json['votes_count'],
-          ) ??
+      totalVotesCount: _parseInt(json['total_votes_count'] ??
+              json['num_votes'] ??
+              json['votes_count']) ??
           0,
-      totalSharesRepresented:
-          _parseDouble(
-            json['total_shares_represented'] ??
-                json['total_shares'] ??
-                json['shares_represented'],
-          ) ??
+      totalSharesRepresented: _parseDouble(json['total_shares_represented'] ??
+              json['total_shares'] ??
+              json['shares_represented']) ??
           0.0,
-      userSharesRepresented:
-          _parseDouble(
-            json['user_shares_represented'] ??
-                json['user_shares'] ??
-                json['my_shares'],
-          ) ??
+      userSharesRepresented: _parseDouble(json['user_shares_represented'] ??
+              json['user_shares'] ??
+              json['my_shares']) ??
           0.0,
-      isUserVerified:
-          _parseBool(
-            json['is_user_verified'] ??
-                json['user_verified'] ??
-                json['is_verified_shareholder'],
-          ) ??
+      isUserVerified: _parseBool(json['is_user_verified'] ??
+              json['user_verified'] ??
+              json['is_verified_shareholder']) ??
           false,
       questions: parsedQuestions,
     );
   }
 
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'title': title,
-    'event_type': eventType,
-    'status': status,
-    'company_name': companyName,
-    'symbol': symbol,
-    'instrument_id': instrumentId,
-    if (startTime != null) 'start_time': startTime!.toIso8601String(),
-    if (endTime != null) 'end_time': endTime!.toIso8601String(),
-    if (eventDate != null) 'event_date': eventDate!.toIso8601String(),
-    if (submissionDeadline != null)
-      'submission_deadline': submissionDeadline!.toIso8601String(),
-    if (votingDeadline != null)
-      'voting_deadline': votingDeadline!.toIso8601String(),
-    if (description != null) 'description': description,
-    if (bannerUrl != null) 'banner_url': bannerUrl,
-    if (webcastUrl != null) 'webcast_url': webcastUrl,
-    'total_questions_count': totalQuestionsCount,
-    'total_votes_count': totalVotesCount,
-    'total_shares_represented': totalSharesRepresented,
-    'user_shares_represented': userSharesRepresented,
-    'is_user_verified': isUserVerified,
-    'questions': questions.map((q) => q.toJson()).toList(),
-  };
+        'id': id,
+        'title': title,
+        'event_type': eventType,
+        'status': status,
+        'company_name': companyName,
+        'symbol': symbol,
+        'instrument_id': instrumentId,
+        if (startTime != null) 'start_time': startTime!.toIso8601String(),
+        if (endTime != null) 'end_time': endTime!.toIso8601String(),
+        if (eventDate != null) 'event_date': eventDate!.toIso8601String(),
+        if (submissionDeadline != null)
+          'submission_deadline': submissionDeadline!.toIso8601String(),
+        if (votingDeadline != null)
+          'voting_deadline': votingDeadline!.toIso8601String(),
+        if (description != null) 'description': description,
+        if (bannerUrl != null) 'banner_url': bannerUrl,
+        if (webcastUrl != null) 'webcast_url': webcastUrl,
+        'total_questions_count': totalQuestionsCount,
+        'total_votes_count': totalVotesCount,
+        'total_shares_represented': totalSharesRepresented,
+        'user_shares_represented': userSharesRepresented,
+        'is_user_verified': isUserVerified,
+        'questions': questions.map((q) => q.toJson()).toList(),
+      };
 
   ShareholderQaEvent copyWith({
     String? id,
@@ -560,11 +513,8 @@ class ShareholderQaSection {
     return active;
   }
 
-  factory ShareholderQaSection.fromJson(
-    dynamic json, {
-    required String instrumentId,
-    String? symbol,
-  }) {
+  factory ShareholderQaSection.fromJson(dynamic json,
+      {required String instrumentId, String? symbol}) {
     if (json == null) {
       return ShareholderQaSection(instrumentId: instrumentId, symbol: symbol);
     }
@@ -574,42 +524,26 @@ class ShareholderQaSection {
     if (json is List) {
       parsedEvents = json
           .whereType<Map<String, dynamic>>()
-          .map(
-            (item) => ShareholderQaEvent.fromJson(
-              item,
-              defaultInstrumentId: instrumentId,
-              defaultSymbol: symbol,
-            ),
-          )
+          .map((item) => ShareholderQaEvent.fromJson(item,
+              defaultInstrumentId: instrumentId, defaultSymbol: symbol))
           .toList();
     } else if (json is Map<String, dynamic>) {
       if (json['events'] is List) {
         parsedEvents = (json['events'] as List)
             .whereType<Map<String, dynamic>>()
-            .map(
-              (item) => ShareholderQaEvent.fromJson(
-                item,
-                defaultInstrumentId: instrumentId,
-                defaultSymbol: symbol,
-              ),
-            )
+            .map((item) => ShareholderQaEvent.fromJson(item,
+                defaultInstrumentId: instrumentId, defaultSymbol: symbol))
             .toList();
       } else if (json['event'] is Map<String, dynamic>) {
         parsedEvents = [
-          ShareholderQaEvent.fromJson(
-            json['event'],
-            defaultInstrumentId: instrumentId,
-            defaultSymbol: symbol,
-          ),
+          ShareholderQaEvent.fromJson(json['event'],
+              defaultInstrumentId: instrumentId, defaultSymbol: symbol)
         ];
       } else if (json['id'] != null || json['title'] != null) {
         // Single event directly at root
         parsedEvents = [
-          ShareholderQaEvent.fromJson(
-            json,
-            defaultInstrumentId: instrumentId,
-            defaultSymbol: symbol,
-          ),
+          ShareholderQaEvent.fromJson(json,
+              defaultInstrumentId: instrumentId, defaultSymbol: symbol)
         ];
       }
     }
@@ -622,8 +556,8 @@ class ShareholderQaSection {
   }
 
   Map<String, dynamic> toJson() => {
-    'instrument_id': instrumentId,
-    if (symbol != null) 'symbol': symbol,
-    'events': events.map((e) => e.toJson()).toList(),
-  };
+        'instrument_id': instrumentId,
+        if (symbol != null) 'symbol': symbol,
+        'events': events.map((e) => e.toJson()).toList(),
+      };
 }

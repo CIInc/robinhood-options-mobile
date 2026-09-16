@@ -62,10 +62,8 @@ import 'package:dynamic_color/dynamic_color.dart';
 
 /// Requires that a Firestore emulator is running locally.
 /// See https://firebase.flutter.dev/docs/firestore/usage#emulator-usage
-bool shouldUseFirestoreEmulator = const bool.fromEnvironment(
-  'USE_FIRESTORE_EMULATOR',
-  defaultValue: false,
-);
+bool shouldUseFirestoreEmulator =
+    const bool.fromEnvironment('USE_FIRESTORE_EMULATOR', defaultValue: false);
 
 late final FirebaseApp app;
 late final FirebaseAuth auth;
@@ -148,9 +146,8 @@ class MyApp extends StatelessWidget {
   const MyApp({super.key, this.brokerageUserStore});
 
   static FirebaseAnalytics analytics = FirebaseAnalytics.instance;
-  static FirebaseAnalyticsObserver observer = FirebaseAnalyticsObserver(
-    analytics: analytics,
-  );
+  static FirebaseAnalyticsObserver observer =
+      FirebaseAnalyticsObserver(analytics: analytics);
 
   // This widget is the root of your application.
   @override
@@ -160,76 +157,76 @@ class MyApp extends StatelessWidget {
       DeviceOrientation.portraitDown,
     ]);
     return DynamicColorBuilder(
-      builder: (ColorScheme? lightDynamic, ColorScheme? darkDynamic) {
-        // Platform.isAndroid
-        // ColorScheme colorScheme = defaultTargetPlatform == TargetPlatform.iOS
-        //     ? const ColorScheme.light(
-        //         primary: Colors.indigo,
-        //         secondary:
-        //             // CupertinoColors.systemMint
-        //             CupertinoColors.systemGrey4
-        //         // Colors.indigoAccent
-        //         )
-        //     : lightDynamic ?? const ColorScheme.light();
-        // primary: Color.fromRGBO(156, 39, 176, 0.7),
-        // secondary: Color.fromRGBO(83, 109, 254, 0.7))
-        // ColorScheme darkColorScheme = defaultTargetPlatform == TargetPlatform.iOS
-        //     ? const ColorScheme.dark(
-        //         primary: Colors.indigo, secondary: CupertinoColors.systemGrey
-        //         // CupertinoColors.systemMint
-        //         // Colors.indigoAccent
-        //         )
-        //     : darkDynamic ?? const ColorScheme.dark();
-        ThemeData lightTheme = ThemeData(
-          // colorScheme: colorScheme,
-          colorScheme: ColorScheme.fromSeed(
-            // seedColor: Color.fromARGB(255, 86, 136, 247), // Colors.lightBlue,
-            // seedColor: const Color(0xFF003366), // RealizeAlpha Blue
-            seedColor: const Color(0xFF002147), // RealizeAlpha Dark Blue
-            // seedColor: const Color(0xFF00C805), // RealizeAlpha Green
-            brightness: Brightness.light,
-          ),
-          // , textTheme: Typography.blackCupertino);
-          useMaterial3: true,
-          // appBarTheme: AppBarTheme(
-          //     backgroundColor: colorScheme.primary,
-          //     foregroundColor: Colors.white),
-          // tabBarTheme: TabBarThemeData(
-          //   dividerColor: Colors.transparent,
-          //   labelColor: Colors.white,
-          //   unselectedLabelColor: Colors.white70,
-          // ),
-          // chipTheme: ChipThemeData(
-          //   side: BorderSide.none,
-          //   // shape: LinearBorder()
-          //   // StadiumBorder(side: BorderSide.none)
-          // ),
-          navigationBarTheme: const NavigationBarThemeData(
-            labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-          ),
-        );
-        ThemeData darkTheme = ThemeData(
-          colorScheme: ColorScheme.fromSeed(
-            // seedColor: Color.fromARGB(255, 86, 136, 247), // Colors.lightBlue,
-            // seedColor: const Color(0xFF003366), // RealizeAlpha Blue
-            seedColor: const Color(0xFF002147), // RealizeAlpha Dark Blue
-            // seedColor: const Color(0xFF00C805), // RealizeAlpha Green
-            brightness: Brightness.dark,
-          ),
-          // colorScheme: darkColorScheme,
-          // , textTheme: Typography.whiteHelsinki,
-          useMaterial3: true,
-          // , appBarTheme: AppBarTheme(backgroundColor: colorScheme.primary)
-          // chipTheme: ChipThemeData(
-          //   side: BorderSide.none,
-          //   // shape: LinearBorder()
-          //   // StadiumBorder(side: BorderSide.none)
-          // ),
-          navigationBarTheme: const NavigationBarThemeData(
-            labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-          ),
-        );
-        return MultiProvider(
+        builder: (ColorScheme? lightDynamic, ColorScheme? darkDynamic) {
+      // Platform.isAndroid
+      // ColorScheme colorScheme = defaultTargetPlatform == TargetPlatform.iOS
+      //     ? const ColorScheme.light(
+      //         primary: Colors.indigo,
+      //         secondary:
+      //             // CupertinoColors.systemMint
+      //             CupertinoColors.systemGrey4
+      //         // Colors.indigoAccent
+      //         )
+      //     : lightDynamic ?? const ColorScheme.light();
+      // primary: Color.fromRGBO(156, 39, 176, 0.7),
+      // secondary: Color.fromRGBO(83, 109, 254, 0.7))
+      // ColorScheme darkColorScheme = defaultTargetPlatform == TargetPlatform.iOS
+      //     ? const ColorScheme.dark(
+      //         primary: Colors.indigo, secondary: CupertinoColors.systemGrey
+      //         // CupertinoColors.systemMint
+      //         // Colors.indigoAccent
+      //         )
+      //     : darkDynamic ?? const ColorScheme.dark();
+      ThemeData lightTheme = ThemeData(
+        // colorScheme: colorScheme,
+        colorScheme: ColorScheme.fromSeed(
+          // seedColor: Color.fromARGB(255, 86, 136, 247), // Colors.lightBlue,
+          // seedColor: const Color(0xFF003366), // RealizeAlpha Blue
+          seedColor: const Color(0xFF002147), // RealizeAlpha Dark Blue
+          // seedColor: const Color(0xFF00C805), // RealizeAlpha Green
+          brightness: Brightness.light,
+        ),
+        // , textTheme: Typography.blackCupertino);
+        useMaterial3: true,
+        // appBarTheme: AppBarTheme(
+        //     backgroundColor: colorScheme.primary,
+        //     foregroundColor: Colors.white),
+        // tabBarTheme: TabBarThemeData(
+        //   dividerColor: Colors.transparent,
+        //   labelColor: Colors.white,
+        //   unselectedLabelColor: Colors.white70,
+        // ),
+        // chipTheme: ChipThemeData(
+        //   side: BorderSide.none,
+        //   // shape: LinearBorder()
+        //   // StadiumBorder(side: BorderSide.none)
+        // ),
+        navigationBarTheme: const NavigationBarThemeData(
+          labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+        ),
+      );
+      ThemeData darkTheme = ThemeData(
+        colorScheme: ColorScheme.fromSeed(
+          // seedColor: Color.fromARGB(255, 86, 136, 247), // Colors.lightBlue,
+          // seedColor: const Color(0xFF003366), // RealizeAlpha Blue
+          seedColor: const Color(0xFF002147), // RealizeAlpha Dark Blue
+          // seedColor: const Color(0xFF00C805), // RealizeAlpha Green
+          brightness: Brightness.dark,
+        ),
+        // colorScheme: darkColorScheme,
+        // , textTheme: Typography.whiteHelsinki,
+        useMaterial3: true,
+        // , appBarTheme: AppBarTheme(backgroundColor: colorScheme.primary)
+        // chipTheme: ChipThemeData(
+        //   side: BorderSide.none,
+        //   // shape: LinearBorder()
+        //   // StadiumBorder(side: BorderSide.none)
+        // ),
+        navigationBarTheme: const NavigationBarThemeData(
+          labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+        ),
+      );
+      return MultiProvider(
           providers: [
             ChangeNotifierProvider(
               create: (context) => TradeSignalNotificationsStore(),
@@ -237,40 +234,68 @@ class MyApp extends StatelessWidget {
             ChangeNotifierProvider(
               create: (context) => OptionFlowNotificationsStore(),
             ),
-            ChangeNotifierProvider(create: (context) => TradeSignalsProvider()),
-            ChangeNotifierProvider(create: (context) => CopyTradingProvider()),
+            ChangeNotifierProvider(
+              create: (context) => TradeSignalsProvider(),
+            ),
+            ChangeNotifierProvider(
+              create: (context) => CopyTradingProvider(),
+            ),
             brokerageUserStore != null
                 ? ChangeNotifierProvider.value(value: brokerageUserStore!)
                 : ChangeNotifierProvider(
                     create: (context) => BrokerageUserStore([], 0),
                   ),
-            ChangeNotifierProvider(create: (context) => AccountStore()),
-            ChangeNotifierProvider(create: (context) => PortfolioStore()),
+            ChangeNotifierProvider(
+              create: (context) => AccountStore(),
+            ),
+            ChangeNotifierProvider(
+              create: (context) => PortfolioStore(),
+            ),
             ChangeNotifierProvider(
               create: (context) => PortfolioHistoricalsStore(),
             ),
             ChangeNotifierProvider(
               create: (context) => PortfolioHistoricalsSelectionStore(),
             ),
-            ChangeNotifierProvider(create: (context) => DividendStore()),
-            ChangeNotifierProvider(create: (context) => InterestStore()),
-            ChangeNotifierProvider(create: (context) => ChartSelectionStore()),
-            ChangeNotifierProvider(create: (context) => OptionPositionStore()),
+            ChangeNotifierProvider(
+              create: (context) => DividendStore(),
+            ),
+            ChangeNotifierProvider(
+              create: (context) => InterestStore(),
+            ),
+            ChangeNotifierProvider(
+              create: (context) => ChartSelectionStore(),
+            ),
+            ChangeNotifierProvider(
+              create: (context) => OptionPositionStore(),
+            ),
             ChangeNotifierProvider(
               create: (context) => OptionHistoricalsStore(),
             ),
-            ChangeNotifierProvider(create: (context) => OptionOrderStore()),
-            ChangeNotifierProvider(create: (context) => ComboOrderStore()),
-            ChangeNotifierProvider(create: (context) => OptionEventStore()),
+            ChangeNotifierProvider(
+              create: (context) => OptionOrderStore(),
+            ),
+            ChangeNotifierProvider(
+              create: (context) => ComboOrderStore(),
+            ),
+            ChangeNotifierProvider(
+              create: (context) => OptionEventStore(),
+            ),
             ChangeNotifierProvider(
               create: (context) => OptionInstrumentStore(),
             ),
             ChangeNotifierProvider(
               create: (context) => InstrumentPositionStore(),
             ),
-            ChangeNotifierProvider(create: (context) => InstrumentOrderStore()),
-            ChangeNotifierProvider(create: (context) => ForexHoldingStore()),
-            ChangeNotifierProvider(create: (context) => FuturesPositionStore()),
+            ChangeNotifierProvider(
+              create: (context) => InstrumentOrderStore(),
+            ),
+            ChangeNotifierProvider(
+              create: (context) => ForexHoldingStore(),
+            ),
+            ChangeNotifierProvider(
+              create: (context) => FuturesPositionStore(),
+            ),
             ChangeNotifierProvider(
               create: (context) => FuturesAutoTradingProvider(),
             ),
@@ -279,26 +304,42 @@ class MyApp extends StatelessWidget {
               // PaperService and the widget tree use the same instance.
               create: (context) => paperTradingStore,
             ),
-            ChangeNotifierProvider(create: (context) => InstrumentStore()),
+            ChangeNotifierProvider(
+              create: (context) => InstrumentStore(),
+            ),
             ChangeNotifierProvider(
               create: (context) => InstrumentHistoricalsStore(),
             ),
             ChangeNotifierProvider(
               create: (context) => InstrumentHistoricalsSelectionStore(),
             ),
-            ChangeNotifierProvider(create: (context) => QuoteStore()),
+            ChangeNotifierProvider(
+              create: (context) => QuoteStore(),
+            ),
             // ChangeNotifierProvider(
             //   create: (context) => DrawerProvider(),
             // ),
-            ChangeNotifierProvider(create: (context) => LogoProvider()),
-            ChangeNotifierProvider(create: (context) => GenerativeProvider()),
+            ChangeNotifierProvider(
+              create: (context) => LogoProvider(),
+            ),
+            ChangeNotifierProvider(
+              create: (context) => GenerativeProvider(),
+            ),
             ChangeNotifierProvider(
               create: (context) => AgenticTradingProvider(),
             ),
-            ChangeNotifierProvider(create: (context) => BacktestingProvider()),
-            ChangeNotifierProvider(create: (context) => InvestorGroupStore()),
-            ChangeNotifierProvider(create: (context) => OptionsFlowStore()),
-            ChangeNotifierProvider(create: (context) => OrderTemplateStore()),
+            ChangeNotifierProvider(
+              create: (context) => BacktestingProvider(),
+            ),
+            ChangeNotifierProvider(
+              create: (context) => InvestorGroupStore(),
+            ),
+            ChangeNotifierProvider(
+              create: (context) => OptionsFlowStore(),
+            ),
+            ChangeNotifierProvider(
+              create: (context) => OrderTemplateStore(),
+            ),
           ],
           child: MaterialApp(
             title: Constants.appTitle,
@@ -308,9 +349,7 @@ class MyApp extends StatelessWidget {
             themeMode: ThemeMode.system,
             routes: {
               '/': (context) => NavigationStatefulWidget(
-                analytics: analytics,
-                observer: observer,
-              ),
+                  analytics: analytics, observer: observer),
               // '/link': (context) => NavigationStatefulWidget(
               //     analytics: analytics, observer: observer)
               /*
@@ -328,9 +367,7 @@ class MyApp extends StatelessWidget {
               //         analytics: analytics, observer: observer));
             },
             //home: NavigationStatefulWidget(analytics: analytics, observer: observer),
-          ),
-        );
-      },
-    );
+          ));
+    });
   }
 }

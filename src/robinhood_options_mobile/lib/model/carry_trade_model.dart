@@ -1,11 +1,24 @@
 import 'dart:math' as math;
 import 'package:robinhood_options_mobile/services/yahoo_service.dart';
 
-enum UnwindRiskLevel { low, moderate, elevated, extreme }
+enum UnwindRiskLevel {
+  low,
+  moderate,
+  elevated,
+  extreme,
+}
 
-enum CarryPairCategory { major, cross, emerging }
+enum CarryPairCategory {
+  major,
+  cross,
+  emerging,
+}
 
-enum CarryStrategyType { riskAdjusted, maxYield, diversified }
+enum CarryStrategyType {
+  riskAdjusted,
+  maxYield,
+  diversified,
+}
 
 class CentralBankRate {
   final String currencyCode;
@@ -88,8 +101,7 @@ class CurrencyCarryPair {
   /// Macro / unwind risk assessment
   UnwindRiskLevel get unwindRisk {
     // If quote or base is JPY or CHF and volatility > 10%
-    final isLowYieldFunder =
-        quoteCurrency == 'JPY' ||
+    final isLowYieldFunder = quoteCurrency == 'JPY' ||
         baseCurrency == 'JPY' ||
         quoteCurrency == 'CHF' ||
         baseCurrency == 'CHF';
@@ -382,7 +394,9 @@ class CarryTradeOptimizer {
         final cleanSym = pair.symbol.replaceAll('/', '').toUpperCase();
         final quote = quoteMap[cleanSym];
         if (quote != null && (quote.markPrice ?? 0) > 0) {
-          return pair.copyWith(currentPrice: quote.markPrice!);
+          return pair.copyWith(
+            currentPrice: quote.markPrice!,
+          );
         }
         return pair;
       }).toList();
@@ -402,9 +416,8 @@ class CarryTradeOptimizer {
 
     final allPairs = pairs ?? getCarryPairs();
     // Filter to positive net carry opportunities
-    final positivePairs = allPairs
-        .where((p) => p.recommendedYield > 0.5)
-        .toList();
+    final positivePairs =
+        allPairs.where((p) => p.recommendedYield > 0.5).toList();
 
     if (positivePairs.isEmpty) return [];
 
@@ -414,25 +427,21 @@ class CarryTradeOptimizer {
     switch (strategy) {
       case CarryStrategyType.maxYield:
         // Sort purely by net yield descending
-        positivePairs.sort(
-          (a, b) => b.recommendedYield.compareTo(a.recommendedYield),
-        );
+        positivePairs
+            .sort((a, b) => b.recommendedYield.compareTo(a.recommendedYield));
         selectedPairs = positivePairs.take(3).toList();
         rawWeights = selectedPairs.map((p) => p.recommendedYield).toList();
         break;
 
       case CarryStrategyType.riskAdjusted:
         // Sort by carry-to-risk ratio (Sharpe-like metric)
-        positivePairs.sort(
-          (a, b) => b.carryToRiskRatio.compareTo(a.carryToRiskRatio),
-        );
+        positivePairs
+            .sort((a, b) => b.carryToRiskRatio.compareTo(a.carryToRiskRatio));
         // Prefer lower unwind risk
         selectedPairs = positivePairs
-            .where(
-              (p) => macroRegime == 'RISK_OFF'
-                  ? p.unwindRisk != UnwindRiskLevel.extreme
-                  : true,
-            )
+            .where((p) => macroRegime == 'RISK_OFF'
+                ? p.unwindRisk != UnwindRiskLevel.extreme
+                : true)
             .take(4)
             .toList();
         if (selectedPairs.isEmpty) {
@@ -462,18 +471,16 @@ class CarryTradeOptimizer {
     }
 
     final sumRaw = rawWeights.fold(0.0, (a, b) => a + b);
-    final normalizedWeights = sumRaw > 0
-        ? rawWeights.map((w) => w / sumRaw).toList()
-        : [];
+    final normalizedWeights =
+        sumRaw > 0 ? rawWeights.map((w) => w / sumRaw).toList() : [];
 
     final List<CarryBasketAllocation> allocations = [];
     for (int i = 0; i < selectedPairs.length; i++) {
       final pair = selectedPairs[i];
       final weight = normalizedWeights[i];
       final notional = totalCapital * weight;
-      final units = pair.currentPrice > 0
-          ? (notional / pair.currentPrice)
-          : 0.0;
+      final units =
+          pair.currentPrice > 0 ? (notional / pair.currentPrice) : 0.0;
       final annualCarry = notional * (pair.recommendedYield / 100.0);
       final dailyCarry = annualCarry / 365.0;
 

@@ -14,53 +14,50 @@ void main() {
   });
 
   testWidgets(
-    'login carousel adds an invisible end spacer so final option stays swipe-reachable',
-    (tester) async {
-      final analytics = FirebaseAnalytics.instance;
+      'login carousel adds an invisible end spacer so final option stays swipe-reachable',
+      (tester) async {
+    final analytics = FirebaseAnalytics.instance;
 
-      await tester.pumpWidget(
-        ChangeNotifierProvider(
-          create: (_) => BrokerageUserStore([], 0),
-          child: MaterialApp(
-            home: LoginWidget(
-              analytics: analytics,
-              observer: FirebaseAnalyticsObserver(analytics: analytics),
-            ),
+    await tester.pumpWidget(
+      ChangeNotifierProvider(
+        create: (_) => BrokerageUserStore([], 0),
+        child: MaterialApp(
+          home: LoginWidget(
+            analytics: analytics,
+            observer: FirebaseAnalyticsObserver(analytics: analytics),
           ),
         ),
-      );
+      ),
+    );
 
-      await tester.pumpAndSettle();
+    await tester.pumpAndSettle();
 
-      final carousel = tester.widget<CarouselView>(find.byType(CarouselView));
-      expect(carousel.children, hasLength(6));
-      expect(find.text('Fidelity'), findsOneWidget);
-    },
-  );
+    final carousel = tester.widget<CarouselView>(find.byType(CarouselView));
+    expect(carousel.children, hasLength(6));
+    expect(find.text('Fidelity'), findsOneWidget);
+  });
 
-  testWidgets(
-    'login auto-selects initialSource and pre-fills initialUserName',
-    (tester) async {
-      final analytics = FirebaseAnalytics.instance;
+  testWidgets('login auto-selects initialSource and pre-fills initialUserName',
+      (tester) async {
+    final analytics = FirebaseAnalytics.instance;
 
-      await tester.pumpWidget(
-        ChangeNotifierProvider(
-          create: (_) => BrokerageUserStore([], 0),
-          child: MaterialApp(
-            home: LoginWidget(
-              analytics: analytics,
-              observer: FirebaseAnalyticsObserver(analytics: analytics),
-              initialSource: BrokerageSource.robinhood,
-              initialUserName: 'test_trader',
-            ),
+    await tester.pumpWidget(
+      ChangeNotifierProvider(
+        create: (_) => BrokerageUserStore([], 0),
+        child: MaterialApp(
+          home: LoginWidget(
+            analytics: analytics,
+            observer: FirebaseAnalyticsObserver(analytics: analytics),
+            initialSource: BrokerageSource.robinhood,
+            initialUserName: 'test_trader',
           ),
         ),
-      );
+      ),
+    );
 
-      await tester.pumpAndSettle();
+    await tester.pumpAndSettle();
 
-      expect(find.text('Robinhood Login'), findsOneWidget);
-      expect(find.text('test_trader'), findsOneWidget);
-    },
-  );
+    expect(find.text('Robinhood Login'), findsOneWidget);
+    expect(find.text('test_trader'), findsOneWidget);
+  });
 }

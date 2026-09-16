@@ -14,9 +14,7 @@ class MockAgenticTradingProvider extends ChangeNotifier
     implements AgenticTradingProvider {
   @override
   AgenticTradingConfig config = AgenticTradingConfig(
-    strategyConfig: TradeStrategyConfig(),
-    autoTradeEnabled: true,
-  );
+      strategyConfig: TradeStrategyConfig(), autoTradeEnabled: true);
 
   @override
   bool showAutoTradingVisual = false;
@@ -95,10 +93,8 @@ void main() {
     mockProvider.config.autoTradeEnabled = false;
     await tester.pumpWidget(createWidgetUnderTest());
     expect(find.byType(AutoTradeStatusBadgeWidget), findsOneWidget);
-    expect(
-      find.byType(Container),
-      findsNothing,
-    ); // Should be SizedBox.shrink() effectively invisible
+    expect(find.byType(Container),
+        findsNothing); // Should be SizedBox.shrink() effectively invisible
   });
 
   testWidgets('renders "Auto On" state correctly', (tester) async {
@@ -119,9 +115,8 @@ void main() {
 
   testWidgets('renders "Trading" state correctly', (tester) async {
     mockProvider.config.autoTradeEnabled = true;
-    mockProvider.config.strategyConfig = TradeStrategyConfig(
-      dailyTradeLimit: 5,
-    );
+    mockProvider.config.strategyConfig =
+        TradeStrategyConfig(dailyTradeLimit: 5);
     mockProvider.showAutoTradingVisual = true;
     mockProvider.emergencyStopActivated = false;
     mockProvider.dailyTradeCount = 3;
@@ -162,9 +157,8 @@ void main() {
 
   testWidgets('renders "Done" state when daily limit reached', (tester) async {
     mockProvider.config.autoTradeEnabled = true;
-    mockProvider.config.strategyConfig = TradeStrategyConfig(
-      dailyTradeLimit: 5,
-    );
+    mockProvider.config.strategyConfig =
+        TradeStrategyConfig(dailyTradeLimit: 5);
     mockProvider.showAutoTradingVisual = false;
     mockProvider.emergencyStopActivated = false;
     mockProvider.dailyTradeCount = 5;
@@ -208,9 +202,8 @@ void main() {
       profileTapped = false;
     });
 
-    testWidgets('renders user avatar button when autoTradeEnabled is false', (
-      tester,
-    ) async {
+    testWidgets('renders user avatar button when autoTradeEnabled is false',
+        (tester) async {
       mockProvider.config.autoTradeEnabled = false;
       await tester.pumpWidget(createCombinedWidgetUnderTest());
 
@@ -221,9 +214,8 @@ void main() {
       expect(profileTapped, isTrue);
     });
 
-    testWidgets('renders combined avatar and countdown when Auto On', (
-      tester,
-    ) async {
+    testWidgets('renders combined avatar and countdown when Auto On',
+        (tester) async {
       mockProvider.config.autoTradeEnabled = true;
       mockProvider.showAutoTradingVisual = false;
       mockProvider.emergencyStopActivated = false;
@@ -244,13 +236,11 @@ void main() {
       expect(profileTapped, isTrue);
     });
 
-    testWidgets('renders combined avatar and trade count when Trading', (
-      tester,
-    ) async {
+    testWidgets('renders combined avatar and trade count when Trading',
+        (tester) async {
       mockProvider.config.autoTradeEnabled = true;
-      mockProvider.config.strategyConfig = TradeStrategyConfig(
-        dailyTradeLimit: 5,
-      );
+      mockProvider.config.strategyConfig =
+          TradeStrategyConfig(dailyTradeLimit: 5);
       mockProvider.showAutoTradingVisual = true;
       mockProvider.emergencyStopActivated = false;
       mockProvider.dailyTradeCount = 3;
@@ -263,9 +253,8 @@ void main() {
       expect(find.byIcon(Icons.play_arrow), findsOneWidget);
     });
 
-    testWidgets('renders combined avatar and STOP when Stopped', (
-      tester,
-    ) async {
+    testWidgets('renders combined avatar and STOP when Stopped',
+        (tester) async {
       mockProvider.config.autoTradeEnabled = true;
       mockProvider.emergencyStopActivated = true;
 
@@ -277,9 +266,8 @@ void main() {
       expect(find.byIcon(Icons.stop_circle), findsOneWidget);
     });
 
-    testWidgets('long press on combined badge shows emergency stop dialog', (
-      tester,
-    ) async {
+    testWidgets('long press on combined badge shows emergency stop dialog',
+        (tester) async {
       mockProvider.config.autoTradeEnabled = true;
       mockProvider.emergencyStopActivated = false;
 

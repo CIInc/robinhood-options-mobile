@@ -131,16 +131,14 @@ class NewsArticleItem {
       publishedAt: map['publishedAt'] != null
           ? DateTime.tryParse(map['publishedAt'].toString()) ?? DateTime.now()
           : (map['published_at'] != null
-                ? DateTime.tryParse(map['published_at'].toString()) ??
-                      DateTime.now()
-                : DateTime.now()),
+              ? DateTime.tryParse(map['published_at'].toString()) ??
+                  DateTime.now()
+              : DateTime.now()),
       sentimentScore: (map['sentimentScore'] as num?)?.toDouble() ?? 50.0,
-      sentimentLabel: NewsSentimentLabel.fromString(
-        map['sentimentLabel']?.toString(),
-      ),
+      sentimentLabel:
+          NewsSentimentLabel.fromString(map['sentimentLabel']?.toString()),
       impact: NewsImpact.fromString(map['impact']?.toString()),
-      symbols:
-          (map['symbols'] as List<dynamic>?)
+      symbols: (map['symbols'] as List<dynamic>?)
               ?.map((e) => e.toString())
               .toList() ??
           [],
@@ -185,8 +183,7 @@ class EventImpactPrediction {
           (map?['expectedMovePercent'] as num?)?.toDouble() ?? 0.0,
       confidence: (map?['confidence'] as num?)?.toInt() ?? 15,
       horizon: map?['horizon']?.toString() ?? '1-2 weeks',
-      drivers:
-          (map?['drivers'] as List<dynamic>?)
+      drivers: (map?['drivers'] as List<dynamic>?)
               ?.map((e) => e.toString())
               .toList() ??
           [],
@@ -233,22 +230,18 @@ class NewsIntelligence {
     return NewsIntelligence(
       symbol: map['symbol']?.toString() ?? '',
       overallSentiment: (map['overallSentiment'] as num?)?.toDouble() ?? 50.0,
-      sentimentLabel: NewsSentimentLabel.fromString(
-        map['sentimentLabel']?.toString(),
-      ),
+      sentimentLabel:
+          NewsSentimentLabel.fromString(map['sentimentLabel']?.toString()),
       headlineSummary: map['headlineSummary']?.toString() ?? '',
-      keyTakeaways:
-          (map['keyTakeaways'] as List<dynamic>?)
+      keyTakeaways: (map['keyTakeaways'] as List<dynamic>?)
               ?.map((e) => e.toString())
               .toList() ??
           [],
-      bullishCatalysts:
-          (map['bullishCatalysts'] as List<dynamic>?)
+      bullishCatalysts: (map['bullishCatalysts'] as List<dynamic>?)
               ?.map((e) => e.toString())
               .toList() ??
           [],
-      bearishCatalysts:
-          (map['bearishCatalysts'] as List<dynamic>?)
+      bearishCatalysts: (map['bearishCatalysts'] as List<dynamic>?)
               ?.map((e) => e.toString())
               .toList() ??
           [],
@@ -260,8 +253,7 @@ class NewsIntelligence {
           .map((a) => NewsArticleItem.fromMap(Map<String, dynamic>.from(a)))
           .toList(),
       eventImpactPrediction: EventImpactPrediction.fromMap(
-        map['eventImpactPrediction'] as Map<String, dynamic>?,
-      ),
+          map['eventImpactPrediction'] as Map<String, dynamic>?),
       updatedAt: map['updatedAt'] != null
           ? DateTime.tryParse(map['updatedAt'].toString()) ?? DateTime.now()
           : DateTime.now(),

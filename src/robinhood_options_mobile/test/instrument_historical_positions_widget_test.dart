@@ -41,9 +41,8 @@ InstrumentOrder _makeOrder({
 
 void main() {
   group('InstrumentHistoricalPositionsWidget Tests', () {
-    testWidgets('renders nothing (SizedBox.shrink) when there is no history', (
-      WidgetTester tester,
-    ) async {
+    testWidgets('renders nothing (SizedBox.shrink) when there is no history',
+        (WidgetTester tester) async {
       final summary = InstrumentCostBasisLookbackSummary.fromOrders([]);
 
       await tester.pumpWidget(
@@ -58,9 +57,8 @@ void main() {
       expect(find.text('Previous Positions'), findsNothing);
     });
 
-    testWidgets('renders previous positions card with metrics and cycles', (
-      WidgetTester tester,
-    ) async {
+    testWidgets('renders previous positions card with metrics and cycles',
+        (WidgetTester tester) async {
       final d1 = DateTime(2025, 1, 10);
       final d2 = DateTime(2025, 1, 25);
       final orders = [
@@ -104,9 +102,8 @@ void main() {
       expect(find.textContaining('10 shares'), findsOneWidget);
     });
 
-    testWidgets('taps on cycle to open round-trip details bottom sheet', (
-      WidgetTester tester,
-    ) async {
+    testWidgets('taps on cycle to open round-trip details bottom sheet',
+        (WidgetTester tester) async {
       final d1 = DateTime(2025, 2, 1, 10, 0);
       final d2 = DateTime(2025, 2, 10, 15, 0);
       final orders = [
@@ -141,9 +138,8 @@ void main() {
       expect(find.textContaining('SELL 20 shares'), findsOneWidget);
     });
 
-    testWidgets('renders cleanly without overflow on narrow 320px viewport', (
-      WidgetTester tester,
-    ) async {
+    testWidgets('renders cleanly without overflow on narrow 320px viewport',
+        (WidgetTester tester) async {
       tester.view.physicalSize = const Size(320, 800);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() {
@@ -155,19 +151,9 @@ void main() {
       final d2 = DateTime(2025, 1, 25);
       final orders = [
         _makeOrder(
-          id: 'o1',
-          side: 'buy',
-          quantity: 15,
-          price: 165.50,
-          date: d1,
-        ),
+            id: 'o1', side: 'buy', quantity: 15, price: 165.50, date: d1),
         _makeOrder(
-          id: 'o2',
-          side: 'sell',
-          quantity: 15,
-          price: 188.50,
-          date: d2,
-        ),
+            id: 'o2', side: 'sell', quantity: 15, price: 188.50, date: d2),
       ];
 
       final summary = InstrumentCostBasisLookbackSummary.fromOrders(
@@ -189,56 +175,52 @@ void main() {
       expect(find.text('Previous Positions'), findsOneWidget);
     });
 
-    testWidgets(
-      'opens bottom sheet on narrow 320px viewport without overflow',
-      (WidgetTester tester) async {
-        tester.view.physicalSize = const Size(320, 800);
-        tester.view.devicePixelRatio = 1.0;
-        addTearDown(() {
-          tester.view.resetPhysicalSize();
-          tester.view.resetDevicePixelRatio();
-        });
+    testWidgets('opens bottom sheet on narrow 320px viewport without overflow',
+        (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(320, 800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
 
-        final d1 = DateTime(2025, 2, 1, 10, 30);
-        final d2 = DateTime(2025, 2, 10, 15, 45);
-        final orders = [
-          _makeOrder(
+      final d1 = DateTime(2025, 2, 1, 10, 30);
+      final d2 = DateTime(2025, 2, 10, 15, 45);
+      final orders = [
+        _makeOrder(
             id: 'b1',
             side: 'buy',
             quantity: 0.30539123,
             price: 3274.55,
-            date: d1,
-          ),
-          _makeOrder(
+            date: d1),
+        _makeOrder(
             id: 's1',
             side: 'sell',
             quantity: 0.30539123,
             price: 3450.12,
-            date: d2,
-          ),
-        ];
+            date: d2),
+      ];
 
-        final summary = InstrumentCostBasisLookbackSummary.fromOrders(orders);
+      final summary = InstrumentCostBasisLookbackSummary.fromOrders(orders);
 
-        await tester.pumpWidget(
-          MaterialApp(
-            home: Scaffold(
-              body: SingleChildScrollView(
-                child: InstrumentHistoricalPositionsWidget(summary: summary),
-              ),
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SingleChildScrollView(
+              child: InstrumentHistoricalPositionsWidget(summary: summary),
             ),
           ),
-        );
+        ),
+      );
 
-        // Tap cycle to open bottom sheet
-        await tester.tap(find.byType(ListTile).first);
-        await tester.pumpAndSettle();
+      // Tap cycle to open bottom sheet
+      await tester.tap(find.byType(ListTile).first);
+      await tester.pumpAndSettle();
 
-        expect(tester.takeException(), isNull);
-        expect(find.text('Round-Trip Execution Details'), findsOneWidget);
-        expect(find.text('Orders in this Cycle (2)'), findsOneWidget);
-      },
-    );
+      expect(tester.takeException(), isNull);
+      expect(find.text('Round-Trip Execution Details'), findsOneWidget);
+      expect(find.text('Orders in this Cycle (2)'), findsOneWidget);
+    });
 
     testWidgets('respects showHeader parameter', (WidgetTester tester) async {
       final d1 = DateTime(2025, 2, 1);
@@ -285,32 +267,25 @@ void main() {
       expect(find.text('Historical Cycles'), findsOneWidget);
     });
 
-    testWidgets('renders split badge and bottom sheet corporate action details', (
-      WidgetTester tester,
-    ) async {
+    testWidgets('renders split badge and bottom sheet corporate action details',
+        (WidgetTester tester) async {
       final buyDate = DateTime(2024, 5, 1);
       final splitDate = DateTime(2024, 6, 10);
       final sellDate = DateTime(2024, 7, 1);
 
       final orders = [
         _makeOrder(
-          id: 'b1',
-          side: 'buy',
-          quantity: 10,
-          price: 1000,
-          date: buyDate,
-        ),
+            id: 'b1', side: 'buy', quantity: 10, price: 1000, date: buyDate),
         _makeOrder(
-          id: 's1',
-          side: 'sell',
-          quantity: 100,
-          price: 120,
-          date: sellDate,
-        ),
+            id: 's1', side: 'sell', quantity: 100, price: 120, date: sellDate),
       ];
 
       final splits = [
-        StockSplit(executionDate: splitDate, multiplier: 10.0, divisor: 1.0),
+        StockSplit(
+          executionDate: splitDate,
+          multiplier: 10.0,
+          divisor: 1.0,
+        ),
       ];
 
       final summary = InstrumentCostBasisLookbackSummary.fromOrders(

@@ -44,8 +44,7 @@ class _TradeSignalNotificationSettingsWidgetState
 
   void _loadSettings() {
     setState(() {
-      _settings =
-          widget.user.tradeSignalNotificationSettings ??
+      _settings = widget.user.tradeSignalNotificationSettings ??
           TradeSignalNotificationSettings();
     });
   }
@@ -100,11 +99,9 @@ class _TradeSignalNotificationSettingsWidgetState
               builder: (context, store, child) {
                 return IconButton(
                   icon: Badge(
-                    label: Text(
-                      store.unreadCount > 99
-                          ? '99+'
-                          : store.unreadCount.toString(),
-                    ),
+                    label: Text(store.unreadCount > 99
+                        ? '99+'
+                        : store.unreadCount.toString()),
                     isLabelVisible: store.unreadCount > 0,
                     child: const Icon(Icons.notifications_outlined),
                   ),
@@ -151,9 +148,8 @@ class _TradeSignalNotificationSettingsWidgetState
           // Enable/Disable notifications
           SwitchListTile(
             title: const Text('Enable Notifications'),
-            subtitle: const Text(
-              'Receive push notifications for trade signals',
-            ),
+            subtitle:
+                const Text('Receive push notifications for trade signals'),
             value: _settings.enabled,
             onChanged: (value) {
               setState(() {
@@ -163,9 +159,8 @@ class _TradeSignalNotificationSettingsWidgetState
           ),
           SwitchListTile(
             title: const Text('Macro Assessment Alerts'),
-            subtitle: const Text(
-              'Notify on Market Regime shifts & Macro changes',
-            ),
+            subtitle:
+                const Text('Notify on Market Regime shifts & Macro changes'),
             value: _settings.macroAlerts,
             onChanged: _settings.enabled
                 ? (value) {
@@ -182,7 +177,10 @@ class _TradeSignalNotificationSettingsWidgetState
           _buildChipSelector(
             null,
             ['BUY', 'SELL', 'HOLD'],
-            [..._settings.signalTypes, if (_settings.includeHold) 'HOLD'],
+            [
+              ..._settings.signalTypes,
+              if (_settings.includeHold) 'HOLD',
+            ],
             (selectedTypes) {
               setState(() {
                 _settings = _settings.copyWith(
@@ -218,22 +216,20 @@ class _TradeSignalNotificationSettingsWidgetState
               spacing: 8.0,
               runSpacing: 8.0,
               children: [
-                ..._settings.symbols.map(
-                  (symbol) => Chip(
-                    label: Text(symbol),
-                    onDeleted: _settings.enabled
-                        ? () {
-                            setState(() {
-                              final symbols = List<String>.from(
-                                _settings.symbols,
-                              );
-                              symbols.remove(symbol);
-                              _settings = _settings.copyWith(symbols: symbols);
-                            });
-                          }
-                        : null,
-                  ),
-                ),
+                ..._settings.symbols.map((symbol) => Chip(
+                      label: Text(symbol),
+                      onDeleted: _settings.enabled
+                          ? () {
+                              setState(() {
+                                final symbols =
+                                    List<String>.from(_settings.symbols);
+                                symbols.remove(symbol);
+                                _settings =
+                                    _settings.copyWith(symbols: symbols);
+                              });
+                            }
+                          : null,
+                    )),
                 ActionChip(
                   avatar: const Icon(Icons.add, size: 16),
                   label: const Text('Add Symbol'),
@@ -245,14 +241,11 @@ class _TradeSignalNotificationSettingsWidgetState
           if (_settings.symbols.isEmpty)
             const Padding(
               padding: EdgeInsets.only(left: 16.0, top: 4.0, bottom: 8.0),
-              child: Text(
-                'Not filtering by symbol (All symbols will notify)',
-                style: TextStyle(
-                  color: Colors.grey,
-                  fontStyle: FontStyle.italic,
-                  fontSize: 12,
-                ),
-              ),
+              child: Text('Not filtering by symbol (All symbols will notify)',
+                  style: TextStyle(
+                      color: Colors.grey,
+                      fontStyle: FontStyle.italic,
+                      fontSize: 12)),
             ),
           const Divider(),
 
@@ -260,19 +253,16 @@ class _TradeSignalNotificationSettingsWidgetState
           _buildSectionHeader('Confidence Threshold'),
           ListTile(
             title: Text(
-              'Minimum confidence: ${_settings.minConfidence != null ? "${(_settings.minConfidence! * 100).toInt()}%" : "None"}',
-            ),
+                'Minimum confidence: ${_settings.minConfidence != null ? "${(_settings.minConfidence! * 100).toInt()}%" : "None"}'),
             subtitle: Slider(
               value: _settings.minConfidence ?? 0.0,
               min: 0.0,
               max: 1.0,
               divisions: 100,
-              activeColor: (_settings.minConfidence ?? 0) > 0.8
-                  ? Colors.green
-                  : null,
-              thumbColor: (_settings.minConfidence ?? 0) > 0.8
-                  ? Colors.green
-                  : null,
+              activeColor:
+                  (_settings.minConfidence ?? 0) > 0.8 ? Colors.green : null,
+              thumbColor:
+                  (_settings.minConfidence ?? 0) > 0.8 ? Colors.green : null,
               label: _settings.minConfidence != null
                   ? '${(_settings.minConfidence! * 100).toInt()}%'
                   : 'None',
@@ -280,8 +270,7 @@ class _TradeSignalNotificationSettingsWidgetState
                   ? (value) {
                       setState(() {
                         _settings = _settings.copyWith(
-                          minConfidence: value > 0 ? value : null,
-                        );
+                            minConfidence: value > 0 ? value : null);
                       });
                     }
                   : null,
@@ -328,30 +317,28 @@ class _TradeSignalNotificationSettingsWidgetState
       await file.writeAsBytes(response.bodyBytes);
 
       bigPictureStyleInformation = BigPictureStyleInformation(
-        FilePathAndroidBitmap(filePath),
-        largeIcon: FilePathAndroidBitmap(filePath),
-        contentTitle: '🟢 BUY SPY @ \$450.00',
-        summaryText: 'Daily • 95% Conf.\n🥵 RSI: 72 • 📉 MACD: 1.25',
-        htmlFormatContentTitle: true,
-        htmlFormatSummaryText: true,
-      );
+          FilePathAndroidBitmap(filePath),
+          largeIcon: FilePathAndroidBitmap(filePath),
+          contentTitle: '🟢 BUY SPY @ \$450.00',
+          summaryText: 'Daily • 95% Conf.\n🥵 RSI: 72 • 📉 MACD: 1.25',
+          htmlFormatContentTitle: true,
+          htmlFormatSummaryText: true);
     } catch (e) {
       debugPrint('Error loading test notification image: $e');
     }
 
     final AndroidNotificationDetails androidPlatformChannelSpecifics =
         AndroidNotificationDetails(
-          'trade_signals',
-          'Trade Signals',
-          channelDescription: 'Notifications for trade signals',
-          styleInformation: bigPictureStyleInformation,
-          importance: Importance.max,
-          priority: Priority.high,
-        );
-
-    final NotificationDetails platformChannelSpecifics = NotificationDetails(
-      android: androidPlatformChannelSpecifics,
+      'trade_signals',
+      'Trade Signals',
+      channelDescription: 'Notifications for trade signals',
+      styleInformation: bigPictureStyleInformation,
+      importance: Importance.max,
+      priority: Priority.high,
     );
+
+    final NotificationDetails platformChannelSpecifics =
+        NotificationDetails(android: androidPlatformChannelSpecifics);
 
     await flutterLocalNotificationsPlugin.show(
       id: 999, // Test ID
@@ -362,7 +349,7 @@ class _TradeSignalNotificationSettingsWidgetState
         'type': 'trade_signal',
         'symbol': 'SPY',
         'signal': 'BUY',
-        'interval': '1d',
+        'interval': '1d'
       }),
     );
 
@@ -382,9 +369,9 @@ class _TradeSignalNotificationSettingsWidgetState
       child: Text(
         title,
         style: Theme.of(context).textTheme.titleMedium?.copyWith(
-          fontWeight: FontWeight.bold,
-          color: Theme.of(context).primaryColor,
-        ),
+              fontWeight: FontWeight.bold,
+              color: Theme.of(context).primaryColor,
+            ),
       ),
     );
   }
@@ -418,27 +405,18 @@ class _TradeSignalNotificationSettingsWidgetState
               if (option == 'BUY') {
                 selectedColor = Colors.green.withOpacity(0.2);
                 labelColor = Colors.green;
-                avatar = const Icon(
-                  Icons.arrow_upward,
-                  size: 16,
-                  color: Colors.green,
-                );
+                avatar = const Icon(Icons.arrow_upward,
+                    size: 16, color: Colors.green);
               } else if (option == 'SELL') {
                 selectedColor = Colors.red.withOpacity(0.2);
                 labelColor = Colors.red;
-                avatar = const Icon(
-                  Icons.arrow_downward,
-                  size: 16,
-                  color: Colors.red,
-                );
+                avatar = const Icon(Icons.arrow_downward,
+                    size: 16, color: Colors.red);
               } else if (option == 'HOLD') {
                 selectedColor = Colors.orange.withOpacity(0.2);
                 labelColor = Colors.orange;
-                avatar = const Icon(
-                  Icons.pause,
-                  size: 16,
-                  color: Colors.orange,
-                );
+                avatar =
+                    const Icon(Icons.pause, size: 16, color: Colors.orange);
               } else if (option == '1d') {
                 avatar = const Icon(Icons.calendar_today, size: 16);
               } else if (['1h', '30m', '15m'].contains(option)) {
@@ -452,17 +430,14 @@ class _TradeSignalNotificationSettingsWidgetState
                 labelText = 'Hourly';
               else if (option == '30m')
                 labelText = '30 Min';
-              else if (option == '15m')
-                labelText = '15 Min';
+              else if (option == '15m') labelText = '15 Min';
 
               return FilterChip(
                 label: Text(
                   labelText,
                   style: isSelected && labelColor != null
                       ? TextStyle(
-                          color: labelColor,
-                          fontWeight: FontWeight.bold,
-                        )
+                          color: labelColor, fontWeight: FontWeight.bold)
                       : null,
                 ),
                 avatar: isSelected ? avatar : null,

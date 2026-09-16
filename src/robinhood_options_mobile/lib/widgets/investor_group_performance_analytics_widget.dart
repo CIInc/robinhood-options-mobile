@@ -89,13 +89,14 @@ class _GroupPerformanceAnalyticsWidgetState
     setState(() => _isSyncing = true);
     var syncStage = 'fetching brokerage orders';
     try {
-      final userDoc = FirebaseFirestore.instance
-          .collection('user')
-          .doc(currentUser.uid);
+      final userDoc =
+          FirebaseFirestore.instance.collection('user').doc(currentUser.uid);
       syncStage = 'fetching brokerage orders';
-      final orders = await service
-          .getInstrumentOrders(brokerageUser, InstrumentOrderStore(), const [])
-          .timeout(_kPortfolioSyncFetchTimeout);
+      final orders = await service.getInstrumentOrders(
+        brokerageUser,
+        InstrumentOrderStore(),
+        const [],
+      ).timeout(_kPortfolioSyncFetchTimeout);
       if (orders.isEmpty) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -125,9 +126,9 @@ class _GroupPerformanceAnalyticsWidgetState
         final message = error is TimeoutException
             ? 'Portfolio sync timed out while $syncStage'
             : 'Portfolio sync failed: $error';
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(message)));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(message)),
+        );
       }
     } finally {
       if (mounted) setState(() => _isSyncing = false);
@@ -296,8 +297,8 @@ class _GroupPerformanceAnalyticsWidgetState
                       setState(() {
                         _selectedPeriod = period;
                       });
-                      final provider = context
-                          .read<GroupPerformanceAnalyticsProvider>();
+                      final provider =
+                          context.read<GroupPerformanceAnalyticsProvider>();
                       provider.setTimePeriod(period);
                     }
                   },
@@ -322,7 +323,10 @@ class _GroupPerformanceAnalyticsWidgetState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Group Summary', style: Theme.of(context).textTheme.titleLarge),
+          Text(
+            'Group Summary',
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
           const SizedBox(height: 16),
           _buildMetricsGrid(metrics, isTablet),
           const SizedBox(height: 24),
@@ -409,7 +413,11 @@ class _GroupPerformanceAnalyticsWidgetState
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(width: 4),
-                    Icon(Icons.info_outline, size: 14, color: Colors.grey[600]),
+                    Icon(
+                      Icons.info_outline,
+                      size: 14,
+                      color: Colors.grey[600],
+                    ),
                   ],
                 ),
                 const SizedBox(height: 8),
@@ -417,13 +425,15 @@ class _GroupPerformanceAnalyticsWidgetState
                   fit: BoxFit.scaleDown,
                   child: AnimatedDefaultTextStyle(
                     duration: _kAnimationDuration,
-                    style:
-                        Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: color,
-                          fontWeight: FontWeight.bold,
-                        ) ??
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              color: color,
+                              fontWeight: FontWeight.bold,
+                            ) ??
                         TextStyle(color: color, fontWeight: FontWeight.bold),
-                    child: Text(value, textAlign: TextAlign.center),
+                    child: Text(
+                      value,
+                      textAlign: TextAlign.center,
+                    ),
                   ),
                 ),
               ],
@@ -496,16 +506,17 @@ class _GroupPerformanceAnalyticsWidgetState
                   children: [
                     Text(
                       'Positive',
-                      style: Theme.of(
-                        context,
-                      ).textTheme.bodySmall?.copyWith(color: Colors.green),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Colors.green,
+                          ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       metrics.membersWithPositiveReturn.toString(),
-                      style: Theme.of(
-                        context,
-                      ).textTheme.headlineSmall?.copyWith(color: Colors.green),
+                      style:
+                          Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                color: Colors.green,
+                              ),
                     ),
                   ],
                 ),
@@ -513,16 +524,17 @@ class _GroupPerformanceAnalyticsWidgetState
                   children: [
                     Text(
                       'Negative',
-                      style: Theme.of(
-                        context,
-                      ).textTheme.bodySmall?.copyWith(color: Colors.red),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Colors.red,
+                          ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       metrics.membersWithNegativeReturn.toString(),
-                      style: Theme.of(
-                        context,
-                      ).textTheme.headlineSmall?.copyWith(color: Colors.red),
+                      style:
+                          Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                color: Colors.red,
+                              ),
                     ),
                   ],
                 ),
@@ -530,8 +542,7 @@ class _GroupPerformanceAnalyticsWidgetState
             ),
             const SizedBox(height: 12),
             LinearProgressIndicator(
-              value:
-                  metrics.membersWithPositiveReturn /
+              value: metrics.membersWithPositiveReturn /
                   (metrics.membersWithPositiveReturn +
                       metrics.membersWithNegativeReturn +
                       0.1),
@@ -546,9 +557,8 @@ class _GroupPerformanceAnalyticsWidgetState
   }
 
   Widget _buildTopPerformersPodium(GroupPerformanceAnalyticsProvider provider) {
-    final topPerformers = provider.getTopPerformers(
-      limit: _kTopPerformersCount,
-    );
+    final topPerformers =
+        provider.getTopPerformers(limit: _kTopPerformersCount);
     if (topPerformers.isEmpty) {
       return const SizedBox.shrink();
     }
@@ -556,7 +566,10 @@ class _GroupPerformanceAnalyticsWidgetState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Top Performers', style: Theme.of(context).textTheme.titleLarge),
+        Text(
+          'Top Performers',
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
         const SizedBox(height: 16),
         LayoutBuilder(
           builder: (context, constraints) {
@@ -570,11 +583,17 @@ class _GroupPerformanceAnalyticsWidgetState
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 if (topPerformers.length > 1)
-                  Expanded(child: _buildPodiumCard(topPerformers[1], 2, 140)),
+                  Expanded(
+                    child: _buildPodiumCard(topPerformers[1], 2, 140),
+                  ),
                 if (topPerformers.isNotEmpty)
-                  Expanded(child: _buildPodiumCard(topPerformers[0], 1, 180)),
+                  Expanded(
+                    child: _buildPodiumCard(topPerformers[0], 1, 180),
+                  ),
                 if (topPerformers.length > 2)
-                  Expanded(child: _buildPodiumCard(topPerformers[2], 3, 120)),
+                  Expanded(
+                    child: _buildPodiumCard(topPerformers[2], 3, 120),
+                  ),
               ],
             );
           },
@@ -599,8 +618,7 @@ class _GroupPerformanceAnalyticsWidgetState
                       : null,
                   child: performer.memberPhotoUrl == null
                       ? Text(
-                          performer.memberName.characters.first.toUpperCase(),
-                        )
+                          performer.memberName.characters.first.toUpperCase())
                       : null,
                 ),
                 Positioned(
@@ -613,11 +631,8 @@ class _GroupPerformanceAnalyticsWidgetState
                       shape: BoxShape.circle,
                       border: Border.all(color: Colors.white, width: 2),
                     ),
-                    child: const Icon(
-                      Icons.emoji_events,
-                      size: 16,
-                      color: Colors.white,
-                    ),
+                    child: const Icon(Icons.emoji_events,
+                        size: 16, color: Colors.white),
                   ),
                 ),
               ],
@@ -643,9 +658,9 @@ class _GroupPerformanceAnalyticsWidgetState
                   Text(
                     '+${performer.totalReturnPercent.toStringAsFixed(2)}%',
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      color: Colors.green,
-                      fontWeight: FontWeight.bold,
-                    ),
+                          color: Colors.green,
+                          fontWeight: FontWeight.bold,
+                        ),
                   ),
                 ],
               ),
@@ -657,14 +672,11 @@ class _GroupPerformanceAnalyticsWidgetState
   }
 
   Widget _buildPodiumCard(
-    MemberPerformanceMetrics performer,
-    int rank,
-    double height,
-  ) {
+      MemberPerformanceMetrics performer, int rank, double height) {
     final rankIcons = [
       Icons.emoji_events,
       Icons.military_tech,
-      Icons.workspace_premium,
+      Icons.workspace_premium
     ];
     final rankColors = [Colors.amber, Colors.grey[400]!, Colors.brown[300]!];
 
@@ -714,26 +726,25 @@ class _GroupPerformanceAnalyticsWidgetState
           Text(
             '+${performer.totalReturnPercent.toStringAsFixed(1)}%',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: Colors.green,
-              fontWeight: FontWeight.bold,
-            ),
+                  color: Colors.green,
+                  fontWeight: FontWeight.bold,
+                ),
           ),
           const SizedBox(height: 8),
           Container(
             height: height,
             decoration: BoxDecoration(
               color: rankColors[rank - 1].withOpacity(0.3),
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(8),
-              ),
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(8)),
             ),
             child: Center(
               child: Text(
                 '#$rank',
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  color: rankColors[rank - 1],
-                  fontWeight: FontWeight.bold,
-                ),
+                      color: rankColors[rank - 1],
+                      fontWeight: FontWeight.bold,
+                    ),
               ),
             ),
           ),
@@ -765,7 +776,10 @@ class _GroupPerformanceAnalyticsWidgetState
         color: badgeColor?.withOpacity(0.2),
         borderRadius: BorderRadius.circular(12),
       ),
-      child: Text(badge, style: const TextStyle(fontSize: 16)),
+      child: Text(
+        badge,
+        style: const TextStyle(fontSize: 16),
+      ),
     );
   }
 
@@ -784,10 +798,8 @@ class _GroupPerformanceAnalyticsWidgetState
     // Apply search filter
     if (_searchQuery.isNotEmpty) {
       memberMetrics = memberMetrics
-          .where(
-            (m) =>
-                m.memberName.toLowerCase().contains(_searchQuery.toLowerCase()),
-          )
+          .where((m) =>
+              m.memberName.toLowerCase().contains(_searchQuery.toLowerCase()))
           .toList();
     }
 
@@ -809,17 +821,14 @@ class _GroupPerformanceAnalyticsWidgetState
                   itemCount: memberMetrics.length,
                   itemBuilder: (context, index) {
                     final member = memberMetrics[index];
-                    final isSelected = _selectedMembersForComparison.contains(
-                      member.memberId,
-                    );
+                    final isSelected =
+                        _selectedMembersForComparison.contains(member.memberId);
                     return AnimatedContainer(
                       duration: _kAnimationDuration,
                       curve: Curves.easeInOut,
                       child: Card(
                         margin: const EdgeInsets.symmetric(
-                          vertical: 4,
-                          horizontal: 0,
-                        ),
+                            vertical: 4, horizontal: 0),
                         elevation: isSelected ? 4 : 1,
                         color: isSelected
                             ? Theme.of(context).colorScheme.primaryContainer
@@ -832,9 +841,8 @@ class _GroupPerformanceAnalyticsWidgetState
                                 child: Text(
                                   '${index + 1}',
                                   style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold),
                                 ),
                               ),
                               if (index < 3)
@@ -847,8 +855,8 @@ class _GroupPerformanceAnalyticsWidgetState
                                     color: index == 0
                                         ? Colors.amber
                                         : (index == 1
-                                              ? Colors.grey
-                                              : Colors.brown),
+                                            ? Colors.grey
+                                            : Colors.brown),
                                   ),
                                 ),
                             ],
@@ -868,16 +876,14 @@ class _GroupPerformanceAnalyticsWidgetState
                                   children: [
                                     TextSpan(
                                       text: 'Trades: ${member.totalTrades}  ',
-                                      style: Theme.of(
-                                        context,
-                                      ).textTheme.bodySmall,
+                                      style:
+                                          Theme.of(context).textTheme.bodySmall,
                                     ),
                                     TextSpan(
                                       text:
                                           'Win Rate: ${member.winRate.toStringAsFixed(1)}%',
-                                      style: Theme.of(
-                                        context,
-                                      ).textTheme.bodySmall,
+                                      style:
+                                          Theme.of(context).textTheme.bodySmall,
                                     ),
                                   ],
                                 ),
@@ -890,7 +896,9 @@ class _GroupPerformanceAnalyticsWidgetState
                             children: [
                               Text(
                                 '${member.totalReturnPercent > 0 ? '+' : ''}${member.totalReturnPercent.toStringAsFixed(2)}%',
-                                style: Theme.of(context).textTheme.titleSmall
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleSmall
                                     ?.copyWith(
                                       color: member.totalReturnPercent >= 0
                                           ? Colors.green
@@ -962,8 +970,10 @@ class _GroupPerformanceAnalyticsWidgetState
 
     await showDialog(
       context: context,
-      builder: (context) =>
-          _MemberComparisonDialog(member1: members[0], member2: members[1]),
+      builder: (context) => _MemberComparisonDialog(
+        member1: members[0],
+        member2: members[1],
+      ),
     );
 
     setState(() {
@@ -1135,8 +1145,7 @@ class _GroupPerformanceAnalyticsWidgetState
   }
 
   List<MemberPerformanceMetrics> _sortMembers(
-    List<MemberPerformanceMetrics> members,
-  ) {
+      List<MemberPerformanceMetrics> members) {
     final sorted = List<MemberPerformanceMetrics>.from(members);
     sorted.sort((a, b) {
       int comparison;
@@ -1170,7 +1179,11 @@ class _GroupPerformanceAnalyticsWidgetState
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 80, color: Colors.grey[400]),
+            Icon(
+              icon,
+              size: 80,
+              color: Colors.grey[400],
+            ),
             const SizedBox(height: 16),
             Text(
               title,
@@ -1374,7 +1387,10 @@ class _GroupPerformanceAnalyticsWidgetState
           Text(label),
           Text(
             value,
-            style: TextStyle(color: color, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ],
       ),
@@ -1429,8 +1445,7 @@ class _GroupPerformanceAnalyticsWidgetState
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text('Long press members to compare'),
-                    ),
+                        content: Text('Long press members to compare')),
                   );
                 },
               ),
@@ -1452,18 +1467,15 @@ class _GroupPerformanceAnalyticsWidgetState
   void _exportAsCSV(GroupPerformanceAnalyticsProvider provider) {
     final csv = provider.exportAsCSV();
     HapticFeedback.mediumImpact();
-    Share.share(
-      csv,
-      subject: 'Group Performance Report - ${widget.group.name}',
-    );
+    Share.share(csv,
+        subject: 'Group Performance Report - ${widget.group.name}');
   }
 
   void _exportAsJSON(GroupPerformanceAnalyticsProvider provider) {
     final metrics = provider.groupMetrics;
     if (metrics == null) return;
 
-    final json =
-        '''
+    final json = '''
 {
   "group": "${widget.group.name}",
   "period": "${_selectedPeriod.displayName}",
@@ -1491,8 +1503,7 @@ ${provider.sortedMemberMetrics.map((m) => '    {"name": "${m.memberName}", "retu
     final metrics = provider.groupMetrics;
     if (metrics == null) return;
 
-    final text =
-        '''
+    final text = '''
 Group: ${widget.group.name}
 Period: ${_selectedPeriod.displayName}
 
@@ -1522,7 +1533,12 @@ class _MemberMetricData {
   _MemberMetricData(this.name, this.value);
 }
 
-enum RankingSortOption { totalReturn, winRate, sharpeRatio, totalTrades }
+enum RankingSortOption {
+  totalReturn,
+  winRate,
+  sharpeRatio,
+  totalTrades,
+}
 
 /// Shimmer loading effect widget
 class _ShimmerLoading extends StatefulWidget {
@@ -1564,8 +1580,16 @@ class _ShimmerLoadingState extends State<_ShimmerLoading>
             return LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: const [Colors.grey, Colors.white, Colors.grey],
-              stops: [0.0, _controller.value, 1.0],
+              colors: const [
+                Colors.grey,
+                Colors.white,
+                Colors.grey,
+              ],
+              stops: [
+                0.0,
+                _controller.value,
+                1.0,
+              ],
             ).createShader(bounds);
           },
           child: child,
@@ -1580,7 +1604,10 @@ class _MemberComparisonDialog extends StatelessWidget {
   final MemberPerformanceMetrics member1;
   final MemberPerformanceMetrics member2;
 
-  const _MemberComparisonDialog({required this.member1, required this.member2});
+  const _MemberComparisonDialog({
+    required this.member1,
+    required this.member2,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1599,7 +1626,11 @@ class _MemberComparisonDialog extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 _buildMemberColumn(context, member1),
-                Container(width: 1, height: 200, color: Colors.grey[300]),
+                Container(
+                  width: 1,
+                  height: 200,
+                  color: Colors.grey[300],
+                ),
                 _buildMemberColumn(context, member2),
               ],
             ),
@@ -1623,9 +1654,7 @@ class _MemberComparisonDialog extends StatelessWidget {
   }
 
   Widget _buildMemberColumn(
-    BuildContext context,
-    MemberPerformanceMetrics member,
-  ) {
+      BuildContext context, MemberPerformanceMetrics member) {
     return Expanded(
       child: Column(
         children: [
@@ -1647,22 +1676,13 @@ class _MemberComparisonDialog extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 12),
+          _buildMetricItem(context, 'Return',
+              '${member.totalReturnPercent.toStringAsFixed(2)}%'),
           _buildMetricItem(
-            context,
-            'Return',
-            '${member.totalReturnPercent.toStringAsFixed(2)}%',
-          ),
-          _buildMetricItem(
-            context,
-            'Win Rate',
-            '${member.winRate.toStringAsFixed(1)}%',
-          ),
+              context, 'Win Rate', '${member.winRate.toStringAsFixed(1)}%'),
           _buildMetricItem(context, 'Trades', member.totalTrades.toString()),
           _buildMetricItem(
-            context,
-            'Sharpe',
-            member.sharpeRatio.toStringAsFixed(2),
-          ),
+              context, 'Sharpe', member.sharpeRatio.toStringAsFixed(2)),
         ],
       ),
     );
@@ -1675,15 +1695,15 @@ class _MemberComparisonDialog extends StatelessWidget {
         children: [
           Text(
             label,
-            style: Theme.of(
-              context,
-            ).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Colors.grey[600],
+                ),
           ),
           Text(
             value,
-            style: Theme.of(
-              context,
-            ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
           ),
         ],
       ),
@@ -1697,11 +1717,29 @@ class _MemberComparisonDialog extends StatelessWidget {
 
     return Column(
       children: [
-        Text('Key Differences', style: Theme.of(context).textTheme.titleSmall),
+        Text(
+          'Key Differences',
+          style: Theme.of(context).textTheme.titleSmall,
+        ),
         const SizedBox(height: 8),
-        _buildDifferenceRow(context, 'Return', returnDiff, '%'),
-        _buildDifferenceRow(context, 'Win Rate', winRateDiff, '%'),
-        _buildDifferenceRow(context, 'Trades', tradesDiff.toDouble(), ''),
+        _buildDifferenceRow(
+          context,
+          'Return',
+          returnDiff,
+          '%',
+        ),
+        _buildDifferenceRow(
+          context,
+          'Win Rate',
+          winRateDiff,
+          '%',
+        ),
+        _buildDifferenceRow(
+          context,
+          'Trades',
+          tradesDiff.toDouble(),
+          '',
+        ),
       ],
     );
   }
@@ -1732,7 +1770,10 @@ class _MemberComparisonDialog extends StatelessWidget {
               ),
               Text(
                 '${difference.abs().toStringAsFixed(1)}$suffix',
-                style: TextStyle(color: color, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  color: color,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ],
           ),

@@ -78,13 +78,13 @@ class _WelcomeWidgetState extends State<WelcomeWidget>
       parent: _animationController,
       curve: Curves.easeOut,
     );
-    _slideAnimation =
-        Tween<Offset>(begin: const Offset(0, 0.06), end: Offset.zero).animate(
-          CurvedAnimation(
-            parent: _animationController,
-            curve: Curves.easeOutCubic,
-          ),
-        );
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.06),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeOutCubic,
+    ));
 
     _animationController.forward();
   }
@@ -127,9 +127,8 @@ class _WelcomeWidgetState extends State<WelcomeWidget>
                             : colorScheme.surface,
                         borderRadius: BorderRadius.circular(28),
                         border: Border.all(
-                          color: colorScheme.outlineVariant.withValues(
-                            alpha: 0.5,
-                          ),
+                          color:
+                              colorScheme.outlineVariant.withValues(alpha: 0.5),
                           width: 1.5,
                         ),
                         boxShadow: [
@@ -153,13 +152,10 @@ class _WelcomeWidgetState extends State<WelcomeWidget>
                   Center(
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 6,
-                      ),
+                          horizontal: 14, vertical: 6),
                       decoration: BoxDecoration(
-                        color: colorScheme.primaryContainer.withValues(
-                          alpha: 0.6,
-                        ),
+                        color:
+                            colorScheme.primaryContainer.withValues(alpha: 0.6),
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
                           color: colorScheme.primary.withValues(alpha: 0.25),
@@ -215,13 +211,10 @@ class _WelcomeWidgetState extends State<WelcomeWidget>
                   if (widget.message != null && widget.message!.isNotEmpty) ...[
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
+                          horizontal: 16, vertical: 12),
                       decoration: BoxDecoration(
-                        color: colorScheme.errorContainer.withValues(
-                          alpha: 0.5,
-                        ),
+                        color:
+                            colorScheme.errorContainer.withValues(alpha: 0.5),
                         borderRadius: BorderRadius.circular(14),
                         border: Border.all(
                           color: colorScheme.error.withValues(alpha: 0.3),
@@ -261,15 +254,13 @@ class _WelcomeWidgetState extends State<WelcomeWidget>
                       ),
                     ),
                     const SizedBox(height: 12),
-                    ..._features.map(
-                      (feature) => _buildFeatureTile(
-                        context,
-                        feature: feature,
-                        isDark: isDark,
-                        colorScheme: colorScheme,
-                        theme: theme,
-                      ),
-                    ),
+                    ..._features.map((feature) => _buildFeatureTile(
+                          context,
+                          feature: feature,
+                          isDark: isDark,
+                          colorScheme: colorScheme,
+                          theme: theme,
+                        )),
                     const SizedBox(height: 20),
 
                     // Brokerage Integrations Ecosystem
@@ -282,9 +273,7 @@ class _WelcomeWidgetState extends State<WelcomeWidget>
                     FilledButton.icon(
                       style: FilledButton.styleFrom(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 24,
-                          vertical: 16,
-                        ),
+                            horizontal: 24, vertical: 16),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
                         ),
@@ -311,9 +300,7 @@ class _WelcomeWidgetState extends State<WelcomeWidget>
                     OutlinedButton.icon(
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 24,
-                          vertical: 14,
-                        ),
+                            horizontal: 24, vertical: 14),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
                         ),
@@ -340,18 +327,16 @@ class _WelcomeWidgetState extends State<WelcomeWidget>
                         Icon(
                           Icons.lock_outline_rounded,
                           size: 14,
-                          color: colorScheme.onSurfaceVariant.withValues(
-                            alpha: 0.7,
-                          ),
+                          color: colorScheme.onSurfaceVariant
+                              .withValues(alpha: 0.7),
                         ),
                         const SizedBox(width: 6),
                         Flexible(
                           child: Text(
                             "Bank-grade 256-bit encryption • Direct OAuth • Non-custodial",
                             style: theme.textTheme.bodySmall?.copyWith(
-                              color: colorScheme.onSurfaceVariant.withValues(
-                                alpha: 0.8,
-                              ),
+                              color: colorScheme.onSurfaceVariant
+                                  .withValues(alpha: 0.8),
                               fontSize: 11.5,
                             ),
                             textAlign: TextAlign.center,
@@ -398,7 +383,11 @@ class _WelcomeWidgetState extends State<WelcomeWidget>
               color: feature.accentColor.withValues(alpha: isDark ? 0.2 : 0.12),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(feature.icon, size: 22, color: feature.accentColor),
+            child: Icon(
+              feature.icon,
+              size: 22,
+              color: feature.accentColor,
+            ),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -500,10 +489,8 @@ class _WelcomeWidgetState extends State<WelcomeWidget>
             children: brokers
                 .map(
                   (b) => Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 5,
-                    ),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(
                       color: b.color.withValues(alpha: isDark ? 0.18 : 0.1),
                       borderRadius: BorderRadius.circular(10),

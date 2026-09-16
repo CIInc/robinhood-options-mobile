@@ -102,8 +102,7 @@ class _PaywallWidgetState extends State<PaywallWidget> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Purchases restored. Checking status...'),
-          ),
+              content: Text('Purchases restored. Checking status...')),
         );
       }
     } catch (e) {
@@ -141,9 +140,9 @@ class _PaywallWidgetState extends State<PaywallWidget> {
     final Uri url = Uri.parse(urlString);
     if (!await launchUrl(url)) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Could not launch $urlString')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not launch $urlString')),
+        );
       }
     }
   }
@@ -159,7 +158,7 @@ class _PaywallWidgetState extends State<PaywallWidget> {
       {'icon': Icons.trending_up, 'text': 'AI-Powered Trade Signals'},
       {
         'icon': Icons.candlestick_chart,
-        'text': 'Advanced Technical Indicators',
+        'text': 'Advanced Technical Indicators'
       },
       {'icon': Icons.smart_toy, 'text': 'Automated Trading Bots'},
       {'icon': Icons.psychology, 'text': 'AI Trading Coach & Insights'},
@@ -170,17 +169,17 @@ class _PaywallWidgetState extends State<PaywallWidget> {
       {
         'text':
             "The AI signals are incredibly accurate. Paid for itself in one trade!",
-        'author': "Alex T.",
+        'author': "Alex T."
       },
       {
         'text':
             "Finally, a tool that helps me manage risk properly. Love the coaching.",
-        'author': "Sarah M.",
+        'author': "Sarah M."
       },
       {
         'text':
             "Backtesting is a game changer. I refined my strategy in minutes.",
-        'author': "J.D.",
+        'author': "J.D."
       },
     ];
 
@@ -188,12 +187,12 @@ class _PaywallWidgetState extends State<PaywallWidget> {
       {
         'question': 'Can I cancel anytime?',
         'answer':
-            'Yes, you can cancel your subscription at any time through your device settings.',
+            'Yes, you can cancel your subscription at any time through your device settings.'
       },
       {
         'question': 'What is included in the trial?',
         'answer':
-            'The 14-day free trial gives you full access to all Pro features.',
+            'The 14-day free trial gives you full access to all Pro features.'
       },
     ];
 
@@ -223,9 +222,7 @@ class _PaywallWidgetState extends State<PaywallWidget> {
                     child: SingleChildScrollView(
                       controller: _scrollController,
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 24.0,
-                        vertical: 16.0,
-                      ),
+                          horizontal: 24.0, vertical: 16.0),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
@@ -236,15 +233,13 @@ class _PaywallWidgetState extends State<PaywallWidget> {
                               alignment: Alignment.centerLeft,
                               child: IconButton(
                                 icon: const Icon(Icons.close),
-                                onPressed:
-                                    widget.onDismiss ??
+                                onPressed: widget.onDismiss ??
                                     () => Navigator.of(context).pop(),
                               ),
                             )
                           else
                             const SizedBox(
-                              height: 48,
-                            ), // Spacer if no close button
+                                height: 48), // Spacer if no close button
 
                           FadeInSlide(
                             child: Center(
@@ -262,19 +257,15 @@ class _PaywallWidgetState extends State<PaywallWidget> {
                                   shape: BoxShape.circle,
                                   boxShadow: [
                                     BoxShadow(
-                                      color: colorScheme.primary.withOpacity(
-                                        0.4,
-                                      ),
+                                      color:
+                                          colorScheme.primary.withOpacity(0.4),
                                       blurRadius: 20,
                                       spreadRadius: 5,
                                     ),
                                   ],
                                 ),
-                                child: const Icon(
-                                  Icons.star,
-                                  size: 64,
-                                  color: Colors.white,
-                                ),
+                                child: const Icon(Icons.star,
+                                    size: 64, color: Colors.white),
                               ),
                             ),
                           ),
@@ -311,9 +302,8 @@ class _PaywallWidgetState extends State<PaywallWidget> {
                             final index = entry.key;
                             final feature = entry.value;
                             return FadeInSlide(
-                              delay: Duration(
-                                milliseconds: 200 + (index * 100),
-                              ),
+                              delay:
+                                  Duration(milliseconds: 200 + (index * 100)),
                               child: Padding(
                                 padding: const EdgeInsets.only(bottom: 20),
                                 child: Row(
@@ -321,16 +311,12 @@ class _PaywallWidgetState extends State<PaywallWidget> {
                                     Container(
                                       padding: const EdgeInsets.all(8),
                                       decoration: BoxDecoration(
-                                        color: colorScheme.primary.withOpacity(
-                                          0.1,
-                                        ),
+                                        color: colorScheme.primary
+                                            .withOpacity(0.1),
                                         borderRadius: BorderRadius.circular(8),
                                       ),
-                                      child: Icon(
-                                        feature['icon'] as IconData,
-                                        color: colorScheme.primary,
-                                        size: 24,
-                                      ),
+                                      child: Icon(feature['icon'] as IconData,
+                                          color: colorScheme.primary, size: 24),
                                     ),
                                     const SizedBox(width: 16),
                                     Expanded(
@@ -358,15 +344,12 @@ class _PaywallWidgetState extends State<PaywallWidget> {
                                 color: Colors.red.withOpacity(0.1),
                                 borderRadius: BorderRadius.circular(8),
                                 border: Border.all(
-                                  color: Colors.red.withOpacity(0.3),
-                                ),
+                                    color: Colors.red.withOpacity(0.3)),
                               ),
                               child: Row(
                                 children: [
-                                  const Icon(
-                                    Icons.error_outline,
-                                    color: Colors.red,
-                                  ),
+                                  const Icon(Icons.error_outline,
+                                      color: Colors.red),
                                   const SizedBox(width: 12),
                                   Expanded(
                                     child: Text(
@@ -406,10 +389,8 @@ class _PaywallWidgetState extends State<PaywallWidget> {
                           ] else ...[
                             if (_products.isNotEmpty)
                               ..._products.map((product) {
-                                final cleanTitle = product.title
-                                    .split('(')
-                                    .first
-                                    .trim();
+                                final cleanTitle =
+                                    product.title.split('(').first.trim();
                                 return FadeInSlide(
                                   delay: const Duration(milliseconds: 600),
                                   child: _buildPrimaryButton(
@@ -425,21 +406,18 @@ class _PaywallWidgetState extends State<PaywallWidget> {
                                                 CrossAxisAlignment.start,
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
-                                              Text(
-                                                cleanTitle,
-                                                style: const TextStyle(
-                                                  fontSize: 16,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                              ),
-                                              Text(
-                                                product.description,
-                                                style: const TextStyle(
-                                                  fontSize: 12,
-                                                ),
-                                                maxLines: 2,
-                                                overflow: TextOverflow.ellipsis,
-                                              ),
+                                              Text(cleanTitle,
+                                                  style: const TextStyle(
+                                                      fontSize: 16,
+                                                      fontWeight:
+                                                          FontWeight.bold)),
+                                              Text(product.description,
+                                                  style: const TextStyle(
+                                                    fontSize: 12,
+                                                  ),
+                                                  maxLines: 2,
+                                                  overflow:
+                                                      TextOverflow.ellipsis),
                                             ],
                                           ),
                                         ),
@@ -476,42 +454,38 @@ class _PaywallWidgetState extends State<PaywallWidget> {
                               height: 120,
                               child: PageView(
                                 children: testimonials
-                                    .map(
-                                      (t) => Container(
-                                        margin: const EdgeInsets.symmetric(
-                                          horizontal: 8,
-                                        ),
-                                        padding: const EdgeInsets.all(16),
-                                        decoration: BoxDecoration(
-                                          color: colorScheme
-                                              .surfaceContainerHighest
-                                              .withOpacity(0.5),
-                                          borderRadius: BorderRadius.circular(
-                                            12,
+                                    .map((t) => Container(
+                                          margin: const EdgeInsets.symmetric(
+                                              horizontal: 8),
+                                          padding: const EdgeInsets.all(16),
+                                          decoration: BoxDecoration(
+                                            color: colorScheme
+                                                .surfaceContainerHighest
+                                                .withOpacity(0.5),
+                                            borderRadius:
+                                                BorderRadius.circular(12),
                                           ),
-                                        ),
-                                        child: Column(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            Text(
-                                              '"${t['text']}"',
-                                              textAlign: TextAlign.center,
-                                              style: const TextStyle(
-                                                fontStyle: FontStyle.italic,
+                                          child: Column(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: [
+                                              Text(
+                                                '"${t['text']}"',
+                                                textAlign: TextAlign.center,
+                                                style: const TextStyle(
+                                                    fontStyle:
+                                                        FontStyle.italic),
                                               ),
-                                            ),
-                                            const SizedBox(height: 8),
-                                            Text(
-                                              "- ${t['author']}",
-                                              style: const TextStyle(
-                                                fontWeight: FontWeight.bold,
+                                              const SizedBox(height: 8),
+                                              Text(
+                                                "- ${t['author']}",
+                                                style: const TextStyle(
+                                                    fontWeight:
+                                                        FontWeight.bold),
                                               ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    )
+                                            ],
+                                          ),
+                                        ))
                                     .toList(),
                               ),
                             ),
@@ -523,55 +497,44 @@ class _PaywallWidgetState extends State<PaywallWidget> {
                             delay: const Duration(milliseconds: 1000),
                             child: Column(
                               children: faqs
-                                  .map(
-                                    (faq) => Container(
-                                      margin: const EdgeInsets.only(bottom: 8),
-                                      decoration: BoxDecoration(
-                                        border: Border.all(
-                                          color: colorScheme.outline
-                                              .withOpacity(0.2),
+                                  .map((faq) => Container(
+                                        margin:
+                                            const EdgeInsets.only(bottom: 8),
+                                        decoration: BoxDecoration(
+                                          border: Border.all(
+                                              color: colorScheme.outline
+                                                  .withOpacity(0.2)),
+                                          borderRadius:
+                                              BorderRadius.circular(12),
                                         ),
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: ExpansionTile(
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            12,
-                                          ),
+                                        child: ExpansionTile(
+                                          shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(12)),
+                                          collapsedShape:
+                                              RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(
+                                                          12)),
+                                          title: Text(faq['question']!,
+                                              style: const TextStyle(
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w600)),
+                                          children: [
+                                            Padding(
+                                              padding:
+                                                  const EdgeInsets.fromLTRB(
+                                                      16, 0, 16, 16),
+                                              child: Text(faq['answer']!,
+                                                  style: TextStyle(
+                                                      color: colorScheme
+                                                          .onSurface
+                                                          .withOpacity(0.7),
+                                                      height: 1.4)),
+                                            )
+                                          ],
                                         ),
-                                        collapsedShape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            12,
-                                          ),
-                                        ),
-                                        title: Text(
-                                          faq['question']!,
-                                          style: const TextStyle(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                        children: [
-                                          Padding(
-                                            padding: const EdgeInsets.fromLTRB(
-                                              16,
-                                              0,
-                                              16,
-                                              16,
-                                            ),
-                                            child: Text(
-                                              faq['answer']!,
-                                              style: TextStyle(
-                                                color: colorScheme.onSurface
-                                                    .withOpacity(0.7),
-                                                height: 1.4,
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  )
+                                      ))
                                   .toList(),
                             ),
                           ),
@@ -582,15 +545,12 @@ class _PaywallWidgetState extends State<PaywallWidget> {
                           FadeInSlide(
                             delay: const Duration(milliseconds: 1200),
                             child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                vertical: 16.0,
-                              ),
+                              padding:
+                                  const EdgeInsets.symmetric(vertical: 16.0),
                               child: Text(
                                 'Subscription automatically renews unless auto-renew is turned off at least 24-hours before the end of the current period. Your account will be charged for renewal within 24-hours prior to the end of the current period. You can manage and cancel your subscriptions in your Account Settings after purchase.',
                                 style: theme.textTheme.bodySmall?.copyWith(
-                                  fontSize: 10,
-                                  color: Colors.grey,
-                                ),
+                                    fontSize: 10, color: Colors.grey),
                                 textAlign: TextAlign.center,
                               ),
                             ),
@@ -603,45 +563,27 @@ class _PaywallWidgetState extends State<PaywallWidget> {
                               children: [
                                 TextButton(
                                   onPressed: _restorePurchases,
-                                  child: const Text(
-                                    'Restore Purchases',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey,
-                                    ),
-                                  ),
+                                  child: const Text('Restore Purchases',
+                                      style: TextStyle(
+                                          fontSize: 12, color: Colors.grey)),
                                 ),
-                                const Text(
-                                  '•',
-                                  style: TextStyle(color: Colors.grey),
-                                ),
+                                const Text('•',
+                                    style: TextStyle(color: Colors.grey)),
                                 TextButton(
                                   onPressed: () => _launchUrl(
-                                    'https://cidevelop.com/realizealpha/terms.html',
-                                  ),
-                                  child: const Text(
-                                    'Terms',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey,
-                                    ),
-                                  ),
+                                      'https://cidevelop.com/realizealpha/terms.html'),
+                                  child: const Text('Terms',
+                                      style: TextStyle(
+                                          fontSize: 12, color: Colors.grey)),
                                 ),
-                                const Text(
-                                  '•',
-                                  style: TextStyle(color: Colors.grey),
-                                ),
+                                const Text('•',
+                                    style: TextStyle(color: Colors.grey)),
                                 TextButton(
                                   onPressed: () => _launchUrl(
-                                    'https://cidevelop.com/privacy.html',
-                                  ),
-                                  child: const Text(
-                                    'Privacy',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey,
-                                    ),
-                                  ),
+                                      'https://cidevelop.com/privacy.html'),
+                                  child: const Text('Privacy',
+                                      style: TextStyle(
+                                          fontSize: 12, color: Colors.grey)),
                                 ),
                               ],
                             ),
@@ -722,10 +664,8 @@ class FadeInSlide extends StatefulWidget {
     required this.child,
     this.delay = Duration.zero,
     this.duration = const Duration(milliseconds: 600),
-    this.offset = const Offset(
-      0,
-      0.2,
-    ), // Slide up by 20% of child height roughly
+    this.offset =
+        const Offset(0, 0.2), // Slide up by 20% of child height roughly
   });
 
   @override
@@ -743,10 +683,8 @@ class _FadeInSlideState extends State<FadeInSlide>
     super.initState();
     _controller = AnimationController(vsync: this, duration: widget.duration);
     _opacity = CurvedAnimation(parent: _controller, curve: Curves.easeOut);
-    _slide = Tween<Offset>(
-      begin: widget.offset,
-      end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+    _slide = Tween<Offset>(begin: widget.offset, end: Offset.zero)
+        .animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
 
     if (widget.delay == Duration.zero) {
       _controller.forward();
@@ -767,7 +705,10 @@ class _FadeInSlideState extends State<FadeInSlide>
   Widget build(BuildContext context) {
     return FadeTransition(
       opacity: _opacity,
-      child: SlideTransition(position: _slide, child: widget.child),
+      child: SlideTransition(
+        position: _slide,
+        child: widget.child,
+      ),
     );
   }
 }

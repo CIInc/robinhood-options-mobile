@@ -51,8 +51,8 @@ class RetailOrderFlowPoint {
   factory RetailOrderFlowPoint.fromJson(Map<String, dynamic> json) {
     // 1. Parse date
     DateTime? date;
-    final dateStr = (json['date'] ?? json['timestamp'] ?? json['updated_at'])
-        ?.toString();
+    final dateStr =
+        (json['date'] ?? json['timestamp'] ?? json['updated_at'])?.toString();
     if (dateStr != null && dateStr.isNotEmpty) {
       try {
         date = DateTime.parse(dateStr);
@@ -61,34 +61,26 @@ class RetailOrderFlowPoint {
 
     // 2. Parse net buy/sell percentage
     // In Robinhood API: {"net_buy_percentage": 6.733, "net_sell_percentage": -6.733}
-    double? rawNetBuy = _parseDouble(
-      json['net_buy_percentage'] ??
-          json['net_buy_pct'] ??
-          json['net_buyers_percentage'] ??
-          json['net_buy'],
-    );
-    double? rawNetSell = _parseDouble(
-      json['net_sell_percentage'] ??
-          json['net_sell_pct'] ??
-          json['net_sellers_percentage'] ??
-          json['net_sell'],
-    );
+    double? rawNetBuy = _parseDouble(json['net_buy_percentage'] ??
+        json['net_buy_pct'] ??
+        json['net_buyers_percentage'] ??
+        json['net_buy']);
+    double? rawNetSell = _parseDouble(json['net_sell_percentage'] ??
+        json['net_sell_pct'] ??
+        json['net_sellers_percentage'] ??
+        json['net_sell']);
 
     // 3. Parse explicit buy/sell percentage if available
-    double? explicitBuy = _parseDouble(
-      json['buy_percentage'] ??
-          json['buy_pct'] ??
-          json['buy_ratio'] ??
-          json['num_buy_orders_percentage'] ??
-          json['pct_buy'],
-    );
-    double? explicitSell = _parseDouble(
-      json['sell_percentage'] ??
-          json['sell_pct'] ??
-          json['sell_ratio'] ??
-          json['num_sell_orders_percentage'] ??
-          json['pct_sell'],
-    );
+    double? explicitBuy = _parseDouble(json['buy_percentage'] ??
+        json['buy_pct'] ??
+        json['buy_ratio'] ??
+        json['num_buy_orders_percentage'] ??
+        json['pct_buy']);
+    double? explicitSell = _parseDouble(json['sell_percentage'] ??
+        json['sell_pct'] ??
+        json['sell_ratio'] ??
+        json['num_sell_orders_percentage'] ??
+        json['pct_sell']);
 
     double buy;
     double sell;
@@ -102,13 +94,13 @@ class RetailOrderFlowPoint {
           : (100.0 - buy).clamp(0.0, 100.0);
       netBuy = rawNetBuy != null
           ? ((rawNetBuy.abs() > 0 && rawNetBuy.abs() <= 1.0)
-                ? rawNetBuy * 100.0
-                : rawNetBuy)
+              ? rawNetBuy * 100.0
+              : rawNetBuy)
           : (buy - sell);
       netSell = rawNetSell != null
           ? ((rawNetSell.abs() > 0 && rawNetSell.abs() <= 1.0)
-                ? rawNetSell * 100.0
-                : rawNetSell)
+              ? rawNetSell * 100.0
+              : rawNetSell)
           : -netBuy;
     } else if (rawNetBuy != null) {
       // Scale if passed as decimal fraction between -1.0 and 1.0
@@ -117,8 +109,8 @@ class RetailOrderFlowPoint {
           : rawNetBuy;
       netSell = rawNetSell != null
           ? ((rawNetSell.abs() > 0 && rawNetSell.abs() <= 1.0)
-                ? rawNetSell * 100.0
-                : rawNetSell)
+              ? rawNetSell * 100.0
+              : rawNetSell)
           : -netBuy;
 
       // Derived buy/sell split: netBuy = buy - sell, buy + sell = 100 => buy = 50 + netBuy/2
@@ -133,24 +125,18 @@ class RetailOrderFlowPoint {
 
     // 4. Volume percentage changes:
     // "buy_volume_percentage_change": -34.7056, "sell_volume_percentage_change": -28.6118
-    double? buyVol = _parseDouble(
-      json['buy_volume_percentage_change'] ??
-          json['buy_volume_pct_change'] ??
-          json['buy_volume_change'],
-    );
-    double? sellVol = _parseDouble(
-      json['sell_volume_percentage_change'] ??
-          json['sell_volume_pct_change'] ??
-          json['sell_volume_change'],
-    );
+    double? buyVol = _parseDouble(json['buy_volume_percentage_change'] ??
+        json['buy_volume_pct_change'] ??
+        json['buy_volume_change']);
+    double? sellVol = _parseDouble(json['sell_volume_percentage_change'] ??
+        json['sell_volume_pct_change'] ??
+        json['sell_volume_change']);
 
-    double? volChange = _parseDouble(
-      json['volume_change_percentage'] ??
-          json['volume_change_pct'] ??
-          json['volume_change_24h'] ??
-          json['volume_percentage_change'] ??
-          json['volume_growth'],
-    );
+    double? volChange = _parseDouble(json['volume_change_percentage'] ??
+        json['volume_change_pct'] ??
+        json['volume_change_24h'] ??
+        json['volume_percentage_change'] ??
+        json['volume_growth']);
 
     // Normalize decimal ratios if given as small decimals
     if (buyVol != null && buyVol.abs() > 0 && buyVol.abs() <= 1.0) {
@@ -284,8 +270,7 @@ class RetailOrderFlow {
 
     // Parse history if present: "daily_transactions", "history", "daily_sentiment", "daily_data", "historical_sentiment"
     List<RetailOrderFlowPoint> historyPoints = [];
-    final histRaw =
-        data['daily_transactions'] ??
+    final histRaw = data['daily_transactions'] ??
         data['history'] ??
         data['daily_sentiment'] ??
         data['daily_data'] ??
@@ -308,12 +293,11 @@ class RetailOrderFlow {
     final latestPoint = historyPoints.isNotEmpty ? historyPoints.last : null;
 
     DateTime? updated;
-    final updatedStr =
-        (data['updated_at'] ??
-                data['timestamp'] ??
-                data['date'] ??
-                data['last_updated'])
-            ?.toString();
+    final updatedStr = (data['updated_at'] ??
+            data['timestamp'] ??
+            data['date'] ??
+            data['last_updated'])
+        ?.toString();
     if (updatedStr != null && updatedStr.isNotEmpty) {
       try {
         updated = DateTime.parse(updatedStr);
@@ -321,33 +305,25 @@ class RetailOrderFlow {
     }
     updated ??= latestPoint?.date;
 
-    double? rawExplicitBuy = _parseDouble(
-      data['buy_percentage'] ??
-          data['buy_pct'] ??
-          data['buy_ratio'] ??
-          data['num_buy_orders_percentage'] ??
-          data['pct_buy'],
-    );
-    double? rawExplicitSell = _parseDouble(
-      data['sell_percentage'] ??
-          data['sell_pct'] ??
-          data['sell_ratio'] ??
-          data['num_sell_orders_percentage'] ??
-          data['pct_sell'],
-    );
+    double? rawExplicitBuy = _parseDouble(data['buy_percentage'] ??
+        data['buy_pct'] ??
+        data['buy_ratio'] ??
+        data['num_buy_orders_percentage'] ??
+        data['pct_buy']);
+    double? rawExplicitSell = _parseDouble(data['sell_percentage'] ??
+        data['sell_pct'] ??
+        data['sell_ratio'] ??
+        data['num_sell_orders_percentage'] ??
+        data['pct_sell']);
 
-    double? rawNet = _parseDouble(
-      data['net_buy_percentage'] ??
-          data['net_buy_pct'] ??
-          data['net_buyers_percentage'] ??
-          data['net_buy'],
-    );
-    double? rawNetSell = _parseDouble(
-      data['net_sell_percentage'] ??
-          data['net_sell_pct'] ??
-          data['net_sellers_percentage'] ??
-          data['net_sell'],
-    );
+    double? rawNet = _parseDouble(data['net_buy_percentage'] ??
+        data['net_buy_pct'] ??
+        data['net_buyers_percentage'] ??
+        data['net_buy']);
+    double? rawNetSell = _parseDouble(data['net_sell_percentage'] ??
+        data['net_sell_pct'] ??
+        data['net_sellers_percentage'] ??
+        data['net_sell']);
 
     double buy;
     double sell;
@@ -361,22 +337,21 @@ class RetailOrderFlow {
           : (100.0 - buy).clamp(0.0, 100.0);
       netBuy = rawNet != null
           ? ((rawNet.abs() > 0 && rawNet.abs() <= 1.0)
-                ? rawNet * 100.0
-                : rawNet)
+              ? rawNet * 100.0
+              : rawNet)
           : (buy - sell);
       netSell = rawNetSell != null
           ? ((rawNetSell.abs() > 0 && rawNetSell.abs() <= 1.0)
-                ? rawNetSell * 100.0
-                : rawNetSell)
+              ? rawNetSell * 100.0
+              : rawNetSell)
           : -netBuy;
     } else if (rawNet != null) {
-      netBuy = (rawNet.abs() > 0 && rawNet.abs() <= 1.0)
-          ? rawNet * 100.0
-          : rawNet;
+      netBuy =
+          (rawNet.abs() > 0 && rawNet.abs() <= 1.0) ? rawNet * 100.0 : rawNet;
       netSell = rawNetSell != null
           ? ((rawNetSell.abs() > 0 && rawNetSell.abs() <= 1.0)
-                ? rawNetSell * 100.0
-                : rawNetSell)
+              ? rawNetSell * 100.0
+              : rawNetSell)
           : -netBuy;
       buy = (50.0 + (netBuy / 2.0)).clamp(0.0, 100.0);
       sell = (100.0 - buy).clamp(0.0, 100.0);
@@ -393,19 +368,15 @@ class RetailOrderFlow {
     }
 
     double? buyVol = _parseDouble(
-      data['buy_volume_percentage_change'] ?? data['buy_volume_pct_change'],
-    );
-    double? sellVol = _parseDouble(
-      data['sell_volume_percentage_change'] ?? data['sell_volume_pct_change'],
-    );
+        data['buy_volume_percentage_change'] ?? data['buy_volume_pct_change']);
+    double? sellVol = _parseDouble(data['sell_volume_percentage_change'] ??
+        data['sell_volume_pct_change']);
 
-    double? volChange = _parseDouble(
-      data['volume_change_percentage'] ??
-          data['volume_change_pct'] ??
-          data['volume_change_24h'] ??
-          data['volume_percentage_change'] ??
-          data['volume_growth'],
-    );
+    double? volChange = _parseDouble(data['volume_change_percentage'] ??
+        data['volume_change_pct'] ??
+        data['volume_change_24h'] ??
+        data['volume_percentage_change'] ??
+        data['volume_growth']);
 
     if (buyVol != null && buyVol.abs() > 0 && buyVol.abs() <= 1.0) {
       buyVol = buyVol * 100.0;

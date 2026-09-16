@@ -113,17 +113,15 @@ class _InvestorGroupManageMembersWidgetState
 
                 if (userSnapshot.hasData && userSnapshot.data!.exists) {
                   final user = userSnapshot.data!.data();
-                  displayName =
-                      user?.name ??
+                  displayName = user?.name ??
                       // user?.providerId?.capitalize() ??
                       'Guest';
                   subtitle = user?.email ?? user?.phoneNumber ?? '';
                   if (user?.photoUrl != null) {
                     avatar = CircleAvatar(
                       radius: 20,
-                      backgroundImage: CachedNetworkImageProvider(
-                        user!.photoUrl!,
-                      ),
+                      backgroundImage:
+                          CachedNetworkImageProvider(user!.photoUrl!),
                     );
                   }
                 }
@@ -131,8 +129,8 @@ class _InvestorGroupManageMembersWidgetState
                 final roleText = isCreator
                     ? 'Creator'
                     : isAdmin
-                    ? 'Admin'
-                    : 'Member';
+                        ? 'Admin'
+                        : 'Member';
                 final fullSubtitle = subtitle != null && subtitle.isNotEmpty
                     ? '$subtitle • $roleText'
                     : roleText;
@@ -172,10 +170,8 @@ class _InvestorGroupManageMembersWidgetState
                                 children: [
                                   Icon(Icons.person_remove, color: Colors.red),
                                   SizedBox(width: 8),
-                                  Text(
-                                    'Remove Member',
-                                    style: TextStyle(color: Colors.red),
-                                  ),
+                                  Text('Remove Member',
+                                      style: TextStyle(color: Colors.red)),
                                 ],
                               ),
                             ),
@@ -235,17 +231,15 @@ class _InvestorGroupManageMembersWidgetState
 
                 if (userSnapshot.hasData && userSnapshot.data!.exists) {
                   final user = userSnapshot.data!.data();
-                  displayName =
-                      user?.name ??
+                  displayName = user?.name ??
                       // user?.providerId?.capitalize() ??
                       'Guest';
                   subtitle = user?.email ?? user?.phoneNumber ?? '';
                   if (user?.photoUrl != null) {
                     avatar = CircleAvatar(
                       radius: 20,
-                      backgroundImage: CachedNetworkImageProvider(
-                        user!.photoUrl!,
-                      ),
+                      backgroundImage:
+                          CachedNetworkImageProvider(user!.photoUrl!),
                     );
                   }
                 }
@@ -288,9 +282,8 @@ class _InvestorGroupManageMembersWidgetState
             onChanged: (value) {
               setState(() {
                 _searchTerm = value;
-                _userStream = widget.firestoreService.searchUsers(
-                  searchTerm: _searchTerm,
-                );
+                _userStream = widget.firestoreService
+                    .searchUsers(searchTerm: _searchTerm);
               });
             },
           ),
@@ -340,9 +333,8 @@ class _InvestorGroupManageMembersWidgetState
                       final avatar = user.photoUrl != null
                           ? CircleAvatar(
                               radius: 20,
-                              backgroundImage: CachedNetworkImageProvider(
-                                user.photoUrl!,
-                              ),
+                              backgroundImage:
+                                  CachedNetworkImageProvider(user.photoUrl!),
                             )
                           : const CircleAvatar(
                               radius: 20,
@@ -376,15 +368,15 @@ class _InvestorGroupManageMembersWidgetState
     try {
       await widget.firestoreService.addGroupAdmin(widget.groupId, userId);
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('$displayName is now an admin')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('$displayName is now an admin')),
+        );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error making admin: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error making admin: $e')),
+        );
       }
     }
   }
@@ -399,9 +391,9 @@ class _InvestorGroupManageMembersWidgetState
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error removing admin: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error removing admin: $e')),
+        );
       }
     }
   }
@@ -412,8 +404,7 @@ class _InvestorGroupManageMembersWidgetState
       builder: (context) => AlertDialog(
         title: const Text('Remove Member'),
         content: Text(
-          'Are you sure you want to remove $displayName from the group?',
-        ),
+            'Are you sure you want to remove $displayName from the group?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -433,10 +424,8 @@ class _InvestorGroupManageMembersWidgetState
 
     if (confirm == true) {
       try {
-        await widget.firestoreService.removeMemberFromGroup(
-          widget.groupId,
-          userId,
-        );
+        await widget.firestoreService
+            .removeMemberFromGroup(widget.groupId, userId);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('$displayName removed from group')),
@@ -444,9 +433,9 @@ class _InvestorGroupManageMembersWidgetState
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('Error removing member: $e')));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error removing member: $e')),
+          );
         }
       }
     }
@@ -462,19 +451,17 @@ class _InvestorGroupManageMembersWidgetState
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error sending invitation: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error sending invitation: $e')),
+        );
       }
     }
   }
 
   Future<void> _cancelInvitation(String userId, String displayName) async {
     try {
-      await widget.firestoreService.declineGroupInvitation(
-        widget.groupId,
-        userId,
-      );
+      await widget.firestoreService
+          .declineGroupInvitation(widget.groupId, userId);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Invitation to $displayName cancelled')),

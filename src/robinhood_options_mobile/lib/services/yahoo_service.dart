@@ -88,16 +88,12 @@ class YahooService {
     ScreenerId('grocery_stores', 'Grocery Stores'),
     ScreenerId('high_yield_bond', 'High Yield Bond'),
     ScreenerId(
-      'information_technology_services',
-      'Information Technology Services',
-    ),
+        'information_technology_services', 'Information Technology Services'),
     ScreenerId('insurance_brokers', 'Insurance Brokers'),
     ScreenerId('lodging', 'Lodging'),
     ScreenerId('lumber_wood_production', 'Lumber & Wood Production'),
     ScreenerId(
-      'medical_instruments_supplies',
-      'Medical Instruments & Supplies',
-    ),
+        'medical_instruments_supplies', 'Medical Instruments & Supplies'),
     ScreenerId('mega_cap_hc', 'Mega Cap HC'),
     ScreenerId('metal_fabrication', 'Metal Fabrication'),
     ScreenerId('most_actives_americas', 'Most Actives (Americas)'),
@@ -135,9 +131,7 @@ class YahooService {
     ScreenerId('paper_paper_products', 'Paper & Paper Products'),
     ScreenerId('personal_services', 'Personal Services'),
     ScreenerId(
-      'pollution_treatment_controls',
-      'Pollution Treatment & Controls',
-    ),
+        'pollution_treatment_controls', 'Pollution Treatment & Controls'),
     ScreenerId('portfolio_anchors', 'Portfolio Anchors'),
     ScreenerId('railroads', 'Railroads'),
     ScreenerId('real_estate_development', 'Real Estate Development'),
@@ -153,18 +147,12 @@ class YahooService {
     ScreenerId('residential_construction', 'Residential Construction'),
     ScreenerId('resorts_casinos', 'Resorts & Casinos'),
     ScreenerId('restaurants', 'Restaurants'),
+    ScreenerId('scientific_technical_instruments',
+        'Scientific & Technical Instruments'),
     ScreenerId(
-      'scientific_technical_instruments',
-      'Scientific & Technical Instruments',
-    ),
-    ScreenerId(
-      'security_protection_services',
-      'Security & Protection Services',
-    ),
-    ScreenerId(
-      'semiconductor_equipment_materials',
-      'Semiconductor Equipment & Materials',
-    ),
+        'security_protection_services', 'Security & Protection Services'),
+    ScreenerId('semiconductor_equipment_materials',
+        'Semiconductor Equipment & Materials'),
     ScreenerId('silver', 'Silver'),
     ScreenerId('solid_large_growth_funds', 'Solid Large Growth Funds'),
     ScreenerId('solid_midcap_growth_funds', 'Solid Midcap Growth Funds'),
@@ -186,9 +174,7 @@ class YahooService {
     ScreenerId('top_mutual_funds_sg', 'Top Mutual Funds (SG)'),
     ScreenerId('top_mutual_funds_us', 'Top Mutual Funds (US)'),
     ScreenerId(
-      'top_options_implied_volatality',
-      'Top Options - Implied Volatility',
-    ),
+        'top_options_implied_volatality', 'Top Options - Implied Volatility'),
     ScreenerId('top_options_open_interest', 'Top Options - Open Interest'),
     ScreenerId('trucking', 'Trucking'),
     ScreenerId('waste_management', 'Waste Management'),
@@ -753,11 +739,10 @@ class YahooService {
     "error": null
   }
 }  */
-  Future<dynamic> getMarketIndexHistoricals({
-    String symbol = "^GSP",
-    String range = "ytd", // 1y
-    String interval = "1d",
-  }) async {
+  Future<dynamic> getMarketIndexHistoricals(
+      {String symbol = "^GSP",
+      String range = "ytd", // 1y
+      String interval = "1d"}) async {
     var url =
         "https://query2.finance.yahoo.com/v8/finance/chart/${Uri.encodeFull(symbol)}?events=capitalGain%7Cdiv%7Csplit&formatted=true&includeAdjustedClose=true&interval=$interval&range=$range&symbol=${Uri.encodeFull(symbol)}&userYfid=true&lang=en-US&region=US";
     final cacheKey = 'marketIndexHistoricals_${symbol}_${range}_$interval';
@@ -769,15 +754,13 @@ class YahooService {
       );
       final chart = entryJson is Map ? entryJson['chart'] : null;
       final result = chart is Map ? chart['result'] : null;
-      final hasData =
-          result is List &&
+      final hasData = result is List &&
           result.isNotEmpty &&
           result.first is Map &&
           result.first['timestamp'] is List &&
           (result.first['timestamp'] as List).isNotEmpty;
       debugPrint(
-        'Yahoo benchmark $symbol $range/$interval: ${hasData ? "received ${(result.first["timestamp"] as List).length} points" : "empty or invalid response"}',
-      );
+          'Yahoo benchmark $symbol $range/$interval: ${hasData ? "received ${(result.first["timestamp"] as List).length} points" : "empty or invalid response"}');
       return entryJson;
     } catch (error, stackTrace) {
       debugPrint('Yahoo benchmark $symbol $range/$interval failed: $error');
@@ -789,22 +772,16 @@ class YahooService {
   Future<dynamic> getESGScores(String symbol) async {
     var url =
         "https://query2.finance.yahoo.com/v10/finance/quoteSummary/${Uri.encodeFull(symbol)}?modules=esgScores";
-    var responseJson = await getCachedJson(
-      url,
-      cacheKey: 'esgScores_$symbol',
-      ttl: const Duration(days: 30),
-    );
+    var responseJson = await getCachedJson(url,
+        cacheKey: 'esgScores_$symbol', ttl: const Duration(days: 30));
     return responseJson;
   }
 
   Future<dynamic> getAssetProfile(String symbol) async {
     var url =
         "https://query2.finance.yahoo.com/v10/finance/quoteSummary/${Uri.encodeFull(symbol)}?modules=assetProfile";
-    var responseJson = await getCachedJson(
-      url,
-      cacheKey: 'assetProfile_$symbol',
-      ttl: const Duration(days: 30),
-    );
+    var responseJson = await getCachedJson(url,
+        cacheKey: 'assetProfile_$symbol', ttl: const Duration(days: 30));
     return responseJson;
   }
 
@@ -826,17 +803,14 @@ class YahooService {
 
     // return responseJson;
     return {
-      'expirationDates':
-          (result['expirationDates'] as List?)
-              ?.map(
-                (ts) => DateTime.fromMillisecondsSinceEpoch((ts as int) * 1000),
-              )
+      'expirationDates': (result['expirationDates'] as List?)
+              ?.map((ts) =>
+                  DateTime.fromMillisecondsSinceEpoch((ts as int) * 1000))
               .toList() ??
           [],
       'hasMiniOptions': result['hasMiniOptions'],
       'quote': result['quote'],
-      'options':
-          (result['options'] as List?)?.map((opt) {
+      'options': (result['options'] as List?)?.map((opt) {
             var optMap = Map<String, dynamic>.from(opt);
 
             Map<String, dynamic> cleanContract(Map<String, dynamic> contract) {
@@ -851,13 +825,11 @@ class YahooService {
 
               if (cleaned['expiration'] is int) {
                 cleaned['expiration'] = DateTime.fromMillisecondsSinceEpoch(
-                  cleaned['expiration'] * 1000,
-                );
+                    cleaned['expiration'] * 1000);
               }
               if (cleaned['lastTradeDate'] is int) {
                 cleaned['lastTradeDate'] = DateTime.fromMillisecondsSinceEpoch(
-                  cleaned['lastTradeDate'] * 1000,
-                );
+                    cleaned['lastTradeDate'] * 1000);
               }
               return cleaned;
             }
@@ -874,8 +846,7 @@ class YahooService {
             }
             if (optMap['expirationDate'] != null) {
               optMap['expirationDate'] = DateTime.fromMillisecondsSinceEpoch(
-                optMap['expirationDate'] * 1000,
-              );
+                  optMap['expirationDate'] * 1000);
             }
             return optMap;
           }).toList() ??
@@ -925,30 +896,26 @@ class YahooService {
     bool betaFeatureFlag = true,
   }) async {
     final url = Uri.parse(
-      'https://query2.finance.yahoo.com/v1/finance/screener/predefined/saved'
-      '?count=$count'
-      '&formatted=$formatted'
-      '&scrIds=$scrIds'
-      '&sortField=$sortField'
-      '&sortType=$sortType'
-      '&start=$start'
-      '&useRecordsResponse=$useRecordsResponse'
-      '&betaFeatureFlag=$betaFeatureFlag'
-      '&lang=$lang'
-      '&region=$region',
-    );
+        'https://query2.finance.yahoo.com/v1/finance/screener/predefined/saved'
+        '?count=$count'
+        '&formatted=$formatted'
+        '&scrIds=$scrIds'
+        '&sortField=$sortField'
+        '&sortType=$sortType'
+        '&start=$start'
+        '&useRecordsResponse=$useRecordsResponse'
+        '&betaFeatureFlag=$betaFeatureFlag'
+        '&lang=$lang'
+        '&region=$region');
     var responseJson = await getJson(url.toString());
     return responseJson;
   }
 
-  Future<dynamic> getCachedJson(
-    String url, {
-    required String cacheKey,
-    Duration ttl = const Duration(days: 7),
-  }) async {
-    final docRef = FirebaseFirestore.instance
-        .collection('yahoo_data')
-        .doc(cacheKey);
+  Future<dynamic> getCachedJson(String url,
+      {required String cacheKey,
+      Duration ttl = const Duration(days: 7)}) async {
+    final docRef =
+        FirebaseFirestore.instance.collection('yahoo_data').doc(cacheKey);
 
     try {
       final docSnapshot = await docRef.get();
@@ -981,12 +948,8 @@ class YahooService {
         _crumb = null;
         debugPrint("Retrying after invalidating crumb for $cacheKey");
         final responseJson = await getJson(url);
-        await _writeCache(
-          docRef,
-          cacheKey,
-          responseJson,
-          suffix: 'after retry',
-        );
+        await _writeCache(docRef, cacheKey, responseJson,
+            suffix: 'after retry');
         return responseJson;
       } else if (e.toString().contains('Failed to load data: 404')) {
         // Return empty data for 404 errors
@@ -998,21 +961,19 @@ class YahooService {
     }
   }
 
-  Future<void> _writeCache(
-    DocumentReference<Map<String, dynamic>> docRef,
-    String cacheKey,
-    dynamic responseJson, {
-    String? suffix,
-  }) async {
+  Future<void> _writeCache(DocumentReference<Map<String, dynamic>> docRef,
+      String cacheKey, dynamic responseJson,
+      {String? suffix}) async {
     try {
-      await docRef.set({'data': responseJson, 'lastUpdated': Timestamp.now()});
+      await docRef.set({
+        'data': responseJson,
+        'lastUpdated': Timestamp.now(),
+      });
       debugPrint(
-        'Yahoo cache written: yahoo_data/$cacheKey${suffix == null ? '' : ' ($suffix)'}',
-      );
+          'Yahoo cache written: yahoo_data/$cacheKey${suffix == null ? '' : ' ($suffix)'}');
     } catch (error, stackTrace) {
       debugPrint(
-        'Error writing Yahoo cache yahoo_data/$cacheKey${suffix == null ? '' : ' ($suffix)'} as ${auth.currentUser?.uid ?? 'unauthenticated'}: $error',
-      );
+          'Error writing Yahoo cache yahoo_data/$cacheKey${suffix == null ? '' : ' ($suffix)'} as ${auth.currentUser?.uid ?? 'unauthenticated'}: $error');
       debugPrintStack(stackTrace: stackTrace);
     }
   }
@@ -1038,13 +999,11 @@ class YahooService {
     }
     final idToken = await auth.currentUser?.getIdToken();
 
-    final response = await httpClient.get(
-      Uri.parse(proxied),
-      headers: {if (idToken != null) 'Authorization': 'Bearer $idToken'},
-    );
+    final response = await httpClient.get(Uri.parse(proxied), headers: {
+      if (idToken != null) 'Authorization': 'Bearer $idToken',
+    });
     debugPrint(
-      "${(response.body.length / 1000)}K in ${stopwatch.elapsed.inMilliseconds}ms (proxy) $url",
-    );
+        "${(response.body.length / 1000)}K in ${stopwatch.elapsed.inMilliseconds}ms (proxy) $url");
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
     }
@@ -1120,15 +1079,12 @@ class YahooService {
         }
       }
 
-      response = await httpClient.get(
-        Uri.parse(retryUrl),
-        headers: retryHeaders,
-      );
+      response =
+          await httpClient.get(Uri.parse(retryUrl), headers: retryHeaders);
     }
 
     debugPrint(
-      "${(response.body.length / 1000)}K in ${stopwatch.elapsed.inMilliseconds}ms $requestUrl",
-    );
+        "${(response.body.length / 1000)}K in ${stopwatch.elapsed.inMilliseconds}ms $requestUrl");
 
     if (response.statusCode == 200) {
       dynamic responseJson = jsonDecode(response.body);
@@ -1203,26 +1159,21 @@ class YahooService {
     if (rawCookie != null) {
       // Extract only the key=value pairs, ignoring attributes like Path, Domain, etc.
       // and join them with semicolons for the Cookie header.
-      _cookie = rawCookie
-          .split(',')
-          .map((c) => c.split(';').first.trim())
-          .join('; ');
+      _cookie =
+          rawCookie.split(',').map((c) => c.split(';').first.trim()).join('; ');
       debugPrint('Yahoo Cookie updated');
     }
   }
 
   /// Fetch institutional ownership for a given symbol
   Future<InstitutionalOwnership?> getInstitutionalOwnership(
-    String symbol,
-  ) async {
+      String symbol) async {
     try {
       final url =
           "https://query2.finance.yahoo.com/v10/finance/quoteSummary/${Uri.encodeFull(symbol)}?modules=institutionOwnership,majorHoldersBreakdown";
-      final jsonResponse = await getCachedJson(
-        url,
-        cacheKey: 'institutionalOwnership_$symbol',
-        ttl: const Duration(days: 7),
-      );
+      final jsonResponse = await getCachedJson(url,
+          cacheKey: 'institutionalOwnership_$symbol',
+          ttl: const Duration(days: 7));
 
       if (jsonResponse['quoteSummary'] != null &&
           jsonResponse['quoteSummary']['result'] != null) {
@@ -1253,8 +1204,8 @@ class YahooService {
                   (breakdown['insidersPercentHeld']['raw'] as num?)?.toDouble();
             }
             if (breakdown['institutionsCount'] != null) {
-              institutionCount = (breakdown['institutionsCount']['raw'] as num?)
-                  ?.toInt();
+              institutionCount =
+                  (breakdown['institutionsCount']['raw'] as num?)?.toInt();
             }
           }
 
@@ -1269,10 +1220,9 @@ class YahooService {
                 dateReported: h['reportDate']?['fmt'] != null
                     ? DateTime.tryParse(h['reportDate']['fmt'])
                     : (h['reportDate']?['raw'] != null
-                          ? DateTime.fromMillisecondsSinceEpoch(
-                              h['reportDate']['raw'] * 1000,
-                            )
-                          : null),
+                        ? DateTime.fromMillisecondsSinceEpoch(
+                            h['reportDate']['raw'] * 1000)
+                        : null),
               );
             }).toList();
           }
@@ -1298,11 +1248,9 @@ class YahooService {
     try {
       final url =
           "https://query2.finance.yahoo.com/v10/finance/quoteSummary/${Uri.encodeFull(symbol)}?modules=insiderTransactions";
-      final jsonResponse = await getCachedJson(
-        url,
-        cacheKey: 'insiderTransactions_$symbol',
-        ttl: const Duration(days: 1),
-      );
+      final jsonResponse = await getCachedJson(url,
+          cacheKey: 'insiderTransactions_$symbol',
+          ttl: const Duration(days: 1));
 
       if (jsonResponse['quoteSummary'] != null &&
           jsonResponse['quoteSummary']['result'] != null) {
@@ -1335,31 +1283,30 @@ class YahooService {
       var result = json['quoteResponse']['result'][0];
       // Map Yahoo result to Quote
       return Quote(
-        symbol: result['symbol'],
-        askPrice: (result['ask'] as num?)?.toDouble(),
-        askSize: (result['askSize'] as num?)?.toInt() ?? 0,
-        bidPrice: (result['bid'] as num?)?.toDouble(),
-        bidSize: (result['bidSize'] as num?)?.toInt() ?? 0,
-        lastTradePrice:
-            (result['regularMarketPrice'] as num?)?.toDouble() ??
-            (result['regularMarketPrice'] as num?)?.toDouble() ??
-            0.0,
-        previousClose:
-            (result['regularMarketPreviousClose'] as num?)?.toDouble() ??
-            (result['regularMarketPrice'] as num?)?.toDouble() ??
-            0.0,
-        adjustedPreviousClose:
-            (result['regularMarketPreviousClose'] as num?)?.toDouble() ??
-            (result['regularMarketPrice'] as num?)?.toDouble() ??
-            0.0,
-        previousCloseDate: null,
-        tradingHalted: false,
-        hasTraded: true,
-        lastTradePriceSource: 'yahoo',
-        updatedAt: DateTime.now(),
-        instrument: 'https://api.robinhood.com/instruments/$symbol/', // Dummy
-        instrumentId: symbol, // Dummy
-      );
+          symbol: result['symbol'],
+          askPrice: (result['ask'] as num?)?.toDouble(),
+          askSize: (result['askSize'] as num?)?.toInt() ?? 0,
+          bidPrice: (result['bid'] as num?)?.toDouble(),
+          bidSize: (result['bidSize'] as num?)?.toInt() ?? 0,
+          lastTradePrice: (result['regularMarketPrice'] as num?)?.toDouble() ??
+              (result['regularMarketPrice'] as num?)?.toDouble() ??
+              0.0,
+          previousClose:
+              (result['regularMarketPreviousClose'] as num?)?.toDouble() ??
+                  (result['regularMarketPrice'] as num?)?.toDouble() ??
+                  0.0,
+          adjustedPreviousClose:
+              (result['regularMarketPreviousClose'] as num?)?.toDouble() ??
+                  (result['regularMarketPrice'] as num?)?.toDouble() ??
+                  0.0,
+          previousCloseDate: null,
+          tradingHalted: false,
+          hasTraded: true,
+          lastTradePriceSource: 'yahoo',
+          updatedAt: DateTime.now(),
+          instrument: 'https://api.robinhood.com/instruments/$symbol/', // Dummy
+          instrumentId: symbol // Dummy
+          );
     }
     throw Exception('Quote not found for $symbol');
   }
@@ -1377,31 +1324,32 @@ class YahooService {
       return results.map((result) {
         final symbol = result['symbol'];
         return Quote(
-          symbol: symbol,
-          askPrice: (result['ask'] as num?)?.toDouble() ?? 0.0,
-          askSize: (result['askSize'] as num?)?.toInt() ?? 0,
-          bidPrice: (result['bid'] as num?)?.toDouble() ?? 0.0,
-          bidSize: (result['bidSize'] as num?)?.toInt() ?? 0,
-          lastTradePrice:
-              (result['regularMarketPrice'] as num?)?.toDouble() ??
-              (result['regularMarketPrice'] as num?)?.toDouble() ??
-              0.0,
-          previousClose:
-              (result['regularMarketPreviousClose'] as num?)?.toDouble() ??
-              (result['regularMarketPrice'] as num?)?.toDouble() ??
-              0.0,
-          adjustedPreviousClose:
-              (result['regularMarketPreviousClose'] as num?)?.toDouble() ??
-              (result['regularMarketPrice'] as num?)?.toDouble() ??
-              0.0,
-          previousCloseDate: null,
-          tradingHalted: false,
-          hasTraded: true,
-          lastTradePriceSource: 'yahoo',
-          updatedAt: DateTime.now(),
-          instrument: 'https://api.robinhood.com/instruments/$symbol/', // Dummy
-          instrumentId: symbol, // Dummy
-        );
+            symbol: symbol,
+            askPrice: (result['ask'] as num?)?.toDouble() ?? 0.0,
+            askSize: (result['askSize'] as num?)?.toInt() ?? 0,
+            bidPrice: (result['bid'] as num?)?.toDouble() ?? 0.0,
+            bidSize: (result['bidSize'] as num?)?.toInt() ?? 0,
+            lastTradePrice:
+                (result['regularMarketPrice'] as num?)?.toDouble() ??
+                    (result['regularMarketPrice'] as num?)?.toDouble() ??
+                    0.0,
+            previousClose:
+                (result['regularMarketPreviousClose'] as num?)?.toDouble() ??
+                    (result['regularMarketPrice'] as num?)?.toDouble() ??
+                    0.0,
+            adjustedPreviousClose:
+                (result['regularMarketPreviousClose'] as num?)?.toDouble() ??
+                    (result['regularMarketPrice'] as num?)?.toDouble() ??
+                    0.0,
+            previousCloseDate: null,
+            tradingHalted: false,
+            hasTraded: true,
+            lastTradePriceSource: 'yahoo',
+            updatedAt: DateTime.now(),
+            instrument:
+                'https://api.robinhood.com/instruments/$symbol/', // Dummy
+            instrumentId: symbol // Dummy
+            );
       }).toList();
     }
     return [];
@@ -1439,8 +1387,7 @@ class YahooService {
           dayTradeRatio: 0.25,
           listDate: null,
           minTickSize: null,
-          type:
-              (result['quoteType'] == 'ETF' ||
+          type: (result['quoteType'] == 'ETF' ||
                   result['quoteType'] == 'MUTUALFUND')
               ? 'etp'
               : 'stock',
@@ -1477,24 +1424,22 @@ class YahooService {
         json['quoteResponse']['result'] != null) {
       final results = json['quoteResponse']['result'] as List;
       final assetProfiles = <String, Map<String, dynamic>>{};
-      await Future.wait(
-        results.map((result) async {
-          final symbol = result['symbol']?.toString();
-          if (symbol == null || symbol.isEmpty) return;
-          try {
-            final response = await getAssetProfile(symbol);
-            final profileResults = response['quoteSummary']?['result'] as List?;
-            final profile = profileResults?.isNotEmpty == true
-                ? profileResults!.first['assetProfile']
-                : null;
-            if (profile is Map) {
-              assetProfiles[symbol] = Map<String, dynamic>.from(profile);
-            }
-          } catch (e) {
-            debugPrint('Could not load Yahoo asset profile for $symbol: $e');
+      await Future.wait(results.map((result) async {
+        final symbol = result['symbol']?.toString();
+        if (symbol == null || symbol.isEmpty) return;
+        try {
+          final response = await getAssetProfile(symbol);
+          final profileResults = response['quoteSummary']?['result'] as List?;
+          final profile = profileResults?.isNotEmpty == true
+              ? profileResults!.first['assetProfile']
+              : null;
+          if (profile is Map) {
+            assetProfiles[symbol] = Map<String, dynamic>.from(profile);
           }
-        }),
-      );
+        } catch (e) {
+          debugPrint('Could not load Yahoo asset profile for $symbol: $e');
+        }
+      }));
 
       return results.map((result) {
         final symbol = result['symbol'];
@@ -1508,17 +1453,16 @@ class YahooService {
           high: (result['regularMarketDayHigh'] as num?)?.toDouble(),
           low: (result['regularMarketDayLow'] as num?)?.toDouble(),
           volume: (result['regularMarketVolume'] as num?)?.toDouble(),
-          averageVolume: (result['averageDailyVolume3Month'] as num?)
-              ?.toDouble(),
+          averageVolume:
+              (result['averageDailyVolume3Month'] as num?)?.toDouble(),
           high52Weeks: (result['fiftyTwoWeekHigh'] as num?)?.toDouble(),
           low52Weeks: (result['fiftyTwoWeekLow'] as num?)?.toDouble(),
           marketCap: (result['marketCap'] as num?)?.toDouble(),
-          dividendYield: (result['trailingAnnualDividendYield'] as num?)
-              ?.toDouble(),
+          dividendYield:
+              (result['trailingAnnualDividendYield'] as num?)?.toDouble(),
           peRatio: (result['trailingPE'] as num?)?.toDouble(),
           sharesOutstanding: (result['sharesOutstanding'] as num?)?.toDouble(),
-          description:
-              profile?['longBusinessSummary']?.toString() ??
+          description: profile?['longBusinessSummary']?.toString() ??
               result['longName'] ??
               '',
           instrument: 'https://api.robinhood.com/instruments/$symbol/',
@@ -1530,13 +1474,13 @@ class YahooService {
           sector: sector?.isNotEmpty == true
               ? sector!
               : isFund
-              ? 'Fund / ETF'
-              : 'Unclassified',
+                  ? 'Fund / ETF'
+                  : 'Unclassified',
           industry: industry?.isNotEmpty == true
               ? industry!
               : isFund
-              ? result['longName']?.toString() ?? 'Exchange-Traded Fund'
-              : 'Unclassified',
+                  ? result['longName']?.toString() ?? 'Exchange-Traded Fund'
+                  : 'Unclassified',
           numEmployees: (profile?['fullTimeEmployees'] as num?)?.toInt(),
         );
       }).toList();
@@ -1546,10 +1490,7 @@ class YahooService {
 
   /// Fetch chart data for a given symbol
   Future<Map<String, dynamic>?> getChartData(
-    String symbol,
-    String range,
-    String interval,
-  ) async {
+      String symbol, String range, String interval) async {
     // Yahoo Finance uses hyphens for share classes (e.g. BRK.B -> BRK-B)
     final normalizedSymbol = Uri.decodeComponent(symbol);
     final querySymbol = normalizedSymbol.replaceAll('.', '-');
@@ -1569,10 +1510,7 @@ class YahooService {
 
   /// Fetch historicals for a given symbol
   Future<List<InstrumentHistorical>> getHistoricals(
-    String symbol,
-    String range,
-    String interval,
-  ) async {
+      String symbol, String range, String interval) async {
     // https://query2.finance.yahoo.com/v8/finance/chart/AAPL?range=1d&interval=5m
     final res = await getChartData(symbol, range, interval);
     List<InstrumentHistorical> candles = [];
@@ -1584,8 +1522,7 @@ class YahooService {
       if (timestamp != null) {
         for (int i = 0; i < timestamp.length; i++) {
           if (quote['open'][i] == null) continue;
-          candles.add(
-            InstrumentHistorical(
+          candles.add(InstrumentHistorical(
               DateTime.fromMillisecondsSinceEpoch(timestamp[i] * 1000),
               (quote['open'][i] as num?)?.toDouble(),
               (quote['close'][i] as num?)?.toDouble(),
@@ -1593,9 +1530,7 @@ class YahooService {
               (quote['low'][i] as num?)?.toDouble(),
               (quote['volume'][i] as num?)?.toInt() ?? 0,
               'reg',
-              false,
-            ),
-          );
+              false));
         }
       }
     }
@@ -1611,13 +1546,10 @@ class YahooService {
       if (kIsWeb) {
         data = await _getJsonViaProxy(url);
       } else {
-        final response = await httpClient.get(
-          Uri.parse(url),
-          headers: {
-            'User-Agent':
-                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-          },
-        );
+        final response = await httpClient.get(Uri.parse(url), headers: {
+          'User-Agent':
+              'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        });
         if (response.statusCode != 200) {
           return [];
         }
@@ -1642,9 +1574,8 @@ class YahooService {
   }
 
   /// Fetch movers (gainers/losers) using Yahoo Finance
-  Future<List<Map<String, dynamic>>> getMovers({
-    String direction = 'up',
-  }) async {
+  Future<List<Map<String, dynamic>>> getMovers(
+      {String direction = 'up'}) async {
     final screenerId = direction == 'up' ? 'day_gainers' : 'day_losers';
     try {
       final response = await getStockScreener(scrIds: screenerId, count: 20);
@@ -1659,8 +1590,8 @@ class YahooService {
 
         double? changePercent;
         if (q['regularMarketChangePercent'] is Map) {
-          changePercent = (q['regularMarketChangePercent']['raw'] as num?)
-              ?.toDouble();
+          changePercent =
+              (q['regularMarketChangePercent']['raw'] as num?)?.toDouble();
         } else {
           changePercent = (q['regularMarketChangePercent'] as num?)?.toDouble();
         }
@@ -1708,8 +1639,7 @@ class YahooService {
         (json['quoteResponse']['result'] as List).isNotEmpty) {
       final res = json['quoteResponse']['result'][0];
       final markPrice = (res['regularMarketPrice'] as num?)?.toDouble() ?? 0.0;
-      final openPrice =
-          (res['regularMarketOpen'] as num?)?.toDouble() ??
+      final openPrice = (res['regularMarketOpen'] as num?)?.toDouble() ??
           (res['regularMarketPreviousClose'] as num?)?.toDouble() ??
           markPrice;
       final highPrice =
@@ -1721,8 +1651,7 @@ class YahooService {
       final volume = (res['regularMarketVolume'] as num?)?.toDouble() ?? 0.0;
       final time = res['regularMarketTime'] != null
           ? DateTime.fromMillisecondsSinceEpoch(
-              ((res['regularMarketTime'] as num).toInt()) * 1000,
-            )
+              ((res['regularMarketTime'] as num).toInt()) * 1000)
           : DateTime.now();
 
       final cleanSymbol = yahooSymbol.endsWith('=X')
@@ -1747,8 +1676,7 @@ class YahooService {
 
   /// Fetches multiple live or delayed ForexQuotes from Yahoo Finance in a batch.
   Future<List<ForexQuote>> getForexQuotesByIds(
-    List<String> symbolsOrPairIds,
-  ) async {
+      List<String> symbolsOrPairIds) async {
     if (symbolsOrPairIds.isEmpty) return [];
     final yahooMap = <String, String>{};
     for (final s in symbolsOrPairIds) {
@@ -1767,8 +1695,7 @@ class YahooService {
         final origId = yahooMap[sym] ?? sym;
         final markPrice =
             (res['regularMarketPrice'] as num?)?.toDouble() ?? 0.0;
-        final openPrice =
-            (res['regularMarketOpen'] as num?)?.toDouble() ??
+        final openPrice = (res['regularMarketOpen'] as num?)?.toDouble() ??
             (res['regularMarketPreviousClose'] as num?)?.toDouble() ??
             markPrice;
         final highPrice =
@@ -1780,39 +1707,33 @@ class YahooService {
         final volume = (res['regularMarketVolume'] as num?)?.toDouble() ?? 0.0;
         final time = res['regularMarketTime'] != null
             ? DateTime.fromMillisecondsSinceEpoch(
-                ((res['regularMarketTime'] as num).toInt()) * 1000,
-              )
+                ((res['regularMarketTime'] as num).toInt()) * 1000)
             : DateTime.now();
 
-        final cleanSymbol = sym.endsWith('=X')
-            ? sym.substring(0, sym.length - 2)
-            : sym;
+        final cleanSymbol =
+            sym.endsWith('=X') ? sym.substring(0, sym.length - 2) : sym;
 
-        quotes.add(
-          ForexQuote(
-            askPrice,
-            bidPrice,
-            markPrice,
-            highPrice,
-            lowPrice,
-            openPrice,
-            cleanSymbol,
-            origId,
-            volume,
-            time,
-          ),
-        );
+        quotes.add(ForexQuote(
+          askPrice,
+          bidPrice,
+          markPrice,
+          highPrice,
+          lowPrice,
+          openPrice,
+          cleanSymbol,
+          origId,
+          volume,
+          time,
+        ));
       }
     }
     return quotes;
   }
 
   /// Fetches live or delayed candlestick historicals for Forex pairs from Yahoo Finance.
-  Future<ForexHistoricals> getForexHistoricals(
-    String symbolOrPairId, {
-    Bounds chartBoundsFilter = Bounds.t24_7,
-    ChartDateSpan chartDateSpanFilter = ChartDateSpan.day,
-  }) async {
+  Future<ForexHistoricals> getForexHistoricals(String symbolOrPairId,
+      {Bounds chartBoundsFilter = Bounds.t24_7,
+      ChartDateSpan chartDateSpanFilter = ChartDateSpan.day}) async {
     final yahooSymbol = toForexYahooSymbol(symbolOrPairId);
     final bounds = convertChartBoundsFilter(chartBoundsFilter);
     final span = convertChartSpanFilter(chartDateSpanFilter);

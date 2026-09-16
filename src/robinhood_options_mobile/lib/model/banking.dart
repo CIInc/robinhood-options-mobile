@@ -15,8 +15,7 @@ class AchTransfer {
   final String? cancelUrl;
   final String direction; // 'deposit' or 'withdraw'
   final double amount;
-  final String
-  state; // 'completed', 'pending', 'cancelled', 'failed', 'reversed'
+  final String state; // 'completed', 'pending', 'cancelled', 'failed', 'reversed'
   final String? statusDescription;
   final bool scheduled;
   final DateTime? expectedLandingDate;
@@ -65,21 +64,16 @@ class AchTransfer {
 
     final id = json['id']?.toString() ?? json['ref_id']?.toString() ?? '';
     final url = json['url']?.toString();
-    final account =
-        json['account']?.toString() ?? json['account_number']?.toString();
-    final cancelUrl =
-        json['cancel']?.toString() ?? json['cancel_url']?.toString();
+    final account = json['account']?.toString() ?? json['account_number']?.toString();
+    final cancelUrl = json['cancel']?.toString() ?? json['cancel_url']?.toString();
     final direction = json['direction']?.toString().toLowerCase() ?? 'deposit';
     final amount = parseDouble(json['amount']) ?? 0.0;
     final state = json['state']?.toString().toLowerCase() ?? 'completed';
-    final statusDescription =
-        json['status_description']?.toString() ??
+    final statusDescription = json['status_description']?.toString() ??
         json['description']?.toString();
     final scheduled = json['scheduled'] == true || json['is_scheduled'] == true;
     final expectedLandingDate = parseDate(json['expected_landing_date']);
-    final expectedLandingDateTime = parseDate(
-      json['expected_landing_datetime'],
-    );
+    final expectedLandingDateTime = parseDate(json['expected_landing_datetime']);
     final createdAt = parseDate(json['created_at']);
     final updatedAt = parseDate(json['updated_at']);
     final achRelationship = json['ach_relationship']?.toString();
@@ -133,20 +127,12 @@ class AchTransfer {
   }
 
   bool get isDeposit => direction.toLowerCase() == 'deposit';
-  bool get isWithdrawal =>
-      direction.toLowerCase() == 'withdraw' ||
-      direction.toLowerCase() == 'withdrawal';
+  bool get isWithdrawal => direction.toLowerCase() == 'withdraw' || direction.toLowerCase() == 'withdrawal';
 
-  bool get isPending =>
-      state == 'pending' ||
-      state == 'queued' ||
-      state == 'initiated' ||
-      state == 'new';
-  bool get isCompleted =>
-      state == 'completed' || state == 'settled' || state == 'cleared';
+  bool get isPending => state == 'pending' || state == 'queued' || state == 'initiated' || state == 'new';
+  bool get isCompleted => state == 'completed' || state == 'settled' || state == 'cleared';
   bool get isCancelled => state == 'cancelled' || state == 'canceled';
-  bool get isFailed =>
-      state == 'failed' || state == 'reversed' || state == 'rejected';
+  bool get isFailed => state == 'failed' || state == 'reversed' || state == 'rejected';
 
   String get formattedAmount {
     final prefix = isDeposit ? '+' : '-';
@@ -186,9 +172,7 @@ class AchTransfer {
       case 'reversed':
         return 'Reversed';
       default:
-        return state.isEmpty
-            ? 'Unknown'
-            : '${state[0].toUpperCase()}${state.substring(1)}';
+        return state.isEmpty ? 'Unknown' : '${state[0].toUpperCase()}${state.substring(1)}';
     }
   }
 
@@ -263,29 +247,22 @@ class AchRelationship {
 
     final id = json['id']?.toString() ?? '';
     final url = json['url']?.toString();
-    final bankAccountNickname =
-        json['bank_account_nickname']?.toString() ??
+    final bankAccountNickname = json['bank_account_nickname']?.toString() ??
         json['nickname']?.toString() ??
         json['bank_name']?.toString();
-    final bankAccountType =
-        json['bank_account_type']?.toString().toLowerCase() ?? 'checking';
-    final bankAccountHolderName =
-        json['bank_account_holder_name']?.toString() ??
+    final bankAccountType = json['bank_account_type']?.toString().toLowerCase() ?? 'checking';
+    final bankAccountHolderName = json['bank_account_holder_name']?.toString() ??
         json['holder_name']?.toString();
-    final bankRoutingNumber =
-        json['bank_routing_number']?.toString() ??
+    final bankRoutingNumber = json['bank_routing_number']?.toString() ??
         json['routing_number']?.toString();
-    final bankAccountNumber =
-        json['bank_account_number']?.toString() ??
+    final bankAccountNumber = json['bank_account_number']?.toString() ??
         json['account_number']?.toString() ??
         '';
     final state = json['state']?.toString().toLowerCase() ?? 'approved';
-    final verified =
-        json['verified'] == true ||
+    final verified = json['verified'] == true ||
         json['is_verified'] == true ||
         state == 'approved';
-    final verifyMicroDepositsUrl =
-        json['verify_micro_deposits']?.toString() ??
+    final verifyMicroDepositsUrl = json['verify_micro_deposits']?.toString() ??
         json['verify_micro_deposits_url']?.toString();
     final initialDeposit = json['initial_deposit']?.toString();
     final createdAt = parseDate(json['created_at']);
@@ -314,17 +291,14 @@ class AchRelationship {
     return {
       'id': id,
       if (url != null) 'url': url,
-      if (bankAccountNickname != null)
-        'bank_account_nickname': bankAccountNickname,
+      if (bankAccountNickname != null) 'bank_account_nickname': bankAccountNickname,
       'bank_account_type': bankAccountType,
-      if (bankAccountHolderName != null)
-        'bank_account_holder_name': bankAccountHolderName,
+      if (bankAccountHolderName != null) 'bank_account_holder_name': bankAccountHolderName,
       if (bankRoutingNumber != null) 'bank_routing_number': bankRoutingNumber,
       'bank_account_number': bankAccountNumber,
       'state': state,
       'verified': verified,
-      if (verifyMicroDepositsUrl != null)
-        'verify_micro_deposits': verifyMicroDepositsUrl,
+      if (verifyMicroDepositsUrl != null) 'verify_micro_deposits': verifyMicroDepositsUrl,
       if (initialDeposit != null) 'initial_deposit': initialDeposit,
       if (createdAt != null) 'created_at': createdAt!.toIso8601String(),
       if (updatedAt != null) 'updated_at': updatedAt!.toIso8601String(),
@@ -370,9 +344,7 @@ class AchRelationship {
       case 'rejected':
         return 'Rejected';
       default:
-        return state.isEmpty
-            ? 'Unknown'
-            : '${state[0].toUpperCase()}${state.substring(1)}';
+        return state.isEmpty ? 'Unknown' : '${state[0].toUpperCase()}${state.substring(1)}';
     }
   }
 
@@ -439,8 +411,7 @@ class AchSummary {
     for (final transfer in transfers) {
       if (latest == null ||
           (transfer.createdAt != null &&
-              (latest.createdAt == null ||
-                  transfer.createdAt!.isAfter(latest.createdAt!)))) {
+              (latest.createdAt == null || transfer.createdAt!.isAfter(latest.createdAt!)))) {
         latest = transfer;
       }
 
@@ -459,12 +430,9 @@ class AchSummary {
           pendingWithdrawals += transfer.amount;
         }
 
-        final landing =
-            transfer.expectedLandingDateTime ?? transfer.expectedLandingDate;
+        final landing = transfer.expectedLandingDateTime ?? transfer.expectedLandingDate;
         if (landing != null) {
-          final nextLanding =
-              nextClearing?.expectedLandingDateTime ??
-              nextClearing?.expectedLandingDate;
+          final nextLanding = nextClearing?.expectedLandingDateTime ?? nextClearing?.expectedLandingDate;
           if (nextLanding == null || landing.isBefore(nextLanding)) {
             nextClearing = transfer;
           }
@@ -472,12 +440,8 @@ class AchSummary {
       }
     }
 
-    final activeRelationships = relationships
-        .where((r) => !r.isUnlinked)
-        .toList();
-    final verifiedCount = activeRelationships
-        .where((r) => r.isApproved && r.verified)
-        .length;
+    final activeRelationships = relationships.where((r) => !r.isUnlinked).toList();
+    final verifiedCount = activeRelationships.where((r) => r.isApproved && r.verified).length;
 
     return AchSummary(
       totalDeposited: totalDeposited,
@@ -497,8 +461,6 @@ class AchSummary {
   String get formattedTotalDeposited => _currencyFormat.format(totalDeposited);
   String get formattedTotalWithdrawn => _currencyFormat.format(totalWithdrawn);
   String get formattedNetCashFlow => _currencyFormat.format(netCashFlow);
-  String get formattedPendingDeposits =>
-      _currencyFormat.format(pendingDeposits);
-  String get formattedPendingWithdrawals =>
-      _currencyFormat.format(pendingWithdrawals);
+  String get formattedPendingDeposits => _currencyFormat.format(pendingDeposits);
+  String get formattedPendingWithdrawals => _currencyFormat.format(pendingWithdrawals);
 }

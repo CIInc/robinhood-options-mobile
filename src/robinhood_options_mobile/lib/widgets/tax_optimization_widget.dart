@@ -39,35 +39,34 @@ class TaxOptimizationWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final instrumentPositionStore = Provider.of<InstrumentPositionStore>(
-      context,
-    );
+    final instrumentPositionStore =
+        Provider.of<InstrumentPositionStore>(context);
     final optionPositionStore = Provider.of<OptionPositionStore>(context);
 
     final suggestions =
         TaxOptimizationService.calculateTaxHarvestingOpportunities(
-          instrumentPositions: instrumentPositionStore.items,
-          optionPositions: optionPositionStore.items,
-        );
+      instrumentPositions: instrumentPositionStore.items,
+      optionPositions: optionPositionStore.items,
+    );
 
     final totalEstimatedLoss = suggestions.fold<double>(
-      0,
-      (previousValue, element) => previousValue + element.estimatedLoss,
-    );
+        0, (previousValue, element) => previousValue + element.estimatedLoss);
 
     final estimatedRealizedGains =
         TaxOptimizationService.calculateEstimatedRealizedGains(
-          portfolioHistoricals: portfolioHistoricals,
-          instrumentPositions: instrumentPositionStore.items,
-          optionPositions: optionPositionStore.items,
-        );
+      portfolioHistoricals: portfolioHistoricals,
+      instrumentPositions: instrumentPositionStore.items,
+      optionPositions: optionPositionStore.items,
+    );
 
     final formatCurrency = NumberFormat.simpleCurrency();
 
     return Scaffold(
       body: CustomScrollView(
         slivers: [
-          SliverAppBar.medium(title: const Text('Tax Loss Harvesting')),
+          SliverAppBar.medium(
+            title: const Text('Tax Loss Harvesting'),
+          ),
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.all(16.0),
@@ -75,12 +74,8 @@ class TaxOptimizationWidget extends StatelessWidget {
                 children: [
                   _buildSeasonalityBanner(context),
                   const SizedBox(height: 16),
-                  _buildSummaryCard(
-                    context,
-                    totalEstimatedLoss,
-                    estimatedRealizedGains,
-                    formatCurrency,
-                  ),
+                  _buildSummaryCard(context, totalEstimatedLoss,
+                      estimatedRealizedGains, formatCurrency),
                   const SizedBox(height: 16),
                   _buildWashSaleWarning(context),
                   const SizedBox(height: 24),
@@ -104,14 +99,14 @@ class TaxOptimizationWidget extends StatelessWidget {
             )
           else
             SliverList(
-              delegate: SliverChildBuilderDelegate((context, index) {
-                final suggestion = suggestions[index];
-                return _buildSuggestionCard(
-                  context,
-                  suggestion,
-                  formatCurrency,
-                );
-              }, childCount: suggestions.length),
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  final suggestion = suggestions[index];
+                  return _buildSuggestionCard(
+                      context, suggestion, formatCurrency);
+                },
+                childCount: suggestions.length,
+              ),
             ),
           const SliverPadding(padding: EdgeInsets.only(bottom: 32)),
         ],
@@ -163,12 +158,8 @@ class TaxOptimizationWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildSummaryCard(
-    BuildContext context,
-    double totalLoss,
-    double estimatedRealizedGains,
-    NumberFormat formatCurrency,
-  ) {
+  Widget _buildSummaryCard(BuildContext context, double totalLoss,
+      double estimatedRealizedGains, NumberFormat formatCurrency) {
     final canOffset = estimatedRealizedGains > 0;
 
     return Container(
@@ -248,15 +239,15 @@ class TaxOptimizationWidget extends StatelessWidget {
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outlineVariant,
+        ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            Icons.info_outline,
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
-          ),
+          Icon(Icons.info_outline,
+              color: Theme.of(context).colorScheme.onSurfaceVariant),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -285,14 +276,11 @@ class TaxOptimizationWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildSuggestionCard(
-    BuildContext context,
-    TaxHarvestingSuggestion suggestion,
-    NumberFormat formatCurrency,
-  ) {
+  Widget _buildSuggestionCard(BuildContext context,
+      TaxHarvestingSuggestion suggestion, NumberFormat formatCurrency) {
     final isStock = suggestion.type == 'stock';
-    final lossPercentage = (suggestion.estimatedLoss / suggestion.totalCost)
-        .abs();
+    final lossPercentage =
+        (suggestion.estimatedLoss / suggestion.totalCost).abs();
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -300,18 +288,17 @@ class TaxOptimizationWidget extends StatelessWidget {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
         side: BorderSide(
-          color: Theme.of(
-            context,
-          ).colorScheme.outlineVariant.withValues(alpha: 0.5),
+          color: Theme.of(context)
+              .colorScheme
+              .outlineVariant
+              .withValues(alpha: 0.5),
         ),
       ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: () async {
-          final instrumentStore = Provider.of<InstrumentStore>(
-            context,
-            listen: false,
-          );
+          final instrumentStore =
+              Provider.of<InstrumentStore>(context, listen: false);
           if (isStock) {
             final instrument = suggestion.position.instrumentObj;
             if (instrument != null) {
@@ -340,10 +327,7 @@ class TaxOptimizationWidget extends StatelessWidget {
             );
             try {
               final instrument = await service.getInstrumentBySymbol(
-                user,
-                instrumentStore,
-                symbol,
-              );
+                  user, instrumentStore, symbol);
               if (instrument != null && context.mounted) {
                 ScaffoldMessenger.of(context).hideCurrentSnackBar();
                 Navigator.push(
@@ -410,9 +394,8 @@ class TaxOptimizationWidget extends StatelessWidget {
                           suggestion.name,
                           style: TextStyle(
                             fontSize: 12,
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onSurfaceVariant,
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -433,7 +416,10 @@ class TaxOptimizationWidget extends StatelessWidget {
                       ),
                       Text(
                         '${(lossPercentage * 100).toStringAsFixed(2)}%',
-                        style: const TextStyle(color: Colors.red, fontSize: 12),
+                        style: const TextStyle(
+                          color: Colors.red,
+                          fontSize: 12,
+                        ),
                       ),
                     ],
                   ),
@@ -481,7 +467,10 @@ class TaxOptimizationWidget extends StatelessWidget {
         const SizedBox(height: 2),
         Text(
           value,
-          style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+          style: const TextStyle(
+            fontWeight: FontWeight.w500,
+            fontSize: 13,
+          ),
         ),
       ],
     );

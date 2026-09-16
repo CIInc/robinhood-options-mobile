@@ -164,365 +164,323 @@ class _AllocationWidgetState extends State<AllocationWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer5<
-      PortfolioStore,
-      InstrumentPositionStore,
-      OptionPositionStore,
-      ForexHoldingStore,
-      FuturesPositionStore
-    >(
-      builder:
-          (
-            context,
+    return Consumer5<PortfolioStore, InstrumentPositionStore,
+            OptionPositionStore, ForexHoldingStore, FuturesPositionStore>(
+        builder: (context,
             portfolioStore,
             stockPositionStore,
             optionPositionStore,
             forexHoldingStore,
             futuresPositionStore,
-            child,
-          ) {
-            final isAggregate = widget.account?.url == 'aggregate';
-            final filteredStockItems = stockPositionStore.items
-                .where(
-                  (e) =>
-                      isAggregate ||
-                      widget.account == null ||
-                      e.account == widget.account!.url,
-                )
-                .toList();
-            final stockEquity = filteredStockItems.isEmpty
-                ? 0.0
-                : filteredStockItems
-                      .map((e) => e.marketValue)
-                      .reduce((a, b) => a + b);
+            child) {
+      final isAggregate = widget.account?.url == 'aggregate';
+      final filteredStockItems = stockPositionStore.items
+          .where((e) =>
+              isAggregate ||
+              widget.account == null ||
+              e.account == widget.account!.url)
+          .toList();
+      final stockEquity = filteredStockItems.isEmpty
+          ? 0.0
+          : filteredStockItems
+              .map((e) => e.marketValue)
+              .reduce((a, b) => a + b);
 
-            final filteredOptionItems = optionPositionStore.items
-                .where(
-                  (e) =>
-                      isAggregate ||
-                      widget.account == null ||
-                      e.account == widget.account!.url,
-                )
-                .toList();
-            final optionEquity = filteredOptionItems.isEmpty
-                ? 0.0
-                : filteredOptionItems
-                      .map(
-                        (e) => e.direction == 'debit'
-                            ? e.marketValue
-                            : -e.marketValue,
-                      )
-                      .reduce((a, b) => a + b);
+      final filteredOptionItems = optionPositionStore.items
+          .where((e) =>
+              isAggregate ||
+              widget.account == null ||
+              e.account == widget.account!.url)
+          .toList();
+      final optionEquity = filteredOptionItems.isEmpty
+          ? 0.0
+          : filteredOptionItems
+              .map((e) =>
+                  e.direction == 'debit' ? e.marketValue : -e.marketValue)
+              .reduce((a, b) => a + b);
 
-            final portfolioCash = widget.account?.portfolioCash ?? 0.0;
-            final futuresEquity = futuresPositionStore.equity > 0
-                ? futuresPositionStore.equity
-                : 0.0;
+      final portfolioCash = widget.account?.portfolioCash ?? 0.0;
+      final futuresEquity =
+          futuresPositionStore.equity > 0 ? futuresPositionStore.equity : 0.0;
 
-            final totalAssets = _calculateTotalAssets(
-              stockEquity,
-              optionEquity,
-              forexHoldingStore.equity,
-              futuresEquity,
-              portfolioCash,
-            );
+      final totalAssets = _calculateTotalAssets(stockEquity, optionEquity,
+          forexHoldingStore.equity, futuresEquity, portfolioCash);
 
-            // Only show charts when all stores have finished loading
-            if (stockPositionStore.isLoading ||
-                optionPositionStore.isLoading ||
-                forexHoldingStore.isLoading) {
-              // Show loading indicator while waiting for data to load
-              return SizedBox(
-                height: 300,
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const CircularProgressIndicator(),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Loading allocation data...',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.onSurface.withValues(alpha: 0.7),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            }
-
-            if (totalAssets == 0) {
-              return const SizedBox.shrink();
-            }
-
-            final assetData = _buildAssetData(
-              filteredStockItems,
-              stockEquity,
-              filteredOptionItems,
-              optionEquity,
-              forexHoldingStore,
-              futuresEquity,
-              portfolioCash,
-              totalAssets,
-            );
-
-            final positionData = _buildGroupedData(
-              filteredStockItems,
-              (item) => item.instrumentObj != null
-                  ? item.instrumentObj!.symbol
-                  : 'Unknown',
-              10,
-              totalAssets,
-              shortLabelSelector: (raw) => raw == 'Others'
-                  ? 'Other'
-                  : (raw.length > 6 ? raw.split('-')[0].split('.*')[0] : raw),
-            );
-
-            final sectorData = _buildGroupedData(
-              filteredStockItems,
-              (item) =>
-                  item.instrumentObj != null &&
-                      item.instrumentObj!.fundamentalsObj != null
-                  ? item.instrumentObj!.fundamentalsObj!.sector
-                  : 'Unknown',
-              6,
-              totalAssets,
-              shortLabelSelector: _shortenSector,
-            );
-
-            final industryData = _buildGroupedData(
-              filteredStockItems,
-              (item) =>
-                  item.instrumentObj != null &&
-                      item.instrumentObj!.fundamentalsObj != null
-                  ? item.instrumentObj!.fundamentalsObj!.industry
-                  : 'Unknown',
-              7,
-              totalAssets,
-              shortLabelSelector: _shortenIndustry,
-            );
-
-            // Keep for reference
-            // var shades = PieChart.makeShades(
-            //     charts.ColorUtil.fromDartColor(Theme.of(context).colorScheme.primary),
-            //     4);
-
-            final colorScheme = Theme.of(context).colorScheme;
-            var brightness = MediaQuery.of(context).platformBrightness;
-
-            // Helper function to get darker color in dark theme
-            Color getDarkerColorForTheme(Color color) {
-              if (brightness == Brightness.dark) {
-                return Color.lerp(color, Colors.black, 0.4) ?? color;
-              }
-              return color;
-            }
-
-            var assetPalette = [
-              charts.ColorUtil.fromDartColor(
-                getDarkerColorForTheme(colorScheme.primary),
-              ),
-              charts.ColorUtil.fromDartColor(
-                getDarkerColorForTheme(colorScheme.secondary),
-              ),
-              charts.ColorUtil.fromDartColor(
-                getDarkerColorForTheme(colorScheme.tertiary),
-              ),
-              charts.ColorUtil.fromDartColor(
-                getDarkerColorForTheme(colorScheme.inversePrimary),
-              ),
-              charts.ColorUtil.fromDartColor(
-                getDarkerColorForTheme(colorScheme.onSecondaryFixedVariant),
-              ), //secondaryFixedDim
-            ];
-
-            final assetColorMap = {
-              'Stocks': assetPalette[0],
-              'Options': assetPalette[3],
-              'Crypto': assetPalette[2],
-              'Fixed Income': assetPalette[4],
-              'Cash': assetPalette[1],
-              'Futures': charts.ColorUtil.fromDartColor(Colors.deepOrange),
-              'Forex': charts.ColorUtil.fromDartColor(Colors.teal),
-            };
-
-            List<charts.Color> generateDistinctPalette(
-              int count, {
-              Color? seedColor,
-            }) {
-              final isDark = brightness == Brightness.dark;
-              final baseColors = isDark
-                  ? <Color>[
-                      seedColor ?? colorScheme.primary,
-                      const Color(0xFF26A69A), // Teal
-                      const Color(0xFF5C6BC0), // Indigo
-                      const Color(0xFFFFA726), // Amber / Orange
-                      const Color(0xFFAB47BC), // Purple
-                      const Color(0xFF42A5F5), // Blue
-                      const Color(0xFFEC407A), // Pink / Rose
-                      const Color(0xFF66BB6A), // Green
-                      const Color(0xFFFF7043), // Deep Orange
-                      const Color(0xFF26C6DA), // Cyan
-                      const Color(0xFF8D6E63), // Brown
-                      const Color(0xFF78909C), // Blue Grey (Others)
-                    ]
-                  : <Color>[
-                      seedColor ?? colorScheme.primary,
-                      const Color(0xFF00796B), // Teal 700
-                      const Color(0xFF303F9F), // Indigo 700
-                      const Color(0xFFE65100), // Orange 900
-                      const Color(0xFF7B1FA2), // Purple 700
-                      const Color(0xFF1976D2), // Blue 700
-                      const Color(0xFFC2185B), // Pink 700
-                      const Color(0xFF2E7D32), // Green 800
-                      const Color(0xFFD84315), // Deep Orange 800
-                      const Color(0xFF00838F), // Cyan 800
-                      const Color(0xFF4E342E), // Brown 800
-                      const Color(0xFF455A64), // Blue Grey 700 (Others)
-                    ];
-
-              return List.generate(count, (index) {
-                final c = baseColors[index % baseColors.length];
-                return charts.ColorUtil.fromDartColor(c);
-              });
-            }
-
-            var positionPalette = generateDistinctPalette(
-              positionData.isNotEmpty ? positionData.length : 1,
-              seedColor: colorScheme.primary,
-            );
-            var sectorPalette = generateDistinctPalette(
-              sectorData.isNotEmpty ? sectorData.length : 1,
-              seedColor: colorScheme.secondary,
-            );
-            var industryPalette = generateDistinctPalette(
-              industryData.isNotEmpty ? industryData.length : 1,
-              seedColor: colorScheme.tertiary,
-            );
-
-            var axisLabelColor = charts.ColorUtil.fromDartColor(
-              colorScheme.onSurface,
-            );
-
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+      // Only show charts when all stores have finished loading
+      if (stockPositionStore.isLoading ||
+          optionPositionStore.isLoading ||
+          forexHoldingStore.isLoading) {
+        // Show loading indicator while waiting for data to load
+        return SizedBox(
+          height: 300,
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        "Allocation",
-                        style: Theme.of(context).textTheme.titleLarge,
+                const CircularProgressIndicator(),
+                const SizedBox(height: 16),
+                Text(
+                  'Loading allocation data...',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withValues(alpha: 0.7),
                       ),
-                      if (widget.user != null &&
-                          widget.userDocRef != null &&
-                          widget.account != null)
-                        FilledButton.tonalIcon(
-                          style: FilledButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(horizontal: 12),
-                          ),
-                          onPressed: () {
-                            final user = widget.user;
-                            final userDocRef = widget.userDocRef;
-                            final account = widget.account;
-                            if (user != null &&
-                                userDocRef != null &&
-                                account != null) {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => RebalancingWidget(
-                                    user: user,
-                                    userDocRef: userDocRef,
-                                    account: account,
-                                  ),
-                                ),
-                              );
-                            }
-                          },
-                          icon: const Icon(Icons.balance, size: 18),
-                          label: const Text("Rebalance"),
-                        ),
-                    ],
-                  ),
                 ),
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxHeight: 370),
-                  child: CarouselView(
-                    enableSplash: false,
-                    itemSnapping: true,
-                    itemExtent: 380,
-                    shrinkExtent: 340,
-                    controller: _carouselController,
-                    onTap: (value) {},
-                    children: [
-                      _PieChartItem(
+              ],
+            ),
+          ),
+        );
+      }
+
+      if (totalAssets == 0) {
+        return const SizedBox.shrink();
+      }
+
+      final assetData = _buildAssetData(
+          filteredStockItems,
+          stockEquity,
+          filteredOptionItems,
+          optionEquity,
+          forexHoldingStore,
+          futuresEquity,
+          portfolioCash,
+          totalAssets);
+
+      final positionData = _buildGroupedData(
+          filteredStockItems,
+          (item) => item.instrumentObj != null
+              ? item.instrumentObj!.symbol
+              : 'Unknown',
+          10,
+          totalAssets,
+          shortLabelSelector: (raw) => raw == 'Others'
+              ? 'Other'
+              : (raw.length > 6 ? raw.split('-')[0].split('.*')[0] : raw));
+
+      final sectorData = _buildGroupedData(
+          filteredStockItems,
+          (item) => item.instrumentObj != null &&
+                  item.instrumentObj!.fundamentalsObj != null
+              ? item.instrumentObj!.fundamentalsObj!.sector
+              : 'Unknown',
+          6,
+          totalAssets,
+          shortLabelSelector: _shortenSector);
+
+      final industryData = _buildGroupedData(
+          filteredStockItems,
+          (item) => item.instrumentObj != null &&
+                  item.instrumentObj!.fundamentalsObj != null
+              ? item.instrumentObj!.fundamentalsObj!.industry
+              : 'Unknown',
+          7,
+          totalAssets,
+          shortLabelSelector: _shortenIndustry);
+
+      // Keep for reference
+      // var shades = PieChart.makeShades(
+      //     charts.ColorUtil.fromDartColor(Theme.of(context).colorScheme.primary),
+      //     4);
+
+      final colorScheme = Theme.of(context).colorScheme;
+      var brightness = MediaQuery.of(context).platformBrightness;
+
+      // Helper function to get darker color in dark theme
+      Color getDarkerColorForTheme(Color color) {
+        if (brightness == Brightness.dark) {
+          return Color.lerp(color, Colors.black, 0.4) ?? color;
+        }
+        return color;
+      }
+
+      var assetPalette = [
+        charts.ColorUtil.fromDartColor(
+            getDarkerColorForTheme(colorScheme.primary)),
+        charts.ColorUtil.fromDartColor(
+            getDarkerColorForTheme(colorScheme.secondary)),
+        charts.ColorUtil.fromDartColor(
+            getDarkerColorForTheme(colorScheme.tertiary)),
+        charts.ColorUtil.fromDartColor(
+            getDarkerColorForTheme(colorScheme.inversePrimary)),
+        charts.ColorUtil.fromDartColor(getDarkerColorForTheme(
+            colorScheme.onSecondaryFixedVariant)), //secondaryFixedDim
+      ];
+
+      final assetColorMap = {
+        'Stocks': assetPalette[0],
+        'Options': assetPalette[3],
+        'Crypto': assetPalette[2],
+        'Fixed Income': assetPalette[4],
+        'Cash': assetPalette[1],
+        'Futures': charts.ColorUtil.fromDartColor(Colors.deepOrange),
+        'Forex': charts.ColorUtil.fromDartColor(Colors.teal),
+      };
+
+      List<charts.Color> generateDistinctPalette(int count,
+          {Color? seedColor}) {
+        final isDark = brightness == Brightness.dark;
+        final baseColors = isDark
+            ? <Color>[
+                seedColor ?? colorScheme.primary,
+                const Color(0xFF26A69A), // Teal
+                const Color(0xFF5C6BC0), // Indigo
+                const Color(0xFFFFA726), // Amber / Orange
+                const Color(0xFFAB47BC), // Purple
+                const Color(0xFF42A5F5), // Blue
+                const Color(0xFFEC407A), // Pink / Rose
+                const Color(0xFF66BB6A), // Green
+                const Color(0xFFFF7043), // Deep Orange
+                const Color(0xFF26C6DA), // Cyan
+                const Color(0xFF8D6E63), // Brown
+                const Color(0xFF78909C), // Blue Grey (Others)
+              ]
+            : <Color>[
+                seedColor ?? colorScheme.primary,
+                const Color(0xFF00796B), // Teal 700
+                const Color(0xFF303F9F), // Indigo 700
+                const Color(0xFFE65100), // Orange 900
+                const Color(0xFF7B1FA2), // Purple 700
+                const Color(0xFF1976D2), // Blue 700
+                const Color(0xFFC2185B), // Pink 700
+                const Color(0xFF2E7D32), // Green 800
+                const Color(0xFFD84315), // Deep Orange 800
+                const Color(0xFF00838F), // Cyan 800
+                const Color(0xFF4E342E), // Brown 800
+                const Color(0xFF455A64), // Blue Grey 700 (Others)
+              ];
+
+        return List.generate(count, (index) {
+          final c = baseColors[index % baseColors.length];
+          return charts.ColorUtil.fromDartColor(c);
+        });
+      }
+
+      var positionPalette = generateDistinctPalette(
+          positionData.isNotEmpty ? positionData.length : 1,
+          seedColor: colorScheme.primary);
+      var sectorPalette = generateDistinctPalette(
+          sectorData.isNotEmpty ? sectorData.length : 1,
+          seedColor: colorScheme.secondary);
+      var industryPalette = generateDistinctPalette(
+          industryData.isNotEmpty ? industryData.length : 1,
+          seedColor: colorScheme.tertiary);
+
+      var axisLabelColor =
+          charts.ColorUtil.fromDartColor(colorScheme.onSurface);
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  "Allocation",
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                if (widget.user != null &&
+                    widget.userDocRef != null &&
+                    widget.account != null)
+                  FilledButton.tonalIcon(
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                    ),
+                    onPressed: () {
+                      final user = widget.user;
+                      final userDocRef = widget.userDocRef;
+                      final account = widget.account;
+                      if (user != null &&
+                          userDocRef != null &&
+                          account != null) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => RebalancingWidget(
+                              user: user,
+                              userDocRef: userDocRef,
+                              account: account,
+                            ),
+                          ),
+                        );
+                      }
+                    },
+                    icon: const Icon(Icons.balance, size: 18),
+                    label: const Text("Rebalance"),
+                  ),
+              ],
+            ),
+          ),
+          ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 370),
+              child: CarouselView(
+                  enableSplash: false,
+                  itemSnapping: true,
+                  itemExtent: 380,
+                  shrinkExtent: 340,
+                  controller: _carouselController,
+                  onTap: (value) {},
+                  children: [
+                    _PieChartItem(
                         key: const ValueKey('Asset'),
                         title: 'Asset',
                         data: assetData,
                         shades: assetPalette,
                         colorMap: assetColorMap,
-                        axisLabelColor: axisLabelColor,
-                      ),
-                      _PieChartItem(
+                        axisLabelColor: axisLabelColor),
+                    _PieChartItem(
                         key: const ValueKey('Position'),
                         title: 'Position',
                         data: positionData,
                         shades: positionPalette,
-                        axisLabelColor: axisLabelColor,
-                      ),
-                      _PieChartItem(
+                        axisLabelColor: axisLabelColor),
+                    _PieChartItem(
                         key: const ValueKey('Sector'),
                         title: 'Sector',
                         data: sectorData,
                         shades: sectorPalette,
-                        axisLabelColor: axisLabelColor,
-                      ),
-                      _PieChartItem(
+                        axisLabelColor: axisLabelColor),
+                    _PieChartItem(
                         key: const ValueKey('Industry'),
                         title: 'Industry',
                         data: industryData,
                         shades: industryPalette,
-                        axisLabelColor: axisLabelColor,
-                      ),
-                    ],
-                  ),
-                ),
-                ValueListenableBuilder<int>(
-                  valueListenable: _currentCarouselPageNotifier,
-                  builder: (context, currentPage, child) {
-                    return Padding(
-                      padding: const EdgeInsets.only(top: 8.0, bottom: 16.0),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: List.generate(4, (index) {
-                          return AnimatedContainer(
-                            duration: const Duration(milliseconds: 300),
-                            width: currentPage == index ? 24.0 : 8.0,
-                            height: 8.0,
-                            margin: const EdgeInsets.symmetric(horizontal: 4.0),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(4),
-                              color: currentPage == index
-                                  ? Theme.of(context).colorScheme.primary
-                                  : Theme.of(context).colorScheme.onSurface
-                                        .withValues(alpha: 0.3),
-                            ),
-                          );
-                        }),
+                        axisLabelColor: axisLabelColor),
+                  ])),
+          ValueListenableBuilder<int>(
+            valueListenable: _currentCarouselPageNotifier,
+            builder: (context, currentPage, child) {
+              return Padding(
+                padding: const EdgeInsets.only(top: 8.0, bottom: 16.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(4, (index) {
+                    return AnimatedContainer(
+                      duration: const Duration(milliseconds: 300),
+                      width: currentPage == index ? 24.0 : 8.0,
+                      height: 8.0,
+                      margin: const EdgeInsets.symmetric(horizontal: 4.0),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(4),
+                        color: currentPage == index
+                            ? Theme.of(context).colorScheme.primary
+                            : Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withValues(alpha: 0.3),
                       ),
                     );
-                  },
+                  }),
                 ),
-              ],
-            );
-          },
-    );
+              );
+            },
+          ),
+        ],
+      );
+    });
   }
 
   double _calculateTotalAssets(
@@ -618,9 +576,8 @@ class _AllocationWidgetState extends State<AllocationWidget> {
       data.add(PieChartData('Futures', futuresEquity));
     }
     if (fixedIncomeValue > 0) {
-      data.add(
-        PieChartData('Fixed Income', fixedIncomeValue, shortLabel: 'Fixed Inc'),
-      );
+      data.add(PieChartData('Fixed Income', fixedIncomeValue,
+          shortLabel: 'Fixed Inc'));
     }
     if (portfolioCash > 0) {
       data.add(PieChartData('Cash', portfolioCash));
@@ -699,35 +656,28 @@ class _AllocationWidgetState extends State<AllocationWidget> {
   }
 
   List<PieChartData> _buildGroupedData(
-    List<InstrumentPosition> stockPositions,
-    String Function(InstrumentPosition) keySelector,
-    int maxItems,
-    double totalAssets, {
-    String Function(String)? shortLabelSelector,
-  }) {
+      List<InstrumentPosition> stockPositions,
+      String Function(InstrumentPosition) keySelector,
+      int maxItems,
+      double totalAssets,
+      {String Function(String)? shortLabelSelector}) {
     List<PieChartData> data = [];
     var grouped = stockPositions.groupListsBy(keySelector);
 
     final groupedEntries = grouped
-        .map(
-          (k, v) => MapEntry(
-            k,
-            v.map((m) => m.marketValue).fold(0.0, (a, b) => a + b),
-          ),
-        )
+        .map((k, v) =>
+            MapEntry(k, v.map((m) => m.marketValue).fold(0.0, (a, b) => a + b)))
         .entries
         .toList();
 
     groupedEntries.sort((a, b) => b.value.compareTo(a.value));
 
     for (var entry in groupedEntries.take(maxItems)) {
-      data.add(
-        PieChartData(
-          entry.key,
-          entry.value,
-          shortLabel: shortLabelSelector?.call(entry.key),
-        ),
-      );
+      data.add(PieChartData(
+        entry.key,
+        entry.value,
+        shortLabel: shortLabelSelector?.call(entry.key),
+      ));
     }
 
     if (groupedEntries.length > maxItems) {
@@ -735,7 +685,11 @@ class _AllocationWidgetState extends State<AllocationWidget> {
           .skip(maxItems)
           .map((e) => e.value)
           .fold(0.0, (a, b) => a + b);
-      data.add(PieChartData('Others', othersValue, shortLabel: 'Other'));
+      data.add(PieChartData(
+        'Others',
+        othersValue,
+        shortLabel: 'Other',
+      ));
     }
     return data;
   }
@@ -762,9 +716,8 @@ class _PieChartItem extends StatefulWidget {
 }
 
 class _PieChartItemState extends State<_PieChartItem> {
-  final ValueNotifier<PieChartData?> _selectedDataNotifier = ValueNotifier(
-    null,
-  );
+  final ValueNotifier<PieChartData?> _selectedDataNotifier =
+      ValueNotifier(null);
   bool _hasAnimated = false;
 
   @override
@@ -795,8 +748,7 @@ class _PieChartItemState extends State<_PieChartItem> {
     }
     final safeIndex = (index != null && index >= 0) ? index : 0;
     return charts.ColorUtil.fromDartColor(
-      Colors.accents[safeIndex % Colors.accents.length],
-    );
+        Colors.accents[safeIndex % Colors.accents.length]);
   }
 
   @override
@@ -831,7 +783,7 @@ class _PieChartItemState extends State<_PieChartItem> {
           );
         },
         colorFn: (PieChartData row, int? index) => _getColor(row, index),
-      ),
+      )
     ];
 
     var renderer = charts.ArcRendererConfig<String>(
@@ -842,16 +794,14 @@ class _PieChartItemState extends State<_PieChartItem> {
           showLeaderLines: false,
           labelPadding: 2,
           insideLabelStyleSpec: const charts.TextStyleSpec(
-            fontSize: 12,
-            fontWeight: 'bold',
-            color: charts.MaterialPalette.white,
-          ),
+              fontSize: 12,
+              fontWeight: 'bold',
+              color: charts.MaterialPalette.white),
           outsideLabelStyleSpec: charts.TextStyleSpec(
-            fontSize: 12,
-            fontWeight: 'bold',
-            color: charts.ColorUtil.fromDartColor(colorScheme.onSurface),
-          ),
-        ),
+              fontSize: 12,
+              fontWeight: 'bold',
+              color: charts.ColorUtil.fromDartColor(colorScheme.onSurface)),
+        )
       ],
     );
 
@@ -861,9 +811,10 @@ class _PieChartItemState extends State<_PieChartItem> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
         side: BorderSide(
-          color: Theme.of(
-            context,
-          ).colorScheme.outlineVariant.withValues(alpha: 0.5),
+          color: Theme.of(context)
+              .colorScheme
+              .outlineVariant
+              .withValues(alpha: 0.5),
         ),
       ),
       child: Padding(
@@ -876,14 +827,11 @@ class _PieChartItemState extends State<_PieChartItem> {
               builder: (context, selectedData, child) {
                 final isSelected = selectedData != null;
                 final selectedColor = isSelected
-                    ? charts.ColorUtil.toDartColor(
-                        _getColor(
-                          selectedData,
-                          widget.data.indexWhere(
-                            (d) => d.label == selectedData.label,
-                          ),
-                        ),
-                      )
+                    ? charts.ColorUtil.toDartColor(_getColor(
+                        selectedData,
+                        widget.data
+                            .indexWhere((d) => d.label == selectedData.label),
+                      ))
                     : null;
 
                 return Row(
@@ -891,8 +839,8 @@ class _PieChartItemState extends State<_PieChartItem> {
                     Text(
                       widget.title,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                            fontWeight: FontWeight.bold,
+                          ),
                     ),
                     const SizedBox(width: 8),
                     if (isSelected) ...[
@@ -901,22 +849,16 @@ class _PieChartItemState extends State<_PieChartItem> {
                           alignment: Alignment.centerLeft,
                           child: Container(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 3,
-                            ),
+                                horizontal: 8, vertical: 3),
                             decoration: BoxDecoration(
-                              color:
-                                  (selectedColor ??
-                                          Theme.of(context).colorScheme.primary)
-                                      .withValues(alpha: 0.15),
+                              color: (selectedColor ??
+                                      Theme.of(context).colorScheme.primary)
+                                  .withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
-                                color:
-                                    (selectedColor ??
-                                            Theme.of(
-                                              context,
-                                            ).colorScheme.primary)
-                                        .withValues(alpha: 0.4),
+                                color: (selectedColor ??
+                                        Theme.of(context).colorScheme.primary)
+                                    .withValues(alpha: 0.4),
                               ),
                             ),
                             child: Row(
@@ -926,8 +868,7 @@ class _PieChartItemState extends State<_PieChartItem> {
                                   width: 6,
                                   height: 6,
                                   decoration: BoxDecoration(
-                                    color:
-                                        selectedColor ??
+                                    color: selectedColor ??
                                         Theme.of(context).colorScheme.primary,
                                     shape: BoxShape.circle,
                                   ),
@@ -941,9 +882,9 @@ class _PieChartItemState extends State<_PieChartItem> {
                                         .labelSmall
                                         ?.copyWith(
                                           fontWeight: FontWeight.w600,
-                                          color: Theme.of(
-                                            context,
-                                          ).colorScheme.onSurface,
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onSurface,
                                         ),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
@@ -960,9 +901,7 @@ class _PieChartItemState extends State<_PieChartItem> {
                         onTap: () => _selectedDataNotifier.value = null,
                         child: Padding(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
-                          ),
+                              horizontal: 6, vertical: 2),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
@@ -974,11 +913,12 @@ class _PieChartItemState extends State<_PieChartItem> {
                               const SizedBox(width: 2),
                               Text(
                                 'Reset',
-                                style: Theme.of(context).textTheme.labelSmall
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .labelSmall
                                     ?.copyWith(
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.outline,
+                                      color:
+                                          Theme.of(context).colorScheme.outline,
                                     ),
                               ),
                             ],
@@ -990,7 +930,9 @@ class _PieChartItemState extends State<_PieChartItem> {
                       if (widget.data.isNotEmpty)
                         Text(
                           '${widget.data.length} ${widget.data.length == 1 ? 'item' : 'items'}',
-                          style: Theme.of(context).textTheme.labelSmall
+                          style: Theme.of(context)
+                              .textTheme
+                              .labelSmall
                               ?.copyWith(
                                 color: Theme.of(context).colorScheme.outline,
                               ),
@@ -1022,8 +964,7 @@ class _PieChartItemState extends State<_PieChartItem> {
                             final centerTitle = isSelected
                                 ? AllocationWidget.formatCenterTitle(
                                     selectedData.label,
-                                    shortLabel: selectedData.shortLabel,
-                                  )
+                                    shortLabel: selectedData.shortLabel)
                                 : 'Total';
                             final value = selectedData?.value ?? totalValue;
                             final percentage = totalValue > 0
@@ -1041,12 +982,10 @@ class _PieChartItemState extends State<_PieChartItem> {
                                       ? () => _selectedDataNotifier.value = null
                                       : null,
                                   child: Container(
-                                    constraints: const BoxConstraints(
-                                      maxWidth: 138,
-                                    ),
+                                    constraints:
+                                        const BoxConstraints(maxWidth: 138),
                                     padding: const EdgeInsets.symmetric(
-                                      horizontal: 4.0,
-                                    ),
+                                        horizontal: 4.0),
                                     child: Column(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
@@ -1058,23 +997,23 @@ class _PieChartItemState extends State<_PieChartItem> {
                                                 .textTheme
                                                 .bodySmall
                                                 ?.copyWith(
-                                                  fontSize:
-                                                      centerTitle.length > 20
+                                                  fontSize: centerTitle.length >
+                                                          20
                                                       ? 10.5
                                                       : (centerTitle.length > 14
-                                                            ? 11.0
-                                                            : 12.0),
+                                                          ? 11.0
+                                                          : 12.0),
                                                   height: 1.15,
                                                   fontWeight: isSelected
                                                       ? FontWeight.bold
                                                       : FontWeight.w500,
                                                   color: isSelected
-                                                      ? Theme.of(
-                                                          context,
-                                                        ).colorScheme.primary
+                                                      ? Theme.of(context)
+                                                          .colorScheme
+                                                          .primary
                                                       : Theme.of(context)
-                                                            .colorScheme
-                                                            .onSurfaceVariant,
+                                                          .colorScheme
+                                                          .onSurfaceVariant,
                                                 ),
                                             textAlign: TextAlign.center,
                                             maxLines: 2,
@@ -1088,8 +1027,7 @@ class _PieChartItemState extends State<_PieChartItem> {
                                               .textTheme
                                               .titleMedium
                                               ?.copyWith(
-                                                fontWeight: FontWeight.bold,
-                                              ),
+                                                  fontWeight: FontWeight.bold),
                                           textAlign: TextAlign.center,
                                         ),
                                         const SizedBox(height: 2),
@@ -1099,18 +1037,17 @@ class _PieChartItemState extends State<_PieChartItem> {
                                               .textTheme
                                               .bodySmall
                                               ?.copyWith(
-                                                color: Theme.of(
-                                                  context,
-                                                ).colorScheme.secondary,
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .secondary,
                                                 fontWeight: FontWeight.bold,
                                               ),
                                           textAlign: TextAlign.center,
                                         ),
                                         if (isSelected)
                                           Padding(
-                                            padding: const EdgeInsets.only(
-                                              top: 2.0,
-                                            ),
+                                            padding:
+                                                const EdgeInsets.only(top: 2.0),
                                             child: Text(
                                               'tap to reset',
                                               style: TextStyle(
@@ -1148,12 +1085,10 @@ class _PieChartItemState extends State<_PieChartItem> {
                         final item = widget.data[index];
                         final isSelected = selectedData?.label == item.label;
                         final sliceColor = charts.ColorUtil.toDartColor(
-                          _getColor(item, index),
-                        );
+                            _getColor(item, index));
                         final percent = totalValue > 0
-                            ? ((item.value / totalValue) * 100).toStringAsFixed(
-                                0,
-                              )
+                            ? ((item.value / totalValue) * 100)
+                                .toStringAsFixed(0)
                             : '0';
 
                         return Tooltip(
@@ -1170,24 +1105,22 @@ class _PieChartItemState extends State<_PieChartItem> {
                             child: AnimatedContainer(
                               duration: const Duration(milliseconds: 200),
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 3,
-                              ),
+                                  horizontal: 8, vertical: 3),
                               decoration: BoxDecoration(
                                 color: isSelected
                                     ? sliceColor.withValues(alpha: 0.22)
                                     : Theme.of(context)
-                                          .colorScheme
-                                          .surfaceContainerHighest
-                                          .withValues(alpha: 0.5),
+                                        .colorScheme
+                                        .surfaceContainerHighest
+                                        .withValues(alpha: 0.5),
                                 borderRadius: BorderRadius.circular(14),
                                 border: Border.all(
                                   color: isSelected
                                       ? sliceColor
                                       : Theme.of(context)
-                                            .colorScheme
-                                            .outlineVariant
-                                            .withValues(alpha: 0.4),
+                                          .colorScheme
+                                          .outlineVariant
+                                          .withValues(alpha: 0.4),
                                   width: isSelected ? 1.5 : 1,
                                 ),
                               ),
@@ -1213,12 +1146,12 @@ class _PieChartItemState extends State<_PieChartItem> {
                                               ? FontWeight.bold
                                               : FontWeight.w500,
                                           color: isSelected
-                                              ? Theme.of(
-                                                  context,
-                                                ).colorScheme.onSurface
-                                              : Theme.of(
-                                                  context,
-                                                ).colorScheme.onSurfaceVariant,
+                                              ? Theme.of(context)
+                                                  .colorScheme
+                                                  .onSurface
+                                              : Theme.of(context)
+                                                  .colorScheme
+                                                  .onSurfaceVariant,
                                         ),
                                   ),
                                   const SizedBox(width: 4),
@@ -1230,12 +1163,12 @@ class _PieChartItemState extends State<_PieChartItem> {
                                         ?.copyWith(
                                           fontWeight: FontWeight.bold,
                                           color: isSelected
-                                              ? Theme.of(
-                                                  context,
-                                                ).colorScheme.primary
-                                              : Theme.of(
-                                                  context,
-                                                ).colorScheme.outline,
+                                              ? Theme.of(context)
+                                                  .colorScheme
+                                                  .primary
+                                              : Theme.of(context)
+                                                  .colorScheme
+                                                  .outline,
                                         ),
                                   ),
                                 ],

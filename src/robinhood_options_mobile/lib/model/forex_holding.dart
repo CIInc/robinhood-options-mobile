@@ -59,29 +59,32 @@ class ForexHolding {
   );
 
   ForexHolding.fromJson(dynamic json)
-    : id = json['id'],
-      currencyId = json['currency']['id'],
-      currencyCode = json['currency']['code'],
-      currencyName = json['currency']['name'],
-      quantity = double.tryParse(json['quantity']),
-      directCostBasis = double.tryParse(
-        json['cost_bases'][0]['direct_cost_basis'],
-      ),
-      createdAt =
-          //DateFormat('y-M-dTH:m:s.SZ').parse(json['created_at'].toString()),
-          DateTime.tryParse(json['created_at']),
-      updatedAt =
-          //DateFormat('y-M-dTH:m:s.SZ').parse(json['updated_at'].toString()),
-          DateTime.tryParse(json['updated_at']);
+      : id = json['id'],
+        currencyId = json['currency']['id'],
+        currencyCode = json['currency']['code'],
+        currencyName = json['currency']['name'],
+        quantity = double.tryParse(json['quantity']),
+        directCostBasis =
+            double.tryParse(json['cost_bases'][0]['direct_cost_basis']),
+        createdAt =
+            //DateFormat('y-M-dTH:m:s.SZ').parse(json['created_at'].toString()),
+            DateTime.tryParse(json['created_at']),
+        updatedAt =
+            //DateFormat('y-M-dTH:m:s.SZ').parse(json['updated_at'].toString()),
+            DateTime.tryParse(json['updated_at']);
 
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'currency': {'id': currencyId, 'code': currencyCode, 'name': currencyName},
-    'quantity': quantity,
-    'directCostBasis': directCostBasis,
-    'createdAt': createdAt,
-    'updatedAt': updatedAt,
-  };
+        'id': id,
+        'currency': {
+          'id': currencyId,
+          'code': currencyCode,
+          'name': currencyName,
+        },
+        'quantity': quantity,
+        'directCostBasis': directCostBasis,
+        'createdAt': createdAt,
+        'updatedAt': updatedAt
+      };
 
   double get marketValue {
     return quoteObj!.markPrice! * quantity!;
@@ -164,14 +167,13 @@ class ForexHolding {
 
   Icon get trendingIcon {
     return Icon(
-      gainLoss > 0
-          ? Icons.trending_up
-          : (gainLoss < 0 ? Icons.trending_down : Icons.trending_flat),
-      color: (gainLoss > 0
-          ? Colors.green
-          : (gainLoss < 0 ? Colors.red : Colors.grey)),
-    )
-    /*: Icon(
+            gainLoss > 0
+                ? Icons.trending_up
+                : (gainLoss < 0 ? Icons.trending_down : Icons.trending_flat),
+            color: (gainLoss > 0
+                ? Colors.green
+                : (gainLoss < 0 ? Colors.red : Colors.grey)))
+        /*: Icon(
             gainLoss < 0
                 ? Icons.trending_up
                 : (gainLoss > 0
@@ -181,7 +183,7 @@ class ForexHolding {
                 ? Colors.lightGreenAccent
                 : (gainLoss > 0 ? Colors.red : Colors.grey)),
             size: 14.0)*/
-    ;
+        ;
   }
 
   /*

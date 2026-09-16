@@ -13,46 +13,40 @@ class _UnusedFirestore extends Fake implements FirebaseFirestore {}
 void main() {
   Instrument makeInstrument({String symbol = 'AAPL'}) {
     return Instrument(
-      id: 'id_$symbol',
-      url: 'https://api.robinhood.com/instruments/$symbol/',
-      quote: 'quote',
-      fundamentals: 'fundamentals',
-      splits: 'splits',
-      state: 'active',
-      market: 'market',
-      name: '$symbol Inc.',
-      tradeable: true,
-      tradability: 'tradable',
-      symbol: symbol,
-      bloombergUnique: 'bloombergUnique',
-      country: 'US',
-      type: 'stock',
-      rhsTradability: 'tradable',
-      fractionalTradability: 'tradable',
-      isSpac: false,
-      isTest: false,
-      ipoAccessSupportsDsp: false,
-      dateCreated: DateTime.now(),
-    );
+        id: 'id_$symbol',
+        url: 'https://api.robinhood.com/instruments/$symbol/',
+        quote: 'quote',
+        fundamentals: 'fundamentals',
+        splits: 'splits',
+        state: 'active',
+        market: 'market',
+        name: '$symbol Inc.',
+        tradeable: true,
+        tradability: 'tradable',
+        symbol: symbol,
+        bloombergUnique: 'bloombergUnique',
+        country: 'US',
+        type: 'stock',
+        rhsTradability: 'tradable',
+        fractionalTradability: 'tradable',
+        isSpac: false,
+        isTest: false,
+        ipoAccessSupportsDsp: false,
+        dateCreated: DateTime.now());
   }
 
   PaperTradingStore makeStore() => PaperTradingStore(
-    firestore: _UnusedFirestore(),
-    isMarketOpen: () => true,
-  );
+      firestore: _UnusedFirestore(), isMarketOpen: () => true);
 
-  Future<PaperTradingStore> storeWithLong({
-    double quantity = 10,
-    double price = 150.0,
-  }) async {
+  Future<PaperTradingStore> storeWithLong(
+      {double quantity = 10, double price = 150.0}) async {
     final store = makeStore();
     await store.submitStockOrder(
-      instrument: makeInstrument(),
-      quantity: quantity,
-      side: 'buy',
-      orderType: 'market',
-      marketPrice: price,
-    );
+        instrument: makeInstrument(),
+        quantity: quantity,
+        side: 'buy',
+        orderType: 'market',
+        marketPrice: price);
     return store;
   }
 
@@ -119,25 +113,23 @@ void main() {
       expect(store.history.first['order_type'], 'trailing stop');
     });
 
-    test(
-      'triggers immediately if already retraced past the trail at submit',
-      () async {
-        final store = await storeWithLong();
-        // Trail of $5 anchored at 150; a first tick at 144 breaches it.
-        await store.submitStockOrder(
-          instrument: makeInstrument(),
-          quantity: 10,
-          side: 'sell',
-          orderType: 'trailing_stop',
-          trailType: 'amount',
-          trailValue: 5.0,
-          marketPrice: 150.0,
-        );
-        await store.evaluatePendingOrders(stockPrices: {'AAPL': 144.0});
-        expect(store.positions, isEmpty);
-        expect(store.cashBalance, 100000.0 - 1500.0 + 1440.0);
-      },
-    );
+    test('triggers immediately if already retraced past the trail at submit',
+        () async {
+      final store = await storeWithLong();
+      // Trail of $5 anchored at 150; a first tick at 144 breaches it.
+      await store.submitStockOrder(
+        instrument: makeInstrument(),
+        quantity: 10,
+        side: 'sell',
+        orderType: 'trailing_stop',
+        trailType: 'amount',
+        trailValue: 5.0,
+        marketPrice: 150.0,
+      );
+      await store.evaluatePendingOrders(stockPrices: {'AAPL': 144.0});
+      expect(store.positions, isEmpty);
+      expect(store.cashBalance, 100000.0 - 1500.0 + 1440.0);
+    });
   });
 
   group('trailing stop sell (percentage)', () {
@@ -172,12 +164,11 @@ void main() {
       final instrument = makeInstrument();
       // Open a short at 150.
       await store.submitStockOrder(
-        instrument: instrument,
-        quantity: 10,
-        side: 'sell',
-        orderType: 'market',
-        marketPrice: 150.0,
-      );
+          instrument: instrument,
+          quantity: 10,
+          side: 'sell',
+          orderType: 'market',
+          marketPrice: 150.0);
 
       await store.submitStockOrder(
         instrument: instrument,
@@ -226,39 +217,36 @@ void main() {
     test('requires a positive trail value and a market anchor', () async {
       final store = await storeWithLong();
       expect(
-        () => store.submitStockOrder(
-          instrument: makeInstrument(),
-          quantity: 10,
-          side: 'sell',
-          orderType: 'trailing_stop',
-          trailType: 'amount',
-          marketPrice: 150.0,
-        ),
-        throwsException,
-      ); // no trail value
+          () => store.submitStockOrder(
+                instrument: makeInstrument(),
+                quantity: 10,
+                side: 'sell',
+                orderType: 'trailing_stop',
+                trailType: 'amount',
+                marketPrice: 150.0,
+              ),
+          throwsException); // no trail value
       expect(
-        () => store.submitStockOrder(
-          instrument: makeInstrument(),
-          quantity: 10,
-          side: 'sell',
-          orderType: 'trailing_stop',
-          trailType: 'percentage',
-          trailValue: 150.0,
-          marketPrice: 150.0,
-        ),
-        throwsException,
-      ); // >= 100 percent
+          () => store.submitStockOrder(
+                instrument: makeInstrument(),
+                quantity: 10,
+                side: 'sell',
+                orderType: 'trailing_stop',
+                trailType: 'percentage',
+                trailValue: 150.0,
+                marketPrice: 150.0,
+              ),
+          throwsException); // >= 100 percent
       expect(
-        () => store.submitStockOrder(
-          instrument: makeInstrument(),
-          quantity: 10,
-          side: 'sell',
-          orderType: 'trailing_stop',
-          trailType: 'amount',
-          trailValue: 5.0,
-        ),
-        throwsException,
-      ); // no market price to anchor the watermark
+          () => store.submitStockOrder(
+                instrument: makeInstrument(),
+                quantity: 10,
+                side: 'sell',
+                orderType: 'trailing_stop',
+                trailType: 'amount',
+                trailValue: 5.0,
+              ),
+          throwsException); // no market price to anchor the watermark
     });
 
     test('trail fields and watermark round-trip through JSON', () {
@@ -284,29 +272,26 @@ void main() {
       expect(restored.effectiveStopPrice, closeTo(163.21 * 0.925, 1e-9));
     });
 
-    test(
-      'GFD trailing stop expires unfilled like other resting orders',
-      () async {
-        final store = await storeWithLong();
-        await store.submitStockOrder(
-          instrument: makeInstrument(),
-          quantity: 10,
-          side: 'sell',
-          orderType: 'trailing_stop',
-          trailType: 'amount',
-          trailValue: 5.0,
-          marketPrice: 150.0,
-          timeInForce: 'gfd',
-        );
+    test('GFD trailing stop expires unfilled like other resting orders',
+        () async {
+      final store = await storeWithLong();
+      await store.submitStockOrder(
+        instrument: makeInstrument(),
+        quantity: 10,
+        side: 'sell',
+        orderType: 'trailing_stop',
+        trailType: 'amount',
+        trailValue: 5.0,
+        marketPrice: 150.0,
+        timeInForce: 'gfd',
+      );
 
-        await store.evaluatePendingOrders(
+      await store.evaluatePendingOrders(
           stockPrices: {'AAPL': 149.0},
-          now: DateTime.now().add(const Duration(days: 1)),
-        );
-        expect(store.pendingOrders, isEmpty);
-        expect(store.positions.single.quantity, 10); // never sold
-        expect(store.history.first['state'], 'cancelled');
-      },
-    );
+          now: DateTime.now().add(const Duration(days: 1)));
+      expect(store.pendingOrders, isEmpty);
+      expect(store.positions.single.quantity, 10); // never sold
+      expect(store.history.first['state'], 'cancelled');
+    });
   });
 }

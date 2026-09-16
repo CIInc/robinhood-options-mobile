@@ -189,42 +189,40 @@ class MetricPresentation {
   };
 
   static Widget buildStatsGrid(List<Widget> stats) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        // Calculate item width based on available width
-        // We want roughly 3 items per row on standard phones, 2 on small, 4 on tablets
-        double itemWidth;
-        if (constraints.maxWidth < 350) {
-          itemWidth = (constraints.maxWidth - 8) / 2; // 2 items
-        } else if (constraints.maxWidth > 600) {
-          itemWidth = (constraints.maxWidth - 24) / 4; // 4 items
-        } else {
-          itemWidth = (constraints.maxWidth - 16) / 3; // 3 items
-        }
+    return LayoutBuilder(builder: (context, constraints) {
+      // Calculate item width based on available width
+      // We want roughly 3 items per row on standard phones, 2 on small, 4 on tablets
+      double itemWidth;
+      if (constraints.maxWidth < 350) {
+        itemWidth = (constraints.maxWidth - 8) / 2; // 2 items
+      } else if (constraints.maxWidth > 600) {
+        itemWidth = (constraints.maxWidth - 24) / 4; // 4 items
+      } else {
+        itemWidth = (constraints.maxWidth - 16) / 3; // 3 items
+      }
 
-        return Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: stats.map((widget) {
-            return SizedBox(width: itemWidth, height: 120, child: widget);
-          }).toList(),
-        );
-      },
-    );
+      return Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: stats.map((widget) {
+          return SizedBox(
+            width: itemWidth,
+            height: 120,
+            child: widget,
+          );
+        }).toList(),
+      );
+    });
   }
 
-  static Widget buildStatItem(
-    BuildContext context,
-    String label,
-    double? value, {
-    bool isPercent = false,
-    bool isCurrency = false,
-    bool isInt = false,
-    double? goodThreshold,
-    double? badThreshold,
-    double? neutralValue,
-    bool reverseColor = false,
-  }) {
+  static Widget buildStatItem(BuildContext context, String label, double? value,
+      {bool isPercent = false,
+      bool isCurrency = false,
+      bool isInt = false,
+      double? goodThreshold,
+      double? badThreshold,
+      double? neutralValue,
+      bool reverseColor = false}) {
     String valueStr = '-';
     Color? valueColor;
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -286,7 +284,10 @@ class MetricPresentation {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Colors.grey[850]!, Colors.grey[900]!],
+          colors: [
+            Colors.grey[850]!,
+            Colors.grey[900]!,
+          ],
         ),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
@@ -307,8 +308,7 @@ class MetricPresentation {
         onTap: () {
           final definition = definitions[label];
           if (definition != null) {
-            final guidance =
-                metricGuidance[label] ??
+            final guidance = metricGuidance[label] ??
                 {'tip': definition, 'noThreshold': true};
             showMetricDetails(context, label, definition, guidance);
           }
@@ -321,7 +321,10 @@ class MetricPresentation {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: isDark
-                  ? [Colors.grey[850]!, Colors.grey[900]!]
+                  ? [
+                      Colors.grey[850]!,
+                      Colors.grey[900]!,
+                    ]
                   : [
                       Theme.of(context).colorScheme.surfaceContainer,
                       Theme.of(context).colorScheme.surface,
@@ -331,9 +334,10 @@ class MetricPresentation {
             border: Border.all(
               color: isDark
                   ? Colors.white.withValues(alpha: 0.1)
-                  : Theme.of(
-                      context,
-                    ).colorScheme.outlineVariant.withValues(alpha: 0.2),
+                  : Theme.of(context)
+                      .colorScheme
+                      .outlineVariant
+                      .withValues(alpha: 0.2),
               width: 1,
             ),
             boxShadow: [
@@ -348,32 +352,26 @@ class MetricPresentation {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text(
-                label,
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: isDark
-                      ? Colors.grey[400]
-                      : Theme.of(context).colorScheme.onSurfaceVariant,
-                  fontWeight: FontWeight.w500,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
+              Text(label,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                        color: isDark
+                            ? Colors.grey[400]
+                            : Theme.of(context).colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w500,
+                      ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis),
               const SizedBox(height: 6),
               FittedBox(
                 fit: BoxFit.scaleDown,
-                child: Text(
-                  valueStr,
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    color:
-                        valueColor ??
-                        (isDark
-                            ? Colors.white
-                            : Theme.of(context).colorScheme.onSurface),
-                  ),
-                ),
+                child: Text(valueStr,
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        color: valueColor ??
+                            (isDark
+                                ? Colors.white
+                                : Theme.of(context).colorScheme.onSurface))),
               ),
             ],
           ),
@@ -382,12 +380,8 @@ class MetricPresentation {
     );
   }
 
-  static void showMetricDetails(
-    BuildContext context,
-    String metric,
-    String definition,
-    Map<String, dynamic> guidance,
-  ) {
+  static void showMetricDetails(BuildContext context, String metric,
+      String definition, Map<String, dynamic> guidance) {
     showDialog(
       context: context,
       builder: (context) => Dialog(
@@ -403,39 +397,36 @@ class MetricPresentation {
                   gradient: LinearGradient(
                     colors: [
                       Theme.of(context).colorScheme.primaryContainer,
-                      Theme.of(
-                        context,
-                      ).colorScheme.primaryContainer.withValues(alpha: 0.7),
+                      Theme.of(context)
+                          .colorScheme
+                          .primaryContainer
+                          .withValues(alpha: 0.7),
                     ],
                   ),
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(28),
-                  ),
+                  borderRadius:
+                      const BorderRadius.vertical(top: Radius.circular(28)),
                 ),
                 child: Row(
                   children: [
-                    Icon(
-                      Icons.analytics,
-                      color: Theme.of(context).colorScheme.onPrimaryContainer,
-                      size: 28,
-                    ),
+                    Icon(Icons.analytics,
+                        color: Theme.of(context).colorScheme.onPrimaryContainer,
+                        size: 28),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
                         metric,
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.onPrimaryContainer,
-                          fontWeight: FontWeight.bold,
-                        ),
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onPrimaryContainer,
+                              fontWeight: FontWeight.bold,
+                            ),
                       ),
                     ),
                     IconButton(
-                      icon: Icon(
-                        Icons.close,
-                        color: Theme.of(context).colorScheme.onPrimaryContainer,
-                      ),
+                      icon: Icon(Icons.close,
+                          color:
+                              Theme.of(context).colorScheme.onPrimaryContainer),
                       onPressed: () => Navigator.pop(context),
                     ),
                   ],
@@ -462,9 +453,10 @@ class MetricPresentation {
                         'Example',
                         Icons.lightbulb_outline,
                         guidance['example'] as String,
-                        backgroundColor: Theme.of(
-                          context,
-                        ).colorScheme.tertiaryContainer.withValues(alpha: 0.3),
+                        backgroundColor: Theme.of(context)
+                            .colorScheme
+                            .tertiaryContainer
+                            .withValues(alpha: 0.3),
                       ),
                     if (guidance['example'] != null) const SizedBox(height: 16),
                     // Thresholds
@@ -481,9 +473,10 @@ class MetricPresentation {
                         'Pro Tip',
                         Icons.tips_and_updates,
                         guidance['tip'] as String,
-                        backgroundColor: Theme.of(
-                          context,
-                        ).colorScheme.secondaryContainer.withValues(alpha: 0.3),
+                        backgroundColor: Theme.of(context)
+                            .colorScheme
+                            .secondaryContainer
+                            .withValues(alpha: 0.3),
                       ),
                   ],
                 ),
@@ -505,11 +498,11 @@ class MetricPresentation {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color:
-            backgroundColor ??
-            Theme.of(
-              context,
-            ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+        color: backgroundColor ??
+            Theme.of(context)
+                .colorScheme
+                .surfaceContainerHighest
+                .withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -517,18 +510,15 @@ class MetricPresentation {
         children: [
           Row(
             children: [
-              Icon(
-                icon,
-                size: 18,
-                color: Theme.of(context).colorScheme.primary,
-              ),
+              Icon(icon,
+                  size: 18, color: Theme.of(context).colorScheme.primary),
               const SizedBox(width: 8),
               Text(
                 title,
                 style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
               ),
             ],
           ),
@@ -547,9 +537,7 @@ class MetricPresentation {
   }
 
   static Widget _thresholdsSection(
-    BuildContext context,
-    Map<String, dynamic> guidance,
-  ) {
+      BuildContext context, Map<String, dynamic> guidance) {
     if (guidance['noThreshold'] == true ||
         (guidance['goodThreshold'] == null &&
             guidance['acceptableThreshold'] == null)) {
@@ -559,9 +547,10 @@ class MetricPresentation {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Theme.of(
-          context,
-        ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+        color: Theme.of(context)
+            .colorScheme
+            .surfaceContainerHighest
+            .withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -569,18 +558,15 @@ class MetricPresentation {
         children: [
           Row(
             children: [
-              Icon(
-                Icons.flag,
-                size: 18,
-                color: Theme.of(context).colorScheme.primary,
-              ),
+              Icon(Icons.flag,
+                  size: 18, color: Theme.of(context).colorScheme.primary),
               const SizedBox(width: 8),
               Text(
                 'Performance Thresholds',
                 style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
               ),
             ],
           ),
@@ -617,11 +603,7 @@ class MetricPresentation {
   }
 
   static Widget _thresholdRow(
-    BuildContext context,
-    String value,
-    String label,
-    Color color,
-  ) {
+      BuildContext context, String value, String label, Color color) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
@@ -629,12 +611,18 @@ class MetricPresentation {
           Container(
             width: 12,
             height: 12,
-            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+            decoration: BoxDecoration(
+              color: color,
+              shape: BoxShape.circle,
+            ),
           ),
           const SizedBox(width: 8),
           Text(
             value,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 13,
+            ),
           ),
           const SizedBox(width: 8),
           Text(
@@ -657,7 +645,7 @@ class MetricPresentation {
       'Treynor',
       'Info Ratio',
       'Calmar',
-      'Omega',
+      'Omega'
     ];
     final market = ['Beta', 'Alpha', 'Correlation', 'Tracking Error'];
     final risk = [
@@ -665,7 +653,7 @@ class MetricPresentation {
       'Current Drawdown',
       'Volatility',
       'VaR (95%)',
-      'CVaR (95%)',
+      'CVaR (95%)'
     ];
     final advanced = ['Kelly Criterion', 'Ulcer Index', 'Tail Ratio'];
     final daily = ['Profit Factor', 'Win Rate', 'Expectancy', 'Payoff Ratio'];
@@ -683,34 +671,30 @@ class MetricPresentation {
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   color: Theme.of(context).colorScheme.primaryContainer,
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(28),
-                  ),
+                  borderRadius:
+                      const BorderRadius.vertical(top: Radius.circular(28)),
                 ),
                 child: Row(
                   children: [
-                    Icon(
-                      Icons.library_books,
-                      color: Theme.of(context).colorScheme.onPrimaryContainer,
-                      size: 28,
-                    ),
+                    Icon(Icons.library_books,
+                        color: Theme.of(context).colorScheme.onPrimaryContainer,
+                        size: 28),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
                         'Analytics Definitions',
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.onPrimaryContainer,
-                          fontWeight: FontWeight.bold,
-                        ),
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onPrimaryContainer,
+                              fontWeight: FontWeight.bold,
+                            ),
                       ),
                     ),
                     IconButton(
-                      icon: Icon(
-                        Icons.close,
-                        color: Theme.of(context).colorScheme.onPrimaryContainer,
-                      ),
+                      icon: Icon(Icons.close,
+                          color:
+                              Theme.of(context).colorScheme.onPrimaryContainer),
                       onPressed: () => Navigator.pop(context),
                     ),
                   ],
@@ -726,40 +710,20 @@ class MetricPresentation {
                       // Performance Snapshot section
                       _performanceSnapshotInfoSection(context),
                       const SizedBox(height: 20),
-                      _definitionCategory(
-                        context,
-                        'Risk-Adjusted Returns',
-                        Icons.trending_up,
-                        riskAdjusted,
-                      ),
+                      _definitionCategory(context, 'Risk-Adjusted Returns',
+                          Icons.trending_up, riskAdjusted),
+                      const SizedBox(height: 16),
+                      _definitionCategory(context, 'Market Comparison',
+                          Icons.compare_arrows, market),
                       const SizedBox(height: 16),
                       _definitionCategory(
-                        context,
-                        'Market Comparison',
-                        Icons.compare_arrows,
-                        market,
-                      ),
+                          context, 'Risk Metrics', Icons.warning_amber, risk),
                       const SizedBox(height: 16),
                       _definitionCategory(
-                        context,
-                        'Risk Metrics',
-                        Icons.warning_amber,
-                        risk,
-                      ),
+                          context, 'Advanced Edge', Icons.psychology, advanced),
                       const SizedBox(height: 16),
-                      _definitionCategory(
-                        context,
-                        'Advanced Edge',
-                        Icons.psychology,
-                        advanced,
-                      ),
-                      const SizedBox(height: 16),
-                      _definitionCategory(
-                        context,
-                        'Daily Return Stats',
-                        Icons.calendar_today,
-                        daily,
-                      ),
+                      _definitionCategory(context, 'Daily Return Stats',
+                          Icons.calendar_today, daily),
                     ],
                   ),
                 ),
@@ -772,11 +736,7 @@ class MetricPresentation {
   }
 
   static Widget _definitionCategory(
-    BuildContext context,
-    String title,
-    IconData icon,
-    List<String> metrics,
-  ) {
+      BuildContext context, String title, IconData icon, List<String> metrics) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -787,9 +747,9 @@ class MetricPresentation {
             Text(
               title,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: Theme.of(context).colorScheme.primary,
-              ),
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
             ),
           ],
         ),
@@ -803,14 +763,16 @@ class MetricPresentation {
           return Container(
             margin: const EdgeInsets.only(bottom: 12),
             decoration: BoxDecoration(
-              color: Theme.of(
-                context,
-              ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+              color: Theme.of(context)
+                  .colorScheme
+                  .surfaceContainerHighest
+                  .withValues(alpha: 0.3),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: Theme.of(
-                  context,
-                ).colorScheme.outlineVariant.withValues(alpha: 0.3),
+                color: Theme.of(context)
+                    .colorScheme
+                    .outlineVariant
+                    .withValues(alpha: 0.3),
               ),
             ),
             child: Column(
@@ -819,11 +781,7 @@ class MetricPresentation {
                 InkWell(
                   onTap: hasGuidance
                       ? () => showMetricDetails(
-                          context,
-                          metric,
-                          definition,
-                          guidance,
-                        )
+                          context, metric, definition, guidance)
                       : null,
                   borderRadius: BorderRadius.circular(12),
                   child: Padding(
@@ -845,34 +803,30 @@ class MetricPresentation {
                             if (hasGuidance)
                               Container(
                                 padding: const EdgeInsets.symmetric(
-                                  horizontal: 6,
-                                  vertical: 2,
-                                ),
+                                    horizontal: 6, vertical: 2),
                                 decoration: BoxDecoration(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.primaryContainer,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .primaryContainer,
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Icon(
-                                      Icons.lightbulb_outline,
-                                      size: 12,
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.onPrimaryContainer,
-                                    ),
+                                    Icon(Icons.lightbulb_outline,
+                                        size: 12,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onPrimaryContainer),
                                     const SizedBox(width: 2),
                                     Text(
                                       'Tips',
                                       style: TextStyle(
                                         fontSize: 10,
                                         fontWeight: FontWeight.bold,
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.onPrimaryContainer,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onPrimaryContainer,
                                       ),
                                     ),
                                   ],
@@ -885,9 +839,8 @@ class MetricPresentation {
                           definition,
                           style: TextStyle(
                             fontSize: 13,
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onSurfaceVariant,
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant,
                             height: 1.4,
                           ),
                         ),
@@ -895,21 +848,21 @@ class MetricPresentation {
                           const SizedBox(height: 8),
                           Row(
                             children: [
-                              Icon(
-                                Icons.touch_app,
-                                size: 14,
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.primary.withValues(alpha: 0.6),
-                              ),
+                              Icon(Icons.touch_app,
+                                  size: 14,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .primary
+                                      .withValues(alpha: 0.6)),
                               const SizedBox(width: 4),
                               Text(
                                 'Tap for examples & thresholds',
                                 style: TextStyle(
                                   fontSize: 11,
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.primary.withValues(alpha: 0.8),
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .primary
+                                      .withValues(alpha: 0.8),
                                   fontStyle: FontStyle.italic,
                                 ),
                               ),
@@ -942,34 +895,30 @@ class MetricPresentation {
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   color: Theme.of(context).colorScheme.primaryContainer,
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(28),
-                  ),
+                  borderRadius:
+                      const BorderRadius.vertical(top: Radius.circular(28)),
                 ),
                 child: Row(
                   children: [
-                    Icon(
-                      Icons.book,
-                      color: Theme.of(context).colorScheme.onPrimaryContainer,
-                      size: 28,
-                    ),
+                    Icon(Icons.book,
+                        color: Theme.of(context).colorScheme.onPrimaryContainer,
+                        size: 28),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
                         'Quick Reference Guide',
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.onPrimaryContainer,
-                          fontWeight: FontWeight.bold,
-                        ),
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onPrimaryContainer,
+                              fontWeight: FontWeight.bold,
+                            ),
                       ),
                     ),
                     IconButton(
-                      icon: Icon(
-                        Icons.close,
-                        color: Theme.of(context).colorScheme.onPrimaryContainer,
-                      ),
+                      icon: Icon(Icons.close,
+                          color:
+                              Theme.of(context).colorScheme.onPrimaryContainer),
                       onPressed: () => Navigator.pop(context),
                     ),
                   ],
@@ -1011,22 +960,32 @@ class MetricPresentation {
                         ],
                       ),
                       const SizedBox(height: 20),
-                      _guideSection(context, 'Key Thresholds', Icons.speed, [
-                        'Sharpe > 1.0 = Good, > 2.0 = Excellent',
-                        'Alpha > 0 = Outperforming benchmark',
-                        'Beta > 1.0 = More volatile than market',
-                        'Max Drawdown < 20% = Acceptable risk',
-                        'Win Rate > 50% = More winning days',
-                      ]),
+                      _guideSection(
+                        context,
+                        'Key Thresholds',
+                        Icons.speed,
+                        [
+                          'Sharpe > 1.0 = Good, > 2.0 = Excellent',
+                          'Alpha > 0 = Outperforming benchmark',
+                          'Beta > 1.0 = More volatile than market',
+                          'Max Drawdown < 20% = Acceptable risk',
+                          'Win Rate > 50% = More winning days',
+                        ],
+                      ),
                       const SizedBox(height: 20),
-                      _guideSection(context, 'Taking Action', Icons.lightbulb_outline, [
-                        'Low Sharpe? Diversify to improve risk-adjusted returns',
-                        'Negative Alpha? Review underperforming positions',
-                        'High Drawdown? Consider position sizing and stop-losses',
-                        'High Beta? Add defensive assets to reduce volatility',
-                        'Use Tax Optimization to harvest losses strategically',
-                        'Use the AI Assistant to get tailored advice for your situation',
-                      ]),
+                      _guideSection(
+                        context,
+                        'Taking Action',
+                        Icons.lightbulb_outline,
+                        [
+                          'Low Sharpe? Diversify to improve risk-adjusted returns',
+                          'Negative Alpha? Review underperforming positions',
+                          'High Drawdown? Consider position sizing and stop-losses',
+                          'High Beta? Add defensive assets to reduce volatility',
+                          'Use Tax Optimization to harvest losses strategically',
+                          'Use the AI Assistant to get tailored advice for your situation',
+                        ],
+                      ),
                     ],
                   ),
                 ),
@@ -1039,11 +998,7 @@ class MetricPresentation {
   }
 
   static Widget _guideSection(
-    BuildContext context,
-    String title,
-    IconData icon,
-    List<String> points,
-  ) {
+      BuildContext context, String title, IconData icon, List<String> points) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1051,60 +1006,50 @@ class MetricPresentation {
           children: [
             CircleAvatar(
               radius: 20,
-              backgroundColor: Theme.of(
-                context,
-              ).colorScheme.primary.withValues(alpha: 0.1),
-              child: Icon(
-                icon,
-                size: 20,
-                color: Theme.of(context).colorScheme.primary,
-              ),
+              backgroundColor:
+                  Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+              child: Icon(icon,
+                  size: 20, color: Theme.of(context).colorScheme.primary),
             ),
             const SizedBox(width: 12),
             Text(
               title,
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
             ),
           ],
         ),
         const SizedBox(height: 12),
-        ...points.map(
-          (point) => Padding(
-            padding: const EdgeInsets.only(left: 8, bottom: 8),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '•  ',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                ),
-                Expanded(
-                  child: Text(
-                    point,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      height: 1.4,
+        ...points.map((point) => Padding(
+              padding: const EdgeInsets.only(left: 8, bottom: 8),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('•  ',
+                      style: TextStyle(
+                          fontSize: 16,
+                          color:
+                              Theme.of(context).colorScheme.onSurfaceVariant)),
+                  Expanded(
+                    child: Text(
+                      point,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        height: 1.4,
+                      ),
                     ),
                   ),
-                ),
-              ],
-            ),
-          ),
-        ),
+                ],
+              ),
+            )),
       ],
     );
   }
 
-  static void showBenchmarkGuide(
-    BuildContext context, {
-    String? selectedBenchmark,
-  }) {
+  static void showBenchmarkGuide(BuildContext context,
+      {String? selectedBenchmark}) {
     const benchmarkInfo = {
       'SPY': {
         'name': 'S&P 500',
@@ -1149,34 +1094,30 @@ class MetricPresentation {
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   color: Theme.of(context).colorScheme.primaryContainer,
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(28),
-                  ),
+                  borderRadius:
+                      const BorderRadius.vertical(top: Radius.circular(28)),
                 ),
                 child: Row(
                   children: [
-                    Icon(
-                      Icons.compare_arrows,
-                      color: Theme.of(context).colorScheme.onPrimaryContainer,
-                      size: 28,
-                    ),
+                    Icon(Icons.compare_arrows,
+                        color: Theme.of(context).colorScheme.onPrimaryContainer,
+                        size: 28),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
                         'Benchmark Guide',
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.onPrimaryContainer,
-                          fontWeight: FontWeight.bold,
-                        ),
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onPrimaryContainer,
+                              fontWeight: FontWeight.bold,
+                            ),
                       ),
                     ),
                     IconButton(
-                      icon: Icon(
-                        Icons.close,
-                        color: Theme.of(context).colorScheme.onPrimaryContainer,
-                      ),
+                      icon: Icon(Icons.close,
+                          color:
+                              Theme.of(context).colorScheme.onPrimaryContainer),
                       onPressed: () => Navigator.pop(context),
                     ),
                   ],
@@ -1193,9 +1134,8 @@ class MetricPresentation {
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
                         border: Border.all(
-                          color: (info['color'] as Color).withValues(
-                            alpha: 0.3,
-                          ),
+                          color:
+                              (info['color'] as Color).withValues(alpha: 0.3),
                           width: 2,
                         ),
                         borderRadius: BorderRadius.circular(16),
@@ -1204,8 +1144,8 @@ class MetricPresentation {
                         children: [
                           CircleAvatar(
                             radius: 28,
-                            backgroundColor: (info['color'] as Color)
-                                .withValues(alpha: 0.1),
+                            backgroundColor:
+                                (info['color'] as Color).withValues(alpha: 0.1),
                             child: Icon(
                               info['icon'] as IconData,
                               color: info['color'] as Color,
@@ -1230,24 +1170,21 @@ class MetricPresentation {
                                     if (selectedBenchmark == entry.key)
                                       Container(
                                         padding: const EdgeInsets.symmetric(
-                                          horizontal: 8,
-                                          vertical: 2,
-                                        ),
+                                            horizontal: 8, vertical: 2),
                                         decoration: BoxDecoration(
-                                          color: Theme.of(
-                                            context,
-                                          ).colorScheme.primary,
-                                          borderRadius: BorderRadius.circular(
-                                            12,
-                                          ),
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .primary,
+                                          borderRadius:
+                                              BorderRadius.circular(12),
                                         ),
                                         child: Text(
                                           'Active',
                                           style: TextStyle(
                                             fontSize: 10,
-                                            color: Theme.of(
-                                              context,
-                                            ).colorScheme.onPrimary,
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onPrimary,
                                             fontWeight: FontWeight.bold,
                                           ),
                                         ),
@@ -1259,9 +1196,9 @@ class MetricPresentation {
                                   info['name'] as String,
                                   style: TextStyle(
                                     fontSize: 13,
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.onSurfaceVariant,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
@@ -1270,9 +1207,9 @@ class MetricPresentation {
                                   info['description'] as String,
                                   style: TextStyle(
                                     fontSize: 12,
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.onSurfaceVariant,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant,
                                     height: 1.3,
                                   ),
                                 ),
@@ -1293,12 +1230,12 @@ class MetricPresentation {
   }
 
   static Widget _performanceSnapshotInfoSection(BuildContext context) {
-    final neutral = Theme.of(
-      context,
-    ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3);
-    final borderColor = Theme.of(
-      context,
-    ).colorScheme.outlineVariant.withValues(alpha: 0.3);
+    final neutral = Theme.of(context)
+        .colorScheme
+        .surfaceContainerHighest
+        .withValues(alpha: 0.3);
+    final borderColor =
+        Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.3);
 
     Widget buildItem(IconData icon, String title, String description) {
       return Container(
@@ -1313,23 +1250,16 @@ class MetricPresentation {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(
-                icon,
-                size: 20,
-                color: Theme.of(context).colorScheme.primary,
-              ),
+              Icon(icon,
+                  size: 20, color: Theme.of(context).colorScheme.primary),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
-                    ),
+                    Text(title,
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 14)),
                     const SizedBox(height: 4),
                     Text(
                       description,
@@ -1353,18 +1283,15 @@ class MetricPresentation {
       children: [
         Row(
           children: [
-            Icon(
-              Icons.flag,
-              size: 20,
-              color: Theme.of(context).colorScheme.primary,
-            ),
+            Icon(Icons.flag,
+                size: 20, color: Theme.of(context).colorScheme.primary),
             const SizedBox(width: 8),
             Text(
               'What the Snapshot Shows',
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: Theme.of(context).colorScheme.primary,
-              ),
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
             ),
           ],
         ),
@@ -1402,11 +1329,8 @@ class MetricPresentation {
         const SizedBox(height: 8),
         Row(
           children: [
-            Icon(
-              Icons.info_outline,
-              size: 16,
-              color: Theme.of(context).colorScheme.primary,
-            ),
+            Icon(Icons.info_outline,
+                size: 16, color: Theme.of(context).colorScheme.primary),
             const SizedBox(width: 6),
             Expanded(
               child: Text(

@@ -57,7 +57,10 @@ class MarketSentimentCardWidget extends StatelessWidget {
             shadowColor: color.withValues(alpha: 0.3),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
-              side: BorderSide(color: color.withValues(alpha: 0.3), width: 1),
+              side: BorderSide(
+                color: color.withValues(alpha: 0.3),
+                width: 1,
+              ),
             ),
             child: InkWell(
               borderRadius: BorderRadius.circular(16),
@@ -98,13 +101,11 @@ class MarketSentimentCardWidget extends StatelessWidget {
                       children: [
                         Row(
                           children: [
-                            Icon(
-                              Icons.insights,
-                              size: 18,
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.onSurfaceVariant,
-                            ),
+                            Icon(Icons.insights,
+                                size: 18,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant),
                             const SizedBox(width: 8),
                             Text(
                               "MARKET SENTIMENT",
@@ -112,30 +113,30 @@ class MarketSentimentCardWidget extends StatelessWidget {
                                 fontSize: 12,
                                 letterSpacing: 1.0,
                                 fontWeight: FontWeight.bold,
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurfaceVariant,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant,
                               ),
                             ),
                           ],
                         ),
                         Row(
                           children: [
-                            Icon(
-                              Icons.access_time,
-                              size: 12,
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.onSurface.withValues(alpha: 0.4),
-                            ),
+                            Icon(Icons.access_time,
+                                size: 12,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurface
+                                    .withValues(alpha: 0.4)),
                             const SizedBox(width: 4),
                             Text(
                               formattedTime,
                               style: TextStyle(
                                 fontSize: 11,
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurface.withValues(alpha: 0.4),
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurface
+                                    .withValues(alpha: 0.4),
                               ),
                             ),
                           ],
@@ -158,9 +159,9 @@ class MarketSentimentCardWidget extends StatelessWidget {
                                 painter: _SentimentGaugePainter(
                                   score: data.score,
                                   color: color,
-                                  backgroundColor: Theme.of(
-                                    context,
-                                  ).colorScheme.surfaceContainerHighest,
+                                  backgroundColor: Theme.of(context)
+                                      .colorScheme
+                                      .surfaceContainerHighest,
                                 ),
                               ),
                               Column(
@@ -187,9 +188,7 @@ class MarketSentimentCardWidget extends StatelessWidget {
                             children: [
                               Container(
                                 padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 4,
-                                ),
+                                    horizontal: 8, vertical: 4),
                                 decoration: BoxDecoration(
                                   color: color.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(6),
@@ -211,19 +210,20 @@ class MarketSentimentCardWidget extends StatelessWidget {
                                 style: TextStyle(
                                   fontSize: 13,
                                   height: 1.2,
-                                  color: Theme.of(context).colorScheme.onSurface
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurface
                                       .withValues(alpha: 0.8),
                                 ),
                               ),
                             ],
                           ),
                         ),
-                        Icon(
-                          Icons.chevron_right,
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
-                        ),
+                        Icon(Icons.chevron_right,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurfaceVariant
+                                .withValues(alpha: 0.5)),
                       ],
                     ),
                   ],
@@ -239,15 +239,14 @@ class MarketSentimentCardWidget extends StatelessWidget {
   Widget _buildLoadingCard(BuildContext context) {
     return Card(
       elevation: 0,
-      color: Theme.of(
-        context,
-      ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+      color: Theme.of(context)
+          .colorScheme
+          .surfaceContainerHighest
+          .withValues(alpha: 0.3),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
         side: BorderSide(
-          color: Theme.of(context).colorScheme.outlineVariant,
-          width: 1,
-        ),
+            color: Theme.of(context).colorScheme.outlineVariant, width: 1),
       ),
       child: const Padding(
         padding: EdgeInsets.all(24.0),
@@ -265,29 +264,24 @@ class MarketSentimentCardWidget extends StatelessWidget {
   Widget _buildErrorCard(BuildContext context) {
     return Card(
       elevation: 0,
-      color: Theme.of(
-        context,
-      ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+      color: Theme.of(context)
+          .colorScheme
+          .surfaceContainerHighest
+          .withValues(alpha: 0.3),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
         side: BorderSide(
-          color: Theme.of(context).colorScheme.outlineVariant,
-          width: 1,
-        ),
+            color: Theme.of(context).colorScheme.outlineVariant, width: 1),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Row(
           children: [
-            Icon(
-              Icons.error_outline,
-              color: Theme.of(context).colorScheme.error,
-            ),
+            Icon(Icons.error_outline,
+                color: Theme.of(context).colorScheme.error),
             const SizedBox(width: 8),
-            Text(
-              'Sentiment unavailable',
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
-            ),
+            Text('Sentiment unavailable',
+                style: TextStyle(color: Theme.of(context).colorScheme.error)),
           ],
         ),
       ),

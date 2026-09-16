@@ -20,11 +20,10 @@ class FuturesAutoTradingProvider with ChangeNotifier {
       FuturesMarketDataService();
 
   FuturesAutoTradingProvider({FirebaseAnalytics? analytics})
-    : _analytics = analytics ?? FirebaseAnalytics.instance;
+      : _analytics = analytics ?? FirebaseAnalytics.instance;
 
-  FuturesTradingConfig _config = FuturesTradingConfig(
-    strategyConfig: FuturesStrategyConfig(),
-  );
+  FuturesTradingConfig _config =
+      FuturesTradingConfig(strategyConfig: FuturesStrategyConfig());
 
   bool _isAutoTrading = false;
   bool _emergencyStopActivated = false;
@@ -107,7 +106,9 @@ class FuturesAutoTradingProvider with ChangeNotifier {
   ) async {
     _config = newConfig;
     try {
-      await userDocRef.update({'futuresTradingConfig': newConfig.toJson()});
+      await userDocRef.update({
+        'futuresTradingConfig': newConfig.toJson(),
+      });
       _log('Settings saved');
       _analytics.logEvent(name: 'futures_auto_trading_config_updated');
     } catch (e) {
@@ -168,8 +169,7 @@ class FuturesAutoTradingProvider with ChangeNotifier {
   void deactivateEmergencyStop() {
     _emergencyStopActivated = false;
     _analytics.logEvent(
-      name: 'futures_auto_trading_emergency_stop_deactivated',
-    );
+        name: 'futures_auto_trading_emergency_stop_deactivated');
     _log('▶️ Emergency stop deactivated');
     notifyListeners();
   }
@@ -195,7 +195,10 @@ class FuturesAutoTradingProvider with ChangeNotifier {
 
     _log('📥 Prepopulating cache for ${symbols.length} contracts...');
     final yahooSymbols = symbols
-        .map((id) => _resolveYahooSymbol(contractId: id, contract: {'id': id}))
+        .map((id) => _resolveYahooSymbol(
+              contractId: id,
+              contract: {'id': id},
+            ))
         .toList();
 
     await _marketDataService.prepopulateCache(
@@ -247,20 +250,10 @@ class FuturesAutoTradingProvider with ChangeNotifier {
     final endParts = rules.tradingWindowEnd!.split(':');
     if (startParts.length != 2 || endParts.length != 2) return true;
 
-    final start = DateTime(
-      now.year,
-      now.month,
-      now.day,
-      int.parse(startParts[0]),
-      int.parse(startParts[1]),
-    );
-    final end = DateTime(
-      now.year,
-      now.month,
-      now.day,
-      int.parse(endParts[0]),
-      int.parse(endParts[1]),
-    );
+    final start = DateTime(now.year, now.month, now.day,
+        int.parse(startParts[0]), int.parse(startParts[1]));
+    final end = DateTime(now.year, now.month, now.day, int.parse(endParts[0]),
+        int.parse(endParts[1]));
 
     if (end.isBefore(start)) {
       return now.isAfter(start) || now.isBefore(end);
@@ -276,16 +269,14 @@ class FuturesAutoTradingProvider with ChangeNotifier {
     if (overrides.containsKey(contractId)) {
       return overrides[contractId]!;
     }
-    final rawSymbol =
-        contract['rootSymbol']?.toString() ??
+    final rawSymbol = contract['rootSymbol']?.toString() ??
         contract['symbol']?.toString() ??
         contract['displaySymbol']?.toString();
     String? root = rawSymbol;
     if (rawSymbol != null) {
       final cleaned = rawSymbol.replaceAll('/', '').split(':').first;
-      final match = RegExp(
-        r'^([A-Z0-9]{1,4})[FGHJKMNQUVXZ]\d{2}$',
-      ).firstMatch(cleaned);
+      final match =
+          RegExp(r'^([A-Z0-9]{1,4})[FGHJKMNQUVXZ]\d{2}$').firstMatch(cleaned);
       root = match != null ? match.group(1) : cleaned;
     }
     if (root != null && overrides.containsKey(root)) {
@@ -309,10 +300,8 @@ class FuturesAutoTradingProvider with ChangeNotifier {
         brokerageUser,
         account,
       );
-      final futures = (accounts as List).firstWhere(
-        (a) => a['accountType'] == 'FUTURES',
-        orElse: () => null,
-      );
+      final futures = (accounts as List)
+          .firstWhere((a) => a['accountType'] == 'FUTURES', orElse: () => null);
       return futures != null ? futures['id']?.toString() : null;
     } catch (e) {
       _log('⚠️ Failed to resolve futures account: $e');
@@ -360,10 +349,8 @@ class FuturesAutoTradingProvider with ChangeNotifier {
     try {
       final userStore = Provider.of<BrokerageUserStore>(context, listen: false);
       final accountStore = Provider.of<AccountStore>(context, listen: false);
-      final futuresStore = Provider.of<FuturesPositionStore>(
-        context,
-        listen: false,
-      );
+      final futuresStore =
+          Provider.of<FuturesPositionStore>(context, listen: false);
       final paperStore = Provider.of<PaperTradingStore>(context, listen: false);
 
       final isPaperMode = _config.paperTradingMode;
@@ -425,8 +412,8 @@ class FuturesAutoTradingProvider with ChangeNotifier {
                 double.tryParse(pos['quantity']?.toString() ?? '0') ?? 0;
             final price =
                 double.tryParse(pos['lastTradePrice']?.toString() ?? '0') ??
-                double.tryParse(pos['avgTradePrice']?.toString() ?? '0') ??
-                0;
+                    double.tryParse(pos['avgTradePrice']?.toString() ?? '0') ??
+                    0;
             portfolioState[pos['contractId'].toString()] = {
               'quantity': qty,
               'price': price,
@@ -448,19 +435,13 @@ class FuturesAutoTradingProvider with ChangeNotifier {
         final now = DateTime.now();
         final endParts = rules.tradingWindowEnd!.split(':');
         if (endParts.length == 2) {
-          final end = DateTime(
-            now.year,
-            now.month,
-            now.day,
-            int.parse(endParts[0]),
-            int.parse(endParts[1]),
-          );
+          final end = DateTime(now.year, now.month, now.day,
+              int.parse(endParts[0]), int.parse(endParts[1]));
           final timeToClose = end.difference(now).inMinutes;
           if (timeToClose > 0 && timeToClose <= autoExitBuffer) {
             isNearingSessionClose = true;
             _log(
-              '🕒 Nearing session close ($timeToClose min). Closing all open positions.',
-            );
+                '🕒 Nearing session close ($timeToClose min). Closing all open positions.');
           }
         }
       }
@@ -485,9 +466,9 @@ class FuturesAutoTradingProvider with ChangeNotifier {
           // Optimization: many of these prices are already in QuoteStore.
           final quoteStore = Provider.of<QuoteStore>(context, listen: false);
           final quote = quoteStore.items.cast<Quote?>().firstWhere(
-            (q) => q?.symbol == contractId,
-            orElse: () => null,
-          );
+                (q) => q?.symbol == contractId,
+                orElse: () => null,
+              );
           final lastPrice = (quote?.lastTradePrice ?? avgPrice).toDouble();
 
           // Stop Loss Check
@@ -541,7 +522,7 @@ class FuturesAutoTradingProvider with ChangeNotifier {
             'timestamp': DateTime.now().toIso8601String(),
             'proposal': {
               'action': qty > 0 ? 'SELL' : 'BUY',
-              'reason': exitReason,
+              'reason': exitReason
             },
           };
 
@@ -584,25 +565,21 @@ class FuturesAutoTradingProvider with ChangeNotifier {
 
         // Prepopulate Firestore cache with market data
         // Backend's getMarketData will hit the cache instead of calling Yahoo API
-        unawaited(
-          _marketDataService.getMarketData(
-            symbol: yahooSymbol,
-            smaPeriodFast: _config.strategyConfig.smaPeriodFast,
-            smaPeriodSlow: _config.strategyConfig.smaPeriodSlow,
-            interval: _config.strategyConfig.interval,
-          ),
-        );
+        unawaited(_marketDataService.getMarketData(
+          symbol: yahooSymbol,
+          smaPeriodFast: _config.strategyConfig.smaPeriodFast,
+          smaPeriodSlow: _config.strategyConfig.smaPeriodSlow,
+          interval: _config.strategyConfig.interval,
+        ));
 
         // Also prepopulate market index data for regime analysis
         final marketIndexSymbol = _config.strategyConfig.marketIndexSymbol;
-        unawaited(
-          _marketDataService.getMarketData(
-            symbol: marketIndexSymbol,
-            smaPeriodFast: _config.strategyConfig.smaPeriodFast,
-            smaPeriodSlow: _config.strategyConfig.smaPeriodSlow,
-            interval: '1d',
-          ),
-        );
+        unawaited(_marketDataService.getMarketData(
+          symbol: marketIndexSymbol,
+          smaPeriodFast: _config.strategyConfig.smaPeriodFast,
+          smaPeriodSlow: _config.strategyConfig.smaPeriodSlow,
+          interval: '1d',
+        ));
 
         final functions = FirebaseFunctions.instance;
         final callable = functions.httpsCallable('getFuturesSignals');
@@ -653,9 +630,8 @@ class FuturesAutoTradingProvider with ChangeNotifier {
             : null;
 
         final position = portfolioState[contractId];
-        final currentQty = position != null
-            ? (position['quantity'] as num).toDouble()
-            : 0.0;
+        final currentQty =
+            position != null ? (position['quantity'] as num).toDouble() : 0.0;
         final currentPrice = (data['proposal'] != null)
             ? (data['proposal']['price'] as num).toDouble()
             : 0.0;
@@ -684,8 +660,7 @@ class FuturesAutoTradingProvider with ChangeNotifier {
           if ((currentQty > 0 && lastPrice <= trailPrice) ||
               (currentQty < 0 && lastPrice >= trailPrice)) {
             _log(
-              '🛑 Trailing Stop triggered for $contractId @ $lastPrice (Trail Price: $trailPrice)',
-            );
+                '🛑 Trailing Stop triggered for $contractId @ $lastPrice (Trail Price: $trailPrice)');
             final exitOrder = {
               'contractId': contractId,
               'symbol': yahooSymbol,
@@ -696,7 +671,7 @@ class FuturesAutoTradingProvider with ChangeNotifier {
               'timestamp': DateTime.now().toIso8601String(),
               'proposal': {
                 'action': currentQty > 0 ? 'SELL' : 'BUY',
-                'reason': 'Trailing Stop ($lastPrice reached $trailPrice)',
+                'reason': 'Trailing Stop ($lastPrice reached $trailPrice)'
               },
             };
             await _executeOrder(
@@ -855,9 +830,7 @@ class FuturesAutoTradingProvider with ChangeNotifier {
   }
 
   Future<void> rejectPendingOrder(
-    Map<String, dynamic> order,
-    DocumentReference? userDocRef,
-  ) async {
+      Map<String, dynamic> order, DocumentReference? userDocRef) async {
     _pendingOrders.remove(order);
     if (userDocRef != null) {
       await _removePendingOrderFromFirestore(userDocRef, order);
@@ -866,9 +839,7 @@ class FuturesAutoTradingProvider with ChangeNotifier {
   }
 
   Future<void> _recordHistory(
-    Map<String, dynamic> order,
-    DocumentReference? userDocRef,
-  ) async {
+      Map<String, dynamic> order, DocumentReference? userDocRef) async {
     final tradeRecord = {
       ...order,
       'timestamp': DateTime.now().toIso8601String(),
@@ -886,8 +857,7 @@ class FuturesAutoTradingProvider with ChangeNotifier {
   }
 
   Future<void> loadAutoTradeHistoryFromFirestore(
-    DocumentReference? userDocRef,
-  ) async {
+      DocumentReference? userDocRef) async {
     if (userDocRef == null) return;
     try {
       final snapshot = await userDocRef
@@ -905,8 +875,7 @@ class FuturesAutoTradingProvider with ChangeNotifier {
   }
 
   Future<void> loadPendingOrdersFromFirestore(
-    DocumentReference? userDocRef,
-  ) async {
+      DocumentReference? userDocRef) async {
     if (userDocRef == null) return;
     try {
       final snapshot = await userDocRef
@@ -915,13 +884,11 @@ class FuturesAutoTradingProvider with ChangeNotifier {
           .get();
       _pendingOrders
         ..clear()
-        ..addAll(
-          snapshot.docs.map((doc) {
-            final data = doc.data();
-            data['firestoreId'] = doc.id;
-            return data;
-          }),
-        );
+        ..addAll(snapshot.docs.map((doc) {
+          final data = doc.data();
+          data['firestoreId'] = doc.id;
+          return data;
+        }));
       notifyListeners();
     } catch (e) {
       _log('❌ Failed to load futures pending orders: $e');
@@ -929,20 +896,15 @@ class FuturesAutoTradingProvider with ChangeNotifier {
   }
 
   Future<void> _addPendingOrderToFirestore(
-    DocumentReference userDocRef,
-    Map<String, dynamic> order,
-  ) async {
+      DocumentReference userDocRef, Map<String, dynamic> order) async {
     final payload = jsonDecode(jsonEncode(order)) as Map<String, dynamic>;
-    final docRef = await userDocRef
-        .collection('futures_pending_orders')
-        .add(payload);
+    final docRef =
+        await userDocRef.collection('futures_pending_orders').add(payload);
     order['firestoreId'] = docRef.id;
   }
 
   Future<void> _removePendingOrderFromFirestore(
-    DocumentReference userDocRef,
-    Map<String, dynamic> order,
-  ) async {
+      DocumentReference userDocRef, Map<String, dynamic> order) async {
     final firestoreId = order['firestoreId'] as String?;
     if (firestoreId == null) return;
     await userDocRef

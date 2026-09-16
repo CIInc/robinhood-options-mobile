@@ -5,7 +5,7 @@ class GroupWatchlistService {
   final FirebaseFirestore _firestore;
 
   GroupWatchlistService({FirebaseFirestore? firestore})
-    : _firestore = firestore ?? FirebaseFirestore.instance;
+      : _firestore = firestore ?? FirebaseFirestore.instance;
 
   /// Create a new group watchlist
   Future<String> createGroupWatchlist({
@@ -64,53 +64,49 @@ class GroupWatchlistService {
         .orderBy('createdAt', descending: true)
         .snapshots()
         .asyncMap((snapshot) async {
-          final watchlists = <GroupWatchlist>[];
+      final watchlists = <GroupWatchlist>[];
 
-          for (final doc in snapshot.docs) {
-            final watchlist = GroupWatchlist.fromFirestore(doc);
+      for (final doc in snapshot.docs) {
+        final watchlist = GroupWatchlist.fromFirestore(doc);
 
-            // Get all symbols for this watchlist
-            final symbolsSnapshot = await _firestore
-                .collection('investor_groups')
-                .doc(groupId)
-                .collection('watchlists')
-                .doc(doc.id)
-                .collection('symbols')
-                .get();
+        // Get all symbols for this watchlist
+        final symbolsSnapshot = await _firestore
+            .collection('investor_groups')
+            .doc(groupId)
+            .collection('watchlists')
+            .doc(doc.id)
+            .collection('symbols')
+            .get();
 
-            final symbols = <WatchlistSymbol>[];
+        final symbols = <WatchlistSymbol>[];
 
-            // For each symbol, fetch its alerts
-            for (final symbolDoc in symbolsSnapshot.docs) {
-              final symbol = WatchlistSymbol.fromFirestore(symbolDoc);
+        // For each symbol, fetch its alerts
+        for (final symbolDoc in symbolsSnapshot.docs) {
+          final symbol = WatchlistSymbol.fromFirestore(symbolDoc);
 
-              final alertsSnapshot = await _firestore
-                  .collection('investor_groups')
-                  .doc(groupId)
-                  .collection('watchlists')
-                  .doc(doc.id)
-                  .collection('symbols')
-                  .doc(symbol.id)
-                  .collection('alerts')
-                  .get();
+          final alertsSnapshot = await _firestore
+              .collection('investor_groups')
+              .doc(groupId)
+              .collection('watchlists')
+              .doc(doc.id)
+              .collection('symbols')
+              .doc(symbol.id)
+              .collection('alerts')
+              .get();
 
-              final alerts = alertsSnapshot.docs
-                  .map(
-                    (alertDoc) => WatchlistAlert.fromFirestore(
-                      alertDoc.data(),
-                      alertDoc.id,
-                    ),
-                  )
-                  .toList();
+          final alerts = alertsSnapshot.docs
+              .map((alertDoc) =>
+                  WatchlistAlert.fromFirestore(alertDoc.data(), alertDoc.id))
+              .toList();
 
-              symbols.add(symbol.copyWith(alerts: alerts));
-            }
+          symbols.add(symbol.copyWith(alerts: alerts));
+        }
 
-            watchlists.add(watchlist.copyWith(symbols: symbols));
-          }
+        watchlists.add(watchlist.copyWith(symbols: symbols));
+      }
 
-          return watchlists;
-        });
+      return watchlists;
+    });
   }
 
   /// Get a single watchlist with all symbols and alerts
@@ -125,51 +121,47 @@ class GroupWatchlistService {
         .doc(watchlistId)
         .snapshots()
         .asyncMap((watchlistDoc) async {
-          if (!watchlistDoc.exists) {
-            return null;
-          }
+      if (!watchlistDoc.exists) {
+        return null;
+      }
 
-          final watchlist = GroupWatchlist.fromFirestore(watchlistDoc);
+      final watchlist = GroupWatchlist.fromFirestore(watchlistDoc);
 
-          // Get all symbols
-          final symbolsSnapshot = await _firestore
-              .collection('investor_groups')
-              .doc(groupId)
-              .collection('watchlists')
-              .doc(watchlistId)
-              .collection('symbols')
-              .get();
+      // Get all symbols
+      final symbolsSnapshot = await _firestore
+          .collection('investor_groups')
+          .doc(groupId)
+          .collection('watchlists')
+          .doc(watchlistId)
+          .collection('symbols')
+          .get();
 
-          final symbols = <WatchlistSymbol>[];
+      final symbols = <WatchlistSymbol>[];
 
-          // For each symbol, fetch its alerts
-          for (final symbolDoc in symbolsSnapshot.docs) {
-            final symbol = WatchlistSymbol.fromFirestore(symbolDoc);
+      // For each symbol, fetch its alerts
+      for (final symbolDoc in symbolsSnapshot.docs) {
+        final symbol = WatchlistSymbol.fromFirestore(symbolDoc);
 
-            final alertsSnapshot = await _firestore
-                .collection('investor_groups')
-                .doc(groupId)
-                .collection('watchlists')
-                .doc(watchlistId)
-                .collection('symbols')
-                .doc(symbol.id)
-                .collection('alerts')
-                .get();
+        final alertsSnapshot = await _firestore
+            .collection('investor_groups')
+            .doc(groupId)
+            .collection('watchlists')
+            .doc(watchlistId)
+            .collection('symbols')
+            .doc(symbol.id)
+            .collection('alerts')
+            .get();
 
-            final alerts = alertsSnapshot.docs
-                .map(
-                  (alertDoc) => WatchlistAlert.fromFirestore(
-                    alertDoc.data(),
-                    alertDoc.id,
-                  ),
-                )
-                .toList();
+        final alerts = alertsSnapshot.docs
+            .map((alertDoc) =>
+                WatchlistAlert.fromFirestore(alertDoc.data(), alertDoc.id))
+            .toList();
 
-            symbols.add(symbol.copyWith(alerts: alerts));
-          }
+        symbols.add(symbol.copyWith(alerts: alerts));
+      }
 
-          return watchlist.copyWith(symbols: symbols);
-        });
+      return watchlist.copyWith(symbols: symbols);
+    });
   }
 
   /// Add a symbol to a watchlist
@@ -199,7 +191,9 @@ class GroupWatchlistService {
         .doc(groupId)
         .collection('watchlists')
         .doc(watchlistId)
-        .update({'updatedAt': FieldValue.serverTimestamp()});
+        .update({
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
   }
 
   /// Remove a symbol from a watchlist
@@ -223,7 +217,9 @@ class GroupWatchlistService {
         .doc(groupId)
         .collection('watchlists')
         .doc(watchlistId)
-        .update({'updatedAt': FieldValue.serverTimestamp()});
+        .update({
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
   }
 
   /// Create a price alert for a symbol in a watchlist
@@ -282,7 +278,9 @@ class GroupWatchlistService {
     required bool active,
     double? threshold,
   }) async {
-    final updateData = <String, dynamic>{'active': active};
+    final updateData = <String, dynamic>{
+      'active': active,
+    };
     if (threshold != null) {
       updateData['threshold'] = threshold;
     }
@@ -336,7 +334,9 @@ class GroupWatchlistService {
         .doc(groupId)
         .collection('watchlists')
         .doc(watchlistId)
-        .update({'permissions.$memberId': permission});
+        .update({
+      'permissions.$memberId': permission,
+    });
   }
 
   /// Remove member permission from watchlist
@@ -350,7 +350,9 @@ class GroupWatchlistService {
         .doc(groupId)
         .collection('watchlists')
         .doc(watchlistId)
-        .update({'permissions.$memberId': FieldValue.delete()});
+        .update({
+      'permissions.$memberId': FieldValue.delete(),
+    });
   }
 
   /// Get stream of symbols for a watchlist
@@ -366,10 +368,10 @@ class GroupWatchlistService {
         .collection('symbols')
         .snapshots()
         .map((snapshot) {
-          return snapshot.docs
-              .map((doc) => WatchlistSymbol.fromFirestore(doc))
-              .toList();
-        });
+      return snapshot.docs
+          .map((doc) => WatchlistSymbol.fromFirestore(doc))
+          .toList();
+    });
   }
 
   /// Get stream of alerts for a symbol in a watchlist
@@ -388,9 +390,9 @@ class GroupWatchlistService {
         .collection('alerts')
         .snapshots()
         .map((snapshot) {
-          return snapshot.docs
-              .map((doc) => WatchlistAlert.fromFirestore(doc.data(), doc.id))
-              .toList();
-        });
+      return snapshot.docs
+          .map((doc) => WatchlistAlert.fromFirestore(doc.data(), doc.id))
+          .toList();
+    });
   }
 }

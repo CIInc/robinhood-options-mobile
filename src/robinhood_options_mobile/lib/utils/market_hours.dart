@@ -142,10 +142,8 @@ class MarketHours {
 
     // Check up to 5 days ahead
     for (int i = 0; i < 5; i++) {
-      final session = _getTradingSessionForTime(
-        checkTime,
-        includeExtendedHours: includeExtendedHours,
-      );
+      final session = _getTradingSessionForTime(checkTime,
+          includeExtendedHours: includeExtendedHours);
       if (session != TradingSession.closed) {
         return checkTime;
       }
@@ -157,10 +155,8 @@ class MarketHours {
   }
 
   /// Internal helper to check trading session for a specific time
-  static TradingSession _getTradingSessionForTime(
-    DateTime checkTime, {
-    bool includeExtendedHours = false,
-  }) {
+  static TradingSession _getTradingSessionForTime(DateTime checkTime,
+      {bool includeExtendedHours = false}) {
     final year = checkTime.year;
     final isDST = _isDaylightSavingTime(checkTime, year);
     final offset = isDST ? 4 : 5;
@@ -195,9 +191,7 @@ class MarketHours {
 
   /// Helper to get the start time of the next trading session
   static DateTime _getNextSessionStartTime(
-    DateTime fromTime,
-    bool includeExtendedHours,
-  ) {
+      DateTime fromTime, bool includeExtendedHours) {
     final year = fromTime.year;
     final isDST = _isDaylightSavingTime(fromTime, year);
     final offset = isDST ? 4 : 5;
@@ -249,22 +243,14 @@ class MarketHours {
     // Calculate days to first Sunday
     int daysToFirstSunday = (DateTime.sunday - marchFirst.weekday) % 7;
     // Second Sunday is 7 days after first Sunday
-    DateTime secondSundayMarch = DateTime.utc(
-      year,
-      3,
-      1 + daysToFirstSunday + 7,
-      7,
-    ); // 7 AM UTC
+    DateTime secondSundayMarch =
+        DateTime.utc(year, 3, 1 + daysToFirstSunday + 7, 7); // 7 AM UTC
 
     // Find first Sunday in November
     DateTime novemberFirst = DateTime.utc(year, 11, 1);
     int daysToFirstSundayNov = (DateTime.sunday - novemberFirst.weekday) % 7;
-    DateTime firstSundayNovember = DateTime.utc(
-      year,
-      11,
-      1 + daysToFirstSundayNov,
-      6,
-    ); // 6 AM UTC
+    DateTime firstSundayNovember =
+        DateTime.utc(year, 11, 1 + daysToFirstSundayNov, 6); // 6 AM UTC
 
     // debugPrint('   DST period: $secondSundayMarch to $firstSundayNovember');
     // debugPrint('   Current UTC: $utcTime');

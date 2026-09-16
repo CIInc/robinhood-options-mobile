@@ -18,33 +18,27 @@ class InstrumentHistoricalsStore extends ChangeNotifier {
   //int get totalPrice => _items.length * 42;
 
   void set(InstrumentHistoricals item) {
-    var index = items.indexWhere(
-      (element) =>
-          element.symbol == item.symbol &&
-          element.span == item.span &&
-          element.bounds == item.bounds &&
-          element.interval == item.interval,
-    );
+    var index = items.indexWhere((element) =>
+        element.symbol == item.symbol &&
+        element.span == item.span &&
+        element.bounds == item.bounds &&
+        element.interval == item.interval);
     if (index == -1) {
       _items.add(item);
       notifyListeners();
     } else {
       var current = _items[index];
-      if (current.historicals.first.beginsAt!.compareTo(
-                item.historicals.first.beginsAt!,
-              ) !=
+      if (current.historicals.first.beginsAt!
+                  .compareTo(item.historicals.first.beginsAt!) !=
               0 ||
-          current.historicals.last.beginsAt!.compareTo(
-                item.historicals.last.beginsAt!,
-              ) !=
+          current.historicals.last.beginsAt!
+                  .compareTo(item.historicals.last.beginsAt!) !=
               0) {
         // QuoteStore entry was added to the end, so check that the historical is newer.
         debugPrint(
-          '${current.historicals.first.beginsAt} != ${item.historicals.first.beginsAt!}',
-        );
+            '${current.historicals.first.beginsAt} != ${item.historicals.first.beginsAt!}');
         debugPrint(
-          '${current.historicals.last.beginsAt} != ${item.historicals.last.beginsAt!}',
-        );
+            '${current.historicals.last.beginsAt} != ${item.historicals.last.beginsAt!}');
         _items[index] = item;
         notifyListeners();
       } else {
@@ -66,9 +60,8 @@ class InstrumentHistoricalsStore extends ChangeNotifier {
   }
 
   bool update(InstrumentHistoricals item) {
-    var index = _items.indexWhere(
-      (element) => element.span == item.span && element.bounds == item.bounds,
-    );
+    var index = _items.indexWhere((element) =>
+        element.span == item.span && element.bounds == item.bounds);
     if (index == -1) {
       return false;
     }

@@ -86,7 +86,10 @@ void main() {
     });
 
     test('infers sellPercentage and netBuyPercentage when omitted', () {
-      final json = {'instrument_id': 'inst_789', 'buy_percentage': 72.0};
+      final json = {
+        'instrument_id': 'inst_789',
+        'buy_percentage': 72.0,
+      };
 
       final flow = RetailOrderFlow.fromJson(json);
 
@@ -119,8 +122,8 @@ void main() {
               'buy_percentage': 51.5,
               'sell_percentage': 48.5,
             },
-          ],
-        },
+          ]
+        }
       };
 
       final flow = RetailOrderFlow.fromJson(json);
@@ -136,105 +139,101 @@ void main() {
       expect(flow.history.length, 2);
     });
 
-    test(
-      'parses exact Robinhood API example response with daily_transactions',
-      () {
-        final json = {
-          "instrument_id": "943c5009-a0bb-4665-8cf4-a95dab5874e4",
-          "daily_transactions": [
-            {
-              "date": "2026-08-12",
-              "net_buy_percentage": 6.733010406913009,
-              "net_sell_percentage": -6.733010406913009,
-              "buy_volume_percentage_change": null,
-              "sell_volume_percentage_change": null,
-            },
-            {
-              "date": "2026-08-13",
-              "net_buy_percentage": 2.2814620083776327,
-              "net_sell_percentage": -2.2814620083776327,
-              "buy_volume_percentage_change": -34.70567348204625,
-              "sell_volume_percentage_change": -28.611824946031497,
-            },
-            {
-              "date": "2026-08-14",
-              "net_buy_percentage": -5.055151777329453,
-              "net_sell_percentage": 5.055151777329453,
-              "buy_volume_percentage_change": -13.866593391011422,
-              "sell_volume_percentage_change": -0.24434133127768348,
-            },
-            {
-              "date": "2026-09-09",
-              "net_buy_percentage": 31.58138057168694,
-              "net_sell_percentage": -31.58138057168694,
-              "buy_volume_percentage_change": 112.82247169835675,
-              "sell_volume_percentage_change": 54.81522591529,
-            },
-          ],
-        };
+    test('parses exact Robinhood API example response with daily_transactions',
+        () {
+      final json = {
+        "instrument_id": "943c5009-a0bb-4665-8cf4-a95dab5874e4",
+        "daily_transactions": [
+          {
+            "date": "2026-08-12",
+            "net_buy_percentage": 6.733010406913009,
+            "net_sell_percentage": -6.733010406913009,
+            "buy_volume_percentage_change": null,
+            "sell_volume_percentage_change": null
+          },
+          {
+            "date": "2026-08-13",
+            "net_buy_percentage": 2.2814620083776327,
+            "net_sell_percentage": -2.2814620083776327,
+            "buy_volume_percentage_change": -34.70567348204625,
+            "sell_volume_percentage_change": -28.611824946031497
+          },
+          {
+            "date": "2026-08-14",
+            "net_buy_percentage": -5.055151777329453,
+            "net_sell_percentage": 5.055151777329453,
+            "buy_volume_percentage_change": -13.866593391011422,
+            "sell_volume_percentage_change": -0.24434133127768348
+          },
+          {
+            "date": "2026-09-09",
+            "net_buy_percentage": 31.58138057168694,
+            "net_sell_percentage": -31.58138057168694,
+            "buy_volume_percentage_change": 112.82247169835675,
+            "sell_volume_percentage_change": 54.81522591529
+          }
+        ]
+      };
 
-        final flow = RetailOrderFlow.fromJson(json);
+      final flow = RetailOrderFlow.fromJson(json);
 
-        expect(flow.instrumentId, '943c5009-a0bb-4665-8cf4-a95dab5874e4');
-        expect(flow.history.length, 4);
+      expect(flow.instrumentId, '943c5009-a0bb-4665-8cf4-a95dab5874e4');
+      expect(flow.history.length, 4);
 
-        // Latest point is 2026-09-09 with +31.58% net buy
-        expect(flow.netBuyPercentage, closeTo(31.58, 0.01));
-        expect(flow.netSellPercentage, closeTo(-31.58, 0.01));
-        // Derived buy: 50 + 31.58138 / 2 = 65.79%
-        expect(flow.buyPercentage, closeTo(65.79, 0.01));
-        expect(flow.sellPercentage, closeTo(34.21, 0.01));
-        expect(flow.sentimentLabel, 'Bullish');
-        expect(flow.isBullish, isTrue);
-        expect(flow.buyVolumeChangePercentage, closeTo(112.82, 0.01));
-        expect(flow.sellVolumeChangePercentage, closeTo(54.82, 0.01));
-        expect(flow.updatedAt, DateTime(2026, 9, 9));
+      // Latest point is 2026-09-09 with +31.58% net buy
+      expect(flow.netBuyPercentage, closeTo(31.58, 0.01));
+      expect(flow.netSellPercentage, closeTo(-31.58, 0.01));
+      // Derived buy: 50 + 31.58138 / 2 = 65.79%
+      expect(flow.buyPercentage, closeTo(65.79, 0.01));
+      expect(flow.sellPercentage, closeTo(34.21, 0.01));
+      expect(flow.sentimentLabel, 'Bullish');
+      expect(flow.isBullish, isTrue);
+      expect(flow.buyVolumeChangePercentage, closeTo(112.82, 0.01));
+      expect(flow.sellVolumeChangePercentage, closeTo(54.82, 0.01));
+      expect(flow.updatedAt, DateTime(2026, 9, 9));
 
-        // Check first point (2026-08-12)
-        final firstPt = flow.history.first;
-        expect(firstPt.date, DateTime(2026, 8, 12));
-        expect(firstPt.netBuyPercentage, closeTo(6.73, 0.01));
-        expect(firstPt.buyPercentage, closeTo(53.37, 0.01));
-        expect(firstPt.sellPercentage, closeTo(46.63, 0.01));
-        expect(firstPt.buyVolumeChangePercentage, isNull);
-        expect(firstPt.sellVolumeChangePercentage, isNull);
+      // Check first point (2026-08-12)
+      final firstPt = flow.history.first;
+      expect(firstPt.date, DateTime(2026, 8, 12));
+      expect(firstPt.netBuyPercentage, closeTo(6.73, 0.01));
+      expect(firstPt.buyPercentage, closeTo(53.37, 0.01));
+      expect(firstPt.sellPercentage, closeTo(46.63, 0.01));
+      expect(firstPt.buyVolumeChangePercentage, isNull);
+      expect(firstPt.sellVolumeChangePercentage, isNull);
 
-        // Check point with negative net buy (2026-08-14)
-        final negPt = flow.history[2];
-        expect(negPt.netBuyPercentage, closeTo(-5.06, 0.01));
-        expect(negPt.netSellPercentage, closeTo(5.06, 0.01));
-        expect(negPt.buyPercentage, closeTo(47.47, 0.01));
-        expect(negPt.sellPercentage, closeTo(52.53, 0.01));
-      },
-    );
+      // Check point with negative net buy (2026-08-14)
+      final negPt = flow.history[2];
+      expect(negPt.netBuyPercentage, closeTo(-5.06, 0.01));
+      expect(negPt.netSellPercentage, closeTo(5.06, 0.01));
+      expect(negPt.buyPercentage, closeTo(47.47, 0.01));
+      expect(negPt.sellPercentage, closeTo(52.53, 0.01));
+    });
 
-    test(
-      'correctly classifies Bearish and Strong Bearish sentiment regimes',
-      () {
-        final bearishJson = {
-          'instrument_id': 'inst_bear',
-          'buy_percentage': 38.0,
-          'sell_percentage': 62.0,
-          'volume_change_percentage': -12.4,
-        };
+    test('correctly classifies Bearish and Strong Bearish sentiment regimes',
+        () {
+      final bearishJson = {
+        'instrument_id': 'inst_bear',
+        'buy_percentage': 38.0,
+        'sell_percentage': 62.0,
+        'volume_change_percentage': -12.4,
+      };
 
-        final bearishFlow = RetailOrderFlow.fromJson(bearishJson);
-        expect(bearishFlow.sentimentLabel, 'Bearish');
-        expect(bearishFlow.isBearish, isTrue);
-        expect(bearishFlow.netBuyFormatted, '-24.0%');
+      final bearishFlow = RetailOrderFlow.fromJson(bearishJson);
+      expect(bearishFlow.sentimentLabel, 'Bearish');
+      expect(bearishFlow.isBearish, isTrue);
+      expect(bearishFlow.netBuyFormatted, '-24.0%');
 
-        final strongBearishJson = {
-          'instrument_id': 'inst_strong_bear',
-          'buy_percentage': 24.5,
-          'sell_percentage': 75.5,
-        };
+      final strongBearishJson = {
+        'instrument_id': 'inst_strong_bear',
+        'buy_percentage': 24.5,
+        'sell_percentage': 75.5,
+      };
 
-        final strongBearishFlow = RetailOrderFlow.fromJson(strongBearishJson);
-        expect(strongBearishFlow.sentimentLabel, 'Strong Bearish');
-        expect(strongBearishFlow.isBearish, isTrue);
-        expect(strongBearishFlow.netBuyFormatted, '-51.0%');
-      },
-    );
+      final strongBearishFlow = RetailOrderFlow.fromJson(strongBearishJson);
+      expect(strongBearishFlow.sentimentLabel, 'Strong Bearish');
+      expect(strongBearishFlow.isBearish, isTrue);
+      expect(strongBearishFlow.netBuyFormatted, '-51.0%');
+    });
 
     test('RetailOrderFlowPoint parses date, volumes and formats properly', () {
       final pointJson = {

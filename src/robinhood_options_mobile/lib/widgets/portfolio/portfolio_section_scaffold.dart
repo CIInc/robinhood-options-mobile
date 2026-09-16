@@ -53,9 +53,8 @@ class PortfolioSectionScaffold extends StatelessWidget {
               if (subtitle != null)
                 Text(
                   subtitle!,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
+                  style: theme.textTheme.bodySmall
+                      ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                 ),
             ],
           ),

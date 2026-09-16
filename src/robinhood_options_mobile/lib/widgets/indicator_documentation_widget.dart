@@ -33,11 +33,16 @@ class IndicatorDocumentationWidget extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 4),
-        Text(description, style: const TextStyle(fontSize: 14)),
+        Text(
+          description,
+          style: const TextStyle(fontSize: 14),
+        ),
         if (technicalDetails.isNotEmpty) ...[
           const SizedBox(height: 8),
           Theme(
-            data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+            data: Theme.of(context).copyWith(
+              dividerColor: Colors.transparent,
+            ),
             child: ExpansionTile(
               tilePadding: EdgeInsets.zero,
               childrenPadding: const EdgeInsets.only(top: 8, bottom: 8),
@@ -51,7 +56,10 @@ class IndicatorDocumentationWidget extends StatelessWidget {
                   const SizedBox(width: 6),
                   const Text(
                     'Technical Details',
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ],
               ),
@@ -59,19 +67,25 @@ class IndicatorDocumentationWidget extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surfaceContainerHighest
+                    color: Theme.of(context)
+                        .colorScheme
+                        .surfaceContainerHighest
                         .withValues(alpha: 0.3),
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.outline.withValues(alpha: 0.2),
+                      color: Theme.of(context)
+                          .colorScheme
+                          .outline
+                          .withValues(alpha: 0.2),
                     ),
                   ),
                   child: MarkdownBody(
                     data: technicalDetails,
                     styleSheet: MarkdownStyleSheet(
-                      p: const TextStyle(fontSize: 13, height: 1.5),
+                      p: const TextStyle(
+                        fontSize: 13,
+                        height: 1.5,
+                      ),
                       listBullet: TextStyle(
                         fontSize: 13,
                         color: Theme.of(context).colorScheme.primary,
@@ -80,15 +94,15 @@ class IndicatorDocumentationWidget extends StatelessWidget {
                       code: TextStyle(
                         fontSize: 12,
                         fontFamily: 'monospace',
-                        backgroundColor: Theme.of(
-                          context,
-                        ).colorScheme.surfaceContainerHighest,
+                        backgroundColor: Theme.of(context)
+                            .colorScheme
+                            .surfaceContainerHighest,
                         color: Theme.of(context).colorScheme.onSurface,
                       ),
                       codeblockDecoration: BoxDecoration(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.surfaceContainerHighest,
+                        color: Theme.of(context)
+                            .colorScheme
+                            .surfaceContainerHighest,
                         borderRadius: BorderRadius.circular(4),
                       ),
                     ),
@@ -106,9 +120,10 @@ class IndicatorDocumentationWidget extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 16.0),
         padding: const EdgeInsets.all(12.0),
         decoration: BoxDecoration(
-          color: Theme.of(
-            context,
-          ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+          color: Theme.of(context)
+              .colorScheme
+              .surfaceContainerHighest
+              .withValues(alpha: 0.5),
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
             color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
