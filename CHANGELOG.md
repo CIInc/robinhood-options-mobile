@@ -2,8 +2,8 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.46.0] - 2026-09-15
-**Investor Groups 2.0: Group Activity Feed, Real-Time Trade Stream, Member Filtering, Trade Inspection & Privacy Controls**
+## [0.46.0] - 2026-09-16
+**Investor Groups 2.0: Group Activity Feed, Group Chat, Shared Analysis Boards, Performance Leaderboards, Verified Track Records, Schwab API Market Data Parsing & Copy-Trading Performance Optimization**
 
 ### Added
 - **Group Activity Feed ([#78](https://github.com/CIInc/robinhood-options-mobile/issues/78), [Tracking: #113](https://github.com/CIInc/robinhood-options-mobile/issues/113)):**
@@ -22,6 +22,49 @@ All notable changes to this project will be documented in this file.
   - Added comprehensive test suites:
     - `test/investor_group_activity_test.dart`: 11 unit tests verifying serialization, option calculations, privacy masking, and FakeFirebaseFirestore integration.
     - `test/investor_group_activity_widget_test.dart`: 4 widget tests verifying feed rendering, empty states, detail sheet interactions, and privacy controls modal.
+- **Group Chat & Real-Time Messaging ([#76](https://github.com/CIInc/robinhood-options-mobile/issues/76), [Tracking: #113](https://github.com/CIInc/robinhood-options-mobile/issues/113)):**
+  - Verified real-time messaging pipeline (`GroupMessage`, `InvestorGroupChatWidget`) with Firestore streaming, message history, unread counters, and message deletion capabilities.
+  - Added unit and Firestore integration test suite in `test/investor_group_chat_test.dart` verifying model JSON serialization, message delivery, read status marking, and message cleanup.
+- **Shared Analysis Boards & Collaborative Theses ([#77](https://github.com/CIInc/robinhood-options-mobile/issues/77), [Tracking: #113](https://github.com/CIInc/robinhood-options-mobile/issues/113)):**
+  - Created domain models `GroupAnalysisPost` and `GroupAnalysisComment` (`lib/model/group_analysis.dart`) with `GroupAnalysisSentiment` (bullish, bearish, neutral) and `GroupAnalysisTimeHorizon` (dayTrade, swingTrade, shortTerm, mediumTerm, longTerm), target price and stop loss metrics, computed risk/reward ratio and potential return percentages, like toggles, and pinned post flags.
+  - Added Firestore service methods (`lib/services/firestore_service.dart`):
+    - `getGroupAnalysesStream`: Real-time streaming of shared theses ordered by pinned status and creation timestamp.
+    - `createGroupAnalysis`, `updateGroupAnalysis`, `deleteGroupAnalysis`: Post creation and author/admin deletion.
+    - `toggleGroupAnalysisLike`: Atomic like toggle tracking member user IDs.
+    - `setGroupAnalysisPinned`: Admin ability to pin featured analyses to top of board.
+    - `getGroupAnalysisCommentsStream` & `addGroupAnalysisComment`: Nested collaborative comment discussions for each analysis thesis.
+  - Built `InvestorGroupAnalysisBoardWidget` (`lib/widgets/investor_group_analysis_board_widget.dart`):
+    - Interactive board with sentiment filter chips (All, Bullish, Bearish, Neutral) and symbol search field.
+    - Rich analysis cards with sentiment badges, price targets, calculated risk/reward, like button with live counter, and comments button.
+    - Bottom sheet for creating new investment theses with automated risk/reward computation and input validation.
+    - Bottom sheet for threaded discussion comments with real-time streaming and quick input.
+  - Integrated `_buildAnalysisBoardCard` into `InvestorGroupDetailWidget` hub showing active analysis counts.
+  - Added test suite `test/investor_group_analysis_board_test.dart` with 3 comprehensive unit and integration tests.
+- **Verified Track Records for Public Group Leaders ([Tracking: #113](https://github.com/CIInc/robinhood-options-mobile/issues/113)):**
+  - Created domain model `VerifiedTrackRecord` (`lib/model/verified_track_record.dart`) with `VerifiedLeaderTier` (`verifiedTrader`, `verifiedLeader`, `topPerformer`, `masterTrader`) based on audited win rate, Sharpe ratio, total trades, profitable trades, and total return.
+  - Added Firestore service methods (`lib/services/firestore_service.dart`):
+    - `getVerifiedTrackRecord` and `streamVerifiedTrackRecord` on `verified_track_records/{userId}`.
+    - `setVerifiedTrackRecord`: Save or update cryptographic/brokerage verification records.
+    - `calculateAndVerifyLeaderTrackRecord`: Dynamic audit engine evaluating group member trade activities, calculating realized returns, win rate, and assigning verified tier badges.
+  - Built Verified Leader Badges and Audit Sheet UI:
+    - Added verified badges with tier-specific colors and check icons in `InvestorGroupDetailWidget` header.
+    - Added `_showLeaderTrackRecordSheet` presenting verified metrics (Total Return %, Win Rate %, Total Trades, Sharpe Ratio, Profit Factor, and Audited Date) with cryptographic verification disclosure.
+    - Added verified leader chip badges on public group cards in `InvestorGroupsWidget`.
+  - Added test suite `test/verified_track_record_test.dart` with 4 unit and integration tests covering model serialization, tier calculation, Firestore persistence, and activity-driven track record generation.
+- **Schwab API Market Data & Order History Response Parsing ([#122](https://github.com/CIInc/robinhood-options-mobile/issues/122), [#145](https://github.com/CIInc/robinhood-options-mobile/issues/145)):**
+  - Enhanced `SchwabService` (`lib/services/schwab_service.dart`) with robust response parsing for single-leg and multi-leg option chains, real-time quotes, historical price bars, and order execution history.
+  - Updated models `Fundamentals`, `InstrumentOrder`, `InstrumentPosition`, `OptionLeg`, `OptionOrder`, and `Quote` to handle Schwab-specific field mappings and JSON normalization.
+  - Added unit test suites:
+    - `test/schwab_market_data_test.dart`: 665 lines of comprehensive tests for quotes, option chains, and price history parsing.
+    - `test/schwab_history_test.dart`: 272 lines of tests for order history and status handling.
+
+### Fixed & Performance Improvements
+- **Copy-Trading Firestore Query Optimization ([#146](https://github.com/CIInc/robinhood-options-mobile/pull/146)):**
+  - Cached source user document lookup (`sourceUserName`) across both `onInstrumentOrderCreated` and `onOptionOrderCreated` trigger handlers in `functions/src/copy-trading.ts`.
+  - Eliminated $O(N)$ redundant Firestore document reads per order event across copying group members, reducing lookup overhead to $O(1)$ (e.g., 75% reduction for $N=4$).
+  - Added unit test coverage in `functions/tests/copy-trading.test.ts`.
+- **Agentic Trading Gamma Exposure (GEX) Fallback:**
+  - Enhanced fallback handling in `functions/src/agentic-agent.ts` and `functions/src/gamma-exposure.ts` to gracefully fallback to deterministic technical and macro indicators when dealer gamma levels or zero-crossing strikes are unavailable.
 
 ## [0.45.0] - 2026-09-14
 **Multi-Account & Retirement Expansion, Corporate Action Split Adjustments, Cash-in-Lieu Tracking, Securities Lending (SLIP), High-Yield Cash Sweeps, Banking/ACH Transfers, Tax Documents & Shareholder Say Q&A Engagement**

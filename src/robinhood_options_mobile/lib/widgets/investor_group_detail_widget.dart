@@ -17,7 +17,10 @@ import 'package:robinhood_options_mobile/widgets/investor_group_manage_members_w
 import 'package:robinhood_options_mobile/widgets/investor_group_performance_analytics_widget.dart';
 import 'package:robinhood_options_mobile/widgets/group_watchlists_widget.dart';
 import 'package:robinhood_options_mobile/model/group_activity.dart';
+import 'package:robinhood_options_mobile/model/group_analysis.dart';
+import 'package:robinhood_options_mobile/model/verified_track_record.dart';
 import 'package:robinhood_options_mobile/widgets/investor_group_activity_feed_widget.dart';
+import 'package:robinhood_options_mobile/widgets/investor_group_analysis_board_widget.dart';
 import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -230,6 +233,8 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
               const SizedBox(height: 16),
               _buildPerformanceCard(group),
               const SizedBox(height: 16),
+              _buildAnalysisBoardCard(group, isMember),
+              const SizedBox(height: 16),
               _buildActivityFeedCard(group, isMember),
               const SizedBox(height: 16),
               _buildWatchlistsCard(group, isMember),
@@ -374,6 +379,89 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
                               ),
                             ],
                           ),
+                        ),
+                        StreamBuilder<VerifiedTrackRecord?>(
+                          stream: widget.firestoreService
+                              .streamVerifiedTrackRecord(group.createdBy),
+                          builder: (context, snapshot) {
+                            final record = snapshot.data;
+                            if (record == null || !record.isVerified) {
+                              if (auth.currentUser?.uid == group.createdBy) {
+                                return Container(
+                                  margin: const EdgeInsets.only(left: 8),
+                                  child: InkWell(
+                                    onTap: () => _showLeaderTrackRecordSheet(
+                                        context, group, null),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: _getBadgeBackground(Colors.teal),
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(Icons.verified_outlined,
+                                              size: 14,
+                                              color: Colors.teal[
+                                                  _isDarkTheme ? 300 : 700]),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            'Verify Leader',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w600,
+                                              color: Colors.teal[
+                                                  _isDarkTheme ? 300 : 700],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              }
+                              return const SizedBox.shrink();
+                            }
+                            return Container(
+                              margin: const EdgeInsets.only(left: 8),
+                              child: InkWell(
+                                onTap: () => _showLeaderTrackRecordSheet(
+                                    context, group, record),
+                                borderRadius: BorderRadius.circular(20),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: record.tier.color
+                                        .withValues(alpha: _isDarkTheme ? 0.25 : 0.15),
+                                    borderRadius: BorderRadius.circular(20),
+                                    border: Border.all(
+                                        color: record.tier.color
+                                            .withValues(alpha: 0.5),
+                                        width: 1),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(record.tier.icon,
+                                          size: 14, color: record.tier.color),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        '${record.tier.label} (${record.verifiedReturnPercent >= 0 ? '+' : ''}${record.verifiedReturnPercent.toStringAsFixed(1)}%)',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold,
+                                          color: record.tier.color,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
                         ),
                       ],
                     ),
@@ -704,6 +792,409 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildAnalysisBoardCard(InvestorGroup group, bool isMember) {
+    return Card(
+      elevation: 0,
+      shadowColor: Colors.black.withOpacity(0.1),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: _getCardBorderColor(), width: 1),
+      ),
+      child: InkWell(
+        onTap: () {
+          HapticFeedback.lightImpact();
+          _trackEvent('analysis_board_card_tapped');
+          _navigateToAnalysisBoard(group);
+        },
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: StreamBuilder<List<GroupAnalysisPost>>(
+            stream: widget.firestoreService.getGroupAnalysesStream(widget.groupId),
+            builder: (context, snapshot) {
+              final analyses = snapshot.data ?? [];
+              final count = analyses.length;
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Flexible(
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.purple
+                                    .withValues(alpha: _isDarkTheme ? 0.15 : 0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(Icons.analytics_rounded,
+                                  color: Colors.purple, size: 24),
+                            ),
+                            const SizedBox(width: 16),
+                            Flexible(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Analysis Board',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleMedium
+                                        ?.copyWith(fontWeight: FontWeight.bold),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Collaborative theses & price targets',
+                                    style: TextStyle(
+                                      color: _getSecondaryTextColor(),
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (count > 0)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.purple.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                '$count',
+                                style: const TextStyle(
+                                  color: Colors.purple,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
+                          const SizedBox(width: 4),
+                          Icon(Icons.arrow_forward_ios,
+                              size: 16, color: _getTertiaryTextColor()),
+                        ],
+                      ),
+                    ],
+                  ),
+                  if (analyses.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    Divider(color: _getCardBorderColor()),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color:
+                                Theme.of(context).colorScheme.primaryContainer,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            analyses.first.symbol,
+                            style: const TextStyle(
+                                fontSize: 11, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Icon(analyses.first.sentiment.icon,
+                            size: 14, color: analyses.first.sentiment.color),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            analyses.first.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                                fontSize: 13, fontWeight: FontWeight.w500),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _navigateToAnalysisBoard(InvestorGroup group) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => InvestorGroupAnalysisBoardWidget(
+          group: group,
+          firestoreService: widget.firestoreService,
+          brokerageUser: widget.brokerageUser,
+          analytics: widget.analytics,
+          observer: widget.observer,
+        ),
+      ),
+    );
+  }
+
+  void _showLeaderTrackRecordSheet(
+    BuildContext context,
+    InvestorGroup group,
+    VerifiedTrackRecord? currentRecord,
+  ) {
+    final theme = Theme.of(context);
+    final isLeader = auth.currentUser?.uid == group.createdBy;
+    bool isVerifying = false;
+    VerifiedTrackRecord? record = currentRecord;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) {
+          return Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: (record?.tier.color ?? Colors.green)
+                            .withValues(alpha: 0.15),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        record?.tier.icon ?? Icons.verified_rounded,
+                        color: record?.tier.color ?? Colors.green,
+                        size: 28,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            record?.tier.label ?? 'Verified Leader Program',
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            'Group Creator: ${record?.userName ?? "Admin"}',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(ctx),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                if (record != null) ...[
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surfaceContainerHighest
+                          .withValues(alpha: 0.4),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children: [
+                            _buildTrackRecordStat(
+                              'Verified 1Y Return',
+                              '${record!.verifiedReturnPercent >= 0 ? '+' : ''}${record!.verifiedReturnPercent.toStringAsFixed(1)}%',
+                              record!.verifiedReturnPercent >= 0
+                                  ? Colors.green
+                                  : Colors.red,
+                            ),
+                            _buildTrackRecordStat(
+                              'Win Rate',
+                              '${record!.verifiedWinRate.toStringAsFixed(1)}%',
+                              Colors.blue,
+                            ),
+                            _buildTrackRecordStat(
+                              'Audited Trades',
+                              record!.totalTradesAudited.toString(),
+                              null,
+                            ),
+                          ],
+                        ),
+                        const Divider(height: 24),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children: [
+                            _buildTrackRecordStat(
+                              'Sharpe Ratio',
+                              record!.sharpeRatio.toStringAsFixed(2),
+                              null,
+                            ),
+                            _buildTrackRecordStat(
+                              'Max Drawdown',
+                              '-${record!.maxDrawdownPercent.toStringAsFixed(1)}%',
+                              Colors.orange,
+                            ),
+                            _buildTrackRecordStat(
+                              'Profit Factor',
+                              '${record!.profitFactor.toStringAsFixed(1)}x',
+                              null,
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color:
+                          theme.colorScheme.primaryContainer.withValues(alpha: 0.4),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.shield_outlined,
+                            size: 16, color: theme.colorScheme.primary),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Audited via ${record!.verificationSource} • ${DateFormat.yMMMd().format(record!.verificationDate)}',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: theme.colorScheme.onPrimaryContainer,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ] else ...[
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surfaceContainerHighest
+                          .withValues(alpha: 0.4),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: const Text(
+                      'This group leader has not yet completed broker verification. Leaders can verify their track records to establish community trust.',
+                      style: TextStyle(fontSize: 13, height: 1.4),
+                    ),
+                  ),
+                ],
+                if (isLeader) ...[
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton.icon(
+                      onPressed: isVerifying
+                          ? null
+                          : () async {
+                              setSheetState(() => isVerifying = true);
+                              try {
+                                final user = auth.currentUser;
+                                final newRecord = await widget.firestoreService
+                                    .calculateAndVerifyLeaderTrackRecord(
+                                  group.createdBy,
+                                  groupId: group.id,
+                                  userName: user?.displayName ??
+                                      widget.brokerageUser?.userName ??
+                                      'Leader',
+                                  userPhotoUrl: user?.photoURL,
+                                );
+                                setSheetState(() {
+                                  isVerifying = false;
+                                  record = newRecord;
+                                });
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                          'Leader track record successfully verified!'),
+                                    ),
+                                  );
+                                }
+                              } catch (e) {
+                                setSheetState(() => isVerifying = false);
+                                if (ctx.mounted) {
+                                  ScaffoldMessenger.of(ctx).showSnackBar(
+                                    SnackBar(
+                                        content:
+                                            Text('Verification failed: $e')),
+                                  );
+                                }
+                              }
+                            },
+                      icon: isVerifying
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: Colors.white),
+                            )
+                          : const Icon(Icons.verified_rounded),
+                      label: Text(isVerifying
+                          ? 'Auditing Trades...'
+                          : record == null
+                              ? 'Verify My Track Record'
+                              : 'Re-audit & Update Track Record'),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 12),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildTrackRecordStat(String label, String value, Color? color) {
+    return Column(
+      children: [
+        Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+      ],
     );
   }
 

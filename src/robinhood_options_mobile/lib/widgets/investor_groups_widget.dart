@@ -12,6 +12,7 @@ import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/investor_group_detail_widget.dart';
 import 'package:robinhood_options_mobile/widgets/investor_group_create_widget.dart';
 import 'package:robinhood_options_mobile/widgets/copy_trading_dashboard_widget.dart';
+import 'package:robinhood_options_mobile/model/verified_track_record.dart';
 
 class InvestorGroupsWidget extends StatefulWidget {
   final FirestoreService firestoreService;
@@ -539,6 +540,7 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget> {
                           index: index,
                           child: _GroupCard(
                             group: group,
+                            firestoreService: widget.firestoreService,
                             heroSource: 'my_groups',
                             trailing: group.isPrivate
                                 ? Chip(
@@ -790,6 +792,7 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget> {
                           index: index,
                           child: _GroupCard(
                             group: group,
+                            firestoreService: widget.firestoreService,
                             heroSource: 'invitations',
                             subtitle: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1232,6 +1235,7 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget> {
                           index: index,
                           child: _GroupCard(
                             group: group,
+                            firestoreService: widget.firestoreService,
                             heroSource: 'discover',
                             trailing: isMember
                                 ? Container(
@@ -1316,6 +1320,7 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget> {
 /// Reusable group card widget to reduce code duplication
 class _GroupCard extends StatelessWidget {
   final InvestorGroup group;
+  final FirestoreService? firestoreService;
   final Widget? trailing;
   final Widget? subtitle;
   final VoidCallback onTap;
@@ -1323,6 +1328,7 @@ class _GroupCard extends StatelessWidget {
 
   const _GroupCard({
     required this.group,
+    this.firestoreService,
     this.trailing,
     this.subtitle,
     required this.onTap,
@@ -1461,6 +1467,53 @@ class _GroupCard extends StatelessWidget {
                                           .onSurfaceVariant,
                                     ),
                                   ),
+                                  if (firestoreService != null)
+                                    StreamBuilder<VerifiedTrackRecord?>(
+                                      stream: firestoreService!
+                                          .streamVerifiedTrackRecord(
+                                              group.createdBy),
+                                      builder: (context, snapshot) {
+                                        final record = snapshot.data;
+                                        if (record == null ||
+                                            !record.isVerified) {
+                                          return const SizedBox.shrink();
+                                        }
+                                        return Container(
+                                          margin:
+                                              const EdgeInsets.only(left: 8),
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 6, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: record.tier.color
+                                                .withValues(alpha: 0.15),
+                                            borderRadius:
+                                                BorderRadius.circular(10),
+                                            border: Border.all(
+                                              color: record.tier.color
+                                                  .withValues(alpha: 0.4),
+                                              width: 0.8,
+                                            ),
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Icon(record.tier.icon,
+                                                  size: 11,
+                                                  color: record.tier.color),
+                                              const SizedBox(width: 3),
+                                              Text(
+                                                '${record.tier.label} ${record.verifiedReturnPercent >= 0 ? '+' : ''}${record.verifiedReturnPercent.toStringAsFixed(0)}%',
+                                                style: TextStyle(
+                                                  fontSize: 10,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: record.tier.color,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                      },
+                                    ),
                                 ],
                               ),
                             ],

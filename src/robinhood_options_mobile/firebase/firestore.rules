@@ -214,10 +214,68 @@ service cloud.firestore {
         );
       }
 
+      match /analyses/{analysisId} {
+        // Members or public group viewers can read analyses
+        allow read: if !exists(/databases/$(database)/documents/investor_groups/$(groupId)) ||
+          get(/databases/$(database)/documents/investor_groups/$(groupId)).data.get('isPrivate', false) == false || 
+          (request.auth.uid != null && 
+          request.auth.uid in get(/databases/$(database)/documents/investor_groups/$(groupId)).data.get('members', []));
+        // Group members can create analyses
+        allow create: if request.auth.uid != null && 
+          request.auth.uid in get(/databases/$(database)/documents/investor_groups/$(groupId)).data.get('members', []) &&
+          request.resource.data.authorId == request.auth.uid;
+        // Author, group creator, group admin, or app admin can update, or members can update likes or commentsCount
+        allow update: if request.auth.uid != null && (
+          resource.data.authorId == request.auth.uid ||
+          request.auth.uid == get(/databases/$(database)/documents/investor_groups/$(groupId)).data.createdBy ||
+          request.auth.uid in get(/databases/$(database)/documents/investor_groups/$(groupId)).data.get('admins', []) ||
+          request.auth.token.role == 'admin' ||
+          (request.auth.uid in get(/databases/$(database)/documents/investor_groups/$(groupId)).data.get('members', []) &&
+           request.resource.data.diff(resource.data).affectedKeys().hasAny(['likes', 'commentsCount']))
+        );
+        // Analysis author, group creator, group admin, or app admin can delete
+        allow delete: if request.auth.uid != null && (
+          resource.data.authorId == request.auth.uid ||
+          request.auth.uid == get(/databases/$(database)/documents/investor_groups/$(groupId)).data.createdBy ||
+          request.auth.uid in get(/databases/$(database)/documents/investor_groups/$(groupId)).data.get('admins', []) ||
+          request.auth.token.role == 'admin'
+        );
+
+        match /comments/{commentId} {
+          // Members or public group viewers can read comments
+          allow read: if !exists(/databases/$(database)/documents/investor_groups/$(groupId)) ||
+            get(/databases/$(database)/documents/investor_groups/$(groupId)).data.get('isPrivate', false) == false || 
+            (request.auth.uid != null && 
+            request.auth.uid in get(/databases/$(database)/documents/investor_groups/$(groupId)).data.get('members', []));
+          // Group members can create comments
+          allow create: if request.auth.uid != null && 
+            request.auth.uid in get(/databases/$(database)/documents/investor_groups/$(groupId)).data.get('members', []) &&
+            request.resource.data.authorId == request.auth.uid;
+          // Comment author, group creator, group admin, or app admin can update/delete
+          allow update, delete: if request.auth.uid != null && (
+            resource.data.authorId == request.auth.uid ||
+            request.auth.uid == get(/databases/$(database)/documents/investor_groups/$(groupId)).data.createdBy ||
+            request.auth.uid in get(/databases/$(database)/documents/investor_groups/$(groupId)).data.get('admins', []) ||
+            request.auth.token.role == 'admin'
+          );
+        }
+      }
+
       match /member_privacy/{userId} {
         // Only the user themselves can read or write their group privacy settings
         allow read, write: if request.auth.uid != null && request.auth.uid == userId;
       }
+    }
+
+    match /verified_track_records/{userId} {
+      // Anyone can read verified track records for leaders and public profiles
+      allow read: if true;
+      // Authenticated users can write their own verified track record or admins can write
+      allow create, update: if request.auth.uid != null && (
+        request.auth.uid == userId ||
+        request.auth.token.role == 'admin'
+      );
+      allow delete: if request.auth.token.role == 'admin';
     }
 
     match /copy_trades/{tradeId} {
