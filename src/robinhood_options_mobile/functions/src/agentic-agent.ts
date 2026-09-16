@@ -89,7 +89,8 @@ export async function handleAgenticDecision(
     Dealer Positioning: ${gexData.dealerPositioning}
     pTrans: ${gexData.pTrans != null ? `$${gexData.pTrans.toFixed(2)}` : "N/A"}
     nTrans: ${gexData.nTrans != null ? `$${gexData.nTrans.toFixed(2)}` : "N/A"}
-    +GEX (T1): ${gexData.plusGex != null ? `$${gexData.plusGex.toFixed(2)}` : "N/A"}
+    +GEX (T1): ${gexData.plusGex != null ?
+    `$${gexData.plusGex.toFixed(2)}` : "N/A"}
     COTMP: ${gexData.cotmp != null ? `$${gexData.cotmp.toFixed(2)}` : "N/A"}
   ` : "N/A (Options/GEX chain data not available for this instrument)";
 
@@ -156,15 +157,20 @@ trade (BUY/SELL).
 Otherwise, set status to "rejected" and signal to "HOLD".
 
 When GEX Structural Levels are provided:
-- Apply the 11 Rules of GEX Options Trading in conjunction with Deterministic Algo Feedback, Market Context, and Macro Assessment.
+- Apply the 11 Rules of GEX Options Trading in conjunction with Deterministic
+  Algo Feedback, Market Context, and Macro Assessment.
 - CONFIRMED: GEX structural rules pass and technicals confirm -> BUY.
 - PENDING: GEX rules pass, but spot is inside watchdog buffer -> HOLD.
 - BLOCKED: Critical risk or negative gamma rules fail -> HOLD or SELL.
 
-When GEX Structural Levels are NOT provided ("N/A") (e.g., no active options chain or GEX unavailable):
+When GEX Structural Levels are NOT provided ("N/A") (e.g., no active options
+chain or GEX unavailable):
 - Do NOT reject or default to "HOLD" merely because GEX is N/A.
-- Instead, perform the analysis using the Deterministic Algo Feedback, Technical Indicators (SMA, RSI, Volume), and Macro Assessment.
-- If the technical indicators and macro regime are strongly bullish and aligned, you may issue a BUY signal based on technical and macro strength, noting that GEX was unavailable.
+- Instead, perform the analysis using the Deterministic Algo Feedback,
+  Technical Indicators (SMA, RSI, Volume), and Macro Assessment.
+- If the technical indicators and macro regime are strongly bullish and
+  aligned, you may issue a BUY signal based on technical and macro strength,
+  noting that GEX was unavailable.
 
 Output ONLY the JSON.
 `;

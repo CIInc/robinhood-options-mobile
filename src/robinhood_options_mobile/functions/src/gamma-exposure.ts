@@ -522,7 +522,8 @@ export function computeGammaExposure(
   // Robust structural fallbacks if no zero-crossings exist in the options chain
   if (pTrans === null) {
     if (totalNetGEX >= 0) {
-      // In net long gamma regime, structural support is provided at COTMP/putWall
+      // In net long gamma regime, structural support is provided
+      // at COTMP/putWall
       pTrans = cotmp || (spotPrice > 0 ?
         Math.round(spotPrice * 0.98 * 100) / 100 : null);
     } else {
