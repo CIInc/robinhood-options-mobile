@@ -51,31 +51,62 @@ class OptionLeg {
             : [];
 
   OptionLeg.fromSchwabJson(dynamic json)
-      : id = json['legId'].toString(),
+      : id = json['legId']?.toString() ?? '',
         position = null,
-        positionType = json['instruction'].toString().startsWith('BUY')
+        positionType = json['instruction'] != null &&
+                json['instruction'].toString().startsWith('BUY')
             ? 'long'
             : 'short', // BUY_TO_OPEN, SELL_TO_CLOSE
-        option = json['instrument']['instrumentId'].toString(),
+        option = json['instrument'] != null
+            ? (json['instrument']['instrumentId']?.toString() ?? '')
+            : '',
         positionEffect = json['positionEffect'] == 'OPENING' ? 'open' : 'close',
-        ratioQuantity = json['quantity'].toInt(),
-        side = json['instruction'].toString().split('_')[0].toLowerCase(),
-        expirationDate = DateFormat("MM/dd/yyyy").tryParse(json['instrument']
-                ['description']
-            .toString()
-            .split(' ')
-            .reversed
-            .skip(2)
-            .first),
-        strikePrice = double.tryParse(json['instrument']['description']
-            .toString()
-            .split(' ')
-            .reversed
-            .skip(1)
-            .first
-            .replaceFirst('\$', '')),
-        optionType = json['instrument']['putCall'].toString().toLowerCase(),
+        ratioQuantity = (json['quantity'] as num?)?.toInt() ?? 1,
+        side = json['instruction'] != null
+            ? json['instruction'].toString().split('_')[0].toLowerCase()
+            : 'buy',
+        expirationDate = _parseSchwabExpirationDate(json['instrument']),
+        strikePrice = _parseSchwabStrikePrice(json['instrument']),
+        optionType = json['instrument'] != null &&
+                json['instrument']['putCall'] != null
+            ? json['instrument']['putCall'].toString().toLowerCase()
+            : '',
         executions = [];
+
+  static DateTime? _parseSchwabExpirationDate(dynamic instrument) {
+    if (instrument == null || instrument is! Map) return null;
+    if (instrument['expirationDate'] != null) {
+      return DateTime.tryParse(instrument['expirationDate'].toString());
+    }
+    final desc = instrument['description'];
+    if (desc != null) {
+      final parts =
+          desc.toString().split(' ').where((s) => s.isNotEmpty).toList();
+      if (parts.length >= 3) {
+        final dateStr = parts[parts.length - 3];
+        return DateFormat("MM/dd/yyyy").tryParse(dateStr) ??
+            DateTime.tryParse(dateStr);
+      }
+    }
+    return null;
+  }
+
+  static double? _parseSchwabStrikePrice(dynamic instrument) {
+    if (instrument == null || instrument is! Map) return null;
+    if (instrument['strikePrice'] != null) {
+      return (instrument['strikePrice'] as num?)?.toDouble();
+    }
+    final desc = instrument['description'];
+    if (desc != null) {
+      final parts =
+          desc.toString().split(' ').where((s) => s.isNotEmpty).toList();
+      if (parts.length >= 2) {
+        final priceStr = parts[parts.length - 2].replaceAll(r'$', '');
+        return double.tryParse(priceStr);
+      }
+    }
+    return null;
+  }
 
   Map<String, dynamic> toJson() => {
         'id': id,

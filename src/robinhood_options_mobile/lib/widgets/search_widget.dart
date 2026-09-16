@@ -1337,8 +1337,10 @@ class _SearchWidgetState extends State<SearchWidget>
   }
 
   Widget _buildMoversGridItem(List<MidlandMoversItem> movers, int index) {
-    final isPositive = movers[index].marketHoursPriceMovement! > 0;
-    final isNegative = movers[index].marketHoursPriceMovement! < 0;
+    final mover = movers[index];
+    final movement = mover.marketHoursPriceMovement ?? 0.0;
+    final isPositive = movement > 0;
+    final isNegative = movement < 0;
     return Card(
         elevation: 1,
         shape: RoundedRectangleBorder(
@@ -1362,7 +1364,7 @@ class _SearchWidgetState extends State<SearchWidget>
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
-                      Text(movers[index].symbol,
+                      Text(mover.symbol,
                           style: TextStyle(
                             fontSize: 18.0,
                             fontWeight: FontWeight.bold,
@@ -1374,8 +1376,10 @@ class _SearchWidgetState extends State<SearchWidget>
                         children: [
                           Expanded(
                             child: Text(
-                                formatCurrency
-                                    .format(movers[index].marketHoursLastPrice),
+                                mover.marketHoursLastPrice != null
+                                    ? formatCurrency
+                                        .format(mover.marketHoursLastPrice)
+                                    : '',
                                 style: TextStyle(
                                   fontSize: 16.0,
                                   fontWeight: FontWeight.w500,
@@ -1396,10 +1400,7 @@ class _SearchWidgetState extends State<SearchWidget>
                               size: 18),
                           const SizedBox(width: 4),
                           Text(
-                              formatPercentage.format(movers[index]
-                                      .marketHoursPriceMovement!
-                                      .abs() /
-                                  100),
+                              formatPercentage.format(movement.abs() / 100),
                               style: TextStyle(
                                 fontSize: 15.0,
                                 fontWeight: FontWeight.w600,
