@@ -420,6 +420,7 @@ class _SearchWidgetState extends State<SearchWidget>
                       prefixIcon: const Icon(Icons.search),
                       suffixIcon: searchCtl!.text.isNotEmpty
                           ? IconButton(
+                              tooltip: 'Clear search',
                               icon: const Icon(Icons.clear),
                               onPressed: () {
                                 searchCtl!.clear();
@@ -1399,8 +1400,7 @@ class _SearchWidgetState extends State<SearchWidget>
                                   : (isNegative ? Colors.red : Colors.grey),
                               size: 18),
                           const SizedBox(width: 4),
-                          Text(
-                              formatPercentage.format(movement.abs() / 100),
+                          Text(formatPercentage.format(movement.abs() / 100),
                               style: TextStyle(
                                 fontSize: 15.0,
                                 fontWeight: FontWeight.w600,

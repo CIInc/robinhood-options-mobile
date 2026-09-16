@@ -87,7 +87,9 @@ void main() {
       service = FirestoreService(firestore: fakeDb);
     });
 
-    test('setVerifiedTrackRecord, getVerifiedTrackRecord, and streamVerifiedTrackRecord', () async {
+    test(
+        'setVerifiedTrackRecord, getVerifiedTrackRecord, and streamVerifiedTrackRecord',
+        () async {
       final record = VerifiedTrackRecord(
         userId: 'trader-abc',
         userName: 'Market Wizard',
@@ -107,12 +109,15 @@ void main() {
       expect(fetched.verifiedReturnPercent, equals(28.4));
       expect(fetched.tier, equals(VerifiedLeaderTier.verifiedLeader));
 
-      final streamed = await service.streamVerifiedTrackRecord('trader-abc').first;
+      final streamed =
+          await service.streamVerifiedTrackRecord('trader-abc').first;
       expect(streamed, isNotNull);
       expect(streamed!.userId, equals('trader-abc'));
     });
 
-    test('calculateAndVerifyLeaderTrackRecord evaluates group activities and saves record', () async {
+    test(
+        'calculateAndVerifyLeaderTrackRecord evaluates group activities and saves record',
+        () async {
       const groupId = 'group-audit-test';
       const leaderId = 'leader-audit-user';
 

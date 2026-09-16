@@ -37,7 +37,9 @@ void main() {
       service = FirestoreService(firestore: fakeDb);
     });
 
-    test('sendGroupMessage, getGroupMessages, markGroupMessageAsRead and delete', () async {
+    test(
+        'sendGroupMessage, getGroupMessages, markGroupMessageAsRead and delete',
+        () async {
       const groupId = 'group-chat-test';
 
       // Seed investor group doc
@@ -48,7 +50,10 @@ void main() {
         members: ['user-admin', 'user-member'],
         dateCreated: DateTime.now(),
       );
-      await fakeDb.collection('investor_groups').doc(groupId).set(group.toJson());
+      await fakeDb
+          .collection('investor_groups')
+          .doc(groupId)
+          .set(group.toJson());
 
       final msg = GroupMessage(
         id: 'msg-123',
