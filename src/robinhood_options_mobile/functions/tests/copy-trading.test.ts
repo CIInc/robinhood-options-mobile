@@ -1,8 +1,9 @@
 import { describe, expect, test, jest, beforeEach } from "@jest/globals";
 
+type DocumentCreatedHandler = (event: unknown) => unknown;
+
 // Define mock state
 let sourceUserGetCount = 0;
-let targetUserGetCount = 0;
 
 const mockUserDoc = jest.fn((docId: string) => {
   return {
@@ -14,7 +15,6 @@ const mockUserDoc = jest.fn((docId: string) => {
           data: () => ({ name: "Trader Joe", devices: [] }),
         };
       } else {
-        targetUserGetCount++;
         return {
           exists: true,
           data: () => ({ name: "Follower", devices: [] }),
@@ -26,14 +26,20 @@ const mockUserDoc = jest.fn((docId: string) => {
 
 const mockInstrumentGet = jest.fn(async () => ({
   exists: true,
-  data: () => ({ symbol: "AAPL", fundamentalsObj: { sector: "Tech", market_cap: 1000 } }),
+  data: () => ({
+    symbol: "AAPL",
+    fundamentalsObj: { sector: "Tech", market_cap: 1000 },
+  }),
 }));
 
 const mockInstrumentQueryGet = jest.fn(async () => ({
   empty: false,
   docs: [
     {
-      data: () => ({ symbol: "AAPL", fundamentalsObj: { sector: "Tech", market_cap: 1000 } }),
+      data: () => ({
+        symbol: "AAPL",
+        fundamentalsObj: { sector: "Tech", market_cap: 1000 },
+      }),
     },
   ],
 }));
@@ -73,7 +79,8 @@ const mockGroupsQueryGet = jest.fn(async () => ({
 const mockCopyTradesAdd = jest.fn(async () => ({ id: "ct1" }));
 
 jest.mock("firebase-functions/v2/firestore", () => ({
-  onDocumentCreated: (_path: string, handler: Function) => handler,
+  onDocumentCreated:
+    (_path: string, handler: DocumentCreatedHandler) => handler,
 }));
 
 jest.mock("firebase-admin/firestore", () => {
@@ -87,7 +94,7 @@ jest.mock("firebase-admin/firestore", () => {
         }
         if (collName === "instrument") {
           return {
-            doc: (_docId: string) => ({
+            doc: () => ({
               get: mockInstrumentGet,
             }),
             where: () => ({
@@ -131,12 +138,14 @@ jest.mock("firebase-admin/messaging", () => ({
 }));
 
 // Import after mocking
-import { onInstrumentOrderCreated, onOptionOrderCreated } from "../src/copy-trading";
+import {
+  onInstrumentOrderCreated,
+  onOptionOrderCreated,
+} from "../src/copy-trading";
 
 describe("Copy Trading N+1 query benchmark/test", () => {
   beforeEach(() => {
     sourceUserGetCount = 0;
-    targetUserGetCount = 0;
     mockUserDoc.mockClear();
     mockInstrumentGet.mockClear();
     mockGroupsQueryGet.mockClear();
