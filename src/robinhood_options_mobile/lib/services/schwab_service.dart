@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
@@ -19,6 +20,7 @@ import 'package:robinhood_options_mobile/model/forex_quote.dart';
 import 'package:robinhood_options_mobile/model/fundamentals.dart';
 import 'package:robinhood_options_mobile/model/future_historicals.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
+import 'package:robinhood_options_mobile/model/instrument_historical.dart';
 import 'package:robinhood_options_mobile/model/instrument_historicals.dart';
 import 'package:robinhood_options_mobile/model/instrument_historicals_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_order.dart';
@@ -28,6 +30,7 @@ import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_store.dart';
 import 'package:robinhood_options_mobile/model/interest_store.dart';
 import 'package:robinhood_options_mobile/model/midlands_movers_item.dart';
+import 'package:robinhood_options_mobile/utils/json.dart';
 import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/option_chain.dart';
 import 'package:robinhood_options_mobile/model/option_event.dart';
@@ -79,7 +82,9 @@ class SchwabService implements IBrokerageService {
   @override
   String redirectUrl = 'https://realizealpha.web.app';
 
-  final FirestoreService _firestoreService = FirestoreService();
+  FirestoreService? _firestoreService;
+  FirestoreService get firestoreService =>
+      _firestoreService ??= FirestoreService();
 
   // static const String scClientId = '1wzwOrhivb2PkR1UCAUVTKYqC4MTNYlj';
 
@@ -406,6 +411,14 @@ class SchwabService implements IBrokerageService {
               var stockPosition = InstrumentPosition.fromSchwabJson(
                   positionJson,
                   accountNumber: account.accountNumber);
+              final existing = instrumentPositionStore.items.firstWhereOrNull(
+                  (element) =>
+                      element.instrumentId == stockPosition.instrumentId &&
+                      element.accountNumber == stockPosition.accountNumber);
+              if (existing?.instrumentObj?.quoteObj != null) {
+                stockPosition.instrumentObj?.quoteObj =
+                    existing!.instrumentObj!.quoteObj;
+              }
               instrumentPositionStore.addOrUpdate(stockPosition);
             } else if (positionJson['instrument']['assetType'] == "OPTION" &&
                 optionPositionStore != null) {
@@ -416,10 +429,12 @@ class SchwabService implements IBrokerageService {
               // TODO
               // var optionInstrument = await getOptionInstrument(user, optionPosition.symbol, optionPosition.direction, strike, fromDate)
               // optionPosition.instrumentObj = optionInstrument;
-              var optionMarketData = await getOptionMarketData(
-                  user, optionPosition.optionInstrument!);
-              optionPosition.optionInstrument!.optionMarketData =
-                  optionMarketData;
+              if (optionPosition.optionInstrument != null) {
+                var optionMarketData = await getOptionMarketData(
+                    user, optionPosition.optionInstrument!);
+                optionPosition.optionInstrument!.optionMarketData =
+                    optionMarketData;
+              }
               optionPositionStore.addOrUpdate(optionPosition);
             }
           }
@@ -435,11 +450,13 @@ class SchwabService implements IBrokerageService {
     if (userDoc != null) {
       var userSnapshot = await userDoc.get();
       var userModel = userSnapshot.data() as User;
-      var bu = userModel.brokerageUsers.firstWhere(
+      var bu = userModel.brokerageUsers.firstWhereOrNull(
           (bu) => bu.userName == user.userName && bu.source == user.source);
-      bu.accounts = accounts;
-      await _firestoreService.updateUser(
-          userDoc as DocumentReference<User>, userModel);
+      if (bu != null) {
+        bu.accounts = accounts;
+        await firestoreService.updateUser(
+            userDoc as DocumentReference<User>, userModel);
+      }
     }
     return accounts;
   }
@@ -964,20 +981,32 @@ https://api.schwabapi.com/trader/v1/accounts/C0182387A893E4CE03E26C081206E282EE3
       DocumentReference? userDoc}) async {
     store.setLoading(true);
     try {
-      // var instrumentIds = store.items.map((e) => e.instrumentId).toList();
-      // var instrumentObjs =
-      //     await getInstrumentsByIds(user, instrumentStore, instrumentIds);
-      // for (var instrumentObj in instrumentObjs) {
-      //   var position = store.items
-      //       .firstWhere((element) => element.instrumentId == instrumentObj.id);
-      //   position.instrumentObj = instrumentObj;
-      //   store.update(position);
-      // }
+      if (store.items.isEmpty) {
+        var url = '$endpoint/trader/v1/accounts?fields=positions';
+        var results = await getJson(user, url);
+        for (var i = 0; i < results.length; i++) {
+          var result = results[i];
+          var account = Account.fromSchwabJson(result);
+          var positions = result['securitiesAccount']?['positions'];
+          if (positions != null) {
+            for (var positionJson in positions) {
+              if (positionJson['instrument']?['assetType'] == "EQUITY" ||
+                  positionJson['instrument']?['assetType'] ==
+                      "COLLECTIVE_INVESTMENT") {
+                var stockPosition = InstrumentPosition.fromSchwabJson(
+                    positionJson,
+                    accountNumber: account.accountNumber);
+                store.addOrUpdate(stockPosition);
+              }
+            }
+          }
+        }
+      }
       var symbols = store.items
           .where((e) =>
-              e.instrumentObj !=
-              null) // Figure out why in certain conditions, instrumentObj is null
+              e.instrumentObj != null && e.instrumentObj!.symbol.isNotEmpty)
           .map((e) => e.instrumentObj!.symbol)
+          .toSet()
           .toList();
       // Remove old quotes (that would be returned from cache) to get current ones
       // Added Future to ensure that the state doesn't get refreshed during the build producing the error below:
@@ -985,13 +1014,18 @@ https://api.schwabapi.com/trader/v1/accounts/C0182387A893E4CE03E26C081206E282EE3
       await Future.delayed(Duration.zero, () async {
         quoteStore.removeAll();
       });
-      var quoteObjs = await getQuoteByIds(user, quoteStore, symbols);
-      for (var quoteObj in quoteObjs) {
-        var position = store.items.firstWhere((element) =>
-            element.instrumentObj != null &&
-            element.instrumentObj!.symbol == quoteObj.symbol);
-        position.instrumentObj!.quoteObj = quoteObj;
-        store.update(position);
+      if (symbols.isNotEmpty) {
+        var quoteObjs =
+            await getQuoteByIds(user, quoteStore, symbols, fromCache: false);
+        for (var quoteObj in quoteObjs) {
+          var matchingPositions = store.items.where((element) =>
+              element.instrumentObj != null &&
+              element.instrumentObj!.symbol == quoteObj.symbol);
+          for (var position in matchingPositions) {
+            position.instrumentObj!.quoteObj = quoteObj;
+            store.update(position);
+          }
+        }
       }
       return store;
     } finally {
@@ -1003,9 +1037,35 @@ https://api.schwabapi.com/trader/v1/accounts/C0182387A893E4CE03E26C081206E282EE3
   Future<List<OptionAggregatePosition>> refreshOptionMarketData(
       BrokerageUser user,
       OptionPositionStore optionPositionStore,
-      OptionInstrumentStore optionInstrumentStore) {
-    // TODO: implement refreshOptionMarketData
-    throw UnimplementedError();
+      OptionInstrumentStore optionInstrumentStore) async {
+    try {
+      if (optionPositionStore.items.isEmpty) {
+        return [];
+      }
+      for (var position in optionPositionStore.items) {
+        var instrument = position.optionInstrument;
+        if (instrument == null && optionInstrumentStore.items.isNotEmpty) {
+          instrument = optionInstrumentStore.items.firstWhereOrNull(
+            (inst) => inst.id == position.id,
+          );
+          if (instrument != null) {
+            position.optionInstrument = instrument;
+          }
+        }
+        if (instrument != null) {
+          var data = await getOptionMarketData(user, instrument);
+          if (data != null) {
+            instrument.optionMarketData = data;
+            optionInstrumentStore.addOrUpdate(instrument);
+            optionPositionStore.update(position);
+          }
+        }
+      }
+      return optionPositionStore.items;
+    } catch (e) {
+      debugPrint('Schwab refreshOptionMarketData error: $e');
+      return optionPositionStore.items;
+    }
   }
 
   @override
@@ -1033,10 +1093,54 @@ https://api.schwabapi.com/trader/v1/accounts/C0182387A893E4CE03E26C081206E282EE3
 
   @override
   Future<List<Instrument>> getTopMovers(
-      BrokerageUser user, InstrumentStore instrumentStore) {
-    // TODO: implement getListMovers
-    // throw UnimplementedError();
-    return Future.value([]);
+      BrokerageUser user, InstrumentStore instrumentStore) async {
+    try {
+      final movers = await getMovers(user, direction: "up");
+      if (movers.isEmpty) {
+        return [];
+      }
+      List<Instrument> instruments = [];
+      for (var mover in movers) {
+        Instrument? instrument = instrumentStore.items.firstWhereOrNull(
+          (inst) => inst.symbol.toUpperCase() == mover.symbol.toUpperCase(),
+        );
+        instrument ??=
+            await getInstrumentBySymbol(user, instrumentStore, mover.symbol);
+        if (instrument == null) {
+          instrument = Instrument.fromSchwabJson({
+            'symbol': mover.symbol,
+            'description':
+                mover.description.isNotEmpty ? mover.description : mover.symbol,
+            'assetType': 'stock',
+          });
+          instrumentStore.add(instrument);
+        }
+        final last = mover.marketHoursLastPrice;
+        final pct = mover.marketHoursPriceMovement;
+        final prevClose = (last != null && pct != null && (1 + pct / 100) != 0)
+            ? last / (1 + pct / 100)
+            : null;
+        instrument.quoteObj ??= Quote(
+          symbol: mover.symbol,
+          lastTradePrice: last,
+          previousClose: prevClose,
+          adjustedPreviousClose: prevClose,
+          askSize: 0,
+          bidSize: 0,
+          tradingHalted: false,
+          hasTraded: true,
+          lastTradePriceSource: 'SCHW',
+          instrument: '',
+          instrumentId: mover.symbol,
+          updatedAt: mover.updatedAt ?? DateTime.now().toUtc(),
+        );
+        instruments.add(instrument);
+      }
+      return instruments;
+    } catch (e) {
+      debugPrint('Schwab getTopMovers error: $e');
+      return [];
+    }
   }
 
   @override
@@ -1140,27 +1244,38 @@ https://api.schwabapi.com/trader/v1/orders?fromEnteredTime=2024-09-28T23%3A59%3A
   Stream<List<InstrumentOrder>> streamPositionOrders(BrokerageUser user,
       InstrumentOrderStore store, InstrumentStore instrumentStore,
       {DocumentReference? userDoc}) async* {
-    var toDate = DateTime.now();
-    var fromDate = toDate.subtract(const Duration(days: 60));
-    var fromEnteredTime = fromDate.toIso8601String();
-    var toEnteredTime = toDate.toIso8601String();
+    try {
+      var toDate = DateTime.now().toUtc();
+      var fromDate = toDate.subtract(const Duration(days: 60));
+      var fromEnteredTime =
+          DateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").format(fromDate);
+      var toEnteredTime =
+          DateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").format(toDate);
 
-    var url =
-        "$endpoint/trader/v1/orders?fromEnteredTime=$fromEnteredTime&toEnteredTime=$toEnteredTime";
-    var resultJson = await getJson(user, url);
-    List<InstrumentOrder> orderItems = [];
-    for (var i = 0; i < resultJson.length; i++) {
-      var order = resultJson[i];
-      if (order['orderLegCollection'] != null &&
-          order['orderLegCollection'].isNotEmpty &&
-          order['orderLegCollection'][0]['orderLegType'] == 'EQUITY') {
-        var oi = InstrumentOrder.fromSchwabJson(order);
-        orderItems.add(oi);
+      var url =
+          "$endpoint/trader/v1/orders?fromEnteredTime=${Uri.encodeComponent(fromEnteredTime)}&toEnteredTime=${Uri.encodeComponent(toEnteredTime)}";
+      var resultJson = await getJson(user, url);
+      List<InstrumentOrder> orderItems = [];
+      if (resultJson is List) {
+        for (var i = 0; i < resultJson.length; i++) {
+          var order = resultJson[i];
+          if (order is Map &&
+              order['orderLegCollection'] != null &&
+              order['orderLegCollection'] is List &&
+              (order['orderLegCollection'] as List).isNotEmpty &&
+              order['orderLegCollection'][0]['orderLegType'] == 'EQUITY') {
+            var oi = InstrumentOrder.fromSchwabJson(order);
+            orderItems.add(oi);
+          }
+        }
       }
+      store.removeAll();
+      store.addAll(orderItems);
+      yield orderItems;
+    } catch (e) {
+      debugPrint('Error loading Schwab position orders: $e');
+      yield [];
     }
-    store.removeAll();
-    store.addAll(orderItems);
-    yield orderItems;
   }
 
   @override
@@ -1266,7 +1381,8 @@ https://api.schwabapi.com/trader/v1/orders?fromEnteredTime=2024-09-28T23%3A59%3A
       var resultJson = await getJson(user, url);
       for (var symbol in chunk) {
         if (resultJson[symbol] != null) {
-          var op = Quote.fromSchwabJson(resultJson[symbol]);
+          var op = Quote.fromSchwabJson(resultJson[symbol],
+              defaultSymbol: symbol.toString());
           list.add(op);
           store.addOrUpdate(op);
         }
@@ -1276,17 +1392,68 @@ https://api.schwabapi.com/trader/v1/orders?fromEnteredTime=2024-09-28T23%3A59%3A
   }
 
   @override
-  Future<List<InstrumentPosition>> refreshPositionQuote(BrokerageUser user,
-      InstrumentPositionStore store, QuoteStore quoteStore) {
-    // TODO: implement refreshPositionQuote
-    throw UnimplementedError();
+  Future<List<InstrumentPosition>> refreshPositionQuote(
+      BrokerageUser user,
+      InstrumentPositionStore store,
+      QuoteStore quoteStore) async {
+    if (store.items.isEmpty) {
+      return store.items;
+    }
+    var symbols = store.items
+        .map((e) => e.instrumentObj?.symbol)
+        .where((e) => e != null && e.isNotEmpty)
+        .cast<String>()
+        .toSet()
+        .toList();
+    if (symbols.isNotEmpty) {
+      var quoteObjs =
+          await getQuoteByIds(user, quoteStore, symbols, fromCache: false);
+      for (var quoteObj in quoteObjs) {
+        var positions = store.items.where(
+            (element) => element.instrumentObj?.symbol == quoteObj.symbol);
+        for (var position in positions) {
+          if (position.instrumentObj != null) {
+            position.instrumentObj!.quoteObj = quoteObj;
+            store.update(position);
+          }
+        }
+      }
+    }
+    return store.items;
   }
 
   @override
   Future<List<Fundamentals>> getFundamentalsById(
-      BrokerageUser user, List<String> instruments, InstrumentStore store) {
-    // TODO: implement getFundamentalsById
-    throw UnimplementedError();
+      BrokerageUser user, List<String> instruments, InstrumentStore store) async {
+    List<Fundamentals> list = [];
+    var symbols = instruments
+        .map((e) =>
+            e.contains('/') ? e.split('/').where((s) => s.isNotEmpty).last : e)
+        .where((e) => e.isNotEmpty)
+        .toSet()
+        .toList();
+    if (symbols.isEmpty) {
+      return list;
+    }
+    var len = symbols.length;
+    var size = 25;
+    List<List<String>> chunks = [];
+    for (var i = 0; i < len; i += size) {
+      var end = (i + size < len) ? i + size : len;
+      chunks.add(symbols.sublist(i, end));
+    }
+    for (var chunk in chunks) {
+      var url =
+          '$endpoint/marketdata/v1/instruments?symbol=${Uri.encodeComponent(chunk.join(','))}&projection=fundamental';
+      var resultJson = await getJson(user, url);
+      if (resultJson != null && resultJson['instruments'] != null) {
+        for (var item in resultJson['instruments']) {
+          var fund = Fundamentals.fromSchwabJson(item);
+          list.add(fund);
+        }
+      }
+    }
+    return list;
   }
 
   @override
@@ -1310,10 +1477,47 @@ https://api.schwabapi.com/trader/v1/orders?fromEnteredTime=2024-09-28T23%3A59%3A
 
   @override
   Future<List<MidlandMoversItem>> getMovers(BrokerageUser user,
-      {String direction = "up"}) {
-    // TODO: implement getMovers
-    // throw UnimplementedError();
-    return Future.value([]);
+      {String direction = "up"}) async {
+    try {
+      var sort = direction.toLowerCase() == 'down'
+          ? 'PERCENT_CHANGE_DOWN'
+          : 'PERCENT_CHANGE_UP';
+      var url = '$endpoint/marketdata/v1/movers/%24SPX?sort=$sort&frequency=0';
+      var resultJson = await getJson(user, url);
+      List<MidlandMoversItem> movers = [];
+      if (resultJson != null && resultJson['screeners'] != null) {
+        for (var item in resultJson['screeners']) {
+          var symbol = item['symbol'] as String? ?? '';
+          if (symbol.isNotEmpty) {
+            double? change = (item['change'] as num?)?.toDouble() ??
+                (item['netPercentChange'] as num?)?.toDouble() ??
+                (item['percentChange'] as num?)?.toDouble() ??
+                (item['netChange'] as num?)?.toDouble();
+            if (change == null && item['change'] != null) {
+              change = double.tryParse(item['change'].toString());
+            }
+            double? last = (item['last'] as num?)?.toDouble() ??
+                (item['lastPrice'] as num?)?.toDouble() ??
+                (item['price'] as num?)?.toDouble();
+            if (last == null && item['last'] != null) {
+              last = double.tryParse(item['last'].toString());
+            }
+            movers.add(MidlandMoversItem(
+              symbol,
+              symbol,
+              DateTime.now().toUtc(),
+              change,
+              last,
+              item['description'] as String? ?? '',
+            ));
+          }
+        }
+      }
+      return movers;
+    } catch (e) {
+      debugPrint('Schwab getMovers error: $e');
+      return [];
+    }
   }
 
   @override
@@ -1477,29 +1681,40 @@ https://api.schwabapi.com/trader/v1/orders?fromEnteredTime=2024-09-28T23%3A59%3A
   Stream<List<OptionOrder>> streamOptionOrders(
       BrokerageUser user, OptionOrderStore store,
       {DocumentReference? userDoc}) async* {
-    var toDate = DateTime.now();
-    var fromDate = toDate.subtract(const Duration(days: 60));
-    // Format: 2024-09-28T23:59:59.000Z
-    var fromEnteredTime = fromDate.toUtc().toIso8601String();
-    var toEnteredTime = toDate.toUtc().toIso8601String();
+    try {
+      var toDate = DateTime.now().toUtc();
+      var fromDate = toDate.subtract(const Duration(days: 60));
+      // Format: 2024-09-28T23:59:59.000Z
+      var fromEnteredTime =
+          DateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").format(fromDate);
+      var toEnteredTime =
+          DateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").format(toDate);
 
-    var url =
-        '$endpoint/trader/v1/orders?fromEnteredTime=$fromEnteredTime&toEnteredTime=$toEnteredTime';
+      var url =
+          '$endpoint/trader/v1/orders?fromEnteredTime=${Uri.encodeComponent(fromEnteredTime)}&toEnteredTime=${Uri.encodeComponent(toEnteredTime)}';
 
-    var results = await getJson(user, url);
-    List<OptionOrder> orders = [];
-    for (var result in results) {
-      // Check if it is an option order
-      if (result['orderLegCollection'] != null &&
-          (result['orderLegCollection'] as List).isNotEmpty) {
-        var firstLeg = result['orderLegCollection'][0];
-        if (firstLeg['orderLegType'] == 'OPTION') {
-          orders.add(OptionOrder.fromSchwabJson(result));
+      var results = await getJson(user, url);
+      List<OptionOrder> orders = [];
+      if (results is List) {
+        for (var result in results) {
+          // Check if it is an option order
+          if (result is Map &&
+              result['orderLegCollection'] != null &&
+              result['orderLegCollection'] is List &&
+              (result['orderLegCollection'] as List).isNotEmpty) {
+            var firstLeg = result['orderLegCollection'][0];
+            if (firstLeg is Map && firstLeg['orderLegType'] == 'OPTION') {
+              orders.add(OptionOrder.fromSchwabJson(result));
+            }
+          }
         }
       }
+      store.addAll(orders);
+      yield orders;
+    } catch (e) {
+      debugPrint('Error loading Schwab option orders: $e');
+      yield [];
     }
-    store.addAll(orders);
-    yield orders;
   }
 
   @override
@@ -1706,21 +1921,19 @@ https://api.schwabapi.com/marketdata/v1/instruments?symbol=Google&projection=sea
   }
 
   @override
-  Future<Quote> getQuote(BrokerageUser user, QuoteStore store, String symbol) {
-    // TODO: implement getQuote
-    return Future.value(Quote(
-        lastTradePrice: 0,
-        adjustedPreviousClose: 0,
-        askSize: 0,
-        askPrice: 0,
-        bidSize: 0,
-        bidPrice: 0,
-        symbol: symbol,
-        tradingHalted: false,
-        hasTraded: true,
-        lastTradePriceSource: '',
-        instrument: '',
-        instrumentId: ''));
+  Future<Quote> getQuote(
+      BrokerageUser user, QuoteStore store, String symbol) async {
+    final cached =
+        store.items.firstWhereOrNull((element) => element.symbol == symbol);
+    if (cached != null) {
+      return cached;
+    }
+    var quotes = await getQuoteByIds(user, store, [symbol], fromCache: false);
+    if (quotes.isNotEmpty) {
+      return quotes.first;
+    }
+    return Quote.fromSchwabJson(
+        {'symbol': symbol, 'quote': {}, 'reference': {}});
   }
 
   @override
@@ -1736,39 +1949,130 @@ https://api.schwabapi.com/marketdata/v1/instruments?symbol=Google&projection=sea
   @override
   Future<List<OptionOrder>> getOptionOrders(
       BrokerageUser user, OptionOrderStore store, String chainId) async {
-    var toDate = DateTime.now();
-    var fromDate = toDate.subtract(const Duration(days: 60));
-    var fromEnteredTime = fromDate.toUtc().toIso8601String();
-    var toEnteredTime = toDate.toUtc().toIso8601String();
+    try {
+      var toDate = DateTime.now().toUtc();
+      var fromDate = toDate.subtract(const Duration(days: 60));
+      var fromEnteredTime =
+          DateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").format(fromDate);
+      var toEnteredTime =
+          DateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").format(toDate);
 
-    var url =
-        '$endpoint/trader/v1/orders?fromEnteredTime=$fromEnteredTime&toEnteredTime=$toEnteredTime';
+      var url =
+          '$endpoint/trader/v1/orders?fromEnteredTime=${Uri.encodeComponent(fromEnteredTime)}&toEnteredTime=${Uri.encodeComponent(toEnteredTime)}';
 
-    var results = await getJson(user, url);
-    List<OptionOrder> orders = [];
-    for (var result in results) {
-      if (result['orderLegCollection'] != null &&
-          (result['orderLegCollection'] as List).isNotEmpty) {
-        var firstLeg = result['orderLegCollection'][0];
-        if (firstLeg['orderLegType'] == 'OPTION') {
-          var order = OptionOrder.fromSchwabJson(result);
-          if (order.chainId == chainId || order.chainSymbol == chainId) {
-            orders.add(order);
+      var results = await getJson(user, url);
+      List<OptionOrder> orders = [];
+      if (results is List) {
+        for (var result in results) {
+          if (result is Map &&
+              result['orderLegCollection'] != null &&
+              result['orderLegCollection'] is List &&
+              (result['orderLegCollection'] as List).isNotEmpty) {
+            var firstLeg = result['orderLegCollection'][0];
+            if (firstLeg is Map && firstLeg['orderLegType'] == 'OPTION') {
+              var order = OptionOrder.fromSchwabJson(result);
+              if (order.chainId == chainId || order.chainSymbol == chainId) {
+                orders.add(order);
+              }
+            }
           }
         }
       }
+      for (var order in orders) {
+        store.addOrUpdate(order);
+      }
+      return orders;
+    } catch (e) {
+      debugPrint('Error loading Schwab option orders for $chainId: $e');
+      return [];
     }
-    for (var order in orders) {
-      store.addOrUpdate(order);
-    }
-    return orders;
   }
 
   @override
   Future<Quote> refreshQuote(
-      BrokerageUser user, QuoteStore store, String symbol) {
-    // TODO: implement refreshQuote
-    throw UnimplementedError();
+      BrokerageUser user, QuoteStore store, String symbol) async {
+    var quotes = await getQuoteByIds(user, store, [symbol], fromCache: false);
+    if (quotes.isNotEmpty) {
+      return quotes.first;
+    }
+    return getQuote(user, store, symbol);
+  }
+
+  (String periodType, int period, String frequencyType, int frequency)
+      _convertSchwabSpanAndInterval(
+          ChartDateSpan span, String? customInterval) {
+    int freq = 5;
+    if (customInterval != null) {
+      if (customInterval == '15second') {
+        freq = 1;
+      } else if (customInterval == 'minute' || customInterval == '1m') {
+        freq = 1;
+      } else if (customInterval == '5minute' || customInterval == '5m') {
+        freq = 5;
+      } else if (customInterval == '10minute' || customInterval == '10m') {
+        freq = 10;
+      } else if (customInterval == 'hour' ||
+          customInterval == '60m' ||
+          customInterval == '1h') {
+        freq = 30;
+      } else if (customInterval == 'day') {
+        freq = 1;
+      }
+    }
+
+    switch (span) {
+      case ChartDateSpan.hour:
+      case ChartDateSpan.day:
+        return (
+          'day',
+          1,
+          'minute',
+          customInterval != null &&
+                  (freq == 1 ||
+                      freq == 5 ||
+                      freq == 10 ||
+                      freq == 15 ||
+                      freq == 30)
+              ? freq
+              : 5
+        );
+      case ChartDateSpan.week:
+        return (
+          'day',
+          5,
+          'minute',
+          customInterval != null &&
+                  (freq == 1 ||
+                      freq == 5 ||
+                      freq == 10 ||
+                      freq == 15 ||
+                      freq == 30)
+              ? freq
+              : 10
+        );
+      case ChartDateSpan.month:
+        return ('month', 1, 'daily', 1);
+      case ChartDateSpan.month_3:
+        return ('month', 3, 'daily', 1);
+      case ChartDateSpan.rolling_30:
+        return ('month', 1, 'daily', 1);
+      case ChartDateSpan.rolling_60:
+        return ('month', 2, 'daily', 1);
+      case ChartDateSpan.rolling_90:
+        return ('month', 3, 'daily', 1);
+      case ChartDateSpan.ytd:
+        return ('ytd', 1, 'daily', 1);
+      case ChartDateSpan.year:
+        return ('year', 1, 'daily', 1);
+      case ChartDateSpan.year_2:
+        return ('year', 2, 'weekly', 1);
+      case ChartDateSpan.year_3:
+        return ('year', 3, 'weekly', 1);
+      case ChartDateSpan.year_5:
+        return ('year', 5, 'weekly', 1);
+      case ChartDateSpan.all:
+        return ('year', 20, 'monthly', 1);
+    }
   }
 
   @override
@@ -1777,10 +2081,55 @@ https://api.schwabapi.com/marketdata/v1/instruments?symbol=Google&projection=sea
       {bool includeInactive = true,
       Bounds chartBoundsFilter = Bounds.trading,
       ChartDateSpan chartDateSpanFilter = ChartDateSpan.day,
-      String? chartInterval}) {
-    // TODO: implement getInstrumentHistoricals
-    return Future.value(InstrumentHistoricals(
-        '', '', '', '', '', null, null, null, null, '', null, []));
+      String? chartInterval}) async {
+    var (periodType, period, frequencyType, frequency) =
+        _convertSchwabSpanAndInterval(chartDateSpanFilter, chartInterval);
+    var needExtended = chartBoundsFilter == Bounds.trading ||
+        chartBoundsFilter == Bounds.t24_7;
+
+    var url =
+        '$endpoint/marketdata/v1/pricehistory?symbol=${Uri.encodeComponent(symbolOrInstrumentId)}&periodType=$periodType&period=$period&frequencyType=$frequencyType&frequency=$frequency&needExtendedHoursData=$needExtended&needPreviousClose=true';
+
+    var resultJson = await getJson(user, url);
+    List<InstrumentHistorical> historicals = [];
+    if (resultJson != null && resultJson['candles'] != null) {
+      for (var c in resultJson['candles']) {
+        historicals.add(InstrumentHistorical(
+          DateTime.fromMillisecondsSinceEpoch(c['datetime'] as int,
+              isUtc: true),
+          parseDouble(c['open']),
+          parseDouble(c['close']),
+          parseDouble(c['high']),
+          parseDouble(c['low']),
+          (c['volume'] as num?)?.toInt() ?? 0,
+          'regular',
+          false,
+        ));
+      }
+    }
+
+    var instrumentHistorical = InstrumentHistoricals(
+      '$endpoint/marketdata/v1/quotes?symbols=${Uri.encodeComponent(symbolOrInstrumentId)}',
+      symbolOrInstrumentId,
+      '$frequency$frequencyType',
+      chartDateSpanFilter.name,
+      chartBoundsFilter.name,
+      resultJson != null && resultJson['previousClose'] != null
+          ? parseDouble(resultJson['previousClose'])
+          : null,
+      resultJson != null && resultJson['previousCloseDate'] != null
+          ? DateTime.fromMillisecondsSinceEpoch(
+              resultJson['previousCloseDate'] as int,
+              isUtc: true)
+          : null,
+      historicals.isNotEmpty ? historicals.first.openPrice : null,
+      historicals.isNotEmpty ? historicals.first.beginsAt : null,
+      symbolOrInstrumentId,
+      symbolOrInstrumentId,
+      historicals,
+    );
+    store.set(instrumentHistorical);
+    return instrumentHistorical;
   }
 
   @override
@@ -1792,16 +2141,74 @@ https://api.schwabapi.com/marketdata/v1/instruments?symbol=Google&projection=sea
 
   @override
   Future<Fundamentals> getFundamentals(
-      BrokerageUser user, Instrument instrumentObj) {
-    // TODO: implement getFundamentals
-    return Future.value(Fundamentals(
-        volume: 0,
-        averageVolume: 0,
-        averageVolume2Weeks: 0,
-        high52Weeks: 0,
-        low52Weeks: 0,
-        marketCap: 0,
-        sharesOutstanding: 0));
+      BrokerageUser user, Instrument instrumentObj) async {
+    try {
+      var url =
+          '$endpoint/marketdata/v1/instruments?symbol=${Uri.encodeComponent(instrumentObj.symbol)}&projection=fundamental';
+      var resultJson = await getJson(user, url);
+      if (resultJson != null &&
+          resultJson['instruments'] != null &&
+          (resultJson['instruments'] as List).isNotEmpty) {
+        var item = resultJson['instruments'][0];
+        return Fundamentals.fromSchwabJson(
+          item,
+          instrument: instrumentObj.url.isNotEmpty
+              ? instrumentObj.url
+              : instrumentObj.symbol,
+          description: (instrumentObj.simpleName != null &&
+                  instrumentObj.simpleName!.isNotEmpty)
+              ? instrumentObj.simpleName!
+              : instrumentObj.name,
+        );
+      }
+    } catch (e) {
+      debugPrint('Schwab getFundamentals error: $e');
+    }
+    return Fundamentals(
+      volume: 0,
+      averageVolume: 0,
+      averageVolume2Weeks: 0,
+      high52Weeks: 0,
+      low52Weeks: 0,
+      marketCap: 0,
+      sharesOutstanding: 0,
+      instrument: instrumentObj.url.isNotEmpty
+          ? instrumentObj.url
+          : instrumentObj.symbol,
+    );
+  }
+
+  Future<Map<String, dynamic>> getMarketHours(BrokerageUser user,
+      {List<String>? markets, DateTime? date}) async {
+    var marketsParam = markets != null && markets.isNotEmpty
+        ? markets.join(',')
+        : 'equity,option';
+    var dateParam =
+        date != null ? '&date=${DateFormat('yyyy-MM-dd').format(date)}' : '';
+    var url =
+        '$endpoint/marketdata/v1/markets?markets=${Uri.encodeComponent(marketsParam)}$dateParam';
+    var resultJson = await getJson(user, url);
+    return resultJson is Map<String, dynamic> ? resultJson : {};
+  }
+
+  Future<List<DateTime>> getOptionExpirationChain(
+      BrokerageUser user, String symbol) async {
+    var url =
+        '$endpoint/marketdata/v1/expirationchain?symbol=${Uri.encodeComponent(symbol)}';
+    var resultJson = await getJson(user, url);
+    List<DateTime> expirationDates = [];
+    if (resultJson != null && resultJson['expirationList'] != null) {
+      for (var item in resultJson['expirationList']) {
+        if (item['expirationDate'] != null) {
+          var date = DateTime.tryParse(item['expirationDate'] as String);
+          if (date != null) {
+            expirationDates.add(date);
+          }
+        }
+      }
+      expirationDates.sort((a, b) => a.compareTo(b));
+    }
+    return expirationDates;
   }
 
   @override
@@ -2086,21 +2493,37 @@ https://api.schwabapi.com/marketdata/v1/instruments?symbol=Google&projection=sea
   @override
   Future<OptionMarketData?> getOptionMarketData(
       BrokerageUser user, OptionInstrument optionInstrument) async {
-    var url =
-        "$endpoint/marketdata/v1/chains?symbol=${optionInstrument.chainSymbol}&contractType=${optionInstrument.type}&includeUnderlyingQuote=true&strategy=SINGLE&strike=${optionInstrument.strikePrice.toString()}&fromDate=${DateFormat('yyyy-MM-dd').format(optionInstrument.expirationDate!)}&toDate=${DateFormat('yyyy-MM-dd').format(optionInstrument.expirationDate!)}";
-    var resultJson = await getJson(user, url);
+    try {
+      if (optionInstrument.chainSymbol.isEmpty ||
+          optionInstrument.type.isEmpty ||
+          optionInstrument.expirationDate == null ||
+          optionInstrument.strikePrice == null) {
+        return null;
+      }
+      var url =
+          "$endpoint/marketdata/v1/chains?symbol=${optionInstrument.chainSymbol}&contractType=${optionInstrument.type}&includeUnderlyingQuote=true&strategy=SINGLE&strike=${optionInstrument.strikePrice.toString()}&fromDate=${DateFormat('yyyy-MM-dd').format(optionInstrument.expirationDate!)}&toDate=${DateFormat('yyyy-MM-dd').format(optionInstrument.expirationDate!)}";
+      var resultJson = await getJson(user, url);
+      if (resultJson == null) return null;
 
-    var result = OptionMarketData.fromSchwabJson(
-        (((((resultJson['${optionInstrument.type.toLowerCase()}ExpDateMap']
-                                as Map)
-                            .entries
-                            .first)
-                        .value as Map)
-                    .entries
-                    .first)
-                .value as List)
-            .first);
-    return result;
+      var map = resultJson['${optionInstrument.type.toLowerCase()}ExpDateMap'];
+      if (map is Map && map.isNotEmpty) {
+        var expEntry = map.entries.firstOrNull;
+        if (expEntry != null &&
+            expEntry.value is Map &&
+            (expEntry.value as Map).isNotEmpty) {
+          var strikeEntry = (expEntry.value as Map).entries.firstOrNull;
+          if (strikeEntry != null &&
+              strikeEntry.value is List &&
+              (strikeEntry.value as List).isNotEmpty) {
+            return OptionMarketData.fromSchwabJson(strikeEntry.value.first);
+          }
+        }
+      }
+      return null;
+    } catch (e) {
+      debugPrint('Schwab getOptionMarketData error: $e');
+      return null;
+    }
   }
 
   @override

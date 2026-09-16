@@ -161,8 +161,9 @@ class InstrumentOrder {
         instrumentId = json['orderLegCollection'][0]['instrument']
                 ['instrumentId']
             .toString(),
-        cumulativeQuantity = json['filledQuantity'].toDouble(),
-        averagePrice = json['price'].toDouble(),
+        cumulativeQuantity =
+            (json['filledQuantity'] as num?)?.toDouble() ?? 0.0,
+        averagePrice = (json['price'] as num?)?.toDouble() ?? 0.0,
         fees = null,
         state = json['status'].toString().toLowerCase(),
         pendingCancelOpenAgent = null,
@@ -172,13 +173,16 @@ class InstrumentOrder {
             .toLowerCase(),
         timeInForce = json['duration'].toString().toLowerCase(),
         trigger = json['orderType'].toString().toLowerCase(),
-        price = json['price'].toDouble(),
-        stopPrice = json['stopPrice']?.toDouble(),
-        quantity = json['quantity'].toDouble(),
+        price = (json['price'] as num?)?.toDouble() ?? 0.0,
+        stopPrice = (json['stopPrice'] as num?)?.toDouble(),
+        quantity = (json['quantity'] as num?)?.toDouble() ?? 0.0,
         rejectReason = null,
         trailingPeg = null,
-        createdAt = DateTime.tryParse(json['enteredTime']),
-        updatedAt = DateTime.tryParse(json['closeTime'] ?? json['enteredTime']);
+        createdAt = json['enteredTime'] != null
+            ? DateTime.tryParse(json['enteredTime'])
+            : null,
+        updatedAt = DateTime.tryParse(
+            json['closeTime'] ?? json['enteredTime'] ?? '');
 
   Map<String, dynamic> toJson() => {
         'id': id,

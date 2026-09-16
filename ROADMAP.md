@@ -908,13 +908,13 @@ Technical debt accumulation slows velocity. Investing in testing, CI/CD, and sec
     - [x] Schwab Auth & Portfolio Sync (Phase 1)
     - [x] Schwab Options Order Placement (Phase 2, v0.37.5) - [Tracking: #138](https://github.com/CIInc/robinhood-options-mobile/issues/138)
     - [x] Schwab Multi-Account Support (Phase 3): Preserve Schwab account hash IDs and route orders to the selected account
-    - [ ] **Schwab Market Data Parity** ([#93](https://github.com/CIInc/robinhood-options-mobile/issues/93)):
-        - [ ] Real-time quote retrieval (`GET /marketdata/v1/quotes`) replacing stubbed `getQuote`/`refreshQuote`
-        - [ ] Historical OHLCV price candles (`GET /marketdata/v1/pricehistory`) for interactive charts and backtesting
-        - [ ] Fundamental equity data (`GET /marketdata/v1/instruments?projection=fundamental`) for market cap, PE, EPS, dividend yields
-        - [ ] Market Movers index data (`GET /marketdata/v1/movers/{index}`) for `$DJI`, `$COMPX`, `$SPX`
-        - [ ] Market operating hours and trading session status (`GET /marketdata/v1/markets`)
-        - [ ] Options expiration chains (`GET /marketdata/v1/expirationchain`) for fast expiration selectors
+    - [x] **Schwab Market Data Parity** ([#93](https://github.com/CIInc/robinhood-options-mobile/issues/93)):
+        - [x] Real-time quote retrieval (`GET /marketdata/v1/quotes`) replacing stubbed `getQuote`/`refreshQuote`
+        - [x] Historical OHLCV price candles (`GET /marketdata/v1/pricehistory`) for interactive charts and backtesting
+        - [x] Fundamental equity data (`GET /marketdata/v1/instruments?projection=fundamental`) for market cap, PE, EPS, dividend yields
+        - [x] Market Movers index data (`GET /marketdata/v1/movers/{index}`) for `$DJI`, `$COMPX`, `$SPX`
+        - [x] Market operating hours and trading session status (`GET /marketdata/v1/markets`)
+        - [x] Options expiration chains (`GET /marketdata/v1/expirationchain`) for fast expiration selectors
     - [ ] **Schwab Advanced Trading & Execution** ([#122](https://github.com/CIInc/robinhood-options-mobile/issues/122)):
         - [ ] Order preview and margin validation (`POST /trader/v1/accounts/{accountNumber}/previewOrder`) for pre-trade buying power and commission check
         - [ ] In-flight order replacement and modification (`PUT /trader/v1/accounts/{accountNumber}/orders/{orderId}`)

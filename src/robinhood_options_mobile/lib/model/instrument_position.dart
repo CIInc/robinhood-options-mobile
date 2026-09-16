@@ -33,6 +33,7 @@ import 'package:robinhood_options_mobile/utils/json.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
+import 'package:robinhood_options_mobile/model/quote.dart';
 
 class InstrumentPosition {
   final String url;
@@ -64,6 +65,79 @@ class InstrumentPosition {
   static Instrument? _parseInstrumentObj(dynamic json) {
     final obj = json['instrument_obj'] ?? json['instrumentObj'];
     return obj != null ? Instrument.fromJson(obj) : null;
+  }
+
+  static Instrument? _parseSchwabInstrumentObj(
+      dynamic json, double quantity) {
+    final inst = json['instrument'];
+    if (inst == null) return null;
+    final symbol = (inst['symbol'] ?? '').toString();
+    final cusip = (inst['cusip'] ?? '').toString();
+    final description = (inst['description'] ?? '').toString();
+    final type = (inst['type'] ?? '').toString();
+
+    final instrument = Instrument(
+      id: cusip,
+      url: '',
+      quote: '',
+      fundamentals: '',
+      splits: '',
+      state: '',
+      market: '',
+      name: description,
+      tradeable: true,
+      tradability: '',
+      symbol: symbol,
+      bloombergUnique: '',
+      country: '',
+      type: type,
+      rhsTradability: '',
+      fractionalTradability: '',
+      isSpac: false,
+      isTest: false,
+      ipoAccessSupportsDsp: false,
+      dateCreated: DateTime.now(),
+    );
+
+    final marketVal = parseDouble(json['marketValue']);
+    final avgPrice = parseDouble(json['averagePrice']);
+    if (marketVal != null || avgPrice != null) {
+      double? lastPrice;
+      if (quantity > 0 && marketVal != null) {
+        lastPrice = marketVal / quantity;
+      } else {
+        lastPrice = avgPrice;
+      }
+      if (lastPrice != null) {
+        double? netChange = parseDouble(inst['netChange']);
+        if (netChange == null &&
+            quantity > 0 &&
+            json['currentDayProfitLoss'] != null) {
+          netChange = parseDouble(json['currentDayProfitLoss'])! / quantity;
+        }
+        final prevClose =
+            (netChange != null) ? (lastPrice - netChange) : lastPrice;
+        instrument.quoteObj = Quote(
+          symbol: symbol,
+          askPrice: lastPrice,
+          askSize: 0,
+          bidPrice: lastPrice,
+          bidSize: 0,
+          lastTradePrice: lastPrice,
+          lastExtendedHoursTradePrice: null,
+          previousClose: prevClose,
+          adjustedPreviousClose: prevClose,
+          previousCloseDate: null,
+          tradingHalted: false,
+          hasTraded: true,
+          lastTradePriceSource: 'schwab',
+          updatedAt: DateTime.now().toUtc(),
+          instrument: '',
+          instrumentId: cusip,
+        );
+      }
+    }
+    return instrument;
   }
 
   InstrumentPosition(
@@ -132,14 +206,14 @@ class InstrumentPosition {
 
   InstrumentPosition.fromSchwabJson(dynamic json, {String accountNumber = ''})
       : url = '', // json['url'],
-        instrument = '/${json['instrument']['cusip']}/', // json['instrument'],
+        instrument = '/${json['instrument']?['cusip'] ?? ''}/', // json['instrument'],
         account = accountNumber,
         accountNumber = accountNumber,
-        averageBuyPrice = json['averagePrice'] as double,
-        pendingAverageBuyPrice = json['averagePrice'] as double,
-        quantity = json['longQuantity'] as double,
-        intradayAverageBuyPrice = json['averagePrice'] as double,
-        intradayQuantity = json['longQuantity'] as double,
+        averageBuyPrice = parseDouble(json['averagePrice']) ?? 0.0,
+        pendingAverageBuyPrice = parseDouble(json['averagePrice']) ?? 0.0,
+        quantity = parseDouble(json['longQuantity']) ?? 0.0,
+        intradayAverageBuyPrice = parseDouble(json['averagePrice']) ?? 0.0,
+        intradayQuantity = parseDouble(json['longQuantity']) ?? 0.0,
         sharesAvailableForExercise = 0,
         sharesHeldForBuys = 0,
         sharesHeldForSells = 0,
@@ -151,27 +225,8 @@ class InstrumentPosition {
         averageCostAffected = false,
         updatedAt = DateTime.now(),
         createdAt = DateTime.now(),
-        instrumentObj = Instrument(
-            id: json['instrument']['cusip'],
-            url: '',
-            quote: '',
-            fundamentals: '',
-            splits: '',
-            state: '',
-            market: '',
-            name: json['instrument']['description'] ?? '',
-            tradeable: true,
-            tradability: '',
-            symbol: json['instrument']['symbol'],
-            bloombergUnique: '',
-            country: '',
-            type: json['instrument']['type'] ?? '',
-            rhsTradability: '',
-            fractionalTradability: '',
-            isSpac: false,
-            isTest: false,
-            ipoAccessSupportsDsp: false,
-            dateCreated: DateTime.now());
+        instrumentObj = _parseSchwabInstrumentObj(
+            json, parseDouble(json['longQuantity']) ?? 0.0);
 
   InstrumentPosition.fromPlaidJson(dynamic json)
       : url = '', // json['url'],
