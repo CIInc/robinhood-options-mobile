@@ -434,8 +434,8 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 8, vertical: 4),
                                   decoration: BoxDecoration(
-                                    color: record.tier.color
-                                        .withValues(alpha: _isDarkTheme ? 0.25 : 0.15),
+                                    color: record.tier.color.withValues(
+                                        alpha: _isDarkTheme ? 0.25 : 0.15),
                                     borderRadius: BorderRadius.circular(20),
                                     border: Border.all(
                                         color: record.tier.color
@@ -813,7 +813,8 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: StreamBuilder<List<GroupAnalysisPost>>(
-            stream: widget.firestoreService.getGroupAnalysesStream(widget.groupId),
+            stream:
+                widget.firestoreService.getGroupAnalysesStream(widget.groupId),
             builder: (context, snapshot) {
               final analyses = snapshot.data ?? [];
               final count = analyses.length;
@@ -830,8 +831,8 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
                             Container(
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
-                                color: Colors.purple
-                                    .withValues(alpha: _isDarkTheme ? 0.15 : 0.1),
+                                color: Colors.purple.withValues(
+                                    alpha: _isDarkTheme ? 0.15 : 0.1),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: const Icon(Icons.analytics_rounded,
@@ -1077,8 +1078,8 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
-                      color:
-                          theme.colorScheme.primaryContainer.withValues(alpha: 0.4),
+                      color: theme.colorScheme.primaryContainer
+                          .withValues(alpha: 0.4),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(

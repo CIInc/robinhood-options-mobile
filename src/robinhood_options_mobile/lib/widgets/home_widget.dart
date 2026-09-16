@@ -1217,11 +1217,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
       futureOptionPositions = (futureAccounts ?? Future.value(<Account>[]))
           .catchError((_) => <Account>[])
           .then((_) => widget.service!.getOptionPositionStore(
-              widget.brokerageUser!,
-              optionPositionStore,
-              instrumentStore,
-              nonzero: !hasQuantityFilters[1],
-              userDoc: widget.userDoc));
+              widget.brokerageUser!, optionPositionStore, instrumentStore,
+              nonzero: !hasQuantityFilters[1], userDoc: widget.userDoc));
     } else if (widget.brokerageUser!.source == BrokerageSource.fidelity) {
       futureStockPositions = widget.service!.getStockPositionStore(
           widget.brokerageUser!,
@@ -1932,7 +1929,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
             child: Consumer2<InstrumentPositionStore, OptionPositionStore>(
               builder: (context, stockStore, optionStore, child) =>
                   PortfolioSectionGridWidget(
-                summaries: _sectionSummaries(context, stockStore, optionStore, account),
+                summaries: _sectionSummaries(
+                    context, stockStore, optionStore, account),
                 flagged:
                     _flaggedSections(context, stockStore, optionStore, account),
                 onSectionTap: (section) => PortfolioNavigator.openSection(
@@ -2515,11 +2513,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
         final optionInstrumentStore =
             Provider.of<OptionInstrumentStore>(context, listen: false);
 
-        futureAccounts = widget.service!.getAccounts(
-            widget.brokerageUser!,
-            accountStore,
-            portfolioStore,
-            optionPositionStore,
+        futureAccounts = widget.service!.getAccounts(widget.brokerageUser!,
+            accountStore, portfolioStore, optionPositionStore,
             instrumentPositionStore: instrumentPositionStore,
             userDoc: widget.userDoc);
         // Added to fix missing accounts in SharedPreferences after refresh. TODO: Confirm if this is necessary.
@@ -2528,13 +2523,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
             widget.brokerageUser!.accounts = accounts;
             await userStore.save();
             await widget.service!.refreshPositionQuote(
-                widget.brokerageUser!,
-                instrumentPositionStore,
-                quoteStore);
-            await widget.service!.refreshOptionMarketData(
-                widget.brokerageUser!,
-                optionPositionStore,
-                optionInstrumentStore);
+                widget.brokerageUser!, instrumentPositionStore, quoteStore);
+            await widget.service!.refreshOptionMarketData(widget.brokerageUser!,
+                optionPositionStore, optionInstrumentStore);
           }
         });
       }
