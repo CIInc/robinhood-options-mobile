@@ -181,8 +181,8 @@ class InstrumentOrder {
         createdAt = json['enteredTime'] != null
             ? DateTime.tryParse(json['enteredTime'])
             : null,
-        updatedAt =
-            DateTime.tryParse(json['closeTime'] ?? json['enteredTime'] ?? '');
+        updatedAt = DateTime.tryParse(
+            json['closeTime'] ?? json['enteredTime'] ?? '');
 
   Map<String, dynamic> toJson() => {
         'id': id,

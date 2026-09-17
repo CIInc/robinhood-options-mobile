@@ -11,8 +11,7 @@ import 'package:robinhood_options_mobile/services/schwab_service.dart';
 
 void main() {
   group('Schwab History & Orders Tests', () {
-    test('InstrumentOrder.fromSchwabJson parses equity limit order correctly',
-        () {
+    test('InstrumentOrder.fromSchwabJson parses equity limit order correctly', () {
       final json = {
         'orderId': 10001,
         'accountNumber': '12345678',
@@ -52,9 +51,7 @@ void main() {
       expect(order.createdAt, DateTime.parse('2026-09-15T14:30:00.000Z'));
     });
 
-    test(
-        'InstrumentOrder.fromSchwabJson handles market order with null price safely',
-        () {
+    test('InstrumentOrder.fromSchwabJson handles market order with null price safely', () {
       final json = {
         'orderId': 10002,
         'accountNumber': '12345678',
@@ -92,9 +89,7 @@ void main() {
       expect(order.stopPrice, isNull);
     });
 
-    test(
-        'OptionOrder.fromSchwabJson parses single-leg option limit order correctly',
-        () {
+    test('OptionOrder.fromSchwabJson parses single-leg option limit order correctly', () {
       final json = {
         'orderId': 20001,
         'orderType': 'LIMIT',
@@ -145,9 +140,7 @@ void main() {
       expect(order.legs, hasLength(1));
     });
 
-    test(
-        'OptionOrder.fromSchwabJson handles market order with null price safely',
-        () {
+    test('OptionOrder.fromSchwabJson handles market order with null price safely', () {
       final json = {
         'orderId': 20002,
         'orderType': 'MARKET',
@@ -185,8 +178,7 @@ void main() {
       expect(order.canceledQuantity, 0.0);
     });
 
-    test('Schwab user session validity: token expired but canRefresh is true',
-        () {
+    test('Schwab user session validity: token expired but canRefresh is true', () {
       final credentials = oauth2.Credentials(
         'expired_access_token',
         refreshToken: 'valid_refresh_token',
@@ -221,9 +213,7 @@ void main() {
       expect(isSessionExpired, isFalse);
     });
 
-    test(
-        'Schwab user session validity: token expired and cannot refresh is false',
-        () {
+    test('Schwab user session validity: token expired and cannot refresh is false', () {
       final credentials = oauth2.Credentials(
         'expired_access_token',
         tokenEndpoint: Uri.parse('https://api.schwabapi.com/v1/oauth/token'),
@@ -256,8 +246,7 @@ void main() {
       expect(isSessionExpired, isTrue);
     });
 
-    test('SchwabService streams yield empty list gracefully on error',
-        () async {
+    test('SchwabService streams yield empty list gracefully on error', () async {
       final service = SchwabService();
       // User with null client will throw in getJson
       final user = BrokerageUser(BrokerageSource.schwab, 'user', null, null);

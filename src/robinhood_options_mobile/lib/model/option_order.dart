@@ -126,7 +126,8 @@ class OptionOrder {
                 .fold<double>(0.0, (a, b) => a + b)
             : null,
         price = (json['price'] as num?)?.toDouble() ?? 0.0,
-        processedQuantity = (json['filledQuantity'] as num?)?.toDouble() ?? 0.0,
+        processedQuantity =
+            (json['filledQuantity'] as num?)?.toDouble() ?? 0.0,
         quantity = (json['quantity'] as num?)?.toDouble() ?? 0.0,
         refId = json['orderId'].toString(),
         state = json['status'].toString().toLowerCase(),
@@ -140,8 +141,8 @@ class OptionOrder {
         createdAt = json['enteredTime'] != null
             ? DateTime.tryParse(json['enteredTime'])
             : null,
-        updatedAt =
-            DateTime.tryParse(json['closeTime'] ?? json['enteredTime'] ?? '');
+        updatedAt = DateTime.tryParse(
+            json['closeTime'] ?? json['enteredTime'] ?? '');
 
   String get strategy {
     String strat = "";

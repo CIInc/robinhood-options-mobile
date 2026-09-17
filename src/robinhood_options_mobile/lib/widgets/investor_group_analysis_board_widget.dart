@@ -62,8 +62,7 @@ class _InvestorGroupAnalysisBoardWidgetState
     final currentUserId = auth.currentUser?.uid;
     final isMember =
         currentUserId != null && widget.group.isMember(currentUserId);
-    final isAdmin =
-        currentUserId != null && widget.group.isAdmin(currentUserId);
+    final isAdmin = currentUserId != null && widget.group.isAdmin(currentUserId);
 
     return Scaffold(
       appBar: AppBar(
@@ -131,8 +130,8 @@ class _InvestorGroupAnalysisBoardWidgetState
                 }
 
                 return ListView.builder(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16, vertical: 12),
                   itemCount: posts.length,
                   itemBuilder: (context, index) {
                     final post = posts[index];
@@ -671,8 +670,7 @@ class _InvestorGroupAnalysisBoardWidgetState
                         const SizedBox(width: 12),
                         Expanded(
                           flex: 3,
-                          child:
-                              DropdownButtonFormField<GroupAnalysisSentiment>(
+                          child: DropdownButtonFormField<GroupAnalysisSentiment>(
                             initialValue: sentiment,
                             decoration: const InputDecoration(
                               labelText: 'Sentiment',
@@ -860,8 +858,7 @@ class _InvestorGroupAnalysisBoardWidgetState
                                     strokeWidth: 2, color: Colors.white),
                               )
                             : const Icon(Icons.send_rounded),
-                        label:
-                            Text(isSaving ? 'Publishing...' : 'Publish Thesis'),
+                        label: Text(isSaving ? 'Publishing...' : 'Publish Thesis'),
                       ),
                     ),
                     const SizedBox(height: 20),
@@ -925,7 +922,8 @@ class _InvestorGroupAnalysisBoardWidgetState
                           padding: const EdgeInsets.symmetric(
                               horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
-                            color: post.sentiment.color.withValues(alpha: 0.15),
+                            color:
+                                post.sentiment.color.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Row(
@@ -1019,9 +1017,7 @@ class _InvestorGroupAnalysisBoardWidgetState
                                       fontWeight: FontWeight.bold),
                                 ),
                                 Text(
-                                  DateFormat.yMMMd()
-                                      .add_jm()
-                                      .format(post.createdAt),
+                                  DateFormat.yMMMd().add_jm().format(post.createdAt),
                                   style: TextStyle(
                                     fontSize: 11,
                                     color: theme.colorScheme.onSurfaceVariant,
@@ -1079,7 +1075,8 @@ class _InvestorGroupAnalysisBoardWidgetState
                                       mainAxisAlignment:
                                           MainAxisAlignment.spaceAround,
                                       children: [
-                                        if (post.potentialReturnPercent != null)
+                                        if (post.potentialReturnPercent !=
+                                            null)
                                           _buildTargetMetric(
                                             'Expected Gain',
                                             '${post.potentialReturnPercent! >= 0 ? '+' : ''}${post.potentialReturnPercent!.toStringAsFixed(1)}%',
@@ -1170,7 +1167,8 @@ class _InvestorGroupAnalysisBoardWidgetState
                                   child: Text(
                                     'No comments yet. Start the discussion below!',
                                     style: TextStyle(
-                                      color: theme.colorScheme.onSurfaceVariant,
+                                      color:
+                                          theme.colorScheme.onSurfaceVariant,
                                       fontSize: 13,
                                     ),
                                   ),

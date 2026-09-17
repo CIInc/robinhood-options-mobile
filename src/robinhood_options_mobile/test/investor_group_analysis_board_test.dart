@@ -16,8 +16,7 @@ void main() {
         title: 'NVDA Q3 Breakout',
         symbol: 'NVDA',
         sentiment: GroupAnalysisSentiment.bullish,
-        thesis:
-            'Robust demand for Blackwell architecture driving margin expansion.',
+        thesis: 'Robust demand for Blackwell architecture driving margin expansion.',
         entryTarget: 120.0,
         targetPrice: 150.0,
         stopLoss: 110.0,
@@ -52,9 +51,7 @@ void main() {
       expect(fromJson.isLikedBy('user-99'), isFalse);
     });
 
-    test(
-        'GroupAnalysisPost calculates potentialReturnPercent and riskRewardRatio',
-        () {
+    test('GroupAnalysisPost calculates potentialReturnPercent and riskRewardRatio', () {
       final post = GroupAnalysisPost(
         id: 'post-calc',
         groupId: 'group-1',
@@ -78,19 +75,13 @@ void main() {
     });
 
     test('GroupAnalysisSentiment and TimeHorizon parsing', () {
-      expect(GroupAnalysisSentiment.fromString('bullish'),
-          equals(GroupAnalysisSentiment.bullish));
-      expect(GroupAnalysisSentiment.fromString('bear'),
-          equals(GroupAnalysisSentiment.bearish));
-      expect(GroupAnalysisSentiment.fromString('unknown'),
-          equals(GroupAnalysisSentiment.neutral));
+      expect(GroupAnalysisSentiment.fromString('bullish'), equals(GroupAnalysisSentiment.bullish));
+      expect(GroupAnalysisSentiment.fromString('bear'), equals(GroupAnalysisSentiment.bearish));
+      expect(GroupAnalysisSentiment.fromString('unknown'), equals(GroupAnalysisSentiment.neutral));
 
-      expect(GroupAnalysisTimeHorizon.fromString('short_term'),
-          equals(GroupAnalysisTimeHorizon.shortTerm));
-      expect(GroupAnalysisTimeHorizon.fromString('long'),
-          equals(GroupAnalysisTimeHorizon.longTerm));
-      expect(GroupAnalysisTimeHorizon.fromString(null),
-          equals(GroupAnalysisTimeHorizon.mediumTerm));
+      expect(GroupAnalysisTimeHorizon.fromString('short_term'), equals(GroupAnalysisTimeHorizon.shortTerm));
+      expect(GroupAnalysisTimeHorizon.fromString('long'), equals(GroupAnalysisTimeHorizon.longTerm));
+      expect(GroupAnalysisTimeHorizon.fromString(null), equals(GroupAnalysisTimeHorizon.mediumTerm));
     });
 
     test('GroupAnalysisComment serializes and deserializes', () {
@@ -162,8 +153,7 @@ void main() {
 
       // Pin post 1
       await service.setGroupAnalysisPinned(groupId, 'post-1', true);
-      final pinnedStream =
-          service.getGroupAnalysesStream(groupId, pinnedOnly: true);
+      final pinnedStream = service.getGroupAnalysesStream(groupId, pinnedOnly: true);
       final pinnedPosts = await pinnedStream.first;
       expect(pinnedPosts.length, equals(1));
       expect(pinnedPosts.first.id, equals('post-1'));
@@ -175,8 +165,7 @@ void main() {
       expect(amdPosts.first.symbol, equals('AMD'));
 
       // Filter by sentiment
-      final bearStream = service.getGroupAnalysesStream(groupId,
-          sentiment: GroupAnalysisSentiment.bearish);
+      final bearStream = service.getGroupAnalysesStream(groupId, sentiment: GroupAnalysisSentiment.bearish);
       final bearPosts = await bearStream.first;
       expect(bearPosts.length, equals(1));
       expect(bearPosts.first.symbol, equals('TSLA'));
@@ -199,8 +188,7 @@ void main() {
       await service.createGroupAnalysis(groupId, post);
 
       // Toggle like on
-      await service.toggleGroupAnalysisLike(
-          groupId, 'post-like-test', 'user-2');
+      await service.toggleGroupAnalysisLike(groupId, 'post-like-test', 'user-2');
       var doc = await fakeDb
           .collection('investor_groups')
           .doc(groupId)
@@ -211,8 +199,7 @@ void main() {
       expect(likes, contains('user-2'));
 
       // Toggle like off
-      await service.toggleGroupAnalysisLike(
-          groupId, 'post-like-test', 'user-2');
+      await service.toggleGroupAnalysisLike(groupId, 'post-like-test', 'user-2');
       doc = await fakeDb
           .collection('investor_groups')
           .doc(groupId)
@@ -233,9 +220,7 @@ void main() {
       );
 
       await service.addGroupAnalysisComment(groupId, 'post-like-test', comment);
-      final comments = await service
-          .getGroupAnalysisCommentsStream(groupId, 'post-like-test')
-          .first;
+      final comments = await service.getGroupAnalysisCommentsStream(groupId, 'post-like-test').first;
       expect(comments.length, equals(1));
       expect(comments.first.content, equals('Solid thesis, fully agree.'));
 
