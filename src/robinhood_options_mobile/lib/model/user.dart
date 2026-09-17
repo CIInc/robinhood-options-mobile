@@ -8,6 +8,7 @@ import 'package:robinhood_options_mobile/model/investment_profile.dart';
 import 'package:robinhood_options_mobile/model/trade_signal_notification_settings.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_config.dart';
 import 'package:robinhood_options_mobile/model/futures_strategy_config.dart';
+import 'package:robinhood_options_mobile/model/portfolio_privacy_settings.dart';
 import 'package:robinhood_options_mobile/model/rebalancing_config.dart';
 
 class User {
@@ -52,6 +53,11 @@ class User {
   Map<String, double>? assetAllocationTargets;
   Map<String, double>? sectorAllocationTargets;
 
+  // Portfolio & Social Privacy
+  PortfolioPrivacySettings? portfolioPrivacy;
+  int followersCount;
+  int followingCount;
+
   // Subscription fields
   String? subscriptionStatus; // 'active', 'trial', 'none', 'expired'
   DateTime? trialStartDate;
@@ -82,6 +88,9 @@ class User {
       this.defaultOptionFilterPreset,
       this.assetAllocationTargets,
       this.sectorAllocationTargets,
+      this.portfolioPrivacy,
+      this.followersCount = 0,
+      this.followingCount = 0,
       this.subscriptionStatus,
       this.trialStartDate,
       this.subscriptionExpiryDate,
@@ -101,9 +110,15 @@ class User {
             devices: json.keys.contains('devices')
                 ? Device.fromJsonArray(json['devices'])
                 : [],
-            dateCreated: (json['dateCreated'] as Timestamp).toDate(),
+            dateCreated: json['dateCreated'] != null
+                ? (json['dateCreated'] is Timestamp
+                    ? (json['dateCreated'] as Timestamp).toDate()
+                    : DateTime.tryParse(json['dateCreated'].toString()) ?? DateTime.now())
+                : DateTime.now(),
             dateUpdated: json['dateUpdated'] != null
-                ? (json['dateUpdated'] as Timestamp).toDate()
+                ? (json['dateUpdated'] is Timestamp
+                    ? (json['dateUpdated'] as Timestamp).toDate()
+                    : DateTime.tryParse(json['dateUpdated'].toString()))
                 : null,
             lastVisited: json['lastVisited'] != null
                 ? (json['lastVisited'] as Timestamp).toDate()
@@ -137,6 +152,12 @@ class User {
             defaultOptionFilterPreset: json['defaultOptionFilterPreset'] as String?,
             assetAllocationTargets: json['assetAllocationTargets'] != null ? (json['assetAllocationTargets'] as Map<String, dynamic>).map((key, value) => MapEntry(key, (value as num).toDouble())) : null,
             sectorAllocationTargets: json['sectorAllocationTargets'] != null ? (json['sectorAllocationTargets'] as Map<String, dynamic>).map((key, value) => MapEntry(key, (value as num).toDouble())) : null,
+            portfolioPrivacy: json['portfolioPrivacy'] != null
+                ? PortfolioPrivacySettings.fromJson(
+                    json['portfolioPrivacy'] as Map<String, dynamic>)
+                : null,
+            followersCount: (json['followersCount'] as num?)?.toInt() ?? 0,
+            followingCount: (json['followingCount'] as num?)?.toInt() ?? 0,
             subscriptionStatus: json['subscriptionStatus'] as String?,
             trialStartDate: json['trialStartDate'] != null ? (json['trialStartDate'] as Timestamp).toDate() : null,
             subscriptionExpiryDate: json['subscriptionExpiryDate'] != null ? (json['subscriptionExpiryDate'] as Timestamp).toDate() : null,
@@ -171,7 +192,10 @@ class User {
       'optionFilterPresets': optionFilterPresets,
       'defaultOptionFilterPreset': defaultOptionFilterPreset,
       'assetAllocationTargets': assetAllocationTargets,
-      'sectorAllocationTargets': sectorAllocationTargets
+      'sectorAllocationTargets': sectorAllocationTargets,
+      'portfolioPrivacy': portfolioPrivacy?.toJson(),
+      'followersCount': followersCount,
+      'followingCount': followingCount,
     };
   }
 

@@ -381,13 +381,8 @@ class _InvestorGroupActivityFeedWidgetState
                     const SizedBox(height: 4),
                     Text(
                       activity.title,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 13,
-                        color: isBuy
-                            ? Colors.green[_isDarkTheme ? 300 : 700]
-                            : isSell
-                                ? Colors.red[_isDarkTheme ? 300 : 700]
-                                : null,
                         fontWeight: FontWeight.w500,
                       ),
                     ),

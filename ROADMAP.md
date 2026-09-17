@@ -46,9 +46,9 @@ This document outlines the planned features and enhancements for RealizeAlpha.
 - **Focus Areas**: Advanced trading strategies, brokerage integrations, security, social features, AI coaching, quantitative research, behavioral finance, frontier tech
 
 ### Key Highlights
-- ✅ **Recently Completed**: Investor Groups 2.0 (Group Activity Feed, Group Chat & Real-Time Messaging, Shared Analysis Boards, Performance Leaderboards, Verified Track Records for Group Leaders), Schwab API Market Data & Order History Parsing, Copy-Trading N+1 Firestore Optimization ([#146](https://github.com/CIInc/robinhood-options-mobile/pull/146)), Multi-Account & Retirement Expansion (Traditional/Roth IRAs, Connected Agents), Tax Documents & Statements, Securities Lending (SLIP), High-Yield Cash Sweeps, Banking/ACH Transfers, Corporate Action Splits, and Shareholder Say Q&A Engagement.
-- 🔥 **In Progress**: Schwab Real-Time WebSocket Streamer ([#145](https://github.com/CIInc/robinhood-options-mobile/issues/145)) and Social Platform & Performance Following (v0.47.0).
-- 🚀 **Next Milestone**: **Social Platform & Performance Following** (v0.47.0).
+- ✅ **Recently Completed**: Follow Portfolios ([#27](https://github.com/CIInc/robinhood-options-mobile/issues/27), v0.47.0), Investor Groups 2.0 (Group Activity Feed, Group Chat & Real-Time Messaging, Shared Analysis Boards, Performance Leaderboards, Verified Track Records for Group Leaders), Schwab API Market Data & Order History Parsing, Copy-Trading N+1 Firestore Optimization ([#146](https://github.com/CIInc/robinhood-options-mobile/pull/146)), Multi-Account & Retirement Expansion (Traditional/Roth IRAs, Connected Agents), Tax Documents & Statements, Securities Lending (SLIP), High-Yield Cash Sweeps, Banking/ACH Transfers, Corporate Action Splits, and Shareholder Say Q&A Engagement.
+- 🔥 **In Progress**: Schwab Real-Time WebSocket Streamer ([#145](https://github.com/CIInc/robinhood-options-mobile/issues/145)) and Security, Compliance & Tax Reporting (v0.48.0).
+- 🚀 **Next Milestone**: **Security, Compliance & Tax Reporting** (v0.48.0).
 - **Focus Areas**: Institutional-grade options analytics (GEX), AI-powered trade orchestration, and multi-brokerage expansion.
 - 🎯 **2026 Priorities**: 
   - **Q3**: AI Portfolio Architect, Smart Alerts & Market Intelligence, News & Sentiment Intelligence, Social Platform Evolution, Tax Optimization Suite
@@ -353,11 +353,15 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ **Schwab API Market Data & Order Parsing:** Comprehensive response parsing for single/multi-leg option chains, equity quotes, and price history with dedicated test coverage ([#122](https://github.com/CIInc/robinhood-options-mobile/issues/122), [#145](https://github.com/CIInc/robinhood-options-mobile/issues/145))
 - ✅ **Copy-Trading Functions Query Optimization:** Cache source user document lookup in copy-trading triggers to eliminate N+1 Firestore queries ([#146](https://github.com/CIInc/robinhood-options-mobile/pull/146))
 
-### v0.47.0 (Q4 2026 - December)
+### v0.47.0 ✅ (Released Sep 16, 2026)
 **Social Platform & Performance Following**
-- Follow portfolios ([Tracking: #27](https://github.com/CIInc/robinhood-options-mobile/issues/27))
-- Top portfolios leaderboard and user reputation system.
-- Social feed for shared trade ideas and strategy cloning.
+- ✅ **Follow Portfolios:** Follow and unfollow traders with real-time Firestore sync and dynamic counters ([#27](https://github.com/CIInc/robinhood-options-mobile/issues/27))
+- ✅ **Portfolio Privacy Controls:** Granular settings (`isPublic`, `showTradeAmounts`, `showHoldings`, `showTrades`, `allowFollowers`)
+- ✅ **Masked Public Portfolios:** Privacy-first public profile view with dollar masking (`$***`), verified track record badge, and 1-tap copy trading
+- ✅ **Following Activity Feed:** Real-time trade activity feed for followed traders with filtering and copy-trading dialog
+- ✅ **Trade Notification Controls:** Per-trader notification mute/unmute toggle in user profile and follow lists
+- Top portfolios leaderboard and user reputation system ([#26](https://github.com/CIInc/robinhood-options-mobile/issues/26)).
+- Social feed for shared trade ideas and strategy cloning ([#24](https://github.com/CIInc/robinhood-options-mobile/issues/24)).
 
 ### v0.48.0 (Q4 2026 - Late Dec)
 **Security, Compliance & Tax Reporting**
@@ -490,7 +494,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 
 ## Completed Features ✅
 
-### Investor Groups
+### Investor Groups & Social Platform
 - [x] Create and manage investor groups ([#31](https://github.com/CIInc/robinhood-options-mobile/issues/31))
 - [x] Public and private group options
 - [x] Portfolio sharing within groups
@@ -502,6 +506,12 @@ Mapping features to specific versions helps users anticipate releases and unders
 - [x] Group chat with real-time messaging, unread counts & message history ([#76](https://github.com/CIInc/robinhood-options-mobile/issues/76), [Tracking: #113](https://github.com/CIInc/robinhood-options-mobile/issues/113))
 - [x] Performance leaderboards and shared analysis boards with thesis tracking ([#77](https://github.com/CIInc/robinhood-options-mobile/issues/77), [Tracking: #113](https://github.com/CIInc/robinhood-options-mobile/issues/113))
 - [x] Verified track records & audit verification badges for group leaders ([Tracking: #113](https://github.com/CIInc/robinhood-options-mobile/issues/113))
+- [x] **Follow Portfolios** ([#27](https://github.com/CIInc/robinhood-options-mobile/issues/27)):
+-     - [x] Follow/unfollow users with real-time Firestore sync and follower/following counters
+-     - [x] Granular portfolio privacy settings (`PortfolioPrivacySettings`)
+-     - [x] Masked public portfolio profile with dollar masking (`$***`), verified track record badge, and 1-tap copy trading
+-     - [x] Following activity feed widget (`FollowingActivityFeedWidget`) with trade filtering and copy dialog
+-     - [x] Per-followed-user trade notification toggle
 
 
 ### Trade Signals & AI Trading
@@ -864,7 +874,7 @@ Q3 launches the social/community ecosystem. Investor Groups already exist (✅),
 
 #### Social Feed & Engagement ([Tracking: #113](https://github.com/CIInc/robinhood-options-mobile/issues/113))
 - [ ] **Social Signal Sharing**: Share strategies with community - **Medium** (2-3 weeks)
-- [ ] **Follow Portfolios** ([#27](https://github.com/CIInc/robinhood-options-mobile/issues/27)): Follow other users' portfolios - **Small** (1-2 weeks)
+- [x] **Follow Portfolios** ([#27](https://github.com/CIInc/robinhood-options-mobile/issues/27)): Follow other users' portfolios, privacy controls, activity feed, and trade alerts - **Small** (1-2 weeks)
 - [ ] **Portfolio Comparison Tools**: Compare performance with other users - **Medium** (2-3 weeks)
 - [ ] **Top Portfolios Leaderboard** ([#26](https://github.com/CIInc/robinhood-options-mobile/issues/26)): Showcase top-performing portfolios - **Medium** (2-3 weeks)
 - [ ] **Comment System**: Comment on shared portfolios - **Small** (1-2 weeks)

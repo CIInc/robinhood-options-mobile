@@ -8,6 +8,8 @@ import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/utils/auth.dart';
+import 'package:robinhood_options_mobile/enums.dart';
+import 'package:robinhood_options_mobile/widgets/trader_profile_widget.dart';
 import 'package:robinhood_options_mobile/widgets/user_widget.dart';
 
 class UserListTile extends StatelessWidget {
@@ -48,43 +50,90 @@ class UserListTile extends StatelessWidget {
             },
             child: heroAsset),
         title: Text(user.name ?? user.providerId?.capitalize() ?? 'Guest'),
-        subtitle: Text(
-            user.email ?? user.phoneNumber ?? ''), // (${user.role.getValue()})
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if ((userRole == UserRole.admin ||
+                    document.id == auth.currentUser?.uid) &&
+                (user.email != null || user.phoneNumber != null))
+              Text(user.email ?? user.phoneNumber ?? '')
+            else if (user.location != null && user.location!.isNotEmpty)
+              Text(
+                user.location!,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.outline,
+                    ),
+              ),
+            if (user.followersCount > 0 || user.followingCount > 0)
+              Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: Row(
+                  children: [
+                    Icon(Icons.people_outline,
+                        size: 14, color: Theme.of(context).colorScheme.outline),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${user.followersCount} ${user.followersCount == 1 ? "follower" : "followers"}',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Theme.of(context).colorScheme.outline,
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        ),
         trailing: showNavigation ? const Icon(Icons.chevron_right) : null,
         onTap: showNavigation
             ? () {
-                Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (BuildContext context) => Scaffold(
-                              appBar: AppBar(
-                                title: Text(user.name ??
-                                    user.providerId?.capitalize() ??
-                                    ''),
-                              ),
-                              body: UserWidget(
-                                auth,
+                final isSelf = auth.currentUser?.uid == document.id;
+                if (userRole == UserRole.admin && !isSelf) {
+                  // Admin user management view
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (BuildContext context) => Scaffold(
+                                appBar: AppBar(
+                                  title: Text(user.name ??
+                                      user.providerId?.capitalize() ??
+                                      ''),
+                                ),
+                                body: UserWidget(
+                                  auth,
+                                  userId: document.id,
+                                  isProfileView: true,
+                                  onSignout: () async {
+                                    final authUtil = AuthUtil(auth);
+                                    userRole = await authUtil.userRole();
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(
+                                              content: Text('Signed out'),
+                                              behavior:
+                                                  SnackBarBehavior.floating));
+                                      Navigator.pop(context);
+                                    }
+                                  },
+                                  analytics: analytics,
+                                  observer: observer,
+                                  brokerageUser: brokerageUser,
+                                  service: service,
+                                ),
+                              )));
+                } else {
+                  // Public trader profile view
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (BuildContext context) => TraderProfileWidget(
+                                auth: auth,
                                 userId: document.id,
-                                isProfileView: true,
-                                onSignout: () async {
-                                  // Reset userRole
-                                  final authUtil = AuthUtil(auth);
-                                  userRole = await authUtil.userRole();
-                                  if (context.mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(
-                                            content: Text('Signed out'),
-                                            behavior:
-                                                SnackBarBehavior.floating));
-                                    Navigator.pop(context);
-                                  }
-                                },
                                 analytics: analytics,
                                 observer: observer,
                                 brokerageUser: brokerageUser,
                                 service: service,
-                              ),
-                            )));
+                              )));
+                }
               }
             : null);
   }

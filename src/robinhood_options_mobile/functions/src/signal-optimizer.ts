@@ -1,20 +1,5 @@
 import * as logger from "firebase-functions/logger";
-import { VertexAI } from "@google-cloud/vertexai";
-
-// Initialize VertexAI client outside the function to reuse in warm instances
-const vertexAI = new VertexAI({
-  project: "realizealpha",
-  location: "us-central1",
-});
-
-const model = vertexAI.getGenerativeModel({
-  model: "gemini-3.1-flash-lite",
-  generationConfig: {
-    responseMimeType: "application/json",
-    maxOutputTokens: 120,
-    temperature: 0.1,
-  },
-});
+import { GoogleGenAI } from "@google/genai";
 
 interface OptimizationResult {
   confidenceScore: number;
@@ -97,8 +82,45 @@ MktTrend:${marketTrend.join(",")}
 MktVols:${marketVolTrend.join(",")}
 Output JSON:{confidenceScore(0-100),refinedSignal(BUY/SELL/HOLD),reasoning}`;
 
-    const result = await model.generateContent(prompt);
-    const responseText = result.response.candidates?.[0].content.parts[0].text;
+    const ai = new GoogleGenAI({
+      apiKey: process.env.GEMINI_API_KEY,
+    });
+    const primaryModel = process.env.AI_MODEL_NAME || "gemini-3.1-flash-lite";
+
+    let result;
+    try {
+      result = await ai.models.generateContent({
+        model: primaryModel,
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json",
+          maxOutputTokens: 120,
+          temperature: 0.1,
+        },
+      });
+    } catch (modelErr) {
+      if (primaryModel !== "gemini-2.5-flash-lite") {
+        logger.warn(
+          `Model ${primaryModel} failed in signal optimizer, ` +
+          "falling back to gemini-2.5-flash-lite",
+          modelErr,
+        );
+        result = await ai.models.generateContent({
+          model: "gemini-2.5-flash-lite",
+          contents: prompt,
+          config: {
+            responseMimeType: "application/json",
+            maxOutputTokens: 120,
+            temperature: 0.1,
+          },
+        });
+      } else {
+        throw modelErr;
+      }
+    }
+
+    const responseText = result.text ||
+      result.candidates?.[0]?.content?.parts?.[0]?.text;
 
     if (!responseText) {
       throw new Error("Empty response from Gemini");

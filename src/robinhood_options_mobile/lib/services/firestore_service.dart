@@ -27,6 +27,8 @@ import 'package:robinhood_options_mobile/model/trading_psychology_model.dart';
 import 'package:robinhood_options_mobile/model/group_activity.dart';
 import 'package:robinhood_options_mobile/model/group_analysis.dart';
 import 'package:robinhood_options_mobile/model/verified_track_record.dart';
+import 'package:robinhood_options_mobile/model/user_follow.dart';
+import 'package:robinhood_options_mobile/model/portfolio_privacy_settings.dart';
 
 class FirestoreService {
   final FirebaseFirestore _db;
@@ -50,6 +52,8 @@ class FirestoreService {
   final String optionInstrumentCollectionName = 'option_instruments';
   final String optionMarketDataCollectionName = 'option_market_data';
   final String verifiedTrackRecordCollectionName = 'verified_track_records';
+  final String userFollowCollectionName = 'user_follows';
+  final String socialActivityCollectionName = 'social_activities';
 
   /// A reference to the list of instruments.
   /// We are using `withConverter` to ensure that interactions with the collection
@@ -64,6 +68,13 @@ class FirestoreService {
   late final CollectionReference<User> userCollection =
       _db.collection(userCollectionName).withConverter<User>(
             fromFirestore: (snapshots, _) => User.fromJson(snapshots.data()!),
+            toFirestore: (obj, _) => obj.toJson(),
+          );
+
+  late final CollectionReference<UserFollow> userFollowCollection =
+      _db.collection(userFollowCollectionName).withConverter<UserFollow>(
+            fromFirestore: (snapshots, _) =>
+                UserFollow.fromJson(snapshots.data()!, snapshots.id),
             toFirestore: (obj, _) => obj.toJson(),
           );
 
@@ -194,10 +205,14 @@ class FirestoreService {
       // CollectionReference<User> usersCollection,
       {String? searchTerm,
       UserRole? userRole,
+      bool onlyPublic = true,
       int limit = -1,
       String sort = 'dateUpdated',
       bool sortDescending = true}) {
     Query<User> query = userCollection;
+    if (onlyPublic) {
+      query = query.where('portfolioPrivacy.isPublic', isEqualTo: true);
+    }
     if (searchTerm != null && searchTerm.isNotEmpty) {
       query = query
           .where('nameLower', isGreaterThanOrEqualTo: searchTerm.toLowerCase())
@@ -2320,6 +2335,256 @@ class FirestoreService {
       debugPrint('Failed to delete emotion log: ${e.message}');
       rethrow;
     }
+  }
+
+  // ==========================================
+  // FOLLOW PORTFOLIO & SOCIAL ENGAGEMENT (#27)
+  // ==========================================
+
+  /// Follow a user and their portfolio
+  Future<void> followUser({
+    required String currentUserId,
+    required String currentUserName,
+    String? currentUserPhotoUrl,
+    required String targetUserId,
+    required String targetUserName,
+    String? targetUserPhotoUrl,
+    bool notificationsEnabled = true,
+  }) async {
+    final followId = '${currentUserId}_$targetUserId';
+    final now = DateTime.now();
+
+    final follow = UserFollow(
+      id: followId,
+      followerId: currentUserId,
+      followerName: currentUserName,
+      followerPhotoUrl: currentUserPhotoUrl,
+      followingId: targetUserId,
+      followingName: targetUserName,
+      followingPhotoUrl: targetUserPhotoUrl,
+      createdAt: now,
+      notificationsEnabled: notificationsEnabled,
+    );
+
+    // Write to root collection
+    await userFollowCollection.doc(followId).set(follow);
+
+    // Also write to user subcollections for indexed querying
+    await _db
+        .collection(userCollectionName)
+        .doc(currentUserId)
+        .collection('following')
+        .doc(targetUserId)
+        .set(follow.toJson());
+
+    await _db
+        .collection(userCollectionName)
+        .doc(targetUserId)
+        .collection('followers')
+        .doc(currentUserId)
+        .set(follow.toJson());
+
+    // Update counts on user documents
+    try {
+      await _db
+          .collection(userCollectionName)
+          .doc(currentUserId)
+          .update({'followingCount': FieldValue.increment(1)});
+    } catch (_) {}
+
+    try {
+      await _db
+          .collection(userCollectionName)
+          .doc(targetUserId)
+          .update({'followersCount': FieldValue.increment(1)});
+    } catch (_) {}
+  }
+
+  /// Unfollow a user
+  Future<void> unfollowUser(String currentUserId, String targetUserId) async {
+    final followId = '${currentUserId}_$targetUserId';
+
+    await userFollowCollection.doc(followId).delete();
+
+    await _db
+        .collection(userCollectionName)
+        .doc(currentUserId)
+        .collection('following')
+        .doc(targetUserId)
+        .delete();
+
+    await _db
+        .collection(userCollectionName)
+        .doc(targetUserId)
+        .collection('followers')
+        .doc(currentUserId)
+        .delete();
+
+    try {
+      await _db
+          .collection(userCollectionName)
+          .doc(currentUserId)
+          .update({'followingCount': FieldValue.increment(-1)});
+    } catch (_) {}
+
+    try {
+      await _db
+          .collection(userCollectionName)
+          .doc(targetUserId)
+          .update({'followersCount': FieldValue.increment(-1)});
+    } catch (_) {}
+  }
+
+  /// Check whether current user is following target user as a stream
+  Stream<bool> isFollowingStream(String currentUserId, String targetUserId) {
+    final followId = '${currentUserId}_$targetUserId';
+    return userFollowCollection
+        .doc(followId)
+        .snapshots()
+        .map((doc) => doc.exists);
+  }
+
+  /// Check whether current user is following target user once
+  Future<bool> isFollowing(String currentUserId, String targetUserId) async {
+    final followId = '${currentUserId}_$targetUserId';
+    final doc = await userFollowCollection.doc(followId).get();
+    return doc.exists;
+  }
+
+  /// Get stream of users that [userId] is following
+  Stream<List<UserFollow>> getFollowingStream(String userId) {
+    return _db
+        .collection(userCollectionName)
+        .doc(userId)
+        .collection('following')
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => UserFollow.fromJson(doc.data(), doc.id))
+            .toList());
+  }
+
+  /// Get stream of followers for [userId]
+  Stream<List<UserFollow>> getFollowersStream(String userId) {
+    return _db
+        .collection(userCollectionName)
+        .doc(userId)
+        .collection('followers')
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => UserFollow.fromJson(doc.data(), doc.id))
+            .toList());
+  }
+
+  /// Update notification preferences for a followed user
+  Future<void> updateFollowNotification(
+    String currentUserId,
+    String targetUserId,
+    bool notificationsEnabled,
+  ) async {
+    final followId = '${currentUserId}_$targetUserId';
+    await userFollowCollection
+        .doc(followId)
+        .update({'notificationsEnabled': notificationsEnabled});
+
+    await _db
+        .collection(userCollectionName)
+        .doc(currentUserId)
+        .collection('following')
+        .doc(targetUserId)
+        .update({'notificationsEnabled': notificationsEnabled});
+  }
+
+  /// Get user's portfolio privacy settings
+  Future<PortfolioPrivacySettings> getUserPortfolioPrivacy(String userId) async {
+    try {
+      final doc = await userCollection.doc(userId).get();
+      if (doc.exists && doc.data() != null) {
+        return doc.data()!.portfolioPrivacy ?? const PortfolioPrivacySettings();
+      }
+    } catch (e) {
+      debugPrint('Error getting user portfolio privacy: $e');
+    }
+    return const PortfolioPrivacySettings();
+  }
+
+  /// Update user's portfolio privacy settings
+  Future<void> updateUserPortfolioPrivacy(
+    String userId,
+    PortfolioPrivacySettings settings,
+  ) async {
+    await _db.collection(userCollectionName).doc(userId).update({
+      'portfolioPrivacy': settings.toJson(),
+      'dateUpdated': DateTime.now(),
+    });
+  }
+
+  /// Stream of activities across followed users
+  Stream<List<GroupActivity>> getFollowedUsersActivitiesStream(
+    List<String> followedUserIds, {
+    int limit = 30,
+  }) {
+    if (followedUserIds.isEmpty) {
+      return Stream.value([]);
+    }
+    final queryIds = followedUserIds.take(30).toList();
+    return _db
+        .collection(socialActivityCollectionName)
+        .where('userId', whereIn: queryIds)
+        .orderBy('timestamp', descending: true)
+        .limit(limit)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => GroupActivity.fromJson(doc.data(), doc.id))
+            .toList());
+  }
+
+  /// Record a public trade activity if user's privacy settings permit it
+  Future<void> recordUserTradeActivity({
+    required String userId,
+    required String userName,
+    String? userPhotoUrl,
+    required String title,
+    String? description,
+    required String symbol,
+    required String side,
+    required double quantity,
+    required double price,
+    String? orderType,
+    String? assetType,
+    Map<String, dynamic>? details,
+  }) async {
+    final privacy = await getUserPortfolioPrivacy(userId);
+    if (!privacy.isPublic || !privacy.showTrades) {
+      debugPrint('Trade activity not published due to user privacy settings');
+      return;
+    }
+
+    final activity = GroupActivity(
+      id: '',
+      groupId: 'public_social_feed',
+      userId: userId,
+      userName: userName,
+      userPhotoUrl: userPhotoUrl,
+      type: GroupActivityType.trade,
+      title: title,
+      description: description,
+      timestamp: DateTime.now(),
+      symbol: symbol,
+      side: side,
+      quantity: quantity,
+      price: price,
+      orderType: orderType,
+      assetType: assetType,
+      details: details,
+      isAnonymous: false,
+      hideAmounts: !privacy.showTradeAmounts,
+    );
+
+    await _db
+        .collection(socialActivityCollectionName)
+        .add(activity.toJson());
   }
 }
 

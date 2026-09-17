@@ -12,6 +12,8 @@ import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/investor_group_detail_widget.dart';
 import 'package:robinhood_options_mobile/widgets/investor_group_create_widget.dart';
 import 'package:robinhood_options_mobile/widgets/copy_trading_dashboard_widget.dart';
+import 'package:robinhood_options_mobile/widgets/following_activity_feed_widget.dart';
+import 'package:robinhood_options_mobile/widgets/users_widget.dart';
 import 'package:robinhood_options_mobile/model/verified_track_record.dart';
 
 class InvestorGroupsWidget extends StatefulWidget {
@@ -38,7 +40,8 @@ class InvestorGroupsWidget extends StatefulWidget {
   State<InvestorGroupsWidget> createState() => _InvestorGroupsWidgetState();
 }
 
-class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget> {
+class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget>
+    with SingleTickerProviderStateMixin {
   Stream<QuerySnapshot<InvestorGroup>>? _publicGroupsStream;
   Stream<QuerySnapshot<InvestorGroup>>? _userGroupsStream;
   Stream<QuerySnapshot<InvestorGroup>>? _pendingInvitationsStream;
@@ -46,17 +49,28 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget> {
   String _searchQuery = '';
   String _sortBy = 'name'; // name, members, recent
   final TextEditingController _searchController = TextEditingController();
+  late final TabController _tabController;
+  int _currentTabIndex = 0;
   int _pendingInvitationCount = 0;
 
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 3, vsync: this);
+    _tabController.addListener(() {
+      if (_tabController.index != _currentTabIndex) {
+        setState(() {
+          _currentTabIndex = _tabController.index;
+        });
+      }
+    });
     _refreshStreams();
     _logScreenView();
   }
 
   @override
   void dispose() {
+    _tabController.dispose();
     _searchController.dispose();
     super.dispose();
   }
@@ -108,6 +122,26 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget> {
             },
             actions: [
               IconButton(
+                icon: const Icon(Icons.dynamic_feed_rounded),
+                tooltip: 'Following Activity Feed',
+                onPressed: () {
+                  widget.analytics.logEvent(name: 'view_following_activity_feed');
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => FollowingActivityFeedWidget(
+                        auth: auth,
+                        firestoreService: widget.firestoreService,
+                        analytics: widget.analytics,
+                        observer: widget.observer,
+                        brokerageUser: widget.brokerageUser,
+                        service: widget.service,
+                      ),
+                    ),
+                  );
+                },
+              ),
+              IconButton(
                 icon: const Icon(Icons.copy_rounded),
                 tooltip: 'Copy Trading History',
                 onPressed: () {
@@ -122,6 +156,7 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget> {
               ),
             ],
             bottom: TabBar(
+              controller: _tabController,
               indicatorWeight: 3,
               indicatorSize: TabBarIndicatorSize.tab,
               tabs: [
@@ -182,14 +217,15 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget> {
         body: Stack(
           children: [
             TabBarView(
+              controller: _tabController,
               children: [
                 _buildPublicGroups(context),
                 _buildMyGroups(context),
                 _buildPendingInvitations(context),
               ],
             ),
-            // Floating Action Button for creating groups
-            if (auth.currentUser != null)
+            // Floating Action Button for creating groups - only shown on Discover (0) and My Groups (1)
+            if (auth.currentUser != null && _currentTabIndex != 2)
               Positioned(
                 right: 16,
                 bottom: 16,
@@ -1191,6 +1227,85 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget> {
             slivers: [
               SliverToBoxAdapter(
                 child: _buildSearchAndSort(),
+              ),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+                  child: Card(
+                    elevation: 1,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      side: BorderSide(
+                        color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
+                      ),
+                    ),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(16),
+                      onTap: () {
+                        widget.analytics.logEvent(name: 'discover_tab_traders_banner_tapped');
+                        if (widget.brokerageUser != null && widget.service != null) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => UsersWidget(
+                                auth,
+                                widget.service!,
+                                analytics: widget.analytics,
+                                observer: widget.observer,
+                                brokerageUser: widget.brokerageUser!,
+                              ),
+                            ),
+                          );
+                        }
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).colorScheme.primaryContainer,
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.person_search_rounded,
+                                color: Theme.of(context).colorScheme.onPrimaryContainer,
+                                size: 24,
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Discover & Follow Traders',
+                                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    'Find top performers and follow their live portfolios',
+                                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                        ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Icon(
+                              Icons.arrow_forward_ios_rounded,
+                              size: 16,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
               ),
               if (filteredGroups.isEmpty && _searchQuery.trim().isNotEmpty)
                 SliverFillRemaining(
