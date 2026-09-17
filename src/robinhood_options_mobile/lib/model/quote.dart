@@ -96,14 +96,18 @@ class Quote {
         lastTradePrice = parseDouble(json['quote']?['lastPrice'] ??
             json['quote']?['regularMarketLastPrice'] ??
             json['quote']?['mark']),
-        lastExtendedHoursTradePrice = parseDouble(
-            json['quote']?['postMarketPrice'] ?? json['quote']?['preMarketPrice']),
+        lastExtendedHoursTradePrice = parseDouble(json['quote']
+                ?['postMarketPrice'] ??
+            json['quote']?['preMarketPrice']),
         previousClose = parseDouble(
             json['quote']?['closePrice'] ?? json['quote']?['openPrice']),
         adjustedPreviousClose = parseDouble(
             json['quote']?['closePrice'] ?? json['quote']?['openPrice']),
         previousCloseDate = null,
-        symbol = json['symbol'] ?? json['reference']?['symbol'] ?? defaultSymbol ?? '',
+        symbol = json['symbol'] ??
+            json['reference']?['symbol'] ??
+            defaultSymbol ??
+            '',
         tradingHalted = json['quote']?['securityStatus'] == 'Halted' ||
             json['quote']?['tradingHalted'] == true,
         hasTraded = (json['quote']?['totalVolume'] as num?) != null
@@ -120,7 +124,8 @@ class Quote {
                     isUtc: true)
                 : DateTime.now().toUtc()),
         instrument = json['instrument'] ?? '',
-        instrumentId = json['reference']?['cusip'] ?? json['instrument_id'] ?? '';
+        instrumentId =
+            json['reference']?['cusip'] ?? json['instrument_id'] ?? '';
 
   Map<String, dynamic> toJson() => {
         'ask_price': askPrice,
