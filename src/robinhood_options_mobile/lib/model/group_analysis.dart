@@ -184,9 +184,10 @@ class GroupAnalysisPost {
               .toList() ??
           const [],
       commentsCount: (json['commentsCount'] as num?)?.toInt() ?? 0,
-      tags:
-          (json['tags'] as List<dynamic>?)?.map((e) => e.toString()).toList() ??
-              const [],
+      tags: (json['tags'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          const [],
       createdAt: parseDate(json['createdAt']),
       updatedAt:
           json['updatedAt'] != null ? parseDate(json['updatedAt']) : null,

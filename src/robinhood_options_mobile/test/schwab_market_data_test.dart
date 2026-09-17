@@ -88,8 +88,7 @@ void main() {
       expect(quote.previousClose, 10.0);
     });
 
-    test('Fundamentals.fromSchwabJson parses equity fundamentals correctly',
-        () {
+    test('Fundamentals.fromSchwabJson parses equity fundamentals correctly', () {
       final json = {
         'cusip': '037833100',
         'symbol': 'AAPL',
@@ -115,8 +114,7 @@ void main() {
 
       final fundamentals = Fundamentals.fromSchwabJson(
         json,
-        instrument:
-            'https://api.schwabapi.com/marketdata/v1/instruments?symbol=AAPL',
+        instrument: 'https://api.schwabapi.com/marketdata/v1/instruments?symbol=AAPL',
         description: 'Apple Inc.',
       );
 
@@ -163,8 +161,7 @@ void main() {
       List<InstrumentHistorical> historicals = [];
       for (var c in candlesJson['candles'] as List) {
         historicals.add(InstrumentHistorical(
-          DateTime.fromMillisecondsSinceEpoch(c['datetime'] as int,
-              isUtc: true),
+          DateTime.fromMillisecondsSinceEpoch(c['datetime'] as int, isUtc: true),
           parseDouble(c['open']),
           parseDouble(c['close']),
           parseDouble(c['high']),
@@ -249,9 +246,7 @@ void main() {
       expect(movers[1].marketHoursPriceMovement, 8.90);
     });
 
-    test(
-        'Parses Schwab market movers with null or alternative field names safely',
-        () {
+    test('Parses Schwab market movers with null or alternative field names safely', () {
       final screenersJson = {
         'screeners': [
           {
@@ -344,8 +339,7 @@ void main() {
       expect(dates[2], DateTime(2026, 10, 16));
     });
 
-    test('Position store updates quotes safely without throwing StateError',
-        () {
+    test('Position store updates quotes safely without throwing StateError', () {
       final store = InstrumentPositionStore();
       final pos1 = InstrumentPosition.fromSchwabJson(
         {
@@ -411,8 +405,7 @@ void main() {
       expect(pos2.instrumentObj?.quoteObj?.lastTradePrice, 220.0);
     });
 
-    test('Quote.fromSchwabJson falls back to defaultSymbol if symbol is absent',
-        () {
+    test('Quote.fromSchwabJson falls back to defaultSymbol if symbol is absent', () {
       final quote = Quote.fromSchwabJson({
         'quote': {
           'lastPrice': 100.0,
@@ -455,8 +448,8 @@ void main() {
         },
       });
 
-      var positions = store.items
-          .where((element) => element.instrumentObj?.symbol == quote.symbol);
+      var positions = store.items.where(
+          (element) => element.instrumentObj?.symbol == quote.symbol);
       for (var p in positions) {
         if (p.instrumentObj != null) {
           p.instrumentObj!.quoteObj = quote;
@@ -469,9 +462,7 @@ void main() {
       expect(store.equity, 550.0); // 10 shares * $55.0
     });
 
-    test(
-        'OptionMarketData.fromSchwabJson parses quotes, Greeks, and calculations correctly',
-        () {
+    test('OptionMarketData.fromSchwabJson parses quotes, Greeks, and calculations correctly', () {
       final json = {
         'symbol': 'UBER  260220C00090000',
         'description': 'UBER 02/20/2026 90.00 C',
@@ -512,9 +503,7 @@ void main() {
       expect(data.changeToday, closeTo(0.08, 0.001));
     });
 
-    test(
-        'Defensive chains parser does not throw StateError on empty expiration maps',
-        () {
+    test('Defensive chains parser does not throw StateError on empty expiration maps', () {
       final emptyChainJson = {
         'status': 'SUCCESS',
         'symbol': 'GOOG',
@@ -567,9 +556,7 @@ void main() {
       expect(parsed.symbol, 'GOOG');
     });
 
-    test(
-        'OptionPositionStore and OptionInstrumentStore update and calculate equity',
-        () {
+    test('OptionPositionStore and OptionInstrumentStore update and calculate equity', () {
       final account = Account.fromSchwabJson({
         'securitiesAccount': {
           'accountNumber': 'SCHWAB-OPT-1',
@@ -625,8 +612,7 @@ void main() {
       expect(optionStore.equity, 600.0);
     });
 
-    test('getTopMovers converts MidlandMoversItem into Instruments with Quotes',
-        () {
+    test('getTopMovers converts MidlandMoversItem into Instruments with Quotes', () {
       final instrumentStore = InstrumentStore();
       final mover = MidlandMoversItem(
         'PLTR',

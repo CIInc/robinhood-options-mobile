@@ -1691,8 +1691,7 @@ class FirestoreService {
         winRate = (winningTrades / totalTrades) * 100.0;
         if (totalCostDollars > 0) {
           returnPercent =
-              ((totalGainDollars - totalCostDollars) / totalCostDollars) *
-                  100.0;
+              ((totalGainDollars - totalCostDollars) / totalCostDollars) * 100.0;
         } else {
           returnPercent = totalGainDollars > 0 ? 15.0 : 0.0;
         }
