@@ -13,6 +13,7 @@ import 'package:robinhood_options_mobile/widgets/investor_group_detail_widget.da
 import 'package:robinhood_options_mobile/widgets/investor_group_create_widget.dart';
 import 'package:robinhood_options_mobile/widgets/copy_trading_dashboard_widget.dart';
 import 'package:robinhood_options_mobile/widgets/following_activity_feed_widget.dart';
+import 'package:robinhood_options_mobile/widgets/top_portfolios_leaderboard_widget.dart';
 import 'package:robinhood_options_mobile/widgets/users_widget.dart';
 import 'package:robinhood_options_mobile/model/verified_track_record.dart';
 
@@ -125,7 +126,8 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget>
                 icon: const Icon(Icons.dynamic_feed_rounded),
                 tooltip: 'Following Activity Feed',
                 onPressed: () {
-                  widget.analytics.logEvent(name: 'view_following_activity_feed');
+                  widget.analytics
+                      .logEvent(name: 'view_following_activity_feed');
                   Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -1117,6 +1119,214 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget>
     );
   }
 
+  Widget _buildDiscoverTopCards(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              child: Card(
+                elevation: 1,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: BorderSide(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .outlineVariant
+                        .withValues(alpha: 0.5),
+                  ),
+                ),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(16),
+                  onTap: () {
+                    widget.analytics.logEvent(
+                        name: 'view_top_portfolios_leaderboard_card_tapped');
+                    if (widget.brokerageUser != null &&
+                        widget.service != null) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => TopPortfoliosLeaderboardWidget(
+                            auth: auth,
+                            firestoreService: widget.firestoreService,
+                            analytics: widget.analytics,
+                            observer: widget.observer,
+                            brokerageUser: widget.brokerageUser!,
+                            service: widget.service!,
+                          ),
+                        ),
+                      );
+                    }
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.all(12.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .primary
+                                    .withValues(alpha: 0.15),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.emoji_events_rounded,
+                                color: Theme.of(context).colorScheme.primary,
+                                size: 20,
+                              ),
+                            ),
+                            Icon(
+                              Icons.arrow_forward_ios_rounded,
+                              size: 13,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant
+                                  .withValues(alpha: 0.6),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          'Top Portfolios',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style:
+                              Theme.of(context).textTheme.titleSmall?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Ranked traders & returns',
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant,
+                                    fontSize: 11,
+                                    height: 1.2,
+                                  ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Card(
+                elevation: 1,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: BorderSide(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .outlineVariant
+                        .withValues(alpha: 0.5),
+                  ),
+                ),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(16),
+                  onTap: () {
+                    widget.analytics
+                        .logEvent(name: 'discover_tab_traders_banner_tapped');
+                    if (widget.brokerageUser != null &&
+                        widget.service != null) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => UsersWidget(
+                            auth,
+                            widget.service!,
+                            analytics: widget.analytics,
+                            observer: widget.observer,
+                            brokerageUser: widget.brokerageUser!,
+                          ),
+                        ),
+                      );
+                    }
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.all(12.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .primaryContainer,
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.person_search_rounded,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onPrimaryContainer,
+                                size: 20,
+                              ),
+                            ),
+                            Icon(
+                              Icons.arrow_forward_ios_rounded,
+                              size: 13,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant
+                                  .withValues(alpha: 0.6),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          'Discover Traders',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style:
+                              Theme.of(context).textTheme.titleSmall?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Find & follow top peers',
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant,
+                                    fontSize: 11,
+                                    height: 1.2,
+                                  ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildPublicGroups(BuildContext context) {
     return StreamBuilder(
       stream: _publicGroupsStream,
@@ -1131,6 +1341,9 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget>
         if (!snapshot.hasData || snapshot.data!.size == 0) {
           return CustomScrollView(
             slivers: [
+              SliverToBoxAdapter(
+                child: _buildDiscoverTopCards(context),
+              ),
               SliverFillRemaining(
                 hasScrollBody: false,
                 child: Center(
@@ -1229,83 +1442,7 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget>
                 child: _buildSearchAndSort(),
               ),
               SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
-                  child: Card(
-                    elevation: 1,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      side: BorderSide(
-                        color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
-                      ),
-                    ),
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(16),
-                      onTap: () {
-                        widget.analytics.logEvent(name: 'discover_tab_traders_banner_tapped');
-                        if (widget.brokerageUser != null && widget.service != null) {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => UsersWidget(
-                                auth,
-                                widget.service!,
-                                analytics: widget.analytics,
-                                observer: widget.observer,
-                                brokerageUser: widget.brokerageUser!,
-                              ),
-                            ),
-                          );
-                        }
-                      },
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                color: Theme.of(context).colorScheme.primaryContainer,
-                                shape: BoxShape.circle,
-                              ),
-                              child: Icon(
-                                Icons.person_search_rounded,
-                                color: Theme.of(context).colorScheme.onPrimaryContainer,
-                                size: 24,
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Discover & Follow Traders',
-                                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    'Find top performers and follow their live portfolios',
-                                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                        ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Icon(
-                              Icons.arrow_forward_ios_rounded,
-                              size: 16,
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
+                child: _buildDiscoverTopCards(context),
               ),
               if (filteredGroups.isEmpty && _searchQuery.trim().isNotEmpty)
                 SliverFillRemaining(

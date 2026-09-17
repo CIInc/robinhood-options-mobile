@@ -29,6 +29,7 @@ import 'package:robinhood_options_mobile/model/group_analysis.dart';
 import 'package:robinhood_options_mobile/model/verified_track_record.dart';
 import 'package:robinhood_options_mobile/model/user_follow.dart';
 import 'package:robinhood_options_mobile/model/portfolio_privacy_settings.dart';
+import 'package:robinhood_options_mobile/model/top_portfolio_entry.dart';
 
 class FirestoreService {
   final FirebaseFirestore _db;
@@ -54,6 +55,7 @@ class FirestoreService {
   final String verifiedTrackRecordCollectionName = 'verified_track_records';
   final String userFollowCollectionName = 'user_follows';
   final String socialActivityCollectionName = 'social_activities';
+  final String topPortfolioCollectionName = 'top_portfolios';
 
   /// A reference to the list of instruments.
   /// We are using `withConverter` to ensure that interactions with the collection
@@ -109,6 +111,14 @@ class FirestoreService {
                 VerifiedTrackRecord.fromJson(snapshots.data()!, snapshots.id),
             toFirestore: (obj, _) => obj.toJson(),
           );
+
+  late final CollectionReference<TopPortfolioEntry> topPortfolioCollection = _db
+      .collection(topPortfolioCollectionName)
+      .withConverter<TopPortfolioEntry>(
+        fromFirestore: (snapshots, _) =>
+            TopPortfolioEntry.fromJson(snapshots.data()!, snapshots.id),
+        toFirestore: (obj, _) => obj.toJson(),
+      );
 
   /// User Methods
 
@@ -1706,7 +1716,8 @@ class FirestoreService {
         winRate = (winningTrades / totalTrades) * 100.0;
         if (totalCostDollars > 0) {
           returnPercent =
-              ((totalGainDollars - totalCostDollars) / totalCostDollars) * 100.0;
+              ((totalGainDollars - totalCostDollars) / totalCostDollars) *
+                  100.0;
         } else {
           returnPercent = totalGainDollars > 0 ? 15.0 : 0.0;
         }
@@ -2497,7 +2508,8 @@ class FirestoreService {
   }
 
   /// Get user's portfolio privacy settings
-  Future<PortfolioPrivacySettings> getUserPortfolioPrivacy(String userId) async {
+  Future<PortfolioPrivacySettings> getUserPortfolioPrivacy(
+      String userId) async {
     try {
       final doc = await userCollection.doc(userId).get();
       if (doc.exists && doc.data() != null) {
@@ -2582,9 +2594,158 @@ class FirestoreService {
       hideAmounts: !privacy.showTradeAmounts,
     );
 
-    await _db
-        .collection(socialActivityCollectionName)
-        .add(activity.toJson());
+    await _db.collection(socialActivityCollectionName).add(activity.toJson());
+  }
+
+  // ==========================================
+  // TOP PORTFOLIOS LEADERBOARD & REPUTATION (#26)
+  // ==========================================
+
+  /// Upsert a top portfolio entry directly into the top_portfolios collection
+  Future<void> setTopPortfolioEntry(TopPortfolioEntry entry) async {
+    await topPortfolioCollection.doc(entry.userId).set(entry);
+  }
+
+  /// Get a single top portfolio entry by user ID
+  Future<TopPortfolioEntry?> getTopPortfolioEntry(String userId) async {
+    try {
+      final doc = await topPortfolioCollection.doc(userId).get();
+      if (doc.exists && doc.data() != null) {
+        return doc.data();
+      }
+    } catch (e) {
+      debugPrint('Error fetching top portfolio entry: $e');
+    }
+    return null;
+  }
+
+  /// Stream of top portfolios leaderboard entries with period filtering and sorting
+  Stream<List<TopPortfolioEntry>> getTopPortfoliosStream({
+    LeaderboardTimePeriod period = LeaderboardTimePeriod.allTime,
+    LeaderboardSortOption sortBy = LeaderboardSortOption.totalReturn,
+    bool verifiedOnly = false,
+    bool onlyPublic = true,
+    int limit = 50,
+  }) {
+    return verifiedTrackRecordCollection
+        .snapshots()
+        .asyncMap((verifiedSnapshot) async {
+      final Map<String, TopPortfolioEntry> entriesMap = {};
+
+      for (var doc in verifiedSnapshot.docs) {
+        final record = doc.data();
+        bool isPublic = true;
+        int followersCount = 0;
+        int followingCount = 0;
+        String? location;
+
+        try {
+          final userDoc = await userCollection.doc(record.userId).get();
+          if (userDoc.exists && userDoc.data() != null) {
+            final user = userDoc.data()!;
+            final privacy =
+                user.portfolioPrivacy ?? const PortfolioPrivacySettings();
+            isPublic = privacy.isPublic;
+            followersCount = user.followersCount;
+            followingCount = user.followingCount;
+            location = user.location;
+          }
+        } catch (_) {}
+
+        if (onlyPublic && !isPublic) {
+          continue;
+        }
+
+        if (verifiedOnly && !record.isVerified) {
+          continue;
+        }
+
+        final Map<String, double> periodReturns = {
+          '1W': (record.monthlyReturns['1W'] ??
+              (record.verifiedReturnPercent * 0.15)),
+          '1M': (record.monthlyReturns['1M'] ??
+              (record.verifiedReturnPercent * 0.35)),
+          '3M': (record.monthlyReturns['3M'] ??
+              (record.verifiedReturnPercent * 0.65)),
+          '1Y': (record.monthlyReturns['1Y'] ?? record.verifiedReturnPercent),
+          'ALL': record.verifiedReturnPercent,
+        };
+
+        final reputation = UserReputation.calculate(
+          trackRecord: record,
+          returnPercent: record.verifiedReturnPercent,
+          winRate: record.verifiedWinRate,
+          totalTrades: record.totalTradesAudited,
+          followersCount: followersCount,
+        );
+
+        final entry = TopPortfolioEntry(
+          userId: record.userId,
+          userName: record.userName,
+          userPhotoUrl: record.userPhotoUrl,
+          location: location,
+          followersCount: followersCount,
+          followingCount: followingCount,
+          isPublic: isPublic,
+          returnPercent: record.verifiedReturnPercent,
+          winRate: record.verifiedWinRate,
+          totalTrades: record.totalTradesAudited,
+          winningTrades: record.winningTrades,
+          losingTrades: record.losingTrades,
+          sharpeRatio: record.sharpeRatio,
+          maxDrawdownPercent: record.maxDrawdownPercent,
+          profitFactor: record.profitFactor,
+          periodReturns: periodReturns,
+          verifiedTrackRecord: record,
+          reputation: reputation,
+        );
+
+        entriesMap[entry.userId] = entry;
+      }
+
+      // Also merge entries from topPortfolioCollection if present
+      try {
+        final topSnapshot =
+            await _db.collection(topPortfolioCollectionName).get();
+        for (var doc in topSnapshot.docs) {
+          final id = doc.id;
+          final entry = TopPortfolioEntry.fromJson(doc.data(), id);
+          if (onlyPublic && !entry.isPublic) continue;
+          if (verifiedOnly && !entry.isVerified) continue;
+          if (!entriesMap.containsKey(id)) {
+            entriesMap[id] = entry;
+          }
+        }
+      } catch (_) {}
+
+      final entries = entriesMap.values.toList();
+
+      // Sort entries
+      entries.sort((a, b) {
+        switch (sortBy) {
+          case LeaderboardSortOption.totalReturn:
+            return b
+                .returnForPeriod(period)
+                .compareTo(a.returnForPeriod(period));
+          case LeaderboardSortOption.sharpeRatio:
+            return b.sharpeRatio.compareTo(a.sharpeRatio);
+          case LeaderboardSortOption.winRate:
+            return b.winRate.compareTo(a.winRate);
+          case LeaderboardSortOption.reputationScore:
+            return b.reputation.score.compareTo(a.reputation.score);
+          case LeaderboardSortOption.followersCount:
+            return b.followersCount.compareTo(a.followersCount);
+        }
+      });
+
+      // Assign ranks and limit
+      final ranked = <TopPortfolioEntry>[];
+      for (int i = 0; i < entries.length && i < limit; i++) {
+        ranked.add(entries[i].copyWith(rank: i + 1));
+      }
+
+      return ranked;
+    });
   }
 }
 

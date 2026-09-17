@@ -11,6 +11,7 @@ import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
+import 'package:robinhood_options_mobile/widgets/top_portfolios_leaderboard_widget.dart';
 import 'package:robinhood_options_mobile/widgets/user_listtile_widget.dart';
 
 class UsersWidget extends StatefulWidget {
@@ -62,6 +63,7 @@ class _UsersWidgetState extends State<UsersWidget> {
     return StreamBuilder<firebase_auth.User?>(
         stream: widget.auth.authStateChanges(),
         builder: (context, snapshot) {
+          final auth = widget.auth;
           return Scaffold(
             body: CustomScrollView(slivers: [
               SliverAppBar(
@@ -72,15 +74,35 @@ class _UsersWidgetState extends State<UsersWidget> {
                   title: const Text('Discover Traders'),
                   actions: [
                     IconButton(
+                      icon: const Icon(Icons.leaderboard_rounded),
+                      tooltip: 'Top Portfolios Leaderboard',
+                      onPressed: () {
+                        widget.analytics.logEvent(
+                            name: 'top_portfolios_leaderboard_opened');
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                TopPortfoliosLeaderboardWidget(
+                              auth: widget.auth,
+                              firestoreService: _firestoreService,
+                              brokerageUser: widget.brokerageUser,
+                              service: widget.service,
+                              analytics: widget.analytics,
+                              observer: widget.observer,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                    IconButton(
                         icon: auth.currentUser != null
                             ? (auth.currentUser!.photoURL == null
                                 ? const Icon(Icons.account_circle)
                                 : CircleAvatar(
                                     maxRadius: 12,
                                     backgroundImage: CachedNetworkImageProvider(
-                                        auth.currentUser!.photoURL!
-                                        //  ?? Constants .placeholderImage, // No longer used
-                                        )))
+                                        auth.currentUser!.photoURL!)))
                             : const Icon(Icons.login),
                         onPressed: () {
                           showProfile(
@@ -98,6 +120,97 @@ class _UsersWidgetState extends State<UsersWidget> {
                   sliver: SliverToBoxAdapter(
                       child: Column(
                     children: [
+                      Card(
+                        elevation: 1,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          side: BorderSide(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .outlineVariant
+                                .withValues(alpha: 0.5),
+                          ),
+                        ),
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(16),
+                          onTap: () {
+                            widget.analytics.logEvent(
+                                name: 'users_widget_leaderboard_banner_tapped');
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    TopPortfoliosLeaderboardWidget(
+                                  auth: widget.auth,
+                                  firestoreService: _firestoreService,
+                                  brokerageUser: widget.brokerageUser,
+                                  service: widget.service,
+                                  analytics: widget.analytics,
+                                  observer: widget.observer,
+                                ),
+                              ),
+                            );
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16.0, vertical: 12.0),
+                            child: Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    color: Colors.amber.withValues(alpha: 0.15),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.emoji_events_rounded,
+                                    color: Colors.amber,
+                                    size: 24,
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Top Portfolios Leaderboard',
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .titleSmall
+                                            ?.copyWith(
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        'View ranked traders, track records & credibility',
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .bodySmall
+                                            ?.copyWith(
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .onSurfaceVariant,
+                                            ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Icon(
+                                  Icons.arrow_forward_ios_rounded,
+                                  size: 16,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
                       CupertinoSearchTextField(
                         style: TextStyle(
                             color:

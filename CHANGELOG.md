@@ -6,6 +6,33 @@ All notable changes to this project will be documented in this file.
 **Social Platform & Performance Following: Follow Portfolios, Privacy Controls, Masked Public Views & Activity Feed**
 
 ### Added
+- **Top Portfolios Leaderboard & User Reputation System ([#26](https://github.com/CIInc/robinhood-options-mobile/issues/26)):**
+  - Created domain models `TopPortfolioEntry`, `UserReputation`, `ReputationTier`, `LeaderboardTimePeriod`, and `LeaderboardSortOption` (`lib/model/top_portfolio_entry.dart`).
+  - Built objective 0–100 reputation scoring algorithm (`UserReputation.calculate`) with multi-pillar evaluation:
+    - Brokerage verification status & tier (up to 35 pts)
+    - Win rate consistency (up to 25 pts)
+    - Cumulative return & P&L (up to 20 pts)
+    - Trade volume & execution longevity (up to 10 pts)
+    - Follower community trust (up to 10 pts)
+  - Created 5 reputation tiers (`novice`, `activeTrader`, `trustedTrader`, `eliteTrader`, `masterTrader`) with visual badges, icons, and theme-adaptive colors.
+  - Added Firestore service methods (`lib/services/firestore_service.dart`):
+    - `getTopPortfoliosStream`: Real-time leaderboard stream supporting time horizon filtering (`1W`, `1M`, `3M`, `1Y`, `ALL`), sorting (`totalReturn`, `sharpeRatio`, `winRate`, `reputationScore`, `followersCount`), `verifiedOnly` filtering, and `onlyPublic` privacy safeguards.
+    - `setTopPortfolioEntry` & `getTopPortfolioEntry`: CRUD operations for top portfolio snapshots.
+  - Implemented `TopPortfoliosLeaderboardWidget` (`lib/widgets/top_portfolios_leaderboard_widget.dart`):
+    - Olympic-style Top 3 Podium featuring elevated pedestals, gold/silver/bronze medals, and trader return badges.
+    - Time-period selector chips (`1W`, `1M`, `3M`, `1Y`, `ALL`) and sort chips.
+    - Real-time Cupertino search filter by trader name and location.
+    - Ranked leaderboard cards with rank badges (#1 to #N), trader avatars, reputation tier chips, return % highlight, and mini performance metric chips (Win Rate, Sharpe ratio, Max Drawdown, Total Trades, Followers).
+    - Direct 1-tap Follow/Unfollow action button updating Firestore in real-time.
+    - Modal bottom sheet detailing the User Reputation scoring breakdown and tier definitions.
+    - Filter dialog for toggling "Verified Only" and "Public Portfolios Only".
+  - Enhanced `InvestorGroupsWidget` with a direct AppBar action button for Top Portfolios Leaderboard.
+  - Enhanced `UsersWidget` with an AppBar action button and interactive leaderboard promo banner.
+  - Enhanced `UserListTile` to display the trader's reputation tier badge alongside follower metrics.
+  - Added test suites:
+    - `test/top_portfolios_model_test.dart`: 7 unit tests covering reputation score calculations, tier classifications, period return fallbacks, and model serialization.
+    - `test/top_portfolios_service_test.dart`: 6 integration tests verifying stream filtering (public/private, verified-only), period returns, and sorting against `FakeFirebaseFirestore`.
+    - `test/top_portfolios_leaderboard_widget_test.dart`: 5 widget tests verifying leaderboard rendering, podium display, period switching, search filtering, and the reputation system modal sheet.
 - **Follow Portfolios ([#27](https://github.com/CIInc/robinhood-options-mobile/issues/27)):**
   - Created domain models `UserFollow` (`lib/model/user_follow.dart`) and `PortfolioPrivacySettings` (`lib/model/portfolio_privacy_settings.dart`) with serialization, deserialization, and `copyWith` support.
   - Added user model enhancements (`lib/model/user.dart`): added `portfolioPrivacy`, `followersCount`, and `followingCount` fields with resilient date/timestamp handling.

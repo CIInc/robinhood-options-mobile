@@ -360,7 +360,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ **Masked Public Portfolios:** Privacy-first public profile view with dollar masking (`$***`), verified track record badge, and 1-tap copy trading
 - ✅ **Following Activity Feed:** Real-time trade activity feed for followed traders with filtering and copy-trading dialog
 - ✅ **Trade Notification Controls:** Per-trader notification mute/unmute toggle in user profile and follow lists
-- Top portfolios leaderboard and user reputation system ([#26](https://github.com/CIInc/robinhood-options-mobile/issues/26)).
+- ✅ **Top Portfolios Leaderboard & User Reputation System:** Showcase top-performing portfolios with time-period filters (1W, 1M, 3M, 1Y, ALL), 0-100 credibility scoring, and 1-tap follow ([#26](https://github.com/CIInc/robinhood-options-mobile/issues/26))
 - Social feed for shared trade ideas and strategy cloning ([#24](https://github.com/CIInc/robinhood-options-mobile/issues/24)).
 
 ### v0.48.0 (Q4 2026 - Late Dec)
@@ -876,10 +876,10 @@ Q3 launches the social/community ecosystem. Investor Groups already exist (✅),
 - [ ] **Social Signal Sharing**: Share strategies with community - **Medium** (2-3 weeks)
 - [x] **Follow Portfolios** ([#27](https://github.com/CIInc/robinhood-options-mobile/issues/27)): Follow other users' portfolios, privacy controls, activity feed, and trade alerts - **Small** (1-2 weeks)
 - [ ] **Portfolio Comparison Tools**: Compare performance with other users - **Medium** (2-3 weeks)
-- [ ] **Top Portfolios Leaderboard** ([#26](https://github.com/CIInc/robinhood-options-mobile/issues/26)): Showcase top-performing portfolios - **Medium** (2-3 weeks)
+- [x] **Top Portfolios Leaderboard** ([#26](https://github.com/CIInc/robinhood-options-mobile/issues/26)): Showcase top-performing portfolios - **Medium** (2-3 weeks)
 - [ ] **Comment System**: Comment on shared portfolios - **Small** (1-2 weeks)
 - [ ] **Social Feed**: Trade notifications and portfolio updates - **Medium** (2-3 weeks)
-- [ ] **User Reputation System**: Community credibility tracking - **Medium** (2-3 weeks)
+- [x] **User Reputation System**: Community credibility tracking - **Medium** (2-3 weeks)
 - [ ] **Achievement Badges**: Gamification elements - **Small** (1 week)
 - [ ] **Reddit Integration**: Trending ticker information - **Small** (1-2 weeks)
 - [ ] **Twitter Sentiment**: Market sentiment tracking - **Medium** (2-3 weeks)

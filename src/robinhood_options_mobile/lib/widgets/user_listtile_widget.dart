@@ -9,6 +9,7 @@ import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/utils/auth.dart';
 import 'package:robinhood_options_mobile/enums.dart';
+import 'package:robinhood_options_mobile/model/top_portfolio_entry.dart';
 import 'package:robinhood_options_mobile/widgets/trader_profile_widget.dart';
 import 'package:robinhood_options_mobile/widgets/user_widget.dart';
 
@@ -78,6 +79,45 @@ class UserListTile extends StatelessWidget {
                             color: Theme.of(context).colorScheme.outline,
                           ),
                     ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 5, vertical: 1),
+                      decoration: BoxDecoration(
+                        color: ReputationTier.fromScore(
+                                (user.followersCount * 2).clamp(0, 100))
+                            .color
+                            .withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            ReputationTier.fromScore(
+                                    (user.followersCount * 2).clamp(0, 100))
+                                .icon,
+                            size: 10,
+                            color: ReputationTier.fromScore(
+                                    (user.followersCount * 2).clamp(0, 100))
+                                .color,
+                          ),
+                          const SizedBox(width: 2),
+                          Text(
+                            ReputationTier.fromScore(
+                                    (user.followersCount * 2).clamp(0, 100))
+                                .label,
+                            style: TextStyle(
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                              color: ReputationTier.fromScore(
+                                      (user.followersCount * 2).clamp(0, 100))
+                                  .color,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -106,8 +146,8 @@ class UserListTile extends StatelessWidget {
                                     final authUtil = AuthUtil(auth);
                                     userRole = await authUtil.userRole();
                                     if (context.mounted) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(const SnackBar(
                                               content: Text('Signed out'),
                                               behavior:
                                                   SnackBarBehavior.floating));
@@ -125,7 +165,8 @@ class UserListTile extends StatelessWidget {
                   Navigator.push(
                       context,
                       MaterialPageRoute(
-                          builder: (BuildContext context) => TraderProfileWidget(
+                          builder: (BuildContext context) =>
+                              TraderProfileWidget(
                                 auth: auth,
                                 userId: document.id,
                                 analytics: analytics,
