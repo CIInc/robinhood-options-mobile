@@ -6,6 +6,23 @@ All notable changes to this project will be documented in this file.
 **Social Platform & Performance Following: Follow Portfolios, Privacy Controls, Masked Public Views & Activity Feed**
 
 ### Added
+- **Social Feed for Shared Trade Ideas & Strategy Cloning ([#24](https://github.com/CIInc/robinhood-options-mobile/issues/24)):**
+  - Upgraded `FollowingActivityFeedWidget` (`lib/widgets/following_activity_feed_widget.dart`) to a unified multi-stream social hub with 4 dedicated tabs:
+    - `All`: Interleaved real-time feed combining executed trades and investment theses sorted by activity timestamp.
+    - `Trade Ideas`: Curated feed of investment theses from followed traders with sentiment filtering (`Bullish`, `Bearish`, `Neutral`).
+    - `Trades`: Direct trade activity feed from followed traders with quick `Copy` actions.
+    - `Community`: Global public trade ideas and strategies from top-ranked traders across the platform.
+  - Implemented rich trade idea cards featuring author reputation tier, verified trust badge, symbol highlight, sentiment indicators, price targets (entry, target, stop loss), dynamic risk/reward ratio, and potential return % calculations.
+  - Added 1-tap **"Clone Strategy"** action button on shared trade ideas that automatically prepares an `InstrumentOrder` and opens `showCopyTradeDialog` for instant trade mirroring.
+  - Created `ShareTradeIdeaSheet` (`lib/widgets/share_trade_idea_sheet.dart`): Interactive modal sheet allowing users to compose and publish investment theses with live potential return and risk/reward preview.
+  - Added Firestore service methods (`lib/services/firestore_service.dart`):
+    - `getSocialTradeIdeasStream`: Real-time query for trade ideas supporting author filtering, symbol lookup, and sentiment categorization.
+    - `createSocialTradeIdea`: Cloud persistence of investment theses with structured metadata.
+    - `toggleLikeSocialTradeIdea`: Atomic like counters on trade ideas.
+    - `deleteSocialTradeIdea`: Deletion handler for author idea management.
+  - Added test suites:
+    - `test/social_trade_ideas_service_test.dart`: 4 unit & integration tests covering trade idea creation, multi-attribute querying, atomic likes, and deletion against `FakeFirebaseFirestore`.
+    - `test/following_activity_feed_widget_test.dart`: 6 widget tests verifying multi-tab rendering, interleaved streams, sentiment filters, community feed, and the idea composition sheet.
 - **Top Portfolios Leaderboard & User Reputation System ([#26](https://github.com/CIInc/robinhood-options-mobile/issues/26)):**
   - Created domain models `TopPortfolioEntry`, `UserReputation`, `ReputationTier`, `LeaderboardTimePeriod`, and `LeaderboardSortOption` (`lib/model/top_portfolio_entry.dart`).
   - Built objective 0–100 reputation scoring algorithm (`UserReputation.calculate`) with multi-pillar evaluation:

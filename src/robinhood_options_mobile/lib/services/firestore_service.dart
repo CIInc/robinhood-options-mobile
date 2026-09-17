@@ -56,6 +56,7 @@ class FirestoreService {
   final String userFollowCollectionName = 'user_follows';
   final String socialActivityCollectionName = 'social_activities';
   final String topPortfolioCollectionName = 'top_portfolios';
+  final String socialTradeIdeaCollectionName = 'social_trade_ideas';
 
   /// A reference to the list of instruments.
   /// We are using `withConverter` to ensure that interactions with the collection
@@ -2746,6 +2747,79 @@ class FirestoreService {
 
       return ranked;
     });
+  }
+
+  /// Stream of shared social trade ideas (investment theses & strategy posts)
+  Stream<List<GroupAnalysisPost>> getSocialTradeIdeasStream({
+    List<String>? authorIds,
+    String? symbol,
+    GroupAnalysisSentiment? sentiment,
+    int limit = 30,
+  }) {
+    Query<Map<String, dynamic>> query = _db
+        .collection(socialTradeIdeaCollectionName)
+        .orderBy('createdAt', descending: true);
+
+    if (authorIds != null && authorIds.isNotEmpty) {
+      final queryIds = authorIds.take(30).toList();
+      query = query.where('authorId', whereIn: queryIds);
+    }
+    if (symbol != null && symbol.isNotEmpty) {
+      query = query.where('symbol', isEqualTo: symbol.toUpperCase());
+    }
+    if (sentiment != null) {
+      query = query.where('sentiment', isEqualTo: sentiment.name);
+    }
+
+    return query.limit(limit).snapshots().map((snapshot) => snapshot.docs
+        .map((doc) => GroupAnalysisPost.fromJson(doc.data(), doc.id))
+        .toList());
+  }
+
+  /// Create and publish a shared trade idea into the social feed
+  Future<DocumentReference> createSocialTradeIdea(
+      GroupAnalysisPost post) async {
+    try {
+      final data = post.toJson();
+      final docRef =
+          await _db.collection(socialTradeIdeaCollectionName).add(data);
+      debugPrint('Social trade idea published: ${docRef.id}');
+      return docRef;
+    } on FirebaseException catch (e) {
+      debugPrint('Failed to create social trade idea: ${e.message}');
+      rethrow;
+    }
+  }
+
+  /// Toggle like on a social trade idea
+  Future<void> toggleLikeSocialTradeIdea(String ideaId, String userId) async {
+    try {
+      final docRef = _db.collection(socialTradeIdeaCollectionName).doc(ideaId);
+      final doc = await docRef.get();
+      if (!doc.exists) return;
+      final data = doc.data() ?? {};
+      List<String> likes = List<String>.from(data['likes'] ?? []);
+      if (likes.contains(userId)) {
+        likes.remove(userId);
+      } else {
+        likes.add(userId);
+      }
+      await docRef.update({'likes': likes});
+    } on FirebaseException catch (e) {
+      debugPrint('Failed to toggle like on trade idea: ${e.message}');
+      rethrow;
+    }
+  }
+
+  /// Delete a social trade idea
+  Future<void> deleteSocialTradeIdea(String ideaId) async {
+    try {
+      await _db.collection(socialTradeIdeaCollectionName).doc(ideaId).delete();
+      debugPrint('Social trade idea deleted: $ideaId');
+    } on FirebaseException catch (e) {
+      debugPrint('Failed to delete social trade idea: ${e.message}');
+      rethrow;
+    }
   }
 }
 

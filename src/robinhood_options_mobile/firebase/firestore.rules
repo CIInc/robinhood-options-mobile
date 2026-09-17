@@ -353,6 +353,37 @@ service cloud.firestore {
       );
     }
 
+    match /social_trade_ideas/{ideaId} {
+      // Authenticated users can read public trade ideas
+      allow read: if request.auth != null;
+      // Authenticated users can post their own trade ideas
+      allow create: if request.auth != null && request.resource.data.authorId == request.auth.uid;
+      // Authors or admins can update/delete their trade ideas, or authenticated users can update likes
+      allow update: if request.auth != null && (
+        resource.data.authorId == request.auth.uid ||
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes']) ||
+        request.auth.token.role == 'admin'
+      );
+      allow delete: if request.auth != null && (
+        resource.data.authorId == request.auth.uid ||
+        request.auth.token.role == 'admin'
+      );
+    }
+
+    match /top_portfolios/{portfolioId} {
+      // Authenticated users can read leaderboard entries
+      allow read: if request.auth != null;
+      // Users can publish/update their own portfolio ranking entry, or admin
+      allow create, update: if request.auth != null && (
+        request.resource.data.userId == request.auth.uid ||
+        request.auth.token.role == 'admin'
+      );
+      allow delete: if request.auth != null && (
+        resource.data.userId == request.auth.uid ||
+        request.auth.token.role == 'admin'
+      );
+    }
+
     //match /{document=**} {
     //  allow read, write: if false;
     //  //allow read, write: if

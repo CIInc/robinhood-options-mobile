@@ -361,7 +361,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ **Following Activity Feed:** Real-time trade activity feed for followed traders with filtering and copy-trading dialog
 - ✅ **Trade Notification Controls:** Per-trader notification mute/unmute toggle in user profile and follow lists
 - ✅ **Top Portfolios Leaderboard & User Reputation System:** Showcase top-performing portfolios with time-period filters (1W, 1M, 3M, 1Y, ALL), 0-100 credibility scoring, and 1-tap follow ([#26](https://github.com/CIInc/robinhood-options-mobile/issues/26))
-- Social feed for shared trade ideas and strategy cloning ([#24](https://github.com/CIInc/robinhood-options-mobile/issues/24)).
+- ✅ **Social Feed for Shared Trade Ideas & Strategy Cloning:** Unified multi-stream social feed (All, Trade Ideas, Trades, Community) with sentiment filtering, dynamic risk/reward metrics, 1-tap strategy cloning, and community idea publishing sheet ([#24](https://github.com/CIInc/robinhood-options-mobile/issues/24))
 
 ### v0.48.0 (Q4 2026 - Late Dec)
 **Security, Compliance & Tax Reporting**
@@ -878,13 +878,13 @@ Q3 launches the social/community ecosystem. Investor Groups already exist (✅),
 - [ ] **Portfolio Comparison Tools**: Compare performance with other users - **Medium** (2-3 weeks)
 - [x] **Top Portfolios Leaderboard** ([#26](https://github.com/CIInc/robinhood-options-mobile/issues/26)): Showcase top-performing portfolios - **Medium** (2-3 weeks)
 - [ ] **Comment System**: Comment on shared portfolios - **Small** (1-2 weeks)
-- [ ] **Social Feed**: Trade notifications and portfolio updates - **Medium** (2-3 weeks)
+- [x] **Social Feed**: Trade notifications, shared ideas, and portfolio updates ([#24](https://github.com/CIInc/robinhood-options-mobile/issues/24))
 - [x] **User Reputation System**: Community credibility tracking - **Medium** (2-3 weeks)
 - [ ] **Achievement Badges**: Gamification elements - **Small** (1 week)
 - [ ] **Reddit Integration**: Trending ticker information - **Small** (1-2 weeks)
 - [ ] **Twitter Sentiment**: Market sentiment tracking - **Medium** (2-3 weeks)
-- [ ] **Community Trade Ideas**: Crowdsourced trade suggestions - **Small** (1-2 weeks)
-- [ ] **RealizeAlpha Social Platform** ([#24](https://github.com/CIInc/robinhood-options-mobile/issues/24)): Comprehensive social features - **Large** (4-5 weeks)
+- [x] **Community Trade Ideas**: Crowdsourced trade suggestions and strategy cloning ([#24](https://github.com/CIInc/robinhood-options-mobile/issues/24))
+- [x] **RealizeAlpha Social Platform** ([#24](https://github.com/CIInc/robinhood-options-mobile/issues/24)): Comprehensive social features with following, leaderboards, feeds, and copy trading
 - [x] **Share Portfolio** ([#25](https://github.com/CIInc/robinhood-options-mobile/issues/25)): Share portfolio performance via deep links and Investor Groups
 
 ### Platform Foundation & Operations
