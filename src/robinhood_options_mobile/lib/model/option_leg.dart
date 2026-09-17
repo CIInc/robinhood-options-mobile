@@ -67,10 +67,10 @@ class OptionLeg {
             : 'buy',
         expirationDate = _parseSchwabExpirationDate(json['instrument']),
         strikePrice = _parseSchwabStrikePrice(json['instrument']),
-        optionType = json['instrument'] != null &&
-                json['instrument']['putCall'] != null
-            ? json['instrument']['putCall'].toString().toLowerCase()
-            : '',
+        optionType =
+            json['instrument'] != null && json['instrument']['putCall'] != null
+                ? json['instrument']['putCall'].toString().toLowerCase()
+                : '',
         executions = [];
 
   static DateTime? _parseSchwabExpirationDate(dynamic instrument) {

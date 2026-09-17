@@ -67,8 +67,7 @@ class InstrumentPosition {
     return obj != null ? Instrument.fromJson(obj) : null;
   }
 
-  static Instrument? _parseSchwabInstrumentObj(
-      dynamic json, double quantity) {
+  static Instrument? _parseSchwabInstrumentObj(dynamic json, double quantity) {
     final inst = json['instrument'];
     if (inst == null) return null;
     final symbol = (inst['symbol'] ?? '').toString();
@@ -206,7 +205,8 @@ class InstrumentPosition {
 
   InstrumentPosition.fromSchwabJson(dynamic json, {String accountNumber = ''})
       : url = '', // json['url'],
-        instrument = '/${json['instrument']?['cusip'] ?? ''}/', // json['instrument'],
+        instrument =
+            '/${json['instrument']?['cusip'] ?? ''}/', // json['instrument'],
         account = accountNumber,
         accountNumber = accountNumber,
         averageBuyPrice = parseDouble(json['averagePrice']) ?? 0.0,
