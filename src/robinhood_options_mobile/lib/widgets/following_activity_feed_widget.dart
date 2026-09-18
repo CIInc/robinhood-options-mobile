@@ -204,9 +204,8 @@ class _FollowingActivityFeedWidgetState
 
   Widget _buildFeedToolbar(ThemeData theme) {
     final isIdeaTab = _tabController.index == 1 || _tabController.index == 3;
-    final hasActiveFilter = isIdeaTab
-        ? _selectedSentiment != 'all'
-        : _selectedFilter != 'all';
+    final hasActiveFilter =
+        isIdeaTab ? _selectedSentiment != 'all' : _selectedFilter != 'all';
 
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
@@ -272,8 +271,8 @@ class _FollowingActivityFeedWidgetState
       selectedColor: theme.colorScheme.primaryContainer,
       backgroundColor:
           theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
-      padding: EdgeInsets.symmetric(
-          horizontal: icon != null ? 8 : 10, vertical: 4),
+      padding:
+          EdgeInsets.symmetric(horizontal: icon != null ? 8 : 10, vertical: 4),
       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
@@ -316,7 +315,8 @@ class _FollowingActivityFeedWidgetState
         decoration: BoxDecoration(
           color: hasActiveFilter
               ? theme.colorScheme.primary.withValues(alpha: 0.12)
-              : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
+              : theme.colorScheme.surfaceContainerHighest
+                  .withValues(alpha: 0.35),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: hasActiveFilter
@@ -366,8 +366,8 @@ class _FollowingActivityFeedWidgetState
           return [
             PopupMenuItem(
               value: 'all',
-              child: _menuItemRow(
-                  'All Ideas', Icons.lightbulb_outline, _selectedSentiment == 'all'),
+              child: _menuItemRow('All Ideas', Icons.lightbulb_outline,
+                  _selectedSentiment == 'all'),
             ),
             PopupMenuItem(
               value: 'bullish',
@@ -394,8 +394,8 @@ class _FollowingActivityFeedWidgetState
             ),
             PopupMenuItem(
               value: 'equity',
-              child: _menuItemRow('Stocks/ETFs', Icons.show_chart,
-                  _selectedFilter == 'equity'),
+              child: _menuItemRow(
+                  'Stocks/ETFs', Icons.show_chart, _selectedFilter == 'equity'),
             ),
             PopupMenuItem(
               value: 'option',
@@ -524,8 +524,8 @@ class _FollowingActivityFeedWidgetState
                     children: [
                       Icon(Icons.search_off,
                           size: 56,
-                          color: theme.colorScheme.primary
-                              .withValues(alpha: 0.6)),
+                          color:
+                              theme.colorScheme.primary.withValues(alpha: 0.6)),
                       const SizedBox(height: 12),
                       Text('No matching feed items',
                           style: theme.textTheme.titleMedium),
@@ -1853,4 +1853,3 @@ class _KeepAliveTabState extends State<_KeepAliveTab>
     return widget.child;
   }
 }
-

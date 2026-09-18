@@ -228,7 +228,8 @@ class _UserWidgetState extends State<UserWidget> {
                                     padding: const EdgeInsets.symmetric(
                                         horizontal: 32.0, vertical: 24.0),
                                     child: Column(
-                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
                                       crossAxisAlignment:
                                           CrossAxisAlignment.center,
                                       children: [
@@ -385,65 +386,112 @@ class _UserWidgetState extends State<UserWidget> {
                                           ],
                                           if (user != null) ...[
                                             Padding(
-                                              padding: const EdgeInsets.symmetric(vertical: 8.0),
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      vertical: 8.0),
                                               child: Row(
-                                                mainAxisAlignment: MainAxisAlignment.center,
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.center,
                                                 children: [
                                                   InkWell(
-                                                    borderRadius: BorderRadius.circular(8),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            8),
                                                     onTap: () {
                                                       UserFollowListDialog.show(
                                                         context,
-                                                        userId: widget.userId ?? '',
-                                                        userName: user?.name ?? 'Trader',
-                                                        type: FollowListType.followers,
-                                                        firestoreService: _firestoreService,
+                                                        userId:
+                                                            widget.userId ?? '',
+                                                        userName: user?.name ??
+                                                            'Trader',
+                                                        type: FollowListType
+                                                            .followers,
+                                                        firestoreService:
+                                                            _firestoreService,
                                                         auth: widget.auth,
-                                                        analytics: widget.analytics,
-                                                        observer: widget.observer,
-                                                        brokerageUser: widget.brokerageUser,
+                                                        analytics:
+                                                            widget.analytics,
+                                                        observer:
+                                                            widget.observer,
+                                                        brokerageUser: widget
+                                                            .brokerageUser,
                                                         service: widget.service,
                                                       );
                                                     },
                                                     child: Padding(
-                                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                                                      padding: const EdgeInsets
+                                                          .symmetric(
+                                                          horizontal: 16,
+                                                          vertical: 6),
                                                       child: Column(
                                                         children: [
                                                           Text(
                                                             '${user.followersCount}',
-                                                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                                            style: const TextStyle(
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold,
+                                                                fontSize: 16),
                                                           ),
-                                                          const Text('Followers', style: TextStyle(fontSize: 12)),
+                                                          const Text(
+                                                              'Followers',
+                                                              style: TextStyle(
+                                                                  fontSize:
+                                                                      12)),
                                                         ],
                                                       ),
                                                     ),
                                                   ),
-                                                  Container(width: 1, height: 24, color: Theme.of(context).dividerColor),
+                                                  Container(
+                                                      width: 1,
+                                                      height: 24,
+                                                      color: Theme.of(context)
+                                                          .dividerColor),
                                                   InkWell(
-                                                    borderRadius: BorderRadius.circular(8),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            8),
                                                     onTap: () {
                                                       UserFollowListDialog.show(
                                                         context,
-                                                        userId: widget.userId ?? '',
-                                                        userName: user?.name ?? 'Trader',
-                                                        type: FollowListType.following,
-                                                        firestoreService: _firestoreService,
+                                                        userId:
+                                                            widget.userId ?? '',
+                                                        userName: user?.name ??
+                                                            'Trader',
+                                                        type: FollowListType
+                                                            .following,
+                                                        firestoreService:
+                                                            _firestoreService,
                                                         auth: widget.auth,
-                                                        analytics: widget.analytics,
-                                                        observer: widget.observer,
-                                                        brokerageUser: widget.brokerageUser,
+                                                        analytics:
+                                                            widget.analytics,
+                                                        observer:
+                                                            widget.observer,
+                                                        brokerageUser: widget
+                                                            .brokerageUser,
                                                         service: widget.service,
                                                       );
                                                     },
                                                     child: Padding(
-                                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                                                      padding: const EdgeInsets
+                                                          .symmetric(
+                                                          horizontal: 16,
+                                                          vertical: 6),
                                                       child: Column(
                                                         children: [
                                                           Text(
                                                             '${user.followingCount}',
-                                                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                                            style: const TextStyle(
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold,
+                                                                fontSize: 16),
                                                           ),
-                                                          const Text('Following', style: TextStyle(fontSize: 12)),
+                                                          const Text(
+                                                              'Following',
+                                                              style: TextStyle(
+                                                                  fontSize:
+                                                                      12)),
                                                         ],
                                                       ),
                                                     ),
@@ -452,50 +500,81 @@ class _UserWidgetState extends State<UserWidget> {
                                               ),
                                             ),
                                             if (!isCurrentUserProfileView &&
-                                                widget.auth.currentUser != null &&
+                                                widget.auth.currentUser !=
+                                                    null &&
                                                 widget.userId != null) ...[
                                               StreamBuilder<bool>(
-                                                stream: _firestoreService.isFollowingStream(
-                                                    widget.auth.currentUser!.uid, widget.userId!),
+                                                stream: _firestoreService
+                                                    .isFollowingStream(
+                                                        widget.auth.currentUser!
+                                                            .uid,
+                                                        widget.userId!),
                                                 builder: (context, followSnap) {
-                                                  final isFollowing = followSnap.data ?? false;
+                                                  final isFollowing =
+                                                      followSnap.data ?? false;
                                                   return Padding(
-                                                    padding: const EdgeInsets.only(bottom: 12.0),
+                                                    padding:
+                                                        const EdgeInsets.only(
+                                                            bottom: 12.0),
                                                     child: Row(
-                                                      mainAxisAlignment: MainAxisAlignment.center,
+                                                      mainAxisAlignment:
+                                                          MainAxisAlignment
+                                                              .center,
                                                       children: [
                                                         FilledButton.icon(
                                                           style: isFollowing
-                                                              ? FilledButton.styleFrom(
-                                                                  backgroundColor: Theme.of(context)
+                                                              ? FilledButton
+                                                                  .styleFrom(
+                                                                  backgroundColor: Theme.of(
+                                                                          context)
                                                                       .colorScheme
                                                                       .surfaceContainerHighest,
-                                                                  foregroundColor: Theme.of(context)
+                                                                  foregroundColor: Theme.of(
+                                                                          context)
                                                                       .colorScheme
                                                                       .onSurfaceVariant,
                                                                 )
-                                                              : FilledButton.styleFrom(),
+                                                              : FilledButton
+                                                                  .styleFrom(),
                                                           onPressed: () async {
                                                             final currentUid =
-                                                                widget.auth.currentUser!.uid;
-                                                            final currentName = widget.auth
-                                                                    .currentUser!.displayName ??
+                                                                widget
+                                                                    .auth
+                                                                    .currentUser!
+                                                                    .uid;
+                                                            final currentName = widget
+                                                                    .auth
+                                                                    .currentUser!
+                                                                    .displayName ??
                                                                 'Trader';
                                                             final currentPhoto =
-                                                                widget.auth.currentUser!.photoURL;
+                                                                widget
+                                                                    .auth
+                                                                    .currentUser!
+                                                                    .photoURL;
                                                             final targetUserName =
-                                                                user?.name ?? 'Trader';
+                                                                user?.name ??
+                                                                    'Trader';
                                                             final targetPhoto =
                                                                 user?.photoUrl;
                                                             if (isFollowing) {
-                                                              await _firestoreService.unfollowUser(
-                                                                  currentUid, widget.userId!);
+                                                              await _firestoreService
+                                                                  .unfollowUser(
+                                                                      currentUid,
+                                                                      widget
+                                                                          .userId!);
                                                             } else {
-                                                              await _firestoreService.followUser(
-                                                                currentUserId: currentUid,
-                                                                currentUserName: currentName,
-                                                                currentUserPhotoUrl: currentPhoto,
-                                                                targetUserId: widget.userId!,
+                                                              await _firestoreService
+                                                                  .followUser(
+                                                                currentUserId:
+                                                                    currentUid,
+                                                                currentUserName:
+                                                                    currentName,
+                                                                currentUserPhotoUrl:
+                                                                    currentPhoto,
+                                                                targetUserId:
+                                                                    widget
+                                                                        .userId!,
                                                                 targetUserName:
                                                                     targetUserName,
                                                                 targetUserPhotoUrl:
@@ -506,48 +585,79 @@ class _UserWidgetState extends State<UserWidget> {
                                                           icon: Icon(
                                                               isFollowing
                                                                   ? Icons.check
-                                                                  : Icons.person_add,
+                                                                  : Icons
+                                                                      .person_add,
                                                               size: 18),
                                                           label: Text(isFollowing
                                                               ? 'Following'
                                                               : 'Follow Portfolio'),
                                                         ),
                                                         if (isFollowing) ...[
-                                                          const SizedBox(width: 8),
-                                                          StreamBuilder<List<UserFollow>>(
-                                                            stream: _firestoreService.getFollowingStream(
-                                                                widget.auth.currentUser!.uid),
-                                                            builder: (context, followingListSnap) {
-                                                              final myFollow = (followingListSnap.data ?? [])
-                                                                  .firstWhere(
-                                                                (f) => f.followingId == widget.userId,
-                                                                orElse: () => UserFollow(
+                                                          const SizedBox(
+                                                              width: 8),
+                                                          StreamBuilder<
+                                                              List<UserFollow>>(
+                                                            stream: _firestoreService
+                                                                .getFollowingStream(
+                                                                    widget
+                                                                        .auth
+                                                                        .currentUser!
+                                                                        .uid),
+                                                            builder: (context,
+                                                                followingListSnap) {
+                                                              final myFollow =
+                                                                  (followingListSnap
+                                                                              .data ??
+                                                                          [])
+                                                                      .firstWhere(
+                                                                (f) =>
+                                                                    f.followingId ==
+                                                                    widget
+                                                                        .userId,
+                                                                orElse: () =>
+                                                                    UserFollow(
                                                                   id: '',
-                                                                  followerId: '',
-                                                                  followerName: '',
-                                                                  followingId: '',
-                                                                  followingName: '',
-                                                                  createdAt: DateTime.now(),
-                                                                  notificationsEnabled: true,
+                                                                  followerId:
+                                                                      '',
+                                                                  followerName:
+                                                                      '',
+                                                                  followingId:
+                                                                      '',
+                                                                  followingName:
+                                                                      '',
+                                                                  createdAt:
+                                                                      DateTime
+                                                                          .now(),
+                                                                  notificationsEnabled:
+                                                                      true,
                                                                 ),
                                                               );
                                                               final notifsEnabled =
-                                                                  myFollow.notificationsEnabled;
-                                                              return IconButton.filledTonal(
+                                                                  myFollow
+                                                                      .notificationsEnabled;
+                                                              return IconButton
+                                                                  .filledTonal(
                                                                 tooltip: notifsEnabled
                                                                     ? 'Trade notifications enabled'
                                                                     : 'Trade notifications muted',
                                                                 icon: Icon(
                                                                   notifsEnabled
-                                                                      ? Icons.notifications_active
-                                                                      : Icons.notifications_off_outlined,
+                                                                      ? Icons
+                                                                          .notifications_active
+                                                                      : Icons
+                                                                          .notifications_off_outlined,
                                                                   size: 20,
                                                                 ),
-                                                                onPressed: () async {
+                                                                onPressed:
+                                                                    () async {
                                                                   await _firestoreService
                                                                       .updateFollowNotification(
-                                                                    widget.auth.currentUser!.uid,
-                                                                    widget.userId!,
+                                                                    widget
+                                                                        .auth
+                                                                        .currentUser!
+                                                                        .uid,
+                                                                    widget
+                                                                        .userId!,
                                                                     !notifsEnabled,
                                                                   );
                                                                 },
@@ -578,19 +688,23 @@ class _UserWidgetState extends State<UserWidget> {
                                                             FontWeight.bold),
                                                 overflow: TextOverflow.ellipsis,
                                               ),
-                                              subtitle: (isCurrentUserProfileView ||
+                                              subtitle:
+                                                  (isCurrentUserProfileView ||
                                                           userRole ==
                                                               UserRole.admin)
-                                                  ? (user.email != null ||
-                                                          user.phoneNumber != null
-                                                      ? Text(user.email ??
-                                                          user.phoneNumber ??
-                                                          '')
-                                                      : null)
-                                                  : (user.location != null &&
-                                                          user.location!.isNotEmpty
-                                                      ? Text(user.location!)
-                                                      : null),
+                                                      ? (user.email != null ||
+                                                              user.phoneNumber !=
+                                                                  null
+                                                          ? Text(user.email ??
+                                                              user
+                                                                  .phoneNumber ??
+                                                              '')
+                                                          : null)
+                                                      : (user.location != null &&
+                                                              user.location!
+                                                                  .isNotEmpty
+                                                          ? Text(user.location!)
+                                                          : null),
                                               children: [
                                                 ListTile(
                                                   leading: const Icon(
@@ -716,52 +830,78 @@ class _UserWidgetState extends State<UserWidget> {
                                                         : null),
                                                 if (isCurrentUserProfileView) ...[
                                                   ListTile(
-                                                    leading: const Icon(Icons.privacy_tip_outlined),
-                                                    title: const Text('Portfolio & Social Privacy'),
-                                                    subtitle: Text(user.portfolioPrivacy?.isPublic == false
+                                                    leading: const Icon(Icons
+                                                        .privacy_tip_outlined),
+                                                    title: const Text(
+                                                        'Portfolio & Social Privacy'),
+                                                    subtitle: Text(user
+                                                                .portfolioPrivacy
+                                                                ?.isPublic ==
+                                                            false
                                                         ? 'Private Portfolio'
                                                         : 'Public Portfolio'),
-                                                    trailing: const Icon(Icons.chevron_right),
+                                                    trailing: const Icon(
+                                                        Icons.chevron_right),
                                                     onTap: () async {
-                                                      final currentPrivacy = user?.portfolioPrivacy ??
+                                                      final currentPrivacy = user
+                                                              ?.portfolioPrivacy ??
                                                           const PortfolioPrivacySettings();
-                                                      final updated = await PortfolioPrivacyBottomSheet.show(
+                                                      final updated =
+                                                          await PortfolioPrivacyBottomSheet
+                                                              .show(
                                                         context,
-                                                        userId: widget.userId ?? '',
-                                                        currentSettings: currentPrivacy,
-                                                        firestoreService: _firestoreService,
+                                                        userId:
+                                                            widget.userId ?? '',
+                                                        currentSettings:
+                                                            currentPrivacy,
+                                                        firestoreService:
+                                                            _firestoreService,
                                                       );
-                                                      if (updated != null && mounted) {
+                                                      if (updated != null &&
+                                                          mounted) {
                                                         setState(() {
-                                                          user!.portfolioPrivacy = updated;
+                                                          user!.portfolioPrivacy =
+                                                              updated;
                                                         });
                                                       }
                                                     },
                                                   ),
                                                   ListTile(
-                                                    leading: const Icon(Icons.dynamic_feed_outlined),
-                                                    title: const Text('Following Activity Feed'),
-                                                    subtitle: const Text('Real-time trades from traders you follow'),
-                                                    trailing: const Icon(Icons.chevron_right),
+                                                    leading: const Icon(Icons
+                                                        .dynamic_feed_outlined),
+                                                    title: const Text(
+                                                        'Following Activity Feed'),
+                                                    subtitle: const Text(
+                                                        'Real-time trades from traders you follow'),
+                                                    trailing: const Icon(
+                                                        Icons.chevron_right),
                                                     onTap: () {
                                                       Navigator.push(
                                                         context,
                                                         MaterialPageRoute(
-                                                          builder: (context) => FollowingActivityFeedWidget(
+                                                          builder: (context) =>
+                                                              FollowingActivityFeedWidget(
                                                             auth: widget.auth,
-                                                            firestoreService: _firestoreService,
-                                                            brokerageUser: widget.brokerageUser,
-                                                            service: widget.service,
-                                                            analytics: widget.analytics,
-                                                            observer: widget.observer,
-                                                            userRole: user?.role,
+                                                            firestoreService:
+                                                                _firestoreService,
+                                                            brokerageUser: widget
+                                                                .brokerageUser,
+                                                            service:
+                                                                widget.service,
+                                                            analytics: widget
+                                                                .analytics,
+                                                            observer:
+                                                                widget.observer,
+                                                            userRole:
+                                                                user?.role,
                                                           ),
                                                         ),
                                                       );
                                                     },
                                                   ),
                                                 ],
-                                                if (isCurrentUserProfileView && _biometricAvailable) ...[
+                                                if (isCurrentUserProfileView &&
+                                                    _biometricAvailable) ...[
                                                   ListTile(
                                                     leading: const Icon(
                                                         Icons.fingerprint),
@@ -799,71 +939,71 @@ class _UserWidgetState extends State<UserWidget> {
                                                   ),
                                                 ],
                                                 if (isCurrentUserProfileView) ...[
-                                                   ListTile(
-                                                     leading: Icon(
-                                                         Icons.logout_outlined,
-                                                         color: Theme.of(context)
-                                                             .colorScheme
-                                                             .error),
-                                                     title: const Text('Sign out'),
-                                                     trailing: _isLoading
-                                                         ? Container(
-                                                             width: 24,
-                                                             height: 24,
-                                                             padding:
-                                                                 const EdgeInsets
-                                                                     .all(2.0),
-                                                             child:
-                                                                 const CircularProgressIndicator(),
-                                                           )
-                                                         : null,
-                                                     onTap: _isLoading
-                                                      ? null
-                                                      : () {
-                                                          showDialog(
-                                                            context: context,
-                                                            builder:
-                                                                (BuildContext
-                                                                    context) {
-                                                              return AlertDialog(
-                                                                title: const Text(
-                                                                    'Sign out?'),
-                                                                content: const Text(
-                                                                    'Are you sure you want to sign out?'),
-                                                                actions: [
-                                                                  TextButton(
-                                                                    onPressed: () =>
-                                                                        Navigator.pop(
-                                                                            context),
-                                                                    child: const Text(
-                                                                        'Cancel'),
-                                                                  ),
-                                                                  FilledButton(
-                                                                    onPressed:
-                                                                        () {
-                                                                      Navigator.pop(
-                                                                          context);
-                                                                      _signOut();
-                                                                    },
-                                                                    style: FilledButton
-                                                                        .styleFrom(
-                                                                      backgroundColor: Theme.of(
-                                                                              context)
-                                                                          .colorScheme
-                                                                          .error,
-                                                                      foregroundColor: Theme.of(
-                                                                              context)
-                                                                          .colorScheme
-                                                                          .onError,
+                                                  ListTile(
+                                                    leading: Icon(
+                                                        Icons.logout_outlined,
+                                                        color: Theme.of(context)
+                                                            .colorScheme
+                                                            .error),
+                                                    title:
+                                                        const Text('Sign out'),
+                                                    trailing: _isLoading
+                                                        ? Container(
+                                                            width: 24,
+                                                            height: 24,
+                                                            padding:
+                                                                const EdgeInsets
+                                                                    .all(2.0),
+                                                            child:
+                                                                const CircularProgressIndicator(),
+                                                          )
+                                                        : null,
+                                                    onTap: _isLoading
+                                                        ? null
+                                                        : () {
+                                                            showDialog(
+                                                              context: context,
+                                                              builder:
+                                                                  (BuildContext
+                                                                      context) {
+                                                                return AlertDialog(
+                                                                  title: const Text(
+                                                                      'Sign out?'),
+                                                                  content:
+                                                                      const Text(
+                                                                          'Are you sure you want to sign out?'),
+                                                                  actions: [
+                                                                    TextButton(
+                                                                      onPressed:
+                                                                          () =>
+                                                                              Navigator.pop(context),
+                                                                      child: const Text(
+                                                                          'Cancel'),
                                                                     ),
-                                                                    child: const Text(
-                                                                        'Sign out'),
-                                                                  ),
-                                                                ],
-                                                              );
-                                                            },
-                                                          );
-                                                        },
+                                                                    FilledButton(
+                                                                      onPressed:
+                                                                          () {
+                                                                        Navigator.pop(
+                                                                            context);
+                                                                        _signOut();
+                                                                      },
+                                                                      style: FilledButton
+                                                                          .styleFrom(
+                                                                        backgroundColor: Theme.of(context)
+                                                                            .colorScheme
+                                                                            .error,
+                                                                        foregroundColor: Theme.of(context)
+                                                                            .colorScheme
+                                                                            .onError,
+                                                                      ),
+                                                                      child: const Text(
+                                                                          'Sign out'),
+                                                                    ),
+                                                                  ],
+                                                                );
+                                                              },
+                                                            );
+                                                          },
                                                   ),
                                                 ],
                                               ],
@@ -874,1118 +1014,1153 @@ class _UserWidgetState extends State<UserWidget> {
                           if (isCurrentUserProfileView) ...[
                             SliverToBoxAdapter(
                                 child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 12.0, vertical: 8.0),
-                            child: Card(
-                                elevation: 2,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                child: Column(
-                                  children: [
-                                    ListTile(
-                                        contentPadding:
-                                            const EdgeInsets.symmetric(
-                                                horizontal: 20, vertical: 8),
-                                        leading:
-                                            const Icon(Icons.account_balance),
-                                        title: Text(
-                                          'Brokerage Accounts',
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .titleMedium
-                                              ?.copyWith(
-                                                  fontWeight: FontWeight.bold),
-                                        ),
-                                        trailing: FilledButton.tonalIcon(
-                                            style: FilledButton.styleFrom(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      horizontal: 12),
-                                              minimumSize: const Size(60, 32),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12.0, vertical: 8.0),
+                              child: Card(
+                                  elevation: 2,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  child: Column(
+                                    children: [
+                                      ListTile(
+                                          contentPadding:
+                                              const EdgeInsets.symmetric(
+                                                  horizontal: 20, vertical: 8),
+                                          leading:
+                                              const Icon(Icons.account_balance),
+                                          title: Text(
+                                            'Brokerage Accounts',
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .titleMedium
+                                                ?.copyWith(
+                                                    fontWeight:
+                                                        FontWeight.bold),
+                                          ),
+                                          trailing: FilledButton.tonalIcon(
+                                              style: FilledButton.styleFrom(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        horizontal: 12),
+                                                minimumSize: const Size(60, 32),
+                                              ),
+                                              onPressed: () {
+                                                Navigator.pop(context);
+                                                final authUtil = AuthUtil(auth);
+                                                authUtil.openLogin(
+                                                    context,
+                                                    _firestoreService,
+                                                    widget.analytics,
+                                                    widget.observer);
+                                              },
+                                              icon: const Icon(
+                                                  Icons.person_add_outlined,
+                                                  size: 18),
+                                              label: const Text('Link'))),
+                                      if (user != null) ...[
+                                        for (var brokerageUser
+                                            in user.brokerageUsers) ...[
+                                          ExpansionTile(
+                                            shape: const Border(),
+                                            leading: CircleAvatar(
+                                                //backgroundColor: Colors.amber,
+                                                child: Text(
+                                              brokerageUser.source
+                                                  .enumValue()
+                                                  .substring(0, 1)
+                                                  .toUpperCase(),
+                                            )),
+                                            title: Text(
+                                              brokerageUser.userName!,
+                                              overflow: TextOverflow.ellipsis,
+                                              maxLines: 1,
+                                              style: const TextStyle(
+                                                  fontWeight: FontWeight.w500),
                                             ),
-                                            onPressed: () {
-                                              Navigator.pop(context);
-                                              final authUtil = AuthUtil(auth);
-                                              authUtil.openLogin(
-                                                  context,
-                                                  _firestoreService,
-                                                  widget.analytics,
-                                                  widget.observer);
-                                            },
-                                            icon: const Icon(
-                                                Icons.person_add_outlined,
-                                                size: 18),
-                                            label: const Text('Link'))),
-                                    if (user != null) ...[
-                                      for (var brokerageUser
-                                          in user.brokerageUsers) ...[
+                                            subtitle: Row(
+                                              children: [
+                                                Text(
+                                                  brokerageUser.source
+                                                      .enumValue()
+                                                      .capitalize(),
+                                                ),
+                                                if (widget.brokerageUser !=
+                                                        null &&
+                                                    widget.brokerageUser!
+                                                            .userName ==
+                                                        brokerageUser
+                                                            .userName &&
+                                                    widget.brokerageUser!
+                                                            .source ==
+                                                        brokerageUser
+                                                            .source) ...[
+                                                  const SizedBox(width: 8),
+                                                  Container(
+                                                    padding: const EdgeInsets
+                                                        .symmetric(
+                                                        horizontal: 6,
+                                                        vertical: 2),
+                                                    decoration: BoxDecoration(
+                                                      color: Theme.of(context)
+                                                          .colorScheme
+                                                          .primaryContainer,
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              4),
+                                                    ),
+                                                    child: Text(
+                                                      'Active',
+                                                      style: TextStyle(
+                                                        fontSize: 10,
+                                                        color: Theme.of(context)
+                                                            .colorScheme
+                                                            .onPrimaryContainer,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ]
+                                              ],
+                                            ),
+                                            trailing: isCurrentUserProfileView &&
+                                                    (widget.brokerageUser ==
+                                                            null ||
+                                                        widget.brokerageUser!
+                                                                .userName !=
+                                                            brokerageUser
+                                                                .userName ||
+                                                        widget.brokerageUser!
+                                                                .source !=
+                                                            brokerageUser
+                                                                .source)
+                                                ? Row(
+                                                    mainAxisSize:
+                                                        MainAxisSize.min,
+                                                    children: [
+                                                      FilledButton.tonal(
+                                                          style: FilledButton
+                                                              .styleFrom(
+                                                            padding:
+                                                                const EdgeInsets
+                                                                    .symmetric(
+                                                                    horizontal:
+                                                                        12),
+                                                            minimumSize:
+                                                                const Size(
+                                                                    60, 32),
+                                                          ),
+                                                          onPressed: () async {
+                                                            var userStore = Provider
+                                                                .of<BrokerageUserStore>(
+                                                                    context,
+                                                                    listen:
+                                                                        false);
+                                                            var userIndex = userStore
+                                                                .items
+                                                                .indexWhere((u) =>
+                                                                    u.userName ==
+                                                                        brokerageUser
+                                                                            .userName &&
+                                                                    u.source ==
+                                                                        brokerageUser
+                                                                            .source);
+                                                            if (userIndex !=
+                                                                -1) {
+                                                              Provider.of<AccountStore>(
+                                                                      context,
+                                                                      listen:
+                                                                          false)
+                                                                  .removeAll();
+                                                              Provider.of<PortfolioStore>(
+                                                                      context,
+                                                                      listen:
+                                                                          false)
+                                                                  .removeAll();
+                                                              Provider.of<PortfolioHistoricalsStore>(
+                                                                      context,
+                                                                      listen:
+                                                                          false)
+                                                                  .removeAll();
+                                                              Provider.of<ForexHoldingStore>(
+                                                                      context,
+                                                                      listen:
+                                                                          false)
+                                                                  .removeAll();
+                                                              Provider.of<OptionPositionStore>(
+                                                                      context,
+                                                                      listen:
+                                                                          false)
+                                                                  .removeAll();
+                                                              Provider.of<InstrumentPositionStore>(
+                                                                      context,
+                                                                      listen:
+                                                                          false)
+                                                                  .removeAll();
+
+                                                              userStore
+                                                                  .setAggregateAllAccounts(
+                                                                      false);
+                                                              userStore
+                                                                  .setCurrentUserIndex(
+                                                                      userIndex);
+                                                              await userStore
+                                                                  .save();
+                                                              if (context
+                                                                  .mounted) {
+                                                                Navigator.pop(
+                                                                    context); // close the user widget
+                                                              }
+                                                            }
+                                                          },
+                                                          child: const Text(
+                                                              'Switch')),
+                                                      const SizedBox(width: 8),
+                                                      const Icon(
+                                                          Icons.expand_more)
+                                                    ],
+                                                  )
+                                                : null,
+                                            children: [
+                                              if (brokerageUser.userInfo !=
+                                                  null) ...[
+                                                Padding(
+                                                  padding:
+                                                      const EdgeInsets.all(8.0),
+                                                  child: UserInfoWidget(
+                                                    user:
+                                                        brokerageUser.userInfo!,
+                                                    brokerageUser:
+                                                        brokerageUser,
+                                                    firestoreService:
+                                                        _firestoreService,
+                                                    service: widget.service,
+                                                    analytics: widget.analytics,
+                                                    observer: widget.observer,
+                                                  ),
+                                                )
+                                              ] else if (isCurrentUserProfileView &&
+                                                  widget.userInfo != null) ...[
+                                                Padding(
+                                                  padding:
+                                                      const EdgeInsets.all(8.0),
+                                                  child: UserInfoWidget(
+                                                    user: widget.userInfo!,
+                                                    brokerageUser:
+                                                        brokerageUser,
+                                                    firestoreService:
+                                                        _firestoreService,
+                                                    service: widget.service,
+                                                    analytics: widget.analytics,
+                                                    observer: widget.observer,
+                                                  ),
+                                                )
+                                              ] else ...[
+                                                Padding(
+                                                  padding: const EdgeInsets.all(
+                                                      16.0),
+                                                  child: Text(
+                                                      'No user info available.'),
+                                                )
+                                              ]
+                                            ],
+                                          )
+                                        ]
+                                      ]
+                                    ],
+                                  )),
+                            )),
+                            // const SliverToBoxAdapter(child: SizedBox(height: 20.0)),
+
+                            // SliverToBoxAdapter(
+                            //     child: ListTile(
+                            //         leading: const Icon(Icons.devices_other_outlined),
+                            //         title: const Text('Devices'),
+                            //         subtitle: Text(user != null
+                            //             ? user.devices
+                            //                 .where((element) => element.model != null)
+                            //                 .map((e) => e.model)
+                            //                 .toSet()
+                            //                 .join(', ')
+                            //             : ''),
+                            //         trailing: userRole == UserRole.admin
+                            //             ? TextButton.icon(
+                            //                 onPressed: () =>
+                            //                     showSmsConfirmationBeforeSend(
+                            //                         context,
+                            //                         user != null
+                            //                             ? user.devices
+                            //                                 .where((element) =>
+                            //                                     element.fcmToken !=
+                            //                                     null)
+                            //                                 .map((e) => e.fcmToken)
+                            //                                 .toList()
+                            //                             : [''],
+                            //                         'Your personalized SwingSauce video from our PGA teaching professional is now available.'),
+                            //                 icon: const Icon(Icons.sms_outlined),
+                            //                 label: const Text('Compose'))
+                            //             : null)),
+                            if (isCurrentUserProfileView) ...[
+                              SliverToBoxAdapter(
+                                  child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 12.0, vertical: 8.0),
+                                child: Card(
+                                  elevation: 2,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  child: Column(
+                                    children: [
+                                      ListTile(
+                                          contentPadding:
+                                              const EdgeInsets.symmetric(
+                                                  horizontal: 20, vertical: 8),
+                                          leading: const Icon(Icons.settings),
+                                          title: Text(
+                                            'App Settings',
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .titleMedium
+                                                ?.copyWith(
+                                                    fontWeight:
+                                                        FontWeight.bold),
+                                          )),
+                                      if (user != null &&
+                                          widget.brokerageUser != null) ...[
+                                        SwitchListTile(
+                                          title: const Text(
+                                            "Refresh Market Data",
+                                          ),
+                                          subtitle: const Text(
+                                              "Periodically update latest prices"),
+                                          value: widget
+                                              .brokerageUser!.refreshEnabled,
+                                          onChanged: (bool value) async {
+                                            setState(() {
+                                              user!.refreshQuotes = value;
+                                            });
+                                            widget.brokerageUser!
+                                                .refreshEnabled = value;
+                                            saveBrokerageUser(context);
+                                            _onSettingsChanged(user: user);
+                                          },
+                                          secondary: CircleAvatar(
+                                            backgroundColor: Theme.of(context)
+                                                .colorScheme
+                                                .surfaceContainerHighest,
+                                            foregroundColor: Theme.of(context)
+                                                .colorScheme
+                                                .onSurfaceVariant,
+                                            child: const Icon(Icons.refresh),
+                                          ),
+                                        ),
+                                      ],
+                                      if (widget.brokerageUser != null)
                                         ExpansionTile(
                                           shape: const Border(),
                                           leading: CircleAvatar(
-                                              //backgroundColor: Colors.amber,
-                                              child: Text(
-                                            brokerageUser.source
-                                                .enumValue()
-                                                .substring(0, 1)
-                                                .toUpperCase(),
-                                          )),
-                                          title: Text(
-                                            brokerageUser.userName!,
-                                            overflow: TextOverflow.ellipsis,
-                                            maxLines: 1,
-                                            style: const TextStyle(
-                                                fontWeight: FontWeight.w500),
+                                            backgroundColor: Theme.of(context)
+                                                .colorScheme
+                                                .surfaceContainerHighest,
+                                            foregroundColor: Theme.of(context)
+                                                .colorScheme
+                                                .onSurfaceVariant,
+                                            child: const Icon(Icons.tune),
                                           ),
-                                          subtitle: Row(
-                                            children: [
-                                              Text(
-                                                brokerageUser.source
-                                                    .enumValue()
-                                                    .capitalize(),
-                                              ),
-                                              if (widget.brokerageUser !=
-                                                      null &&
-                                                  widget.brokerageUser!
-                                                          .userName ==
-                                                      brokerageUser.userName &&
-                                                  widget.brokerageUser!
-                                                          .source ==
-                                                      brokerageUser.source) ...[
-                                                const SizedBox(width: 8),
-                                                Container(
-                                                  padding: const EdgeInsets
-                                                      .symmetric(
-                                                      horizontal: 6,
-                                                      vertical: 2),
-                                                  decoration: BoxDecoration(
-                                                    color: Theme.of(context)
-                                                        .colorScheme
-                                                        .primaryContainer,
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                            4),
-                                                  ),
-                                                  child: Text(
-                                                    'Active',
-                                                    style: TextStyle(
-                                                      fontSize: 10,
-                                                      color: Theme.of(context)
-                                                          .colorScheme
-                                                          .onPrimaryContainer,
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                    ),
-                                                  ),
-                                                ),
-                                              ]
-                                            ],
-                                          ),
-                                          trailing: isCurrentUserProfileView &&
-                                                  (widget.brokerageUser ==
-                                                          null ||
-                                                      widget.brokerageUser!
-                                                              .userName !=
-                                                          brokerageUser
-                                                              .userName ||
-                                                      widget.brokerageUser!
-                                                              .source !=
-                                                          brokerageUser.source)
-                                              ? Row(
-                                                  mainAxisSize:
-                                                      MainAxisSize.min,
-                                                  children: [
-                                                    FilledButton.tonal(
-                                                        style: FilledButton
-                                                            .styleFrom(
-                                                          padding:
-                                                              const EdgeInsets
-                                                                  .symmetric(
-                                                                  horizontal:
-                                                                      12),
-                                                          minimumSize:
-                                                              const Size(
-                                                                  60, 32),
-                                                        ),
-                                                        onPressed: () async {
-                                                          var userStore = Provider
-                                                              .of<BrokerageUserStore>(
-                                                                  context,
-                                                                  listen:
-                                                                      false);
-                                                          var userIndex = userStore
-                                                              .items
-                                                              .indexWhere((u) =>
-                                                                  u.userName ==
-                                                                      brokerageUser
-                                                                          .userName &&
-                                                                  u.source ==
-                                                                      brokerageUser
-                                                                          .source);
-                                                          if (userIndex != -1) {
-                                                            Provider.of<AccountStore>(
-                                                                    context,
-                                                                    listen:
-                                                                        false)
-                                                                .removeAll();
-                                                            Provider.of<PortfolioStore>(
-                                                                    context,
-                                                                    listen:
-                                                                        false)
-                                                                .removeAll();
-                                                            Provider.of<PortfolioHistoricalsStore>(
-                                                                    context,
-                                                                    listen:
-                                                                        false)
-                                                                .removeAll();
-                                                            Provider.of<ForexHoldingStore>(
-                                                                    context,
-                                                                    listen:
-                                                                        false)
-                                                                .removeAll();
-                                                            Provider.of<OptionPositionStore>(
-                                                                    context,
-                                                                    listen:
-                                                                        false)
-                                                                .removeAll();
-                                                            Provider.of<InstrumentPositionStore>(
-                                                                    context,
-                                                                    listen:
-                                                                        false)
-                                                                .removeAll();
-
-                                                            userStore
-                                                                .setAggregateAllAccounts(
-                                                                    false);
-                                                            userStore
-                                                                .setCurrentUserIndex(
-                                                                    userIndex);
-                                                            await userStore
-                                                                .save();
-                                                            if (context
-                                                                .mounted) {
-                                                              Navigator.pop(
-                                                                  context); // close the user widget
-                                                            }
-                                                          }
-                                                        },
-                                                        child: const Text(
-                                                            'Switch')),
-                                                    const SizedBox(width: 8),
-                                                    const Icon(
-                                                        Icons.expand_more)
-                                                  ],
-                                                )
-                                              : null,
+                                          title: const Text('Display Settings'),
                                           children: [
-                                            if (brokerageUser.userInfo !=
-                                                null) ...[
-                                              Padding(
-                                                padding:
-                                                    const EdgeInsets.all(8.0),
-                                                child: UserInfoWidget(
-                                                  user: brokerageUser.userInfo!,
-                                                  brokerageUser: brokerageUser,
-                                                  firestoreService:
-                                                      _firestoreService,
-                                                  service: widget.service,
-                                                  analytics: widget.analytics,
-                                                  observer: widget.observer,
-                                                ),
-                                              )
-                                            ] else if (isCurrentUserProfileView &&
-                                                widget.userInfo != null) ...[
-                                              Padding(
-                                                padding:
-                                                    const EdgeInsets.all(8.0),
-                                                child: UserInfoWidget(
-                                                  user: widget.userInfo!,
-                                                  brokerageUser: brokerageUser,
-                                                  firestoreService:
-                                                      _firestoreService,
-                                                  service: widget.service,
-                                                  analytics: widget.analytics,
-                                                  observer: widget.observer,
-                                                ),
-                                              )
-                                            ] else ...[
-                                              Padding(
-                                                padding:
-                                                    const EdgeInsets.all(16.0),
-                                                child: Text(
-                                                    'No user info available.'),
-                                              )
-                                            ]
+                                            SizedBox(
+                                              height: 250,
+                                              child: MoreMenuBottomSheet(
+                                                widget.brokerageUser!,
+                                                analytics: widget.analytics,
+                                                observer: widget.observer,
+                                                onSettingsChanged: (settings) =>
+                                                    debugPrint(
+                                                        jsonEncode(settings)),
+                                                physics:
+                                                    const NeverScrollableScrollPhysics(),
+                                                showStockSettings: true,
+                                                showOptionsSettings: true,
+                                                showCryptoSettings: true,
+                                              ),
+                                            )
                                           ],
-                                        )
-                                      ]
-                                    ]
-                                  ],
-                                )),
-                          )),
-                          // const SliverToBoxAdapter(child: SizedBox(height: 20.0)),
-
-                          // SliverToBoxAdapter(
-                          //     child: ListTile(
-                          //         leading: const Icon(Icons.devices_other_outlined),
-                          //         title: const Text('Devices'),
-                          //         subtitle: Text(user != null
-                          //             ? user.devices
-                          //                 .where((element) => element.model != null)
-                          //                 .map((e) => e.model)
-                          //                 .toSet()
-                          //                 .join(', ')
-                          //             : ''),
-                          //         trailing: userRole == UserRole.admin
-                          //             ? TextButton.icon(
-                          //                 onPressed: () =>
-                          //                     showSmsConfirmationBeforeSend(
-                          //                         context,
-                          //                         user != null
-                          //                             ? user.devices
-                          //                                 .where((element) =>
-                          //                                     element.fcmToken !=
-                          //                                     null)
-                          //                                 .map((e) => e.fcmToken)
-                          //                                 .toList()
-                          //                             : [''],
-                          //                         'Your personalized SwingSauce video from our PGA teaching professional is now available.'),
-                          //                 icon: const Icon(Icons.sms_outlined),
-                          //                 label: const Text('Compose'))
-                          //             : null)),
-                          if (isCurrentUserProfileView) ...[
-                            SliverToBoxAdapter(
-                                child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 12.0, vertical: 8.0),
-                              child: Card(
-                                elevation: 2,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16),
+                                        ),
+                                    ],
+                                  ),
                                 ),
-                                child: Column(
-                                  children: [
-                                    ListTile(
+                              )),
+                              SliverToBoxAdapter(
+                                  child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 12.0, vertical: 8.0),
+                                child: Card(
+                                  elevation: 2,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      ListTile(
                                         contentPadding:
                                             const EdgeInsets.symmetric(
                                                 horizontal: 20, vertical: 8),
-                                        leading: const Icon(Icons.settings),
+                                        leading: const Icon(Icons.stars),
                                         title: Text(
-                                          'App Settings',
+                                          'Features',
                                           style: Theme.of(context)
                                               .textTheme
                                               .titleMedium
                                               ?.copyWith(
                                                   fontWeight: FontWeight.bold),
-                                        )),
-                                    if (user != null &&
-                                        widget.brokerageUser != null) ...[
-                                      SwitchListTile(
-                                        title: const Text(
-                                          "Refresh Market Data",
                                         ),
                                         subtitle: const Text(
-                                            "Periodically update latest prices"),
-                                        value: widget
-                                            .brokerageUser!.refreshEnabled,
-                                        onChanged: (bool value) async {
-                                          setState(() {
-                                            user!.refreshQuotes = value;
-                                          });
-                                          widget.brokerageUser!.refreshEnabled =
-                                              value;
-                                          saveBrokerageUser(context);
-                                          _onSettingsChanged(user: user);
-                                        },
-                                        secondary: CircleAvatar(
-                                          backgroundColor: Theme.of(context)
-                                              .colorScheme
-                                              .surfaceContainerHighest,
-                                          foregroundColor: Theme.of(context)
-                                              .colorScheme
-                                              .onSurfaceVariant,
-                                          child: const Icon(Icons.refresh),
+                                          'Trading tools, account operations & risk safeguards',
                                         ),
                                       ),
-                                    ],
-                                    if (widget.brokerageUser != null)
-                                      ExpansionTile(
-                                        shape: const Border(),
+                                      const Divider(height: 1),
+
+                                      // -------------------------------------------------------------
+                                      // 1. TRADING & SIMULATION
+                                      // -------------------------------------------------------------
+                                      _buildFeatureCategoryHeader(
+                                        context,
+                                        'Trading & Simulation',
+                                        icon: Icons.psychology_outlined,
+                                      ),
+                                      // Automated Trading
+                                      ListTile(
                                         leading: CircleAvatar(
                                           backgroundColor: Theme.of(context)
                                               .colorScheme
-                                              .surfaceContainerHighest,
+                                              .secondaryContainer,
                                           foregroundColor: Theme.of(context)
                                               .colorScheme
-                                              .onSurfaceVariant,
-                                          child: const Icon(Icons.tune),
+                                              .onSecondaryContainer,
+                                          child: const Icon(Icons.auto_graph),
                                         ),
-                                        title: const Text('Display Settings'),
-                                        children: [
-                                          SizedBox(
-                                            height: 250,
-                                            child: MoreMenuBottomSheet(
-                                              widget.brokerageUser!,
-                                              analytics: widget.analytics,
-                                              observer: widget.observer,
-                                              onSettingsChanged: (settings) =>
-                                                  debugPrint(
-                                                      jsonEncode(settings)),
-                                              physics:
-                                                  const NeverScrollableScrollPhysics(),
-                                              showStockSettings: true,
-                                              showOptionsSettings: true,
-                                              showCryptoSettings: true,
-                                            ),
-                                          )
-                                        ],
+                                        title: const Text('Automated Trading'),
+                                        subtitle: const Text(
+                                            'Configure automated trading settings'),
+                                        trailing:
+                                            const Icon(Icons.chevron_right),
+                                        onTap: () async {
+                                          if (user != null) {
+                                            // if (widget.service == null) {
+                                            //   ScaffoldMessenger.of(context)
+                                            //       .showSnackBar(const SnackBar(
+                                            //           content: Text(
+                                            //               "Please link a brokerage account to use this feature.")));
+                                            //   return;
+                                            // }
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (context) =>
+                                                    AgenticTradingSettingsWidget(
+                                                  user: user!,
+                                                  userDocRef:
+                                                      userDocumentReference!,
+                                                  service: widget.service,
+                                                ),
+                                              ),
+                                            );
+                                          }
+                                        },
                                       ),
-                                  ],
-                                ),
-                              ),
-                            )),
-                            SliverToBoxAdapter(
-                                child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 12.0, vertical: 8.0),
-                              child: Card(
-                                elevation: 2,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    ListTile(
-                                      contentPadding:
-                                          const EdgeInsets.symmetric(
-                                              horizontal: 20, vertical: 8),
-                                      leading: const Icon(Icons.stars),
-                                      title: Text(
-                                        'Features',
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .titleMedium
-                                            ?.copyWith(
-                                                fontWeight: FontWeight.bold),
-                                      ),
-                                      subtitle: const Text(
-                                        'Trading tools, account operations & risk safeguards',
-                                      ),
-                                    ),
-                                    const Divider(height: 1),
-
-                                    // -------------------------------------------------------------
-                                    // 1. TRADING & SIMULATION
-                                    // -------------------------------------------------------------
-                                    _buildFeatureCategoryHeader(
-                                      context,
-                                      'Trading & Simulation',
-                                      icon: Icons.psychology_outlined,
-                                    ),
-                                    // Automated Trading
-                                    ListTile(
-                                      leading: CircleAvatar(
-                                        backgroundColor: Theme.of(context)
-                                            .colorScheme
-                                            .secondaryContainer,
-                                        foregroundColor: Theme.of(context)
-                                            .colorScheme
-                                            .onSecondaryContainer,
-                                        child: const Icon(Icons.auto_graph),
-                                      ),
-                                      title: const Text('Automated Trading'),
-                                      subtitle: const Text(
-                                          'Configure automated trading settings'),
-                                      trailing: const Icon(Icons.chevron_right),
-                                      onTap: () async {
-                                        if (user != null) {
-                                          // if (widget.service == null) {
-                                          //   ScaffoldMessenger.of(context)
-                                          //       .showSnackBar(const SnackBar(
-                                          //           content: Text(
-                                          //               "Please link a brokerage account to use this feature.")));
-                                          //   return;
-                                          // }
+                                      // Backtesting Interface
+                                      ListTile(
+                                        leading: CircleAvatar(
+                                          backgroundColor: Theme.of(context)
+                                              .colorScheme
+                                              .secondaryContainer,
+                                          foregroundColor: Theme.of(context)
+                                              .colorScheme
+                                              .onSecondaryContainer,
+                                          child: const Icon(
+                                              Icons.history_outlined),
+                                        ),
+                                        title: const Text('Backtesting'),
+                                        subtitle: const Text(
+                                            'Test strategies on historical data'),
+                                        trailing:
+                                            const Icon(Icons.chevron_right),
+                                        onTap: () async {
                                           Navigator.push(
                                             context,
                                             MaterialPageRoute(
                                               builder: (context) =>
-                                                  AgenticTradingSettingsWidget(
-                                                user: user!,
+                                                  BacktestingWidget(
+                                                user: user,
                                                 userDocRef:
-                                                    userDocumentReference!,
+                                                    userDocumentReference,
+                                                brokerageUser:
+                                                    widget.brokerageUser,
                                                 service: widget.service,
                                               ),
                                             ),
                                           );
-                                        }
-                                      },
-                                    ),
-                                    // Backtesting Interface
-                                    ListTile(
-                                      leading: CircleAvatar(
-                                        backgroundColor: Theme.of(context)
-                                            .colorScheme
-                                            .secondaryContainer,
-                                        foregroundColor: Theme.of(context)
-                                            .colorScheme
-                                            .onSecondaryContainer,
-                                        child:
-                                            const Icon(Icons.history_outlined),
+                                        },
                                       ),
-                                      title: const Text('Backtesting'),
-                                      subtitle: const Text(
-                                          'Test strategies on historical data'),
-                                      trailing: const Icon(Icons.chevron_right),
-                                      onTap: () async {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) =>
-                                                BacktestingWidget(
-                                              user: user,
-                                              userDocRef: userDocumentReference,
-                                              brokerageUser:
-                                                  widget.brokerageUser,
-                                              service: widget.service,
-                                            ),
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                    // Paper Trading Simulator
-                                    ListTile(
-                                      leading: CircleAvatar(
-                                        backgroundColor: Theme.of(context)
-                                            .colorScheme
-                                            .secondaryContainer,
-                                        foregroundColor: Theme.of(context)
-                                            .colorScheme
-                                            .onSecondaryContainer,
-                                        child:
-                                            const Icon(Icons.school_outlined),
-                                      ),
-                                      title:
-                                          const Text('Paper Trading Simulator'),
-                                      subtitle: const Text(
-                                          'Practice trading with virtual money'),
-                                      trailing: const Icon(Icons.chevron_right),
-                                      onTap: () async {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) =>
-                                                PaperTradingDashboardWidget(
-                                              analytics: widget.analytics,
-                                              observer: widget.observer,
-                                              brokerageUser:
-                                                  widget.brokerageUser,
-                                              service: widget.service!,
-                                              user: user,
-                                              userDocRef: userDocumentReference,
-                                            ),
-                                          ),
-                                        );
-                                      },
-                                    ),
-
-                                    const Divider(
-                                        height: 1, indent: 16, endIndent: 16),
-
-                                    // -------------------------------------------------------------
-                                    // 2. SIGNALS & ALERTS
-                                    // -------------------------------------------------------------
-                                    _buildFeatureCategoryHeader(
-                                      context,
-                                      'Signals & Alerts',
-                                      icon: Icons.notifications_active_outlined,
-                                    ),
-                                    // Trade Signal Notification Settings
-                                    ListTile(
-                                      leading: CircleAvatar(
-                                        backgroundColor: Theme.of(context)
-                                            .colorScheme
-                                            .secondaryContainer,
-                                        foregroundColor: Theme.of(context)
-                                            .colorScheme
-                                            .onSecondaryContainer,
-                                        child: const Icon(
-                                            Icons.notifications_outlined),
-                                      ),
-                                      title: const Text(
-                                          'Trade Signal Notifications'),
-                                      subtitle: const Text(
-                                          'Configure push notifications for trade signals'),
-                                      trailing: const Icon(Icons.chevron_right),
-                                      onTap: () async {
-                                        if (user != null) {
+                                      // Paper Trading Simulator
+                                      ListTile(
+                                        leading: CircleAvatar(
+                                          backgroundColor: Theme.of(context)
+                                              .colorScheme
+                                              .secondaryContainer,
+                                          foregroundColor: Theme.of(context)
+                                              .colorScheme
+                                              .onSecondaryContainer,
+                                          child:
+                                              const Icon(Icons.school_outlined),
+                                        ),
+                                        title: const Text(
+                                            'Paper Trading Simulator'),
+                                        subtitle: const Text(
+                                            'Practice trading with virtual money'),
+                                        trailing:
+                                            const Icon(Icons.chevron_right),
+                                        onTap: () async {
                                           Navigator.push(
                                             context,
                                             MaterialPageRoute(
                                               builder: (context) =>
-                                                  TradeSignalNotificationSettingsWidget(
-                                                user: user!,
+                                                  PaperTradingDashboardWidget(
+                                                analytics: widget.analytics,
+                                                observer: widget.observer,
+                                                brokerageUser:
+                                                    widget.brokerageUser,
+                                                service: widget.service!,
+                                                user: user,
                                                 userDocRef:
-                                                    userDocumentReference!,
+                                                    userDocumentReference,
                                               ),
                                             ),
                                           );
-                                        }
-                                      },
-                                    ),
-                                    // Custom Alerts
-                                    ListTile(
-                                      leading: CircleAvatar(
-                                        backgroundColor: Theme.of(context)
-                                            .colorScheme
-                                            .secondaryContainer,
-                                        foregroundColor: Theme.of(context)
-                                            .colorScheme
-                                            .onSecondaryContainer,
-                                        child: const Icon(
-                                            Icons.add_alert_outlined),
+                                        },
                                       ),
-                                      title: const Text('Custom Alerts'),
-                                      subtitle: const Text(
-                                          'Manage price, volume, and volatility alerts'),
-                                      trailing: const Icon(Icons.chevron_right),
-                                      onTap: () async {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) =>
-                                                const CustomAlertsWidget(),
-                                          ),
-                                        );
-                                      },
-                                    ),
 
-                                    const Divider(
-                                        height: 1, indent: 16, endIndent: 16),
+                                      const Divider(
+                                          height: 1, indent: 16, endIndent: 16),
 
-                                    // -------------------------------------------------------------
-                                    // 3. RISK & MARGIN SAFEGUARDS
-                                    // -------------------------------------------------------------
-                                    _buildFeatureCategoryHeader(
-                                      context,
-                                      'Risk & Margin Safeguards',
-                                      icon: Icons.security_outlined,
-                                    ),
-                                    // Margin Health & Collateral
-                                    ListTile(
-                                      leading: CircleAvatar(
-                                        backgroundColor: Theme.of(context)
-                                            .colorScheme
-                                            .secondaryContainer,
-                                        foregroundColor: Theme.of(context)
-                                            .colorScheme
-                                            .onSecondaryContainer,
-                                        child: const Icon(Icons.speed),
+                                      // -------------------------------------------------------------
+                                      // 2. SIGNALS & ALERTS
+                                      // -------------------------------------------------------------
+                                      _buildFeatureCategoryHeader(
+                                        context,
+                                        'Signals & Alerts',
+                                        icon:
+                                            Icons.notifications_active_outlined,
                                       ),
-                                      title: const Text(
-                                          'Margin Health & Collateral'),
-                                      subtitle: const Text(
-                                          'Margin buffer, buying power & collateral holds'),
-                                      trailing: const Icon(Icons.chevron_right),
-                                      onTap: () async {
-                                        if (widget.brokerageUser != null &&
-                                            widget.service != null) {
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (context) =>
-                                                  MarginHealthWidget(
-                                                brokerageUser:
-                                                    widget.brokerageUser!,
-                                                service: widget.service!,
+                                      // Trade Signal Notification Settings
+                                      ListTile(
+                                        leading: CircleAvatar(
+                                          backgroundColor: Theme.of(context)
+                                              .colorScheme
+                                              .secondaryContainer,
+                                          foregroundColor: Theme.of(context)
+                                              .colorScheme
+                                              .onSecondaryContainer,
+                                          child: const Icon(
+                                              Icons.notifications_outlined),
+                                        ),
+                                        title: const Text(
+                                            'Trade Signal Notifications'),
+                                        subtitle: const Text(
+                                            'Configure push notifications for trade signals'),
+                                        trailing:
+                                            const Icon(Icons.chevron_right),
+                                        onTap: () async {
+                                          if (user != null) {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (context) =>
+                                                    TradeSignalNotificationSettingsWidget(
+                                                  user: user!,
+                                                  userDocRef:
+                                                      userDocumentReference!,
+                                                ),
                                               ),
-                                            ),
-                                          );
-                                        } else {
-                                          ScaffoldMessenger.of(context)
-                                              .showSnackBar(const SnackBar(
-                                            content: Text(
-                                                'Please link a brokerage account to view margin health.'),
-                                          ));
-                                        }
-                                      },
-                                    ),
-                                    // Day Trade & PDT Monitor
-                                    ListTile(
-                                      leading: CircleAvatar(
-                                        backgroundColor: Theme.of(context)
-                                            .colorScheme
-                                            .secondaryContainer,
-                                        foregroundColor: Theme.of(context)
-                                            .colorScheme
-                                            .onSecondaryContainer,
-                                        child:
-                                            const Icon(Icons.shield_outlined),
-                                      ),
-                                      title:
-                                          const Text('Day Trade & PDT Monitor'),
-                                      subtitle: const Text(
-                                          'Rolling 5-day counter & FINRA Rule 4210 protection'),
-                                      trailing: const Icon(Icons.chevron_right),
-                                      onTap: () async {
-                                        if (widget.brokerageUser != null &&
-                                            widget.service != null) {
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (context) =>
-                                                  DayTradeMonitorWidget(
-                                                brokerageUser:
-                                                    widget.brokerageUser!,
-                                                service: widget.service!,
-                                              ),
-                                            ),
-                                          );
-                                        } else {
-                                          ScaffoldMessenger.of(context)
-                                              .showSnackBar(const SnackBar(
-                                            content: Text(
-                                                'Please link a brokerage account to monitor day trades.'),
-                                          ));
-                                        }
-                                      },
-                                    ),
-
-                                    const Divider(
-                                        height: 1, indent: 16, endIndent: 16),
-
-                                    // -------------------------------------------------------------
-                                    // 4. BANKING & DOCUMENTS
-                                    // -------------------------------------------------------------
-                                    _buildFeatureCategoryHeader(
-                                      context,
-                                      'Banking & Documents',
-                                      icon: Icons.account_balance_outlined,
-                                    ),
-                                    // Banking & Transfers
-                                    ListTile(
-                                      leading: CircleAvatar(
-                                        backgroundColor: Theme.of(context)
-                                            .colorScheme
-                                            .secondaryContainer,
-                                        foregroundColor: Theme.of(context)
-                                            .colorScheme
-                                            .onSecondaryContainer,
-                                        child:
-                                            const Icon(Icons.account_balance),
-                                      ),
-                                      title: const Text('Banking & Transfers'),
-                                      subtitle: const Text(
-                                          'Manage deposits, withdrawals & linked bank accounts'),
-                                      trailing: const Icon(Icons.chevron_right),
-                                      onTap: () async {
-                                        if (widget.brokerageUser != null &&
-                                            widget.service != null) {
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (context) =>
-                                                  BankingWidget(
-                                                brokerageUser:
-                                                    widget.brokerageUser!,
-                                                service: widget.service!,
-                                              ),
-                                            ),
-                                          );
-                                        } else {
-                                          ScaffoldMessenger.of(context)
-                                              .showSnackBar(const SnackBar(
-                                            content: Text(
-                                                'Please link a brokerage account to view banking & transfers.'),
-                                          ));
-                                        }
-                                      },
-                                    ),
-                                    // Tax Documents & Statements
-                                    ListTile(
-                                      leading: CircleAvatar(
-                                        backgroundColor: Theme.of(context)
-                                            .colorScheme
-                                            .secondaryContainer,
-                                        foregroundColor: Theme.of(context)
-                                            .colorScheme
-                                            .onSecondaryContainer,
-                                        child: const Icon(Icons.receipt_long),
-                                      ),
-                                      title: const Text(
-                                          'Tax Documents & Statements'),
-                                      subtitle: const Text(
-                                          'Download Form 1099, monthly statements & ADR fees'),
-                                      trailing: const Icon(Icons.chevron_right),
-                                      onTap: () async {
-                                        if (widget.brokerageUser != null &&
-                                            widget.service != null) {
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (context) =>
-                                                  TaxDocumentsWidget(
-                                                brokerageUser:
-                                                    widget.brokerageUser!,
-                                                service: widget.service!,
-                                              ),
-                                            ),
-                                          );
-                                        } else {
-                                          ScaffoldMessenger.of(context)
-                                              .showSnackBar(const SnackBar(
-                                            content: Text(
-                                                'Please link a brokerage account to view tax documents & statements.'),
-                                          ));
-                                        }
-                                      },
-                                    ),
-                                    // Corporate Actions & Stock Splits
-                                    ListTile(
-                                      leading: CircleAvatar(
-                                        backgroundColor: Theme.of(context)
-                                            .colorScheme
-                                            .secondaryContainer,
-                                        foregroundColor: Theme.of(context)
-                                            .colorScheme
-                                            .onSecondaryContainer,
-                                        child: const Icon(Icons.call_split),
-                                      ),
-                                      title: const Text(
-                                          'Corporate Actions & Splits'),
-                                      subtitle: const Text(
-                                          'Stock split adjustments, cash-in-lieu & ratios'),
-                                      trailing: const Icon(Icons.chevron_right),
-                                      onTap: () async {
-                                        if (widget.brokerageUser != null &&
-                                            widget.service != null) {
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (context) =>
-                                                  CorporateActionsWidget(
-                                                brokerageUser:
-                                                    widget.brokerageUser!,
-                                                service: widget.service!,
-                                              ),
-                                            ),
-                                          );
-                                        } else {
-                                          ScaffoldMessenger.of(context)
-                                              .showSnackBar(const SnackBar(
-                                            content: Text(
-                                                'Please link a brokerage account to view corporate actions.'),
-                                          ));
-                                        }
-                                      },
-                                    ),
-                                    // Stock Lending & Cash Sweeps
-                                    ListTile(
-                                      leading: CircleAvatar(
-                                        backgroundColor: Theme.of(context)
-                                            .colorScheme
-                                            .secondaryContainer,
-                                        foregroundColor: Theme.of(context)
-                                            .colorScheme
-                                            .onSecondaryContainer,
-                                        child:
-                                            const Icon(Icons.currency_exchange),
-                                      ),
-                                      title: const Text(
-                                          'Stock Lending & Cash Sweeps'),
-                                      subtitle: const Text(
-                                          'Earn yield on loaned shares & FDIC cash sweeps'),
-                                      trailing: const Icon(Icons.chevron_right),
-                                      onTap: () async {
-                                        if (widget.brokerageUser != null &&
-                                            widget.service != null) {
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (context) =>
-                                                  StockLoanWidget(
-                                                brokerageUser:
-                                                    widget.brokerageUser!,
-                                                service: widget.service!,
-                                              ),
-                                            ),
-                                          );
-                                        } else {
-                                          ScaffoldMessenger.of(context)
-                                              .showSnackBar(const SnackBar(
-                                            content: Text(
-                                                'Please link a brokerage account to view stock lending & sweeps.'),
-                                          ));
-                                        }
-                                      },
-                                    ),
-                                    // Retirement & IRA
-                                    ListTile(
-                                      leading: CircleAvatar(
-                                        backgroundColor: Theme.of(context)
-                                            .colorScheme
-                                            .secondaryContainer,
-                                        foregroundColor: Theme.of(context)
-                                            .colorScheme
-                                            .onSecondaryContainer,
-                                        child:
-                                            const Icon(Icons.savings_outlined),
-                                      ),
-                                      title: const Text('Retirement & IRA'),
-                                      subtitle: const Text(
-                                          'IRA contributions, Robinhood match & IRS limits'),
-                                      trailing: const Icon(Icons.chevron_right),
-                                      onTap: () async {
-                                        if (widget.brokerageUser != null &&
-                                            widget.service != null) {
-                                          final currentAccount =
-                                              Provider.of<AccountStore>(context,
-                                                      listen: false)
-                                                  .selectedAccount;
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (context) =>
-                                                  RetirementWidget(
-                                                brokerageUser:
-                                                    widget.brokerageUser!,
-                                                service: widget.service!,
-                                                account: currentAccount,
-                                              ),
-                                            ),
-                                          );
-                                        } else {
-                                          ScaffoldMessenger.of(context)
-                                              .showSnackBar(const SnackBar(
-                                            content: Text(
-                                                'Please link a brokerage account to view retirement & IRA.'),
-                                          ));
-                                        }
-                                      },
-                                    ),
-                                    // Connected Agents & Apps
-                                    ListTile(
-                                      leading: CircleAvatar(
-                                        backgroundColor: Theme.of(context)
-                                            .colorScheme
-                                            .secondaryContainer,
-                                        foregroundColor: Theme.of(context)
-                                            .colorScheme
-                                            .onSecondaryContainer,
-                                        child: const Icon(
-                                            Icons.extension_outlined),
-                                      ),
-                                      title:
-                                          const Text('Connected Agents & Apps'),
-                                      subtitle: const Text(
-                                          'Manage OAuth tokens, trading agents & app access'),
-                                      trailing: const Icon(Icons.chevron_right),
-                                      onTap: () async {
-                                        if (widget.brokerageUser != null &&
-                                            widget.service != null) {
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (context) =>
-                                                  ConnectedAgentsWidget(
-                                                brokerageUser:
-                                                    widget.brokerageUser!,
-                                                service: widget.service!,
-                                              ),
-                                            ),
-                                          );
-                                        } else {
-                                          ScaffoldMessenger.of(context)
-                                              .showSnackBar(const SnackBar(
-                                            content: Text(
-                                                'Please link a brokerage account to view connected apps.'),
-                                          ));
-                                        }
-                                      },
-                                    ),
-                                    // Notification Center
-                                    ListTile(
-                                      leading: CircleAvatar(
-                                        backgroundColor: Theme.of(context)
-                                            .colorScheme
-                                            .secondaryContainer,
-                                        foregroundColor: Theme.of(context)
-                                            .colorScheme
-                                            .onSecondaryContainer,
-                                        child: const Icon(
-                                            Icons.notifications_outlined),
-                                      ),
-                                      title: const Text('Notification Center'),
-                                      subtitle: const Text(
-                                          'Midlands announcements, market notices & inbox'),
-                                      trailing: const Icon(Icons.chevron_right),
-                                      onTap: () async {
-                                        if (widget.brokerageUser != null &&
-                                            widget.service != null) {
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (context) =>
-                                                  NotificationCenterWidget(
-                                                brokerageUser:
-                                                    widget.brokerageUser!,
-                                                service: widget.service!,
-                                              ),
-                                            ),
-                                          );
-                                        } else {
-                                          ScaffoldMessenger.of(context)
-                                              .showSnackBar(const SnackBar(
-                                            content: Text(
-                                                'Please link a brokerage account to view notification center.'),
-                                          ));
-                                        }
-                                      },
-                                    ),
-
-                                    const Divider(
-                                        height: 1, indent: 16, endIndent: 16),
-
-                                    // -------------------------------------------------------------
-                                    // 5. PROFILE & COMMUNITY
-                                    // -------------------------------------------------------------
-                                    _buildFeatureCategoryHeader(
-                                      context,
-                                      'Profile & Community',
-                                      icon: Icons.person_outline,
-                                    ),
-                                    // Investment Profile
-                                    ListTile(
-                                      leading: CircleAvatar(
-                                        backgroundColor: Theme.of(context)
-                                            .colorScheme
-                                            .secondaryContainer,
-                                        foregroundColor: Theme.of(context)
-                                            .colorScheme
-                                            .onSecondaryContainer,
-                                        child: const Icon(
-                                            Icons.assessment_outlined),
-                                      ),
-                                      title: const Text('Investment Profile'),
-                                      subtitle: const Text(
-                                          'Configure goals and risk tolerance for personalized recommendations'),
-                                      trailing: const Icon(Icons.chevron_right),
-                                      onTap: () async {
-                                        if (user != null) {
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (context) =>
-                                                  InvestmentProfileSettingsWidget(
-                                                user: user!,
-                                                firestoreService:
-                                                    _firestoreService,
-                                              ),
-                                            ),
-                                          );
-                                        }
-                                      },
-                                    ),
-                                    // Shareholder Q&A (Say Technologies)
-                                    ListTile(
-                                      leading: CircleAvatar(
-                                        backgroundColor: Theme.of(context)
-                                            .colorScheme
-                                            .secondaryContainer,
-                                        foregroundColor: Theme.of(context)
-                                            .colorScheme
-                                            .onSecondaryContainer,
-                                        child: const Icon(
-                                            Icons.how_to_vote_outlined),
-                                      ),
-                                      title:
-                                          const Text('Shareholder Q&A (Say)'),
-                                      subtitle: const Text(
-                                          'Participate in verified earnings calls & shareholder questions'),
-                                      trailing: const Icon(Icons.chevron_right),
-                                      onTap: () async {
-                                        if (widget.brokerageUser != null &&
-                                            widget.service != null) {
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (context) =>
-                                                  ShareholderQaWidget(
-                                                brokerageUser:
-                                                    widget.brokerageUser!,
-                                                service: widget.service!,
-                                              ),
-                                            ),
-                                          );
-                                        } else {
-                                          ScaffoldMessenger.of(context)
-                                              .showSnackBar(const SnackBar(
-                                            content: Text(
-                                                'Please link a brokerage account to participate in shareholder Q&A.'),
-                                          ));
-                                        }
-                                      },
-                                    ),
-                                    // Share & Referrals
-                                    ListTile(
-                                      key: _referralShareKey,
-                                      leading: CircleAvatar(
-                                        backgroundColor: Theme.of(context)
-                                            .colorScheme
-                                            .secondaryContainer,
-                                        foregroundColor: Theme.of(context)
-                                            .colorScheme
-                                            .onSecondaryContainer,
-                                        child: const Icon(Icons.share_outlined),
-                                      ),
-                                      title: const Text('Share & Referrals'),
-                                      subtitle: const Text(
-                                          'Invite friends and track your referral code'),
-                                      trailing: const Icon(Icons.chevron_right),
-                                      onTap: () {
-                                        if (widget.auth.currentUser != null) {
-                                          final refCode =
-                                              widget.auth.currentUser!.uid;
-                                          final url =
-                                              'https://realizealpha.web.app/?ref=$refCode';
-                                          final shareText =
-                                              'Join me on RealizeAlpha for advanced trading insights! Use my link: $url';
-
-                                          final RenderBox? renderBox =
-                                              _referralShareKey.currentContext
-                                                      ?.findRenderObject()
-                                                  as RenderBox?;
-                                          Rect? sharePositionOrigin;
-                                          if (renderBox != null &&
-                                              renderBox.size.width > 0 &&
-                                              renderBox.size.height > 0) {
-                                            final size = renderBox.size;
-                                            final offset = renderBox
-                                                .localToGlobal(Offset.zero);
-                                            sharePositionOrigin = Rect.fromLTWH(
-                                              offset.dx,
-                                              offset.dy,
-                                              size.width,
-                                              size.height,
                                             );
                                           }
-
-                                          Share.share(
-                                            shareText,
-                                            sharePositionOrigin:
-                                                sharePositionOrigin,
+                                        },
+                                      ),
+                                      // Custom Alerts
+                                      ListTile(
+                                        leading: CircleAvatar(
+                                          backgroundColor: Theme.of(context)
+                                              .colorScheme
+                                              .secondaryContainer,
+                                          foregroundColor: Theme.of(context)
+                                              .colorScheme
+                                              .onSecondaryContainer,
+                                          child: const Icon(
+                                              Icons.add_alert_outlined),
+                                        ),
+                                        title: const Text('Custom Alerts'),
+                                        subtitle: const Text(
+                                            'Manage price, volume, and volatility alerts'),
+                                        trailing:
+                                            const Icon(Icons.chevron_right),
+                                        onTap: () async {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) =>
+                                                  const CustomAlertsWidget(),
+                                            ),
                                           );
-                                        }
-                                      },
-                                    ),
+                                        },
+                                      ),
 
-                                    const SizedBox(height: 8),
-                                  ],
+                                      const Divider(
+                                          height: 1, indent: 16, endIndent: 16),
+
+                                      // -------------------------------------------------------------
+                                      // 3. RISK & MARGIN SAFEGUARDS
+                                      // -------------------------------------------------------------
+                                      _buildFeatureCategoryHeader(
+                                        context,
+                                        'Risk & Margin Safeguards',
+                                        icon: Icons.security_outlined,
+                                      ),
+                                      // Margin Health & Collateral
+                                      ListTile(
+                                        leading: CircleAvatar(
+                                          backgroundColor: Theme.of(context)
+                                              .colorScheme
+                                              .secondaryContainer,
+                                          foregroundColor: Theme.of(context)
+                                              .colorScheme
+                                              .onSecondaryContainer,
+                                          child: const Icon(Icons.speed),
+                                        ),
+                                        title: const Text(
+                                            'Margin Health & Collateral'),
+                                        subtitle: const Text(
+                                            'Margin buffer, buying power & collateral holds'),
+                                        trailing:
+                                            const Icon(Icons.chevron_right),
+                                        onTap: () async {
+                                          if (widget.brokerageUser != null &&
+                                              widget.service != null) {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (context) =>
+                                                    MarginHealthWidget(
+                                                  brokerageUser:
+                                                      widget.brokerageUser!,
+                                                  service: widget.service!,
+                                                ),
+                                              ),
+                                            );
+                                          } else {
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(const SnackBar(
+                                              content: Text(
+                                                  'Please link a brokerage account to view margin health.'),
+                                            ));
+                                          }
+                                        },
+                                      ),
+                                      // Day Trade & PDT Monitor
+                                      ListTile(
+                                        leading: CircleAvatar(
+                                          backgroundColor: Theme.of(context)
+                                              .colorScheme
+                                              .secondaryContainer,
+                                          foregroundColor: Theme.of(context)
+                                              .colorScheme
+                                              .onSecondaryContainer,
+                                          child:
+                                              const Icon(Icons.shield_outlined),
+                                        ),
+                                        title: const Text(
+                                            'Day Trade & PDT Monitor'),
+                                        subtitle: const Text(
+                                            'Rolling 5-day counter & FINRA Rule 4210 protection'),
+                                        trailing:
+                                            const Icon(Icons.chevron_right),
+                                        onTap: () async {
+                                          if (widget.brokerageUser != null &&
+                                              widget.service != null) {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (context) =>
+                                                    DayTradeMonitorWidget(
+                                                  brokerageUser:
+                                                      widget.brokerageUser!,
+                                                  service: widget.service!,
+                                                ),
+                                              ),
+                                            );
+                                          } else {
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(const SnackBar(
+                                              content: Text(
+                                                  'Please link a brokerage account to monitor day trades.'),
+                                            ));
+                                          }
+                                        },
+                                      ),
+
+                                      const Divider(
+                                          height: 1, indent: 16, endIndent: 16),
+
+                                      // -------------------------------------------------------------
+                                      // 4. BANKING & DOCUMENTS
+                                      // -------------------------------------------------------------
+                                      _buildFeatureCategoryHeader(
+                                        context,
+                                        'Banking & Documents',
+                                        icon: Icons.account_balance_outlined,
+                                      ),
+                                      // Banking & Transfers
+                                      ListTile(
+                                        leading: CircleAvatar(
+                                          backgroundColor: Theme.of(context)
+                                              .colorScheme
+                                              .secondaryContainer,
+                                          foregroundColor: Theme.of(context)
+                                              .colorScheme
+                                              .onSecondaryContainer,
+                                          child:
+                                              const Icon(Icons.account_balance),
+                                        ),
+                                        title:
+                                            const Text('Banking & Transfers'),
+                                        subtitle: const Text(
+                                            'Manage deposits, withdrawals & linked bank accounts'),
+                                        trailing:
+                                            const Icon(Icons.chevron_right),
+                                        onTap: () async {
+                                          if (widget.brokerageUser != null &&
+                                              widget.service != null) {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (context) =>
+                                                    BankingWidget(
+                                                  brokerageUser:
+                                                      widget.brokerageUser!,
+                                                  service: widget.service!,
+                                                ),
+                                              ),
+                                            );
+                                          } else {
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(const SnackBar(
+                                              content: Text(
+                                                  'Please link a brokerage account to view banking & transfers.'),
+                                            ));
+                                          }
+                                        },
+                                      ),
+                                      // Tax Documents & Statements
+                                      ListTile(
+                                        leading: CircleAvatar(
+                                          backgroundColor: Theme.of(context)
+                                              .colorScheme
+                                              .secondaryContainer,
+                                          foregroundColor: Theme.of(context)
+                                              .colorScheme
+                                              .onSecondaryContainer,
+                                          child: const Icon(Icons.receipt_long),
+                                        ),
+                                        title: const Text(
+                                            'Tax Documents & Statements'),
+                                        subtitle: const Text(
+                                            'Download Form 1099, monthly statements & ADR fees'),
+                                        trailing:
+                                            const Icon(Icons.chevron_right),
+                                        onTap: () async {
+                                          if (widget.brokerageUser != null &&
+                                              widget.service != null) {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (context) =>
+                                                    TaxDocumentsWidget(
+                                                  brokerageUser:
+                                                      widget.brokerageUser!,
+                                                  service: widget.service!,
+                                                ),
+                                              ),
+                                            );
+                                          } else {
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(const SnackBar(
+                                              content: Text(
+                                                  'Please link a brokerage account to view tax documents & statements.'),
+                                            ));
+                                          }
+                                        },
+                                      ),
+                                      // Corporate Actions & Stock Splits
+                                      ListTile(
+                                        leading: CircleAvatar(
+                                          backgroundColor: Theme.of(context)
+                                              .colorScheme
+                                              .secondaryContainer,
+                                          foregroundColor: Theme.of(context)
+                                              .colorScheme
+                                              .onSecondaryContainer,
+                                          child: const Icon(Icons.call_split),
+                                        ),
+                                        title: const Text(
+                                            'Corporate Actions & Splits'),
+                                        subtitle: const Text(
+                                            'Stock split adjustments, cash-in-lieu & ratios'),
+                                        trailing:
+                                            const Icon(Icons.chevron_right),
+                                        onTap: () async {
+                                          if (widget.brokerageUser != null &&
+                                              widget.service != null) {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (context) =>
+                                                    CorporateActionsWidget(
+                                                  brokerageUser:
+                                                      widget.brokerageUser!,
+                                                  service: widget.service!,
+                                                ),
+                                              ),
+                                            );
+                                          } else {
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(const SnackBar(
+                                              content: Text(
+                                                  'Please link a brokerage account to view corporate actions.'),
+                                            ));
+                                          }
+                                        },
+                                      ),
+                                      // Stock Lending & Cash Sweeps
+                                      ListTile(
+                                        leading: CircleAvatar(
+                                          backgroundColor: Theme.of(context)
+                                              .colorScheme
+                                              .secondaryContainer,
+                                          foregroundColor: Theme.of(context)
+                                              .colorScheme
+                                              .onSecondaryContainer,
+                                          child: const Icon(
+                                              Icons.currency_exchange),
+                                        ),
+                                        title: const Text(
+                                            'Stock Lending & Cash Sweeps'),
+                                        subtitle: const Text(
+                                            'Earn yield on loaned shares & FDIC cash sweeps'),
+                                        trailing:
+                                            const Icon(Icons.chevron_right),
+                                        onTap: () async {
+                                          if (widget.brokerageUser != null &&
+                                              widget.service != null) {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (context) =>
+                                                    StockLoanWidget(
+                                                  brokerageUser:
+                                                      widget.brokerageUser!,
+                                                  service: widget.service!,
+                                                ),
+                                              ),
+                                            );
+                                          } else {
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(const SnackBar(
+                                              content: Text(
+                                                  'Please link a brokerage account to view stock lending & sweeps.'),
+                                            ));
+                                          }
+                                        },
+                                      ),
+                                      // Retirement & IRA
+                                      ListTile(
+                                        leading: CircleAvatar(
+                                          backgroundColor: Theme.of(context)
+                                              .colorScheme
+                                              .secondaryContainer,
+                                          foregroundColor: Theme.of(context)
+                                              .colorScheme
+                                              .onSecondaryContainer,
+                                          child: const Icon(
+                                              Icons.savings_outlined),
+                                        ),
+                                        title: const Text('Retirement & IRA'),
+                                        subtitle: const Text(
+                                            'IRA contributions, Robinhood match & IRS limits'),
+                                        trailing:
+                                            const Icon(Icons.chevron_right),
+                                        onTap: () async {
+                                          if (widget.brokerageUser != null &&
+                                              widget.service != null) {
+                                            final currentAccount =
+                                                Provider.of<AccountStore>(
+                                                        context,
+                                                        listen: false)
+                                                    .selectedAccount;
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (context) =>
+                                                    RetirementWidget(
+                                                  brokerageUser:
+                                                      widget.brokerageUser!,
+                                                  service: widget.service!,
+                                                  account: currentAccount,
+                                                ),
+                                              ),
+                                            );
+                                          } else {
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(const SnackBar(
+                                              content: Text(
+                                                  'Please link a brokerage account to view retirement & IRA.'),
+                                            ));
+                                          }
+                                        },
+                                      ),
+                                      // Connected Agents & Apps
+                                      ListTile(
+                                        leading: CircleAvatar(
+                                          backgroundColor: Theme.of(context)
+                                              .colorScheme
+                                              .secondaryContainer,
+                                          foregroundColor: Theme.of(context)
+                                              .colorScheme
+                                              .onSecondaryContainer,
+                                          child: const Icon(
+                                              Icons.extension_outlined),
+                                        ),
+                                        title: const Text(
+                                            'Connected Agents & Apps'),
+                                        subtitle: const Text(
+                                            'Manage OAuth tokens, trading agents & app access'),
+                                        trailing:
+                                            const Icon(Icons.chevron_right),
+                                        onTap: () async {
+                                          if (widget.brokerageUser != null &&
+                                              widget.service != null) {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (context) =>
+                                                    ConnectedAgentsWidget(
+                                                  brokerageUser:
+                                                      widget.brokerageUser!,
+                                                  service: widget.service!,
+                                                ),
+                                              ),
+                                            );
+                                          } else {
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(const SnackBar(
+                                              content: Text(
+                                                  'Please link a brokerage account to view connected apps.'),
+                                            ));
+                                          }
+                                        },
+                                      ),
+                                      // Notification Center
+                                      ListTile(
+                                        leading: CircleAvatar(
+                                          backgroundColor: Theme.of(context)
+                                              .colorScheme
+                                              .secondaryContainer,
+                                          foregroundColor: Theme.of(context)
+                                              .colorScheme
+                                              .onSecondaryContainer,
+                                          child: const Icon(
+                                              Icons.notifications_outlined),
+                                        ),
+                                        title:
+                                            const Text('Notification Center'),
+                                        subtitle: const Text(
+                                            'Midlands announcements, market notices & inbox'),
+                                        trailing:
+                                            const Icon(Icons.chevron_right),
+                                        onTap: () async {
+                                          if (widget.brokerageUser != null &&
+                                              widget.service != null) {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (context) =>
+                                                    NotificationCenterWidget(
+                                                  brokerageUser:
+                                                      widget.brokerageUser!,
+                                                  service: widget.service!,
+                                                ),
+                                              ),
+                                            );
+                                          } else {
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(const SnackBar(
+                                              content: Text(
+                                                  'Please link a brokerage account to view notification center.'),
+                                            ));
+                                          }
+                                        },
+                                      ),
+
+                                      const Divider(
+                                          height: 1, indent: 16, endIndent: 16),
+
+                                      // -------------------------------------------------------------
+                                      // 5. PROFILE & COMMUNITY
+                                      // -------------------------------------------------------------
+                                      _buildFeatureCategoryHeader(
+                                        context,
+                                        'Profile & Community',
+                                        icon: Icons.person_outline,
+                                      ),
+                                      // Investment Profile
+                                      ListTile(
+                                        leading: CircleAvatar(
+                                          backgroundColor: Theme.of(context)
+                                              .colorScheme
+                                              .secondaryContainer,
+                                          foregroundColor: Theme.of(context)
+                                              .colorScheme
+                                              .onSecondaryContainer,
+                                          child: const Icon(
+                                              Icons.assessment_outlined),
+                                        ),
+                                        title: const Text('Investment Profile'),
+                                        subtitle: const Text(
+                                            'Configure goals and risk tolerance for personalized recommendations'),
+                                        trailing:
+                                            const Icon(Icons.chevron_right),
+                                        onTap: () async {
+                                          if (user != null) {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (context) =>
+                                                    InvestmentProfileSettingsWidget(
+                                                  user: user!,
+                                                  firestoreService:
+                                                      _firestoreService,
+                                                ),
+                                              ),
+                                            );
+                                          }
+                                        },
+                                      ),
+                                      // Shareholder Q&A (Say Technologies)
+                                      ListTile(
+                                        leading: CircleAvatar(
+                                          backgroundColor: Theme.of(context)
+                                              .colorScheme
+                                              .secondaryContainer,
+                                          foregroundColor: Theme.of(context)
+                                              .colorScheme
+                                              .onSecondaryContainer,
+                                          child: const Icon(
+                                              Icons.how_to_vote_outlined),
+                                        ),
+                                        title:
+                                            const Text('Shareholder Q&A (Say)'),
+                                        subtitle: const Text(
+                                            'Participate in verified earnings calls & shareholder questions'),
+                                        trailing:
+                                            const Icon(Icons.chevron_right),
+                                        onTap: () async {
+                                          if (widget.brokerageUser != null &&
+                                              widget.service != null) {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (context) =>
+                                                    ShareholderQaWidget(
+                                                  brokerageUser:
+                                                      widget.brokerageUser!,
+                                                  service: widget.service!,
+                                                ),
+                                              ),
+                                            );
+                                          } else {
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(const SnackBar(
+                                              content: Text(
+                                                  'Please link a brokerage account to participate in shareholder Q&A.'),
+                                            ));
+                                          }
+                                        },
+                                      ),
+                                      // Share & Referrals
+                                      ListTile(
+                                        key: _referralShareKey,
+                                        leading: CircleAvatar(
+                                          backgroundColor: Theme.of(context)
+                                              .colorScheme
+                                              .secondaryContainer,
+                                          foregroundColor: Theme.of(context)
+                                              .colorScheme
+                                              .onSecondaryContainer,
+                                          child:
+                                              const Icon(Icons.share_outlined),
+                                        ),
+                                        title: const Text('Share & Referrals'),
+                                        subtitle: const Text(
+                                            'Invite friends and track your referral code'),
+                                        trailing:
+                                            const Icon(Icons.chevron_right),
+                                        onTap: () {
+                                          if (widget.auth.currentUser != null) {
+                                            final refCode =
+                                                widget.auth.currentUser!.uid;
+                                            final url =
+                                                'https://realizealpha.web.app/?ref=$refCode';
+                                            final shareText =
+                                                'Join me on RealizeAlpha for advanced trading insights! Use my link: $url';
+
+                                            final RenderBox? renderBox =
+                                                _referralShareKey.currentContext
+                                                        ?.findRenderObject()
+                                                    as RenderBox?;
+                                            Rect? sharePositionOrigin;
+                                            if (renderBox != null &&
+                                                renderBox.size.width > 0 &&
+                                                renderBox.size.height > 0) {
+                                              final size = renderBox.size;
+                                              final offset = renderBox
+                                                  .localToGlobal(Offset.zero);
+                                              sharePositionOrigin =
+                                                  Rect.fromLTWH(
+                                                offset.dx,
+                                                offset.dy,
+                                                size.width,
+                                                size.height,
+                                              );
+                                            }
+
+                                            Share.share(
+                                              shareText,
+                                              sharePositionOrigin:
+                                                  sharePositionOrigin,
+                                            );
+                                          }
+                                        },
+                                      ),
+
+                                      const SizedBox(height: 8),
+                                    ],
+                                  ),
                                 ),
-                              ),
-                            )),
-                          ],
+                              )),
+                            ],
                           ],
                           if (userRole == UserRole.admin &&
                               isCurrentUserProfileView) ...[
@@ -2077,7 +2252,8 @@ class _UserWidgetState extends State<UserWidget> {
   }
 
   Widget _buildPublicPortfolioView(BuildContext context, User targetUser) {
-    final privacy = targetUser.portfolioPrivacy ?? const PortfolioPrivacySettings();
+    final privacy =
+        targetUser.portfolioPrivacy ?? const PortfolioPrivacySettings();
     final theme = Theme.of(context);
 
     if (!privacy.isPublic) {
@@ -2086,12 +2262,14 @@ class _UserWidgetState extends State<UserWidget> {
           padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
           child: Card(
             elevation: 2,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             child: Padding(
               padding: const EdgeInsets.all(32.0),
               child: Column(
                 children: [
-                  Icon(Icons.lock_outline, size: 48, color: theme.disabledColor),
+                  Icon(Icons.lock_outline,
+                      size: 48, color: theme.disabledColor),
                   const SizedBox(height: 16),
                   Text(
                     'This Portfolio is Private',
@@ -2102,7 +2280,8 @@ class _UserWidgetState extends State<UserWidget> {
                   Text(
                     '${targetUser.name ?? "This trader"} has chosen to keep their holdings and trade history private.',
                     textAlign: TextAlign.center,
-                    style: theme.textTheme.bodyMedium?.copyWith(color: theme.disabledColor),
+                    style: theme.textTheme.bodyMedium
+                        ?.copyWith(color: theme.disabledColor),
                   ),
                 ],
               ),
@@ -2247,7 +2426,8 @@ class _UserWidgetState extends State<UserWidget> {
               const SizedBox(height: 12),
               StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
                 stream: userDocumentReference!
-                    .collection(_firestoreService.instrumentPositionCollectionName)
+                    .collection(
+                        _firestoreService.instrumentPositionCollectionName)
                     .snapshots(),
                 builder: (context, snap) {
                   if (snap.connectionState == ConnectionState.waiting) {
@@ -2272,7 +2452,8 @@ class _UserWidgetState extends State<UserWidget> {
                     itemBuilder: (context, i) {
                       final data = docs[i].data();
                       final symbol = data['symbol'] ?? docs[i].id;
-                      final quantity = (data['quantity'] as num?)?.toDouble() ?? 0.0;
+                      final quantity =
+                          (data['quantity'] as num?)?.toDouble() ?? 0.0;
                       return ListTile(
                         dense: true,
                         contentPadding: EdgeInsets.zero,
@@ -2397,7 +2578,8 @@ class _UserWidgetState extends State<UserWidget> {
                                       ? '${order.cumulativeQuantity!.toStringAsFixed(0)} shs'
                                       : '')
                                   : '*** shs',
-                              style: const TextStyle(fontWeight: FontWeight.w600),
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.w600),
                             ),
                             if (widget.brokerageUser != null &&
                                 widget.service != null) ...[

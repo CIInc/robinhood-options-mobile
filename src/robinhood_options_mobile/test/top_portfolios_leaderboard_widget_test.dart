@@ -331,8 +331,7 @@ void main() {
       expect(find.byIcon(Icons.info_outline_rounded), findsOneWidget);
     });
 
-    testWidgets(
-        'private portfolios are strictly excluded from the leaderboard',
+    testWidgets('private portfolios are strictly excluded from the leaderboard',
         (WidgetTester tester) async {
       tester.view.physicalSize = const Size(1080, 2400);
       tester.view.devicePixelRatio = 1.0;
@@ -411,8 +410,7 @@ void main() {
       // Verify "Public Portfolios Only" switch is completely absent
       expect(find.text('Public Portfolios Only'), findsNothing);
       expect(
-          find.text(
-              'Exclude traders who have marked their portfolio private'),
+          find.text('Exclude traders who have marked their portfolio private'),
           findsNothing);
     });
   });

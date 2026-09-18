@@ -323,8 +323,8 @@ void main() {
       expect(find.text('TSLA Overbought Short Setup'), findsOneWidget);
 
       // Verify ChoiceChip for Community remains selected
-      final communityChip =
-          tester.widget<ChoiceChip>(find.widgetWithText(ChoiceChip, 'Community'));
+      final communityChip = tester
+          .widget<ChoiceChip>(find.widgetWithText(ChoiceChip, 'Community'));
       expect(communityChip.selected, isTrue);
 
       final allChip =
@@ -531,4 +531,3 @@ void main() {
     });
   });
 }
-

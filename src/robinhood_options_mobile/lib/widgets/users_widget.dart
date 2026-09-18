@@ -100,8 +100,7 @@ class _UsersWidgetState extends State<UsersWidget> {
                   sliver: SliverToBoxAdapter(
                       child: CupertinoSearchTextField(
                     style: TextStyle(
-                        color:
-                            Theme.of(context).textTheme.bodyLarge!.color),
+                        color: Theme.of(context).textTheme.bodyLarge!.color),
                     controller: _searchTermController,
                     placeholder: 'Search traders by name',
                     onChanged: (value) {

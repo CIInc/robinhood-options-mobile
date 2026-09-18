@@ -377,8 +377,7 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget>
                 child: CupertinoSearchTextField(
                   controller: _searchController,
                   placeholder: 'Search groups by name...',
-                  padding:
-                      const EdgeInsetsDirectional.fromSTEB(8, 10, 8, 10),
+                  padding: const EdgeInsetsDirectional.fromSTEB(8, 10, 8, 10),
                   style: TextStyle(color: theme.textTheme.bodyLarge?.color),
                   onChanged: (value) {
                     setState(() {
@@ -456,10 +455,7 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget>
                     value: 'members',
                     child: Row(
                       children: [
-                        Icon(
-                            _sortBy == 'members'
-                                ? Icons.check
-                                : Icons.people,
+                        Icon(_sortBy == 'members' ? Icons.check : Icons.people,
                             size: 16),
                         const SizedBox(width: 10),
                         const Text('Most Members'),

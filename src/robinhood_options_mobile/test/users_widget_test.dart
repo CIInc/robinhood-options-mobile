@@ -87,7 +87,8 @@ void main() {
       );
     }
 
-    testWidgets('renders Discover Traders title and search bar without Leaderboard banner or icon',
+    testWidgets(
+        'renders Discover Traders title and search bar without Leaderboard banner or icon',
         (tester) async {
       tester.view.physicalSize = const Size(1080, 2400);
       tester.view.devicePixelRatio = 1.0;
@@ -106,7 +107,8 @@ void main() {
       // Verify Top Portfolios Leaderboard card and icon are NOT present
       expect(find.byIcon(Icons.leaderboard_rounded), findsNothing);
       expect(find.text('Top Portfolios Leaderboard'), findsNothing);
-      expect(find.text('View ranked traders, track records & credibility'), findsNothing);
+      expect(find.text('View ranked traders, track records & credibility'),
+          findsNothing);
     });
   });
 }

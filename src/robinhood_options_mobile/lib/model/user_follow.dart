@@ -78,8 +78,7 @@ class UserFollow {
       followingName: followingName ?? this.followingName,
       followingPhotoUrl: followingPhotoUrl ?? this.followingPhotoUrl,
       createdAt: createdAt ?? this.createdAt,
-      notificationsEnabled:
-          notificationsEnabled ?? this.notificationsEnabled,
+      notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
     );
   }
 }

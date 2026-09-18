@@ -744,8 +744,7 @@ class _InvestorGroupsMemberDetailWidgetState
             final isCredit = o.direction == 'credit';
             final isSelected = _selectedOptionOrders.contains(o);
             final leg = o.legs.isNotEmpty ? o.legs.first : null;
-            final isBuy =
-                leg != null && leg.side?.toLowerCase() == 'buy';
+            final isBuy = leg != null && leg.side?.toLowerCase() == 'buy';
             final optionType = leg?.optionType.toUpperCase() ?? '';
 
             return Card(
@@ -786,10 +785,9 @@ class _InvestorGroupsMemberDetailWidgetState
                       padding: const EdgeInsets.symmetric(
                           horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        color: (optionType == 'CALL'
-                                ? Colors.green
-                                : Colors.red)
-                            .withValues(alpha: _isDarkTheme ? 0.3 : 0.15),
+                        color:
+                            (optionType == 'CALL' ? Colors.green : Colors.red)
+                                .withValues(alpha: _isDarkTheme ? 0.3 : 0.15),
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
@@ -797,9 +795,8 @@ class _InvestorGroupsMemberDetailWidgetState
                         style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
-                          color: optionType == 'CALL'
-                              ? Colors.green
-                              : Colors.red,
+                          color:
+                              optionType == 'CALL' ? Colors.green : Colors.red,
                         ),
                       ),
                     ),
@@ -986,8 +983,9 @@ class _InvestorGroupsMemberDetailWidgetState
                   ),
                   child: ListTile(
                     leading: CircleAvatar(
-                      backgroundColor: (isBuy ? Colors.green : Colors.deepOrange)
-                          .withValues(alpha: _isDarkTheme ? 0.3 : 0.15),
+                      backgroundColor:
+                          (isBuy ? Colors.green : Colors.deepOrange)
+                              .withValues(alpha: _isDarkTheme ? 0.3 : 0.15),
                       child: Text(
                         '${isBuy ? '+' : '-'}${o.quantity != null ? (o.quantity! % 1 == 0 ? o.quantity!.round().toString() : o.quantity!.toStringAsFixed(1)) : ''}',
                         style: TextStyle(
@@ -1043,7 +1041,8 @@ class _InvestorGroupsMemberDetailWidgetState
                                 horizontal: 10, vertical: 5),
                             decoration: BoxDecoration(
                               color: (amount > 0 ? Colors.green : Colors.red)
-                                  .withValues(alpha: _isDarkTheme ? 0.25 : 0.12),
+                                  .withValues(
+                                      alpha: _isDarkTheme ? 0.25 : 0.12),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(

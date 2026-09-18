@@ -77,7 +77,8 @@ class FakeMapQuerySnapshot extends Fake
 
 class FakeMapQuery extends Fake implements Query<Map<String, dynamic>> {
   @override
-  Query<Map<String, dynamic>> orderBy(Object field, {bool descending = false}) =>
+  Query<Map<String, dynamic>> orderBy(Object field,
+          {bool descending = false}) =>
       this;
 
   @override
@@ -97,7 +98,8 @@ class FakeMapCollectionReference extends Fake
   FakeMapCollectionReference(this.path);
 
   @override
-  Query<Map<String, dynamic>> orderBy(Object field, {bool descending = false}) =>
+  Query<Map<String, dynamic>> orderBy(Object field,
+          {bool descending = false}) =>
       FakeMapQuery();
 
   @override

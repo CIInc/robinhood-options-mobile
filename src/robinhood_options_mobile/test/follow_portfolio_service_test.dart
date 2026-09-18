@@ -13,7 +13,10 @@ void main() {
       firestoreService = FirestoreService(firestore: fakeDb);
 
       // Seed users in firestoreService.userCollectionName ('user')
-      await fakeDb.collection(firestoreService.userCollectionName).doc('user-alice').set({
+      await fakeDb
+          .collection(firestoreService.userCollectionName)
+          .doc('user-alice')
+          .set({
         'id': 'user-alice',
         'name': 'Alice Trader',
         'followersCount': 0,
@@ -21,7 +24,10 @@ void main() {
         'portfolioPrivacy': const PortfolioPrivacySettings().toJson(),
       });
 
-      await fakeDb.collection(firestoreService.userCollectionName).doc('user-bob').set({
+      await fakeDb
+          .collection(firestoreService.userCollectionName)
+          .doc('user-bob')
+          .set({
         'id': 'user-bob',
         'name': 'Bob Investor',
         'followersCount': 0,
@@ -57,10 +63,16 @@ void main() {
       expect(isFollowing, isTrue);
 
       // Check follower/following counts
-      final aliceDoc = await fakeDb.collection(firestoreService.userCollectionName).doc('user-alice').get();
+      final aliceDoc = await fakeDb
+          .collection(firestoreService.userCollectionName)
+          .doc('user-alice')
+          .get();
       expect(aliceDoc.data()?['followingCount'], equals(1));
 
-      final bobDoc = await fakeDb.collection(firestoreService.userCollectionName).doc('user-bob').get();
+      final bobDoc = await fakeDb
+          .collection(firestoreService.userCollectionName)
+          .doc('user-bob')
+          .get();
       expect(bobDoc.data()?['followersCount'], equals(1));
 
       // Alice unfollows Bob
@@ -81,10 +93,16 @@ void main() {
       );
       expect(isFollowingAfter, isFalse);
 
-      final aliceDocAfter = await fakeDb.collection(firestoreService.userCollectionName).doc('user-alice').get();
+      final aliceDocAfter = await fakeDb
+          .collection(firestoreService.userCollectionName)
+          .doc('user-alice')
+          .get();
       expect(aliceDocAfter.data()?['followingCount'], equals(0));
 
-      final bobDocAfter = await fakeDb.collection(firestoreService.userCollectionName).doc('user-bob').get();
+      final bobDocAfter = await fakeDb
+          .collection(firestoreService.userCollectionName)
+          .doc('user-bob')
+          .get();
       expect(bobDocAfter.data()?['followersCount'], equals(0));
     });
 
@@ -119,9 +137,11 @@ void main() {
         allowFollowers: false,
       );
 
-      await firestoreService.updateUserPortfolioPrivacy('user-bob', newSettings);
+      await firestoreService.updateUserPortfolioPrivacy(
+          'user-bob', newSettings);
 
-      final privacy = await firestoreService.getUserPortfolioPrivacy('user-bob');
+      final privacy =
+          await firestoreService.getUserPortfolioPrivacy('user-bob');
       expect(privacy.isPublic, isFalse);
       expect(privacy.showTradeAmounts, isTrue);
       expect(privacy.showHoldings, isFalse);
@@ -129,7 +149,9 @@ void main() {
       expect(privacy.allowFollowers, isFalse);
     });
 
-    test('recordUserTradeActivity adds activity to social_activities collection', () async {
+    test(
+        'recordUserTradeActivity adds activity to social_activities collection',
+        () async {
       await firestoreService.recordUserTradeActivity(
         userId: 'user-bob',
         userName: 'Bob Investor',

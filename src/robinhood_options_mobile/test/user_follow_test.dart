@@ -40,10 +40,12 @@ void main() {
       expect(deserialized.id, equals('follow-id-123'));
       expect(deserialized.followerId, equals('user-alice'));
       expect(deserialized.followerName, equals('Alice Trader'));
-      expect(deserialized.followerPhotoUrl, equals('https://example.com/alice.jpg'));
+      expect(deserialized.followerPhotoUrl,
+          equals('https://example.com/alice.jpg'));
       expect(deserialized.followingId, equals('user-bob'));
       expect(deserialized.followingName, equals('Bob Trader'));
-      expect(deserialized.followingPhotoUrl, equals('https://example.com/bob.jpg'));
+      expect(deserialized.followingPhotoUrl,
+          equals('https://example.com/bob.jpg'));
       expect(deserialized.notificationsEnabled, isTrue);
       expect(deserialized.createdAt.year, equals(2026));
     });

@@ -410,14 +410,17 @@ Follow the table with a strategic breakdown:
       resp = await callable.call(<String, dynamic>{'prompt': promptString});
     } catch (e) {
       try {
-        callable = FirebaseFunctions.instance.httpsCallable('generateContent35');
+        callable =
+            FirebaseFunctions.instance.httpsCallable('generateContent35');
         resp = await callable.call(<String, dynamic>{'prompt': promptString});
       } catch (_) {
         try {
-          callable = FirebaseFunctions.instance.httpsCallable('generateContent38');
+          callable =
+              FirebaseFunctions.instance.httpsCallable('generateContent38');
           resp = await callable.call(<String, dynamic>{'prompt': promptString});
         } catch (_) {
-          callable = FirebaseFunctions.instance.httpsCallable('generateContent25');
+          callable =
+              FirebaseFunctions.instance.httpsCallable('generateContent25');
           resp = await callable.call(<String, dynamic>{'prompt': promptString});
         }
       }
@@ -703,14 +706,17 @@ Follow the table with a strategic breakdown:
       resp = await callable.call(<String, dynamic>{'prompt': promptString});
     } catch (e) {
       try {
-        callable = FirebaseFunctions.instance.httpsCallable('generateContent35');
+        callable =
+            FirebaseFunctions.instance.httpsCallable('generateContent35');
         resp = await callable.call(<String, dynamic>{'prompt': promptString});
       } catch (_) {
         try {
-          callable = FirebaseFunctions.instance.httpsCallable('generateContent38');
+          callable =
+              FirebaseFunctions.instance.httpsCallable('generateContent38');
           resp = await callable.call(<String, dynamic>{'prompt': promptString});
         } catch (_) {
-          callable = FirebaseFunctions.instance.httpsCallable('generateContent25');
+          callable =
+              FirebaseFunctions.instance.httpsCallable('generateContent25');
           resp = await callable.call(<String, dynamic>{'prompt': promptString});
         }
       }

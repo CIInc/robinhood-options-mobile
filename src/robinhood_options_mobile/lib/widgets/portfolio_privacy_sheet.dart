@@ -162,7 +162,8 @@ class _PortfolioPrivacyBottomSheetState
                 elevation: 0,
                 color: _isPublic
                     ? colorScheme.primaryContainer.withValues(alpha: 0.3)
-                    : colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                    : colorScheme.surfaceContainerHighest
+                        .withValues(alpha: 0.5),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                   side: BorderSide(
@@ -186,7 +187,8 @@ class _PortfolioPrivacyBottomSheetState
                   ),
                   secondary: Icon(
                     _isPublic ? Icons.public : Icons.lock_outline,
-                    color: _isPublic ? colorScheme.primary : theme.disabledColor,
+                    color:
+                        _isPublic ? colorScheme.primary : theme.disabledColor,
                   ),
                   onChanged: (val) {
                     setState(() => _isPublic = val);

@@ -94,9 +94,7 @@ class _TopPortfoliosLeaderboardWidgetState
                     _verifiedOnly
                         ? Icons.filter_alt
                         : Icons.filter_alt_outlined,
-                    color: _verifiedOnly
-                        ? theme.colorScheme.primary
-                        : null,
+                    color: _verifiedOnly ? theme.colorScheme.primary : null,
                   ),
                   tooltip: 'Filter Leaderboard',
                   onPressed: () => _showFilterDialog(context),
@@ -132,10 +130,10 @@ class _TopPortfoliosLeaderboardWidgetState
                                             ? FontWeight.w600
                                             : FontWeight.normal,
                                         color: isSelected
-                                            ? theme.colorScheme
-                                                .onPrimaryContainer
-                                            : theme.colorScheme
-                                                .onSurfaceVariant,
+                                            ? theme
+                                                .colorScheme.onPrimaryContainer
+                                            : theme
+                                                .colorScheme.onSurfaceVariant,
                                       ),
                                     ),
                                     selected: isSelected,
@@ -189,8 +187,8 @@ class _TopPortfoliosLeaderboardWidgetState
                                       opt.icon,
                                       size: 15,
                                       color: isSelected
-                                          ? theme.colorScheme
-                                              .onSecondaryContainer
+                                          ? theme
+                                              .colorScheme.onSecondaryContainer
                                           : theme.colorScheme.outline,
                                     ),
                                     label: Text(

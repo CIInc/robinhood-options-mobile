@@ -166,8 +166,7 @@ class _ShareTradeIdeaSheetState extends State<ShareTradeIdeaSheet> {
           Navigator.pop(context, updatedPost);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(
-                  'Trade idea for \$${updatedPost.symbol} updated!'),
+              content: Text('Trade idea for \$${updatedPost.symbol} updated!'),
               behavior: SnackBarBehavior.floating,
             ),
           );
@@ -219,8 +218,9 @@ class _ShareTradeIdeaSheetState extends State<ShareTradeIdeaSheet> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-                _isEditing ? 'Failed to update trade idea: $e' : 'Failed to publish trade idea: $e'),
+            content: Text(_isEditing
+                ? 'Failed to update trade idea: $e'
+                : 'Failed to publish trade idea: $e'),
             backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
@@ -509,7 +509,8 @@ class _ShareTradeIdeaSheetState extends State<ShareTradeIdeaSheet> {
                             color: Colors.white,
                           ),
                         )
-                      : Icon(_isEditing ? Icons.save_rounded : Icons.send_rounded),
+                      : Icon(
+                          _isEditing ? Icons.save_rounded : Icons.send_rounded),
                   label: Text(
                     _isSubmitting
                         ? (_isEditing ? 'Saving...' : 'Publishing...')

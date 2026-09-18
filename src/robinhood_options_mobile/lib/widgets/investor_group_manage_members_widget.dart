@@ -200,7 +200,8 @@ class _InvestorGroupManageMembersWidgetState
               final isCurrentUser = auth.currentUser?.uid == userId;
 
               return FutureBuilder<DocumentSnapshot<User>>(
-                future: widget.firestoreService.userCollection.doc(userId).get(),
+                future:
+                    widget.firestoreService.userCollection.doc(userId).get(),
                 builder: (context, userSnapshot) {
                   String displayName = 'User';
                   String? subtitle;
@@ -316,7 +317,8 @@ class _InvestorGroupManageMembersWidgetState
                                 value: 'remove',
                                 child: Row(
                                   children: [
-                                    Icon(Icons.person_remove, color: Colors.red),
+                                    Icon(Icons.person_remove,
+                                        color: Colors.red),
                                     SizedBox(width: 8),
                                     Text('Remove Member',
                                         style: TextStyle(color: Colors.red)),
@@ -376,8 +378,7 @@ class _InvestorGroupManageMembersWidgetState
               if (user?.photoUrl != null) {
                 avatar = CircleAvatar(
                   radius: 20,
-                  backgroundImage:
-                      CachedNetworkImageProvider(user!.photoUrl!),
+                  backgroundImage: CachedNetworkImageProvider(user!.photoUrl!),
                 );
               }
             }

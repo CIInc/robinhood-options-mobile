@@ -99,11 +99,11 @@ class InstrumentOrder {
             ? Instrument.fromJson(json['instrument_obj'])
             : (json['instrumentObj'] != null
                 ? Instrument.fromJson(json['instrumentObj'])
-                : (json['symbol'] != null && json['symbol'].toString().isNotEmpty
+                : (json['symbol'] != null &&
+                        json['symbol'].toString().isNotEmpty
                     ? Instrument.forSymbol(json['symbol'].toString(),
                         instrumentUrl: json['instrument']?.toString())
                     : null));
-
 
   /// Parses paper trading order format from Firestore.
   factory InstrumentOrder.fromPaperJson(dynamic json) {
@@ -190,8 +190,8 @@ class InstrumentOrder {
         createdAt = json['enteredTime'] != null
             ? DateTime.tryParse(json['enteredTime'])
             : null,
-        updatedAt = DateTime.tryParse(
-            json['closeTime'] ?? json['enteredTime'] ?? '');
+        updatedAt =
+            DateTime.tryParse(json['closeTime'] ?? json['enteredTime'] ?? '');
 
   Map<String, dynamic> toJson() => {
         'id': id,

@@ -113,7 +113,8 @@ class User {
             dateCreated: json['dateCreated'] != null
                 ? (json['dateCreated'] is Timestamp
                     ? (json['dateCreated'] as Timestamp).toDate()
-                    : DateTime.tryParse(json['dateCreated'].toString()) ?? DateTime.now())
+                    : DateTime.tryParse(json['dateCreated'].toString()) ??
+                        DateTime.now())
                 : DateTime.now(),
             dateUpdated: json['dateUpdated'] != null
                 ? (json['dateUpdated'] is Timestamp
@@ -133,10 +134,12 @@ class User {
                 ? InvestmentProfile.fromJson(
                     json['investmentProfile'] as Map<String, Object?>)
                 : null,
-            tradeSignalNotificationSettings: json['tradeSignalNotificationSettings'] != null
-                ? TradeSignalNotificationSettings.fromJson(json['tradeSignalNotificationSettings']
-                    as Map<String, dynamic>)
-                : null,
+            tradeSignalNotificationSettings:
+                json['tradeSignalNotificationSettings'] != null
+                    ? TradeSignalNotificationSettings.fromJson(
+                        json['tradeSignalNotificationSettings']
+                            as Map<String, dynamic>)
+                    : null,
             agenticTradingConfig: json['agenticTradingConfig'] != null
                 ? AgenticTradingConfig.fromJson(
                     json['agenticTradingConfig'] as Map<String, dynamic>)
@@ -145,17 +148,12 @@ class User {
                 ? FuturesTradingConfig.fromJson(
                     json['futuresTradingConfig'] as Map<String, dynamic>)
                 : null,
-            rebalancingConfig: json['rebalancingConfig'] != null
-                ? RebalancingConfig.fromJson(json['rebalancingConfig'] as Map<String, dynamic>)
-                : null,
+            rebalancingConfig: json['rebalancingConfig'] != null ? RebalancingConfig.fromJson(json['rebalancingConfig'] as Map<String, dynamic>) : null,
             optionFilterPresets: json['optionFilterPresets'] != null ? (json['optionFilterPresets'] as Map<String, dynamic>).map((key, value) => MapEntry(key, Map<String, dynamic>.from(value as Map))) : null,
             defaultOptionFilterPreset: json['defaultOptionFilterPreset'] as String?,
             assetAllocationTargets: json['assetAllocationTargets'] != null ? (json['assetAllocationTargets'] as Map<String, dynamic>).map((key, value) => MapEntry(key, (value as num).toDouble())) : null,
             sectorAllocationTargets: json['sectorAllocationTargets'] != null ? (json['sectorAllocationTargets'] as Map<String, dynamic>).map((key, value) => MapEntry(key, (value as num).toDouble())) : null,
-            portfolioPrivacy: json['portfolioPrivacy'] != null
-                ? PortfolioPrivacySettings.fromJson(
-                    json['portfolioPrivacy'] as Map<String, dynamic>)
-                : null,
+            portfolioPrivacy: json['portfolioPrivacy'] != null ? PortfolioPrivacySettings.fromJson(json['portfolioPrivacy'] as Map<String, dynamic>) : null,
             followersCount: (json['followersCount'] as num?)?.toInt() ?? 0,
             followingCount: (json['followingCount'] as num?)?.toInt() ?? 0,
             subscriptionStatus: json['subscriptionStatus'] as String?,

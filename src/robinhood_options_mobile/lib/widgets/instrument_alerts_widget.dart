@@ -304,8 +304,8 @@ class _InstrumentAlertsWidgetState extends State<InstrumentAlertsWidget> {
                             children: [
                               CircleAvatar(
                                 radius: 14,
-                                backgroundColor: theme
-                                    .colorScheme.surfaceContainerHighest,
+                                backgroundColor:
+                                    theme.colorScheme.surfaceContainerHighest,
                                 child: CustomAlertsWidget.buildIcon(alert.type),
                               ),
                               const SizedBox(width: 10),
@@ -315,7 +315,8 @@ class _InstrumentAlertsWidgetState extends State<InstrumentAlertsWidget> {
                                   children: [
                                     RichText(
                                       text: TextSpan(
-                                        style: DefaultTextStyle.of(context).style,
+                                        style:
+                                            DefaultTextStyle.of(context).style,
                                         children: [
                                           if (!isMultiRule)
                                             TextSpan(
@@ -323,8 +324,8 @@ class _InstrumentAlertsWidgetState extends State<InstrumentAlertsWidget> {
                                                   '${alert.condition.name.replaceAll('_', ' ').toUpperCase()} ',
                                               style: TextStyle(
                                                 fontSize: 13,
-                                                color: theme
-                                                    .colorScheme.secondary,
+                                                color:
+                                                    theme.colorScheme.secondary,
                                               ),
                                             ),
                                           TextSpan(

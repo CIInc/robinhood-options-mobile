@@ -830,9 +830,8 @@ class _TraderProfileWidgetState extends State<TraderProfileWidget> {
                               : displayTitle,
                           style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
-                        subtitle: subtitleText.isNotEmpty
-                            ? Text(subtitleText)
-                            : null,
+                        subtitle:
+                            subtitleText.isNotEmpty ? Text(subtitleText) : null,
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
@@ -893,7 +892,8 @@ class _TraderProfileWidgetState extends State<TraderProfileWidget> {
     return false;
   }
 
-  String _formatDisplayTitle(String? rawSymbol, {Instrument? instrument, String fallback = 'Stock'}) {
+  String _formatDisplayTitle(String? rawSymbol,
+      {Instrument? instrument, String fallback = 'Stock'}) {
     final sym = instrument?.symbol ?? rawSymbol?.trim();
     if (sym != null && sym.isNotEmpty && !_isIdentifierOrUuid(sym)) {
       return sym.toUpperCase();
@@ -917,9 +917,8 @@ class _TraderProfileWidgetState extends State<TraderProfileWidget> {
 
   Widget _buildPrivateProfileView(BuildContext context) {
     final theme = Theme.of(context);
-    final displayName = widget.initialUser?.name ??
-        widget.initialUserName ??
-        'This Trader';
+    final displayName =
+        widget.initialUser?.name ?? widget.initialUserName ?? 'This Trader';
 
     return Center(
       child: SingleChildScrollView(

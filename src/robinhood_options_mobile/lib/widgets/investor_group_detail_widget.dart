@@ -431,8 +431,8 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
                                           style: TextStyle(
                                             fontSize: 12,
                                             fontWeight: FontWeight.w600,
-                                            color: Colors.teal[
-                                                _isDarkTheme ? 300 : 700],
+                                            color: Colors
+                                                .teal[_isDarkTheme ? 300 : 700],
                                           ),
                                         ),
                                       ],
@@ -1602,8 +1602,9 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
                       children: [
                         CircleAvatar(
                           radius: 12,
-                          backgroundColor:
-                              Theme.of(context).primaryColor.withValues(alpha: 0.15),
+                          backgroundColor: Theme.of(context)
+                              .primaryColor
+                              .withValues(alpha: 0.15),
                           child: Text(
                             activities.first.userName.isNotEmpty
                                 ? activities.first.userName[0].toUpperCase()

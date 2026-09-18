@@ -91,8 +91,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Custom Alerts'), findsOneWidget);
-      expect(
-          find.text('No alerts configured for AAPL.'), findsOneWidget);
+      expect(find.text('No alerts configured for AAPL.'), findsOneWidget);
       expect(find.text('Set Alert'), findsOneWidget);
       expect(find.byIcon(Icons.add_alert_outlined), findsOneWidget);
     });
@@ -141,17 +140,14 @@ void main() {
       await tester.pumpAndSettle();
 
       // Should find AAPL alert
-      expect(
-          find.textContaining('ABOVE', findRichText: true), findsOneWidget);
+      expect(find.textContaining('ABOVE', findRichText: true), findsOneWidget);
       expect(
           find.textContaining('\$230.50', findRichText: true), findsOneWidget);
       expect(find.text('1 active'), findsOneWidget);
 
       // Should NOT display MSFT alert
-      expect(
-          find.textContaining('\$410.00', findRichText: true), findsNothing);
-      expect(
-          find.textContaining('BELOW', findRichText: true), findsNothing);
+      expect(find.textContaining('\$410.00', findRichText: true), findsNothing);
+      expect(find.textContaining('BELOW', findRichText: true), findsNothing);
     });
 
     testWidgets('filters case-insensitively', (WidgetTester tester) async {
