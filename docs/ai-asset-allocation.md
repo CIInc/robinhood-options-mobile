@@ -1,6 +1,6 @@
 # AI-Driven Asset Allocation with Risk Profiling
 
-This feature leverages Generative AI (Gemini 2.5) to provide personalized portfolio allocation recommendations based on the user's risk profile.
+This feature leverages Generative AI (Gemini 3.1 Flash-Lite) to provide personalized portfolio allocation recommendations based on the user's risk profile.
 
 ## Overview
 
@@ -30,7 +30,7 @@ The AI-Driven Asset Allocation tool is integrated into the **Portfolio Rebalanci
 
 -   **Frontend**: `RebalancingWidget` handles the multi-step UI (Form Dialog -> Loading -> Result Dialog).
 -   **State Management**: Updates `User` model (`InvestmentProfile`) locally and in Firestore immediately upon form submission.
--   **Backend**: Uses `generateContent25` (Gemini 2.5 Flash Lite) for high-performance inference.
+-   **Backend**: Uses `generateContent31` / `generateContent25` (Gemini 3.1 Flash-Lite) for lowest-cost, high-performance inference.
 -   **Schema**: AI returns JSON with `explanation`, `assets`, and `sectors`.
 
 ## Future Enhancements

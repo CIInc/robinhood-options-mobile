@@ -122,9 +122,9 @@ class Fundamentals {
             parseDouble(json['fundamental']?['pbRatio'] ?? json['pbRatio']),
         peRatio =
             parseDouble(json['fundamental']?['peRatio'] ?? json['peRatio']),
-        sharesOutstanding = parseDouble(
-            json['fundamental']?['sharesOutstanding'] ??
-                json['sharesOutstanding']),
+        sharesOutstanding = parseDouble(json['fundamental']
+                ?['sharesOutstanding'] ??
+            json['sharesOutstanding']),
         description = (json['description'] is String &&
                 (json['description'] as String).isNotEmpty)
             ? json['description']

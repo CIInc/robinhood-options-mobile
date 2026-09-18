@@ -2,11 +2,7 @@
 import * as https from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import { getFirestore } from "firebase-admin/firestore";
-// import {
-//   // DynamicRetrievalMode,
-//   GoogleGenerativeAI,
-// } from "@google/generative-ai";
-import { VertexAI, type Tool } from "@google-cloud/vertexai";
+import { GoogleGenAI } from "@google/genai";
 
 // export const generateContent = https.onCall({ secrets: ["GEMINI_API_KEY"] },
 //   async (request) => {
@@ -66,6 +62,61 @@ import { VertexAI, type Tool } from "@google-cloud/vertexai";
 //     return response;
 //   });
 
+export const generateContent31 = https.onCall({ secrets: ["GEMINI_API_KEY"] },
+  async (request) => {
+    logger.info(request.data, { structuredData: true });
+    if (process.env.GEMINI_API_KEY == null) {
+      throw new https.HttpsError(
+        "unavailable", "GEMINI_API_KEY not found.");
+    }
+    const ai = new GoogleGenAI({
+      apiKey: process.env.GEMINI_API_KEY,
+    });
+    const primaryModel = process.env.AI_MODEL_NAME || "gemini-3.1-flash-lite";
+
+    let response;
+    try {
+      response = await ai.models.generateContent({
+        model: primaryModel,
+        contents: request.data.prompt,
+        config: {
+          tools: [{ googleSearch: {} }],
+          maxOutputTokens: 800,
+          temperature: 0.4,
+        },
+      });
+    } catch (modelErr) {
+      if (primaryModel !== "gemini-2.5-flash-lite") {
+        logger.warn(
+          `Model ${primaryModel} failed in generateContent, ` +
+          "falling back to gemini-2.5-flash-lite",
+          modelErr,
+        );
+        response = await ai.models.generateContent({
+          model: "gemini-2.5-flash-lite",
+          contents: request.data.prompt,
+          config: {
+            tools: [{ googleSearch: {} }],
+            maxOutputTokens: 800,
+            temperature: 0.4,
+          },
+        });
+      } else {
+        throw modelErr;
+      }
+    }
+
+    return {
+      candidates: response.candidates,
+      text: response.text,
+      modelVersion: response.modelVersion,
+    };
+  });
+
+export const generateContent35 = generateContent31;
+export const generateContent38 = generateContent31;
+export const generateContent3 = generateContent31;
+
 export const generateContent25 = https.onCall({ secrets: ["GEMINI_API_KEY"] },
   async (request) => {
     logger.info(request.data, { structuredData: true });
@@ -73,24 +124,48 @@ export const generateContent25 = https.onCall({ secrets: ["GEMINI_API_KEY"] },
       throw new https.HttpsError(
         "unavailable", "GEMINI_API_KEY not found.");
     }
-    const vertexAI = new VertexAI({
-      project: "realizealpha", // process.env.GOOGLE_PROJECT_ID,
-      location: "us-central1", // process.env.GOOGLE_VERTEXAI_LOCATION,
+    const ai = new GoogleGenAI({
+      apiKey: process.env.GEMINI_API_KEY,
     });
+    const primaryModel = process.env.AI_MODEL_NAME || "gemini-3.1-flash-lite";
 
-    const googleSearchTool = {
-      googleSearch: {},
-    } as Tool;
+    let response;
+    try {
+      response = await ai.models.generateContent({
+        model: primaryModel,
+        contents: request.data.prompt,
+        config: {
+          tools: [{ googleSearch: {} }],
+          maxOutputTokens: 800,
+          temperature: 0.4,
+        },
+      });
+    } catch (modelErr) {
+      if (primaryModel !== "gemini-2.5-flash-lite") {
+        logger.warn(
+          `Model ${primaryModel} failed in generateContent25, ` +
+          "falling back to gemini-2.5-flash-lite",
+          modelErr,
+        );
+        response = await ai.models.generateContent({
+          model: "gemini-2.5-flash-lite",
+          contents: request.data.prompt,
+          config: {
+            tools: [{ googleSearch: {} }],
+            maxOutputTokens: 800,
+            temperature: 0.4,
+          },
+        });
+      } else {
+        throw modelErr;
+      }
+    }
 
-    const model = vertexAI.getGenerativeModel({
-      model: "gemini-2.5-flash-lite",
-      tools: [googleSearchTool],
-    });
-
-    const { response } = await model.generateContent({
-      contents: [{ role: "user", parts: [{ text: request.data.prompt }] }],
-    });
-    return response;
+    return {
+      candidates: response.candidates,
+      text: response.text,
+      modelVersion: response.modelVersion,
+    };
   });
 
 export const analyzePriceTargets = https.onCall({ secrets: ["GEMINI_API_KEY"] },
@@ -100,20 +175,6 @@ export const analyzePriceTargets = https.onCall({ secrets: ["GEMINI_API_KEY"] },
       throw new https.HttpsError(
         "unavailable", "GEMINI_API_KEY not found.");
     }
-    const vertexAI = new VertexAI({
-      project: "realizealpha",
-      location: "us-central1",
-    });
-
-    const googleSearchTool = {
-      googleSearch: {},
-    } as Tool;
-
-    const model = vertexAI.getGenerativeModel({
-      model: "gemini-2.5-flash-lite",
-      tools: [googleSearchTool],
-    });
-
     const symbol = request.data.symbol;
     if (!symbol) {
       throw new https.HttpsError(
@@ -135,18 +196,6 @@ export const analyzePriceTargets = https.onCall({ secrets: ["GEMINI_API_KEY"] },
         // Return cached data if less than 24 hours old
         if (diffHours < 24) {
           logger.info(`Returning cached analysis for ${symbol}`);
-          // Return structure matching generateContent response format
-          // to minimize client changes, or just the JSON data?
-          // The client expects `response.candidates[0].content.parts[0].text`
-          // Let's construct a compatible dummy response object or modify
-          // client to handle raw data.
-          // EASIER: Return the raw JSON string wrapped in the expected
-          // structure
-          // so we don't break the client parsing logic yet, or better,
-          // since we can control the return value, let's just return
-          // the JSON object
-          // BUT the client is currently parsing `candidates...`.
-          // Let's return the JSON string as the "text" part.
           return {
             candidates: [{
               content: {
@@ -197,25 +246,54 @@ export const analyzePriceTargets = https.onCall({ secrets: ["GEMINI_API_KEY"] },
     Do not include markdown code blocks (like \`\`\`json). Just the raw JSON.
     `;
 
-    const { response } = await model.generateContent({
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
+    const ai = new GoogleGenAI({
+      apiKey: process.env.GEMINI_API_KEY,
     });
+    const primaryModel = process.env.AI_MODEL_NAME || "gemini-3.1-flash-lite";
+
+    let response;
+    try {
+      response = await ai.models.generateContent({
+        model: primaryModel,
+        contents: prompt,
+        config: {
+          tools: [{ googleSearch: {} }],
+          maxOutputTokens: 400,
+          temperature: 0.2,
+        },
+      });
+    } catch (modelErr) {
+      if (primaryModel !== "gemini-2.5-flash-lite") {
+        logger.warn(
+          `Model ${primaryModel} failed in analyzePriceTargets, ` +
+          "falling back to gemini-2.5-flash-lite",
+          modelErr,
+        );
+        response = await ai.models.generateContent({
+          model: "gemini-2.5-flash-lite",
+          contents: prompt,
+          config: {
+            tools: [{ googleSearch: {} }],
+            maxOutputTokens: 400,
+            temperature: 0.2,
+          },
+        });
+      } else {
+        throw modelErr;
+      }
+    }
 
     // Cache the result
-    if (response.candidates &&
-      response.candidates[0].content &&
-      response.candidates[0].content.parts &&
-      response.candidates[0].content.parts[0].text) {
+    const textContent = response.text ||
+      response.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (textContent) {
       try {
-        let text = response.candidates[0].content.parts[0].text;
+        let text = textContent;
         // Strip markdown code blocks if present
         text = text.replace(/^```json\s*/, "").replace(/\s*```$/, "");
         const json = JSON.parse(text);
         // Ensure last_updated is set to now
         json.last_updated = new Date().toISOString();
-
-        // Update the text in the response to include the verified timestamp
-        response.candidates[0].content.parts[0].text = JSON.stringify(json);
 
         await docRef.set(json);
       } catch (e) {
@@ -223,11 +301,9 @@ export const analyzePriceTargets = https.onCall({ secrets: ["GEMINI_API_KEY"] },
       }
     }
 
-    // Parse the response to ensure it's valid JSON,
-    // or return it as text if parsing fails
-    // The model might return markdown, so we might need to strip it on the
-    // client or server.
-    // For now, return the full response and let the client handle parsing or
-    // error.
-    return response;
+    return {
+      candidates: response.candidates,
+      text: response.text,
+      modelVersion: response.modelVersion,
+    };
   });

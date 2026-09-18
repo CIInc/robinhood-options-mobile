@@ -88,6 +88,8 @@ import 'package:robinhood_options_mobile/model/trade_signals_provider.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/widgets/agentic_trading_settings_widget.dart';
 import 'package:robinhood_options_mobile/widgets/auto_trade_status_badge_widget.dart';
+import 'package:robinhood_options_mobile/widgets/custom_alerts_widget.dart';
+import 'package:robinhood_options_mobile/widgets/instrument_alerts_widget.dart';
 import 'package:robinhood_options_mobile/widgets/backtesting_widget.dart';
 import 'package:robinhood_options_mobile/widgets/event_study_widget.dart';
 import 'package:share_plus/share_plus.dart';
@@ -957,6 +959,12 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
     _isGeneratingSignalNotifier.value = true;
 
+    final messenger = ScaffoldMessenger.of(context);
+    final tradeSignalsProvider =
+        Provider.of<TradeSignalsProvider>(context, listen: false);
+    final agenticTradingProvider =
+        Provider.of<AgenticTradingProvider>(context, listen: false);
+
     try {
       final portfolioState = _buildPortfolioState(context);
       final price = widget.instrument.quoteObj?.lastExtendedHoursTradePrice ??
@@ -967,10 +975,6 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       }
 
       // Generate new signal via initiateTradeProposal
-      final tradeSignalsProvider =
-          Provider.of<TradeSignalsProvider>(context, listen: false);
-      final agenticTradingProvider =
-          Provider.of<AgenticTradingProvider>(context, listen: false);
       await tradeSignalsProvider.initiateTradeProposal(
         symbol: widget.instrument.symbol,
         currentPrice: price,
@@ -982,25 +986,32 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       await Future.delayed(const Duration(milliseconds: 500));
 
       // Refresh the signal from Firestore
-      await Provider.of<TradeSignalsProvider>(context, listen: false)
-          .fetchTradeSignal(widget.instrument.symbol);
+      await tradeSignalsProvider.fetchTradeSignal(widget.instrument.symbol);
 
-      if (mounted) {
+      if (!mounted) return;
+
+      if (_selectedCategory != 'Signals' && _selectedCategory != 'All') {
+        setState(() {
+          _selectedCategory = 'Signals';
+        });
+        await Future.delayed(const Duration(milliseconds: 100));
+      }
+      if (mounted && tradeSignalKey.currentContext != null) {
         Scrollable.ensureVisible(tradeSignalKey.currentContext!,
             duration: const Duration(milliseconds: 500),
             curve: Curves.easeInOut,
             alignment: 0.0);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Trade signal generated successfully!'),
-            behavior: SnackBarBehavior.floating,
-            duration: Duration(seconds: 2),
-          ),
-        );
       }
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Trade signal generated successfully!'),
+          behavior: SnackBarBehavior.floating,
+          duration: Duration(seconds: 2),
+        ),
+      );
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           SnackBar(
             content: Text('Error generating signal: $e'),
             behavior: SnackBarBehavior.floating,
@@ -1745,6 +1756,19 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                           );
                         },
                       ),
+                      IconButton(
+                        icon: const Icon(Icons.add_alert_outlined),
+                        tooltip: 'Custom Alerts',
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) => CustomAlertsWidget(
+                                initialSymbol: widget.instrument.symbol,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
                       if (auth.currentUser != null)
                         AutoTradeStatusBadgeWidget(
                           user: widget.user,
@@ -1852,8 +1876,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     switch (_selectedCategory) {
       case 'Signals':
         return [
-          _buildAgenticTradeSignals(instrument, summaryOnly: false),
+          _buildAgenticTradeSignals(instrument),
           _buildQuickIntelligenceCardsSliver(instrument, expandedTools: true),
+          _buildAlertsSliver(instrument),
         ];
       case 'Financials':
         return _buildFinancialsSlivers(instrument);
@@ -1874,11 +1899,11 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           _buildComboOrdersSliver(instrument),
           // 2. Market Overview
           _buildMarketQuoteSliver(instrument),
-          _buildBuyingPowerSliver(instrument),
           // 3. Technical Signals & AI
-          _buildAgenticTradeSignals(instrument, summaryOnly: false),
+          _buildAgenticTradeSignals(instrument),
           // 4. Intelligence & Quantitative Tools
           _buildQuickIntelligenceCardsSliver(instrument, expandedTools: true),
+          _buildAlertsSliver(instrument),
           // 5. Financials & Valuation
           ..._buildFinancialsSlivers(instrument),
           // 6. Research & Smart Money
@@ -1889,41 +1914,10 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       case 'Overview':
       default:
         return [
-          // Holdings (if any)
-          _buildPositionSliver(instrument),
-          _buildOptionPositionsSliver(instrument),
-          _buildHistoricalPositionsSliver(instrument),
           // Market Quote
           _buildMarketQuoteSliver(instrument),
-          _buildBuyingPowerSliver(instrument),
-          // Trade signals & recommendations summary
-          _buildAgenticTradeSignals(instrument, summaryOnly: true),
-          // Quick shortcuts (Options Flow & GEX)
-          _buildQuickIntelligenceCardsSliver(instrument, expandedTools: false),
-          // Company fundamentals preview
-          if (instrument.fundamentalsObj != null) ...[
-            const SliverToBoxAdapter(child: SizedBox(height: 8.0)),
-            fundamentalsWidget(instrument),
-          ],
-          // Notes & News
-          _buildNotesSliver(instrument),
-          if (instrument.newsObj != null) ...[
-            const SliverToBoxAdapter(child: SizedBox(height: 8.0)),
-            _buildNewsWidget(instrument),
-          ],
           // Explore other sections shortcut card
           _buildExploreSectionsCard(instrument),
-          // Lists & Similar
-          if (instrument.listsObj != null &&
-              instrument.listsObj!.isNotEmpty) ...[
-            const SliverToBoxAdapter(child: SizedBox(height: 8.0)),
-            _buildListsWidget(instrument),
-          ],
-          if (instrument.similarObj != null &&
-              instrument.similarObj!.isNotEmpty) ...[
-            const SliverToBoxAdapter(child: SizedBox(height: 8.0)),
-            _buildSimilarWidget(instrument),
-          ],
         ];
     }
   }
@@ -1935,7 +1929,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     final sections = [
       (
         'Signals & Tech',
-        '19 technical indicators, GEX & options flow',
+        'Trade signals, 19 indicators, GEX & flow',
         Icons.bolt_outlined,
         Colors.amber.shade700,
         'Signals',
@@ -1960,6 +1954,13 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         Icons.receipt_long_outlined,
         Colors.teal.shade700,
         'Activity',
+      ),
+      (
+        'News & Notes',
+        'Market news, personal notes & lists',
+        Icons.newspaper_outlined,
+        Colors.indigo.shade700,
+        'News',
       ),
     ];
 
@@ -2075,21 +2076,6 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     return quoteWidget(instrument);
   }
 
-  Widget _buildBuyingPowerSliver(Instrument instrument) {
-    if (_instrumentBuyingPower == null) {
-      return const SliverToBoxAdapter(child: SizedBox.shrink());
-    }
-    return SliverToBoxAdapter(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
-        child: InstrumentBuyingPowerSummaryTile(
-          buyingPower: _instrumentBuyingPower!,
-          onTap: _showInstrumentBuyingPowerSheet,
-        ),
-      ),
-    );
-  }
-
   void _showInstrumentBuyingPowerSheet() {
     InstrumentBuyingPowerSheet.show(
       context,
@@ -2120,7 +2106,6 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: 8.0),
             _buildSectionHeader(
               title: "Position",
               subtitle: '${formatNumber.format(position.quantity!)} shares',
@@ -2372,11 +2357,6 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       _buildStockOrdersSliver(instrument),
       _buildOptionOrdersSliver(instrument),
       _buildComboOrdersSliver(instrument),
-      if (instrument.dividendsObj != null &&
-          instrument.dividendsObj!.isNotEmpty) ...[
-        const SliverToBoxAdapter(child: SizedBox(height: 8.0)),
-        _buildDividendsWidget(instrument),
-      ],
       _buildActivityEmptyStateSliver(instrument),
     ];
   }
@@ -2419,15 +2399,11 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                   l.symbol!.toUpperCase() == instrument.symbol.toUpperCase()));
         }
 
-        final hasDividends = instrument.dividendsObj != null &&
-            instrument.dividendsObj!.isNotEmpty;
-
         if (hasStockPos ||
             hasOptPos ||
             hasStockOrders ||
             hasOptOrders ||
-            hasComboOrders ||
-            hasDividends) {
+            hasComboOrders) {
           return const SliverToBoxAdapter(child: SizedBox.shrink());
         }
 
@@ -2886,12 +2862,10 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
     return [
       if (instrument.fundamentalsObj != null) ...[
-        const SliverToBoxAdapter(child: SizedBox(height: 8.0)),
         fundamentalsWidget(instrument),
       ],
       if (instrument.earningsObj != null &&
           instrument.earningsObj!.isNotEmpty) ...[
-        const SliverToBoxAdapter(child: SizedBox(height: 8.0)),
         _buildEarningsWidget(instrument),
       ],
       if (instrument.type == 'stock' || instrument.type.isEmpty) ...[
@@ -2905,11 +2879,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       ],
       if (instrument.dividendsObj != null &&
           instrument.dividendsObj!.isNotEmpty) ...[
-        const SliverToBoxAdapter(child: SizedBox(height: 8.0)),
         _buildDividendsWidget(instrument),
       ],
       if (instrument.splitsObj != null && instrument.splitsObj!.isNotEmpty) ...[
-        const SliverToBoxAdapter(child: SizedBox(height: 8.0)),
         _buildSplitsWidget(instrument),
       ],
     ];
@@ -2972,11 +2944,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       ),
       if (instrument.ratingsObj != null &&
           instrument.ratingsObj["summary"] != null) ...[
-        const SliverToBoxAdapter(child: SizedBox(height: 8.0)),
         _buildRatingsWidget(instrument),
       ],
       if (instrument.ratingsOverviewObj != null) ...[
-        const SliverToBoxAdapter(child: SizedBox(height: 8.0)),
         _buildRatingsOverviewWidget(instrument),
       ],
       if (instrument.type == 'stock' || instrument.type.isEmpty) ...[
@@ -3031,20 +3001,29 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     );
   }
 
+  Widget _buildAlertsSliver(Instrument instrument) {
+    return SliverToBoxAdapter(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+        child: InstrumentAlertsWidget(
+          instrument: instrument,
+          userId: auth.currentUser?.uid,
+        ),
+      ),
+    );
+  }
+
   List<Widget> _buildNewsSlivers(Instrument instrument) {
     return [
-      _buildNotesSliver(instrument),
       if (instrument.newsObj != null) ...[
-        const SliverToBoxAdapter(child: SizedBox(height: 8.0)),
         _buildNewsWidget(instrument),
       ],
+      _buildNotesSliver(instrument),
       if (instrument.listsObj != null && instrument.listsObj!.isNotEmpty) ...[
-        const SliverToBoxAdapter(child: SizedBox(height: 8.0)),
         _buildListsWidget(instrument),
       ],
       if (instrument.similarObj != null &&
           instrument.similarObj!.isNotEmpty) ...[
-        const SliverToBoxAdapter(child: SizedBox(height: 8.0)),
         _buildSimilarWidget(instrument),
       ],
     ];

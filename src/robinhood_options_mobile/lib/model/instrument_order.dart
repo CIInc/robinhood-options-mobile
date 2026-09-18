@@ -94,7 +94,16 @@ class InstrumentOrder {
             ? (json['created_at'] as Timestamp).toDate()
             : (json['created_at'] is String
                 ? DateTime.tryParse(json['created_at'])
-                : null);
+                : null),
+        instrumentObj = json['instrument_obj'] != null
+            ? Instrument.fromJson(json['instrument_obj'])
+            : (json['instrumentObj'] != null
+                ? Instrument.fromJson(json['instrumentObj'])
+                : (json['symbol'] != null &&
+                        json['symbol'].toString().isNotEmpty
+                    ? Instrument.forSymbol(json['symbol'].toString(),
+                        instrumentUrl: json['instrument']?.toString())
+                    : null));
 
   /// Parses paper trading order format from Firestore.
   factory InstrumentOrder.fromPaperJson(dynamic json) {
@@ -181,8 +190,8 @@ class InstrumentOrder {
         createdAt = json['enteredTime'] != null
             ? DateTime.tryParse(json['enteredTime'])
             : null,
-        updatedAt = DateTime.tryParse(
-            json['closeTime'] ?? json['enteredTime'] ?? '');
+        updatedAt =
+            DateTime.tryParse(json['closeTime'] ?? json['enteredTime'] ?? '');
 
   Map<String, dynamic> toJson() => {
         'id': id,
@@ -208,7 +217,8 @@ class InstrumentOrder {
         'reject_reason': rejectReason,
         'trailing_peg': trailingPeg,
         'created_at': createdAt,
-        'updated_at': updatedAt
+        'updated_at': updatedAt,
+        'instrument_obj': instrumentObj?.toJson(),
       };
 
   /* CSV Generation */

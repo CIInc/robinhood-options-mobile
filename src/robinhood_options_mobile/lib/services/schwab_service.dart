@@ -1392,10 +1392,8 @@ https://api.schwabapi.com/trader/v1/orders?fromEnteredTime=2024-09-28T23%3A59%3A
   }
 
   @override
-  Future<List<InstrumentPosition>> refreshPositionQuote(
-      BrokerageUser user,
-      InstrumentPositionStore store,
-      QuoteStore quoteStore) async {
+  Future<List<InstrumentPosition>> refreshPositionQuote(BrokerageUser user,
+      InstrumentPositionStore store, QuoteStore quoteStore) async {
     if (store.items.isEmpty) {
       return store.items;
     }
@@ -1423,8 +1421,8 @@ https://api.schwabapi.com/trader/v1/orders?fromEnteredTime=2024-09-28T23%3A59%3A
   }
 
   @override
-  Future<List<Fundamentals>> getFundamentalsById(
-      BrokerageUser user, List<String> instruments, InstrumentStore store) async {
+  Future<List<Fundamentals>> getFundamentalsById(BrokerageUser user,
+      List<String> instruments, InstrumentStore store) async {
     List<Fundamentals> list = [];
     var symbols = instruments
         .map((e) =>
@@ -1998,9 +1996,12 @@ https://api.schwabapi.com/marketdata/v1/instruments?symbol=Google&projection=sea
     return getQuote(user, store, symbol);
   }
 
-  (String periodType, int period, String frequencyType, int frequency)
-      _convertSchwabSpanAndInterval(
-          ChartDateSpan span, String? customInterval) {
+  (
+    String periodType,
+    int period,
+    String frequencyType,
+    int frequency
+  ) _convertSchwabSpanAndInterval(ChartDateSpan span, String? customInterval) {
     int freq = 5;
     if (customInterval != null) {
       if (customInterval == '15second') {

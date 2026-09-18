@@ -382,7 +382,7 @@ Users can now define their own technical indicators to be used alongside the sta
 
 ### ML Optimization
 
-Machine Learning models are integrated to continuously optimize trade signals, leveraging Google's **Vertex AI Gemini 1.5 Flash** model for high-speed, cost-effective analysis.
+Machine Learning models are integrated to continuously optimize trade signals, leveraging Google's **Vertex AI Gemini 3.1 Flash-Lite** model for high-speed, cost-effective analysis.
 
 - **Signal Refinement:** ML algorithms analyze historical performance to adjust indicator weights and thresholds.
 - **Accuracy Improvement:** Reduces false positives by learning from past market conditions.
@@ -391,7 +391,7 @@ Machine Learning models are integrated to continuously optimize trade signals, l
 - **Cost Efficiency:**
   - **Signal Gating:** Intelligent filtering only invokes AI optimization for high-potential setups (Signal Strength > 25), significantly reducing API costs by skipping analysis of weak signals.
   - **Optimized Prompts:** Utilizes minified and structured prompts to minimize token usage while maintaining analytical depth.
-  - **Model Selection:** Uses the `gemini-1.5-flash-001` model, which offers a 10x cost reduction compared to Pro models without compromising on structured analysis capabilities.
+  - **Model Selection:** Uses the `gemini-3.1-flash-lite` model, which offers the lowest inference costs ($0.25 / $1.50 per 1M tokens), high rate limits, and sub-second latency without compromising on structured analysis capabilities.
 
 ### Advanced Exit Strategies
 

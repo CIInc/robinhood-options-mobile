@@ -157,7 +157,8 @@ void main() {
     expect(account.toJson()['account_number'], 'legacy-account');
   });
 
-  test('populates synthetic quote and computes market value and today return', () {
+  test('populates synthetic quote and computes market value and today return',
+      () {
     final position = InstrumentPosition.fromSchwabJson({
       'averagePrice': 140.0,
       'longQuantity': 10.0,
@@ -183,7 +184,9 @@ void main() {
     expect(position.gainLoss, 100.0); // 1500 - 1400
   });
 
-  test('derives netChange from currentDayProfitLoss if instrument.netChange is missing', () {
+  test(
+      'derives netChange from currentDayProfitLoss if instrument.netChange is missing',
+      () {
     final position = InstrumentPosition.fromSchwabJson({
       'averagePrice': 100.0,
       'longQuantity': 5.0,
@@ -199,7 +202,8 @@ void main() {
 
     expect(position.instrumentObj?.quoteObj, isNotNull);
     expect(position.instrumentObj!.quoteObj!.lastTradePrice, 120.0); // 600 / 5
-    expect(position.instrumentObj!.quoteObj!.adjustedPreviousClose, 115.0); // 120 - (25 / 5)
+    expect(position.instrumentObj!.quoteObj!.adjustedPreviousClose,
+        115.0); // 120 - (25 / 5)
     expect(position.marketValue, 600.0);
     expect(position.gainLossToday, 25.0);
   });

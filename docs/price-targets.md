@@ -25,4 +25,4 @@ Access Price Targets within the **Instrument Detail** view:
 2.  Locate the **AI Insights** or **Analysis** section.
 3.  View the generated **Price Target Card** to see the projection and underlying rationale.
 
-*Note: Price targets are generated using the `analyzePriceTargets` cloud function and `gemini-2.5-flash-lite` model for rapid inference.*
+*Note: Price targets are generated using the `analyzePriceTargets` cloud function and `gemini-3.1-flash-lite` model for lowest-cost, rapid inference.*
