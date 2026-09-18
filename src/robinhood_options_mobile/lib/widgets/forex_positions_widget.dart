@@ -24,6 +24,7 @@ import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/forex_instrument_widget.dart';
 import 'package:robinhood_options_mobile/widgets/pnl_badge.dart';
 import 'package:robinhood_options_mobile/widgets/animated_price_text.dart';
+import 'package:robinhood_options_mobile/widgets/synchronized_scroll_controller.dart';
 import 'package:robinhood_options_mobile/widgets/forex_positions_page_widget.dart';
 import 'package:robinhood_options_mobile/widgets/more_menu_widget.dart';
 //import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
@@ -65,6 +66,8 @@ class ForexPositionsWidget extends StatefulWidget {
 }
 
 class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
+  final SynchronizedScrollControllerGroup _scrollGroup =
+      SynchronizedScrollControllerGroup();
   // final FirestoreService _firestoreService = FirestoreService();
 
   @override
@@ -768,7 +771,7 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
         ]));
   }
 
-  SingleChildScrollView _buildDetailScrollRow(List<ForexHolding> holdings) {
+  Widget _buildDetailScrollRow(List<ForexHolding> holdings) {
     double? totalReturn = widget.brokerageUser.getDisplayValueForexHoldings(
         holdings,
         displayValue: DisplayValue.totalReturn);
@@ -880,13 +883,14 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
       }
     }
 
-    return SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 5),
-            child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: tiles)));
+    return SynchronizedDetailScrollRow(
+      scrollGroup: _scrollGroup,
+      padding: const EdgeInsets.symmetric(horizontal: 5),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: tiles,
+      ),
+    );
   }
 
   Widget _buildChartControls(BuildContext context) {

@@ -392,7 +392,8 @@ Mapping features to specific versions helps users anticipate releases and unders
 - **Options Strategy Roll Assistant:** 1-tap rolling wizard for covered calls, cash-secured puts, and spreads with automated net credit/debit calculation and updated breakeven points.
 - **iOS Live Activities & Dynamic Island:** Real-time lock screen widget for active option positions and 0DTE trailing stops during market hours.
 - **Offline Mode & Resilient Caching:** Encrypted local cache for portfolio holdings, watchlists, and recent charts with background sync ([#87](https://github.com/CIInc/robinhood-options-mobile/issues/87)).
-- **Synchronized Position Scroll & Bar Chart Values:** Synchronized multi-column scrolling for position detail rows ([#7](https://github.com/CIInc/robinhood-options-mobile/issues/7)) and combined $/% bar charts ([#19](https://github.com/CIInc/robinhood-options-mobile/issues/19)).
+- ✅ **Synchronized Position Scroll:** Synchronized multi-column scrolling for position detail rows ([#7](https://github.com/CIInc/robinhood-options-mobile/issues/7)).
+- **Position Bar Chart Values:** Combined $/% bar charts ([#19](https://github.com/CIInc/robinhood-options-mobile/issues/19)).
 - **Apple Watch & Wear OS Companion App Foundation:** Glanceable portfolio P&L and watchlists on wearables.
 
 ### v0.50.0 (2027 Q1 - February)
@@ -970,7 +971,7 @@ Technical debt accumulation slows velocity. Investing in testing, CI/CD, and sec
 - [ ] **Landscape Mode**: Advanced charting and data tables support
 - [ ] **Accessibility**: Voice/Assistant integrations, dynamic type, haptic feedback
 - [ ] **Mobile UX Enhancements** ([#117](https://github.com/CIInc/robinhood-options-mobile/issues/117)): Siri/Assistant shortcuts, tablet layouts, and haptics
-- [ ] **Synchronized Position Scroll** ([#7](https://github.com/CIInc/robinhood-options-mobile/issues/7)): Synchronized scroll across portfolio position detail rows
+- [x] **Synchronized Position Scroll** ([#7](https://github.com/CIInc/robinhood-options-mobile/issues/7)): Synchronized scroll across portfolio position detail rows
 - [ ] **Position Bar Chart Values** ([#19](https://github.com/CIInc/robinhood-options-mobile/issues/19)): Combined display of both $ and % values in stock and option bar charts
 
 #### Infrastructure & Security

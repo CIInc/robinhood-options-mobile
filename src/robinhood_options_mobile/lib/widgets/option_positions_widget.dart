@@ -28,6 +28,7 @@ import 'package:robinhood_options_mobile/widgets/option_instrument_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_positions_page_widget.dart';
 import 'package:robinhood_options_mobile/widgets/pnl_badge.dart';
 import 'package:robinhood_options_mobile/widgets/animated_price_text.dart';
+import 'package:robinhood_options_mobile/widgets/synchronized_scroll_controller.dart';
 //import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
 /*
@@ -81,6 +82,9 @@ class OptionPositionsWidget extends StatefulWidget {
 }
 
 class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
+  final SynchronizedScrollControllerGroup _scrollGroup =
+      SynchronizedScrollControllerGroup();
+
   void _showAggregateTradeDisabled(BuildContext context) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
@@ -908,7 +912,7 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
         ));
   }
 
-  SingleChildScrollView _buildDetailScrollRow(List<OptionAggregatePosition> ops,
+  Widget _buildDetailScrollRow(List<OptionAggregatePosition> ops,
       GreekAggregates? greeks, double valueFontSize, double labelFontSize,
       {double iconSize = 23.0, bool clickable = true}) {
     /*
@@ -1058,13 +1062,14 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
       }
     }
 
-    return SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 5),
-            child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: tiles)));
+    return SynchronizedDetailScrollRow(
+      scrollGroup: _scrollGroup,
+      padding: const EdgeInsets.symmetric(horizontal: 5),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: tiles,
+      ),
+    );
   }
 
   Widget _buildOptionPositionSymbolRow(

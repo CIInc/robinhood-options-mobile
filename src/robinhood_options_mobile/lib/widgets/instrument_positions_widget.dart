@@ -26,6 +26,7 @@ import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
 import 'package:robinhood_options_mobile/widgets/more_menu_widget.dart';
 import 'package:robinhood_options_mobile/widgets/pnl_badge.dart';
 import 'package:robinhood_options_mobile/widgets/animated_price_text.dart';
+import 'package:robinhood_options_mobile/widgets/synchronized_scroll_controller.dart';
 
 class InstrumentPositionsWidget extends StatefulWidget {
   const InstrumentPositionsWidget(
@@ -69,6 +70,8 @@ class InstrumentPositionsWidget extends StatefulWidget {
 }
 
 class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
+  final SynchronizedScrollControllerGroup _scrollGroup =
+      SynchronizedScrollControllerGroup();
   // final FirestoreService _firestoreService = FirestoreService();
 
   void _showAggregateTradeDisabled(BuildContext context) {
@@ -1002,7 +1005,7 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
         ]));
   }
 
-  SingleChildScrollView _buildDetailScrollRow(
+  Widget _buildDetailScrollRow(
       String? todayReturnText,
       String? todayReturnPercentText,
       String? totalReturnText,
@@ -1074,13 +1077,14 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
           neutral: true));
     }
 
-    return SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 5),
-            child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: tiles)));
+    return SynchronizedDetailScrollRow(
+      scrollGroup: _scrollGroup,
+      padding: const EdgeInsets.symmetric(horizontal: 5),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: tiles,
+      ),
+    );
   }
 
   Widget _buildChartControls(BuildContext context) {

@@ -17,6 +17,7 @@ import 'package:robinhood_options_mobile/widgets/futures_positions_page_widget.d
 import 'package:robinhood_options_mobile/widgets/chart_pie_widget.dart' as pie;
 import 'package:robinhood_options_mobile/widgets/pnl_badge.dart';
 import 'package:robinhood_options_mobile/widgets/animated_price_text.dart';
+import 'package:robinhood_options_mobile/widgets/synchronized_scroll_controller.dart';
 
 enum _FuturesChartMeasure {
   notional('Notional'),
@@ -67,6 +68,8 @@ class FuturesPositionsWidget extends StatefulWidget {
 
 class _FuturesPositionsWidgetState extends State<FuturesPositionsWidget> {
   late FuturesPositionStore store;
+  final SynchronizedScrollControllerGroup _scrollGroup =
+      SynchronizedScrollControllerGroup();
   _FuturesChartMeasure _chartMeasure = _FuturesChartMeasure.openPnl;
   bool _sortDescending = true;
 
@@ -469,42 +472,40 @@ class _FuturesPositionsWidgetState extends State<FuturesPositionsWidget> {
                           .withValues(alpha: 0.4),
                     ),
                   ),
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 5, vertical: 12.0),
-                      child: Row(
-                        children: [
-                          _buildSummaryMetric(
-                            'Day P&L',
-                            localStore.totalDayPnl,
-                            measure: _FuturesChartMeasure.dayPnl,
-                          ),
-                          _buildSummaryMetric(
-                            'Open P&L',
-                            localStore.totalOpenPnl,
-                            measure: _FuturesChartMeasure.openPnl,
-                          ),
-                          _buildSummaryMetric(
-                            'Realized',
-                            localStore.totalRealizedPnl,
-                            measure: _FuturesChartMeasure.realizedPnl,
-                          ),
-                          _buildSummaryMetric(
-                            'Notional',
-                            grossNotional,
-                            measure: _FuturesChartMeasure.notional,
-                            neutral: true,
-                          ),
-                          _buildSummaryMetric(
-                            'Margin',
-                            localStore.totalMarginRequirement,
-                            measure: _FuturesChartMeasure.marginRequirement,
-                            neutral: true,
-                          ),
-                        ],
-                      ),
+                  child: SynchronizedDetailScrollRow(
+                    scrollGroup: _scrollGroup,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 5, vertical: 12.0),
+                    child: Row(
+                      children: [
+                        _buildSummaryMetric(
+                          'Day P&L',
+                          localStore.totalDayPnl,
+                          measure: _FuturesChartMeasure.dayPnl,
+                        ),
+                        _buildSummaryMetric(
+                          'Open P&L',
+                          localStore.totalOpenPnl,
+                          measure: _FuturesChartMeasure.openPnl,
+                        ),
+                        _buildSummaryMetric(
+                          'Realized',
+                          localStore.totalRealizedPnl,
+                          measure: _FuturesChartMeasure.realizedPnl,
+                        ),
+                        _buildSummaryMetric(
+                          'Notional',
+                          grossNotional,
+                          measure: _FuturesChartMeasure.notional,
+                          neutral: true,
+                        ),
+                        _buildSummaryMetric(
+                          'Margin',
+                          localStore.totalMarginRequirement,
+                          measure: _FuturesChartMeasure.marginRequirement,
+                          neutral: true,
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -710,12 +711,11 @@ class _FuturesPositionsWidgetState extends State<FuturesPositionsWidget> {
                                   : null,
                             ),
                             if (avg > 0 || dayPnl != null || openPnl != null)
-                              SingleChildScrollView(
-                                scrollDirection: Axis.horizontal,
-                                child: Padding(
-                                  padding:
-                                      const EdgeInsets.symmetric(horizontal: 5),
-                                  child: Row(
+                              SynchronizedDetailScrollRow(
+                                scrollGroup: _scrollGroup,
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 5),
+                                child: Row(
                                     children: [
                                       if (avg > 0)
                                         Padding(
@@ -883,20 +883,19 @@ class _FuturesPositionsWidgetState extends State<FuturesPositionsWidget> {
                                                       previousClosePrice),
                                                   neutral: true),
                                               const SizedBox(height: 4),
-                                              const Text("Prev Close",
-                                                  style: TextStyle(
-                                                      fontSize:
-                                                          summaryLabelFontSize)),
-                                            ],
-                                          ),
-                                        ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                          ],
-                        ),
-                      );
+                                               const Text("Prev Close",
+                                                   style: TextStyle(
+                                                       fontSize:
+                                                           summaryLabelFontSize)),
+                                             ],
+                                           ),
+                                         ),
+                                     ],
+                                   ),
+                                 ),
+                           ],
+                         ),
+                       );
                     }).toList(),
                   ),
               ],
