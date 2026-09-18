@@ -38,6 +38,7 @@ import 'package:robinhood_options_mobile/model/portfolio_store.dart';
 import 'package:robinhood_options_mobile/model/quote.dart';
 import 'package:robinhood_options_mobile/model/quote_store.dart';
 import 'package:robinhood_options_mobile/model/user_info.dart';
+import 'package:robinhood_options_mobile/model/tax_lot.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/model/user.dart' as app_user;
 import 'package:robinhood_options_mobile/model/fundamentals.dart';
@@ -1132,6 +1133,12 @@ class FidelityService implements IBrokerageService {
   }
 
   @override
+  Future<List<TaxLot>> getEquityTaxLots(
+      BrokerageUser user, Account account, String symbol) async {
+    return [];
+  }
+
+  @override
   Future<dynamic> placeInstrumentOrder(
       BrokerageUser user,
       Account account,
@@ -1144,7 +1151,9 @@ class FidelityService implements IBrokerageService {
       String trigger = 'immediate',
       double? stopPrice,
       String timeInForce = 'gtc',
-      Map<String, dynamic>? trailingPeg}) async {
+      Map<String, dynamic>? trailingPeg,
+      String? taxLotSelectionType,
+      List<Map<String, dynamic>>? taxLots}) async {
     throw UnimplementedError();
   }
 

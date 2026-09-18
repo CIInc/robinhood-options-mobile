@@ -160,7 +160,9 @@ class MockBrokerageService extends Fake implements IBrokerageService {
       String trigger = 'immediate',
       double? stopPrice,
       String timeInForce = 'gtc',
-      Map<String, dynamic>? trailingPeg}) async {
+      Map<String, dynamic>? trailingPeg,
+      String? taxLotSelectionType,
+      List<Map<String, dynamic>>? taxLots}) async {
     return {'id': 'mock_order_id', 'state': 'filled'};
   }
 }

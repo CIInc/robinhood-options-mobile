@@ -8,6 +8,7 @@ import 'package:robinhood_options_mobile/model/capital_gains_model.dart';
 import 'package:robinhood_options_mobile/model/form_8949_model.dart';
 import 'package:robinhood_options_mobile/model/tax_harvesting_suggestion.dart';
 import 'package:robinhood_options_mobile/model/wash_sale_record.dart';
+import 'package:robinhood_options_mobile/model/tax_lot.dart';
 
 class TaxOptimizationService {
   static double calculateEstimatedRealizedGains({
@@ -1658,6 +1659,274 @@ class TaxOptimizationService {
     ];
 
     return demo;
+  }
+
+  /// Evaluates and applies a tax lot disposition strategy against available lots
+  /// for a specified order quantity and current price.
+  ///
+  /// Computes allocated shares, cost basis, realized gains/losses, tax liability,
+  /// and tax savings compared to default FIFO execution.
+  static TaxLotAllocation applyTaxLotStrategy({
+    required List<TaxLot> lots,
+    required TaxLotStrategy strategy,
+    required double orderQuantity,
+    required double currentPrice,
+    Map<String, double>? manualAllocations,
+    double shortTermTaxRate = 0.24,
+    double longTermTaxRate = 0.15,
+  }) {
+    final eligibleLots = lots
+        .where((l) => l.isSelectable && l.quantityAvailable > 0)
+        .toList();
+
+    // 1. Calculate baseline FIFO allocation to determine baseline tax liability
+    final fifoAllocatedLots = _allocateGreedy(
+      lots: List<TaxLot>.from(eligibleLots)..sort((a, b) => a.openDate.compareTo(b.openDate)),
+      orderQuantity: orderQuantity,
+    );
+    final fifoLiability = _calculateTaxLiability(
+      fifoAllocatedLots,
+      currentPrice,
+      shortTermTaxRate: shortTermTaxRate,
+      longTermTaxRate: longTermTaxRate,
+    );
+
+    // 2. Sort or map lots based on requested strategy
+    List<AllocatedLot> targetAllocatedLots;
+
+    if (strategy == TaxLotStrategy.specified && manualAllocations != null) {
+      targetAllocatedLots = [];
+      for (final lot in eligibleLots) {
+        final assigned = manualAllocations[lot.openLotId] ?? 0.0;
+        if (assigned > 0) {
+          final alloc = min(assigned, lot.quantityAvailable);
+          targetAllocatedLots.add(AllocatedLot(lot: lot, allocatedQuantity: alloc));
+        }
+      }
+    } else {
+      final sorted = List<TaxLot>.from(eligibleLots);
+      switch (strategy) {
+        case TaxLotStrategy.fifo:
+          // Oldest first
+          sorted.sort((a, b) => a.openDate.compareTo(b.openDate));
+          break;
+        case TaxLotStrategy.lifo:
+          // Newest first
+          sorted.sort((a, b) => b.openDate.compareTo(a.openDate));
+          break;
+        case TaxLotStrategy.hifo:
+          // Highest cost per share first (max loss / min gain)
+          sorted.sort((a, b) {
+            final cmp = b.costPerShare.compareTo(a.costPerShare);
+            return cmp != 0 ? cmp : a.openDate.compareTo(b.openDate);
+          });
+          break;
+        case TaxLotStrategy.lofo:
+          // Lowest cost per share first (max gain)
+          sorted.sort((a, b) {
+            final cmp = a.costPerShare.compareTo(b.costPerShare);
+            return cmp != 0 ? cmp : a.openDate.compareTo(b.openDate);
+          });
+          break;
+        case TaxLotStrategy.taxMinimizer:
+          // Prioritize:
+          // 1. Short-term losses (highest cost first)
+          // 2. Long-term losses (highest cost first)
+          // 3. Long-term gains (lowest gain / highest cost first)
+          // 4. Short-term gains (lowest gain / highest cost first)
+          sorted.sort((a, b) {
+            int score(TaxLot l) {
+              final loss = l.costPerShare > currentPrice;
+              if (loss && l.isShortTerm) return 1;
+              if (loss && l.isLongTerm) return 2;
+              if (!loss && l.isLongTerm) return 3;
+              return 4; // Short-term gain
+            }
+
+            final scoreA = score(a);
+            final scoreB = score(b);
+            if (scoreA != scoreB) return scoreA.compareTo(scoreB);
+            // Within the same bucket, highest cost per share first
+            return b.costPerShare.compareTo(a.costPerShare);
+          });
+          break;
+        case TaxLotStrategy.specified:
+          sorted.sort((a, b) => a.openDate.compareTo(b.openDate));
+          break;
+      }
+      targetAllocatedLots = _allocateGreedy(lots: sorted, orderQuantity: orderQuantity);
+    }
+
+    // 3. Compute allocation metrics
+    double totalAllocated = 0.0;
+    double totalCostBasis = 0.0;
+    double stGainLoss = 0.0;
+    double ltGainLoss = 0.0;
+
+    for (final al in targetAllocatedLots) {
+      totalAllocated += al.allocatedQuantity;
+      totalCostBasis += al.costBasis;
+      final gl = al.gainLoss(currentPrice);
+      if (al.isLongTerm) {
+        ltGainLoss += gl;
+      } else {
+        stGainLoss += gl;
+      }
+    }
+
+    final avgCost = totalAllocated > 0 ? totalCostBasis / totalAllocated : 0.0;
+    final proceeds = currentPrice * totalAllocated;
+    final totalRealizedGainLoss = proceeds - totalCostBasis;
+
+    final targetLiability = _calculateTaxLiability(
+      targetAllocatedLots,
+      currentPrice,
+      shortTermTaxRate: shortTermTaxRate,
+      longTermTaxRate: longTermTaxRate,
+    );
+
+    // Savings = FIFO liability - Target liability (when positive)
+    final savings = max(0.0, fifoLiability - targetLiability);
+
+    return TaxLotAllocation(
+      strategy: strategy,
+      allocatedLots: targetAllocatedLots,
+      totalAllocatedQuantity: totalAllocated,
+      totalCostBasis: totalCostBasis,
+      averageCostPerShare: avgCost,
+      estimatedProceeds: proceeds,
+      estimatedRealizedGainLoss: totalRealizedGainLoss,
+      shortTermGainLoss: stGainLoss,
+      longTermGainLoss: ltGainLoss,
+      estimatedTaxLiability: targetLiability,
+      taxSavingsVsFifo: savings,
+    );
+  }
+
+  static List<AllocatedLot> _allocateGreedy({
+    required List<TaxLot> lots,
+    required double orderQuantity,
+  }) {
+    final result = <AllocatedLot>[];
+    double remaining = orderQuantity;
+
+    for (final lot in lots) {
+      if (remaining <= 0) break;
+      final toTake = min(remaining, lot.quantityAvailable);
+      if (toTake > 0) {
+        result.add(AllocatedLot(lot: lot, allocatedQuantity: toTake));
+        remaining -= toTake;
+      }
+    }
+    return result;
+  }
+
+  static double _calculateTaxLiability(
+    List<AllocatedLot> lots,
+    double currentPrice, {
+    required double shortTermTaxRate,
+    required double longTermTaxRate,
+  }) {
+    double stGain = 0.0;
+    double ltGain = 0.0;
+
+    for (final al in lots) {
+      final gl = al.gainLoss(currentPrice);
+      if (al.isLongTerm) {
+        ltGain += gl;
+      } else {
+        stGain += gl;
+      }
+    }
+
+    final stTax = stGain > 0 ? stGain * shortTermTaxRate : 0.0;
+    final ltTax = ltGain > 0 ? ltGain * longTermTaxRate : 0.0;
+    return stTax + ltTax;
+  }
+
+  /// Generates synthetic, deterministic tax lots for an equity position
+  /// to support paper trading, demo mode, and offline modeling.
+  static List<TaxLot> generateMockTaxLots(
+    String symbol,
+    double currentPrice,
+    double totalQuantity,
+  ) {
+    if (totalQuantity <= 0) return [];
+
+    final now = DateTime.now();
+    final lots = <TaxLot>[];
+
+    if (totalQuantity <= 10) {
+      // Single lot
+      final buyPrice = currentPrice * 0.95;
+      lots.add(
+        TaxLot(
+          openLotId: 'mock_${symbol.toLowerCase()}_lot_1',
+          symbol: symbol,
+          quantity: totalQuantity,
+          quantityAvailable: totalQuantity,
+          costPerShare: buyPrice,
+          taxCostBasis: buyPrice * totalQuantity,
+          openDate: now.subtract(const Duration(days: 45)),
+          term: 'st',
+        ),
+      );
+      return lots;
+    }
+
+    // Split across 3 distinct lots with varied cost basis and holding periods
+    final qty1 = (totalQuantity * 0.4).roundToDouble();
+    final qty2 = (totalQuantity * 0.35).roundToDouble();
+    final qty3 = totalQuantity - qty1 - qty2;
+
+    // Lot 1: Acquired 14 months ago (Long-term gain)
+    final p1 = currentPrice * 0.82;
+    lots.add(
+      TaxLot(
+        openLotId: 'mock_${symbol.toLowerCase()}_lot_1',
+        symbol: symbol,
+        quantity: qty1,
+        quantityAvailable: qty1,
+        costPerShare: p1,
+        taxCostBasis: p1 * qty1,
+        openDate: now.subtract(const Duration(days: 420)),
+        term: 'lt',
+      ),
+    );
+
+    // Lot 2: Acquired 3 months ago at higher price (Short-term loss / harvest opportunity)
+    final p2 = currentPrice * 1.15;
+    lots.add(
+      TaxLot(
+        openLotId: 'mock_${symbol.toLowerCase()}_lot_2',
+        symbol: symbol,
+        quantity: qty2,
+        quantityAvailable: qty2,
+        costPerShare: p2,
+        taxCostBasis: p2 * qty2,
+        openDate: now.subtract(const Duration(days: 90)),
+        term: 'st',
+      ),
+    );
+
+    if (qty3 > 0) {
+      // Lot 3: Acquired 3 weeks ago near current price (Short-term minor gain)
+      final p3 = currentPrice * 0.98;
+      lots.add(
+        TaxLot(
+          openLotId: 'mock_${symbol.toLowerCase()}_lot_3',
+          symbol: symbol,
+          quantity: qty3,
+          quantityAvailable: qty3,
+          costPerShare: p3,
+          taxCostBasis: p3 * qty3,
+          openDate: now.subtract(const Duration(days: 21)),
+          term: 'st',
+        ),
+      );
+    }
+
+    return lots;
   }
 }
 

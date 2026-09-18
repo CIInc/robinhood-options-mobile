@@ -56,6 +56,7 @@ import 'package:robinhood_options_mobile/model/banking.dart';
 import 'package:robinhood_options_mobile/model/shareholder_qa_event.dart';
 import 'package:robinhood_options_mobile/model/split.dart';
 import 'package:robinhood_options_mobile/model/tax_document.dart';
+import 'package:robinhood_options_mobile/model/tax_lot.dart';
 import 'package:robinhood_options_mobile/model/retirement.dart';
 import 'package:robinhood_options_mobile/model/spending_account.dart';
 import 'package:robinhood_options_mobile/model/external_token.dart';
@@ -1569,6 +1570,91 @@ class DemoService implements IBrokerageService {
   }
 
   @override
+  Future<List<TaxLot>> getEquityTaxLots(
+      BrokerageUser user, Account account, String symbol) async {
+    final now = DateTime.now();
+    if (symbol == 'AMZN') {
+      return [
+        TaxLot(
+          openLotId: 'demo_amzn_lot_1',
+          symbol: 'AMZN',
+          quantity: 15.0,
+          quantityAvailable: 15.0,
+          costPerShare: 198.50,
+          taxCostBasis: 198.50 * 15.0,
+          openDate: now.subtract(const Duration(days: 410)),
+          term: 'lt',
+        ),
+        TaxLot(
+          openLotId: 'demo_amzn_lot_2',
+          symbol: 'AMZN',
+          quantity: 20.0,
+          quantityAvailable: 20.0,
+          costPerShare: 235.00,
+          taxCostBasis: 235.00 * 20.0,
+          openDate: now.subtract(const Duration(days: 60)),
+          term: 'st',
+        ),
+        TaxLot(
+          openLotId: 'demo_amzn_lot_3',
+          symbol: 'AMZN',
+          quantity: 15.0,
+          quantityAvailable: 15.0,
+          costPerShare: 212.00,
+          taxCostBasis: 212.00 * 15.0,
+          openDate: now.subtract(const Duration(days: 15)),
+          term: 'st',
+        ),
+      ];
+    } else if (symbol == 'AAPL') {
+      return [
+        TaxLot(
+          openLotId: 'demo_aapl_lot_1',
+          symbol: 'AAPL',
+          quantity: 5.0,
+          quantityAvailable: 5.0,
+          costPerShare: 165.00,
+          taxCostBasis: 165.00 * 5.0,
+          openDate: now.subtract(const Duration(days: 400)),
+          term: 'lt',
+        ),
+        TaxLot(
+          openLotId: 'demo_aapl_lot_2',
+          symbol: 'AAPL',
+          quantity: 5.0,
+          quantityAvailable: 5.0,
+          costPerShare: 245.00,
+          taxCostBasis: 245.00 * 5.0,
+          openDate: now.subtract(const Duration(days: 45)),
+          term: 'st',
+        ),
+      ];
+    }
+    return [
+      TaxLot(
+        openLotId: 'demo_${symbol.toLowerCase()}_lot_1',
+        symbol: symbol,
+        quantity: 10.0,
+        quantityAvailable: 10.0,
+        costPerShare: 100.0,
+        taxCostBasis: 1000.0,
+        openDate: now.subtract(const Duration(days: 120)),
+        term: 'st',
+      ),
+      TaxLot(
+        openLotId: 'demo_${symbol.toLowerCase()}_lot_2',
+        symbol: symbol,
+        quantity: 10.0,
+        quantityAvailable: 10.0,
+        costPerShare: 120.0,
+        taxCostBasis: 1200.0,
+        openDate: now.subtract(const Duration(days: 30)),
+        term: 'st',
+      ),
+    ];
+  }
+
+  @override
   Future placeInstrumentOrder(
       BrokerageUser user,
       Account account,
@@ -1581,9 +1667,18 @@ class DemoService implements IBrokerageService {
       String trigger = 'immediate',
       double? stopPrice,
       String timeInForce = 'gtc',
-      Map<String, dynamic>? trailingPeg}) {
-    // TODO: implement placeInstrumentOrder
-    throw UnimplementedError();
+      Map<String, dynamic>? trailingPeg,
+      String? taxLotSelectionType,
+      List<Map<String, dynamic>>? taxLots}) {
+    return Future.value({
+      'id': 'demo-order-${DateTime.now().millisecondsSinceEpoch}',
+      'state': 'confirmed',
+      'side': side,
+      'quantity': quantity.toString(),
+      'symbol': symbol,
+      'tax_lot_selection_type': taxLotSelectionType ?? 'fifo',
+      'tax_lots': taxLots ?? [],
+    });
   }
 
   @override

@@ -45,6 +45,7 @@ import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/shareholder_qa_event.dart';
 import 'package:robinhood_options_mobile/model/split.dart';
 import 'package:robinhood_options_mobile/model/tax_document.dart';
+import 'package:robinhood_options_mobile/model/tax_lot.dart';
 import 'package:robinhood_options_mobile/model/user_info.dart';
 import 'package:robinhood_options_mobile/model/watchlist.dart';
 import 'package:robinhood_options_mobile/model/retirement.dart';
@@ -236,6 +237,9 @@ abstract class IBrokerageService {
   Future<List<InstrumentOrder>> getInstrumentOrders(BrokerageUser user,
       InstrumentOrderStore store, List<String> instrumentUrls);
 
+  Future<List<TaxLot>> getEquityTaxLots(
+      BrokerageUser user, Account account, String symbol);
+
   Future<dynamic> placeInstrumentOrder(
       BrokerageUser user,
       Account account,
@@ -249,7 +253,9 @@ abstract class IBrokerageService {
       double? stopPrice,
       String timeInForce =
           'gtc', // How long order will be in effect. 'gtc' = good until cancelled. 'gfd' = good for the day. 'ioc' = immediate or cancel. 'opg' execute at opening.
-      Map<String, dynamic>? trailingPeg});
+      Map<String, dynamic>? trailingPeg,
+      String? taxLotSelectionType,
+      List<Map<String, dynamic>>? taxLots});
   Future<dynamic> placeOptionsOrder(
       BrokerageUser user,
       Account account,

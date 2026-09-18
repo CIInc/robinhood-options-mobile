@@ -62,6 +62,7 @@ import 'package:robinhood_options_mobile/model/option_collateral.dart';
 import 'package:robinhood_options_mobile/model/split.dart';
 import 'package:robinhood_options_mobile/model/stock_loan.dart';
 import 'package:robinhood_options_mobile/model/tax_document.dart';
+import 'package:robinhood_options_mobile/model/tax_lot.dart';
 import 'package:robinhood_options_mobile/model/banking.dart';
 import 'package:robinhood_options_mobile/model/retirement.dart';
 import 'package:robinhood_options_mobile/model/spending_account.dart';
@@ -4204,6 +4205,27 @@ GET https://api.robinhood.com/marketdata/futures/historicals/contracts/v1/?ids=b
   TRADING
   */
   @override
+  Future<List<TaxLot>> getEquityTaxLots(
+      BrokerageUser user, Account account, String symbol) async {
+    try {
+      final accountNum = account.accountNumber;
+      final url = "$endpoint/accounts/$accountNum/tax_lots/$symbol/";
+      final res = await getJson(user, url);
+      if (res != null) {
+        final rawLots = res['tax_lots'] ?? res['results'] ?? [];
+        if (rawLots is List) {
+          return rawLots
+              .map((item) => TaxLot.fromJson(item, defaultSymbol: symbol))
+              .toList();
+        }
+      }
+    } catch (e) {
+      debugPrint("Error fetching tax lots for $symbol: $e");
+    }
+    return [];
+  }
+
+  @override
   Future<dynamic> placeInstrumentOrder(
       BrokerageUser user,
       Account account,
@@ -4217,7 +4239,9 @@ GET https://api.robinhood.com/marketdata/futures/historicals/contracts/v1/?ids=b
       double? stopPrice,
       String timeInForce =
           'gtc', // How long order will be in effect. 'gtc' = good until cancelled. 'gfd' = good for the day. 'ioc' = immediate or cancel. 'opg' execute at opening.
-      Map<String, dynamic>? trailingPeg}) async {
+      Map<String, dynamic>? trailingPeg,
+      String? taxLotSelectionType,
+      List<Map<String, dynamic>>? taxLots}) async {
     // var uuid = const Uuid();
     var payload = {
       'account': account.url,
@@ -4238,6 +4262,14 @@ GET https://api.robinhood.com/marketdata/futures/historicals/contracts/v1/?ids=b
     }
     if (trailingPeg != null) {
       payload['trailing_peg'] = trailingPeg;
+    }
+    if (side.toLowerCase() == 'sell') {
+      if (taxLotSelectionType != null && taxLotSelectionType.isNotEmpty) {
+        payload['tax_lot_selection_type'] = taxLotSelectionType;
+      }
+      if (taxLots != null && taxLots.isNotEmpty) {
+        payload['tax_lots'] = taxLots;
+      }
     }
     var url = "$endpoint/orders/";
     debugPrint(url);

@@ -43,6 +43,7 @@ import 'package:robinhood_options_mobile/model/combo_order.dart';
 import 'package:robinhood_options_mobile/model/combo_order_store.dart';
 import 'package:robinhood_options_mobile/model/shareholder_qa_event.dart';
 import 'package:robinhood_options_mobile/model/split.dart';
+import 'package:robinhood_options_mobile/model/tax_lot.dart';
 import 'package:robinhood_options_mobile/model/tax_document.dart';
 import 'package:robinhood_options_mobile/model/option_position_store.dart';
 import 'package:robinhood_options_mobile/model/paper_trading_store.dart';
@@ -1317,6 +1318,33 @@ class PaperService implements IBrokerageService {
   }
 
   @override
+  Future<List<TaxLot>> getEquityTaxLots(
+      BrokerageUser user, Account account, String symbol) async {
+    final store = await _engine();
+    final pos = store.positions.firstWhereOrNull((p) =>
+        (p.instrumentObj?.symbol ?? '').toUpperCase() == symbol.toUpperCase());
+    if (pos != null && (pos.quantity ?? 0) > 0) {
+      final curPrice = pos.instrumentObj?.quoteObj?.lastTradePrice ??
+          pos.averageBuyPrice ??
+          100.0;
+      final now = DateTime.now();
+      return [
+        TaxLot(
+          openLotId: 'paper_${symbol.toLowerCase()}_lot_1',
+          symbol: symbol,
+          quantity: pos.quantity!,
+          quantityAvailable: pos.sharesAvailableForExercise ?? pos.quantity!,
+          costPerShare: pos.averageBuyPrice ?? curPrice,
+          taxCostBasis: (pos.averageBuyPrice ?? curPrice) * pos.quantity!,
+          openDate: pos.createdAt ?? now.subtract(const Duration(days: 45)),
+          term: 'st',
+        ),
+      ];
+    }
+    return [];
+  }
+
+  @override
   Future<dynamic> placeInstrumentOrder(
       BrokerageUser user,
       Account account,
@@ -1329,7 +1357,9 @@ class PaperService implements IBrokerageService {
       String trigger = 'immediate',
       double? stopPrice,
       String timeInForce = 'gtc',
-      Map<String, dynamic>? trailingPeg}) async {
+      Map<String, dynamic>? trailingPeg,
+      String? taxLotSelectionType,
+      List<Map<String, dynamic>>? taxLots}) async {
     final store = await _engine();
 
     // Map Robinhood order semantics (type + trigger + trailing peg) to the

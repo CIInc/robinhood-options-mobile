@@ -55,6 +55,7 @@ import 'package:robinhood_options_mobile/model/combo_order_store.dart';
 import 'package:robinhood_options_mobile/model/shareholder_qa_event.dart';
 import 'package:robinhood_options_mobile/model/split.dart';
 import 'package:robinhood_options_mobile/model/tax_document.dart';
+import 'package:robinhood_options_mobile/model/tax_lot.dart';
 import 'package:robinhood_options_mobile/model/retirement.dart';
 import 'package:robinhood_options_mobile/model/spending_account.dart';
 import 'package:robinhood_options_mobile/model/external_token.dart';
@@ -531,6 +532,12 @@ class PlaidService implements IBrokerageService {
   }
 
   @override
+  Future<List<TaxLot>> getEquityTaxLots(
+      BrokerageUser user, Account account, String symbol) async {
+    return [];
+  }
+
+  @override
   Future placeInstrumentOrder(
       BrokerageUser user,
       Account account,
@@ -543,7 +550,9 @@ class PlaidService implements IBrokerageService {
       String trigger = 'immediate',
       double? stopPrice,
       String timeInForce = 'gtc',
-      Map<String, dynamic>? trailingPeg}) {
+      Map<String, dynamic>? trailingPeg,
+      String? taxLotSelectionType,
+      List<Map<String, dynamic>>? taxLots}) {
     // TODO: implement placeInstrumentOrder
     throw UnimplementedError();
   }

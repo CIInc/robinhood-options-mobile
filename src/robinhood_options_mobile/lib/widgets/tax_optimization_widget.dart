@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/form_8949_model.dart';
 import 'package:robinhood_options_mobile/model/instrument_order_store.dart';
+import 'package:robinhood_options_mobile/model/instrument_position.dart';
 import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_store.dart';
 import 'package:robinhood_options_mobile/model/option_order_store.dart';
@@ -18,10 +19,12 @@ import 'package:robinhood_options_mobile/model/tax_harvesting_suggestion.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/model/wash_sale_record.dart';
 import 'package:robinhood_options_mobile/model/capital_gains_model.dart';
+import 'package:robinhood_options_mobile/model/tax_lot.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/services/tax_optimization_service.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
+import 'package:robinhood_options_mobile/widgets/trade_instrument_widget.dart';
 import 'package:share_plus/share_plus.dart';
 // import 'package:robinhood_options_mobile/widgets/portfolio/analytics/esg_card.dart';
 
@@ -2169,6 +2172,53 @@ class _TaxOptimizationWidgetState extends State<TaxOptimizationWidget> {
                     ),
                   );
                 }),
+              ],
+              if (isStock) ...[
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.tonalIcon(
+                    icon: const Icon(Icons.sell_outlined, size: 16),
+                    label: const Text('Harvest with HIFO'),
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      visualDensity: VisualDensity.compact,
+                    ),
+                    onPressed: () async {
+                      final instrumentStore =
+                          Provider.of<InstrumentStore>(context, listen: false);
+                      var instrument = suggestion.position?.instrumentObj;
+                      if (instrument == null) {
+                        try {
+                          instrument = await widget.service.getInstrumentBySymbol(
+                            widget.user,
+                            instrumentStore,
+                            suggestion.symbol,
+                          );
+                        } catch (_) {}
+                      }
+                      if (instrument != null && context.mounted) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => TradeInstrumentWidget(
+                              widget.user,
+                              widget.service,
+                              instrument: instrument,
+                              stockPosition: suggestion.position is InstrumentPosition
+                                  ? suggestion.position as InstrumentPosition
+                                  : null,
+                              positionType: "Sell",
+                              initialTaxLotStrategy: TaxLotStrategy.hifo,
+                              analytics: widget.analytics,
+                              observer: widget.observer,
+                            ),
+                          ),
+                        );
+                      }
+                    },
+                  ),
+                ),
               ],
             ],
           ),

@@ -18,8 +18,11 @@ import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/model/instrument_buying_power.dart';
+import 'package:robinhood_options_mobile/model/tax_lot.dart';
+import 'package:robinhood_options_mobile/services/tax_optimization_service.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_buying_power_widget.dart';
 import 'package:robinhood_options_mobile/widgets/slide_to_confirm_widget.dart';
+import 'package:robinhood_options_mobile/widgets/tax_lot_selection_sheet.dart';
 
 class TradeInstrumentWidget extends StatefulWidget {
   const TradeInstrumentWidget(this.brokerageUser, this.service,
@@ -30,7 +33,8 @@ class TradeInstrumentWidget extends StatefulWidget {
       this.stockPosition,
       this.instrument,
       this.positionType = "Buy",
-      this.initialIsPaperTrade = false});
+      this.initialIsPaperTrade = false,
+      this.initialTaxLotStrategy});
 
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
@@ -41,6 +45,7 @@ class TradeInstrumentWidget extends StatefulWidget {
   final Instrument? instrument;
   final String? positionType;
   final bool initialIsPaperTrade;
+  final TaxLotStrategy? initialTaxLotStrategy;
 
   @override
   State<TradeInstrumentWidget> createState() => _TradeInstrumentWidgetState();
@@ -65,10 +70,18 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
   InstrumentBuyingPower? _instrumentBuyingPower;
   InstrumentTradeWarnings? _instrumentWarnings;
 
+  List<TaxLot> _taxLots = [];
+  TaxLotStrategy _selectedTaxLotStrategy = TaxLotStrategy.fifo;
+  Map<String, double> _manualTaxLotAllocations = {};
+  TaxLotAllocation? _currentTaxLotAllocation;
+  bool _loadingTaxLots = false;
+
   @override
   void initState() {
     super.initState();
     positionType = widget.positionType;
+    _selectedTaxLotStrategy =
+        widget.initialTaxLotStrategy ?? TaxLotStrategy.fifo;
     _isPaperTrade = widget.brokerageUser.source == BrokerageSource.paper ||
         widget.initialIsPaperTrade;
     widget.analytics.logScreenView(screenName: 'Trade Instrument');
@@ -87,12 +100,120 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
     _updateEstimates();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        context.read<OrderTemplateStore>().loadTemplates(user.uid);
-      }
+      try {
+        final user = FirebaseAuth.instance.currentUser;
+        if (user != null) {
+          context.read<OrderTemplateStore>().loadTemplates(user.uid);
+        }
+      } catch (_) {}
       _loadInstrumentBuyingPowerAndWarnings();
+      if (positionType == 'Sell') {
+        _loadTaxLots();
+      }
     });
+  }
+
+  void _loadTaxLots() async {
+    final symbol = widget.instrument?.symbol;
+    if (symbol == null || symbol.isEmpty) return;
+
+    final accountStore = Provider.of<AccountStore>(context, listen: false);
+    if (accountStore.items.isEmpty) return;
+    final account = accountStore.items[0];
+
+    setState(() {
+      _loadingTaxLots = true;
+    });
+
+    try {
+      final lots = await widget.service.getEquityTaxLots(
+        widget.brokerageUser,
+        account,
+        symbol,
+      );
+      if (mounted) {
+        setState(() {
+          _taxLots = lots;
+          _loadingTaxLots = false;
+        });
+        _recalculateTaxLotAllocation();
+      }
+    } catch (e) {
+      debugPrint('Error loading tax lots: $e');
+      if (mounted) {
+        setState(() {
+          _loadingTaxLots = false;
+        });
+      }
+    }
+  }
+
+  void _recalculateTaxLotAllocation() {
+    if (positionType != 'Sell' || _taxLots.isEmpty) {
+      _currentTaxLotAllocation = null;
+      return;
+    }
+
+    final qty = double.tryParse(quantityCtl.text) ?? 0.0;
+    if (qty <= 0) {
+      _currentTaxLotAllocation = null;
+      return;
+    }
+
+    double price = 0.0;
+    if (orderType == 'Limit' || orderType == 'Stop Limit') {
+      price = double.tryParse(priceCtl.text) ?? 0.0;
+    } else if (orderType == 'Stop') {
+      price = double.tryParse(stopPriceCtl.text) ?? 0.0;
+    } else {
+      price = widget.instrument?.quoteObj?.lastTradePrice ?? 0.0;
+    }
+
+    _currentTaxLotAllocation = TaxOptimizationService.applyTaxLotStrategy(
+      lots: _taxLots,
+      strategy: _selectedTaxLotStrategy,
+      orderQuantity: qty,
+      currentPrice: price,
+      manualAllocations: _manualTaxLotAllocations,
+    );
+  }
+
+  Future<void> _openTaxLotSelectionSheet() async {
+    final qty = double.tryParse(quantityCtl.text) ?? 0.0;
+    if (qty <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a sell quantity first.')),
+      );
+      return;
+    }
+
+    final symbol = widget.instrument?.symbol ?? '';
+    double price = 0.0;
+    if (orderType == 'Limit' || orderType == 'Stop Limit') {
+      price = double.tryParse(priceCtl.text) ?? 0.0;
+    } else if (orderType == 'Stop') {
+      price = double.tryParse(stopPriceCtl.text) ?? 0.0;
+    } else {
+      price = widget.instrument?.quoteObj?.lastTradePrice ?? 0.0;
+    }
+
+    await TaxLotSelectionSheet.show(
+      context,
+      symbol: symbol,
+      orderQuantity: qty,
+      currentPrice: price,
+      taxLots: _taxLots,
+      initialAllocations: _manualTaxLotAllocations,
+      onAllocationsSaved: (allocations) {
+        if (mounted) {
+          setState(() {
+            _manualTaxLotAllocations = allocations;
+            _selectedTaxLotStrategy = TaxLotStrategy.specified;
+            _recalculateTaxLotAllocation();
+          });
+        }
+      },
+    );
   }
 
   void _loadInstrumentBuyingPowerAndWarnings() async {
@@ -167,6 +288,7 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
         price = widget.instrument?.quoteObj?.lastTradePrice ?? 0;
       }
       estimatedTotal = qty * price;
+      _recalculateTaxLotAllocation();
     });
   }
 
@@ -235,6 +357,13 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
               setState(() {
                 positionType = newSelection.first;
               });
+              if (positionType == "Sell" &&
+                  _taxLots.isEmpty &&
+                  !_loadingTaxLots) {
+                _loadTaxLots();
+              } else {
+                _recalculateTaxLotAllocation();
+              }
             },
             style: ButtonStyle(
               backgroundColor: WidgetStateProperty.resolveWith<Color?>(
@@ -442,6 +571,12 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
           ),
           const SizedBox(height: 24),
 
+          // Tax Lot Matching Section (Sell Orders)
+          if (positionType == 'Sell') ...[
+            _buildTaxLotSection(context),
+            const SizedBox(height: 24),
+          ],
+
           // Summary Section
           Card(
             elevation: 0,
@@ -538,6 +673,204 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildTaxLotSection(BuildContext context) {
+    final theme = Theme.of(context);
+    return Card(
+      elevation: 0,
+      color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.pie_chart_outline,
+                    size: 20, color: theme.colorScheme.primary),
+                const SizedBox(width: 8),
+                Text(
+                  "Tax Lot Matching",
+                  style: theme.textTheme.titleMedium
+                      ?.copyWith(fontWeight: FontWeight.bold),
+                ),
+                const Spacer(),
+                if (_loadingTaxLots)
+                  const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                else if (_taxLots.isNotEmpty)
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primaryContainer,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      "${_taxLots.length} Lots Available",
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.onPrimaryContainer,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<TaxLotStrategy>(
+              initialValue: _selectedTaxLotStrategy,
+              decoration: const InputDecoration(
+                labelText: "Lot Strategy",
+                border: OutlineInputBorder(),
+                filled: true,
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              ),
+              items: TaxLotStrategy.values.map((strategy) {
+                return DropdownMenuItem<TaxLotStrategy>(
+                  value: strategy,
+                  child: Text(
+                    strategy.displayName,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                );
+              }).toList(),
+              onChanged: (TaxLotStrategy? newStrategy) {
+                if (newStrategy != null) {
+                  setState(() {
+                    _selectedTaxLotStrategy = newStrategy;
+                    _recalculateTaxLotAllocation();
+                  });
+                }
+              },
+            ),
+            const SizedBox(height: 6),
+            Text(
+              _selectedTaxLotStrategy.description,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            if (_selectedTaxLotStrategy == TaxLotStrategy.specified) ...[
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                icon: const Icon(Icons.tune, size: 18),
+                label: Text(
+                  _manualTaxLotAllocations.isEmpty
+                      ? "Select Lots to Sell"
+                      : "Edit Selected Lots (${_manualTaxLotAllocations.length} lots)",
+                ),
+                onPressed: _openTaxLotSelectionSheet,
+              ),
+            ],
+            if (_currentTaxLotAllocation != null) ...[
+              const Divider(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text("Est. Cost Basis", style: theme.textTheme.bodySmall),
+                  Text(
+                    formatCurrency
+                        .format(_currentTaxLotAllocation!.totalCostBasis),
+                    style: theme.textTheme.bodyMedium
+                        ?.copyWith(fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text("Est. Realized P&L", style: theme.textTheme.bodySmall),
+                  Text(
+                    "${_currentTaxLotAllocation!.realizedGainLoss >= 0 ? '+' : ''}${formatCurrency.format(_currentTaxLotAllocation!.realizedGainLoss)}",
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: _currentTaxLotAllocation!.realizedGainLoss >= 0
+                          ? Colors.green
+                          : Colors.red,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text("Gain Breakdown", style: theme.textTheme.bodySmall),
+                  Text(
+                    "ST: ${formatCurrency.format(_currentTaxLotAllocation!.shortTermGainLoss)} | LT: ${formatCurrency.format(_currentTaxLotAllocation!.longTermGainLoss)}",
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+              if (_currentTaxLotAllocation!.taxSavingsVsFifo.abs() > 0.01) ...[
+                const SizedBox(height: 10),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: _currentTaxLotAllocation!.taxSavingsVsFifo > 0
+                        ? Colors.green.withValues(alpha: 0.15)
+                        : Colors.orange.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: _currentTaxLotAllocation!.taxSavingsVsFifo > 0
+                          ? Colors.green
+                          : Colors.orange,
+                      width: 0.8,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        _currentTaxLotAllocation!.taxSavingsVsFifo > 0
+                            ? Icons.trending_up
+                            : Icons.info_outline,
+                        size: 16,
+                        color: _currentTaxLotAllocation!.taxSavingsVsFifo > 0
+                            ? Colors.green
+                            : Colors.orange,
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          _currentTaxLotAllocation!.taxSavingsVsFifo > 0
+                              ? "Est. Tax Savings vs FIFO: ${formatCurrency.format(_currentTaxLotAllocation!.taxSavingsVsFifo)}"
+                              : "Tax Impact vs FIFO: -${formatCurrency.format(_currentTaxLotAllocation!.taxSavingsVsFifo.abs())}",
+                          style: theme.textTheme.labelMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: _currentTaxLotAllocation!.taxSavingsVsFifo > 0
+                                ? Colors.green
+                                : Colors.orange,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ] else if (!_loadingTaxLots && _taxLots.isEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                "No tax lots available for this position. Broker default (FIFO) will be used.",
+                style: theme.textTheme.bodySmall?.copyWith(
+                  fontStyle: FontStyle.italic,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
@@ -652,6 +985,28 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
                                 .format(double.parse(trailingAmountCtl.text))),
                   ],
                   _buildPreviewRow("Time in Force", timeInForce.toUpperCase()),
+                  if (positionType == 'Sell') ...[
+                    _buildPreviewRow(
+                        "Lot Strategy", _selectedTaxLotStrategy.displayName),
+                    if (_currentTaxLotAllocation != null) ...[
+                      _buildPreviewRow(
+                        "Est. Cost Basis",
+                        formatCurrency
+                            .format(_currentTaxLotAllocation!.totalCostBasis),
+                      ),
+                      _buildPreviewRow(
+                        "Est. Realized P&L",
+                        "${_currentTaxLotAllocation!.realizedGainLoss >= 0 ? '+' : ''}${formatCurrency.format(_currentTaxLotAllocation!.realizedGainLoss)}",
+                      ),
+                      if (_currentTaxLotAllocation!.taxSavingsVsFifo.abs() >
+                          0.01)
+                        _buildPreviewRow(
+                          "Tax Savings vs FIFO",
+                          "${_currentTaxLotAllocation!.taxSavingsVsFifo >= 0 ? '+' : ''}${formatCurrency.format(_currentTaxLotAllocation!.taxSavingsVsFifo)}",
+                          isBold: true,
+                        ),
+                    ],
+                  ],
                   const Padding(
                     padding: EdgeInsets.symmetric(vertical: 12.0),
                     child: Divider(),
@@ -1064,6 +1419,11 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
         stopPrice: stopPrice,
         timeInForce: timeInForce,
         trailingPeg: trailingPeg,
+        taxLotSelectionType:
+            positionType == "Sell" ? _selectedTaxLotStrategy.toApiKey() : null,
+        taxLots: positionType == "Sell"
+            ? _currentTaxLotAllocation?.toOrderPayloadLots()
+            : null,
       );
 
       debugPrint(orderJson.body);
