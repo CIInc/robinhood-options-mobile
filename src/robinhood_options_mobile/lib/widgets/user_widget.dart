@@ -754,6 +754,7 @@ class _UserWidgetState extends State<UserWidget> {
                                                             service: widget.service,
                                                             analytics: widget.analytics,
                                                             observer: widget.observer,
+                                                            userRole: user?.role,
                                                           ),
                                                         ),
                                                       );

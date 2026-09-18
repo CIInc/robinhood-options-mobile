@@ -18,8 +18,9 @@ class TopPortfoliosLeaderboardWidget extends StatefulWidget {
   final FirestoreService firestoreService;
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
-  final BrokerageUser brokerageUser;
-  final IBrokerageService service;
+  final BrokerageUser? brokerageUser;
+  final IBrokerageService? service;
+  final bool showAppBar;
 
   const TopPortfoliosLeaderboardWidget({
     super.key,
@@ -27,8 +28,9 @@ class TopPortfoliosLeaderboardWidget extends StatefulWidget {
     required this.firestoreService,
     required this.analytics,
     required this.observer,
-    required this.brokerageUser,
-    required this.service,
+    this.brokerageUser,
+    this.service,
+    this.showAppBar = true,
   });
 
   @override
@@ -41,7 +43,6 @@ class _TopPortfoliosLeaderboardWidgetState
   LeaderboardTimePeriod _selectedPeriod = LeaderboardTimePeriod.allTime;
   LeaderboardSortOption _selectedSort = LeaderboardSortOption.totalReturn;
   bool _verifiedOnly = false;
-  bool _onlyPublic = true;
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
 
@@ -76,201 +77,274 @@ class _TopPortfoliosLeaderboardWidgetState
       body: CustomScrollView(
         slivers: [
           // AppBar
-          SliverAppBar(
-            title: const Text('Top Portfolios'),
-            floating: true,
-            snap: true,
-            pinned: false,
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.info_outline_rounded),
-                tooltip: 'Reputation System Info',
-                onPressed: () => _showReputationInfoSheet(context),
-              ),
-              IconButton(
-                icon: Icon(
-                  _verifiedOnly || !_onlyPublic
-                      ? Icons.filter_alt
-                      : Icons.filter_alt_outlined,
-                  color: _verifiedOnly || !_onlyPublic
-                      ? theme.colorScheme.primary
-                      : null,
+          if (widget.showAppBar)
+            SliverAppBar(
+              title: const Text('Top Portfolios'),
+              floating: true,
+              snap: true,
+              pinned: false,
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.info_outline_rounded),
+                  tooltip: 'Reputation System Info',
+                  onPressed: () => _showReputationInfoSheet(context),
                 ),
-                tooltip: 'Filter Leaderboard',
-                onPressed: () => _showFilterDialog(context),
-              ),
-            ],
-          ),
+                IconButton(
+                  icon: Icon(
+                    _verifiedOnly
+                        ? Icons.filter_alt
+                        : Icons.filter_alt_outlined,
+                    color: _verifiedOnly
+                        ? theme.colorScheme.primary
+                        : null,
+                  ),
+                  tooltip: 'Filter Leaderboard',
+                  onPressed: () => _showFilterDialog(context),
+                ),
+              ],
+            ),
 
-          // Search Field & Filter Controls
+          // Unified Single-Row Controls: Period Chips + Sort Chips + Action Buttons
           SliverToBoxAdapter(
-            child: Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Search Bar
-                  CupertinoSearchTextField(
-                    controller: _searchController,
-                    placeholder: 'Search top traders',
-                    style: TextStyle(
-                      color: theme.textTheme.bodyLarge?.color,
-                    ),
-                    onChanged: (val) {
-                      setState(() {
-                        _searchQuery = val.trim().toLowerCase();
-                      });
-                    },
-                    onSuffixTap: () {
-                      _searchController.clear();
-                      setState(() {
-                        _searchQuery = '';
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Period Chips (1W, 1M, 3M, 1Y, ALL)
                   Row(
                     children: [
-                      Text(
-                        'Period:',
-                        style: theme.textTheme.labelMedium?.copyWith(
-                          color: theme.colorScheme.outline,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
+                      // Horizontally scrollable period & sort chips
                       Expanded(
                         child: SingleChildScrollView(
                           scrollDirection: Axis.horizontal,
                           child: Row(
-                            children:
-                                LeaderboardTimePeriod.values.map((period) {
-                              final isSelected = _selectedPeriod == period;
-                              return Padding(
-                                padding: const EdgeInsets.only(right: 6.0),
-                                child: ChoiceChip(
-                                  label: Text(period.label),
-                                  selected: isSelected,
-                                  selectedColor:
-                                      theme.colorScheme.primaryContainer,
-                                  labelStyle: TextStyle(
-                                    fontWeight: isSelected
-                                        ? FontWeight.bold
-                                        : FontWeight.normal,
-                                    color: isSelected
-                                        ? theme.colorScheme.onPrimaryContainer
-                                        : theme.textTheme.bodyMedium?.color,
+                            children: [
+                              ...LeaderboardTimePeriod.values.map((period) {
+                                final isSelected = _selectedPeriod == period;
+                                return Padding(
+                                  padding: const EdgeInsets.only(right: 6.0),
+                                  child: ChoiceChip(
+                                    label: Text(
+                                      period.label,
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: isSelected
+                                            ? FontWeight.w600
+                                            : FontWeight.normal,
+                                        color: isSelected
+                                            ? theme.colorScheme
+                                                .onPrimaryContainer
+                                            : theme.colorScheme
+                                                .onSurfaceVariant,
+                                      ),
+                                    ),
+                                    selected: isSelected,
+                                    showCheckmark: false,
+                                    selectedColor:
+                                        theme.colorScheme.primaryContainer,
+                                    backgroundColor: theme
+                                        .colorScheme.surfaceContainerHighest
+                                        .withValues(alpha: 0.35),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 10, vertical: 4),
+                                    materialTapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(16),
+                                      side: BorderSide(
+                                        color: isSelected
+                                            ? theme.colorScheme.primary
+                                                .withValues(alpha: 0.3)
+                                            : Colors.transparent,
+                                      ),
+                                    ),
+                                    onSelected: (selected) {
+                                      if (selected) {
+                                        setState(() {
+                                          _selectedPeriod = period;
+                                        });
+                                        widget.analytics.logEvent(
+                                          name: 'leaderboard_filter_period',
+                                          parameters: {'period': period.name},
+                                        );
+                                      }
+                                    },
                                   ),
-                                  onSelected: (selected) {
-                                    if (selected) {
-                                      setState(() {
-                                        _selectedPeriod = period;
-                                      });
-                                      widget.analytics.logEvent(
-                                        name: 'leaderboard_period_changed',
-                                        parameters: {'period': period.label},
-                                      );
-                                    }
-                                  },
-                                ),
-                              );
-                            }).toList(),
+                                );
+                              }),
+                              Container(
+                                height: 20,
+                                width: 1,
+                                margin:
+                                    const EdgeInsets.symmetric(horizontal: 8),
+                                color: theme.colorScheme.outlineVariant
+                                    .withValues(alpha: 0.5),
+                              ),
+                              ...LeaderboardSortOption.values.map((opt) {
+                                final isSelected = _selectedSort == opt;
+                                return Padding(
+                                  padding: const EdgeInsets.only(right: 6.0),
+                                  child: ChoiceChip(
+                                    avatar: Icon(
+                                      opt.icon,
+                                      size: 15,
+                                      color: isSelected
+                                          ? theme.colorScheme
+                                              .onSecondaryContainer
+                                          : theme.colorScheme.outline,
+                                    ),
+                                    label: Text(
+                                      opt.label,
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: isSelected
+                                            ? FontWeight.w600
+                                            : FontWeight.normal,
+                                        color: isSelected
+                                            ? theme.colorScheme
+                                                .onSecondaryContainer
+                                            : theme
+                                                .colorScheme.onSurfaceVariant,
+                                      ),
+                                    ),
+                                    selected: isSelected,
+                                    showCheckmark: false,
+                                    selectedColor:
+                                        theme.colorScheme.secondaryContainer,
+                                    backgroundColor: theme
+                                        .colorScheme.surfaceContainerHighest
+                                        .withValues(alpha: 0.35),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 8, vertical: 4),
+                                    materialTapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(16),
+                                      side: BorderSide(
+                                        color: isSelected
+                                            ? theme.colorScheme.secondary
+                                                .withValues(alpha: 0.3)
+                                            : Colors.transparent,
+                                      ),
+                                    ),
+                                    onSelected: (selected) {
+                                      if (selected) {
+                                        setState(() {
+                                          _selectedSort = opt;
+                                        });
+                                        widget.analytics.logEvent(
+                                          name: 'leaderboard_sort_changed',
+                                          parameters: {'sort': opt.label},
+                                        );
+                                      }
+                                    },
+                                  ),
+                                );
+                              }),
+                            ],
                           ),
                         ),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-
-                  // Sorting Chips
-                  Row(
-                    children: [
-                      Text(
-                        'Sort:',
-                        style: theme.textTheme.labelMedium?.copyWith(
-                          color: theme.colorScheme.outline,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: Row(
-                            children: LeaderboardSortOption.values.map((opt) {
-                              final isSelected = _selectedSort == opt;
-                              return Padding(
-                                padding: const EdgeInsets.only(right: 6.0),
-                                child: FilterChip(
-                                  avatar: Icon(
-                                    opt.icon,
-                                    size: 16,
-                                    color: isSelected
-                                        ? theme.colorScheme.onSecondaryContainer
-                                        : theme.colorScheme.outline,
-                                  ),
-                                  label: Text(opt.label),
-                                  selected: isSelected,
-                                  selectedColor:
-                                      theme.colorScheme.secondaryContainer,
-                                  labelStyle: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: isSelected
-                                        ? FontWeight.bold
-                                        : FontWeight.normal,
-                                    color: isSelected
-                                        ? theme.colorScheme.onSecondaryContainer
-                                        : theme.textTheme.bodySmall?.color,
-                                  ),
-                                  onSelected: (selected) {
-                                    if (selected) {
-                                      setState(() {
-                                        _selectedSort = opt;
-                                      });
-                                      widget.analytics.logEvent(
-                                        name: 'leaderboard_sort_changed',
-                                        parameters: {'sort': opt.name},
-                                      );
-                                    }
-                                  },
+                      if (!widget.showAppBar) ...[
+                        const SizedBox(width: 8),
+                        Tooltip(
+                          message: 'Reputation System Info',
+                          child: InkWell(
+                            onTap: () => _showReputationInfoSheet(context),
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.surfaceContainerHighest
+                                    .withValues(alpha: 0.35),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: theme.colorScheme.outlineVariant
+                                      .withValues(alpha: 0.3),
                                 ),
-                              );
-                            }).toList(),
+                              ),
+                              child: Center(
+                                child: Icon(
+                                  Icons.info_outline_rounded,
+                                  size: 20,
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ),
                           ),
                         ),
-                      ),
+                        const SizedBox(width: 8),
+                        Tooltip(
+                          message: 'Filter Leaderboard',
+                          child: InkWell(
+                            onTap: () => _showFilterDialog(context),
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: _verifiedOnly
+                                    ? theme.colorScheme.primary
+                                        .withValues(alpha: 0.12)
+                                    : theme.colorScheme.surfaceContainerHighest
+                                        .withValues(alpha: 0.35),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: _verifiedOnly
+                                      ? theme.colorScheme.primary
+                                          .withValues(alpha: 0.3)
+                                      : theme.colorScheme.outlineVariant
+                                          .withValues(alpha: 0.3),
+                                ),
+                              ),
+                              child: Center(
+                                child: Stack(
+                                  clipBehavior: Clip.none,
+                                  children: [
+                                    Icon(
+                                      Icons.tune_rounded,
+                                      size: 20,
+                                      color: _verifiedOnly
+                                          ? theme.colorScheme.primary
+                                          : theme.colorScheme.onSurfaceVariant,
+                                    ),
+                                    if (_verifiedOnly)
+                                      Positioned(
+                                        right: -2,
+                                        top: -2,
+                                        child: Container(
+                                          width: 7,
+                                          height: 7,
+                                          decoration: BoxDecoration(
+                                            color: theme.colorScheme.primary,
+                                            shape: BoxShape.circle,
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
 
                   // Active Filter Badges
-                  if (_verifiedOnly || !_onlyPublic)
+                  if (_verifiedOnly)
                     Padding(
-                      padding: const EdgeInsets.only(top: 8.0),
+                      padding: const EdgeInsets.only(top: 6.0),
                       child: Wrap(
                         spacing: 8,
                         children: [
-                          if (_verifiedOnly)
-                            Chip(
-                              avatar: const Icon(Icons.verified, size: 14),
-                              label: const Text('Verified Only',
-                                  style: TextStyle(fontSize: 11)),
-                              onDeleted: () {
-                                setState(() => _verifiedOnly = false);
-                              },
-                            ),
-                          if (!_onlyPublic)
-                            Chip(
-                              avatar:
-                                  const Icon(Icons.visibility_off, size: 14),
-                              label: const Text('Including Private',
-                                  style: TextStyle(fontSize: 11)),
-                              onDeleted: () {
-                                setState(() => _onlyPublic = true);
-                              },
-                            ),
+                          Chip(
+                            avatar: const Icon(Icons.verified, size: 14),
+                            label: const Text('Verified Only',
+                                style: TextStyle(fontSize: 11)),
+                            onDeleted: () {
+                              setState(() => _verifiedOnly = false);
+                            },
+                          ),
                         ],
                       ),
                     ),
@@ -285,7 +359,6 @@ class _TopPortfoliosLeaderboardWidgetState
               period: _selectedPeriod,
               sortBy: _selectedSort,
               verifiedOnly: _verifiedOnly,
-              onlyPublic: _onlyPublic,
             ),
             builder: (context, snapshot) {
               if (snapshot.hasError) {
@@ -423,8 +496,8 @@ class _TopPortfoliosLeaderboardWidgetState
     final third = top3[2];
 
     return Container(
-      margin: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+      margin: const EdgeInsets.fromLTRB(14, 6, 14, 12),
+      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
@@ -434,12 +507,12 @@ class _TopPortfoliosLeaderboardWidgetState
             Theme.of(context).colorScheme.surface,
           ],
         ),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: Theme.of(context)
               .colorScheme
               .outlineVariant
-              .withValues(alpha: 0.4),
+              .withValues(alpha: 0.35),
         ),
       ),
       child: Column(
@@ -621,19 +694,19 @@ class _TopPortfoliosLeaderboardWidgetState
     final rank = entry.rank ?? 0;
 
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 5.0),
-      elevation: 0.5,
+      margin: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 5.0),
+      elevation: 0,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(16),
         side: BorderSide(
-          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.35),
         ),
       ),
       child: InkWell(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(16),
         onTap: () => _navigateToProfile(entry.userId),
         child: Padding(
-          padding: const EdgeInsets.all(12.0),
+          padding: const EdgeInsets.all(14.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -1274,13 +1347,12 @@ class _TopPortfoliosLeaderboardWidgetState
     }
   }
 
-  /// Filter Dialog (Verified Only & Public Only)
+  /// Filter Dialog (Verified Only)
   void _showFilterDialog(BuildContext context) {
     showDialog(
       context: context,
       builder: (context) {
         bool localVerified = _verifiedOnly;
-        bool localPublic = _onlyPublic;
 
         return StatefulBuilder(
           builder: (context, setDialogState) {
@@ -1298,15 +1370,6 @@ class _TopPortfoliosLeaderboardWidgetState
                       setDialogState(() => localVerified = val);
                     },
                   ),
-                  SwitchListTile(
-                    title: const Text('Public Portfolios Only'),
-                    subtitle: const Text(
-                        'Exclude traders who have marked their portfolio private'),
-                    value: localPublic,
-                    onChanged: (val) {
-                      setDialogState(() => localPublic = val);
-                    },
-                  ),
                 ],
               ),
               actions: [
@@ -1318,7 +1381,6 @@ class _TopPortfoliosLeaderboardWidgetState
                   onPressed: () {
                     setState(() {
                       _verifiedOnly = localVerified;
-                      _onlyPublic = localPublic;
                     });
                     Navigator.pop(context);
                   },

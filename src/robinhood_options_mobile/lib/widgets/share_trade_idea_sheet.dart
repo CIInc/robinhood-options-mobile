@@ -10,12 +10,14 @@ class ShareTradeIdeaSheet extends StatefulWidget {
   final firebase_auth.FirebaseAuth auth;
   final FirestoreService firestoreService;
   final FirebaseAnalytics analytics;
+  final GroupAnalysisPost? existingPost;
 
   const ShareTradeIdeaSheet({
     super.key,
     required this.auth,
     required this.firestoreService,
     required this.analytics,
+    this.existingPost,
   });
 
   static Future<GroupAnalysisPost?> show({
@@ -23,6 +25,7 @@ class ShareTradeIdeaSheet extends StatefulWidget {
     required firebase_auth.FirebaseAuth auth,
     required FirestoreService firestoreService,
     required FirebaseAnalytics analytics,
+    GroupAnalysisPost? existingPost,
   }) {
     return showModalBottomSheet<GroupAnalysisPost>(
       context: context,
@@ -32,6 +35,7 @@ class ShareTradeIdeaSheet extends StatefulWidget {
         auth: auth,
         firestoreService: firestoreService,
         analytics: analytics,
+        existingPost: existingPost,
       ),
     );
   }
@@ -42,17 +46,41 @@ class ShareTradeIdeaSheet extends StatefulWidget {
 
 class _ShareTradeIdeaSheetState extends State<ShareTradeIdeaSheet> {
   final _formKey = GlobalKey<FormState>();
-  final _symbolController = TextEditingController();
-  final _titleController = TextEditingController();
-  final _entryPriceController = TextEditingController();
-  final _targetPriceController = TextEditingController();
-  final _stopLossController = TextEditingController();
-  final _thesisController = TextEditingController();
-  final _tagsController = TextEditingController();
+  late final TextEditingController _symbolController;
+  late final TextEditingController _titleController;
+  late final TextEditingController _entryPriceController;
+  late final TextEditingController _targetPriceController;
+  late final TextEditingController _stopLossController;
+  late final TextEditingController _thesisController;
+  late final TextEditingController _tagsController;
 
-  GroupAnalysisSentiment _sentiment = GroupAnalysisSentiment.bullish;
-  GroupAnalysisTimeHorizon _timeHorizon = GroupAnalysisTimeHorizon.mediumTerm;
+  late GroupAnalysisSentiment _sentiment;
+  late GroupAnalysisTimeHorizon _timeHorizon;
   bool _isSubmitting = false;
+
+  bool get _isEditing => widget.existingPost != null;
+
+  @override
+  void initState() {
+    super.initState();
+    final post = widget.existingPost;
+    _symbolController = TextEditingController(text: post?.symbol ?? '');
+    _titleController = TextEditingController(text: post?.title ?? '');
+    _entryPriceController = TextEditingController(
+      text: post?.entryTarget != null ? post!.entryTarget!.toString() : '',
+    );
+    _targetPriceController = TextEditingController(
+      text: post?.targetPrice != null ? post!.targetPrice!.toString() : '',
+    );
+    _stopLossController = TextEditingController(
+      text: post?.stopLoss != null ? post!.stopLoss!.toString() : '',
+    );
+    _thesisController = TextEditingController(text: post?.thesis ?? '');
+    _tagsController =
+        TextEditingController(text: post != null ? post.tags.join(', ') : '');
+    _sentiment = post?.sentiment ?? GroupAnalysisSentiment.bullish;
+    _timeHorizon = post?.timeHorizon ?? GroupAnalysisTimeHorizon.mediumTerm;
+  }
 
   @override
   void dispose() {
@@ -109,51 +137,90 @@ class _ShareTradeIdeaSheetState extends State<ShareTradeIdeaSheet> {
           .where((t) => t.isNotEmpty)
           .toList();
 
-      final post = GroupAnalysisPost(
-        id: '',
-        groupId: 'social',
-        authorId: user.uid,
-        authorName: user.displayName ?? 'Trader',
-        authorPhotoUrl: user.photoURL,
-        title: _titleController.text.trim(),
-        symbol: _symbolController.text.trim().toUpperCase(),
-        sentiment: _sentiment,
-        thesis: _thesisController.text.trim(),
-        entryTarget: _entryPrice,
-        targetPrice: _targetPrice,
-        stopLoss: _stopLoss,
-        timeHorizon: _timeHorizon,
-        tags: tags,
-        createdAt: DateTime.now(),
-      );
-
-      final docRef = await widget.firestoreService.createSocialTradeIdea(post);
-      final createdPost = post.copyWith(id: docRef.id);
-
-      await widget.analytics.logEvent(
-        name: 'social_trade_idea_created',
-        parameters: {
-          'symbol': createdPost.symbol,
-          'sentiment': createdPost.sentiment.name,
-          'has_target': createdPost.targetPrice != null,
-        },
-      );
-
-      if (mounted) {
-        Navigator.pop(context, createdPost);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-                'Trade idea for \$${createdPost.symbol} published to social feed!'),
-            behavior: SnackBarBehavior.floating,
-          ),
+      if (_isEditing) {
+        final updatedPost = widget.existingPost!.copyWith(
+          title: _titleController.text.trim(),
+          symbol: _symbolController.text.trim().toUpperCase(),
+          sentiment: _sentiment,
+          thesis: _thesisController.text.trim(),
+          entryTarget: _entryPrice,
+          targetPrice: _targetPrice,
+          stopLoss: _stopLoss,
+          timeHorizon: _timeHorizon,
+          tags: tags,
+          updatedAt: DateTime.now(),
         );
+
+        await widget.firestoreService.updateSocialTradeIdea(updatedPost);
+
+        await widget.analytics.logEvent(
+          name: 'social_trade_idea_updated',
+          parameters: {
+            'symbol': updatedPost.symbol,
+            'sentiment': updatedPost.sentiment.name,
+            'has_target': updatedPost.targetPrice != null,
+          },
+        );
+
+        if (mounted) {
+          Navigator.pop(context, updatedPost);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                  'Trade idea for \$${updatedPost.symbol} updated!'),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      } else {
+        final post = GroupAnalysisPost(
+          id: '',
+          groupId: 'social',
+          authorId: user.uid,
+          authorName: user.displayName ?? 'Trader',
+          authorPhotoUrl: user.photoURL,
+          title: _titleController.text.trim(),
+          symbol: _symbolController.text.trim().toUpperCase(),
+          sentiment: _sentiment,
+          thesis: _thesisController.text.trim(),
+          entryTarget: _entryPrice,
+          targetPrice: _targetPrice,
+          stopLoss: _stopLoss,
+          timeHorizon: _timeHorizon,
+          tags: tags,
+          createdAt: DateTime.now(),
+        );
+
+        final docRef =
+            await widget.firestoreService.createSocialTradeIdea(post);
+        final createdPost = post.copyWith(id: docRef.id);
+
+        await widget.analytics.logEvent(
+          name: 'social_trade_idea_created',
+          parameters: {
+            'symbol': createdPost.symbol,
+            'sentiment': createdPost.sentiment.name,
+            'has_target': createdPost.targetPrice != null,
+          },
+        );
+
+        if (mounted) {
+          Navigator.pop(context, createdPost);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                  'Trade idea for \$${createdPost.symbol} published to social feed!'),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to publish trade idea: $e'),
+            content: Text(
+                _isEditing ? 'Failed to update trade idea: $e' : 'Failed to publish trade idea: $e'),
             backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
@@ -207,7 +274,7 @@ class _ShareTradeIdeaSheetState extends State<ShareTradeIdeaSheet> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Share Trade Idea',
+                    _isEditing ? 'Edit Trade Idea' : 'Share Trade Idea',
                     style: theme.textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
@@ -428,7 +495,7 @@ class _ShareTradeIdeaSheetState extends State<ShareTradeIdeaSheet> {
               ),
               const SizedBox(height: 20),
 
-              // Publish Button
+              // Publish / Save Button
               SizedBox(
                 width: double.infinity,
                 height: 48,
@@ -442,9 +509,12 @@ class _ShareTradeIdeaSheetState extends State<ShareTradeIdeaSheet> {
                             color: Colors.white,
                           ),
                         )
-                      : const Icon(Icons.send_rounded),
+                      : Icon(_isEditing ? Icons.save_rounded : Icons.send_rounded),
                   label: Text(
-                      _isSubmitting ? 'Publishing...' : 'Publish Trade Idea'),
+                    _isSubmitting
+                        ? (_isEditing ? 'Saving...' : 'Publishing...')
+                        : (_isEditing ? 'Save Changes' : 'Publish Trade Idea'),
+                  ),
                   onPressed: _isSubmitting ? null : _submitIdea,
                 ),
               ),

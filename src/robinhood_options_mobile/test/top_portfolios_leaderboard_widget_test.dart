@@ -254,7 +254,8 @@ void main() {
       expect(find.text('Top Performers (1M)'), findsOneWidget);
     });
 
-    testWidgets('search filters leaderboard results',
+    testWidgets(
+        'leaderboard toolbar renders period and sort chips in a single row without search bar',
         (WidgetTester tester) async {
       tester.view.physicalSize = const Size(1080, 2400);
       tester.view.devicePixelRatio = 1.0;
@@ -266,13 +267,12 @@ void main() {
       await tester.pumpWidget(createWidgetUnderTest());
       await tester.pumpAndSettle();
 
-      // Enter search text
-      await tester.enterText(find.byType(CupertinoSearchTextField), 'Alice');
-      await tester.pumpAndSettle();
-
+      expect(find.byType(CupertinoSearchTextField), findsNothing);
+      expect(find.widgetWithText(ChoiceChip, '1W'), findsOneWidget);
+      expect(find.widgetWithText(ChoiceChip, 'ALL'), findsOneWidget);
       expect(find.text('Alice Capital'), findsWidgets);
-      expect(find.text('Bob Options'), findsNothing);
-      expect(find.text('Charlie Quant'), findsNothing);
+      expect(find.text('Bob Options'), findsWidgets);
+      expect(find.text('Charlie Quant'), findsWidgets);
     });
 
     testWidgets('tapping info button opens reputation explainer bottom sheet',
@@ -296,6 +296,124 @@ void main() {
       expect(find.text('Score Breakdown (100 Points Total)'), findsOneWidget);
       expect(find.text('Reputation Tiers'), findsOneWidget);
       expect(find.text('Master Trader'), findsWidgets);
+    });
+
+    testWidgets('renders properly when embedded (showAppBar: false)',
+        (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      await tester.pumpWidget(MaterialApp(
+        theme: ThemeData(useMaterial3: true),
+        home: TopPortfoliosLeaderboardWidget(
+          auth: FakeFirebaseAuth(),
+          firestoreService: firestoreService,
+          analytics: fakeAnalytics,
+          observer: fakeObserver,
+          brokerageUser: brokerageUser,
+          service: service,
+          showAppBar: false,
+        ),
+      ));
+      await tester.pumpAndSettle();
+
+      // App bar title is hidden
+      expect(find.text('Top Portfolios'), findsNothing);
+
+      // Period chips and info action remain visible without search field
+      expect(find.byType(CupertinoSearchTextField), findsNothing);
+      expect(find.widgetWithText(ChoiceChip, '1W'), findsOneWidget);
+      expect(find.widgetWithText(ChoiceChip, 'ALL'), findsOneWidget);
+      expect(find.byIcon(Icons.info_outline_rounded), findsOneWidget);
+    });
+
+    testWidgets(
+        'private portfolios are strictly excluded from the leaderboard',
+        (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      // Seed a private trader with high returns
+      await fakeDb
+          .collection(firestoreService.userCollectionName)
+          .doc('secret_whale')
+          .set({
+        'id': 'secret_whale',
+        'name': 'Secret Whale',
+        'followersCount': 1000,
+        'followingCount': 0,
+        'portfolioPrivacy':
+            const PortfolioPrivacySettings(isPublic: false).toJson(),
+      });
+
+      final secretRecord = VerifiedTrackRecord(
+        userId: 'secret_whale',
+        userName: 'Secret Whale',
+        isVerified: true,
+        tier: VerifiedLeaderTier.masterTrader,
+        verifiedReturnPercent: 500.0,
+        verifiedWinRate: 90.0,
+        totalTradesAudited: 200,
+        winningTrades: 180,
+        losingTrades: 20,
+        verificationDate: DateTime(2026, 9, 1),
+        monthlyReturns: {
+          '1W': 10.0,
+          '1M': 40.0,
+          '3M': 100.0,
+          '1Y': 300.0,
+        },
+      );
+      await fakeDb
+          .collection(firestoreService.verifiedTrackRecordCollectionName)
+          .doc('secret_whale')
+          .set(secretRecord.toJson());
+
+      await tester.pumpWidget(createWidgetUnderTest());
+      await tester.pumpAndSettle();
+
+      // Secret Whale should NOT appear on the leaderboard
+      expect(find.text('Secret Whale'), findsNothing);
+
+      // Public traders appear
+      expect(find.text('Alice Capital'), findsWidgets);
+      expect(find.text('Bob Options'), findsWidgets);
+    });
+
+    testWidgets(
+        'filter dialog does not include Public Portfolios Only switch and only shows Verified Only',
+        (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      await tester.pumpWidget(createWidgetUnderTest());
+      await tester.pumpAndSettle();
+
+      // Open filter dialog
+      await tester.tap(find.byTooltip('Filter Leaderboard'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Filter Leaderboard'), findsOneWidget);
+      expect(find.text('Verified Only'), findsOneWidget);
+
+      // Verify "Public Portfolios Only" switch is completely absent
+      expect(find.text('Public Portfolios Only'), findsNothing);
+      expect(
+          find.text(
+              'Exclude traders who have marked their portfolio private'),
+          findsNothing);
     });
   });
 }

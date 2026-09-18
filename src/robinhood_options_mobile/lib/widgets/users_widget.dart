@@ -11,7 +11,6 @@ import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
-import 'package:robinhood_options_mobile/widgets/top_portfolios_leaderboard_widget.dart';
 import 'package:robinhood_options_mobile/widgets/user_listtile_widget.dart';
 
 class UsersWidget extends StatefulWidget {
@@ -20,6 +19,7 @@ class UsersWidget extends StatefulWidget {
   final FirebaseAnalyticsObserver observer;
   final BrokerageUser brokerageUser;
   final IBrokerageService service;
+  final FirestoreService? firestoreService;
   const UsersWidget(
     this.auth,
     this.service, {
@@ -27,6 +27,7 @@ class UsersWidget extends StatefulWidget {
     required this.analytics,
     required this.observer,
     required this.brokerageUser,
+    this.firestoreService,
   });
 
   @override
@@ -34,7 +35,7 @@ class UsersWidget extends StatefulWidget {
 }
 
 class _UsersWidgetState extends State<UsersWidget> {
-  final FirestoreService _firestoreService = FirestoreService();
+  late final FirestoreService _firestoreService;
   final TextEditingController _searchTermController = TextEditingController();
   String? _searchTerm;
   // late CollectionReference<User> _usersCollection;
@@ -43,6 +44,7 @@ class _UsersWidgetState extends State<UsersWidget> {
   @override
   void initState() {
     super.initState();
+    _firestoreService = widget.firestoreService ?? FirestoreService();
     // _usersCollection = _firestoreService.userCollection;
 
     final onlyPublic = userRole != UserRole.admin;
@@ -74,28 +76,6 @@ class _UsersWidgetState extends State<UsersWidget> {
                   title: const Text('Discover Traders'),
                   actions: [
                     IconButton(
-                      icon: const Icon(Icons.leaderboard_rounded),
-                      tooltip: 'Top Portfolios Leaderboard',
-                      onPressed: () {
-                        widget.analytics.logEvent(
-                            name: 'top_portfolios_leaderboard_opened');
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                TopPortfoliosLeaderboardWidget(
-                              auth: widget.auth,
-                              firestoreService: _firestoreService,
-                              brokerageUser: widget.brokerageUser,
-                              service: widget.service,
-                              analytics: widget.analytics,
-                              observer: widget.observer,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                    IconButton(
                         icon: auth.currentUser != null
                             ? (auth.currentUser!.photoURL == null
                                 ? const Icon(Icons.account_circle)
@@ -118,117 +98,22 @@ class _UsersWidgetState extends State<UsersWidget> {
               SliverPadding(
                   padding: const EdgeInsets.all(16.0),
                   sliver: SliverToBoxAdapter(
-                      child: Column(
-                    children: [
-                      Card(
-                        elevation: 1,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          side: BorderSide(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .outlineVariant
-                                .withValues(alpha: 0.5),
-                          ),
-                        ),
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(16),
-                          onTap: () {
-                            widget.analytics.logEvent(
-                                name: 'users_widget_leaderboard_banner_tapped');
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    TopPortfoliosLeaderboardWidget(
-                                  auth: widget.auth,
-                                  firestoreService: _firestoreService,
-                                  brokerageUser: widget.brokerageUser,
-                                  service: widget.service,
-                                  analytics: widget.analytics,
-                                  observer: widget.observer,
-                                ),
-                              ),
-                            );
-                          },
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 16.0, vertical: 12.0),
-                            child: Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(10),
-                                  decoration: BoxDecoration(
-                                    color: Colors.amber.withValues(alpha: 0.15),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: const Icon(
-                                    Icons.emoji_events_rounded,
-                                    color: Colors.amber,
-                                    size: 24,
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'Top Portfolios Leaderboard',
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .titleSmall
-                                            ?.copyWith(
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                      ),
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        'View ranked traders, track records & credibility',
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .bodySmall
-                                            ?.copyWith(
-                                              color: Theme.of(context)
-                                                  .colorScheme
-                                                  .onSurfaceVariant,
-                                            ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                Icon(
-                                  Icons.arrow_forward_ios_rounded,
-                                  size: 16,
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onSurfaceVariant,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      CupertinoSearchTextField(
-                        style: TextStyle(
-                            color:
-                                Theme.of(context).textTheme.bodyLarge!.color),
-                        controller: _searchTermController,
-                        placeholder: 'Search traders by name',
-                        onChanged: (value) {
-                          setState(() {
-                            _searchTerm = value;
-                            final onlyPublic = userRole != UserRole.admin;
-                            _stream = _firestoreService.searchUsers(
-                              searchTerm: _searchTerm,
-                              onlyPublic: onlyPublic,
-                            );
-                          });
-                        },
-                      ),
-                    ],
+                      child: CupertinoSearchTextField(
+                    style: TextStyle(
+                        color:
+                            Theme.of(context).textTheme.bodyLarge!.color),
+                    controller: _searchTermController,
+                    placeholder: 'Search traders by name',
+                    onChanged: (value) {
+                      setState(() {
+                        _searchTerm = value;
+                        final onlyPublic = userRole != UserRole.admin;
+                        _stream = _firestoreService.searchUsers(
+                          searchTerm: _searchTerm,
+                          onlyPublic: onlyPublic,
+                        );
+                      });
+                    },
                   ))),
               StreamBuilder(
                   stream: _stream,

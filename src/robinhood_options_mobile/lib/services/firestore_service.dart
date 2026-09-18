@@ -2635,7 +2635,7 @@ class FirestoreService {
 
       for (var doc in verifiedSnapshot.docs) {
         final record = doc.data();
-        bool isPublic = true;
+        bool isPublic = false;
         int followersCount = 0;
         int followingCount = 0;
         String? location;
@@ -2651,7 +2651,9 @@ class FirestoreService {
             followingCount = user.followingCount;
             location = user.location;
           }
-        } catch (_) {}
+        } catch (_) {
+          // Fail-closed: If reading user fails or is denied, isPublic remains false
+        }
 
         if (onlyPublic && !isPublic) {
           continue;
@@ -2807,6 +2809,22 @@ class FirestoreService {
       await docRef.update({'likes': likes});
     } on FirebaseException catch (e) {
       debugPrint('Failed to toggle like on trade idea: ${e.message}');
+      rethrow;
+    }
+  }
+
+  /// Update an existing social trade idea
+  Future<void> updateSocialTradeIdea(GroupAnalysisPost post) async {
+    try {
+      final updatedPost = post.copyWith(updatedAt: DateTime.now());
+      final data = updatedPost.toJson();
+      await _db
+          .collection(socialTradeIdeaCollectionName)
+          .doc(post.id)
+          .update(data);
+      debugPrint('Social trade idea updated: ${post.id}');
+    } on FirebaseException catch (e) {
+      debugPrint('Failed to update social trade idea: ${e.message}');
       rethrow;
     }
   }

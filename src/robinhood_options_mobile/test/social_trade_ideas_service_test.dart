@@ -172,6 +172,60 @@ void main() {
       expect(likes.length, 1);
     });
 
+    test('updateSocialTradeIdea updates post fields and sets updatedAt',
+        () async {
+      final initialIdea = GroupAnalysisPost(
+        id: 'idea_to_update',
+        groupId: 'social',
+        authorId: 'trader_1',
+        authorName: 'Alpha Trader',
+        title: 'Original Title',
+        symbol: 'NVDA',
+        sentiment: GroupAnalysisSentiment.bullish,
+        thesis: 'Original thesis',
+        entryTarget: 130.0,
+        targetPrice: 160.0,
+        stopLoss: 120.0,
+        createdAt: DateTime(2026, 9, 17, 10, 0),
+      );
+
+      await fakeDb
+          .collection(firestoreService.socialTradeIdeaCollectionName)
+          .doc('idea_to_update')
+          .set(initialIdea.toJson());
+
+      final updatedIdea = GroupAnalysisPost(
+        id: 'idea_to_update',
+        groupId: 'social',
+        authorId: 'trader_1',
+        authorName: 'Alpha Trader',
+        title: 'Updated Title',
+        symbol: 'NVDA',
+        sentiment: GroupAnalysisSentiment.bearish,
+        thesis: 'Updated thesis with new catalyst',
+        entryTarget: 140.0,
+        targetPrice: 175.0,
+        stopLoss: 128.0,
+        createdAt: DateTime(2026, 9, 17, 10, 0),
+      );
+
+      await firestoreService.updateSocialTradeIdea(updatedIdea);
+
+      final doc = await fakeDb
+          .collection(firestoreService.socialTradeIdeaCollectionName)
+          .doc('idea_to_update')
+          .get();
+
+      expect(doc.exists, isTrue);
+      expect(doc.data()?['title'], 'Updated Title');
+      expect(doc.data()?['sentiment'], 'bearish');
+      expect(doc.data()?['thesis'], 'Updated thesis with new catalyst');
+      expect(doc.data()?['entryTarget'], 140.0);
+      expect(doc.data()?['targetPrice'], 175.0);
+      expect(doc.data()?['stopLoss'], 128.0);
+      expect(doc.data()?['updatedAt'], isNotNull);
+    });
+
     test('deleteSocialTradeIdea removes document from Firestore', () async {
       await fakeDb
           .collection(firestoreService.socialTradeIdeaCollectionName)
