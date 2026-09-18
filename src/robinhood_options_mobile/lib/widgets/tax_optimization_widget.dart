@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
@@ -54,20 +55,13 @@ class TaxOptimizationWidget extends StatefulWidget {
 
 class _TaxOptimizationWidgetState extends State<TaxOptimizationWidget> {
   String _washSaleFilter = 'all'; // 'all', 'active', 'disallowed'
+  String _assetFilter = 'all'; // 'all', 'stock', 'option'
+  double _minLossThreshold = 0.0; // 0, 100, 500, 1000
+  String _sortBy = 'loss'; // 'loss', 'percent', 'tax_savings'
 
   @override
   void initState() {
     super.initState();
-    // if (widget.analyticsController != null) {
-    //   WidgetsBinding.instance.addPostFrameCallback((_) {
-    //     if (mounted) {
-    //       final positions =
-    //           Provider.of<InstrumentPositionStore>(context, listen: false)
-    //               .items;
-    //       widget.analyticsController!.loadEsg(positions);
-    //     }
-    //   });
-    // }
   }
 
   @override
@@ -86,21 +80,24 @@ class _TaxOptimizationWidgetState extends State<TaxOptimizationWidget> {
       optionOrderStore = Provider.of<OptionOrderStore>(context);
     } catch (_) {}
 
-    final suggestions =
+    final scanResult =
+        TaxOptimizationService.scanTaxLossHarvestingOpportunities(
+      instrumentPositions: instrumentPositionStore.items,
+      optionPositions: optionPositionStore.items,
+      portfolioHistoricals: widget.portfolioHistoricals,
+      assetFilter: _assetFilter,
+      minLossThreshold: _minLossThreshold,
+      sortBy: _sortBy,
+    );
+
+    final allOpportunities =
         TaxOptimizationService.calculateTaxHarvestingOpportunities(
       instrumentPositions: instrumentPositionStore.items,
       optionPositions: optionPositionStore.items,
     );
-
-    final totalEstimatedLoss = suggestions.fold<double>(
-        0, (previousValue, element) => previousValue + element.estimatedLoss);
-
-    final estimatedRealizedGains =
-        TaxOptimizationService.calculateEstimatedRealizedGains(
-      portfolioHistoricals: widget.portfolioHistoricals,
-      instrumentPositions: instrumentPositionStore.items,
-      optionPositions: optionPositionStore.items,
-    );
+    final stockCount = allOpportunities.where((s) => s.type == 'stock').length;
+    final optionCount =
+        allOpportunities.where((s) => s.type == 'option').length;
 
     final washSales = TaxOptimizationService.detectWashSales(
       stockOrders: instrumentOrderStore?.items.toList() ?? const [],
@@ -111,8 +108,6 @@ class _TaxOptimizationWidgetState extends State<TaxOptimizationWidget> {
     );
 
     final formatCurrency = NumberFormat.simpleCurrency();
-    // final hasEsg = widget.analyticsController != null;
-    // final tabCount = hasEsg ? 3 : 2;
 
     return DefaultTabController(
       length: 2,
@@ -130,11 +125,6 @@ class _TaxOptimizationWidgetState extends State<TaxOptimizationWidget> {
                 icon: Icon(Icons.schedule),
                 text: 'Wash Sales',
               ),
-              // if (hasEsg)
-              //   const Tab(
-              //     icon: Icon(Icons.eco_outlined),
-              //     text: 'ESG Analysis',
-              //   ),
             ],
           ),
         ),
@@ -142,9 +132,10 @@ class _TaxOptimizationWidgetState extends State<TaxOptimizationWidget> {
           children: [
             _buildHarvestingTab(
               context,
-              suggestions,
-              totalEstimatedLoss,
-              estimatedRealizedGains,
+              scanResult,
+              allOpportunities.length,
+              stockCount,
+              optionCount,
               formatCurrency,
             ),
             _buildWashSalesTab(
@@ -152,7 +143,6 @@ class _TaxOptimizationWidgetState extends State<TaxOptimizationWidget> {
               washSales,
               formatCurrency,
             ),
-            // if (hasEsg) _buildEsgTab(context),
           ],
         ),
       ),
@@ -161,40 +151,83 @@ class _TaxOptimizationWidgetState extends State<TaxOptimizationWidget> {
 
   Widget _buildHarvestingTab(
     BuildContext context,
-    List<TaxHarvestingSuggestion> suggestions,
-    double totalEstimatedLoss,
-    double estimatedRealizedGains,
+    TaxHarvestingScanResult scanResult,
+    int totalCount,
+    int stockCount,
+    int optionCount,
     NumberFormat formatCurrency,
   ) {
+    final suggestions = scanResult.suggestions;
+
     return CustomScrollView(
       slivers: [
         SliverToBoxAdapter(
           child: Padding(
             padding: const EdgeInsets.all(16.0),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _buildSeasonalityBanner(context),
                 const SizedBox(height: 16),
-                _buildSummaryCard(context, totalEstimatedLoss,
-                    estimatedRealizedGains, formatCurrency),
-                const SizedBox(height: 24),
-                if (suggestions.isNotEmpty)
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
+                _buildSummaryCard(context, scanResult, formatCurrency),
+                const SizedBox(height: 20),
+                _buildScannerFilterBar(
+                  context,
+                  totalCount: totalCount,
+                  stockCount: stockCount,
+                  optionCount: optionCount,
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
                       'Opportunities (${suggestions.length})',
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
-                  ),
+                    if (scanResult.totalScannedPositions > 0)
+                      Text(
+                        '${scanResult.totalScannedPositions} scanned',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                  ],
+                ),
               ],
             ),
           ),
         ),
         if (suggestions.isEmpty)
-          const SliverFillRemaining(
+          SliverFillRemaining(
             hasScrollBody: false,
             child: Center(
-              child: Text('No tax harvesting opportunities found.'),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.check_circle_outline,
+                    size: 48,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                      'No tax harvesting opportunities matching filters.'),
+                  if (_assetFilter != 'all' || _minLossThreshold > 0) ...[
+                    const SizedBox(height: 8),
+                    TextButton(
+                      onPressed: () {
+                        setState(() {
+                          _assetFilter = 'all';
+                          _minLossThreshold = 0.0;
+                        });
+                      },
+                      child: const Text('Reset Filters'),
+                    ),
+                  ],
+                ],
+              ),
             ),
           )
         else
@@ -306,23 +339,27 @@ class _TaxOptimizationWidgetState extends State<TaxOptimizationWidget> {
     );
   }
 
-  Widget _buildSummaryCard(BuildContext context, double totalLoss,
-      double estimatedRealizedGains, NumberFormat formatCurrency) {
-    final canOffset = estimatedRealizedGains > 0;
+  Widget _buildSummaryCard(BuildContext context,
+      TaxHarvestingScanResult scanResult, NumberFormat formatCurrency) {
+    final totalLoss = scanResult.totalUnrealizedLoss;
+    final realizedGains = scanResult.realizedCapitalGains;
+    final ordinaryUsed = scanResult.capitalLossDeductionUsed;
+    final carryforward = scanResult.capitalLossCarryforward;
+    final estSavings = scanResult.estimatedTaxSavings;
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(24.0),
+      padding: const EdgeInsets.all(20.0),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            Colors.red.shade900.withValues(alpha: 0.8),
-            Colors.red.shade700.withValues(alpha: 0.8),
+            Colors.red.shade900.withValues(alpha: 0.85),
+            Colors.red.shade700.withValues(alpha: 0.85),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
             color: Colors.red.withValues(alpha: 0.3),
@@ -336,45 +373,183 @@ class _TaxOptimizationWidgetState extends State<TaxOptimizationWidget> {
           const Text(
             'Total Potential Tax Loss',
             style: TextStyle(
-              fontSize: 16,
+              fontSize: 14,
               fontWeight: FontWeight.w500,
               color: Colors.white70,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           Text(
             formatCurrency.format(totalLoss),
             style: const TextStyle(
-              fontSize: 36,
+              fontSize: 32,
               fontWeight: FontWeight.bold,
               color: Colors.white,
             ),
           ),
-          const SizedBox(height: 16),
-          if (canOffset) ...[
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(20),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            alignment: WrapAlignment.center,
+            children: [
+              if (realizedGains > 0)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Text(
+                    'Offsets ${formatCurrency.format(min(realizedGains, totalLoss.abs()))} of ${formatCurrency.format(realizedGains)} realized gains',
+                    style: const TextStyle(color: Colors.white, fontSize: 11),
+                  ),
+                ),
+              if (ordinaryUsed > 0)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Text(
+                    '+ ${formatCurrency.format(ordinaryUsed)} Ordinary Income Offset (IRS Cap)',
+                    style: const TextStyle(color: Colors.white, fontSize: 11),
+                  ),
+                ),
+              if (carryforward > 0)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Text(
+                    '${formatCurrency.format(carryforward)} Loss Carryforward',
+                    style: const TextStyle(color: Colors.white, fontSize: 11),
+                  ),
+                ),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.25),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Text(
+                  'Est. Tax Alpha: ~${formatCurrency.format(estSavings)} (${(scanResult.effectiveTaxRate * 100).toInt()}% Rate)',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
-              child: Text(
-                'Can offset ~${formatCurrency.format(estimatedRealizedGains)} of YTD gains',
-                style: const TextStyle(color: Colors.white, fontSize: 12),
-              ),
-            ),
-            const SizedBox(height: 8),
-          ],
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildScannerFilterBar(
+    BuildContext context, {
+    required int totalCount,
+    required int stockCount,
+    required int optionCount,
+  }) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          ChoiceChip(
+            label: Text('All ($totalCount)'),
+            selected: _assetFilter == 'all',
+            onSelected: (selected) {
+              if (selected) setState(() => _assetFilter = 'all');
+            },
+          ),
+          const SizedBox(width: 8),
+          ChoiceChip(
+            label: Text('Stocks ($stockCount)'),
+            selected: _assetFilter == 'stock',
+            onSelected: (selected) {
+              if (selected) setState(() => _assetFilter = 'stock');
+            },
+          ),
+          const SizedBox(width: 8),
+          ChoiceChip(
+            label: Text('Options ($optionCount)'),
+            selected: _assetFilter == 'option',
+            onSelected: (selected) {
+              if (selected) setState(() => _assetFilter = 'option');
+            },
+          ),
+          const SizedBox(width: 12),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: const Text(
-              'Estimated Savings: ~25-35%', // Rough estimate based on tax brackets
-              style: TextStyle(color: Colors.white, fontSize: 12),
-            ),
+            height: 24,
+            width: 1,
+            color: Theme.of(context).colorScheme.outlineVariant,
+          ),
+          const SizedBox(width: 12),
+          ChoiceChip(
+            label: const Text('Any Loss'),
+            selected: _minLossThreshold == 0.0,
+            onSelected: (selected) {
+              if (selected) setState(() => _minLossThreshold = 0.0);
+            },
+          ),
+          const SizedBox(width: 8),
+          ChoiceChip(
+            label: const Text('>\$100'),
+            selected: _minLossThreshold == 100.0,
+            onSelected: (selected) {
+              if (selected) setState(() => _minLossThreshold = 100.0);
+            },
+          ),
+          const SizedBox(width: 8),
+          ChoiceChip(
+            label: const Text('>\$500'),
+            selected: _minLossThreshold == 500.0,
+            onSelected: (selected) {
+              if (selected) setState(() => _minLossThreshold = 500.0);
+            },
+          ),
+          const SizedBox(width: 12),
+          Container(
+            height: 24,
+            width: 1,
+            color: Theme.of(context).colorScheme.outlineVariant,
+          ),
+          const SizedBox(width: 12),
+          ChoiceChip(
+            avatar: const Icon(Icons.arrow_downward, size: 14),
+            label: const Text('Loss \$'),
+            selected: _sortBy == 'loss',
+            onSelected: (selected) {
+              if (selected) setState(() => _sortBy = 'loss');
+            },
+          ),
+          const SizedBox(width: 8),
+          ChoiceChip(
+            avatar: const Icon(Icons.percent, size: 14),
+            label: const Text('Loss %'),
+            selected: _sortBy == 'percent',
+            onSelected: (selected) {
+              if (selected) setState(() => _sortBy = 'percent');
+            },
+          ),
+          const SizedBox(width: 8),
+          ChoiceChip(
+            avatar: const Icon(Icons.shield_outlined, size: 14),
+            label: const Text('Tax Relief'),
+            selected: _sortBy == 'tax_savings',
+            onSelected: (selected) {
+              if (selected) setState(() => _sortBy = 'tax_savings');
+            },
           ),
         ],
       ),
@@ -496,7 +671,8 @@ class _TaxOptimizationWidgetState extends State<TaxOptimizationWidget> {
                           '${activeWindows.length} Active Window${activeWindows.length == 1 ? '' : 's'}'),
                       selected: _washSaleFilter == 'active',
                       onSelected: (selected) {
-                        if (selected) setState(() => _washSaleFilter = 'active');
+                        if (selected)
+                          setState(() => _washSaleFilter = 'active');
                       },
                     ),
                     const SizedBox(width: 8),
@@ -789,8 +965,8 @@ class _TaxOptimizationWidgetState extends State<TaxOptimizationWidget> {
             color: Theme.of(context).colorScheme.primaryContainer,
             borderRadius: BorderRadius.circular(8),
           ),
-          child:
-              Icon(icon, size: 20, color: Theme.of(context).colorScheme.primary),
+          child: Icon(icon,
+              size: 20, color: Theme.of(context).colorScheme.primary),
         ),
         const SizedBox(width: 12),
         Expanded(
@@ -894,8 +1070,8 @@ class _TaxOptimizationWidgetState extends State<TaxOptimizationWidget> {
               const SnackBar(content: Text('Loading instrument...')),
             );
             try {
-              final instrument = await widget.service.getInstrumentBySymbol(
-                  widget.user, instrumentStore, symbol);
+              final instrument = await widget.service
+                  .getInstrumentBySymbol(widget.user, instrumentStore, symbol);
               if (instrument != null && context.mounted) {
                 ScaffoldMessenger.of(context).hideCurrentSnackBar();
                 Navigator.push(
@@ -1012,8 +1188,153 @@ class _TaxOptimizationWidgetState extends State<TaxOptimizationWidget> {
                     'Current',
                     formatCurrency.format(suggestion.currentPrice),
                   ),
+                  if (suggestion.taxSavingsEstimate != null)
+                    _buildDetailItem(
+                      context,
+                      'Est. Relief',
+                      formatCurrency.format(suggestion.taxSavingsEstimate),
+                    ),
                 ],
               ),
+              if (suggestion.replacements.isNotEmpty) ...[
+                const Divider(height: 24),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.swap_horiz,
+                      size: 16,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Correlated Replacements',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                    ),
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.green.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: const Text(
+                        'Safe CUSIP',
+                        style: TextStyle(
+                          color: Colors.green,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                ...suggestion.replacements.take(2).map((replacement) {
+                  return Container(
+                    margin: const EdgeInsets.only(top: 6),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .surfaceContainerHighest
+                          .withValues(alpha: 0.4),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .outlineVariant
+                            .withValues(alpha: 0.4),
+                      ),
+                    ),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(10),
+                      onTap: () => _navigateToInstrument(
+                        context,
+                        replacement.symbol,
+                        replacement.assetType != 'option',
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(10),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .primaryContainer,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    replacement.symbol,
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onPrimaryContainer,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    replacement.name,
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: Colors.blue.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    '~${(replacement.correlation * 100).toInt()}% corr',
+                                    style: const TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.blue,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                const Icon(
+                                  Icons.arrow_forward_ios,
+                                  size: 11,
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              replacement.rationale,
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                }),
+              ],
             ],
           ),
         ),

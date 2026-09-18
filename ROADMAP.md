@@ -793,7 +793,7 @@ Q3 2026 shifts focus from basic execution to **Advanced Intelligence** and **Reg
 - [x] **Tax Loss Harvesting (Basic)**: Tax optimization suggestions - **Medium** (2-3 weeks)
 - [ ] **Tax Optimization Suite & Wash Sale Detector** (v0.48.0, [Tracking: #114](https://github.com/CIInc/robinhood-options-mobile/issues/114)):
     - [x] **Rolling 30-Day Wash Sale Window Tracker**: Proactive cross-instrument alerts across equities and options before triggering disallowed loss repurchases - **Medium** (2-3 weeks)
-    - [ ] **Automated Tax Loss Harvesting Opportunity Scanner**: Scan unrealized losses against realized capital gains with correlated replacement recommendations - **Medium** (2 weeks)
+    - [x] **Automated Tax Loss Harvesting Opportunity Scanner**: Scan unrealized losses against realized capital gains with correlated replacement recommendations - **Medium** (2 weeks)
     - [ ] **Short-Term vs. Long-Term Capital Gains Breakdown**: Real-time holding duration timers and tax liability projections - **Small** (1-2 weeks)
     - [ ] **Specific Tax Lot Matching (HIFO/LIFO Order Entry)** (v0.48.0, [Tracking: #114](https://github.com/CIInc/robinhood-options-mobile/issues/114)): Select specific tax lots or tax-minimization sorting rules at order placement to minimize taxable gains - **Small** (1-2 weeks)
     - [ ] **IRS Form 8949 Reconciliation & CSV Export**: Schedule D export with wash sale adjustment codes (`W`) - **Small** (1 week)

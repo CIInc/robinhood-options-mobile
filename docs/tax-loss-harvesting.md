@@ -35,13 +35,35 @@ To keep your dashboard clean and focused, the Tax Loss Harvesting card uses "Sma
 - **During Tax Season (Oct-Dec)**: The card appears for any potential loss greater than **$10**.
 - **Off-Season (Jan-Sep)**: The card remains hidden unless you have a significant potential loss (greater than **$100**).
 
-### 4. Wash Sale Rule Warning
-The tool includes a built-in educational warning about the **Wash Sale Rule**. This rule disallows the tax deduction of a loss if you buy a "substantially identical" security within 30 days before or after the sale.
+### 4. Automated Opportunity Scanner & Schedule D Mechanics
+The upgraded scanner models comprehensive tax mechanics under IRS Schedule D and Section 1211:
+- **Capital Gains 1:1 Offset**: Unrealized capital losses are modeled against current-year realized capital gains to offset taxable gains dollar-for-dollar.
+- **Ordinary Income Deduction Limit**: Excess net capital losses are automatically applied to offset up to **$3,000** (\$1,500 if married filing separately) of ordinary earned income per tax year.
+- **Capital Loss Carryforward**: Any remaining unused losses beyond the $3,000 ordinary income cap are accurately accumulated into an indefinite **Tax Loss Carryforward** pool to offset future tax years.
+- **Scanner Filters & Controls**:
+  - **Asset Class Filter**: Seamlessly filter opportunities between All, Stocks only, or Options only.
+  - **Minimum Loss Threshold**: Filter out micro-losses with quick thresholds (\$0, \$100, \$500, \$1,000).
+  - **Multi-Factor Sorting**: Sort opportunities dynamically by dollar loss, percentage loss, or estimated tax savings.
 
-### 5. Direct Trading Integration
+### 5. Correlated Replacement Recommendations (Wash Sale Safe)
+To maintain target market and sector exposure without triggering IRS Section 1091 Wash Sale disallowance, the scanner generates curated, non-substantially identical correlated replacement suggestions:
+- **Index ETF Substitutes**:
+  - `SPY` ↔ `VOO`, `IVV`, `SPLG` (different index providers and fund sponsors).
+  - `QQQ` ↔ `QQQM`, `VGT` (separate legal entities and tracking methodologies).
+  - `IWM` ↔ `VB`, `SCHA` (small-cap core exposure without identical CUSIPs).
+- **Sector & Industry Competitors**:
+  - `NVDA` ↔ `AMD`, `SMH`, `AVGO` (semiconductor peers and diversified sector baskets).
+  - `AAPL` ↔ `MSFT`, `XLK` (tech sector proxies).
+  - `TSLA` ↔ `RIVN`, `IDRV` (EV and future mobility peers).
+- **Correlation Metrics & Rationales**: Each replacement displays estimated correlation coefficients (`~98% corr`), legal rationales, and 1-tap navigation directly to the instrument's quote and trade entry page.
+
+### 6. Wash Sale Rule Warning & Tracker
+The tool includes a built-in educational warning and tight integration with the **Rolling 30-Day Wash Sale Window Tracker**. If you repurchase a substantially identical security within 30 days before or after realizing a loss, the loss deduction is disallowed and added to the cost basis of the replacement asset.
+
+### 7. Direct Trading Integration
 The interface is designed for action:
 - **Top Opportunity**: The dashboard card highlights your single largest tax loss opportunity immediately.
-- **One-Tap Execution**: Tapping on any opportunity in the detailed list navigates directly to the instrument's trading page, allowing you to execute the trade seamlessly.
+- **One-Tap Execution & Replacement**: Tapping on any opportunity in the detailed list navigates directly to the instrument's trading page. Tapping any correlated replacement suggestion navigates immediately to the replacement's detail page to re-establish market exposure safely.
   - *Stocks*: Navigates directly to the stock page.
   - *Options*: Fetches the underlying instrument and navigates to it, allowing you to manage the option position.
 
