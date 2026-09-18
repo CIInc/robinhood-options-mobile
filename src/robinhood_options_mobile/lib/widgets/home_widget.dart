@@ -1196,20 +1196,29 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
           nonzero: !hasQuantityFilters[1],
           userDoc: widget.userDoc);
     } else if (widget.brokerageUser!.source == BrokerageSource.schwab) {
-      futureStockPositions = widget.service!.getStockPositionStore(
-          widget.brokerageUser!,
-          Provider.of<InstrumentPositionStore>(context, listen: false),
-          Provider.of<InstrumentStore>(context, listen: false),
-          Provider.of<QuoteStore>(context, listen: false),
-          nonzero: !hasQuantityFilters[1],
-          userDoc: widget.userDoc);
+      final instrumentPositionStore =
+          Provider.of<InstrumentPositionStore>(context, listen: false);
+      final instrumentStore =
+          Provider.of<InstrumentStore>(context, listen: false);
+      final quoteStore = Provider.of<QuoteStore>(context, listen: false);
+      final optionPositionStore =
+          Provider.of<OptionPositionStore>(context, listen: false);
 
-      futureOptionPositions = widget.service!.getOptionPositionStore(
-          widget.brokerageUser!,
-          Provider.of<OptionPositionStore>(context, listen: false),
-          Provider.of<InstrumentStore>(context, listen: false),
-          nonzero: !hasQuantityFilters[1],
-          userDoc: widget.userDoc);
+      futureStockPositions = (futureAccounts ?? Future.value(<Account>[]))
+          .catchError((_) => <Account>[])
+          .then((_) => widget.service!.getStockPositionStore(
+              widget.brokerageUser!,
+              instrumentPositionStore,
+              instrumentStore,
+              quoteStore,
+              nonzero: !hasQuantityFilters[1],
+              userDoc: widget.userDoc));
+
+      futureOptionPositions = (futureAccounts ?? Future.value(<Account>[]))
+          .catchError((_) => <Account>[])
+          .then((_) => widget.service!.getOptionPositionStore(
+              widget.brokerageUser!, optionPositionStore, instrumentStore,
+              nonzero: !hasQuantityFilters[1], userDoc: widget.userDoc));
     } else if (widget.brokerageUser!.source == BrokerageSource.fidelity) {
       futureStockPositions = widget.service!.getStockPositionStore(
           widget.brokerageUser!,
@@ -1774,11 +1783,17 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                     future: futureBenchmarkComparison,
                     builder: (context, snapshot) {
                       final comparison = snapshot.data;
+                      final filteredStocks = stockStore.items
+                          .where((p) => _matchesAccount(p.account, account))
+                          .toList();
+                      final filteredOptions = optionStore.items
+                          .where((p) => _matchesAccount(p.account, account))
+                          .toList();
                       final alerts = PortfolioAlertService.buildAlerts(
-                        instrumentPositions: stockStore.items,
-                        optionPositions: optionStore.items,
+                        instrumentPositions: filteredStocks,
+                        optionPositions: filteredOptions,
                         account: account,
-                        totalEquity: _totalEquity(context),
+                        totalEquity: _totalEquity(context, account: account),
                         // The full metrics suite only runs once the user opens
                         // Performance, so feed the alert rules the one figure
                         // the overview computes for itself.
@@ -1914,7 +1929,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
             child: Consumer2<InstrumentPositionStore, OptionPositionStore>(
               builder: (context, stockStore, optionStore, child) =>
                   PortfolioSectionGridWidget(
-                summaries: _sectionSummaries(context, stockStore, optionStore),
+                summaries: _sectionSummaries(
+                    context, stockStore, optionStore, account),
                 flagged:
                     _flaggedSections(context, stockStore, optionStore, account),
                 onSectionTap: (section) => PortfolioNavigator.openSection(
@@ -2004,9 +2020,23 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
   }
 
   /// Total account equity, used to express cash and position weights.
-  double? _totalEquity(BuildContext context) {
+  double? _totalEquity(BuildContext context, {Account? account}) {
     final portfolioStore = Provider.of<PortfolioStore>(context, listen: false);
     if (portfolioStore.items.isEmpty) return null;
+
+    // In single-account mode, scope to the selected account's portfolio.
+    if (!_isAggregateMode() && account != null) {
+      final match = portfolioStore.items.cast<Portfolio?>().firstWhere(
+            (p) =>
+                p!.account == account.accountNumber ||
+                p.account == account.url ||
+                (account.accountNumber.isNotEmpty &&
+                    p.account.contains(account.accountNumber)),
+            orElse: () => null,
+          );
+      if (match != null && (match.equity ?? 0) > 0) return match.equity;
+    }
+
     final equity = portfolioStore.items
         .fold<double>(0, (sum, portfolio) => sum + (portfolio.equity ?? 0));
     return equity > 0 ? equity : null;
@@ -2017,10 +2047,18 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
     BuildContext context,
     InstrumentPositionStore stockStore,
     OptionPositionStore optionStore,
+    Account? account,
   ) {
     final summaries = <PortfolioSection, String>{};
 
-    final holdings = stockStore.items.length + optionStore.items.length;
+    final stocks = stockStore.items
+        .where((p) => _matchesAccount(p.account, account))
+        .toList();
+    final options = optionStore.items
+        .where((p) => _matchesAccount(p.account, account))
+        .toList();
+
+    final holdings = stocks.length + options.length;
     if (holdings > 0) {
       summaries[PortfolioSection.positions] =
           '$holdings ${holdings == 1 ? 'holding' : 'holdings'}';
@@ -2028,8 +2066,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
 
     final suggestions =
         TaxOptimizationService.calculateTaxHarvestingOpportunities(
-      instrumentPositions: stockStore.items,
-      optionPositions: optionStore.items,
+      instrumentPositions: stocks,
+      optionPositions: options,
     );
     if (suggestions.isNotEmpty) {
       final total = suggestions.fold<double>(
@@ -2049,11 +2087,17 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
     OptionPositionStore optionStore,
     Account? account,
   ) {
+    final filteredStocks = stockStore.items
+        .where((p) => _matchesAccount(p.account, account))
+        .toList();
+    final filteredOptions = optionStore.items
+        .where((p) => _matchesAccount(p.account, account))
+        .toList();
     final alerts = PortfolioAlertService.buildAlerts(
-      instrumentPositions: stockStore.items,
-      optionPositions: optionStore.items,
+      instrumentPositions: filteredStocks,
+      optionPositions: filteredOptions,
       account: account,
-      totalEquity: _totalEquity(context),
+      totalEquity: _totalEquity(context, account: account),
     );
 
     final flagged = <PortfolioSection>{};
@@ -2456,21 +2500,32 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
       }
       if (widget.brokerageUser!.source == BrokerageSource.schwab ||
           widget.brokerageUser!.source == BrokerageSource.fidelity) {
-        futureAccounts = widget.service!.getAccounts(
-            widget.brokerageUser!,
-            Provider.of<AccountStore>(context, listen: false),
-            Provider.of<PortfolioStore>(context, listen: false),
-            Provider.of<OptionPositionStore>(context, listen: false),
-            instrumentPositionStore:
-                Provider.of<InstrumentPositionStore>(context, listen: false),
+        final accountStore = Provider.of<AccountStore>(context, listen: false);
+        final portfolioStore =
+            Provider.of<PortfolioStore>(context, listen: false);
+        final optionPositionStore =
+            Provider.of<OptionPositionStore>(context, listen: false);
+        final instrumentPositionStore =
+            Provider.of<InstrumentPositionStore>(context, listen: false);
+        final userStore =
+            Provider.of<BrokerageUserStore>(context, listen: false);
+        final quoteStore = Provider.of<QuoteStore>(context, listen: false);
+        final optionInstrumentStore =
+            Provider.of<OptionInstrumentStore>(context, listen: false);
+
+        futureAccounts = widget.service!.getAccounts(widget.brokerageUser!,
+            accountStore, portfolioStore, optionPositionStore,
+            instrumentPositionStore: instrumentPositionStore,
             userDoc: widget.userDoc);
         // Added to fix missing accounts in SharedPreferences after refresh. TODO: Confirm if this is necessary.
         futureAccounts!.then((accounts) async {
           if (mounted && accounts.isNotEmpty) {
             widget.brokerageUser!.accounts = accounts;
-            final userStore =
-                Provider.of<BrokerageUserStore>(context, listen: false);
             await userStore.save();
+            await widget.service!.refreshPositionQuote(
+                widget.brokerageUser!, instrumentPositionStore, quoteStore);
+            await widget.service!.refreshOptionMarketData(widget.brokerageUser!,
+                optionPositionStore, optionInstrumentStore);
           }
         });
       }

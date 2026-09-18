@@ -27,7 +27,31 @@ RealizeAlpha has integrated with Charles Schwab to provide users with a broader 
 - **Token Management:** The app handles OAuth token refresh automatically to maintain a secure connection.
 - **Options Trading (v0.37.5):** `SchwabService.placeOptionsOrder()` supports single-leg option orders, while `placeMultiLegOptionsOrder()` supports multi-leg strategies. Both methods use the linked Schwab account and preserve the existing order-status workflow.
 
-## Limitations & Future Work
+## API Product Capabilities & Roadmap
 
-- **Trading:** Stock and option order placement is available for linked Schwab accounts. Review order details in the app before submission and follow Schwab account permissions and buying-power requirements.
-- **Streaming Data:** Real-time streaming of quotes is being enhanced for better performance.
+The Charles Schwab Developer Portal ([developer.schwab.com](https://developer.schwab.com/)) provides two primary REST products and a high-throughput WebSocket streaming engine:
+
+### 1. Market Data Production API (`/marketdata/v1`) — [Issue #93](https://github.com/CIInc/robinhood-options-mobile/issues/93) (Implemented)
+- **Quotes (`GET /marketdata/v1/quotes`):** Real-time bid, ask, size, last trade, 52-week ranges, PE ratio, and dividend yields for individual or batch symbols via `SchwabService.getQuote()` and `refreshQuote()`.
+- **Price History (`GET /marketdata/v1/pricehistory`):** Historical OHLCV candlestick bars across multiple intervals (`minute`, `daily`, `weekly`) and spans (`day`, `month`, `year`, `ytd`) with extended-hours support via `SchwabService.getInstrumentHistoricals()`. Backs interactive charts and backtesting.
+- **Fundamentals (`GET /marketdata/v1/instruments?projection=fundamental`):** Fundamental statistics including market cap, EPS, shares outstanding, and dividend metrics via `SchwabService.getFundamentals()` and `getFundamentalsById()`.
+- **Index Movers & Top Movers (`GET /marketdata/v1/movers/{index}`):** Real-time top gainers/losers by percentage change or volume for `$DJI`, `$COMPX`, `$SPX` via `SchwabService.getMovers()` and screener feed for `SearchWidget` via `SchwabService.getTopMovers()`.
+- **Market Hours (`GET /marketdata/v1/markets`):** Operating schedules, pre-market/after-hours states, and market holiday calendars via `SchwabService.getMarketHours()`.
+- **Options Expiration Chains & Market Data (`GET /marketdata/v1/chains`):** Fast retrieval of available expiration dates via `SchwabService.getOptionExpirationChain()`, option market quotes and Greeks via `SchwabService.getOptionMarketData()`, and periodic refresh via `SchwabService.refreshOptionMarketData()`.
+
+### 2. Accounts & Trading Production API (`/trader/v1`) — [Issue #91](https://github.com/CIInc/robinhood-options-mobile/issues/91), [Issue #122](https://github.com/CIInc/robinhood-options-mobile/issues/122)
+- **Accounts & Balances (`GET /trader/v1/accounts`):** Balances, positions, cash, and margin buying power (Implemented).
+- **Account Number Hashing (`GET /trader/v1/accountNumbers`):** Multi-account mapping between masked account numbers and encrypted hash values (Implemented).
+- **Order Placement (`POST /trader/v1/accounts/{accountNumber}/orders`):** Single-leg and multi-leg equity and options order routing (Implemented).
+- **Order Preview & Margin Check (`POST /trader/v1/accounts/{accountNumber}/previewOrder`):** Pre-trade validation of buying power impact, estimated commission, and margin requirements.
+- **In-Flight Order Modification (`PUT /trader/v1/accounts/{accountNumber}/orders/{orderId}`):** In-flight price and contract count adjustments for working orders.
+- **Transaction History & Dividends (`GET /trader/v1/accounts/{accountNumber}/transactions`):** Historical executions, dividends, interest credits, and cash transfers for realized P&L calculations.
+- **User Preferences (`GET /trader/v1/userPreference`):** Account defaults and Streamer connection credentials.
+
+### 3. Schwab Real-Time WebSocket Streamer (`wss://streamer-api.schwab.com/ws`) — [Issue #145](https://github.com/CIInc/robinhood-options-mobile/issues/145)
+- **Session Handshake:** Authenticate using OAuth token and parameters from `GET /trader/v1/userPreference` (`schwabClientCustomerId`, `schwabClientCorrelId`).
+- **Level 1 Quotes (`LEVELONE_EQUITIES`):** Sub-second streaming quote updates.
+- **Level 1 Options & Greeks (`LEVELONE_OPTIONS`):** Streaming options quotes, Implied Volatility (IV), and real-time Greeks (Delta, Gamma, Theta, Vega, Rho).
+- **Account & Order Activity (`ACCT_ACTIVITY`):** Push-based order fill notifications, cancellations, and execution confirmations.
+- **Live Candle Streaming (`CHART_EQUITY`):** 1-minute OHLCV bar push feeds for active chart views.
+- **Futures & Forex (`LEVELONE_FUTURES`, `LEVELONE_FOREX`):** Real-time streaming for Schwab futures and currency pairs.

@@ -153,7 +153,8 @@ describe("Gamma Exposure (GEX) Data Validation", () => {
     expect(result.reason).toContain("neutral dealer positioning");
   });
 
-  it("should provide non-null structural level fallbacks when chain has no zero crossings", () => {
+  it("should provide non-null structural level fallbacks when chain has " +
+    "no zero crossings", () => {
     // Mock chain with only calls (all strikes positive net GEX)
     const allCallsChain = {
       options: [

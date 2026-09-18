@@ -63,20 +63,30 @@ users/{userId}/alerts/{alertId}
 - Scheduled checks using Cloud Functions
 - Optimized queries to minimize database load
 
+## Instrument View Integration
+
+Custom alerts for an instrument are integrated directly into the instrument's detail page (`InstrumentWidget`):
+- **SliverAppBar Action**: An alert icon (`Icons.add_alert_outlined`) in the top navigation bar opens the alerts list filtered to the current instrument's symbol.
+- **Embedded Custom Alerts Card**: Available in `Overview`, `Signals & Tech`, and `All` tabs:
+  - Displays existing alerts for the current symbol with condition indicators and trigger history.
+  - Inline active/inactive toggle switches to quickly enable or pause alerts without navigating away.
+  - "Add Alert" button to immediately create a new alert with the symbol pre-filled and locked.
+  - "Manage Alerts" button to view and manage all alerts for that instrument in full-screen.
+  - Empty state with a single-tap "Set Alert" call-to-action when no alerts are configured for the symbol.
+
 ## Usage Examples
 
-### Setting a Price Alert
-1. Navigate to an instrument's detail page
-2. Tap the alert icon
-3. Choose "Price Alert"
-4. Set target price and direction (above/below)
-5. Configure notification preferences
+### Setting a Price Alert from Instrument View
+1. Navigate to an instrument's detail page (e.g., TSLA, NVDA, AAPL).
+2. Tap the alert icon in the app bar or tap **Set Alert** in the **Custom Alerts** section of the Overview or Signals tab.
+3. Configure target price, condition, or multi-rule conditions.
+4. Save the alert — it immediately shows up in the instrument view and begins monitoring.
 
 ### Managing Alerts
-1. Access Alerts section from main menu
-2. View active alerts list
-3. Edit or disable individual alerts
-4. Review alert history
+1. Access Alerts section from main menu or user profile for all alerts.
+2. Alternatively, view and toggle alerts directly on any instrument's detail page.
+3. Edit or disable individual alerts.
+4. Review alert history.
 
 ## Future Enhancements
 - News-based alerts

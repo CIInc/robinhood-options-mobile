@@ -17,7 +17,8 @@ class NotificationCenterWidget extends StatefulWidget {
   });
 
   @override
-  State<NotificationCenterWidget> createState() => _NotificationCenterWidgetState();
+  State<NotificationCenterWidget> createState() =>
+      _NotificationCenterWidgetState();
 }
 
 class _NotificationCenterWidgetState extends State<NotificationCenterWidget> {
@@ -60,8 +61,10 @@ class _NotificationCenterWidgetState extends State<NotificationCenterWidget> {
   }
 
   Future<List<NotificationItem>> _fetchCombinedNotifications() async {
-    final stack = await widget.service.getNotificationStackModel(widget.brokerageUser);
-    final threads = await widget.service.getInboxThreadsModel(widget.brokerageUser);
+    final stack =
+        await widget.service.getNotificationStackModel(widget.brokerageUser);
+    final threads =
+        await widget.service.getInboxThreadsModel(widget.brokerageUser);
 
     final combined = <NotificationItem>[...stack, ...threads];
 
@@ -120,7 +123,8 @@ class _NotificationCenterWidgetState extends State<NotificationCenterWidget> {
           return;
         }
       } else if (target.startsWith('robinhood://web?url=')) {
-        final embedded = Uri.decodeComponent(target.replaceFirst('robinhood://web?url=', ''));
+        final embedded = Uri.decodeComponent(
+            target.replaceFirst('robinhood://web?url=', ''));
         final uri = Uri.tryParse(embedded);
         if (uri != null && await canLaunchUrl(uri)) {
           await launchUrl(uri, mode: LaunchMode.externalApplication);
@@ -230,11 +234,13 @@ class _NotificationCenterWidgetState extends State<NotificationCenterWidget> {
                   ),
                   child: const Row(
                     children: [
-                      Icon(Icons.warning_amber_rounded, color: Colors.red, size: 20),
+                      Icon(Icons.warning_amber_rounded,
+                          color: Colors.red, size: 20),
                       SizedBox(width: 8),
                       Text(
                         'Critical Notification',
-                        style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                            color: Colors.red, fontWeight: FontWeight.bold),
                       ),
                     ],
                   ),
@@ -244,7 +250,10 @@ class _NotificationCenterWidgetState extends State<NotificationCenterWidget> {
                 const SizedBox(height: 12),
                 Text(
                   item.formattedTime,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey),
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodySmall
+                      ?.copyWith(color: Colors.grey),
                 ),
               ],
             ],
@@ -260,7 +269,8 @@ class _NotificationCenterWidgetState extends State<NotificationCenterWidget> {
     );
   }
 
-  void _handleResponseTap(NotificationItem item, NotificationResponse response) {
+  void _handleResponseTap(
+      NotificationItem item, NotificationResponse response) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Selected: "${response.displayText}"'),
@@ -298,7 +308,8 @@ class _NotificationCenterWidgetState extends State<NotificationCenterWidget> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                    const Icon(Icons.error_outline,
+                        size: 48, color: Colors.red),
                     const SizedBox(height: 16),
                     Text('Error loading notifications: ${snapshot.error}'),
                     const SizedBox(height: 16),
@@ -326,10 +337,12 @@ class _NotificationCenterWidgetState extends State<NotificationCenterWidget> {
                   child: filteredItems.isEmpty
                       ? _buildEmptyState(context)
                       : ListView.builder(
-                          padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 6.0),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12.0, vertical: 6.0),
                           itemCount: filteredItems.length,
                           itemBuilder: (context, index) {
-                            return _buildNotificationCard(context, filteredItems[index]);
+                            return _buildNotificationCard(
+                                context, filteredItems[index]);
                           },
                         ),
                 ),
@@ -395,8 +408,10 @@ class _NotificationCenterWidgetState extends State<NotificationCenterWidget> {
                 )
               : null,
           filled: true,
-          fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-          contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+          fillColor:
+              theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+          contentPadding:
+              const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(24),
             borderSide: BorderSide.none,
@@ -411,7 +426,8 @@ class _NotificationCenterWidgetState extends State<NotificationCenterWidget> {
     );
   }
 
-  Widget _buildCategoryFilterBar(BuildContext context, List<NotificationItem> items) {
+  Widget _buildCategoryFilterBar(
+      BuildContext context, List<NotificationItem> items) {
     return SizedBox(
       height: 44,
       child: ListView(
@@ -469,7 +485,8 @@ class _NotificationCenterWidgetState extends State<NotificationCenterWidget> {
                   'Unread only ($unreadCount)',
                   style: TextStyle(
                     fontSize: 11,
-                    fontWeight: _unreadOnly ? FontWeight.bold : FontWeight.normal,
+                    fontWeight:
+                        _unreadOnly ? FontWeight.bold : FontWeight.normal,
                   ),
                 ),
                 selected: _unreadOnly,
@@ -544,7 +561,8 @@ class _NotificationCenterWidgetState extends State<NotificationCenterWidget> {
                     width: 1.5,
                   )
                 : BorderSide(
-                    color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+                    color:
+                        theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
                     width: 0.5,
                   )),
       ),
@@ -560,7 +578,8 @@ class _NotificationCenterWidgetState extends State<NotificationCenterWidget> {
               if (item.isCritical) ...[
                 Container(
                   margin: const EdgeInsets.only(bottom: 10),
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: Colors.red.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(6),
@@ -568,7 +587,8 @@ class _NotificationCenterWidgetState extends State<NotificationCenterWidget> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.warning_amber_rounded, size: 15, color: Colors.red),
+                      const Icon(Icons.warning_amber_rounded,
+                          size: 15, color: Colors.red),
                       const SizedBox(width: 6),
                       Text(
                         'CRITICAL NOTICE',
@@ -613,8 +633,11 @@ class _NotificationCenterWidgetState extends State<NotificationCenterWidget> {
                                   Flexible(
                                     child: Text(
                                       item.title,
-                                      style: theme.textTheme.titleSmall?.copyWith(
-                                        fontWeight: isRead ? FontWeight.w600 : FontWeight.bold,
+                                      style:
+                                          theme.textTheme.titleSmall?.copyWith(
+                                        fontWeight: isRead
+                                            ? FontWeight.w600
+                                            : FontWeight.bold,
                                       ),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
@@ -625,7 +648,9 @@ class _NotificationCenterWidgetState extends State<NotificationCenterWidget> {
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              item.relativeTime.isNotEmpty ? item.relativeTime : item.formattedTime,
+                              item.relativeTime.isNotEmpty
+                                  ? item.relativeTime
+                                  : item.formattedTime,
                               style: theme.textTheme.bodySmall?.copyWith(
                                 color: theme.colorScheme.onSurfaceVariant,
                                 fontSize: 11,
@@ -637,7 +662,8 @@ class _NotificationCenterWidgetState extends State<NotificationCenterWidget> {
                         Row(
                           children: [
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
                                 color: item.iconColor.withValues(alpha: 0.12),
                                 borderRadius: BorderRadius.circular(4),
@@ -645,7 +671,8 @@ class _NotificationCenterWidgetState extends State<NotificationCenterWidget> {
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Icon(item.iconData, size: 11, color: item.iconColor),
+                                  Icon(item.iconData,
+                                      size: 11, color: item.iconColor),
                                   const SizedBox(width: 4),
                                   Text(
                                     item.formattedCategory.toUpperCase(),
@@ -671,10 +698,12 @@ class _NotificationCenterWidgetState extends State<NotificationCenterWidget> {
               Text(
                 item.message,
                 maxLines: isExpanded ? null : 3,
-                overflow: isExpanded ? TextOverflow.visible : TextOverflow.ellipsis,
+                overflow:
+                    isExpanded ? TextOverflow.visible : TextOverflow.ellipsis,
                 style: theme.textTheme.bodyMedium?.copyWith(
                   height: 1.35,
-                  color: theme.colorScheme.onSurface.withValues(alpha: isRead ? 0.85 : 1.0),
+                  color: theme.colorScheme.onSurface
+                      .withValues(alpha: isRead ? 0.85 : 1.0),
                 ),
               ),
               if (item.message.length > 120 || item.message.contains('\n')) ...[
@@ -713,7 +742,8 @@ class _NotificationCenterWidgetState extends State<NotificationCenterWidget> {
                     itemBuilder: (context, rIdx) {
                       final resp = item.responses[rIdx];
                       return ActionChip(
-                        label: Text(resp.displayText, style: const TextStyle(fontSize: 11)),
+                        label: Text(resp.displayText,
+                            style: const TextStyle(fontSize: 11)),
                         visualDensity: VisualDensity.compact,
                         padding: const EdgeInsets.symmetric(horizontal: 4),
                         onPressed: () => _handleResponseTap(item, resp),
@@ -723,14 +753,17 @@ class _NotificationCenterWidgetState extends State<NotificationCenterWidget> {
                 ),
               ],
               // Action buttons row
-              if (item.actionDisplayText != null && item.actionDisplayText!.isNotEmpty) ...[
+              if (item.actionDisplayText != null &&
+                  item.actionDisplayText!.isNotEmpty) ...[
                 const SizedBox(height: 10),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     IconButton(
                       icon: Icon(
-                        isRead ? Icons.mark_email_unread_outlined : Icons.mark_email_read_outlined,
+                        isRead
+                            ? Icons.mark_email_unread_outlined
+                            : Icons.mark_email_read_outlined,
                         size: 18,
                         color: theme.colorScheme.onSurfaceVariant,
                       ),
@@ -741,7 +774,8 @@ class _NotificationCenterWidgetState extends State<NotificationCenterWidget> {
                     FilledButton.tonalIcon(
                       style: FilledButton.styleFrom(
                         visualDensity: VisualDensity.compact,
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 0),
                       ),
                       icon: const Icon(Icons.arrow_outward, size: 14),
                       label: Text(
@@ -758,7 +792,9 @@ class _NotificationCenterWidgetState extends State<NotificationCenterWidget> {
                   children: [
                     IconButton(
                       icon: Icon(
-                        isRead ? Icons.mark_email_unread_outlined : Icons.mark_email_read_outlined,
+                        isRead
+                            ? Icons.mark_email_unread_outlined
+                            : Icons.mark_email_read_outlined,
                         size: 18,
                         color: theme.colorScheme.onSurfaceVariant,
                       ),
@@ -778,7 +814,8 @@ class _NotificationCenterWidgetState extends State<NotificationCenterWidget> {
 
   Widget _buildAvatar(NotificationItem item) {
     final avatarBg = item.avatarColor ?? item.iconColor;
-    final isShortValid = item.shortDisplayName != null && item.shortDisplayName!.isNotEmpty;
+    final isShortValid =
+        item.shortDisplayName != null && item.shortDisplayName!.isNotEmpty;
 
     if (isShortValid) {
       final text = item.shortDisplayName!;
@@ -814,14 +851,16 @@ class _NotificationCenterWidgetState extends State<NotificationCenterWidget> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.notifications_off_outlined, size: 48, color: Colors.grey),
+            const Icon(Icons.notifications_off_outlined,
+                size: 48, color: Colors.grey),
             const SizedBox(height: 16),
             Text(
               _searchQuery.isNotEmpty
                   ? 'No notifications found for "$_searchQuery"'
                   : 'No notifications in this category',
               textAlign: TextAlign.center,
-              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+              style: theme.textTheme.titleMedium
+                  ?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Text(
@@ -837,4 +876,3 @@ class _NotificationCenterWidgetState extends State<NotificationCenterWidget> {
     );
   }
 }
-

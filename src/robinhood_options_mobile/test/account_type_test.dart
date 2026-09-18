@@ -88,7 +88,8 @@ void main() {
       expect(unified.isMarginAccount, isTrue);
     });
 
-    test('IRA account returns isMarginAccount = false even if type is margin', () {
+    test('IRA account returns isMarginAccount = false even if type is margin',
+        () {
       const unified = UnifiedAccount(
         accountNumber: 'ROTH7890',
         accountType: 'margin',

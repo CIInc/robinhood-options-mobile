@@ -155,6 +155,11 @@ class _HistoryPageState extends State<HistoryPage>
         user.source == BrokerageSource.paper) {
       return true;
     }
+    if (user.source == BrokerageSource.schwab) {
+      return user.oauth2Client != null &&
+          (!user.oauth2Client!.credentials.isExpired ||
+              user.oauth2Client!.credentials.canRefresh);
+    }
     return !(user.oauth2Client?.credentials.isExpired ?? true);
   }
 
@@ -543,52 +548,56 @@ class _HistoryPageState extends State<HistoryPage>
           ),
         ));
       }
-    } else if (widget.brokerageUser == null ||
-        widget.service == null ||
-        (widget.brokerageUser!.source != BrokerageSource.fidelity &&
-            (widget.brokerageUser!.source == BrokerageSource.paper ||
-                    widget.brokerageUser!.source == BrokerageSource.demo
-                ? false
-                : (widget.brokerageUser?.oauth2Client?.credentials.isExpired ??
-                    true)))) {
-      return Scaffold(
-          body: RefreshIndicator(
-        onRefresh: () async {
-          if (widget.onLogin != null) {
-            widget.onLogin!();
-          }
-        },
-        child: CustomScrollView(
-          primary: true,
-          slivers: [
-            ExpandedSliverAppBar(
-              title: const Text(Constants.appTitle), // History
-              auth: auth,
-              firestoreService: _firestoreService,
-              automaticallyImplyLeading: true,
-              onChange: () {
-                setState(() {});
-              },
-              analytics: widget.analytics,
-              observer: widget.observer,
-              user: widget.brokerageUser,
-              firestoreUser: widget.user,
-              userDocRef: widget.userDoc,
-              service: widget.service,
-            ),
-            SliverFillRemaining(
-              child: WelcomeWidget(
-                onLogin: widget.onLogin,
-                message: (widget.brokerageUser?.oauth2Client?.credentials
-                            .isExpired ??
-                        false)
-                    ? "Session expired. Please log in again."
-                    : null,
+    } else {
+      bool isSessionExpired = false;
+      if (widget.brokerageUser?.source == BrokerageSource.robinhood) {
+        isSessionExpired =
+            widget.brokerageUser?.oauth2Client?.credentials.isExpired ?? true;
+      } else if (widget.brokerageUser?.source == BrokerageSource.schwab) {
+        isSessionExpired = widget.brokerageUser?.oauth2Client == null ||
+            ((widget.brokerageUser!.oauth2Client!.credentials.isExpired) &&
+                !widget.brokerageUser!.oauth2Client!.credentials.canRefresh);
+      }
+      if (widget.brokerageUser == null ||
+          widget.service == null ||
+          isSessionExpired) {
+        return Scaffold(
+            body: RefreshIndicator(
+          onRefresh: () async {
+            if (widget.onLogin != null) {
+              widget.onLogin!();
+            }
+          },
+          child: CustomScrollView(
+            primary: true,
+            slivers: [
+              ExpandedSliverAppBar(
+                title: const Text(Constants.appTitle), // History
+                auth: auth,
+                firestoreService: _firestoreService,
+                automaticallyImplyLeading: true,
+                onChange: () {
+                  setState(() {});
+                },
+                analytics: widget.analytics,
+                observer: widget.observer,
+                user: widget.brokerageUser,
+                firestoreUser: widget.user,
+                userDocRef: widget.userDoc,
+                service: widget.service,
               ),
-            ),
-          ],
-        ),
-      ));
+              SliverFillRemaining(
+                child: WelcomeWidget(
+                  onLogin: widget.onLogin,
+                  message: isSessionExpired
+                      ? "Session expired. Please log in again."
+                      : null,
+                ),
+              ),
+            ],
+          ),
+        ));
+      }
     }
 
     if (isAggregateMode) {
@@ -598,13 +607,23 @@ class _HistoryPageState extends State<HistoryPage>
           widget.brokerageUser!,
           Provider.of<OptionOrderStore>(context, listen: false),
           userDoc: widget.userDoc);
+      positionOrderStream ??= widget.service!.streamPositionOrders(
+          widget.brokerageUser!,
+          Provider.of<InstrumentOrderStore>(context, listen: false),
+          Provider.of<InstrumentStore>(context, listen: false),
+          userDoc: widget.userDoc);
     }
 
     return StreamBuilder(
         stream: optionOrderStream,
         builder: (context5, optionOrdersSnapshot) {
-          if (optionOrdersSnapshot.hasData) {
-            optionOrders = optionOrdersSnapshot.data as List<OptionOrder>;
+          if (optionOrdersSnapshot.hasData || optionOrdersSnapshot.hasError) {
+            if (optionOrdersSnapshot.hasData) {
+              optionOrders = optionOrdersSnapshot.data as List<OptionOrder>;
+            } else {
+              debugPrint("${optionOrdersSnapshot.error}");
+              optionOrders = [];
+            }
 
             if (isAggregateMode) {
               _ensureAggregateStreams(aggregateUsers);
@@ -619,9 +638,15 @@ class _HistoryPageState extends State<HistoryPage>
             return StreamBuilder(
                 stream: positionOrderStream,
                 builder: (context6, positionOrdersSnapshot) {
-                  if (positionOrdersSnapshot.hasData) {
-                    positionOrders =
-                        positionOrdersSnapshot.data as List<InstrumentOrder>;
+                  if (positionOrdersSnapshot.hasData ||
+                      positionOrdersSnapshot.hasError) {
+                    if (positionOrdersSnapshot.hasData) {
+                      positionOrders =
+                          positionOrdersSnapshot.data as List<InstrumentOrder>;
+                    } else {
+                      debugPrint("${positionOrdersSnapshot.error}");
+                      positionOrders = [];
+                    }
 
                     if (isAggregateMode) {
                       _ensureAggregateStreams(aggregateUsers);

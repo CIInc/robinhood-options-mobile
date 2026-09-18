@@ -6,7 +6,6 @@ import 'package:robinhood_options_mobile/model/tax_document.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 
-
 /// Comprehensive dashboard for reviewing Form 1099 tax documents, monthly account statements,
 /// trade confirmations, ADR pass-through fees, and foreign tax withholding status.
 class TaxDocumentsWidget extends StatefulWidget {
@@ -81,9 +80,8 @@ class _TaxDocumentsWidgetState extends State<TaxDocumentsWidget>
         return <AccountDocument>[];
       });
 
-      final adrFuture = rhService
-          .getAdrFeesModel(widget.brokerageUser)
-          .catchError((e) {
+      final adrFuture =
+          rhService.getAdrFeesModel(widget.brokerageUser).catchError((e) {
         debugPrint('Error fetching ADR fees: $e');
         return <AdrFee>[];
       });
@@ -93,10 +91,10 @@ class _TaxDocumentsWidgetState extends State<TaxDocumentsWidget>
       final withholdingFutures = symbols.map(
         (sym) => rhService
             .getTaxWithholdingStatusModel(
-              widget.brokerageUser,
-              sym,
-              symbol: sym,
-            )
+          widget.brokerageUser,
+          sym,
+          symbol: sym,
+        )
             .catchError((e) {
           debugPrint('Error fetching tax withholding for $sym: $e');
           return null;
@@ -977,7 +975,8 @@ class _TaxDocumentsWidgetState extends State<TaxDocumentsWidget>
               message: 'No foreign securities withholding data available.',
             )
           else
-            ...summary.withholdings.map((status) => _buildWithholdingCard(status)),
+            ...summary.withholdings
+                .map((status) => _buildWithholdingCard(status)),
         ],
       ),
     );

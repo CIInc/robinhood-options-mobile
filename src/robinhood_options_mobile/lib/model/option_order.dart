@@ -103,9 +103,9 @@ class OptionOrder {
         chainSymbol =
             json['orderLegCollection'][0]['instrument']['underlyingSymbol'],
         cancelUrl = null,
-        canceledQuantity = (json['quantity'] -
-                json['filledQuantity'] -
-                json['remainingQuantity'])
+        canceledQuantity = (((json['quantity'] as num?) ?? 0) -
+                ((json['filledQuantity'] as num?) ?? 0) -
+                ((json['remainingQuantity'] as num?) ?? 0))
             .toDouble(),
         direction = json['orderLegCollection'][0]['instruction']
                 .toString()
@@ -113,8 +113,9 @@ class OptionOrder {
             ? 'debit'
             : 'credit',
         legs = OptionLeg.fromSchwabJsonArray(json['orderLegCollection']),
-        pendingQuantity = json['remainingQuantity'].toDouble(),
-        premium = json['price'].toDouble(),
+        pendingQuantity =
+            (json['remainingQuantity'] as num?)?.toDouble() ?? 0.0,
+        premium = (json['price'] as num?)?.toDouble() ?? 0.0,
         processedPremium = json['orderActivityCollection'] != null
             ? (json['orderActivityCollection'] as List)
                 .expand((activity) => (activity['executionLegs'] as List))
@@ -124,9 +125,9 @@ class OptionOrder {
                     100)
                 .fold<double>(0.0, (a, b) => a + b)
             : null,
-        price = json['price'].toDouble(),
-        processedQuantity = json['filledQuantity'].toDouble(),
-        quantity = json['quantity'].toDouble(),
+        price = (json['price'] as num?)?.toDouble() ?? 0.0,
+        processedQuantity = (json['filledQuantity'] as num?)?.toDouble() ?? 0.0,
+        quantity = (json['quantity'] as num?)?.toDouble() ?? 0.0,
         refId = json['orderId'].toString(),
         state = json['status'].toString().toLowerCase(),
         timeInForce = json['duration'].toString().toLowerCase(),
@@ -136,8 +137,11 @@ class OptionOrder {
         openingStrategy = null,
         closingStrategy = null,
         stopPrice = null,
-        createdAt = DateTime.tryParse(json['enteredTime']),
-        updatedAt = DateTime.tryParse(json['closeTime'] ?? json['enteredTime']);
+        createdAt = json['enteredTime'] != null
+            ? DateTime.tryParse(json['enteredTime'])
+            : null,
+        updatedAt =
+            DateTime.tryParse(json['closeTime'] ?? json['enteredTime'] ?? '');
 
   String get strategy {
     String strat = "";

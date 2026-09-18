@@ -188,10 +188,7 @@ void main() {
     // Verify modal bottom sheet is open
     expect(find.text('Ask Management'), findsOneWidget);
     expect(find.text('Submit Question'), findsOneWidget);
-    expect(
-        find.textContaining(
-            'Focus on long-term strategy'),
-        findsOneWidget);
+    expect(find.textContaining('Focus on long-term strategy'), findsOneWidget);
 
     // Tap Close icon to dismiss
     await tester.tap(find.byIcon(Icons.close));

@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:robinhood_options_mobile/main.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
+import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
@@ -18,6 +19,7 @@ class UsersWidget extends StatefulWidget {
   final FirebaseAnalyticsObserver observer;
   final BrokerageUser brokerageUser;
   final IBrokerageService service;
+  final FirestoreService? firestoreService;
   const UsersWidget(
     this.auth,
     this.service, {
@@ -25,6 +27,7 @@ class UsersWidget extends StatefulWidget {
     required this.analytics,
     required this.observer,
     required this.brokerageUser,
+    this.firestoreService,
   });
 
   @override
@@ -32,7 +35,7 @@ class UsersWidget extends StatefulWidget {
 }
 
 class _UsersWidgetState extends State<UsersWidget> {
-  final FirestoreService _firestoreService = FirestoreService();
+  late final FirestoreService _firestoreService;
   final TextEditingController _searchTermController = TextEditingController();
   String? _searchTerm;
   // late CollectionReference<User> _usersCollection;
@@ -41,9 +44,14 @@ class _UsersWidgetState extends State<UsersWidget> {
   @override
   void initState() {
     super.initState();
+    _firestoreService = widget.firestoreService ?? FirestoreService();
     // _usersCollection = _firestoreService.userCollection;
 
-    _stream = _firestoreService.searchUsers(searchTerm: _searchTerm);
+    final onlyPublic = userRole != UserRole.admin;
+    _stream = _firestoreService.searchUsers(
+      searchTerm: _searchTerm,
+      onlyPublic: onlyPublic,
+    );
   }
 
   @override
@@ -57,14 +65,15 @@ class _UsersWidgetState extends State<UsersWidget> {
     return StreamBuilder<firebase_auth.User?>(
         stream: widget.auth.authStateChanges(),
         builder: (context, snapshot) {
-          return Material(
-            child: CustomScrollView(slivers: [
+          final auth = widget.auth;
+          return Scaffold(
+            body: CustomScrollView(slivers: [
               SliverAppBar(
                   floating: true,
                   snap: true,
                   pinned: false,
                   centerTitle: false,
-                  title: const Text('Users'),
+                  title: const Text('Discover Traders'),
                   actions: [
                     IconButton(
                         icon: auth.currentUser != null
@@ -73,9 +82,7 @@ class _UsersWidgetState extends State<UsersWidget> {
                                 : CircleAvatar(
                                     maxRadius: 12,
                                     backgroundImage: CachedNetworkImageProvider(
-                                        auth.currentUser!.photoURL!
-                                        //  ?? Constants .placeholderImage, // No longer used
-                                        )))
+                                        auth.currentUser!.photoURL!)))
                             : const Icon(Icons.login),
                         onPressed: () {
                           showProfile(
@@ -91,23 +98,21 @@ class _UsersWidgetState extends State<UsersWidget> {
               SliverPadding(
                   padding: const EdgeInsets.all(16.0),
                   sliver: SliverToBoxAdapter(
-                      child: Column(
-                    children: [
-                      CupertinoSearchTextField(
-                        style: TextStyle(
-                            color:
-                                Theme.of(context).textTheme.bodyLarge!.color),
-                        controller: _searchTermController,
-                        placeholder: 'Search',
-                        onChanged: (value) {
-                          setState(() {
-                            _searchTerm = value;
-                            _stream = _firestoreService.searchUsers(
-                                searchTerm: _searchTerm);
-                          });
-                        },
-                      ),
-                    ],
+                      child: CupertinoSearchTextField(
+                    style: TextStyle(
+                        color: Theme.of(context).textTheme.bodyLarge!.color),
+                    controller: _searchTermController,
+                    placeholder: 'Search traders by name',
+                    onChanged: (value) {
+                      setState(() {
+                        _searchTerm = value;
+                        final onlyPublic = userRole != UserRole.admin;
+                        _stream = _firestoreService.searchUsers(
+                          searchTerm: _searchTerm,
+                          onlyPublic: onlyPublic,
+                        );
+                      });
+                    },
                   ))),
               StreamBuilder(
                   stream: _stream,
@@ -115,9 +120,36 @@ class _UsersWidgetState extends State<UsersWidget> {
                       (context, AsyncSnapshot<QuerySnapshot<User>> snapshot) {
                     if (snapshot.hasError) {
                       return SliverToBoxAdapter(
-                          child: Center(
-                              child: SelectableText(
-                                  'Something went wrong\n${snapshot.error}')));
+                          child: Padding(
+                        padding: const EdgeInsets.all(24.0),
+                        child: Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.info_outline,
+                                  size: 40,
+                                  color: Theme.of(context).colorScheme.outline),
+                              const SizedBox(height: 12),
+                              Text(
+                                'Unable to load traders',
+                                style: Theme.of(context).textTheme.titleSmall,
+                              ),
+                              const SizedBox(height: 4),
+                              SelectableText(
+                                '${snapshot.error}',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodySmall
+                                    ?.copyWith(
+                                      color:
+                                          Theme.of(context).colorScheme.outline,
+                                    ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ));
                     }
 
                     if (snapshot.connectionState == ConnectionState.waiting) {
@@ -133,6 +165,7 @@ class _UsersWidgetState extends State<UsersWidget> {
   }
 
   Widget showSliverList(QuerySnapshot<User> querySnapshot) {
+    final theme = Theme.of(context);
     return querySnapshot.docs.isNotEmpty
         ? SliverList(
             delegate:
@@ -146,13 +179,32 @@ class _UsersWidgetState extends State<UsersWidget> {
                   service: widget.service);
             }, childCount: querySnapshot.docs.length),
           )
-        : const SliverToBoxAdapter(
-            child: Center(
-                child: Column(children: [
-            SizedBox(
-              height: 20,
+        : SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(32.0),
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.people_outline,
+                        size: 48, color: theme.disabledColor),
+                    const SizedBox(height: 16),
+                    Text(
+                      'No public traders found',
+                      style: theme.textTheme.titleMedium
+                          ?.copyWith(fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Traders must enable "Public Portfolio" in their privacy settings to be discoverable.',
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.bodyMedium
+                          ?.copyWith(color: theme.disabledColor),
+                    ),
+                  ],
+                ),
+              ),
             ),
-            Text('No users')
-          ])));
+          );
   }
 }

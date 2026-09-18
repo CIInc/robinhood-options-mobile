@@ -88,33 +88,44 @@ class Quote {
         instrument = json['instrument'],
         instrumentId = json['instrument_id'];
 
-  Quote.fromSchwabJson(dynamic json)
-      : askPrice = parseDouble(json['quote']['askPrice']),
-        askSize = json['quote']['askSize'] as int,
-        bidPrice = parseDouble(json['quote']['bidPrice']),
-        bidSize = json['quote']['bidSize'] as int,
-        lastTradePrice = parseDouble(json['quote']['lastPrice']),
-        // TODO
-        lastExtendedHoursTradePrice = null,
-        // TODO: open price is not the same as previous close.
-        previousClose = parseDouble(json['quote']['openPrice']),
-        // TODO: open price is not the same as adjusted previous close.
-        adjustedPreviousClose = parseDouble(json['quote']['openPrice']),
-        // TODO
+  Quote.fromSchwabJson(dynamic json, {String? defaultSymbol})
+      : askPrice = parseDouble(json['quote']?['askPrice']),
+        askSize = (json['quote']?['askSize'] as num?)?.toInt() ?? 0,
+        bidPrice = parseDouble(json['quote']?['bidPrice']),
+        bidSize = (json['quote']?['bidSize'] as num?)?.toInt() ?? 0,
+        lastTradePrice = parseDouble(json['quote']?['lastPrice'] ??
+            json['quote']?['regularMarketLastPrice'] ??
+            json['quote']?['mark']),
+        lastExtendedHoursTradePrice = parseDouble(json['quote']
+                ?['postMarketPrice'] ??
+            json['quote']?['preMarketPrice']),
+        previousClose = parseDouble(
+            json['quote']?['closePrice'] ?? json['quote']?['openPrice']),
+        adjustedPreviousClose = parseDouble(
+            json['quote']?['closePrice'] ?? json['quote']?['openPrice']),
         previousCloseDate = null,
-        symbol = json['symbol'],
-        // TODO
-        tradingHalted = false,
-        // TODO
-        hasTraded = true,
-        lastTradePriceSource = json['quote']['lastMICId'] ?? '',
-        updatedAt = DateTime.fromMillisecondsSinceEpoch(
-            json['quote']['quoteTime'] as int,
-            isUtc: true),
-        // TODO
-        instrument = '', // json['instrument'],
-        // TODO
-        instrumentId = json['reference']['cusip'];
+        symbol = json['symbol'] ??
+            json['reference']?['symbol'] ??
+            defaultSymbol ??
+            '',
+        tradingHalted = json['quote']?['securityStatus'] == 'Halted' ||
+            json['quote']?['tradingHalted'] == true,
+        hasTraded = (json['quote']?['totalVolume'] as num?) != null
+            ? (json['quote']?['totalVolume'] as num) > 0
+            : true,
+        lastTradePriceSource = json['quote']?['lastMICId'] ?? '',
+        updatedAt = json['quote']?['quoteTime'] != null
+            ? DateTime.fromMillisecondsSinceEpoch(
+                json['quote']['quoteTime'] as int,
+                isUtc: true)
+            : (json['quote']?['tradeTime'] != null
+                ? DateTime.fromMillisecondsSinceEpoch(
+                    json['quote']['tradeTime'] as int,
+                    isUtc: true)
+                : DateTime.now().toUtc()),
+        instrument = json['instrument'] ?? '',
+        instrumentId =
+            json['reference']?['cusip'] ?? json['instrument_id'] ?? '';
 
   Map<String, dynamic> toJson() => {
         'ask_price': askPrice,
@@ -136,8 +147,12 @@ class Quote {
       };
 
   double get changeToday {
-    return (lastExtendedHoursTradePrice ?? lastTradePrice!) -
-        adjustedPreviousClose!;
+    final price = lastExtendedHoursTradePrice ?? lastTradePrice;
+    final prevClose = adjustedPreviousClose ?? previousClose;
+    if (price == null || prevClose == null) {
+      return 0.0;
+    }
+    return price - prevClose;
   }
 
   // double get extendedHoursChangeToday {
@@ -145,7 +160,11 @@ class Quote {
   // }
 
   double get changePercentToday {
-    return changeToday / adjustedPreviousClose!;
+    final prevClose = adjustedPreviousClose ?? previousClose;
+    if (prevClose == null || prevClose == 0.0) {
+      return 0.0;
+    }
+    return changeToday / prevClose;
   }
 
   // double get extendedHoursChangePercentToday {

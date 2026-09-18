@@ -90,6 +90,51 @@ class Fundamentals {
         numEmployees = json['num_employees'],
         yearFounded = json['year_founded'];
 
+  Fundamentals.fromSchwabJson(dynamic json,
+      {this.instrument = '',
+      String description = '',
+      this.sector = '',
+      this.industry = ''})
+      : open = parseDouble(json['open']),
+        high = parseDouble(json['high']),
+        low = parseDouble(json['low']),
+        volume = parseDouble(json['fundamental']?['vol1DayAvg'] ??
+            json['vol1DayAvg'] ??
+            json['volume']),
+        marketDate = null,
+        averageVolume2Weeks = parseDouble(
+            json['fundamental']?['vol10DayAvg'] ?? json['vol10DayAvg']),
+        averageVolume30Days = parseDouble(
+            json['fundamental']?['vol3MonthAvg'] ?? json['vol3MonthAvg']),
+        averageVolume = parseDouble(
+            json['fundamental']?['vol3MonthAvg'] ?? json['vol3MonthAvg']),
+        high52Weeks =
+            parseDouble(json['fundamental']?['high52'] ?? json['high52']),
+        dividendYield = parseDouble(
+            json['fundamental']?['dividendYield'] ?? json['dividendYield']),
+        float = parseDouble(
+            json['fundamental']?['marketCapFloat'] ?? json['marketCapFloat']),
+        low52Weeks =
+            parseDouble(json['fundamental']?['low52'] ?? json['low52']),
+        marketCap =
+            parseDouble(json['fundamental']?['marketCap'] ?? json['marketCap']),
+        pbRatio =
+            parseDouble(json['fundamental']?['pbRatio'] ?? json['pbRatio']),
+        peRatio =
+            parseDouble(json['fundamental']?['peRatio'] ?? json['peRatio']),
+        sharesOutstanding = parseDouble(json['fundamental']
+                ?['sharesOutstanding'] ??
+            json['sharesOutstanding']),
+        description = (json['description'] is String &&
+                (json['description'] as String).isNotEmpty)
+            ? json['description']
+            : description,
+        ceo = json['ceo'] ?? '',
+        headquartersCity = json['headquarters_city'] ?? '',
+        headquartersState = json['headquarters_state'] ?? '',
+        numEmployees = json['num_employees'],
+        yearFounded = json['year_founded'];
+
   Map<String, dynamic> toJson() => {
         'open': open,
         'high': high,

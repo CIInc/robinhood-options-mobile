@@ -484,7 +484,8 @@ void main() {
       expect(cat1 == cat3, isFalse);
     });
 
-    testWidgets('Activity badge reflects order count and is displayed correctly',
+    testWidgets(
+        'Activity badge reflects order count and is displayed correctly',
         (WidgetTester tester) async {
       final categoriesWithActivityBadge = [
         const InstrumentCategory(
@@ -539,6 +540,77 @@ void main() {
       // Verify Activity badge shows '3'
       expect(find.text('3'), findsOneWidget);
     });
+
+    testWidgets(
+        'Signals & Tech chip shows signal badge and allows category switching',
+        (WidgetTester tester) async {
+      String selected = 'Overview';
+      final categoriesWithSignalsBadge = [
+        const InstrumentCategory(
+          key: 'Overview',
+          label: 'Overview',
+          icon: Icons.dashboard_outlined,
+          selectedIcon: Icons.dashboard,
+        ),
+        const InstrumentCategory(
+          key: 'Signals',
+          label: 'Signals & Tech',
+          icon: Icons.bolt_outlined,
+          selectedIcon: Icons.bolt,
+          badge: 'BUY',
+          badgeColor: Colors.green,
+          badgeTextColor: Colors.white,
+        ),
+      ];
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: StatefulBuilder(
+            builder: (context, setState) {
+              return Scaffold(
+                body: CustomScrollView(
+                  slivers: [
+                    SliverPersistentHeader(
+                      pinned: true,
+                      delegate: InstrumentCategoryHeaderDelegate(
+                        selectedCategory: selected,
+                        onCategorySelected: (cat) {
+                          setState(() {
+                            selected = cat;
+                          });
+                        },
+                        categories: categoriesWithSignalsBadge,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+      );
+
+      // Verify Overview is selected initially
+      final overviewChip = tester.widget<FilterChip>(
+        find.ancestor(
+          of: find.text('Overview'),
+          matching: find.byType(FilterChip),
+        ),
+      );
+      expect(overviewChip.selected, isTrue);
+
+      // Tap Signals & Tech chip
+      await tester.tap(find.text('Signals & Tech'));
+      await tester.pumpAndSettle();
+
+      expect(selected, equals('Signals'));
+      final signalsChip = tester.widget<FilterChip>(
+        find.ancestor(
+          of: find.text('Signals & Tech'),
+          matching: find.byType(FilterChip),
+        ),
+      );
+      expect(signalsChip.selected, isTrue);
+    });
   });
 }
-

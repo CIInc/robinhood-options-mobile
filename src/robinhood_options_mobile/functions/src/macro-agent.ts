@@ -5,7 +5,7 @@ import { getFirestore } from "firebase-admin/firestore";
 import { getMessaging } from "firebase-admin/messaging";
 import { getMarketData } from "./market-data";
 import { computeSMA } from "./technical-indicators";
-import { VertexAI } from "@google-cloud/vertexai";
+import { GoogleGenAI } from "@google/genai";
 import {
   containsNonFiniteNumber,
   sanitizeNonFiniteNumbers,
@@ -1570,14 +1570,39 @@ async function getAiMacroAnalysis(
     return "AI Analysis unavailable (missing API key).";
   }
 
-  const vertexAI = new VertexAI({
-    project: "realizealpha",
-    location: "us-central1",
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/New_York",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
   });
+  const dateStr = formatter.format(new Date());
+  const scoreBucket = Math.floor(assessment.score / 5) * 5;
+  const cacheKey = `${dateStr}_${assessment.status}_${scoreBucket}`;
+  const cacheDocRef = db.collection("macro_narratives").doc(cacheKey);
 
-  const model = vertexAI.getGenerativeModel({
-    model: "gemini-2.5-flash-lite",
+  try {
+    const cacheDoc = await cacheDocRef.get();
+    if (cacheDoc.exists) {
+      const cacheData = cacheDoc.data();
+      if (cacheData && cacheData.aiAnalysis && cacheData.timestamp) {
+        const cachedAt = new Date(cacheData.timestamp).getTime();
+        const now = Date.now();
+        // 2-hour cache window (7,200,000 ms)
+        if (now - cachedAt < 2 * 3600 * 1000) {
+          logger.info(`Reusing cached AI macro narrative for ${cacheKey}`);
+          return cacheData.aiAnalysis as string;
+        }
+      }
+    }
+  } catch (cacheErr) {
+    logger.warn("Failed checking macro narrative cache", cacheErr);
+  }
+
+  const ai = new GoogleGenAI({
+    apiKey: process.env.GEMINI_API_KEY,
   });
+  const primaryModel = process.env.AI_MODEL_NAME || "gemini-3.1-flash-lite";
 
   const {
     vix, tnx, marketTrend: spy, technologyLeadership: qqq, yieldCurve: curv,
@@ -1626,11 +1651,51 @@ async function getAiMacroAnalysis(
   `;
 
   try {
-    const { response } = await model.generateContent({
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
-    });
-    const text = response.candidates?.[0]?.content?.parts?.[0]?.text;
-    return typeof text === "string" ? text : "AI Analysis failed to generate.";
+    let response;
+    try {
+      response = await ai.models.generateContent({
+        model: primaryModel,
+        contents: prompt,
+        config: {
+          maxOutputTokens: 450,
+          temperature: 0.3,
+        },
+      });
+    } catch (modelErr) {
+      if (primaryModel !== "gemini-2.5-flash-lite") {
+        logger.warn(
+          `Model ${primaryModel} failed in macro analysis, ` +
+          "falling back to gemini-2.5-flash-lite",
+          modelErr,
+        );
+        response = await ai.models.generateContent({
+          model: "gemini-2.5-flash-lite",
+          contents: prompt,
+          config: {
+            maxOutputTokens: 450,
+            temperature: 0.3,
+          },
+        });
+      } else {
+        throw modelErr;
+      }
+    }
+
+    const text = response.text ||
+      response.candidates?.[0]?.content?.parts?.[0]?.text;
+    const generatedNarrative = typeof text === "string" ?
+      text : "AI Analysis failed to generate.";
+
+    if (typeof text === "string" && text.length > 0) {
+      cacheDocRef.set({
+        aiAnalysis: generatedNarrative,
+        timestamp: new Date().toISOString(),
+      }).catch((saveErr) => {
+        logger.warn("Failed saving macro narrative to cache", saveErr);
+      });
+    }
+
+    return generatedNarrative;
   } catch (error) {
     logger.error("AI Macro Analysis error", error);
     return "AI Analysis encountered an error.";

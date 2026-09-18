@@ -297,16 +297,26 @@ export const onInstrumentOrderCreated = onDocumentCreated(
         return;
       }
 
-      // Fetch source user details once before loop
-      let sourceUserName = "A trader";
-      try {
-        const sourceUserDoc = await db.collection("user").doc(userId).get();
-        if (sourceUserDoc.exists) {
-          sourceUserName = sourceUserDoc.data()?.name || "A trader";
+      let sourceUserNamePromise: Promise<string> | undefined;
+      const getSourceUserName = async (): Promise<string> => {
+        if (!sourceUserNamePromise) {
+          sourceUserNamePromise = db.collection("user").doc(userId).get()
+            .then((sourceUserDoc) =>
+              sourceUserDoc.exists ?
+                (sourceUserDoc.data()?.name || "A trader") :
+                "A trader"
+            )
+            .catch((error) => {
+              logger.error("Error fetching source user details", {
+                userId,
+                error,
+              });
+              return "A trader";
+            });
         }
-      } catch (error) {
-        logger.error("Error fetching source user details", { userId, error });
-      }
+
+        return sourceUserNamePromise;
+      };
 
       // Process each group
       for (const groupDoc of groupsSnapshot.docs) {
@@ -474,7 +484,7 @@ export const onInstrumentOrderCreated = onDocumentCreated(
             // Send notification to target user
             await sendCopyTradeNotification(
               memberId,
-              sourceUserName,
+              await getSourceUserName(),
               symbol,
               orderData.side,
               quantity,
@@ -593,16 +603,26 @@ export const onOptionOrderCreated = onDocumentCreated(
         return;
       }
 
-      // Fetch source user details once before loop
-      let sourceUserName = "A trader";
-      try {
-        const sourceUserDoc = await db.collection("user").doc(userId).get();
-        if (sourceUserDoc.exists) {
-          sourceUserName = sourceUserDoc.data()?.name || "A trader";
+      let sourceUserNamePromise: Promise<string> | undefined;
+      const getSourceUserName = async (): Promise<string> => {
+        if (!sourceUserNamePromise) {
+          sourceUserNamePromise = db.collection("user").doc(userId).get()
+            .then((sourceUserDoc) =>
+              sourceUserDoc.exists ?
+                (sourceUserDoc.data()?.name || "A trader") :
+                "A trader"
+            )
+            .catch((error) => {
+              logger.error("Error fetching source user details", {
+                userId,
+                error,
+              });
+              return "A trader";
+            });
         }
-      } catch (error) {
-        logger.error("Error fetching source user details", { userId, error });
-      }
+
+        return sourceUserNamePromise;
+      };
 
       // Process each group
       for (const groupDoc of groupsSnapshot.docs) {
@@ -795,7 +815,7 @@ export const onOptionOrderCreated = onDocumentCreated(
             // Send notification to target user
             await sendCopyTradeNotification(
               memberId,
-              sourceUserName,
+              await getSourceUserName(),
               symbol,
               orderData.direction,
               quantity,

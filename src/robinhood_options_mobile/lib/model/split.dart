@@ -156,8 +156,8 @@ class SplitPaymentSplit {
 
     final mult = parseDouble(json['multiplier']) ?? 1.0;
     final div = parseDouble(json['divisor']) ?? 1.0;
-    final dir = json['direction']?.toString() ??
-        (mult >= div ? 'forward' : 'reverse');
+    final dir =
+        json['direction']?.toString() ?? (mult >= div ? 'forward' : 'reverse');
 
     return SplitPaymentSplit(
       id: json['id']?.toString() ?? '',
@@ -257,10 +257,12 @@ class SplitPayment {
     this.split,
   });
 
-  String get oldInstrumentId =>
-      split?.oldInstrumentId.isNotEmpty == true ? split!.oldInstrumentId : instrumentId;
-  String get newInstrumentId =>
-      split?.newInstrumentId.isNotEmpty == true ? split!.newInstrumentId : instrumentId;
+  String get oldInstrumentId => split?.oldInstrumentId.isNotEmpty == true
+      ? split!.oldInstrumentId
+      : instrumentId;
+  String get newInstrumentId => split?.newInstrumentId.isNotEmpty == true
+      ? split!.newInstrumentId
+      : instrumentId;
   String? get splitUrl => split?.url;
 
   SplitPayment copyWith({
@@ -320,9 +322,8 @@ class SplitPayment {
     }
 
     final id = json['id']?.toString() ?? '';
-    final accountNumber = json['account_number']?.toString() ??
-        json['account']?.toString() ??
-        '';
+    final accountNumber =
+        json['account_number']?.toString() ?? json['account']?.toString() ?? '';
 
     SplitPaymentSplit? splitObj;
     if (json['split'] != null) {
@@ -377,8 +378,8 @@ class SplitPayment {
       if (instrumentId.isEmpty && instMap['id'] != null) {
         instrumentId = instMap['id'].toString();
       }
-      description ??= instMap['simple_name']?.toString() ??
-          instMap['name']?.toString();
+      description ??=
+          instMap['simple_name']?.toString() ?? instMap['name']?.toString();
     }
     if (json['split'] is Map) {
       final splitMap = json['split'] as Map;
@@ -473,9 +474,8 @@ class SplitPayment {
     final currencyCode = json['currency_code']?.toString() ??
         json['cash_in_lieu_currency']?.toString() ??
         'USD';
-    final state = json['state']?.toString() ??
-        json['status']?.toString() ??
-        'settled';
+    final state =
+        json['state']?.toString() ?? json['status']?.toString() ?? 'settled';
 
     DateTime? execDate;
     if (json['execution_date'] != null) {
@@ -533,8 +533,7 @@ class SplitPayment {
         'state': state,
         if (executionDate != null)
           'execution_date': executionDate!.toIso8601String(),
-        if (paymentDate != null)
-          'payment_date': paymentDate!.toIso8601String(),
+        if (paymentDate != null) 'payment_date': paymentDate!.toIso8601String(),
         if (description != null) 'description': description,
         if (split != null)
           'split': split!.url != null && split!.id.isEmpty
@@ -546,14 +545,18 @@ class SplitPayment {
     if (symbol.isNotEmpty) return symbol;
     if (description != null && description!.isNotEmpty) {
       final parts = description!.trim().split(' ');
-      if (parts.isNotEmpty && parts.first.isNotEmpty && parts.first.length <= 5) {
+      if (parts.isNotEmpty &&
+          parts.first.isNotEmpty &&
+          parts.first.length <= 5) {
         return parts.first.toUpperCase();
       }
       return description!;
     }
     final shortId = shortInstrumentId;
     if (shortId.isNotEmpty) {
-      return shortId.length > 8 ? shortId.substring(0, 8).toUpperCase() : shortId.toUpperCase();
+      return shortId.length > 8
+          ? shortId.substring(0, 8).toUpperCase()
+          : shortId.toUpperCase();
     }
     return 'Stock';
   }
@@ -569,10 +572,14 @@ class SplitPayment {
   }
 
   double get effectiveMultiplier {
-    if (divisor > 0 && multiplier > 0 && (multiplier != 1.0 || divisor != 1.0)) {
+    if (divisor > 0 &&
+        multiplier > 0 &&
+        (multiplier != 1.0 || divisor != 1.0)) {
       return multiplier / divisor;
     }
-    if (oldShares > 0 && newShares > 0 && (newShares - oldShares).abs() > 0.0001) {
+    if (oldShares > 0 &&
+        newShares > 0 &&
+        (newShares - oldShares).abs() > 0.0001) {
       return newShares / oldShares;
     }
     return (divisor > 0 ? multiplier / divisor : multiplier);
@@ -595,7 +602,9 @@ class SplitPayment {
   double get sharesDelta => newShares - oldShares;
 
   String get formattedRatio {
-    if (multiplier > 0 && divisor > 0 && (multiplier != 1.0 || divisor != 1.0)) {
+    if (multiplier > 0 &&
+        divisor > 0 &&
+        (multiplier != 1.0 || divisor != 1.0)) {
       if (multiplier > divisor) {
         final ratio = multiplier / divisor;
         if ((ratio - ratio.round()).abs() < 0.001) {
@@ -627,7 +636,9 @@ class SplitPayment {
   }
 
   String get shortRatioBadge {
-    if (multiplier > 0 && divisor > 0 && (multiplier != 1.0 || divisor != 1.0)) {
+    if (multiplier > 0 &&
+        divisor > 0 &&
+        (multiplier != 1.0 || divisor != 1.0)) {
       if (multiplier > divisor) {
         final ratio = multiplier / divisor;
         if ((ratio - ratio.round()).abs() < 0.001) {
@@ -659,7 +670,9 @@ class SplitPayment {
   }
 
   String get formattedSplitRatio {
-    if (multiplier > 0 && divisor > 0 && (multiplier != 1.0 || divisor != 1.0)) {
+    if (multiplier > 0 &&
+        divisor > 0 &&
+        (multiplier != 1.0 || divisor != 1.0)) {
       if (multiplier % 1 == 0 && divisor % 1 == 0) {
         return '${multiplier.toInt()}:${divisor.toInt()}';
       }
@@ -703,7 +716,10 @@ class SplitPayment {
     if (shares % 1 == 0) {
       return shares.toInt().toString();
     }
-    return shares.toStringAsFixed(4).replaceAll(RegExp(r'0+$'), '').replaceAll(RegExp(r'\.$'), '');
+    return shares
+        .toStringAsFixed(4)
+        .replaceAll(RegExp(r'0+$'), '')
+        .replaceAll(RegExp(r'\.$'), '');
   }
 }
 
@@ -724,7 +740,8 @@ class CorporateActionSplitsSummary {
     this.symbolsAffected = const [],
   });
 
-  factory CorporateActionSplitsSummary.fromPayments(List<SplitPayment> payments) {
+  factory CorporateActionSplitsSummary.fromPayments(
+      List<SplitPayment> payments) {
     int forwardCount = 0;
     int reverseCount = 0;
     double cashInLieuSum = 0.0;
