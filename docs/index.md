@@ -84,9 +84,12 @@
 - **[Portfolio Redesign](portfolio-redesign.md):** Progressive-disclosure information architecture for the Portfolio tab — an Overview answering "what happened / what should I do", an Action Center alert feed, and six drill-down sections.
 - **[Trade Signals Widget](agentic-trading.md#trade-signals-widget):** Dedicated home screen widget for viewing and filtering real-time trade signals. **New:** News sentiment multipliers dynamically adjust signal confidence scores.
 - **[News Intelligence](sentiment-analysis.md):** Sentiment analysis, breaking news summarization, catalyst extraction, and **Event Impact Prediction** for upcoming catalysts.
-- **[Premium Features](index.md#subscriptions):** Subscription management for accessing advanced tools like Trade Signals.
-- **[Tax Loss Harvesting](tax-loss-harvesting.md):** Intelligent tool to identify and realize losses for tax optimization, featuring seasonality awareness and smart visibility rules.
-- **[Portfolio Rebalancing](portfolio-rebalancing.md):** Interactive tool to manage asset and sector allocation with visual drift analysis, precision target editing, and actionable buy/sell recommendations. **New:** **[AI Asset Allocation](ai-asset-allocation.md)** providing personalized portfolio weighting recommendations based on user risk profiles. Enhanced UI with dual views (Asset/Sector), smart presets, drift indicators, and theme-aware charts, plus scheduled rebalancing with macro guidance.
+- **[Tax Optimization & Loss Harvesting](tax-loss-harvesting.md):** Intelligent tax optimization suite featuring:
+  - **Automated Tax Loss Harvesting:** Identify and realize capital losses to offset gains with seasonality awareness and correlated replacement suggestions.
+  - **[Rolling 30-Day Wash Sale Window Tracker](tax-loss-harvesting.md#6-wash-sale-rule-warning--tracker):** Real-time monitoring across closed loss positions to alert users before triggering disallowed tax loss penalties.
+  - **[Capital Gains & Holding Period Breakdown](capital-gains-breakdown.md):** Short-term vs. long-term holding period tracking, countdown timers toward long-term tax qualification, and tax liability projections.
+  - **[Specific Tax Lot Matching (HIFO/LIFO)](tax-lot-matching.md):** Select specific tax lots or tax-minimization sorting rules (FIFO, LIFO, HIFO, Low Cost, Tax Minimizer) at order entry.
+  - **[IRS Form 8949 & Schedule D Reconciliation](form-8949-export.md):** Complete capital gains reconciliation with wash sale disallowance codes (`W`) and RFC 4180 CSV export for tax filing.
 - **[Group Watchlists](group-watchlists.md):** Collaborative instrument lists for Investor Groups.
 - **[Group Performance Analytics](portfolio-analytics.md):** Leaderboards and aggregated performance metrics for investor groups.
 - **[Investor Groups 2.0 & Collaborative Analytics](investor-groups-2.md):** Real-time group activity feed with member filtering and trade inspection, live group chat and messaging, shared analysis boards with automated risk/reward calculations and comments, and audited verified track records for group leaders.

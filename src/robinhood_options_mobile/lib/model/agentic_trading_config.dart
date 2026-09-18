@@ -95,6 +95,15 @@ class AgenticTradingConfig {
     };
   }
 
+  /// Returns a serializable Map compatible with Cloud Functions (RiskGuard & Position Sizing).
+  /// Flattens strategyConfig fields at the top level while preserving strategyConfig for nested lookups.
+  Map<String, dynamic> toRiskGuardConfig() {
+    return {
+      ...strategyConfig.toJson(),
+      ...toJson(),
+    };
+  }
+
   AgenticTradingConfig copyWith({
     TradeStrategyConfig? strategyConfig,
     bool? autoTradeEnabled,

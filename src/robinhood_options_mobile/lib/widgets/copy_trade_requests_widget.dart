@@ -328,7 +328,7 @@ class _CopyTradeRequestsWidgetState extends State<CopyTradeRequestsWidget>
           'multiplier': request.orderType == 'option' ? 100 : 1,
         },
         'portfolioState': portfolioState,
-        'config': agenticProvider.config,
+        'config': agenticProvider.config.toRiskGuardConfig(),
       });
 
       if (riskResult.data['approved'] == false) {
@@ -429,7 +429,7 @@ class _CopyTradeRequestsWidgetState extends State<CopyTradeRequestsWidget>
               'multiplier': request.orderType == 'option' ? 100 : 1,
             },
             'portfolioState': portfolioState,
-            'config': agenticProvider.config,
+            'config': agenticProvider.config.toRiskGuardConfig(),
           });
 
           if (riskResult.data['approved'] == false) {

@@ -44,16 +44,16 @@ This document outlines the planned features and enhancements for RealizeAlpha.
 **RealizeAlpha** is a comprehensive mobile trading platform with advanced AI-powered features. This roadmap tracks both completed achievements and planned enhancements across 25+ major categories.
 
 ### Quick Stats
-- **Completed Features**: 14 major categories (145+ items)
-- **Planned Enhancements**: 24+ categories (195+ items)
-- **Open GitHub Issues**: 45 active issues (29 feature & tracking epics + 16 enhancement/maintenance issues)
+- **Completed Features**: 14 major categories (315+ items)
+- **Planned Enhancements**: 24+ categories (95+ items)
+- **Open GitHub Issues**: 42 active issues (28 feature & tracking epics + 14 enhancement/maintenance issues)
 - **Focus Areas**: Advanced trading strategies, brokerage integrations, security, social features, AI coaching, quantitative research, behavioral finance, frontier tech
 
 ### Key Highlights
-- ✅ **Recently Completed**: Follow Portfolios ([#27](https://github.com/CIInc/robinhood-options-mobile/issues/27), v0.47.0), Social Feed for Shared Trade Ideas & Strategy Cloning ([#24](https://github.com/CIInc/robinhood-options-mobile/issues/24)), Top Portfolios Leaderboard & User Reputation ([#26](https://github.com/CIInc/robinhood-options-mobile/issues/26)), and In-App Instrument Custom Alerts (v0.47.1).
-- 🔥 **In Progress**: Capital Gains Optimizer, Wash Sale Detector & Tax Loss Harvesting ([Tracking: #114](https://github.com/CIInc/robinhood-options-mobile/issues/114)) and Schwab Real-Time WebSocket Streamer ([#145](https://github.com/CIInc/robinhood-options-mobile/issues/145)).
-- 🚀 **Next Milestone**: **Tax Optimization, Wash Sale Detection & Capital Gains Suite** (v0.48.0 - Q4 2026).
-- **Focus Areas**: Institutional-grade options analytics (GEX), year-end tax optimization, and multi-brokerage expansion.
+- ✅ **Recently Completed**: Tax Optimization, Wash Sale Detection & Capital Gains Suite ([Tracking: #114](https://github.com/CIInc/robinhood-options-mobile/issues/114), v0.48.0), In-App Instrument Custom Alerts (v0.47.1), Follow Portfolios ([#27](https://github.com/CIInc/robinhood-options-mobile/issues/27), v0.47.0), Social Feed for Shared Trade Ideas & Strategy Cloning ([#24](https://github.com/CIInc/robinhood-options-mobile/issues/24)), and Top Portfolios Leaderboard & User Reputation ([#26](https://github.com/CIInc/robinhood-options-mobile/issues/26)).
+- 🔥 **In Progress**: Schwab Real-Time WebSocket Streamer ([#145](https://github.com/CIInc/robinhood-options-mobile/issues/145)) and Security Hardening & Two-Factor Authentication ([#89](https://github.com/CIInc/robinhood-options-mobile/issues/89)).
+- 🚀 **Next Milestone**: **Security Hardening, Risk Guardrails & Brokerage Streaming** (v0.48.5 - Q4 2026).
+- **Focus Areas**: Institutional-grade options analytics (GEX), real-time streaming market data, 2FA security, and multi-brokerage expansion.
 - 🎯 **2026 Priorities**: 
   - **Q3**: AI Portfolio Architect, Smart Alerts & Market Intelligence, News & Sentiment Intelligence, Social Platform Evolution, Instrument Custom Alerts
   - **Q4**: Tax Optimization Suite (Wash Sale & Form 8949), Security Hardening (2FA), Schwab WebSocket Streamer, Options Analytics Pro

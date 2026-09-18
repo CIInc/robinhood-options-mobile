@@ -209,7 +209,7 @@ Future<void> showCopyTradeDialog({
           'multiplier': riskMultiplier,
         },
         'portfolioState': portfolioState,
-        'config': agenticTradingProvider.config,
+        'config': agenticTradingProvider.config.toRiskGuardConfig(),
       });
 
       if (riskResult.data['approved'] == false) {

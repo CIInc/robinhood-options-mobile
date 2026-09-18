@@ -1563,7 +1563,7 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
           'strategy': selectedStrategy?.name,
         },
         'portfolioState': portfolioState,
-        'config': agenticProvider.config,
+        'config': agenticProvider.config.toRiskGuardConfig(),
       });
 
       if (riskResult.data['approved'] == false) {

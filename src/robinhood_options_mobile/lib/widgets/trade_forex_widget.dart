@@ -719,7 +719,7 @@ class _TradeForexWidgetState extends State<TradeForexWidget> {
           'orderType': orderType,
         },
         'portfolioState': portfolioState,
-        'config': agenticProvider.config,
+        'config': agenticProvider.config.toRiskGuardConfig(),
       });
 
       if (riskResult.data['approved'] == false) {

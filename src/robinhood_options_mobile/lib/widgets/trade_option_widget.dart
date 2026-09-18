@@ -60,6 +60,7 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
   var trailingAmountCtl = TextEditingController();
 
   bool placingOrder = false;
+  bool _calculatingDynamicSize = false;
   double estimatedTotal = 0.0;
   bool _isPreviewing = false;
   String? _riskGuardWarning;
@@ -295,11 +296,20 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
               border: const OutlineInputBorder(),
               filled: true,
               suffixText: "contracts",
-              suffixIcon: IconButton(
-                icon: const Icon(Icons.auto_awesome),
-                tooltip: "Calculate Dynamic Size",
-                onPressed: _calculateDynamicSize,
-              ),
+              suffixIcon: _calculatingDynamicSize
+                  ? const Padding(
+                      padding: EdgeInsets.all(12.0),
+                      child: SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    )
+                  : IconButton(
+                      icon: const Icon(Icons.auto_awesome),
+                      tooltip: "Calculate Dynamic Size",
+                      onPressed: _calculateDynamicSize,
+                    ),
             ),
             style: const TextStyle(fontSize: 18),
           ),
@@ -812,7 +822,7 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
           await FirebaseFunctions.instance.httpsCallable('riskguardTask').call({
         'proposal': proposal,
         'portfolioState': portfolioState,
-        'config': agenticProvider.config,
+        'config': agenticProvider.config.toRiskGuardConfig(),
       });
 
       final data = result.data;
@@ -865,8 +875,9 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
   }
 
   Future<void> _calculateDynamicSize() async {
+    if (_calculatingDynamicSize) return;
     setState(() {
-      placingOrder = true;
+      _calculatingDynamicSize = true;
     });
 
     try {
@@ -878,10 +889,13 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
       final portfolioState = <String, dynamic>{};
       if (accountStore.items.isNotEmpty) {
         final buyingPower = accountStore.items[0].buyingPower ?? 0.0;
+        final cash = accountStore.items[0].portfolioCash ?? buyingPower;
+        portfolioState['cash'] = cash;
         portfolioState['buyingPower'] = buyingPower;
         portfolioState['cashAvailable'] =
             accountStore.items[0].portfolioCash ?? 0.0;
-        if (widget.optionPosition != null) {
+        if (widget.optionPosition != null &&
+            widget.optionInstrument?.chainSymbol != null) {
           portfolioState[widget.optionInstrument!.chainSymbol] = {
             'quantity': widget.optionPosition!.quantity,
             'price': widget.optionPosition!.averageOpenPrice,
@@ -895,7 +909,7 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
           .call({
         'symbol': widget.optionInstrument?.chainSymbol,
         'portfolioState': portfolioState,
-        'config': agenticProvider.config,
+        'config': agenticProvider.config.toRiskGuardConfig(),
       });
 
       final data = result.data;
@@ -951,15 +965,10 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
           ),
         );
       }
-
-      if (_isPaperTrade) {
-        await _placePaperOrder();
-        return;
-      }
     } finally {
       if (mounted) {
         setState(() {
-          placingOrder = false;
+          _calculatingDynamicSize = false;
         });
       }
     }

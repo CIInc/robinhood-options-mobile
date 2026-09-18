@@ -2,6 +2,51 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.48.0] - 2026-09-18
+**Tax Optimization, Wash Sale Detection & Capital Gains Suite ([Tracking: #114](https://github.com/CIInc/robinhood-options-mobile/issues/114))**
+
+### Added
+- **Tax Optimization Suite (`TaxOptimizationWidget`):**
+  - Unified multi-tab Tax Optimization dashboard (`lib/widgets/tax_optimization_widget.dart`) providing comprehensive tax planning tools across 4 specialized tabs:
+    - **Loss Harvesting**: Automated loss opportunity detection with IRS Schedule D rules and correlated replacement suggestions.
+    - **Wash Sales**: Real-time 61-day window tracking and loss disallowance monitoring under IRS Section 1091.
+    - **Capital Gains**: Holding period duration timers, short-term vs. long-term categorization, and tax liability projections.
+    - **Form 8949**: IRS Form 8949 and Schedule D reconciliation with adjustment code (`W`) tracking and RFC 4180 CSV export.
+- **Specific Tax Lot Matching & Accounting Method Selection ([#114](https://github.com/CIInc/robinhood-options-mobile/issues/114)):**
+  - Added domain model `TaxLot` and enum `TaxLotStrategy` (`lib/model/tax_lot.dart`) supporting `fifo`, `lifo`, `hifo`, `lofo`, `taxMinimizer`, and `specified` methods.
+  - Built `TaxLotSelectionSheet` (`lib/widgets/tax_lot_selection_sheet.dart`) allowing granular, per-lot share allocation with real-time feedback on proceeds, blended cost basis, and estimated capital gains/losses.
+  - Implemented `TaxOptimizationService.matchTaxLots()` providing 4-tier tax minimization matching (short-term losses first, then long-term losses, then long-term gains, and short-term gains last).
+  - Integrated tax lot selection into equity order execution (`TradeInstrumentWidget`) across supported brokerages (`RobinhoodService`, `SchwabService`, `FidelityService`, `PaperService`, and `DemoService`).
+- **IRS Form 8949 Reconciliation & Schedule D CSV Export ([#114](https://github.com/CIInc/robinhood-options-mobile/issues/114)):**
+  - Added domain models `Form8949Entry`, `Form8949Totals`, and `Form8949Reconciliation` (`lib/model/form_8949_model.dart`).
+  - Implemented `TaxOptimizationService.reconcileForm8949()` to reconcile realized dispositions into Part I (Short-Term, Box A) and Part II (Long-Term, Box D), attaching wash sale adjustment codes (`W`) and calculating net gain/loss per IRS instructions (`(d) - (e) + (g)`).
+  - Added RFC 4180 CSV export functionality with subtotals and grand totals compatible with major tax preparation software.
+- **Short-Term vs. Long-Term Capital Gains Breakdown ([#114](https://github.com/CIInc/robinhood-options-mobile/issues/114)):**
+  - Added domain models `HoldingPeriodCategory`, `CapitalGainsPosition`, and `CapitalGainsSummary` (`lib/model/capital_gains_model.dart`).
+  - Implemented holding duration tracking, countdown timers (`daysUntilLongTerm`), and tax liability projections with configurable tax brackets (10%–37% short-term, 0%/15%/20% long-term).
+  - Integrated proactive Action Center alert (`capital-gains-approaching`) in `PortfolioAlertService` for positions within 30 days of qualifying for lower long-term capital gains tax rates.
+- **Tax-Loss Harvesting Opportunity Scanner & Correlated Replacements ([#114](https://github.com/CIInc/robinhood-options-mobile/issues/114)):**
+  - Added domain model `TaxHarvestingScanResult` and suggestion models (`lib/model/tax_harvesting_suggestion.dart`).
+  - Implemented opportunity scanner supporting multi-asset filtering (Stocks, Options), loss thresholds (\$0, \$100, \$500, \$1,000), and multi-factor sorting (by dollar loss, percentage loss, tax savings).
+  - Added wash-sale-safe correlated replacement suggestions for major market index ETFs (`SPY` ↔ `VOO`/`IVV`/`SPLG`, `QQQ` ↔ `QQQM`/`VGT`, `IWM` ↔ `VB`/`SCHA`) and leading sector equities (`NVDA` ↔ `AMD`/`SMH`/`AVGO`, `AAPL` ↔ `MSFT`/`XLK`, `TSLA` ↔ `RIVN`/`IDRV`) with correlation metrics and 1-tap trade navigation.
+- **Rolling 30-Day Wash Sale Window Detector ([#114](https://github.com/CIInc/robinhood-options-mobile/issues/114)):**
+  - Added domain model `WashSaleRecord` and enum `WashSaleStatus` (`lib/model/wash_sale_record.dart`).
+  - Implemented `TaxOptimizationService.detectWashSales()` to track 61-day wash sale windows across closed loss positions and subsequent acquisitions, calculate disallowed losses, and compute adjusted replacement cost bases.
+
+### Changed & Improved
+- **Accessibility & Responsive Polish:**
+  - Improved `SlideToConfirm` accessibility by wrapping the control in `Semantics` with action labels and hints for screen readers (VoiceOver/TalkBack) while updating slider icons to checkmarks upon completion ([#149](https://github.com/CIInc/robinhood-options-mobile/issues/149)).
+  - Added accessibility tooltips to clear search buttons in `SearchWidget` ([#150](https://github.com/CIInc/robinhood-options-mobile/issues/150)) and `CorporateActionsWidget` ([#151](https://github.com/CIInc/robinhood-options-mobile/issues/151)).
+  - Fixed responsive layout overflows across narrow viewports (320px–360px) in reconciliation summaries, tax year dropdowns, and Code W disposition rows using `Wrap` and `FittedBox`.
+- **Backend & Cloud Functions Performance:**
+  - Optimized FCM token retrieval in `watchlist-alerts-cron.ts` by replacing sequential queries with batch `getAll()` queries to eliminate N+1 latency ([#147](https://github.com/CIInc/robinhood-options-mobile/issues/147)).
+  - Optimized user profile queries in `copy-trading.ts` by caching source user lookups across member order triggers ([#148](https://github.com/CIInc/robinhood-options-mobile/issues/148)).
+  - Sanitized Cloud Function parameter payloads and added error fallbacks for order synchronization (`fe0c7ef`).
+
+### Documentation & Tests
+- Added `docs/tax-lot-matching.md`, `docs/form-8949-export.md`, `docs/capital-gains-breakdown.md`, and updated `docs/tax-loss-harvesting.md`.
+- Added test suites: `test/tax_lot_matching_test.dart`, `test/trade_instrument_tax_lot_test.dart`, `test/form_8949_reconciliation_test.dart`, `test/form_8949_widget_test.dart`, `test/capital_gains_breakdown_test.dart`, `test/capital_gains_widget_test.dart`, `test/tax_loss_harvesting_scanner_test.dart`, `test/wash_sale_detector_test.dart`, `test/wash_sale_widget_test.dart`, `test/slide_to_confirm_widget_test.dart`.
+
 ## [0.47.0] - 2026-09-16
 **Social Platform & Performance Following: Follow Portfolios, Privacy Controls, Masked Public Views & Activity Feed**
 

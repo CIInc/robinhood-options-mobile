@@ -254,5 +254,55 @@ void main() {
       expect(config.strategyConfig.dailyTradeLimit, equals(5));
       expect(config.strategyConfig.maxPortfolioConcentration, equals(0.5));
     });
+
+    test(
+        'AgenticTradingConfig toRiskGuardConfig should produce cloud-functions valid parameters',
+        () {
+      final config = AgenticTradingConfig(
+        strategyConfig: TradeStrategyConfig(
+          riskPerTrade: 0.02,
+          atrMultiplier: 1.5,
+          maxPositionSize: 150,
+          maxPortfolioConcentration: 0.25,
+        ),
+        autoTradeEnabled: true,
+      );
+
+      final riskGuardMap = config.toRiskGuardConfig();
+
+      // Flat risk fields for direct consumption
+      expect(riskGuardMap['riskPerTrade'], equals(0.02));
+      expect(riskGuardMap['atrMultiplier'], equals(1.5));
+      expect(riskGuardMap['maxPositionSize'], equals(150));
+      expect(riskGuardMap['maxPortfolioConcentration'], equals(0.25));
+
+      // Strategy config also preserved
+      expect(riskGuardMap['strategyConfig'], isA<Map<String, dynamic>>());
+
+      // Helper function mirroring cloud_functions _debugIsValidParameterType
+      bool isValidParam(dynamic parameter) {
+        if (parameter is! List && parameter is! Map) {
+          return parameter == null ||
+              parameter is String ||
+              parameter is num ||
+              parameter is bool;
+        }
+        if (parameter is List) {
+          for (final item in parameter) {
+            if (!isValidParam(item)) return false;
+          }
+          return true;
+        }
+        if (parameter is Map) {
+          for (final key in parameter.keys) {
+            if (!isValidParam(parameter[key])) return false;
+          }
+          return true;
+        }
+        return false;
+      }
+
+      expect(isValidParam(riskGuardMap), isTrue);
+    });
   });
 }

@@ -406,7 +406,10 @@ export const riskguardTask = onCall(async (request) => {
   logger.info("RiskGuard task called via onCall", { data: request.data });
   const proposal = request.data.proposal || {};
   const portfolioState = request.data.portfolioState || {};
-  const config = request.data.config || {};
+  const rawConfig = request.data.config || {};
+  const config = rawConfig.strategyConfig ?
+    { ...rawConfig.strategyConfig, ...rawConfig } :
+    rawConfig;
   const result = await assessTrade(proposal, portfolioState, config);
   return result;
 });
@@ -421,7 +424,10 @@ export const calculatePositionSize = onCall(async (request) => {
   logger.info("Calculate Position Size called", { data: request.data });
   const symbol = request.data.symbol;
   const portfolioState = request.data.portfolioState || {};
-  const config = request.data.config || {};
+  const rawConfig = request.data.config || {};
+  const config = rawConfig.strategyConfig ?
+    { ...rawConfig.strategyConfig, ...rawConfig } :
+    rawConfig;
 
   if (!symbol) {
     return { status: "error", message: "Symbol is required" };
