@@ -379,7 +379,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ **Tax-Loss Harvesting Scanner:** Portfolio Action Center scanner identifying unrealized loss positions suitable for harvesting against realized capital gains, complete with replacement ticker suggestions.
 - ✅ **Capital Gains & Holding Period Breakdown:** Short-Term vs. Long-Term capital gains projection, holding period duration timers, and estimated tax bracket liability calculations.
 - **Specific Tax Lot Matching (HIFO/LIFO):** Select specific tax lots or tax-loss optimization rules during order entry to systematically minimize capital gains impact.
-- **IRS Form 8949 Preview & CSV Export:** Export structured realized transactions formatted for Schedule D / Form 8949 with wash sale adjustment codes (`W`).
+- ✅ **IRS Form 8949 Preview & CSV Export:** Export structured realized transactions formatted for Schedule D / Form 8949 with wash sale adjustment codes (`W`).
 
 ### v0.48.5 (Target: Q4 2026 - Late December)
 **Security Hardening, Risk Guardrails & Brokerage Streaming**
@@ -796,7 +796,7 @@ Q3 2026 shifts focus from basic execution to **Advanced Intelligence** and **Reg
     - [x] **Automated Tax Loss Harvesting Opportunity Scanner**: Scan unrealized losses against realized capital gains with correlated replacement recommendations - **Medium** (2 weeks)
     - [x] **Short-Term vs. Long-Term Capital Gains Breakdown**: Real-time holding duration timers and tax liability projections - **Small** (1-2 weeks)
     - [ ] **Specific Tax Lot Matching (HIFO/LIFO Order Entry)** (v0.48.0, [Tracking: #114](https://github.com/CIInc/robinhood-options-mobile/issues/114)): Select specific tax lots or tax-minimization sorting rules at order placement to minimize taxable gains - **Small** (1-2 weeks)
-    - [ ] **IRS Form 8949 Reconciliation & CSV Export**: Schedule D export with wash sale adjustment codes (`W`) - **Small** (1 week)
+    - [x] **IRS Form 8949 Reconciliation & CSV Export**: Schedule D export with wash sale adjustment codes (`W`) - **Small** (1 week)
 - [x] **ESG Scoring**: Portfolio Environmental, Social, and Governance analysis - **Small** (1-2 weeks)
 - [x] **Multi-Account Aggregation**: View all accounts together - **Medium** (2-3 weeks)
 - [x] **Import/Export**: Fidelity CSV import, CSV export for portfolio analytics - **Small** (1-2 weeks)

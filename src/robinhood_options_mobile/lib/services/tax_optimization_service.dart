@@ -5,6 +5,7 @@ import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/option_order.dart';
 import 'package:robinhood_options_mobile/model/portfolio_historicals.dart';
 import 'package:robinhood_options_mobile/model/capital_gains_model.dart';
+import 'package:robinhood_options_mobile/model/form_8949_model.dart';
 import 'package:robinhood_options_mobile/model/tax_harvesting_suggestion.dart';
 import 'package:robinhood_options_mobile/model/wash_sale_record.dart';
 
@@ -1339,4 +1340,324 @@ class TaxOptimizationService {
       longTermTaxRate: longTermTaxRate,
     );
   }
+
+  /// Reconciles realized stock and option dispositions into IRS Form 8949
+  /// (Part I Short-Term & Part II Long-Term), matches disallowed wash sale losses
+  /// with adjustment code 'W', and computes Schedule D summary totals.
+  static Form8949Reconciliation reconcileForm8949({
+    List<InstrumentOrder> stockOrders = const [],
+    List<OptionOrder> optionOrders = const [],
+    List<WashSaleRecord> washSales = const [],
+    List<Form8949Entry>? initialEntries,
+    int? taxYear,
+    DateTime? asOf,
+  }) {
+    final now = asOf ?? DateTime.now();
+    final entries = <Form8949Entry>[];
+
+    // If initialEntries provided, incorporate them
+    if (initialEntries != null && initialEntries.isNotEmpty) {
+      for (final e in initialEntries) {
+        if (taxYear == null || e.soldDate.year == taxYear) {
+          entries.add(e);
+        }
+      }
+    }
+
+    // 1. Process filled stock sell orders
+    final filledStockOrders = stockOrders
+        .where((o) =>
+            (o.state.toLowerCase() == 'filled' ||
+                o.state.toLowerCase() == 'confirmed') &&
+            (o.createdAt != null || o.updatedAt != null))
+        .toList();
+
+    // Map buy orders by symbol to match cost basis & acquisition dates
+    final buyOrdersBySymbol = <String, List<InstrumentOrder>>{};
+    for (final order in filledStockOrders) {
+      if (order.side.toLowerCase() == 'buy') {
+        final sym = order.instrumentObj?.symbol.toUpperCase();
+        if (sym != null) {
+          buyOrdersBySymbol.putIfAbsent(sym, () => []).add(order);
+        }
+      }
+    }
+
+    // Map wash sales by symbol
+    final washSalesBySymbol = <String, List<WashSaleRecord>>{};
+    for (final ws in washSales) {
+      washSalesBySymbol.putIfAbsent(ws.symbol.toUpperCase(), () => []).add(ws);
+    }
+
+    for (final sell in filledStockOrders) {
+      if (sell.side.toLowerCase() != 'sell') continue;
+      final sym = sell.instrumentObj?.symbol.toUpperCase();
+      if (sym == null) continue;
+
+      final saleDate = sell.createdAt ?? sell.updatedAt ?? now;
+      if (taxYear != null && saleDate.year != taxYear) continue;
+
+      final sellQty = sell.cumulativeQuantity ?? sell.quantity ?? 0.0;
+      final sellPrice = sell.averagePrice ?? sell.price ?? 0.0;
+      if (sellQty <= 0 || sellPrice <= 0) continue;
+
+      final proceeds = sellPrice * sellQty;
+
+      // Find prior buy orders for acquisition date and cost basis
+      final priorBuys = (buyOrdersBySymbol[sym] ?? []).where((b) {
+        final bDate = b.createdAt ?? b.updatedAt;
+        return bDate != null && bDate.isBefore(saleDate);
+      }).toList();
+
+      DateTime acquiredDate;
+      double costPrice;
+      if (priorBuys.isNotEmpty) {
+        final buy = priorBuys.last;
+        acquiredDate = buy.createdAt ??
+            buy.updatedAt ??
+            saleDate.subtract(const Duration(days: 90));
+        costPrice = buy.averagePrice ?? buy.price ?? sellPrice;
+      } else {
+        acquiredDate = saleDate.subtract(const Duration(days: 120));
+        costPrice = sellPrice;
+      }
+
+      final costBasis = costPrice * sellQty;
+
+      // Check wash sales matching this sale
+      String? adjCode;
+      double adjAmount = 0.0;
+      String? wsId;
+
+      final matchingWs = (washSalesBySymbol[sym] ?? []).where((ws) {
+        return ws.isDisallowed &&
+            saleDate.difference(ws.saleDate).inDays.abs() <= 2;
+      }).toList();
+
+      if (matchingWs.isNotEmpty) {
+        final ws = matchingWs.first;
+        adjCode = 'W';
+        adjAmount = ws.disallowedLoss ?? ws.realizedLoss.abs();
+        wsId = ws.id;
+      }
+
+      final sharesText = sellQty == sellQty.roundToDouble()
+          ? '${sellQty.toInt()}'
+          : sellQty.toStringAsFixed(2);
+      final desc = '$sharesText sh. $sym';
+
+      entries.add(Form8949Entry.create(
+        id: 'form8949_stock_${sell.id}',
+        description: desc,
+        symbol: sym,
+        assetType: 'stock',
+        quantity: sellQty,
+        acquiredDate: acquiredDate,
+        soldDate: saleDate,
+        proceeds: proceeds,
+        costBasis: costBasis,
+        adjustmentCode: adjCode,
+        adjustmentAmount: adjAmount,
+        washSaleRecordId: wsId,
+      ));
+    }
+
+    // 2. Process filled closing option orders
+    final filledOptionOrders = optionOrders
+        .where((o) =>
+            (o.state.toLowerCase() == 'filled' ||
+                o.state.toLowerCase() == 'confirmed') &&
+            (o.createdAt != null || o.updatedAt != null))
+        .toList();
+
+    // Map debit/buy options by chainSymbol
+    final openOptionOrdersBySymbol = <String, List<OptionOrder>>{};
+    for (final order in filledOptionOrders) {
+      if (order.direction.toLowerCase() == 'debit') {
+        final sym = order.chainSymbol.toUpperCase();
+        openOptionOrdersBySymbol.putIfAbsent(sym, () => []).add(order);
+      }
+    }
+
+    for (final order in filledOptionOrders) {
+      if (order.direction.toLowerCase() != 'credit') continue;
+      final sym = order.chainSymbol.toUpperCase();
+      final saleDate = order.createdAt ?? order.updatedAt ?? now;
+      if (taxYear != null && saleDate.year != taxYear) continue;
+
+      final qty = order.processedQuantity ?? order.quantity ?? 1.0;
+      final proceeds = order.processedPremium ??
+          (order.price != null ? order.price! * qty * 100 : 0.0);
+      if (proceeds <= 0 && (order.price ?? 0) <= 0) continue;
+
+      final priorDebits = (openOptionOrdersBySymbol[sym] ?? []).where((b) {
+        final bDate = b.createdAt ?? b.updatedAt;
+        return bDate != null && bDate.isBefore(saleDate);
+      }).toList();
+
+      DateTime acquiredDate;
+      double costBasis;
+      if (priorDebits.isNotEmpty) {
+        final debit = priorDebits.last;
+        acquiredDate = debit.createdAt ??
+            debit.updatedAt ??
+            saleDate.subtract(const Duration(days: 30));
+        costBasis = debit.processedPremium ??
+            (debit.price != null ? debit.price! * qty * 100 : proceeds);
+      } else {
+        acquiredDate = saleDate.subtract(const Duration(days: 45));
+        costBasis = proceeds;
+      }
+
+      String? adjCode;
+      double adjAmount = 0.0;
+      String? wsId;
+
+      final matchingWs = (washSalesBySymbol[sym] ?? []).where((ws) {
+        return ws.isDisallowed &&
+            saleDate.difference(ws.saleDate).inDays.abs() <= 2;
+      }).toList();
+
+      if (matchingWs.isNotEmpty) {
+        final ws = matchingWs.first;
+        adjCode = 'W';
+        adjAmount = ws.disallowedLoss ?? ws.realizedLoss.abs();
+        wsId = ws.id;
+      }
+
+      final contractDesc = order.legs.isNotEmpty
+          ? '${qty.toInt()} $sym ${order.legs.first.strikePrice != null ? "\$${order.legs.first.strikePrice!.toStringAsFixed(1)} " : ""}${order.legs.first.optionType.toUpperCase()}'
+          : '${qty.toInt()} $sym Option';
+
+      entries.add(Form8949Entry.create(
+        id: 'form8949_option_${order.id}',
+        description: contractDesc,
+        symbol: sym,
+        assetType: 'option',
+        quantity: qty,
+        acquiredDate: acquiredDate,
+        soldDate: saleDate,
+        proceeds: proceeds,
+        costBasis: costBasis,
+        adjustmentCode: adjCode,
+        adjustmentAmount: adjAmount,
+        washSaleRecordId: wsId,
+      ));
+    }
+
+    // 3. Fallback demo data if no entries found from live orders and initialEntries wasn't supplied
+    if (entries.isEmpty && initialEntries == null) {
+      final demoEntries = getDemoForm8949Entries(asOf: now, taxYear: taxYear);
+      entries.addAll(demoEntries);
+    }
+
+    // 4. Partition into Part I (Short-Term) and Part II (Long-Term)
+    final shortTerm = entries.where((e) => !e.isLongTerm).toList();
+    final longTerm = entries.where((e) => e.isLongTerm).toList();
+
+    // Sort by soldDate descending
+    shortTerm.sort((a, b) => b.soldDate.compareTo(a.soldDate));
+    longTerm.sort((a, b) => b.soldDate.compareTo(a.soldDate));
+
+    final stTotals = Form8949Totals.fromEntries(shortTerm);
+    final ltTotals = Form8949Totals.fromEntries(longTerm);
+    final grandTotals = Form8949Totals.fromEntries(entries);
+
+    final washSaleTotal = entries
+        .where((e) => e.adjustmentCode == 'W')
+        .fold<double>(0.0, (sum, e) => sum + e.adjustmentAmount);
+
+    return Form8949Reconciliation(
+      taxYear: taxYear,
+      generatedAt: now,
+      shortTermEntries: shortTerm,
+      longTermEntries: longTerm,
+      shortTermTotals: stTotals,
+      longTermTotals: ltTotals,
+      grandTotals: grandTotals,
+      totalWashSaleDisallowed: washSaleTotal,
+    );
+  }
+
+  /// Provides realistic sample dispositions for IRS Form 8949 demonstration and testing.
+  static List<Form8949Entry> getDemoForm8949Entries({
+    DateTime? asOf,
+    int? taxYear,
+  }) {
+    final now = asOf ?? DateTime.now();
+    final targetYear = taxYear ?? now.year;
+
+    final demo = <Form8949Entry>[
+      // Short-Term Gain (AAPL)
+      Form8949Entry.create(
+        id: 'demo_8949_1',
+        description: '15 sh. AAPL',
+        symbol: 'AAPL',
+        assetType: 'stock',
+        quantity: 15,
+        acquiredDate: DateTime(targetYear, 2, 10),
+        soldDate: DateTime(targetYear, 6, 15),
+        proceeds: 3375.0, // $225/sh
+        costBasis: 2850.0, // $190/sh
+        // Gain = +$525
+      ),
+      // Short-Term Loss with Wash Sale Code W (NVDA)
+      Form8949Entry.create(
+        id: 'demo_8949_2',
+        description: '20 sh. NVDA',
+        symbol: 'NVDA',
+        assetType: 'stock',
+        quantity: 20,
+        acquiredDate: DateTime(targetYear, 3, 5),
+        soldDate: DateTime(targetYear, 5, 20),
+        proceeds: 2200.0, // $110/sh
+        costBasis: 2600.0, // $130/sh (Tentative loss = -$400)
+        adjustmentCode: 'W',
+        adjustmentAmount: 400.0, // Disallowed wash sale
+        // Reconciled gain/loss = $2200 - $2600 + $400 = $0.00
+      ),
+      // Short-Term Option Gain (SPY Call)
+      Form8949Entry.create(
+        id: 'demo_8949_3',
+        description: '2 SPY 10/16/2026 550 Call',
+        symbol: 'SPY',
+        assetType: 'option',
+        quantity: 2,
+        acquiredDate: DateTime(targetYear, 4, 1),
+        soldDate: DateTime(targetYear, 7, 10),
+        proceeds: 1450.0,
+        costBasis: 900.0,
+        // Gain = +$550
+      ),
+      // Long-Term Gain (MSFT)
+      Form8949Entry.create(
+        id: 'demo_8949_4',
+        description: '25 sh. MSFT',
+        symbol: 'MSFT',
+        assetType: 'stock',
+        quantity: 25,
+        acquiredDate: DateTime(targetYear - 2, 8, 15),
+        soldDate: DateTime(targetYear, 8, 25),
+        proceeds: 11250.0, // $450/sh
+        costBasis: 7750.0, // $310/sh
+        // Long-term gain = +$3500
+      ),
+      // Long-Term Loss (TSLA)
+      Form8949Entry.create(
+        id: 'demo_8949_5',
+        description: '10 sh. TSLA',
+        symbol: 'TSLA',
+        assetType: 'stock',
+        quantity: 10,
+        acquiredDate: DateTime(targetYear - 2, 1, 12),
+        soldDate: DateTime(targetYear, 4, 18),
+        proceeds: 1800.0, // $180/sh
+        costBasis: 2400.0, // $240/sh
+        // Long-term loss = -$600
+      ),
+    ];
+
+    return demo;
+  }
 }
+

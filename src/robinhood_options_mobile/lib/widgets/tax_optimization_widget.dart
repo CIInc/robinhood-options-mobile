@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
@@ -5,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
+import 'package:robinhood_options_mobile/model/form_8949_model.dart';
 import 'package:robinhood_options_mobile/model/instrument_order_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_store.dart';
@@ -20,6 +22,7 @@ import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/services/tax_optimization_service.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
+import 'package:share_plus/share_plus.dart';
 // import 'package:robinhood_options_mobile/widgets/portfolio/analytics/esg_card.dart';
 
 class TaxOptimizationWidget extends StatefulWidget {
@@ -32,6 +35,7 @@ class TaxOptimizationWidget extends StatefulWidget {
   final DocumentReference<User>? userDocRef;
   final PortfolioHistoricals? portfolioHistoricals;
   final List<WashSaleRecord>? initialWashSales;
+  final List<Form8949Entry>? initialForm8949Entries;
   final int initialTabIndex;
   final PortfolioAnalyticsController? analyticsController;
 
@@ -46,6 +50,7 @@ class TaxOptimizationWidget extends StatefulWidget {
     required this.userDocRef,
     this.portfolioHistoricals,
     this.initialWashSales,
+    this.initialForm8949Entries,
     this.initialTabIndex = 0,
     this.analyticsController,
   });
@@ -66,6 +71,9 @@ class _TaxOptimizationWidgetState extends State<TaxOptimizationWidget> {
       'timer'; // 'timer', 'gain_loss', 'tax_savings', 'holding_period'
   double _shortTermTaxRate = 0.24; // 24% default
   double _longTermTaxRate = 0.15; // 15% default
+
+  int? _form8949Year = DateTime.now().year;
+  String _form8949Filter = 'all'; // 'all', 'short_term', 'long_term', 'wash_sales'
 
   @override
   void initState() {
@@ -122,15 +130,25 @@ class _TaxOptimizationWidgetState extends State<TaxOptimizationWidget> {
       longTermTaxRate: _longTermTaxRate,
     );
 
+    final form8949Reconciliation = TaxOptimizationService.reconcileForm8949(
+      stockOrders: instrumentOrderStore?.items.toList() ?? const [],
+      optionOrders: optionOrderStore?.items.toList() ?? const [],
+      washSales: washSales,
+      initialEntries: widget.initialForm8949Entries,
+      taxYear: _form8949Year,
+    );
+
     final formatCurrency = NumberFormat.simpleCurrency();
 
     return DefaultTabController(
-      length: 3,
+      length: 4,
       initialIndex: widget.initialTabIndex,
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Taxes'),
           bottom: const TabBar(
+            isScrollable: true,
+            tabAlignment: TabAlignment.start,
             tabs: [
               Tab(
                 icon: Icon(Icons.savings_outlined),
@@ -143,6 +161,10 @@ class _TaxOptimizationWidgetState extends State<TaxOptimizationWidget> {
               Tab(
                 icon: Icon(Icons.pie_chart_outline),
                 text: 'Capital Gains',
+              ),
+              Tab(
+                icon: Icon(Icons.description_outlined),
+                text: 'Form 8949',
               ),
             ],
           ),
@@ -165,6 +187,11 @@ class _TaxOptimizationWidgetState extends State<TaxOptimizationWidget> {
             _buildCapitalGainsTab(
               context,
               capitalGainsSummary,
+              formatCurrency,
+            ),
+            _buildForm8949Tab(
+              context,
+              form8949Reconciliation,
               formatCurrency,
             ),
           ],
@@ -1478,8 +1505,9 @@ class _TaxOptimizationWidgetState extends State<TaxOptimizationWidget> {
                           '${activeWindows.length} Active Window${activeWindows.length == 1 ? '' : 's'}'),
                       selected: _washSaleFilter == 'active',
                       onSelected: (selected) {
-                        if (selected)
+                        if (selected) {
                           setState(() => _washSaleFilter = 'active');
+                        }
                       },
                     ),
                     const SizedBox(width: 8),
@@ -2161,14 +2189,687 @@ class _TaxOptimizationWidgetState extends State<TaxOptimizationWidget> {
           ),
         ),
         const SizedBox(height: 2),
-        Text(
-          value,
-          style: const TextStyle(
-            fontWeight: FontWeight.w500,
-            fontSize: 13,
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: Text(
+            value,
+            style: const TextStyle(
+              fontWeight: FontWeight.w500,
+              fontSize: 13,
+            ),
           ),
         ),
       ],
     );
+  }
+
+  Widget _buildForm8949Tab(
+    BuildContext context,
+    Form8949Reconciliation reconciliation,
+    NumberFormat formatCurrency,
+  ) {
+    List<Form8949Entry> displayedEntries = reconciliation.allEntries;
+    if (_form8949Filter == 'short_term') {
+      displayedEntries = reconciliation.shortTermEntries;
+    } else if (_form8949Filter == 'long_term') {
+      displayedEntries = reconciliation.longTermEntries;
+    } else if (_form8949Filter == 'wash_sales') {
+      displayedEntries =
+          reconciliation.allEntries.where((e) => e.hasWashSale).toList();
+    }
+
+    final currentYear = DateTime.now().year;
+    final availableYears = [currentYear, currentYear - 1, currentYear - 2, null];
+
+    return CustomScrollView(
+      slivers: [
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildForm8949Header(context, reconciliation, availableYears),
+                const SizedBox(height: 16),
+                _buildForm8949SummaryCard(
+                    context, reconciliation, formatCurrency),
+                const SizedBox(height: 20),
+                _buildForm8949FilterBar(context, reconciliation),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Dispositions (${displayedEntries.length})',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'IRS Part I & II',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (displayedEntries.isEmpty)
+          SliverFillRemaining(
+            hasScrollBody: false,
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.description_outlined,
+                    size: 48,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    _form8949Year != null
+                        ? 'No realized dispositions recorded for $_form8949Year.'
+                        : 'No realized dispositions recorded.',
+                  ),
+                  if (_form8949Filter != 'all') ...[
+                    const SizedBox(height: 8),
+                    TextButton(
+                      onPressed: () {
+                        setState(() {
+                          _form8949Filter = 'all';
+                        });
+                      },
+                      child: const Text('Show All Dispositions'),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          )
+        else
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            sliver: SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  final entry = displayedEntries[index];
+                  return _buildForm8949EntryCard(
+                    context,
+                    entry,
+                    formatCurrency,
+                  );
+                },
+                childCount: displayedEntries.length,
+              ),
+            ),
+          ),
+        const SliverToBoxAdapter(
+          child: SizedBox(height: 24),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildForm8949Header(
+    BuildContext context,
+    Form8949Reconciliation reconciliation,
+    List<int?> availableYears,
+  ) {
+    return Card(
+      elevation: 0,
+      color: Theme.of(context)
+          .colorScheme
+          .surfaceContainerHighest
+          .withValues(alpha: 0.5),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(
+          color: Theme.of(context)
+              .colorScheme
+              .outlineVariant
+              .withValues(alpha: 0.5),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.receipt_long,
+                  color: Theme.of(context).colorScheme.primary,
+                  size: 24,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'IRS Form 8949 & Schedule D',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        'Capital gains dispositions & wash sale reconciliation',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 12,
+              runSpacing: 8,
+              alignment: WrapAlignment.spaceBetween,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                Wrap(
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 4,
+                  children: [
+                    const Text('Tax Year: ',
+                        style: TextStyle(fontWeight: FontWeight.w600)),
+                    DropdownButton<int?>(
+                      value: _form8949Year,
+                      isDense: true,
+                      borderRadius: BorderRadius.circular(12),
+                      items: availableYears.map((yr) {
+                        return DropdownMenuItem<int?>(
+                          value: yr,
+                          child: Text(yr != null ? '$yr' : 'All Years'),
+                        );
+                      }).toList(),
+                      onChanged: (yr) {
+                        setState(() {
+                          _form8949Year = yr;
+                        });
+                      },
+                    ),
+                  ],
+                ),
+                OutlinedButton.icon(
+                  onPressed: () => _exportForm8949Csv(context, reconciliation),
+                  icon: const Icon(Icons.file_download_outlined, size: 18),
+                  label: const Text('Export Form 8949 CSV'),
+                  style: OutlinedButton.styleFrom(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildForm8949SummaryCard(
+    BuildContext context,
+    Form8949Reconciliation reconciliation,
+    NumberFormat formatCurrency,
+  ) {
+    final stNet = reconciliation.shortTermTotals.totalGainOrLoss;
+    final ltNet = reconciliation.longTermTotals.totalGainOrLoss;
+    final grandNet = reconciliation.grandTotals.totalGainOrLoss;
+    final washTotal = reconciliation.totalWashSaleDisallowed;
+
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(
+          color: Theme.of(context)
+              .colorScheme
+              .outlineVariant
+              .withValues(alpha: 0.5),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: double.infinity,
+              child: Wrap(
+                alignment: WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 8,
+                runSpacing: 6,
+                children: [
+                  const Text(
+                    'Reconciliation Summary',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .primaryContainer
+                          .withValues(alpha: 0.5),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      'Boxes A & D Covered',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildForm8949MetricTile(
+                    context,
+                    'Part I: Short-Term',
+                    formatCurrency.format(stNet),
+                    '${reconciliation.shortTermEntries.length} dispositions',
+                    stNet >= 0 ? Colors.green : Colors.red,
+                  ),
+                ),
+                Container(
+                  height: 48,
+                  width: 1,
+                  color: Theme.of(context).colorScheme.outlineVariant,
+                  margin: const EdgeInsets.symmetric(horizontal: 8),
+                ),
+                Expanded(
+                  child: _buildForm8949MetricTile(
+                    context,
+                    'Part II: Long-Term',
+                    formatCurrency.format(ltNet),
+                    '${reconciliation.longTermEntries.length} dispositions',
+                    ltNet >= 0 ? Colors.green : Colors.red,
+                  ),
+                ),
+              ],
+            ),
+            const Divider(height: 24),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildForm8949MetricTile(
+                    context,
+                    'Wash Sale Disallowed',
+                    formatCurrency.format(washTotal),
+                    'Code W Added Back',
+                    Colors.orange,
+                  ),
+                ),
+                Container(
+                  height: 48,
+                  width: 1,
+                  color: Theme.of(context).colorScheme.outlineVariant,
+                  margin: const EdgeInsets.symmetric(horizontal: 8),
+                ),
+                Expanded(
+                  child: _buildForm8949MetricTile(
+                    context,
+                    'Schedule D Net Gain/Loss',
+                    formatCurrency.format(grandNet),
+                    'Line 16 Net Total',
+                    grandNet >= 0 ? Colors.green : Colors.red,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Theme.of(context)
+                    .colorScheme
+                    .surfaceContainerHighest
+                    .withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.info_outline,
+                    size: 16,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Column (h) = (d) Proceeds - (e) Cost + (g) Wash Sale Adjustment. Formatted for Schedule D Lines 1b and 8b.',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildForm8949MetricTile(
+    BuildContext context,
+    String label,
+    String value,
+    String subtitle,
+    Color valueColor,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 2),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: Text(
+            value,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: valueColor,
+            ),
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          subtitle,
+          style: TextStyle(
+            fontSize: 10,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildForm8949FilterBar(
+    BuildContext context,
+    Form8949Reconciliation reconciliation,
+  ) {
+    final washCount =
+        reconciliation.allEntries.where((e) => e.hasWashSale).length;
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          FilterChip(
+            label: Text('All (${reconciliation.allEntries.length})'),
+            selected: _form8949Filter == 'all',
+            onSelected: (sel) {
+              if (sel) setState(() => _form8949Filter = 'all');
+            },
+          ),
+          const SizedBox(width: 8),
+          FilterChip(
+            label: Text('Short-Term (${reconciliation.shortTermEntries.length})'),
+            selected: _form8949Filter == 'short_term',
+            onSelected: (sel) {
+              if (sel) setState(() => _form8949Filter = 'short_term');
+            },
+          ),
+          const SizedBox(width: 8),
+          FilterChip(
+            label: Text('Long-Term (${reconciliation.longTermEntries.length})'),
+            selected: _form8949Filter == 'long_term',
+            onSelected: (sel) {
+              if (sel) setState(() => _form8949Filter = 'long_term');
+            },
+          ),
+          const SizedBox(width: 8),
+          FilterChip(
+            label: Text('Wash Sales ($washCount)'),
+            selected: _form8949Filter == 'wash_sales',
+            avatar: washCount > 0
+                ? const Icon(Icons.warning_amber_rounded,
+                    size: 16, color: Colors.orange)
+                : null,
+            onSelected: (sel) {
+              if (sel) setState(() => _form8949Filter = 'wash_sales');
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildForm8949EntryCard(
+    BuildContext context,
+    Form8949Entry entry,
+    NumberFormat formatCurrency,
+  ) {
+    final dateFormat = DateFormat('MM/dd/yyyy');
+    final isGain = entry.gainOrLoss >= 0;
+    final gainColor = isGain ? Colors.green : Colors.red;
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: BorderSide(
+          color: entry.hasWashSale
+              ? Colors.orange.withValues(alpha: 0.4)
+              : Theme.of(context)
+                  .colorScheme
+                  .outlineVariant
+                  .withValues(alpha: 0.4),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    entry.description,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: entry.isLongTerm
+                        ? Colors.blue.withValues(alpha: 0.12)
+                        : Colors.purple.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    entry.isLongTerm
+                        ? 'Part II (Long-Term)'
+                        : 'Part I (Short-Term)',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: entry.isLongTerm
+                          ? Colors.blue.shade700
+                          : Colors.purple.shade700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            SizedBox(
+              width: double.infinity,
+              child: Wrap(
+                alignment: WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 8,
+                runSpacing: 4,
+                children: [
+                  Text(
+                    'Acq: ${dateFormat.format(entry.acquiredDate)} • Sold: ${dateFormat.format(entry.soldDate)} (${entry.holdingDays}d)',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  if (entry.hasWashSale)
+                    Container(
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        'Code W: +${formatCurrency.format(entry.adjustmentAmount)}',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.orange,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            const Divider(height: 18),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildDetailItem(
+                    context,
+                    'Proceeds (d)',
+                    formatCurrency.format(entry.proceeds),
+                  ),
+                ),
+                Expanded(
+                  child: _buildDetailItem(
+                    context,
+                    'Cost Basis (e)',
+                    formatCurrency.format(entry.costBasis),
+                  ),
+                ),
+                Expanded(
+                  child: _buildDetailItem(
+                    context,
+                    'Adj (g)',
+                    entry.adjustmentAmount > 0
+                        ? '+${formatCurrency.format(entry.adjustmentAmount)}'
+                        : '--',
+                  ),
+                ),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        'Gain/Loss (h)',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerRight,
+                        child: Text(
+                          (isGain ? '+' : '') +
+                              formatCurrency.format(entry.gainOrLoss),
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                            color: gainColor,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _exportForm8949Csv(
+    BuildContext context,
+    Form8949Reconciliation reconciliation,
+  ) async {
+    try {
+      final csvString = reconciliation.toCsv();
+      final bytes = utf8.encode(csvString);
+      final yearStr = reconciliation.taxYear != null
+          ? '${reconciliation.taxYear}'
+          : 'All';
+      final file = XFile.fromData(
+        bytes,
+        mimeType: 'text/csv',
+        name:
+            'Form_8949_Reconciliation_${yearStr}_${DateFormat('yyyyMMdd').format(DateTime.now())}.csv',
+      );
+
+      final box = context.findRenderObject() as RenderBox?;
+      final origin =
+          box != null ? box.localToGlobal(Offset.zero) & box.size : null;
+
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [file],
+          text: 'IRS Form 8949 & Schedule D Reconciliation ($yearStr)',
+          sharePositionOrigin: origin,
+        ),
+      );
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to export Form 8949 CSV: $e')),
+        );
+      }
+    }
   }
 }
