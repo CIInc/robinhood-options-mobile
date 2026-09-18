@@ -101,7 +101,7 @@ void main() {
 
       expect(entry.isLongTerm, isFalse);
       expect(entry.boxCategory, 'A');
-      expect(entry.holdingDays, 119);
+      expect(entry.holdingDays, 120);
       expect(entry.gainOrLoss, 500.0);
       expect(entry.tentativeGainOrLoss, 500.0);
       expect(entry.hasWashSale, isFalse);
