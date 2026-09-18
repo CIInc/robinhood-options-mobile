@@ -141,7 +141,8 @@ void main() {
       expect(find.text('10 / 15'), findsOneWidget);
 
       // Save allocations button should be disabled because total != 15
-      final saveButton = find.widgetWithText(FilledButton, 'Allocate 15 Shares to Confirm');
+      final saveButton =
+          find.widgetWithText(FilledButton, 'Allocate 15 Shares to Confirm');
       expect(saveButton, findsOneWidget);
 
       // Tap 'Max' on lot 2 to fill remaining 5 shares
@@ -152,7 +153,8 @@ void main() {
       expect(find.text('15 / 15'), findsOneWidget);
 
       // Confirm button is now enabled
-      final completeSaveButton = find.widgetWithText(FilledButton, 'Confirm Specified Lots');
+      final completeSaveButton =
+          find.widgetWithText(FilledButton, 'Confirm Specified Lots');
       expect(completeSaveButton, findsOneWidget);
 
       await tester.tap(completeSaveButton);
@@ -165,7 +167,9 @@ void main() {
   });
 
   group('TradeInstrumentWidget Tax Lot Matching UI Tests', () {
-    testWidgets('Displays Tax Lot Matching section on Sell orders with initial strategy', (tester) async {
+    testWidgets(
+        'Displays Tax Lot Matching section on Sell orders with initial strategy',
+        (tester) async {
       tester.view.physicalSize = const Size(1080, 2400);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() {
@@ -261,9 +265,12 @@ void main() {
         MultiProvider(
           providers: [
             ChangeNotifierProvider<AccountStore>.value(value: accountStore),
-            ChangeNotifierProvider<OrderTemplateStore>.value(value: orderTemplateStore),
-            ChangeNotifierProvider<AgenticTradingProvider>.value(value: agenticProvider),
-            ChangeNotifierProvider<PaperTradingStore>.value(value: paperTradingStore),
+            ChangeNotifierProvider<OrderTemplateStore>.value(
+                value: orderTemplateStore),
+            ChangeNotifierProvider<AgenticTradingProvider>.value(
+                value: agenticProvider),
+            ChangeNotifierProvider<PaperTradingStore>.value(
+                value: paperTradingStore),
           ],
           child: MaterialApp(
             home: TradeInstrumentWidget(

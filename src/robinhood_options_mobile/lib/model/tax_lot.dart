@@ -1,22 +1,27 @@
 /// Supported tax lot disposition strategies for equity sell orders.
 enum TaxLotStrategy {
   /// First In, First Out (default): Oldest shares acquired sold first.
-  fifo('FIFO', 'First In, First Out', 'Oldest shares sold first (brokerage default).'),
+  fifo('FIFO', 'First In, First Out',
+      'Oldest shares sold first (brokerage default).'),
 
   /// Last In, First Out: Most recently acquired shares sold first.
   lifo('LIFO', 'Last In, First Out', 'Newest shares sold first.'),
 
   /// Highest In, First Out: Highest cost basis shares sold first to maximize tax losses / minimize taxable gains.
-  hifo('HIFO', 'Highest In, First Out', 'Highest cost basis sold first to maximize capital losses.'),
+  hifo('HIFO', 'Highest In, First Out',
+      'Highest cost basis sold first to maximize capital losses.'),
 
   /// Lowest In, First Out: Lowest cost basis shares sold first (maximizes capital gains).
-  lofo('Low Cost', 'Lowest In, First Out', 'Lowest cost basis sold first to maximize realized gains.'),
+  lofo('Low Cost', 'Lowest In, First Out',
+      'Lowest cost basis sold first to maximize realized gains.'),
 
   /// Tax Minimizer: Prioritizes short-term losses, then long-term losses, then long-term gains, and short-term gains last.
-  taxMinimizer('Tax Minimizer', 'Tax Minimizer', 'Optimizes disposal across tax brackets and holding periods.'),
+  taxMinimizer('Tax Minimizer', 'Tax Minimizer',
+      'Optimizes disposal across tax brackets and holding periods.'),
 
   /// Specific Lots: User manually selects lots and allocates specific share quantities.
-  specified('Specified Lots', 'Specific Lot Selection', 'Manually select exact tax lots and allocated share quantities.');
+  specified('Specified Lots', 'Specific Lot Selection',
+      'Manually select exact tax lots and allocated share quantities.');
 
   final String shortName;
   final String label;
@@ -130,28 +135,36 @@ class TaxLot {
     return gain * rate;
   }
 
-  factory TaxLot.fromJson(Map<String, dynamic> json, {String defaultSymbol = ''}) {
-    final lotId = (json['open_lot_id'] ?? json['id'] ?? json['lot_id'] ?? '').toString();
+  factory TaxLot.fromJson(Map<String, dynamic> json,
+      {String defaultSymbol = ''}) {
+    final lotId =
+        (json['open_lot_id'] ?? json['id'] ?? json['lot_id'] ?? '').toString();
     final sym = (json['symbol'] ?? defaultSymbol).toString();
     final tranType = (json['open_tran_type'] ?? 'buy').toString();
     final ordId = json['order_id']?.toString();
 
     final qty = double.tryParse(json['quantity']?.toString() ?? '0') ?? 0.0;
-    final qtyAvail = double.tryParse(
-            json['quantity_available']?.toString() ?? json['available_quantity']?.toString() ?? qty.toString()) ??
+    final qtyAvail = double.tryParse(json['quantity_available']?.toString() ??
+            json['available_quantity']?.toString() ??
+            qty.toString()) ??
         qty;
-    final selectable = json['is_selectable'] == null ? true : (json['is_selectable'] == true);
+    final selectable =
+        json['is_selectable'] == null ? true : (json['is_selectable'] == true);
 
-    final costShare = double.tryParse(
-            json['cost_per_share']?.toString() ?? json['price']?.toString() ?? json['cost_basis_per_share']?.toString() ?? '0') ??
+    final costShare = double.tryParse(json['cost_per_share']?.toString() ??
+            json['price']?.toString() ??
+            json['cost_basis_per_share']?.toString() ??
+            '0') ??
         0.0;
 
-    final costBasis = double.tryParse(
-            json['tax_cost_basis']?.toString() ?? json['cost_basis']?.toString() ?? (costShare * qty).toString()) ??
+    final costBasis = double.tryParse(json['tax_cost_basis']?.toString() ??
+            json['cost_basis']?.toString() ??
+            (costShare * qty).toString()) ??
         (costShare * qty);
 
     DateTime parsedDate;
-    final rawDate = json['open_date'] ?? json['acquired_at'] ?? json['created_at'];
+    final rawDate =
+        json['open_date'] ?? json['acquired_at'] ?? json['created_at'];
     if (rawDate is DateTime) {
       parsedDate = rawDate;
     } else if (rawDate != null) {
@@ -217,7 +230,8 @@ class AllocatedLot {
   Map<String, dynamic> toOrderPayload() {
     return {
       'open_lot_id': lot.openLotId,
-      'quantity': allocatedQuantity.toStringAsFixed(allocatedQuantity % 1 == 0 ? 0 : 4),
+      'quantity':
+          allocatedQuantity.toStringAsFixed(allocatedQuantity % 1 == 0 ? 0 : 4),
     };
   }
 }

@@ -107,7 +107,8 @@ void main() {
       expect(TaxLotStrategy.fromApiKey('lifo'), TaxLotStrategy.lifo);
       expect(TaxLotStrategy.fromApiKey('hifo'), TaxLotStrategy.hifo);
       expect(TaxLotStrategy.fromApiKey('lofo'), TaxLotStrategy.lofo);
-      expect(TaxLotStrategy.fromApiKey('tax_optimizer'), TaxLotStrategy.taxMinimizer);
+      expect(TaxLotStrategy.fromApiKey('tax_optimizer'),
+          TaxLotStrategy.taxMinimizer);
       expect(TaxLotStrategy.fromApiKey('custom'), TaxLotStrategy.specified);
       expect(TaxLotStrategy.fromApiKey('specified'), TaxLotStrategy.specified);
     });
@@ -228,7 +229,9 @@ void main() {
       expect(allocation.taxSavingsVsFifo, closeTo(187.50, 0.01));
     });
 
-    test('HIFO Strategy: Allocates highest cost lots first to maximize tax losses', () {
+    test(
+        'HIFO Strategy: Allocates highest cost lots first to maximize tax losses',
+        () {
       // Sell 15 shares at current price $200
       // HIFO will select Lot D ($300) first, then Lot C ($250)
       final allocation = TaxOptimizationService.applyTaxLotStrategy(
@@ -245,7 +248,9 @@ void main() {
       expect(allocation.taxSavingsVsFifo, greaterThan(0.0));
     });
 
-    test('LOFO Strategy: Allocates lowest cost lots first to maximize realized gains', () {
+    test(
+        'LOFO Strategy: Allocates lowest cost lots first to maximize realized gains',
+        () {
       // Sell 15 shares at current price $200
       // LOFO will select Lot A ($100, lowest) first, then Lot B ($150)
       final allocation = TaxOptimizationService.applyTaxLotStrategy(
@@ -280,8 +285,10 @@ void main() {
       expect(allocation.totalAllocatedQuantity, 10.0);
       expect(allocation.allocatedLots.length, 2);
 
-      final lotAAlloc = allocation.allocatedLots.firstWhere((al) => al.lot.id == 'lot_A');
-      final lotCAlloc = allocation.allocatedLots.firstWhere((al) => al.lot.id == 'lot_C');
+      final lotAAlloc =
+          allocation.allocatedLots.firstWhere((al) => al.lot.id == 'lot_A');
+      final lotCAlloc =
+          allocation.allocatedLots.firstWhere((al) => al.lot.id == 'lot_C');
 
       expect(lotAAlloc.allocatedQuantity, 3.0);
       expect(lotCAlloc.allocatedQuantity, 7.0);
@@ -316,13 +323,13 @@ void main() {
       final payloadLots = allocation.toOrderPayloadLots();
       expect(payloadLots.length, 2);
       expect(
-        payloadLots.any(
-            (p) => p['open_lot_id'] == 'lot_B' && p['quantity'] == '4'),
+        payloadLots
+            .any((p) => p['open_lot_id'] == 'lot_B' && p['quantity'] == '4'),
         isTrue,
       );
       expect(
-        payloadLots.any(
-            (p) => p['open_lot_id'] == 'lot_D' && p['quantity'] == '6'),
+        payloadLots
+            .any((p) => p['open_lot_id'] == 'lot_D' && p['quantity'] == '6'),
         isTrue,
       );
     });

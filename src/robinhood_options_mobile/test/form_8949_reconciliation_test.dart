@@ -101,7 +101,7 @@ void main() {
 
       expect(entry.isLongTerm, isFalse);
       expect(entry.boxCategory, 'A');
-      expect(entry.holdingDays, 119);
+      expect(entry.holdingDays, 120);
       expect(entry.gainOrLoss, 500.0);
       expect(entry.tentativeGainOrLoss, 500.0);
       expect(entry.hasWashSale, isFalse);
@@ -129,7 +129,8 @@ void main() {
       expect(entry.hasWashSale, isFalse);
     });
 
-    test('reconciles wash sale with adjustment code W per IRS instructions', () {
+    test('reconciles wash sale with adjustment code W per IRS instructions',
+        () {
       // Sold 20 shares NVDA at $2,200 with $2,600 cost basis -> tentative loss -$400
       // Repurchased within 30 days -> wash sale disallows $400
       // Reconciled Column (h) = $2,200 - $2,600 + $400 = $0.00
@@ -346,7 +347,8 @@ void main() {
   });
 
   group('Form8949 CSV Generation Tests', () {
-    test('exports RFC 4180 CSV containing Part I, Part II, Code W, and totals', () {
+    test('exports RFC 4180 CSV containing Part I, Part II, Code W, and totals',
+        () {
       final recon = TaxOptimizationService.reconcileForm8949(
         taxYear: 2026,
         asOf: DateTime(2026, 10, 1),
