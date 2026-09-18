@@ -2201,20 +2201,6 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
       list.sort((a, b) => b.createdAt!.compareTo(a.createdAt!));
       yield list;
 
-      if (userDoc != null) {
-        // var len = list.length;
-        // var size = 30;
-        // List<List<InstrumentOrder>> chunks = [];
-        // for (var i = 0; i < len; i += size) {
-        //   var end = (i + size < len) ? i + size : len;
-        //   chunks.add(list.sublist(i, end));
-        // }
-        // for (var chunk in chunks) {
-        //   await _firestoreService.upsertInstrumentOrders(chunk, userDoc);
-        // }
-        await _firestoreService.upsertInstrumentOrders(list, userDoc);
-      }
-
       var instrumentIds = list.map((e) => e.instrumentId).toSet().toList();
       var instrumentObjs =
           await getInstrumentsByIds(user, instrumentStore, instrumentIds);
@@ -2225,6 +2211,14 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
           po.instrumentObj = instrumentObj;
         }
         yield list;
+      }
+    }
+
+    if (userDoc != null) {
+      try {
+        await _firestoreService.upsertInstrumentOrders(list, userDoc);
+      } catch (e) {
+        debugPrint('Firestore order sync error: $e');
       }
     }
     //positionOrders = list;

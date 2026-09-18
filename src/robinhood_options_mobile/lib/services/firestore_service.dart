@@ -648,6 +648,26 @@ class FirestoreService {
   //   }
   // }
 
+  /// Ensures all values in a parameters map passed to [HttpsCallable] are JSON-safe
+  /// primitives (null, num, bool, String, List, Map) as required by
+  /// [_debugIsValidParameterType] in package:cloud_functions.
+  static dynamic sanitizeForCallable(dynamic value) {
+    if (value == null) return null;
+    if (value is num) {
+      return value.isFinite ? value : null;
+    }
+    if (value is bool || value is String) return value;
+    if (value is DateTime) return value.toIso8601String();
+    if (value is Timestamp) return value.toDate().toIso8601String();
+    if (value is List) {
+      return value.map(sanitizeForCallable).toList();
+    }
+    if (value is Map) {
+      return value.map((k, v) => MapEntry(k.toString(), sanitizeForCallable(v)));
+    }
+    return value.toString();
+  }
+
   Future<void> upsertInstrumentOrders(
       List<InstrumentOrder> instrumentOrders, DocumentReference userDoc,
       {bool updateIfExists = true}) async {
@@ -659,13 +679,27 @@ class FirestoreService {
         'Firestore order sync: sending ${instrumentOrders.length} orders for ${userDoc.path}');
     final callable =
         FirebaseFunctions.instance.httpsCallable('syncInstrumentOrders');
+    final ordersPayload = instrumentOrders.map((order) {
+      final payload = order.toJson();
+      payload['created_at'] = order.createdAt?.toIso8601String();
+      payload['updated_at'] = order.updatedAt?.toIso8601String();
+      if (order.instrumentObj != null) {
+        payload['instrument_obj'] = {
+          'id': order.instrumentObj!.id,
+          'symbol': order.instrumentObj!.symbol,
+          'name': order.instrumentObj!.name,
+          'simple_name': order.instrumentObj!.simpleName,
+          'country': order.instrumentObj!.country,
+          'type': order.instrumentObj!.type,
+        };
+      } else {
+        payload.remove('instrument_obj');
+      }
+      return sanitizeForCallable(payload);
+    }).toList();
+
     final result = await callable.call({
-      'orders': instrumentOrders.map((order) {
-        final payload = order.toJson();
-        payload['created_at'] = order.createdAt?.toIso8601String();
-        payload['updated_at'] = order.updatedAt?.toIso8601String();
-        return payload;
-      }).toList(),
+      'orders': ordersPayload,
     }).timeout(const Duration(minutes: 2));
     debugPrint('Firestore order sync: server acknowledged ${result.data}');
   }
