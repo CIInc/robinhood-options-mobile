@@ -508,6 +508,7 @@ class _CorporateActionsWidgetState extends State<CorporateActionsWidget> {
         suffixIcon: _searchQuery.isNotEmpty
             ? IconButton(
                 icon: const Icon(Icons.clear, size: 18),
+                tooltip: 'Clear search',
                 onPressed: () {
                   _searchController.clear();
                   setState(() {

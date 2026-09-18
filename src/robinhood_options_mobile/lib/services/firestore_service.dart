@@ -27,6 +27,9 @@ import 'package:robinhood_options_mobile/model/trading_psychology_model.dart';
 import 'package:robinhood_options_mobile/model/group_activity.dart';
 import 'package:robinhood_options_mobile/model/group_analysis.dart';
 import 'package:robinhood_options_mobile/model/verified_track_record.dart';
+import 'package:robinhood_options_mobile/model/user_follow.dart';
+import 'package:robinhood_options_mobile/model/portfolio_privacy_settings.dart';
+import 'package:robinhood_options_mobile/model/top_portfolio_entry.dart';
 
 class FirestoreService {
   final FirebaseFirestore _db;
@@ -50,6 +53,10 @@ class FirestoreService {
   final String optionInstrumentCollectionName = 'option_instruments';
   final String optionMarketDataCollectionName = 'option_market_data';
   final String verifiedTrackRecordCollectionName = 'verified_track_records';
+  final String userFollowCollectionName = 'user_follows';
+  final String socialActivityCollectionName = 'social_activities';
+  final String topPortfolioCollectionName = 'top_portfolios';
+  final String socialTradeIdeaCollectionName = 'social_trade_ideas';
 
   /// A reference to the list of instruments.
   /// We are using `withConverter` to ensure that interactions with the collection
@@ -64,6 +71,13 @@ class FirestoreService {
   late final CollectionReference<User> userCollection =
       _db.collection(userCollectionName).withConverter<User>(
             fromFirestore: (snapshots, _) => User.fromJson(snapshots.data()!),
+            toFirestore: (obj, _) => obj.toJson(),
+          );
+
+  late final CollectionReference<UserFollow> userFollowCollection =
+      _db.collection(userFollowCollectionName).withConverter<UserFollow>(
+            fromFirestore: (snapshots, _) =>
+                UserFollow.fromJson(snapshots.data()!, snapshots.id),
             toFirestore: (obj, _) => obj.toJson(),
           );
 
@@ -98,6 +112,14 @@ class FirestoreService {
                 VerifiedTrackRecord.fromJson(snapshots.data()!, snapshots.id),
             toFirestore: (obj, _) => obj.toJson(),
           );
+
+  late final CollectionReference<TopPortfolioEntry> topPortfolioCollection = _db
+      .collection(topPortfolioCollectionName)
+      .withConverter<TopPortfolioEntry>(
+        fromFirestore: (snapshots, _) =>
+            TopPortfolioEntry.fromJson(snapshots.data()!, snapshots.id),
+        toFirestore: (obj, _) => obj.toJson(),
+      );
 
   /// User Methods
 
@@ -194,10 +216,14 @@ class FirestoreService {
       // CollectionReference<User> usersCollection,
       {String? searchTerm,
       UserRole? userRole,
+      bool onlyPublic = true,
       int limit = -1,
       String sort = 'dateUpdated',
       bool sortDescending = true}) {
     Query<User> query = userCollection;
+    if (onlyPublic) {
+      query = query.where('portfolioPrivacy.isPublic', isEqualTo: true);
+    }
     if (searchTerm != null && searchTerm.isNotEmpty) {
       query = query
           .where('nameLower', isGreaterThanOrEqualTo: searchTerm.toLowerCase())
@@ -2319,6 +2345,497 @@ class FirestoreService {
       debugPrint("Emotion log deleted: $logId");
     } on FirebaseException catch (e) {
       debugPrint('Failed to delete emotion log: ${e.message}');
+      rethrow;
+    }
+  }
+
+  // ==========================================
+  // FOLLOW PORTFOLIO & SOCIAL ENGAGEMENT (#27)
+  // ==========================================
+
+  /// Follow a user and their portfolio
+  Future<void> followUser({
+    required String currentUserId,
+    required String currentUserName,
+    String? currentUserPhotoUrl,
+    required String targetUserId,
+    required String targetUserName,
+    String? targetUserPhotoUrl,
+    bool notificationsEnabled = true,
+  }) async {
+    final followId = '${currentUserId}_$targetUserId';
+    final now = DateTime.now();
+
+    final follow = UserFollow(
+      id: followId,
+      followerId: currentUserId,
+      followerName: currentUserName,
+      followerPhotoUrl: currentUserPhotoUrl,
+      followingId: targetUserId,
+      followingName: targetUserName,
+      followingPhotoUrl: targetUserPhotoUrl,
+      createdAt: now,
+      notificationsEnabled: notificationsEnabled,
+    );
+
+    // Write to root collection
+    await userFollowCollection.doc(followId).set(follow);
+
+    // Also write to user subcollections for indexed querying
+    await _db
+        .collection(userCollectionName)
+        .doc(currentUserId)
+        .collection('following')
+        .doc(targetUserId)
+        .set(follow.toJson());
+
+    await _db
+        .collection(userCollectionName)
+        .doc(targetUserId)
+        .collection('followers')
+        .doc(currentUserId)
+        .set(follow.toJson());
+
+    // Update counts on user documents
+    try {
+      await _db
+          .collection(userCollectionName)
+          .doc(currentUserId)
+          .update({'followingCount': FieldValue.increment(1)});
+    } catch (_) {}
+
+    try {
+      await _db
+          .collection(userCollectionName)
+          .doc(targetUserId)
+          .update({'followersCount': FieldValue.increment(1)});
+    } catch (_) {}
+  }
+
+  /// Unfollow a user
+  Future<void> unfollowUser(String currentUserId, String targetUserId) async {
+    final followId = '${currentUserId}_$targetUserId';
+
+    await userFollowCollection.doc(followId).delete();
+
+    await _db
+        .collection(userCollectionName)
+        .doc(currentUserId)
+        .collection('following')
+        .doc(targetUserId)
+        .delete();
+
+    await _db
+        .collection(userCollectionName)
+        .doc(targetUserId)
+        .collection('followers')
+        .doc(currentUserId)
+        .delete();
+
+    try {
+      await _db
+          .collection(userCollectionName)
+          .doc(currentUserId)
+          .update({'followingCount': FieldValue.increment(-1)});
+    } catch (_) {}
+
+    try {
+      await _db
+          .collection(userCollectionName)
+          .doc(targetUserId)
+          .update({'followersCount': FieldValue.increment(-1)});
+    } catch (_) {}
+  }
+
+  /// Check whether current user is following target user as a stream
+  Stream<bool> isFollowingStream(String currentUserId, String targetUserId) {
+    final followId = '${currentUserId}_$targetUserId';
+    return userFollowCollection
+        .doc(followId)
+        .snapshots()
+        .map((doc) => doc.exists);
+  }
+
+  /// Check whether current user is following target user once
+  Future<bool> isFollowing(String currentUserId, String targetUserId) async {
+    final followId = '${currentUserId}_$targetUserId';
+    final doc = await userFollowCollection.doc(followId).get();
+    return doc.exists;
+  }
+
+  /// Get stream of users that [userId] is following
+  Stream<List<UserFollow>> getFollowingStream(String userId) {
+    return _db
+        .collection(userCollectionName)
+        .doc(userId)
+        .collection('following')
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => UserFollow.fromJson(doc.data(), doc.id))
+            .toList());
+  }
+
+  /// Get stream of followers for [userId]
+  Stream<List<UserFollow>> getFollowersStream(String userId) {
+    return _db
+        .collection(userCollectionName)
+        .doc(userId)
+        .collection('followers')
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => UserFollow.fromJson(doc.data(), doc.id))
+            .toList());
+  }
+
+  /// Update notification preferences for a followed user
+  Future<void> updateFollowNotification(
+    String currentUserId,
+    String targetUserId,
+    bool notificationsEnabled,
+  ) async {
+    final followId = '${currentUserId}_$targetUserId';
+    await userFollowCollection
+        .doc(followId)
+        .update({'notificationsEnabled': notificationsEnabled});
+
+    await _db
+        .collection(userCollectionName)
+        .doc(currentUserId)
+        .collection('following')
+        .doc(targetUserId)
+        .update({'notificationsEnabled': notificationsEnabled});
+  }
+
+  /// Get user's portfolio privacy settings
+  Future<PortfolioPrivacySettings> getUserPortfolioPrivacy(
+      String userId) async {
+    try {
+      final doc = await userCollection.doc(userId).get();
+      if (doc.exists && doc.data() != null) {
+        return doc.data()!.portfolioPrivacy ?? const PortfolioPrivacySettings();
+      }
+    } catch (e) {
+      debugPrint('Error getting user portfolio privacy: $e');
+    }
+    return const PortfolioPrivacySettings();
+  }
+
+  /// Update user's portfolio privacy settings
+  Future<void> updateUserPortfolioPrivacy(
+    String userId,
+    PortfolioPrivacySettings settings,
+  ) async {
+    await _db.collection(userCollectionName).doc(userId).update({
+      'portfolioPrivacy': settings.toJson(),
+      'dateUpdated': DateTime.now(),
+    });
+  }
+
+  /// Stream of activities across followed users
+  Stream<List<GroupActivity>> getFollowedUsersActivitiesStream(
+    List<String> followedUserIds, {
+    int limit = 30,
+  }) {
+    if (followedUserIds.isEmpty) {
+      return Stream.value([]);
+    }
+    final queryIds = followedUserIds.take(30).toList();
+    return _db
+        .collection(socialActivityCollectionName)
+        .where('userId', whereIn: queryIds)
+        .orderBy('timestamp', descending: true)
+        .limit(limit)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => GroupActivity.fromJson(doc.data(), doc.id))
+            .toList());
+  }
+
+  /// Record a public trade activity if user's privacy settings permit it
+  Future<void> recordUserTradeActivity({
+    required String userId,
+    required String userName,
+    String? userPhotoUrl,
+    required String title,
+    String? description,
+    required String symbol,
+    required String side,
+    required double quantity,
+    required double price,
+    String? orderType,
+    String? assetType,
+    Map<String, dynamic>? details,
+  }) async {
+    final privacy = await getUserPortfolioPrivacy(userId);
+    if (!privacy.isPublic || !privacy.showTrades) {
+      debugPrint('Trade activity not published due to user privacy settings');
+      return;
+    }
+
+    final activity = GroupActivity(
+      id: '',
+      groupId: 'public_social_feed',
+      userId: userId,
+      userName: userName,
+      userPhotoUrl: userPhotoUrl,
+      type: GroupActivityType.trade,
+      title: title,
+      description: description,
+      timestamp: DateTime.now(),
+      symbol: symbol,
+      side: side,
+      quantity: quantity,
+      price: price,
+      orderType: orderType,
+      assetType: assetType,
+      details: details,
+      isAnonymous: false,
+      hideAmounts: !privacy.showTradeAmounts,
+    );
+
+    await _db.collection(socialActivityCollectionName).add(activity.toJson());
+  }
+
+  // ==========================================
+  // TOP PORTFOLIOS LEADERBOARD & REPUTATION (#26)
+  // ==========================================
+
+  /// Upsert a top portfolio entry directly into the top_portfolios collection
+  Future<void> setTopPortfolioEntry(TopPortfolioEntry entry) async {
+    await topPortfolioCollection.doc(entry.userId).set(entry);
+  }
+
+  /// Get a single top portfolio entry by user ID
+  Future<TopPortfolioEntry?> getTopPortfolioEntry(String userId) async {
+    try {
+      final doc = await topPortfolioCollection.doc(userId).get();
+      if (doc.exists && doc.data() != null) {
+        return doc.data();
+      }
+    } catch (e) {
+      debugPrint('Error fetching top portfolio entry: $e');
+    }
+    return null;
+  }
+
+  /// Stream of top portfolios leaderboard entries with period filtering and sorting
+  Stream<List<TopPortfolioEntry>> getTopPortfoliosStream({
+    LeaderboardTimePeriod period = LeaderboardTimePeriod.allTime,
+    LeaderboardSortOption sortBy = LeaderboardSortOption.totalReturn,
+    bool verifiedOnly = false,
+    bool onlyPublic = true,
+    int limit = 50,
+  }) {
+    return verifiedTrackRecordCollection
+        .snapshots()
+        .asyncMap((verifiedSnapshot) async {
+      final Map<String, TopPortfolioEntry> entriesMap = {};
+
+      for (var doc in verifiedSnapshot.docs) {
+        final record = doc.data();
+        bool isPublic = false;
+        int followersCount = 0;
+        int followingCount = 0;
+        String? location;
+
+        try {
+          final userDoc = await userCollection.doc(record.userId).get();
+          if (userDoc.exists && userDoc.data() != null) {
+            final user = userDoc.data()!;
+            final privacy =
+                user.portfolioPrivacy ?? const PortfolioPrivacySettings();
+            isPublic = privacy.isPublic;
+            followersCount = user.followersCount;
+            followingCount = user.followingCount;
+            location = user.location;
+          }
+        } catch (_) {
+          // Fail-closed: If reading user fails or is denied, isPublic remains false
+        }
+
+        if (onlyPublic && !isPublic) {
+          continue;
+        }
+
+        if (verifiedOnly && !record.isVerified) {
+          continue;
+        }
+
+        final Map<String, double> periodReturns = {
+          '1W': (record.monthlyReturns['1W'] ??
+              (record.verifiedReturnPercent * 0.15)),
+          '1M': (record.monthlyReturns['1M'] ??
+              (record.verifiedReturnPercent * 0.35)),
+          '3M': (record.monthlyReturns['3M'] ??
+              (record.verifiedReturnPercent * 0.65)),
+          '1Y': (record.monthlyReturns['1Y'] ?? record.verifiedReturnPercent),
+          'ALL': record.verifiedReturnPercent,
+        };
+
+        final reputation = UserReputation.calculate(
+          trackRecord: record,
+          returnPercent: record.verifiedReturnPercent,
+          winRate: record.verifiedWinRate,
+          totalTrades: record.totalTradesAudited,
+          followersCount: followersCount,
+        );
+
+        final entry = TopPortfolioEntry(
+          userId: record.userId,
+          userName: record.userName,
+          userPhotoUrl: record.userPhotoUrl,
+          location: location,
+          followersCount: followersCount,
+          followingCount: followingCount,
+          isPublic: isPublic,
+          returnPercent: record.verifiedReturnPercent,
+          winRate: record.verifiedWinRate,
+          totalTrades: record.totalTradesAudited,
+          winningTrades: record.winningTrades,
+          losingTrades: record.losingTrades,
+          sharpeRatio: record.sharpeRatio,
+          maxDrawdownPercent: record.maxDrawdownPercent,
+          profitFactor: record.profitFactor,
+          periodReturns: periodReturns,
+          verifiedTrackRecord: record,
+          reputation: reputation,
+        );
+
+        entriesMap[entry.userId] = entry;
+      }
+
+      // Also merge entries from topPortfolioCollection if present
+      try {
+        final topSnapshot =
+            await _db.collection(topPortfolioCollectionName).get();
+        for (var doc in topSnapshot.docs) {
+          final id = doc.id;
+          final entry = TopPortfolioEntry.fromJson(doc.data(), id);
+          if (onlyPublic && !entry.isPublic) continue;
+          if (verifiedOnly && !entry.isVerified) continue;
+          if (!entriesMap.containsKey(id)) {
+            entriesMap[id] = entry;
+          }
+        }
+      } catch (_) {}
+
+      final entries = entriesMap.values.toList();
+
+      // Sort entries
+      entries.sort((a, b) {
+        switch (sortBy) {
+          case LeaderboardSortOption.totalReturn:
+            return b
+                .returnForPeriod(period)
+                .compareTo(a.returnForPeriod(period));
+          case LeaderboardSortOption.sharpeRatio:
+            return b.sharpeRatio.compareTo(a.sharpeRatio);
+          case LeaderboardSortOption.winRate:
+            return b.winRate.compareTo(a.winRate);
+          case LeaderboardSortOption.reputationScore:
+            return b.reputation.score.compareTo(a.reputation.score);
+          case LeaderboardSortOption.followersCount:
+            return b.followersCount.compareTo(a.followersCount);
+        }
+      });
+
+      // Assign ranks and limit
+      final ranked = <TopPortfolioEntry>[];
+      for (int i = 0; i < entries.length && i < limit; i++) {
+        ranked.add(entries[i].copyWith(rank: i + 1));
+      }
+
+      return ranked;
+    });
+  }
+
+  /// Stream of shared social trade ideas (investment theses & strategy posts)
+  Stream<List<GroupAnalysisPost>> getSocialTradeIdeasStream({
+    List<String>? authorIds,
+    String? symbol,
+    GroupAnalysisSentiment? sentiment,
+    int limit = 30,
+  }) {
+    Query<Map<String, dynamic>> query = _db
+        .collection(socialTradeIdeaCollectionName)
+        .orderBy('createdAt', descending: true);
+
+    if (authorIds != null && authorIds.isNotEmpty) {
+      final queryIds = authorIds.take(30).toList();
+      query = query.where('authorId', whereIn: queryIds);
+    }
+    if (symbol != null && symbol.isNotEmpty) {
+      query = query.where('symbol', isEqualTo: symbol.toUpperCase());
+    }
+    if (sentiment != null) {
+      query = query.where('sentiment', isEqualTo: sentiment.name);
+    }
+
+    return query.limit(limit).snapshots().map((snapshot) => snapshot.docs
+        .map((doc) => GroupAnalysisPost.fromJson(doc.data(), doc.id))
+        .toList());
+  }
+
+  /// Create and publish a shared trade idea into the social feed
+  Future<DocumentReference> createSocialTradeIdea(
+      GroupAnalysisPost post) async {
+    try {
+      final data = post.toJson();
+      final docRef =
+          await _db.collection(socialTradeIdeaCollectionName).add(data);
+      debugPrint('Social trade idea published: ${docRef.id}');
+      return docRef;
+    } on FirebaseException catch (e) {
+      debugPrint('Failed to create social trade idea: ${e.message}');
+      rethrow;
+    }
+  }
+
+  /// Toggle like on a social trade idea
+  Future<void> toggleLikeSocialTradeIdea(String ideaId, String userId) async {
+    try {
+      final docRef = _db.collection(socialTradeIdeaCollectionName).doc(ideaId);
+      final doc = await docRef.get();
+      if (!doc.exists) return;
+      final data = doc.data() ?? {};
+      List<String> likes = List<String>.from(data['likes'] ?? []);
+      if (likes.contains(userId)) {
+        likes.remove(userId);
+      } else {
+        likes.add(userId);
+      }
+      await docRef.update({'likes': likes});
+    } on FirebaseException catch (e) {
+      debugPrint('Failed to toggle like on trade idea: ${e.message}');
+      rethrow;
+    }
+  }
+
+  /// Update an existing social trade idea
+  Future<void> updateSocialTradeIdea(GroupAnalysisPost post) async {
+    try {
+      final updatedPost = post.copyWith(updatedAt: DateTime.now());
+      final data = updatedPost.toJson();
+      await _db
+          .collection(socialTradeIdeaCollectionName)
+          .doc(post.id)
+          .update(data);
+      debugPrint('Social trade idea updated: ${post.id}');
+    } on FirebaseException catch (e) {
+      debugPrint('Failed to update social trade idea: ${e.message}');
+      rethrow;
+    }
+  }
+
+  /// Delete a social trade idea
+  Future<void> deleteSocialTradeIdea(String ideaId) async {
+    try {
+      await _db.collection(socialTradeIdeaCollectionName).doc(ideaId).delete();
+      debugPrint('Social trade idea deleted: $ideaId');
+    } on FirebaseException catch (e) {
+      debugPrint('Failed to delete social trade idea: ${e.message}');
       rethrow;
     }
   }

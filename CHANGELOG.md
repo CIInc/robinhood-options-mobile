@@ -2,6 +2,80 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.47.0] - 2026-09-16
+**Social Platform & Performance Following: Follow Portfolios, Privacy Controls, Masked Public Views & Activity Feed**
+
+### Added
+- **Social Feed for Shared Trade Ideas & Strategy Cloning ([#24](https://github.com/CIInc/robinhood-options-mobile/issues/24)):**
+  - Upgraded `FollowingActivityFeedWidget` (`lib/widgets/following_activity_feed_widget.dart`) to a unified multi-stream social hub with 4 dedicated tabs:
+    - `All`: Interleaved real-time feed combining executed trades and investment theses sorted by activity timestamp.
+    - `Trade Ideas`: Curated feed of investment theses from followed traders with sentiment filtering (`Bullish`, `Bearish`, `Neutral`).
+    - `Trades`: Direct trade activity feed from followed traders with quick `Copy` actions.
+    - `Community`: Global public trade ideas and strategies from top-ranked traders across the platform.
+  - Implemented rich trade idea cards featuring author reputation tier, verified trust badge, symbol highlight, sentiment indicators, price targets (entry, target, stop loss), dynamic risk/reward ratio, and potential return % calculations.
+  - Added 1-tap **"Clone Strategy"** action button on shared trade ideas that automatically prepares an `InstrumentOrder` and opens `showCopyTradeDialog` for instant trade mirroring.
+  - Created `ShareTradeIdeaSheet` (`lib/widgets/share_trade_idea_sheet.dart`): Interactive modal sheet allowing users to compose and publish investment theses with live potential return and risk/reward preview.
+  - Added Firestore service methods (`lib/services/firestore_service.dart`):
+    - `getSocialTradeIdeasStream`: Real-time query for trade ideas supporting author filtering, symbol lookup, and sentiment categorization.
+    - `createSocialTradeIdea`: Cloud persistence of investment theses with structured metadata.
+    - `toggleLikeSocialTradeIdea`: Atomic like counters on trade ideas.
+    - `deleteSocialTradeIdea`: Deletion handler for author idea management.
+  - Added test suites:
+    - `test/social_trade_ideas_service_test.dart`: 4 unit & integration tests covering trade idea creation, multi-attribute querying, atomic likes, and deletion against `FakeFirebaseFirestore`.
+    - `test/following_activity_feed_widget_test.dart`: 6 widget tests verifying multi-tab rendering, interleaved streams, sentiment filters, community feed, and the idea composition sheet.
+- **Top Portfolios Leaderboard & User Reputation System ([#26](https://github.com/CIInc/robinhood-options-mobile/issues/26)):**
+  - Created domain models `TopPortfolioEntry`, `UserReputation`, `ReputationTier`, `LeaderboardTimePeriod`, and `LeaderboardSortOption` (`lib/model/top_portfolio_entry.dart`).
+  - Built objective 0–100 reputation scoring algorithm (`UserReputation.calculate`) with multi-pillar evaluation:
+    - Brokerage verification status & tier (up to 35 pts)
+    - Win rate consistency (up to 25 pts)
+    - Cumulative return & P&L (up to 20 pts)
+    - Trade volume & execution longevity (up to 10 pts)
+    - Follower community trust (up to 10 pts)
+  - Created 5 reputation tiers (`novice`, `activeTrader`, `trustedTrader`, `eliteTrader`, `masterTrader`) with visual badges, icons, and theme-adaptive colors.
+  - Added Firestore service methods (`lib/services/firestore_service.dart`):
+    - `getTopPortfoliosStream`: Real-time leaderboard stream supporting time horizon filtering (`1W`, `1M`, `3M`, `1Y`, `ALL`), sorting (`totalReturn`, `sharpeRatio`, `winRate`, `reputationScore`, `followersCount`), `verifiedOnly` filtering, and `onlyPublic` privacy safeguards.
+    - `setTopPortfolioEntry` & `getTopPortfolioEntry`: CRUD operations for top portfolio snapshots.
+  - Implemented `TopPortfoliosLeaderboardWidget` (`lib/widgets/top_portfolios_leaderboard_widget.dart`):
+    - Olympic-style Top 3 Podium featuring elevated pedestals, gold/silver/bronze medals, and trader return badges.
+    - Time-period selector chips (`1W`, `1M`, `3M`, `1Y`, `ALL`) and sort chips.
+    - Real-time Cupertino search filter by trader name and location.
+    - Ranked leaderboard cards with rank badges (#1 to #N), trader avatars, reputation tier chips, return % highlight, and mini performance metric chips (Win Rate, Sharpe ratio, Max Drawdown, Total Trades, Followers).
+    - Direct 1-tap Follow/Unfollow action button updating Firestore in real-time.
+    - Modal bottom sheet detailing the User Reputation scoring breakdown and tier definitions.
+    - Filter dialog for toggling "Verified Only" and "Public Portfolios Only".
+  - Enhanced `InvestorGroupsWidget` with a direct AppBar action button for Top Portfolios Leaderboard.
+  - Enhanced `UsersWidget` with an AppBar action button and interactive leaderboard promo banner.
+  - Enhanced `UserListTile` to display the trader's reputation tier badge alongside follower metrics.
+  - Added test suites:
+    - `test/top_portfolios_model_test.dart`: 7 unit tests covering reputation score calculations, tier classifications, period return fallbacks, and model serialization.
+    - `test/top_portfolios_service_test.dart`: 6 integration tests verifying stream filtering (public/private, verified-only), period returns, and sorting against `FakeFirebaseFirestore`.
+    - `test/top_portfolios_leaderboard_widget_test.dart`: 5 widget tests verifying leaderboard rendering, podium display, period switching, search filtering, and the reputation system modal sheet.
+- **Follow Portfolios ([#27](https://github.com/CIInc/robinhood-options-mobile/issues/27)):**
+  - Created domain models `UserFollow` (`lib/model/user_follow.dart`) and `PortfolioPrivacySettings` (`lib/model/portfolio_privacy_settings.dart`) with serialization, deserialization, and `copyWith` support.
+  - Added user model enhancements (`lib/model/user.dart`): added `portfolioPrivacy`, `followersCount`, and `followingCount` fields with resilient date/timestamp handling.
+  - Added Firestore service methods (`lib/services/firestore_service.dart`):
+    - `followUser`: Persists follow relationships in `user_follows` and updates follower/following subcollections and atomic user counters.
+    - `unfollowUser`: Removes follow relationship and atomically decrements counters.
+    - `isFollowingStream` & `isFollowing`: Real-time and one-shot checks for follow status.
+    - `getFollowingStream` & `getFollowersStream`: Stream lists of users following or followed by a user.
+    - `updateFollowNotification`: Mute/unmute trade notifications on a per-followed-user basis.
+    - `getUserPortfolioPrivacy` & `updateUserPortfolioPrivacy`: Manage user portfolio privacy preferences.
+    - `getFollowedUsersActivitiesStream`: Stream real-time trade activities from all followed users.
+    - `recordUserTradeActivity`: Record trade and order events into `social_activities` collection for followed feeds.
+  - Built Privacy & Social UI:
+    - `PortfolioPrivacySheet` (`lib/widgets/portfolio_privacy_sheet.dart`): Modal bottom sheet with switch tiles for public profile, trade amounts masking, holdings visibility, trades visibility, and follower permissions.
+    - `UserFollowListDialog` (`lib/widgets/user_follow_list_dialog.dart`): Tabbed modal displaying Followers and Following lists with real-time search, follow/unfollow toggle, and user navigation.
+    - `FollowingActivityFeedWidget` (`lib/widgets/following_activity_feed_widget.dart`): Streaming feed of followed traders' activities with filter chips (All, Stocks, Options, Buys, Sells) and 1-tap copy-trading dialog.
+    - Enhanced `UserWidget` (`lib/widgets/user_widget.dart`):
+      - Social profile header with follower and following counters, follow/unfollow action button, and notification bell toggle.
+      - Privacy-first public portfolio view (`_buildPublicPortfolioView`) with `$***` amount masking, verified track record badge, holdings list, and recent trade activity with copy trading.
+      - "Portfolio & Social Privacy" and "Following Activity Feed" options on personal profile.
+    - Enhanced `UserListTileWidget` (`lib/widgets/user_listtile_widget.dart`): Added follower count chip when user has active followers.
+    - Enhanced `InvestorGroupsWidget` (`lib/widgets/investor_groups_widget.dart`): Added direct app bar action for Following Activity Feed.
+  - Added test suites:
+    - `test/user_follow_test.dart`: 5 unit tests for `UserFollow` and `PortfolioPrivacySettings` model serialization, deserialization, and `copyWith`.
+    - `test/follow_portfolio_service_test.dart`: 4 comprehensive integration tests verifying follow/unfollow flows, counter increments/decrements, privacy updates, notification toggles, and trade activity feeds against `FakeFirebaseFirestore`.
+
 ## [0.46.0] - 2026-09-16
 **Investor Groups 2.0: Group Activity Feed, Group Chat, Shared Analysis Boards, Performance Leaderboards, Verified Track Records, Schwab API Market Data Parsing & Copy-Trading Performance Optimization**
 
@@ -65,6 +139,17 @@ All notable changes to this project will be documented in this file.
   - Added unit test coverage in `functions/tests/copy-trading.test.ts`.
 - **Agentic Trading Gamma Exposure (GEX) Fallback:**
   - Enhanced fallback handling in `functions/src/agentic-agent.ts` and `functions/src/gamma-exposure.ts` to gracefully fallback to deterministic technical and macro indicators when dealer gamma levels or zero-crossing strikes are unavailable.
+- **Gemini 2.5 Retirement & Migration to Gemini 3.1 Flash-Lite with Token & Cost Optimizations:**
+  - Reviewed the retirement schedule of Google Gemini 2.5 (Pro, Flash, Flash-Lite slated for discontinuation no earlier than October 16, 2026) and migrated all AI models to **Gemini 3.1 Flash-Lite** (`gemini-3.1-flash-lite`) for low latency, sub-second response, and high-throughput execution.
+  - **Token & Cost Optimizations:** Implemented systematic output token bounds, input prompt compression, and server-side caching to offset the pricing difference between 2.5 Flash-Lite and 3.1 Flash-Lite:
+    - Added strict output limits (`maxOutputTokens: 120` on `signal-optimizer.ts`, `250` on `agentic-agent.ts`, `400` on `analyzePriceTargets`, `450` on `macro-agent.ts`, and `800` on `generateContent31`/`generateContent25`), curbing billable generation and reasoning tokens by 50%–70%.
+    - Enforced tight sampling temperatures (`0.1 - 0.4`) for deterministic, compact responses without rambling.
+    - Compressed input vectors in `signal-optimizer.ts` (pruning historical price/volume series from 10 points to 5 points) and trimmed verbose prompt definitions in `generative_service.dart`.
+    - Implemented shared Firestore caching with a 2-hour TTL for macroeconomic AI narratives in `macro-agent.ts`, preventing duplicate LLM calls across concurrent users.
+  - **Cloud Functions:** Upgraded `generateContent25` and `analyzePriceTargets` in `gemini.ts`, `macro-agent.ts`, `agentic-agent.ts`, and `signal-optimizer.ts` to `gemini-3.1-flash-lite`.
+  - **New Primary Callables:** Exported `generateContent31` (along with `generateContent35`, `generateContent38`, and `generateContent3` compatibility aliases) in `index.ts` with Google Search grounding tool support while maintaining backward compatibility on `generateContent25` for existing app versions.
+  - **Flutter Client:** Updated default `ai_model_name` in `RemoteConfigService` and model initialization in `GenerativeService` to `gemini-3.1-flash-lite` with `GenerationConfig(maxOutputTokens: 1024, temperature: 0.5)`. Added cascading fallback invocation (`generateContent31` -> `generateContent35` -> `generateContent38` -> `generateContent25`) and robust candidate response parsing in `generateContentFromServer` and `generateContent`.
+  - **Test & Docs:** Updated mock AI models in `test/firebase_mocks.dart` and refreshed all references across documentation (`README.md`, `price-targets.md`, `ai-asset-allocation.md`, `mcp-integration.md`, `agentic-trading.md`).
 
 ## [0.45.0] - 2026-09-14
 **Multi-Account & Retirement Expansion, Corporate Action Split Adjustments, Cash-in-Lieu Tracking, Securities Lending (SLIP), High-Yield Cash Sweeps, Banking/ACH Transfers, Tax Documents & Shareholder Say Q&A Engagement**

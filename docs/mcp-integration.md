@@ -1,6 +1,6 @@
 # Robinhood Model Context Protocol (MCP) Integration
 
-RealizeAlpha integrates a highly secure, local **Model Context Protocol (MCP)** execution framework powered by [package:mcp_dart](src/robinhood_options_mobile/pubspec.yaml). This integration enables conversational generative models (specifically Gemini 2.5) to interact natively with your active Robinhood trading accounts on-device without exposing private tokens, brokerage API credentials, or trading secrets to untrusted remote cloud environments.
+RealizeAlpha integrates a highly secure, local **Model Context Protocol (MCP)** execution framework powered by [package:mcp_dart](src/robinhood_options_mobile/pubspec.yaml). This integration enables conversational generative models (specifically Gemini 3.1 Flash-Lite) to interact natively with your active Robinhood trading accounts on-device without exposing private tokens, brokerage API credentials, or trading secrets to untrusted remote cloud environments.
 
 ---
 

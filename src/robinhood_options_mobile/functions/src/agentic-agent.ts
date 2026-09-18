@@ -1,5 +1,5 @@
 import * as logger from "firebase-functions/logger";
-import { VertexAI } from "@google-cloud/vertexai";
+import { GoogleGenAI } from "@google/genai";
 
 /**
  * Handle Agentic decision making using a full prompt derived from wip repo.
@@ -29,16 +29,8 @@ export async function handleAgenticDecision(
     throw new Error("GEMINI_API_KEY not found in environment secrets.");
   }
 
-  const vertexAI = new VertexAI({
-    project: "realizealpha",
-    location: "us-central1",
-  });
-
-  const model = vertexAI.getGenerativeModel({
-    model: "gemini-2.5-flash-lite",
-    generationConfig: {
-      responseMimeType: "application/json",
-    },
+  const ai = new GoogleGenAI({
+    apiKey: process.env.GEMINI_API_KEY,
   });
 
   const lastPrice = marketData.closes[marketData.closes.length - 1];
@@ -176,14 +168,41 @@ Output ONLY the JSON.
 `;
 
   try {
-    const { response } = await model.generateContent({
-      contents: [{ role: "user", parts: [{ text: fullPrompt }] }],
-      generationConfig: {
-        responseMimeType: "application/json",
-      },
-    });
+    const primaryModel = process.env.AI_MODEL_NAME || "gemini-3.1-flash-lite";
+    let response;
+    try {
+      response = await ai.models.generateContent({
+        model: primaryModel,
+        contents: fullPrompt,
+        config: {
+          responseMimeType: "application/json",
+          maxOutputTokens: 250,
+          temperature: 0.1,
+        },
+      });
+    } catch (modelErr) {
+      if (primaryModel !== "gemini-2.5-flash-lite") {
+        logger.warn(
+          `Model ${primaryModel} failed in agentic decision, ` +
+          "falling back to gemini-2.5-flash-lite",
+          modelErr,
+        );
+        response = await ai.models.generateContent({
+          model: "gemini-2.5-flash-lite",
+          contents: fullPrompt,
+          config: {
+            responseMimeType: "application/json",
+            maxOutputTokens: 250,
+            temperature: 0.1,
+          },
+        });
+      } else {
+        throw modelErr;
+      }
+    }
 
-    const text = response.candidates?.[0].content.parts[0].text;
+    const text = response.text ||
+      response.candidates?.[0]?.content?.parts?.[0]?.text;
     if (!text) {
       logger.error(`Empty response from Gemini for ${symbol}`, {
         response: JSON.stringify(response),
