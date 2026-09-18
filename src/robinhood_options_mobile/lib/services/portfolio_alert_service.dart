@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
@@ -7,6 +8,7 @@ import 'package:robinhood_options_mobile/model/margin_call.dart';
 import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/portfolio_alert.dart';
 import 'package:robinhood_options_mobile/model/unified_account.dart';
+import 'package:robinhood_options_mobile/model/wash_sale_record.dart';
 import 'package:robinhood_options_mobile/services/tax_optimization_service.dart';
 
 /// Builds the Action Center feed: the ranked list of things worth acting on
@@ -40,13 +42,14 @@ class PortfolioAlertService {
     DayTradeSummary? dayTradeSummary,
     UnifiedAccount? unifiedAccount,
     List<MarginCall>? marginCalls,
+    List<WashSaleRecord>? washSales,
   }) {
     final alerts = <PortfolioAlert>[];
 
     alerts.addAll(
         _marginHealthAlerts(account, unifiedAccount, totalEquity, marginCalls));
     alerts.addAll(_pdtAlerts(account, totalEquity, dayTradeSummary));
-    alerts.addAll(_taxAlerts(instrumentPositions, optionPositions));
+    alerts.addAll(_taxAlerts(instrumentPositions, optionPositions, washSales));
     alerts.addAll(_concentrationAlerts(instrumentPositions, optionPositions));
     alerts.addAll(_cashAlerts(account, totalEquity));
     alerts.addAll(_moverAlerts(instrumentPositions));
@@ -214,41 +217,85 @@ class PortfolioAlertService {
 
   static List<PortfolioAlert> _taxAlerts(
     List<InstrumentPosition> instrumentPositions,
-    List<OptionAggregatePosition> optionPositions,
-  ) {
+    List<OptionAggregatePosition> optionPositions, [
+    List<WashSaleRecord>? washSales,
+  ]) {
+    final alerts = <PortfolioAlert>[];
+
+    // 1. Wash Sale Disallowed loss alert (Critical)
+    if (washSales != null) {
+      final disallowed = washSales.where((w) => w.isDisallowed).toList();
+      if (disallowed.isNotEmpty) {
+        final totalDisallowed = disallowed.fold<double>(
+            0.0, (sum, w) => sum + (w.disallowedLoss ?? w.realizedLoss.abs()));
+        final symbols = disallowed.map((w) => w.symbol).toSet().toList();
+        alerts.add(
+          PortfolioAlert(
+            id: 'wash-sale-disallowed',
+            severity: PortfolioAlertSeverity.critical,
+            icon: Icons.warning_amber_rounded,
+            title: '${disallowed.length} disallowed wash ${disallowed.length == 1 ? 'sale' : 'sales'}',
+            detail: '${symbols.join(', ')} loss disallowed by IRS Rule 1091 and deferred to cost basis.',
+            metric: _currency.format(totalDisallowed),
+            target: PortfolioAlertTarget.taxes,
+          ),
+        );
+      }
+
+      // 2. Active Wash Sale Window warning alert
+      final activeWindows = washSales.where((w) => w.isWindowActive()).toList();
+      if (activeWindows.isNotEmpty) {
+        final minDays = activeWindows.map((w) => w.getDaysRemaining()).reduce(min);
+        final symbols = activeWindows.map((w) => w.symbol).toSet().toList();
+        alerts.add(
+          PortfolioAlert(
+            id: 'wash-sale-window',
+            severity: PortfolioAlertSeverity.warning,
+            icon: Icons.schedule,
+            title: '${activeWindows.length} active wash sale ${activeWindows.length == 1 ? 'window' : 'windows'}',
+            detail: 'Avoid repurchasing ${symbols.join(', ')} to preserve tax loss deductions.',
+            metric: '${minDays}d left',
+            target: PortfolioAlertTarget.taxes,
+          ),
+        );
+      }
+    }
+
     final suggestions =
         TaxOptimizationService.calculateTaxHarvestingOpportunities(
       instrumentPositions: instrumentPositions,
       optionPositions: optionPositions,
     );
-    if (suggestions.isEmpty) return const [];
+    if (suggestions.isNotEmpty) {
+      final totalLoss = suggestions.fold<double>(
+          0, (sum, suggestion) => sum + suggestion.estimatedLoss);
+      final urgency = TaxOptimizationService.getSeasonalityUrgency();
 
-    final totalLoss = suggestions.fold<double>(
-        0, (sum, suggestion) => sum + suggestion.estimatedLoss);
-    final urgency = TaxOptimizationService.getSeasonalityUrgency();
+      // Match the existing card's smart-visibility thresholds so the Action
+      // Center and the Taxes section never disagree about whether there is an
+      // opportunity worth mentioning.
+      final threshold = urgency > 0 ? -100.0 : -1000.0;
+      if (totalLoss <= threshold) {
+        alerts.add(
+          PortfolioAlert(
+            id: 'tax-loss-harvesting',
+            severity: urgency == 2
+                ? PortfolioAlertSeverity.critical
+                : PortfolioAlertSeverity.warning,
+            icon: Icons.savings_outlined,
+            title: '${suggestions.length} tax-loss '
+                '${suggestions.length == 1 ? 'opportunity' : 'opportunities'}',
+            detail: urgency > 0
+                ? 'Harvest before year-end to offset realized gains.'
+                : 'Harvestable losses detected across your holdings.',
+            metric: _currency.format(totalLoss.abs()),
+            target: PortfolioAlertTarget.taxes,
+          ),
+        );
+      }
+    }
 
-    // Match the existing card's smart-visibility thresholds so the Action
-    // Center and the Taxes section never disagree about whether there is an
-    // opportunity worth mentioning.
-    final threshold = urgency > 0 ? -100.0 : -1000.0;
-    if (totalLoss > threshold) return const [];
-
-    return [
-      PortfolioAlert(
-        id: 'tax-loss-harvesting',
-        severity: urgency == 2
-            ? PortfolioAlertSeverity.critical
-            : PortfolioAlertSeverity.warning,
-        icon: Icons.savings_outlined,
-        title: '${suggestions.length} tax-loss '
-            '${suggestions.length == 1 ? 'opportunity' : 'opportunities'}',
-        detail: urgency > 0
-            ? 'Harvest before year-end to offset realized gains.'
-            : 'Harvestable losses detected across your holdings.',
-        metric: _currency.format(totalLoss.abs()),
-        target: PortfolioAlertTarget.taxes,
-      ),
-    ];
+    return alerts;
   }
 
   static List<PortfolioAlert> _concentrationAlerts(

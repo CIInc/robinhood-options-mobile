@@ -7,7 +7,7 @@ import 'package:robinhood_options_mobile/widgets/portfolio/portfolio_section_con
 import 'package:robinhood_options_mobile/widgets/portfolio/positions_section_page.dart';
 import 'package:robinhood_options_mobile/widgets/portfolio/risk_section_page.dart';
 import 'package:robinhood_options_mobile/widgets/portfolio/strategies_section_page.dart';
-import 'package:robinhood_options_mobile/widgets/portfolio/taxes_section_page.dart';
+import 'package:robinhood_options_mobile/widgets/tax_optimization_widget.dart';
 import 'package:robinhood_options_mobile/widgets/rebalancing_widget.dart';
 
 /// One place that knows how to open every Portfolio destination.
@@ -69,7 +69,16 @@ class PortfolioNavigator {
       case PortfolioSection.insights:
         return InsightsSectionPage(sectionContext: sectionContext);
       case PortfolioSection.taxes:
-        return TaxesSectionPage(sectionContext: sectionContext);
+        return TaxOptimizationWidget(
+          user: sectionContext.brokerageUser,
+          service: sectionContext.service,
+          analytics: sectionContext.analytics,
+          observer: sectionContext.observer,
+          generativeService: sectionContext.generativeService,
+          appUser: sectionContext.appUser,
+          userDocRef: sectionContext.userDocRef,
+          analyticsController: sectionContext.analyticsController,
+        );
       case PortfolioSection.strategies:
         return StrategiesSectionPage(sectionContext: sectionContext);
     }

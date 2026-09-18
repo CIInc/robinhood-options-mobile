@@ -60,6 +60,7 @@ import 'package:robinhood_options_mobile/model/retirement.dart';
 import 'package:robinhood_options_mobile/model/spending_account.dart';
 import 'package:robinhood_options_mobile/model/external_token.dart';
 import 'package:robinhood_options_mobile/model/notification_item.dart';
+import 'package:robinhood_options_mobile/model/wash_sale_record.dart';
 
 class DemoService implements IBrokerageService {
   @override
@@ -6087,5 +6088,58 @@ class DemoService implements IBrokerageService {
       BrokerageUser user) async {
     final raw = await getRetirementHistory(user);
     return RetirementHistory.fromJson(raw);
+  }
+
+  /// Provides realistic demo wash sale records representing active restriction
+  /// windows, disallowed wash sales with basis adjustments, and cleared windows.
+  List<WashSaleRecord> getDemoWashSales([DateTime? asOf]) {
+    final now = asOf ?? DateTime.now();
+    return [
+      WashSaleRecord(
+        id: 'demo_wash_sale_tsla',
+        symbol: 'TSLA',
+        name: 'Tesla, Inc.',
+        assetType: 'stock',
+        saleDate: now.subtract(const Duration(days: 12)),
+        salePrice: 215.50,
+        quantitySold: 20.0,
+        realizedLoss: -450.0,
+        windowStartDate: now.subtract(const Duration(days: 42)),
+        windowEndDate: now.subtract(const Duration(days: 12)).add(const Duration(days: 30)),
+        status: WashSaleStatus.activeWindow,
+      ),
+      WashSaleRecord(
+        id: 'demo_wash_sale_nvda',
+        symbol: 'NVDA',
+        name: 'NVIDIA Corporation',
+        assetType: 'stock',
+        saleDate: now.subtract(const Duration(days: 20)),
+        salePrice: 118.00,
+        quantitySold: 25.0,
+        realizedLoss: -320.0,
+        windowStartDate: now.subtract(const Duration(days: 50)),
+        windowEndDate: now.subtract(const Duration(days: 20)).add(const Duration(days: 30)),
+        status: WashSaleStatus.disallowed,
+        replacementDate: now.subtract(const Duration(days: 15)),
+        replacementPrice: 122.50,
+        replacementQuantity: 25.0,
+        replacementAssetType: 'stock',
+        disallowedLoss: 320.0,
+        adjustedCostBasis: (122.50 * 25.0) + 320.0,
+      ),
+      WashSaleRecord(
+        id: 'demo_wash_sale_aapl',
+        symbol: 'AAPL',
+        name: 'Apple Inc.',
+        assetType: 'stock',
+        saleDate: now.subtract(const Duration(days: 45)),
+        salePrice: 220.00,
+        quantitySold: 15.0,
+        realizedLoss: -280.0,
+        windowStartDate: now.subtract(const Duration(days: 75)),
+        windowEndDate: now.subtract(const Duration(days: 15)),
+        status: WashSaleStatus.cleared,
+      ),
+    ];
   }
 }
