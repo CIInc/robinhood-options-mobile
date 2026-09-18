@@ -234,8 +234,10 @@ class PortfolioAlertService {
             id: 'wash-sale-disallowed',
             severity: PortfolioAlertSeverity.critical,
             icon: Icons.warning_amber_rounded,
-            title: '${disallowed.length} disallowed wash ${disallowed.length == 1 ? 'sale' : 'sales'}',
-            detail: '${symbols.join(', ')} loss disallowed by IRS Rule 1091 and deferred to cost basis.',
+            title:
+                '${disallowed.length} disallowed wash ${disallowed.length == 1 ? 'sale' : 'sales'}',
+            detail:
+                '${symbols.join(', ')} loss disallowed by IRS Rule 1091 and deferred to cost basis.',
             metric: _currency.format(totalDisallowed),
             target: PortfolioAlertTarget.taxes,
           ),
@@ -245,15 +247,18 @@ class PortfolioAlertService {
       // 2. Active Wash Sale Window warning alert
       final activeWindows = washSales.where((w) => w.isWindowActive()).toList();
       if (activeWindows.isNotEmpty) {
-        final minDays = activeWindows.map((w) => w.getDaysRemaining()).reduce(min);
+        final minDays =
+            activeWindows.map((w) => w.getDaysRemaining()).reduce(min);
         final symbols = activeWindows.map((w) => w.symbol).toSet().toList();
         alerts.add(
           PortfolioAlert(
             id: 'wash-sale-window',
             severity: PortfolioAlertSeverity.warning,
             icon: Icons.schedule,
-            title: '${activeWindows.length} active wash sale ${activeWindows.length == 1 ? 'window' : 'windows'}',
-            detail: 'Avoid repurchasing ${symbols.join(', ')} to preserve tax loss deductions.',
+            title:
+                '${activeWindows.length} active wash sale ${activeWindows.length == 1 ? 'window' : 'windows'}',
+            detail:
+                'Avoid repurchasing ${symbols.join(', ')} to preserve tax loss deductions.',
             metric: '${minDays}d left',
             target: PortfolioAlertTarget.taxes,
           ),
@@ -289,6 +294,31 @@ class PortfolioAlertService {
                 ? 'Harvest before year-end to offset realized gains.'
                 : 'Harvestable losses detected across your holdings.',
             metric: _currency.format(totalLoss.abs()),
+            target: PortfolioAlertTarget.taxes,
+          ),
+        );
+      }
+    }
+
+    // 4. Capital Gains: Approaching Long-Term preferential rate alert
+    final capitalGains = TaxOptimizationService.analyzeCapitalGains(
+      instrumentPositions: instrumentPositions,
+      optionPositions: optionPositions,
+    );
+    if (capitalGains.approachingLongTermPositions.isNotEmpty) {
+      final topApproaching = capitalGains.approachingLongTermPositions.first;
+      final totalSavings = capitalGains.potentialTaxSavingsFromHolding;
+      if (totalSavings >= 25.0) {
+        alerts.add(
+          PortfolioAlert(
+            id: 'capital-gains-approaching',
+            severity: PortfolioAlertSeverity.info,
+            icon: Icons.timer_outlined,
+            title: '${capitalGains.approachingLongTermPositions.length} '
+                '${capitalGains.approachingLongTermPositions.length == 1 ? 'position' : 'positions'} nearing Long-Term status',
+            detail:
+                'Hold ${topApproaching.symbol} for ${topApproaching.daysUntilLongTerm}d to unlock preferential long-term capital gains tax rates.',
+            metric: '+${_currency.format(totalSavings)} savings',
             target: PortfolioAlertTarget.taxes,
           ),
         );

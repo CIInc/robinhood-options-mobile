@@ -4,6 +4,7 @@ import 'package:robinhood_options_mobile/model/instrument_position.dart';
 import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/option_order.dart';
 import 'package:robinhood_options_mobile/model/portfolio_historicals.dart';
+import 'package:robinhood_options_mobile/model/capital_gains_model.dart';
 import 'package:robinhood_options_mobile/model/tax_harvesting_suggestion.dart';
 import 'package:robinhood_options_mobile/model/wash_sale_record.dart';
 
@@ -1241,5 +1242,101 @@ class TaxOptimizationService {
     } else {
       return 0;
     }
+  }
+
+  /// Analyzes open equity and option positions for Short-Term vs. Long-Term
+  /// capital gains tax treatment, holding duration countdown timers, and tax liability projections.
+  static CapitalGainsSummary analyzeCapitalGains({
+    required List<InstrumentPosition> instrumentPositions,
+    required List<OptionAggregatePosition> optionPositions,
+    DateTime? asOf,
+    double shortTermTaxRate = 0.24,
+    double longTermTaxRate = 0.15,
+  }) {
+    final now = asOf ?? DateTime.now();
+    final capitalGainPositions = <CapitalGainPosition>[];
+
+    // 1. Process Stocks
+    for (var pos in instrumentPositions) {
+      if (pos.quantity != null &&
+          pos.quantity! > 0 &&
+          pos.averageBuyPrice != null) {
+        final symbol = pos.instrumentObj?.symbol ?? 'Unknown';
+        final name = pos.instrumentObj?.name ?? symbol;
+        final acquiredDate = pos.createdAt ?? pos.updatedAt ?? now;
+        final costBasis = pos.totalCost;
+        final marketVal = pos.marketValue;
+        final gainLoss = pos.gainLoss;
+        final gainLossPct = costBasis > 0 ? (gainLoss / costBasis) : 0.0;
+        final currentPrice =
+            (pos.quantity! > 0) ? (marketVal / pos.quantity!) : 0.0;
+
+        capitalGainPositions.add(CapitalGainPosition.create(
+          id: 'stock_${pos.instrumentId}_${acquiredDate.millisecondsSinceEpoch}',
+          symbol: symbol,
+          name: name,
+          quantity: pos.quantity!,
+          averageCostPrice: pos.averageBuyPrice!,
+          totalCost: costBasis,
+          currentPrice: currentPrice,
+          marketValue: marketVal,
+          gainLoss: gainLoss,
+          gainLossPercent: gainLossPct,
+          type: 'stock',
+          acquiredDate: acquiredDate,
+          asOf: now,
+          shortTermTaxRate: shortTermTaxRate,
+          longTermTaxRate: longTermTaxRate,
+          underlyingPosition: pos,
+        ));
+      }
+    }
+
+    // 2. Process Options
+    for (var pos in optionPositions) {
+      if (pos.quantity != null &&
+          pos.quantity! > 0 &&
+          pos.averageOpenPrice != null) {
+        final symbol = pos.symbol;
+        final name = pos.optionInstrument?.chainSymbol ?? pos.symbol;
+        final acquiredDate = pos.createdAt ?? pos.updatedAt ?? now;
+        final costBasis = pos.totalCost;
+        final marketVal = pos.marketValue;
+        double gainLoss = 0.0;
+        if (pos.direction == 'debit') {
+          gainLoss = pos.gainLoss;
+        } else {
+          gainLoss = -pos.gainLoss;
+        }
+        final gainLossPct = costBasis > 0 ? (gainLoss / costBasis) : 0.0;
+        final currentPrice =
+            (pos.quantity! > 0) ? (marketVal / (pos.quantity! * 100)) : 0.0;
+
+        capitalGainPositions.add(CapitalGainPosition.create(
+          id: 'option_${pos.id}_${acquiredDate.millisecondsSinceEpoch}',
+          symbol: symbol,
+          name: name,
+          quantity: pos.quantity!,
+          averageCostPrice: pos.averageOpenPrice!,
+          totalCost: costBasis,
+          currentPrice: currentPrice,
+          marketValue: marketVal,
+          gainLoss: gainLoss,
+          gainLossPercent: gainLossPct,
+          type: 'option',
+          acquiredDate: acquiredDate,
+          asOf: now,
+          shortTermTaxRate: shortTermTaxRate,
+          longTermTaxRate: longTermTaxRate,
+          underlyingPosition: pos,
+        ));
+      }
+    }
+
+    return CapitalGainsSummary.fromPositions(
+      positions: capitalGainPositions,
+      shortTermTaxRate: shortTermTaxRate,
+      longTermTaxRate: longTermTaxRate,
+    );
   }
 }

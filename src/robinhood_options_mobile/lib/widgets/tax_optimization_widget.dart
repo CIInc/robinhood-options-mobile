@@ -15,6 +15,7 @@ import 'package:robinhood_options_mobile/model/portfolio_historicals.dart';
 import 'package:robinhood_options_mobile/model/tax_harvesting_suggestion.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/model/wash_sale_record.dart';
+import 'package:robinhood_options_mobile/model/capital_gains_model.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/services/tax_optimization_service.dart';
@@ -58,6 +59,13 @@ class _TaxOptimizationWidgetState extends State<TaxOptimizationWidget> {
   String _assetFilter = 'all'; // 'all', 'stock', 'option'
   double _minLossThreshold = 0.0; // 0, 100, 500, 1000
   String _sortBy = 'loss'; // 'loss', 'percent', 'tax_savings'
+
+  String _capitalGainsFilter =
+      'all'; // 'all', 'short_term', 'long_term', 'approaching', 'gains'
+  String _capitalGainsSortBy =
+      'timer'; // 'timer', 'gain_loss', 'tax_savings', 'holding_period'
+  double _shortTermTaxRate = 0.24; // 24% default
+  double _longTermTaxRate = 0.15; // 15% default
 
   @override
   void initState() {
@@ -107,10 +115,17 @@ class _TaxOptimizationWidgetState extends State<TaxOptimizationWidget> {
       initialRecords: widget.initialWashSales,
     );
 
+    final capitalGainsSummary = TaxOptimizationService.analyzeCapitalGains(
+      instrumentPositions: instrumentPositionStore.items,
+      optionPositions: optionPositionStore.items,
+      shortTermTaxRate: _shortTermTaxRate,
+      longTermTaxRate: _longTermTaxRate,
+    );
+
     final formatCurrency = NumberFormat.simpleCurrency();
 
     return DefaultTabController(
-      length: 2,
+      length: 3,
       initialIndex: widget.initialTabIndex,
       child: Scaffold(
         appBar: AppBar(
@@ -124,6 +139,10 @@ class _TaxOptimizationWidgetState extends State<TaxOptimizationWidget> {
               Tab(
                 icon: Icon(Icons.schedule),
                 text: 'Wash Sales',
+              ),
+              Tab(
+                icon: Icon(Icons.pie_chart_outline),
+                text: 'Capital Gains',
               ),
             ],
           ),
@@ -141,6 +160,11 @@ class _TaxOptimizationWidgetState extends State<TaxOptimizationWidget> {
             _buildWashSalesTab(
               context,
               washSales,
+              formatCurrency,
+            ),
+            _buildCapitalGainsTab(
+              context,
+              capitalGainsSummary,
               formatCurrency,
             ),
           ],
@@ -261,6 +285,789 @@ class _TaxOptimizationWidgetState extends State<TaxOptimizationWidget> {
         ),
         const SliverPadding(padding: EdgeInsets.only(bottom: 32)),
       ],
+    );
+  }
+
+  Widget _buildCapitalGainsTab(
+    BuildContext context,
+    CapitalGainsSummary summary,
+    NumberFormat formatCurrency,
+  ) {
+    final theme = Theme.of(context);
+
+    // Filter positions
+    List<CapitalGainPosition> displayed = summary.allPositions.where((p) {
+      if (_capitalGainsFilter == 'short_term') {
+        return !p.isLongTerm;
+      } else if (_capitalGainsFilter == 'long_term') {
+        return p.isLongTerm;
+      } else if (_capitalGainsFilter == 'approaching') {
+        return p.qualifiesForLongTermSoon;
+      } else if (_capitalGainsFilter == 'gains') {
+        return p.gainLoss > 0;
+      }
+      return true;
+    }).toList();
+
+    // Sort positions
+    displayed.sort((a, b) {
+      if (_capitalGainsSortBy == 'timer') {
+        if (a.isLongTerm && !b.isLongTerm) return 1;
+        if (!a.isLongTerm && b.isLongTerm) return -1;
+        return a.daysUntilLongTerm.compareTo(b.daysUntilLongTerm);
+      } else if (_capitalGainsSortBy == 'gain_loss') {
+        return b.gainLoss.compareTo(a.gainLoss);
+      } else if (_capitalGainsSortBy == 'tax_savings') {
+        return b.potentialTaxSavingsIfHeld
+            .compareTo(a.potentialTaxSavingsIfHeld);
+      } else if (_capitalGainsSortBy == 'holding_period') {
+        return b.holdingDays.compareTo(a.holdingDays);
+      }
+      return 0;
+    });
+
+    return CustomScrollView(
+      slivers: [
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildCapitalGainsSummaryCard(context, summary, formatCurrency),
+                const SizedBox(height: 12),
+                if (summary.approachingLongTermPositions.isNotEmpty) ...[
+                  _buildApproachingTimerBanner(
+                      context, summary, formatCurrency),
+                  const SizedBox(height: 12),
+                ],
+                _buildCapitalGainsFilterBar(context, summary),
+              ],
+            ),
+          ),
+        ),
+        if (displayed.isEmpty)
+          SliverFillRemaining(
+            hasScrollBody: false,
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(32.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.pie_chart_outline,
+                      size: 64,
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'No positions found',
+                      style: theme.textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'No open positions match the selected filter.',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color:
+                            theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          )
+        else
+          SliverList(
+            delegate: SliverChildBuilderDelegate(
+              (context, index) {
+                final pos = displayed[index];
+                return _buildCapitalGainPositionCard(
+                  context,
+                  pos,
+                  formatCurrency,
+                );
+              },
+              childCount: displayed.length,
+            ),
+          ),
+        const SliverPadding(padding: EdgeInsets.only(bottom: 32)),
+      ],
+    );
+  }
+
+  Widget _buildCapitalGainsSummaryCard(
+    BuildContext context,
+    CapitalGainsSummary summary,
+    NumberFormat formatCurrency,
+  ) {
+    final theme = Theme.of(context);
+
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.pie_chart, color: theme.colorScheme.primary),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Capital Gains & Tax Projection',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                IconButton(
+                  icon: const Icon(Icons.tune, size: 20),
+                  tooltip: 'Tax Bracket Rates',
+                  onPressed: () => _showTaxBracketDialog(context),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surfaceContainerHighest
+                          .withValues(alpha: 0.4),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Flexible(
+                              child: Text(
+                                'Short-Term',
+                                style: theme.textTheme.labelMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.primary
+                                    .withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                '${(_shortTermTaxRate * 100).toInt()}%',
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                  color: theme.colorScheme.primary,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          formatCurrency.format(summary.shortTermNet),
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: summary.shortTermNet >= 0
+                                ? Colors.green
+                                : Colors.red,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Est. Tax: ${formatCurrency.format(summary.estimatedShortTermTaxLiability)}',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                        Text(
+                          'Holding: ≤ 365 Days (${summary.shortTermPositions.length} pos)',
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant
+                                .withValues(alpha: 0.7),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surfaceContainerHighest
+                          .withValues(alpha: 0.4),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Flexible(
+                              child: Text(
+                                'Long-Term',
+                                style: theme.textTheme.labelMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.green.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                '${(_longTermTaxRate * 100).toInt()}%',
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                  color: Colors.green,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          formatCurrency.format(summary.longTermNet),
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: summary.longTermNet >= 0
+                                ? Colors.green
+                                : Colors.red,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Est. Tax: ${formatCurrency.format(summary.estimatedLongTermTaxLiability)}',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                        Text(
+                          'Holding: > 365 Days (${summary.longTermPositions.length} pos)',
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant
+                                .withValues(alpha: 0.7),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surface,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color:
+                      theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Total Projected Tax Liability:',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    formatCurrency.format(summary.totalEstimatedTaxLiability),
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: summary.totalEstimatedTaxLiability > 0
+                          ? Colors.orange
+                          : theme.colorScheme.onSurface,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildApproachingTimerBanner(
+    BuildContext context,
+    CapitalGainsSummary summary,
+    NumberFormat formatCurrency,
+  ) {
+    final theme = Theme.of(context);
+    final approaching = summary.approachingLongTermPositions;
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.amber.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.amber.withValues(alpha: 0.4)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.timer_outlined, color: Colors.amber, size: 20),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  '${approaching.length} ${approaching.length == 1 ? 'position' : 'positions'} nearing Long-Term status',
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.amber.shade800,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Hold these profitable positions until the 1-year mark to save up to ${formatCurrency.format(summary.potentialTaxSavingsFromHolding)} in capital gains taxes by qualifying for preferential rates.',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.85),
+            ),
+          ),
+          const SizedBox(height: 8),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: approaching.map((p) {
+                return Padding(
+                  padding: const EdgeInsets.only(right: 8.0),
+                  child: ActionChip(
+                    avatar: const Icon(Icons.hourglass_bottom, size: 14),
+                    label: Text(
+                      '${p.symbol}: ${p.daysUntilLongTerm}d left (save ${formatCurrency.format(p.potentialTaxSavingsIfHeld)})',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    onPressed: () => _navigateToInstrument(
+                      context,
+                      p.symbol,
+                      p.type == 'stock',
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCapitalGainsFilterBar(
+    BuildContext context,
+    CapitalGainsSummary summary,
+  ) {
+    final theme = Theme.of(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              FilterChip(
+                label: Text('All (${summary.allPositions.length})'),
+                selected: _capitalGainsFilter == 'all',
+                onSelected: (selected) {
+                  setState(() => _capitalGainsFilter = 'all');
+                },
+              ),
+              const SizedBox(width: 8),
+              FilterChip(
+                label:
+                    Text('Short-Term (${summary.shortTermPositions.length})'),
+                selected: _capitalGainsFilter == 'short_term',
+                onSelected: (selected) {
+                  setState(() => _capitalGainsFilter = 'short_term');
+                },
+              ),
+              const SizedBox(width: 8),
+              FilterChip(
+                label: Text('Long-Term (${summary.longTermPositions.length})'),
+                selected: _capitalGainsFilter == 'long_term',
+                onSelected: (selected) {
+                  setState(() => _capitalGainsFilter = 'long_term');
+                },
+              ),
+              const SizedBox(width: 8),
+              FilterChip(
+                label: Text(
+                    'Approaching (${summary.approachingLongTermPositions.length})'),
+                selected: _capitalGainsFilter == 'approaching',
+                onSelected: (selected) {
+                  setState(() => _capitalGainsFilter = 'approaching');
+                },
+              ),
+              const SizedBox(width: 8),
+              FilterChip(
+                label: const Text('Gains Only'),
+                selected: _capitalGainsFilter == 'gains',
+                onSelected: (selected) {
+                  setState(() => _capitalGainsFilter = 'gains');
+                },
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Holding Period & Lots',
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            DropdownButton<String>(
+              value: _capitalGainsSortBy,
+              underline: const SizedBox(),
+              icon: const Icon(Icons.sort, size: 16),
+              items: const [
+                DropdownMenuItem(
+                  value: 'timer',
+                  child: Text('Sort: Days to Long-Term'),
+                ),
+                DropdownMenuItem(
+                  value: 'gain_loss',
+                  child: Text('Sort: Highest P&L'),
+                ),
+                DropdownMenuItem(
+                  value: 'tax_savings',
+                  child: Text('Sort: Tax Savings'),
+                ),
+                DropdownMenuItem(
+                  value: 'holding_period',
+                  child: Text('Sort: Holding Days'),
+                ),
+              ],
+              onChanged: (val) {
+                if (val != null) {
+                  setState(() => _capitalGainsSortBy = val);
+                }
+              },
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCapitalGainPositionCard(
+    BuildContext context,
+    CapitalGainPosition pos,
+    NumberFormat formatCurrency,
+  ) {
+    final theme = Theme.of(context);
+    final isStock = pos.type == 'stock';
+
+    Color badgeColor;
+    String badgeText;
+    if (pos.isLongTerm) {
+      badgeColor = Colors.green;
+      badgeText = 'Long-Term (${pos.formattedHoldingPeriod})';
+    } else if (pos.qualifiesForLongTermSoon) {
+      badgeColor = Colors.amber.shade700;
+      badgeText = '⏳ ${pos.daysUntilLongTerm}d to Long-Term';
+    } else {
+      badgeColor = theme.colorScheme.primary;
+      badgeText = 'Short-Term (${pos.formattedHoldingPeriod})';
+    }
+
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+        ),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () => _navigateToInstrument(context, pos.symbol, isStock),
+        child: Padding(
+          padding: const EdgeInsets.all(14.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  CircleAvatar(
+                    radius: 20,
+                    backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                    child: Text(
+                      pos.symbol.length > 4
+                          ? pos.symbol.substring(0, 4)
+                          : pos.symbol,
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                pos.symbol,
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: badgeColor.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                badgeText,
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                  color: badgeColor,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          pos.name,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        formatCurrency.format(pos.gainLoss),
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: pos.gainLoss >= 0 ? Colors.green : Colors.red,
+                        ),
+                      ),
+                      Text(
+                        '${pos.gainLoss >= 0 ? '+' : ''}${(pos.gainLossPercent * 100).toStringAsFixed(1)}%',
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: pos.gainLoss >= 0 ? Colors.green : Colors.red,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const Divider(height: 18),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Position & Cost Basis',
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                        Text(
+                          '${pos.quantity.toStringAsFixed(pos.quantity.truncateToDouble() == pos.quantity ? 0 : 2)} ${isStock ? 'shares' : 'contracts'} • Cost: ${formatCurrency.format(pos.totalCost)}',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            fontWeight: FontWeight.w500,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        pos.isLongTerm
+                            ? 'Est. Tax (${(_longTermTaxRate * 100).toInt()}%)'
+                            : 'Est. Tax (${(_shortTermTaxRate * 100).toInt()}%)',
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      if (pos.gainLoss > 0)
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              formatCurrency.format(pos.isLongTerm
+                                  ? pos.estimatedLongTermTax
+                                  : pos.estimatedShortTermTax),
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            if (pos.qualifiesForLongTermSoon) ...[
+                              const SizedBox(width: 6),
+                              Text(
+                                '(Save ${formatCurrency.format(pos.potentialTaxSavingsIfHeld)})',
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                  color: Colors.green,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ],
+                        )
+                      else
+                        Text(
+                          'No tax due (loss)',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: Colors.green,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showTaxBracketDialog(BuildContext context) {
+    double tempSt = _shortTermTaxRate;
+    double tempLt = _longTermTaxRate;
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text('Estimated Tax Brackets'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Customize federal and state tax rates to project short-term vs. long-term capital gains liability.',
+                    style: TextStyle(fontSize: 13),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Short-Term Rate: ${(tempSt * 100).toStringAsFixed(0)}% (Ordinary)',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  Slider(
+                    value: tempSt,
+                    min: 0.10,
+                    max: 0.45,
+                    divisions: 35,
+                    label: '${(tempSt * 100).toStringAsFixed(0)}%',
+                    onChanged: (val) {
+                      setDialogState(() => tempSt = val);
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Long-Term Rate: ${(tempLt * 100).toStringAsFixed(0)}% (Preferential)',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  Slider(
+                    value: tempLt,
+                    min: 0.0,
+                    max: 0.25,
+                    divisions: 25,
+                    label: '${(tempLt * 100).toStringAsFixed(0)}%',
+                    onChanged: (val) {
+                      setDialogState(() => tempLt = val);
+                    },
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancel'),
+                ),
+                FilledButton(
+                  onPressed: () {
+                    setState(() {
+                      _shortTermTaxRate = tempSt;
+                      _longTermTaxRate = tempLt;
+                    });
+                    Navigator.pop(context);
+                  },
+                  child: const Text('Apply'),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 
