@@ -1,6 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-enum MessageType { text, system }
+enum MessageType {
+  text,
+  system,
+}
 
 class GroupMessage {
   final String id;
@@ -36,9 +39,11 @@ class GroupMessage {
         (e) => e.toString() == 'MessageType.${data['type']}',
         orElse: () => MessageType.text,
       ),
-      readBy:
-          (data['readBy'] as Map<String, dynamic>?)?.map(
-            (key, value) => MapEntry(key, (value as Timestamp).toDate()),
+      readBy: (data['readBy'] as Map<String, dynamic>?)?.map(
+            (key, value) => MapEntry(
+              key,
+              (value as Timestamp).toDate(),
+            ),
           ) ??
           {},
     );
@@ -52,9 +57,10 @@ class GroupMessage {
       'text': text,
       'timestamp': Timestamp.fromDate(timestamp),
       'type': type.toString().split('.').last,
-      'readBy': readBy.map(
-        (key, value) => MapEntry(key, Timestamp.fromDate(value)),
-      ),
+      'readBy': readBy.map((key, value) => MapEntry(
+            key,
+            Timestamp.fromDate(value),
+          )),
     };
   }
 }

@@ -36,9 +36,7 @@ class _RetirementWidgetState extends State<RetirementWidget> {
 
   void _loadData() {
     setState(() {
-      _futureHistory = widget.service.getRetirementHistoryModel(
-        widget.brokerageUser,
-      );
+      _futureHistory = widget.service.getRetirementHistoryModel(widget.brokerageUser);
     });
   }
 
@@ -68,11 +66,7 @@ class _RetirementWidgetState extends State<RetirementWidget> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(
-                      Icons.error_outline,
-                      size: 48,
-                      color: Colors.red,
-                    ),
+                    const Icon(Icons.error_outline, size: 48, color: Colors.red),
                     const SizedBox(height: 16),
                     Text('Error loading retirement data: ${snapshot.error}'),
                     const SizedBox(height: 16),
@@ -88,12 +82,9 @@ class _RetirementWidgetState extends State<RetirementWidget> {
 
           final history = snapshot.data ?? const RetirementHistory();
           final currentYear = DateTime.now().year;
-          final currentContribution =
-              history.contributionForYear(currentYear) ??
+          final currentContribution = history.contributionForYear(currentYear) ??
               history.currentYearContribution ??
-              (history.contributions.isNotEmpty
-                  ? history.contributions.first
-                  : null);
+              (history.contributions.isNotEmpty ? history.contributions.first : null);
 
           return RefreshIndicator(
             onRefresh: () async => _loadData(),
@@ -117,13 +108,9 @@ class _RetirementWidgetState extends State<RetirementWidget> {
     );
   }
 
-  Widget _buildHeaderCard(
-    BuildContext context,
-    RetirementContribution? contrib,
-  ) {
+  Widget _buildHeaderCard(BuildContext context, RetirementContribution? contrib) {
     final theme = Theme.of(context);
-    final accountType =
-        widget.account?.displayType ??
+    final accountType = widget.account?.displayType ??
         (contrib?.displayAccountType ?? 'Roth IRA');
 
     return Card(
@@ -182,23 +169,15 @@ class _RetirementWidgetState extends State<RetirementWidget> {
     );
   }
 
-  Widget _buildCurrentYearCard(
-    BuildContext context,
-    RetirementContribution? contrib,
-  ) {
+  Widget _buildCurrentYearCard(BuildContext context, RetirementContribution? contrib) {
     final theme = Theme.of(context);
     final year = contrib?.year ?? DateTime.now().year;
     final contributed = contrib?.contributionAmount ?? 0.0;
     final effectiveLimit = _useCatchUpLimit
         ? (contrib?.catchUpLimit ?? 8000.0)
         : (contrib?.limit ?? 7000.0);
-    final remaining = (effectiveLimit - contributed).clamp(
-      0.0,
-      double.infinity,
-    );
-    final progress = effectiveLimit > 0
-        ? (contributed / effectiveLimit).clamp(0.0, 1.0)
-        : 0.0;
+    final remaining = (effectiveLimit - contributed).clamp(0.0, double.infinity);
+    final progress = effectiveLimit > 0 ? (contributed / effectiveLimit).clamp(0.0, 1.0) : 0.0;
     final match = contrib?.matchAmount ?? 0.0;
 
     return Card(
@@ -218,10 +197,7 @@ class _RetirementWidgetState extends State<RetirementWidget> {
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 2,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
                     color: theme.colorScheme.secondaryContainer,
                     borderRadius: BorderRadius.circular(8),
@@ -253,21 +229,9 @@ class _RetirementWidgetState extends State<RetirementWidget> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _buildStatColumn(
-                  context,
-                  'Contributed',
-                  _currencyFormat.format(contributed),
-                ),
-                _buildStatColumn(
-                  context,
-                  'Remaining',
-                  _currencyFormat.format(remaining),
-                ),
-                _buildStatColumn(
-                  context,
-                  'IRS Limit',
-                  _currencyFormat.format(effectiveLimit),
-                ),
+                _buildStatColumn(context, 'Contributed', _currencyFormat.format(contributed)),
+                _buildStatColumn(context, 'Remaining', _currencyFormat.format(remaining)),
+                _buildStatColumn(context, 'IRS Limit', _currencyFormat.format(effectiveLimit)),
               ],
             ),
             if (match > 0) ...[
@@ -278,9 +242,7 @@ class _RetirementWidgetState extends State<RetirementWidget> {
                   const SizedBox(width: 8),
                   Text(
                     'Robinhood Match Earned: ',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
                   ),
                   Text(
                     _currencyFormat.format(match),
@@ -330,14 +292,10 @@ class _RetirementWidgetState extends State<RetirementWidget> {
   Widget _buildCatchUpToggle(BuildContext context) {
     return Card(
       elevation: 0,
-      color: Theme.of(
-        context,
-      ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+      color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
       child: SwitchListTile(
         title: const Text('Age 50+ Catch-Up Limit'),
-        subtitle: const Text(
-          'Includes extra \$1,000 annual IRS catch-up limit',
-        ),
+        subtitle: const Text('Includes extra \$1,000 annual IRS catch-up limit'),
         value: _useCatchUpLimit,
         onChanged: (val) {
           setState(() {
@@ -382,9 +340,7 @@ class _RetirementWidgetState extends State<RetirementWidget> {
         const SizedBox(height: 8),
         ...history.contributions.map((c) {
           final effLimit = _useCatchUpLimit ? c.catchUpLimit : c.limit;
-          final pct = effLimit > 0
-              ? (c.contributionAmount / effLimit).clamp(0.0, 1.0)
-              : 0.0;
+          final pct = effLimit > 0 ? (c.contributionAmount / effLimit).clamp(0.0, 1.0) : 0.0;
           return Card(
             margin: const EdgeInsets.symmetric(vertical: 6.0),
             child: ListTile(
@@ -421,8 +377,7 @@ class _RetirementWidgetState extends State<RetirementWidget> {
                     child: LinearProgressIndicator(
                       value: pct,
                       minHeight: 6,
-                      backgroundColor:
-                          theme.colorScheme.surfaceContainerHighest,
+                      backgroundColor: theme.colorScheme.surfaceContainerHighest,
                       valueColor: AlwaysStoppedAnimation<Color>(
                         pct >= 1.0 ? Colors.green : theme.colorScheme.primary,
                       ),

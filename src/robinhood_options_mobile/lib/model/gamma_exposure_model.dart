@@ -12,7 +12,7 @@ class GexStrikeLevel {
   final double callGEX;
   final double putGEX;
   final double
-  netGEX; // positive = long gamma (pinning), negative = short gamma (trending)
+      netGEX; // positive = long gamma (pinning), negative = short gamma (trending)
 
   const GexStrikeLevel({
     required this.strike,
@@ -26,26 +26,26 @@ class GexStrikeLevel {
   });
 
   factory GexStrikeLevel.fromJson(Map<String, dynamic> json) => GexStrikeLevel(
-    strike: (json['strike'] as num).toDouble(),
-    callGamma: (json['callGamma'] as num?)?.toDouble() ?? 0.0,
-    putGamma: (json['putGamma'] as num?)?.toDouble() ?? 0.0,
-    callOI: (json['callOI'] as num?)?.toDouble() ?? 0.0,
-    putOI: (json['putOI'] as num?)?.toDouble() ?? 0.0,
-    callGEX: (json['callGEX'] as num?)?.toDouble() ?? 0.0,
-    putGEX: (json['putGEX'] as num?)?.toDouble() ?? 0.0,
-    netGEX: (json['netGEX'] as num?)?.toDouble() ?? 0.0,
-  );
+        strike: (json['strike'] as num).toDouble(),
+        callGamma: (json['callGamma'] as num?)?.toDouble() ?? 0.0,
+        putGamma: (json['putGamma'] as num?)?.toDouble() ?? 0.0,
+        callOI: (json['callOI'] as num?)?.toDouble() ?? 0.0,
+        putOI: (json['putOI'] as num?)?.toDouble() ?? 0.0,
+        callGEX: (json['callGEX'] as num?)?.toDouble() ?? 0.0,
+        putGEX: (json['putGEX'] as num?)?.toDouble() ?? 0.0,
+        netGEX: (json['netGEX'] as num?)?.toDouble() ?? 0.0,
+      );
 
   Map<String, dynamic> toJson() => {
-    'strike': strike,
-    'callGamma': callGamma,
-    'putGamma': putGamma,
-    'callOI': callOI,
-    'putOI': putOI,
-    'callGEX': callGEX,
-    'putGEX': putGEX,
-    'netGEX': netGEX,
-  };
+        'strike': strike,
+        'callGamma': callGamma,
+        'putGamma': putGamma,
+        'callOI': callOI,
+        'putOI': putOI,
+        'callGEX': callGEX,
+        'putGEX': putGEX,
+        'netGEX': netGEX,
+      };
 }
 
 enum DealerPositioning {
@@ -97,20 +97,20 @@ class GexSensitivity {
   });
 
   factory GexSensitivity.fromJson(Map<String, dynamic> json) => GexSensitivity(
-    spotMinus2Pct: (json['spotMinus2Pct'] as num?)?.toDouble() ?? 0.0,
-    spotMinus1Pct: (json['spotMinus1Pct'] as num?)?.toDouble() ?? 0.0,
-    spotCurrent: (json['spotCurrent'] as num?)?.toDouble() ?? 0.0,
-    spotPlus1Pct: (json['spotPlus1Pct'] as num?)?.toDouble() ?? 0.0,
-    spotPlus2Pct: (json['spotPlus2Pct'] as num?)?.toDouble() ?? 0.0,
-  );
+        spotMinus2Pct: (json['spotMinus2Pct'] as num?)?.toDouble() ?? 0.0,
+        spotMinus1Pct: (json['spotMinus1Pct'] as num?)?.toDouble() ?? 0.0,
+        spotCurrent: (json['spotCurrent'] as num?)?.toDouble() ?? 0.0,
+        spotPlus1Pct: (json['spotPlus1Pct'] as num?)?.toDouble() ?? 0.0,
+        spotPlus2Pct: (json['spotPlus2Pct'] as num?)?.toDouble() ?? 0.0,
+      );
 
   Map<String, dynamic> toJson() => {
-    'spotMinus2Pct': spotMinus2Pct,
-    'spotMinus1Pct': spotMinus1Pct,
-    'spotCurrent': spotCurrent,
-    'spotPlus1Pct': spotPlus1Pct,
-    'spotPlus2Pct': spotPlus2Pct,
-  };
+        'spotMinus2Pct': spotMinus2Pct,
+        'spotMinus1Pct': spotMinus1Pct,
+        'spotCurrent': spotCurrent,
+        'spotPlus1Pct': spotPlus1Pct,
+        'spotPlus2Pct': spotPlus2Pct,
+      };
 }
 
 class GexKeyLevel {
@@ -193,13 +193,9 @@ class GammaExposureData {
       totalNetGEX: (json['totalNetGEX'] as num?)?.toDouble() ?? 0.0,
       gammaFlip: (json['gammaFlip'] as num?)?.toDouble(),
       maxGammaStrike: (json['maxGammaStrike'] as num?)?.toDouble(),
-      gexByStrike:
-          (json['gexByStrike'] as List<dynamic>?)
-              ?.map(
-                (e) => GexStrikeLevel.fromJson(
-                  Map<String, dynamic>.from(e as Map),
-                ),
-              )
+      gexByStrike: (json['gexByStrike'] as List<dynamic>?)
+              ?.map((e) =>
+                  GexStrikeLevel.fromJson(Map<String, dynamic>.from(e as Map)))
               .toList() ??
           [],
       dealerPositioning: positioning,
@@ -216,49 +212,44 @@ class GammaExposureData {
       riskFreeRate: (json['riskFreeRate'] as num?)?.toDouble() ?? 0.05,
       gexSensitivity: json['gexSensitivity'] != null
           ? GexSensitivity.fromJson(
-              Map<String, dynamic>.from(json['gexSensitivity'] as Map),
-            )
+              Map<String, dynamic>.from(json['gexSensitivity'] as Map))
           : null,
     );
   }
 
   Map<String, dynamic> toJson() => {
-    'symbol': symbol,
-    'spotPrice': spotPrice,
-    'totalCallGEX': totalCallGEX,
-    'totalPutGEX': totalPutGEX,
-    'totalNetGEX': totalNetGEX,
-    if (gammaFlip != null) 'gammaFlip': gammaFlip,
-    if (maxGammaStrike != null) 'maxGammaStrike': maxGammaStrike,
-    'gexByStrike': gexByStrike.map((e) => e.toJson()).toList(),
-    if (expirationFilter != null) 'expirationFilter': expirationFilter,
-    'dealerPositioning': dealerPositioning == DealerPositioning.longGamma
-        ? 'long_gamma'
-        : dealerPositioning == DealerPositioning.shortGamma
-        ? 'short_gamma'
-        : 'neutral',
-    'signalStrength': signalStrength,
-    'updatedAt': updatedAt,
-    if (callWall != null) 'callWall': callWall,
-    if (putWall != null) 'putWall': putWall,
-    if (pTrans != null) 'pTrans': pTrans,
-    if (nTrans != null) 'nTrans': nTrans,
-    if (cotmp != null) 'cotmp': cotmp,
-    if (plusGex != null) 'plusGex': plusGex,
-    'gexRatio': gexRatio,
-    'riskFreeRate': riskFreeRate,
-    if (gexSensitivity != null) 'gexSensitivity': gexSensitivity!.toJson(),
-  };
+        'symbol': symbol,
+        'spotPrice': spotPrice,
+        'totalCallGEX': totalCallGEX,
+        'totalPutGEX': totalPutGEX,
+        'totalNetGEX': totalNetGEX,
+        if (gammaFlip != null) 'gammaFlip': gammaFlip,
+        if (maxGammaStrike != null) 'maxGammaStrike': maxGammaStrike,
+        'gexByStrike': gexByStrike.map((e) => e.toJson()).toList(),
+        if (expirationFilter != null) 'expirationFilter': expirationFilter,
+        'dealerPositioning': dealerPositioning == DealerPositioning.longGamma
+            ? 'long_gamma'
+            : dealerPositioning == DealerPositioning.shortGamma
+                ? 'short_gamma'
+                : 'neutral',
+        'signalStrength': signalStrength,
+        'updatedAt': updatedAt,
+        if (callWall != null) 'callWall': callWall,
+        if (putWall != null) 'putWall': putWall,
+        if (pTrans != null) 'pTrans': pTrans,
+        if (nTrans != null) 'nTrans': nTrans,
+        if (cotmp != null) 'cotmp': cotmp,
+        if (plusGex != null) 'plusGex': plusGex,
+        'gexRatio': gexRatio,
+        'riskFreeRate': riskFreeRate,
+        if (gexSensitivity != null) 'gexSensitivity': gexSensitivity!.toJson(),
+      };
 
   /// Returns the strikes closest to spot price, useful for focused chart view.
   List<GexStrikeLevel> get nearMoneyStrikes {
     if (gexByStrike.isEmpty) return gexByStrike;
-    final sorted = [...gexByStrike]
-      ..sort(
-        (a, b) => (a.strike - spotPrice).abs().compareTo(
-          (b.strike - spotPrice).abs(),
-        ),
-      );
+    final sorted = [...gexByStrike]..sort((a, b) =>
+        (a.strike - spotPrice).abs().compareTo((b.strike - spotPrice).abs()));
     return sorted.take(20).toList()
       ..sort((a, b) => a.strike.compareTo(b.strike));
   }
@@ -269,21 +260,16 @@ class GammaExposureData {
     if (gexByStrike.isEmpty) return gexByStrike;
 
     // Take the closest ones to spot
-    final sorted = [...gexByStrike]
-      ..sort(
-        (a, b) => (a.strike - spotPrice).abs().compareTo(
-          (b.strike - spotPrice).abs(),
-        ),
-      );
+    final sorted = [...gexByStrike]..sort((a, b) =>
+        (a.strike - spotPrice).abs().compareTo((b.strike - spotPrice).abs()));
     final baseList = sorted.take(count).toList();
 
     final includedStrikes = baseList.map((e) => e.strike).toSet();
 
     void addKeyLevel(double? targetStrike) {
       if (targetStrike == null) return;
-      final matches = gexByStrike.where(
-        (e) => (e.strike - targetStrike).abs() < 0.01,
-      );
+      final matches =
+          gexByStrike.where((e) => (e.strike - targetStrike).abs() < 0.01);
       if (matches.isNotEmpty) {
         final match = matches.first;
         if (!includedStrikes.contains(match.strike)) {
@@ -308,14 +294,17 @@ class GammaExposureData {
 
   Duration ageAt(DateTime now) {
     if (updatedAt <= 0) return const Duration(days: 36500);
-    final age = now.difference(DateTime.fromMillisecondsSinceEpoch(updatedAt));
+    final age = now.difference(
+      DateTime.fromMillisecondsSinceEpoch(updatedAt),
+    );
     return age.isNegative ? Duration.zero : age;
   }
 
   bool isStaleAt(
     DateTime now, {
     Duration threshold = const Duration(hours: 4),
-  }) => updatedAt <= 0 || ageAt(now) > threshold;
+  }) =>
+      updatedAt <= 0 || ageAt(now) > threshold;
 
   GexKeyLevel? get nearestKeyLevel {
     if (spotPrice <= 0) return null;
@@ -332,21 +321,17 @@ class GammaExposureData {
     for (final entry in levels.entries) {
       final price = entry.value;
       if (price == null || price <= 0 || !uniquePrices.add(price)) continue;
-      candidates.add(
-        GexKeyLevel(
-          label: entry.key,
-          price: price,
-          distanceFromSpotPercent: ((price - spotPrice) / spotPrice) * 100,
-        ),
-      );
+      candidates.add(GexKeyLevel(
+        label: entry.key,
+        price: price,
+        distanceFromSpotPercent: ((price - spotPrice) / spotPrice) * 100,
+      ));
     }
 
     if (candidates.isEmpty) return null;
-    candidates.sort(
-      (a, b) => a.distanceFromSpotPercent.abs().compareTo(
-        b.distanceFromSpotPercent.abs(),
-      ),
-    );
+    candidates.sort((a, b) => a.distanceFromSpotPercent
+        .abs()
+        .compareTo(b.distanceFromSpotPercent.abs()));
     return candidates.first;
   }
 
@@ -409,8 +394,8 @@ class PortfolioGexSummary {
     final positioning = grossGEX == 0 || netToGrossRatio < 0.1
         ? DealerPositioning.neutral
         : netGEX > 0
-        ? DealerPositioning.longGamma
-        : DealerPositioning.shortGamma;
+            ? DealerPositioning.longGamma
+            : DealerPositioning.shortGamma;
 
     return PortfolioGexSummary(
       netGEX: netGEX,

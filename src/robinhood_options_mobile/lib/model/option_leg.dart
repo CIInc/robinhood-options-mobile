@@ -16,84 +16,80 @@ class OptionLeg {
   final double? strikePrice;
   final String optionType;
   final List<OptionLegExecution>
-  executions; // Not in OptionAggregatePosition example ?
+      executions; // Not in OptionAggregatePosition example ?
 
   OptionLeg(
-    this.id,
-    this.position,
-    this.positionType,
-    this.option,
-    this.positionEffect,
-    this.ratioQuantity,
-    this.side,
-    this.expirationDate,
-    this.strikePrice,
-    this.optionType,
-    this.executions,
-  );
+      this.id,
+      this.position,
+      this.positionType,
+      this.option,
+      this.positionEffect,
+      this.ratioQuantity,
+      this.side,
+      this.expirationDate,
+      this.strikePrice,
+      this.optionType,
+      this.executions);
 
   OptionLeg.fromJson(dynamic json)
-    : id = json['id'],
-      position = json['position'],
-      positionType = json['position_type'],
-      option = json['option'],
-      positionEffect = json['position_effect'],
-      ratioQuantity = json['ratio_quantity'],
-      side = json['side'],
-      expirationDate = json['expiration_date'] is Timestamp
-          ? (json['expiration_date'] as Timestamp).toDate()
-          : (json['expiration_date'] is String
+      : id = json['id'],
+        position = json['position'],
+        positionType = json['position_type'],
+        option = json['option'],
+        positionEffect = json['position_effect'],
+        ratioQuantity = json['ratio_quantity'],
+        side = json['side'],
+        expirationDate = json['expiration_date'] is Timestamp
+            ? (json['expiration_date'] as Timestamp).toDate()
+            : (json['expiration_date'] is String
                 ? DateTime.tryParse(json['expiration_date'])
                 : null),
-      strikePrice = parseDouble(json['strike_price']),
-      optionType = json['option_type'],
-      executions = json['executions'] != null
-          ? OptionLegExecution.fromJsonArray(json['executions'])
-          : [];
+        strikePrice = parseDouble(json['strike_price']),
+        optionType = json['option_type'],
+        executions = json['executions'] != null
+            ? OptionLegExecution.fromJsonArray(json['executions'])
+            : [];
 
   OptionLeg.fromSchwabJson(dynamic json)
-    : id = json['legId'].toString(),
-      position = null,
-      positionType = json['instruction'].toString().startsWith('BUY')
-          ? 'long'
-          : 'short', // BUY_TO_OPEN, SELL_TO_CLOSE
-      option = json['instrument']['instrumentId'].toString(),
-      positionEffect = json['positionEffect'] == 'OPENING' ? 'open' : 'close',
-      ratioQuantity = json['quantity'].toInt(),
-      side = json['instruction'].toString().split('_')[0].toLowerCase(),
-      expirationDate = DateFormat("MM/dd/yyyy").tryParse(
-        json['instrument']['description']
+      : id = json['legId'].toString(),
+        position = null,
+        positionType = json['instruction'].toString().startsWith('BUY')
+            ? 'long'
+            : 'short', // BUY_TO_OPEN, SELL_TO_CLOSE
+        option = json['instrument']['instrumentId'].toString(),
+        positionEffect = json['positionEffect'] == 'OPENING' ? 'open' : 'close',
+        ratioQuantity = json['quantity'].toInt(),
+        side = json['instruction'].toString().split('_')[0].toLowerCase(),
+        expirationDate = DateFormat("MM/dd/yyyy").tryParse(json['instrument']
+                ['description']
             .toString()
             .split(' ')
             .reversed
             .skip(2)
-            .first,
-      ),
-      strikePrice = double.tryParse(
-        json['instrument']['description']
+            .first),
+        strikePrice = double.tryParse(json['instrument']['description']
             .toString()
             .split(' ')
             .reversed
             .skip(1)
             .first
-            .replaceFirst('\$', ''),
-      ),
-      optionType = json['instrument']['putCall'].toString().toLowerCase(),
-      executions = [];
+            .replaceFirst('\$', '')),
+        optionType = json['instrument']['putCall'].toString().toLowerCase(),
+        executions = [];
 
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'position': position,
-    'position_type': positionType,
-    'option': option,
-    'position_effect': positionEffect,
-    'ratio_quantity': ratioQuantity,
-    'side': side,
-    'expiration_date': expirationDate,
-    'strike_price': strikePrice,
-    'option_type': optionType,
-    'executions': executions.map((e) => e.toJson()).toList(),
-  };
+        'id': id,
+        'position': position,
+        'position_type': positionType,
+        'option': option,
+        'position_effect': positionEffect,
+        'ratio_quantity': ratioQuantity,
+        'side': side,
+        'expiration_date': expirationDate,
+        'strike_price': strikePrice,
+        'option_type': optionType,
+        'executions': executions.map((e) => e.toJson()).toList()
+      };
 
   static List<OptionLeg> fromJsonArray(dynamic json) {
     List<OptionLeg> legs = [];

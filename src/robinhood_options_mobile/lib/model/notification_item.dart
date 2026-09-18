@@ -8,7 +8,10 @@ class NotificationResponse {
   final String displayText;
   final String? answer;
 
-  const NotificationResponse({required this.displayText, this.answer});
+  const NotificationResponse({
+    required this.displayText,
+    this.answer,
+  });
 
   factory NotificationResponse.fromJson(dynamic json) {
     if (json is! Map) {
@@ -21,9 +24,9 @@ class NotificationResponse {
   }
 
   Map<String, dynamic> toJson() => {
-    'display_text': displayText,
-    if (answer != null) 'answer': answer,
-  };
+        'display_text': displayText,
+        if (answer != null) 'answer': answer,
+      };
 }
 
 /// Represents a first-party notification card or announcement from the
@@ -31,8 +34,7 @@ class NotificationResponse {
 class NotificationItem {
   final String cardId;
   final String? loadId;
-  final String
-  category; // 'market', 'feature', 'account', 'security', 'orders', 'options', 'crypto', 'futures', 'dividends', 'ipo', 'announcements'
+  final String category; // 'market', 'feature', 'account', 'security', 'orders', 'options', 'crypto', 'futures', 'dividends', 'ipo', 'announcements'
   final String type;
   final String title;
   final String message;
@@ -80,7 +82,11 @@ class NotificationItem {
 
   factory NotificationItem.fromJson(dynamic json) {
     if (json is! Map) {
-      return const NotificationItem(cardId: '', title: '', message: '');
+      return const NotificationItem(
+        cardId: '',
+        title: '',
+        message: '',
+      );
     }
 
     DateTime? parseDate(dynamic value) {
@@ -93,13 +99,12 @@ class NotificationItem {
       }
     }
 
-    final id =
-        (json['id'] ??
-                json['card_id'] ??
-                json['thread_id'] ??
-                json['uuid'] ??
-                '')
-            .toString();
+    final id = (json['id'] ??
+            json['card_id'] ??
+            json['thread_id'] ??
+            json['uuid'] ??
+            '')
+        .toString();
     final load = json['load_id']?.toString();
 
     // Map numeric categories to friendly strings
@@ -127,15 +132,13 @@ class NotificationItem {
       catStr = rawCat.toLowerCase();
     }
 
-    final tType = (json['type'] ?? json['thread_type'] ?? 'announcement')
+    final tType = (json['type'] ?? json['thread_type'] ?? 'announcement').toString();
+    final tTitle = (json['display_name'] ??
+            json['title'] ??
+            json['subject'] ??
+            json['header'] ??
+            'Robinhood Notice')
         .toString();
-    final tTitle =
-        (json['display_name'] ??
-                json['title'] ??
-                json['subject'] ??
-                json['header'] ??
-                'Robinhood Notice')
-            .toString();
 
     // Extract message text from preview_text or most_recent_message or legacy message/body
     String tMsg = '';
@@ -146,13 +149,12 @@ class NotificationItem {
         json['most_recent_message']['rich_text']['text'] != null) {
       tMsg = json['most_recent_message']['rich_text']['text'].toString();
     } else {
-      tMsg =
-          (json['message'] ??
-                  json['body'] ??
-                  json['preview'] ??
-                  json['text'] ??
-                  '')
-              .toString();
+      tMsg = (json['message'] ??
+              json['body'] ??
+              json['preview'] ??
+              json['text'] ??
+              '')
+          .toString();
     }
 
     // Actions & responses from most_recent_message
@@ -161,12 +163,10 @@ class NotificationItem {
       mrm = json['most_recent_message'] as Map;
     }
 
-    String? actDisplayText =
-        json['call_to_action']?.toString() ??
+    String? actDisplayText = json['call_to_action']?.toString() ??
         json['cta_text']?.toString() ??
         mrm?['action']?['display_text']?.toString();
-    String? actUrl =
-        json['action']?.toString() ??
+    String? actUrl = json['action']?.toString() ??
         json['deep_link']?.toString() ??
         json['target_url']?.toString() ??
         mrm?['action']?['url']?.toString();
@@ -180,13 +180,11 @@ class NotificationItem {
 
     final icon = json['icon']?.toString() ?? json['icon_name']?.toString();
     final fixed = json['fixed'] == true;
-    final date = parseDate(
-      json['last_message_sent_at'] ??
-          mrm?['created_at'] ??
-          json['time'] ??
-          json['created_at'] ??
-          json['timestamp'],
-    );
+    final date = parseDate(json['last_message_sent_at'] ??
+        mrm?['created_at'] ??
+        json['time'] ??
+        json['created_at'] ??
+        json['timestamp']);
     final read = json['is_read'] == true || json['read'] == true;
     final itemUrl = json['url']?.toString();
     final shortName = json['short_display_name']?.toString();
@@ -230,7 +228,7 @@ class NotificationItem {
             'SOL',
             'TRUMP',
             'XRP',
-            'ADA',
+            'ADA'
           ].contains(shortUpper) ||
           msgLower.contains('doge') ||
           msgLower.contains('shib') ||

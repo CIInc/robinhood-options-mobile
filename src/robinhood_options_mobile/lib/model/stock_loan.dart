@@ -30,30 +30,25 @@ class StockLoanPosition {
       return const StockLoanPosition(symbol: '');
     }
 
-    final symbol =
-        json['symbol']?.toString().toUpperCase() ??
+    final symbol = json['symbol']?.toString().toUpperCase() ??
         json['ticker']?.toString().toUpperCase() ??
         '';
-    final instrumentId =
-        json['instrument_id']?.toString() ?? json['instrument']?.toString();
-    final quantity =
-        parseDouble(json['quantity']) ??
+    final instrumentId = json['instrument_id']?.toString() ??
+        json['instrument']?.toString();
+    final quantity = parseDouble(json['quantity']) ??
         parseDouble(json['shares']) ??
         parseDouble(json['shares_loaned']) ??
         0.0;
-    final borrowRate =
-        parseDouble(json['rate']) ??
+    final borrowRate = parseDouble(json['rate']) ??
         parseDouble(json['borrow_rate']) ??
         parseDouble(json['rebate_rate']) ??
         parseDouble(json['annualized_rate']) ??
         0.0;
-    final collateralAmount =
-        parseDouble(json['collateral_amount']) ??
+    final collateralAmount = parseDouble(json['collateral_amount']) ??
         parseDouble(json['collateral']) ??
         parseDouble(json['cash_collateral']) ??
         0.0;
-    final interestEarned =
-        parseDouble(json['interest_earned']) ??
+    final interestEarned = parseDouble(json['interest_earned']) ??
         parseDouble(json['amount']) ??
         parseDouble(json['earnings']) ??
         0.0;
@@ -79,12 +74,10 @@ class StockLoanPosition {
     };
   }
 
-  String get formattedQuantity => quantity % 1 == 0
-      ? quantity.toInt().toString()
-      : quantity.toStringAsFixed(2);
+  String get formattedQuantity =>
+      quantity % 1 == 0 ? quantity.toInt().toString() : quantity.toStringAsFixed(2);
   String get formattedBorrowRate => _percentFormat.format(borrowRate);
-  String get formattedCollateralAmount =>
-      _currencyFormat.format(collateralAmount);
+  String get formattedCollateralAmount => _currencyFormat.format(collateralAmount);
   String get formattedInterestEarned => _currencyFormat.format(interestEarned);
 }
 
@@ -123,14 +116,13 @@ class StockLoanPayment {
       );
     }
 
-    final id =
-        json['id']?.toString() ??
+    final id = json['id']?.toString() ??
         json['payment_id']?.toString() ??
         'slp_${DateTime.now().millisecondsSinceEpoch}';
-    final accountNumber =
-        json['account_number']?.toString() ?? json['account']?.toString() ?? '';
-    final dateStr =
-        json['payment_date']?.toString() ??
+    final accountNumber = json['account_number']?.toString() ??
+        json['account']?.toString() ??
+        '';
+    final dateStr = json['payment_date']?.toString() ??
         json['date']?.toString() ??
         json['settlement_date']?.toString() ??
         json['paid_at']?.toString();
@@ -139,21 +131,18 @@ class StockLoanPayment {
       paymentDate = DateTime.tryParse(dateStr);
     }
 
-    final amount =
-        parseDouble(json['amount']) ??
+    final amount = parseDouble(json['amount']) ??
         parseDouble(json['net_amount']) ??
         parseDouble(json['total_amount']) ??
         0.0;
     final currencyCode = json['currency_code']?.toString() ?? 'USD';
     final status = json['status']?.toString().toLowerCase() ?? 'paid';
-    final description =
-        json['description']?.toString() ?? json['memo']?.toString();
+    final description = json['description']?.toString() ?? json['memo']?.toString();
     final grossRate = parseDouble(json['gross_rate']);
     final netRate = parseDouble(json['net_rate']) ?? parseDouble(json['rate']);
 
     final positionsList = <StockLoanPosition>[];
-    final itemsRaw =
-        json['positions'] ??
+    final itemsRaw = json['positions'] ??
         json['securities'] ??
         json['items'] ??
         json['line_items'];
@@ -200,9 +189,8 @@ class StockLoanPayment {
   String get formattedAmount => _currencyFormat.format(amount);
   String get formattedPaymentDate =>
       paymentDate != null ? _shortDateFormat.format(paymentDate!) : 'Pending';
-  String get formattedStatus => status.isNotEmpty
-      ? status[0].toUpperCase() + status.substring(1)
-      : 'Unknown';
+  String get formattedStatus =>
+      status.isNotEmpty ? status[0].toUpperCase() + status.substring(1) : 'Unknown';
 
   Color get statusColor {
     switch (status) {
@@ -221,7 +209,13 @@ class StockLoanPayment {
 }
 
 /// Status of the user's participation in Robinhood's Securities Lending Income Program (SLIP).
-enum SlipEnrollmentStatus { enrolled, eligible, ineligible, pending, paused }
+enum SlipEnrollmentStatus {
+  enrolled,
+  eligible,
+  ineligible,
+  pending,
+  paused,
+}
 
 /// Represents the user's Securities Lending (SLIP) agreement eligibility, enrollment status, and aggregate yields.
 class SlipEligibility {
@@ -258,12 +252,10 @@ class SlipEligibility {
       return const SlipEligibility();
     }
 
-    final enrolled =
-        json['enrolled'] == true ||
+    final enrolled = json['enrolled'] == true ||
         json['is_enrolled'] == true ||
         json['status']?.toString().toLowerCase() == 'enrolled';
-    final eligible =
-        json['eligible'] == true ||
+    final eligible = json['eligible'] == true ||
         json['is_eligible'] == true ||
         (json['status']?.toString().toLowerCase() != 'ineligible');
 
@@ -279,28 +271,25 @@ class SlipEligibility {
       status = SlipEnrollmentStatus.ineligible;
     }
 
-    final agreementSigned =
-        json['agreement_signed'] == true ||
+    final agreementSigned = json['agreement_signed'] == true ||
         json['has_signed_agreement'] == true ||
         enrolled;
-    final signedDateStr =
-        json['agreement_signed_date']?.toString() ??
+    final signedDateStr = json['agreement_signed_date']?.toString() ??
         json['signed_at']?.toString();
     DateTime? signedDate;
     if (signedDateStr != null) {
       signedDate = DateTime.tryParse(signedDateStr);
     }
 
-    final enabledAtStr =
-        json['enabled_at']?.toString() ?? json['enrolled_at']?.toString();
+    final enabledAtStr = json['enabled_at']?.toString() ??
+        json['enrolled_at']?.toString();
     DateTime? enabledAt;
     if (enabledAtStr != null) {
       enabledAt = DateTime.tryParse(enabledAtStr);
     }
 
     final reasons = <String>[];
-    final reasonsRaw =
-        json['ineligibility_reasons'] ??
+    final reasonsRaw = json['ineligibility_reasons'] ??
         json['reasons'] ??
         json['disqualification_reasons'];
     if (reasonsRaw is List) {
@@ -309,24 +298,19 @@ class SlipEligibility {
       }
     }
 
-    final totalYtd =
-        parseDouble(json['total_interest_earned_ytd']) ??
+    final totalYtd = parseDouble(json['total_interest_earned_ytd']) ??
         parseDouble(json['ytd_earnings']) ??
         parseDouble(json['interest_ytd']);
-    final totalAllTime =
-        parseDouble(json['total_interest_earned_all_time']) ??
+    final totalAllTime = parseDouble(json['total_interest_earned_all_time']) ??
         parseDouble(json['all_time_earnings']) ??
         parseDouble(json['total_earnings']);
-    final yieldEstimate =
-        parseDouble(json['estimated_annualized_yield']) ??
+    final yieldEstimate = parseDouble(json['estimated_annualized_yield']) ??
         parseDouble(json['estimated_yield']) ??
         parseDouble(json['average_rebate_rate']);
-    final securitiesCount =
-        (json['loaned_securities_count'] as num?)?.toInt() ??
+    final securitiesCount = (json['loaned_securities_count'] as num?)?.toInt() ??
         (json['active_loans_count'] as num?)?.toInt() ??
         0;
-    final loanedValue =
-        parseDouble(json['total_loaned_value']) ??
+    final loanedValue = parseDouble(json['total_loaned_value']) ??
         parseDouble(json['loaned_value']) ??
         parseDouble(json['market_value_loaned']);
 
@@ -450,53 +434,44 @@ class SweepsInterest {
       return SweepsInterest(sweepBalance: uninvestedCash);
     }
 
-    final accountNumber =
-        json['account_number']?.toString() ?? json['account']?.toString();
-    final isEnrolled =
-        json['is_enrolled'] == true ||
+    final accountNumber = json['account_number']?.toString() ??
+        json['account']?.toString();
+    final isEnrolled = json['is_enrolled'] == true ||
         json['enrolled'] == true ||
         json['status']?.toString().toLowerCase() == 'enrolled';
 
     // APY parsing
-    final goldApy =
-        parseDouble(json['gold_rate']) ??
+    final goldApy = parseDouble(json['gold_rate']) ??
         parseDouble(json['gold_apy']) ??
         0.050;
-    final standardApy =
-        parseDouble(json['standard_rate']) ??
+    final standardApy = parseDouble(json['standard_rate']) ??
         parseDouble(json['regular_rate']) ??
         parseDouble(json['standard_apy']) ??
         0.015;
-    final boostedApy =
-        parseDouble(json['boosted_rate']) ??
+    final boostedApy = parseDouble(json['boosted_rate']) ??
         parseDouble(json['superboost_rate']) ??
         parseDouble(json['promotional_rate']);
-    final currentEffectiveApy =
-        parseDouble(json['rate']) ??
+    final currentEffectiveApy = parseDouble(json['rate']) ??
         parseDouble(json['effective_rate']) ??
         parseDouble(json['current_apy']) ??
         (isEnrolled ? (goldApy > 0 ? goldApy : standardApy) : standardApy);
 
-    final fdicLimit =
-        parseDouble(json['fdic_insurance_limit']) ??
+    final fdicLimit = parseDouble(json['fdic_insurance_limit']) ??
         parseDouble(json['fdic_coverage']) ??
         2250000.0;
-    final sweepBalance =
-        parseDouble(json['sweep_balance']) ??
+    final sweepBalance = parseDouble(json['sweep_balance']) ??
         parseDouble(json['cash_balance']) ??
         uninvestedCash;
 
     final banks = <String>[];
-    final banksRaw =
-        json['partner_banks'] ?? json['program_banks'] ?? json['banks'];
+    final banksRaw = json['partner_banks'] ?? json['program_banks'] ?? json['banks'];
     if (banksRaw is List) {
       for (final b in banksRaw) {
         if (b != null) banks.add(b.toString());
       }
     }
 
-    final updatedStr =
-        json['updated_at']?.toString() ?? json['date']?.toString();
+    final updatedStr = json['updated_at']?.toString() ?? json['date']?.toString();
     DateTime? updatedAt;
     if (updatedStr != null) {
       updatedAt = DateTime.tryParse(updatedStr);
@@ -546,8 +521,7 @@ class SweepsInterest {
 
   String get formattedGoldApy => _percentFormat.format(goldApy);
   String get formattedStandardApy => _percentFormat.format(standardApy);
-  String get formattedEffectiveApy =>
-      _percentFormat.format(currentEffectiveApy);
+  String get formattedEffectiveApy => _percentFormat.format(currentEffectiveApy);
   String get formattedBoostedApy =>
       boostedApy != null ? _percentFormat.format(boostedApy) : '';
   String get formattedSweepBalance => _currencyFormat.format(sweepBalance);

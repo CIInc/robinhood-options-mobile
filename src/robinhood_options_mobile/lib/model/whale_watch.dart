@@ -35,9 +35,8 @@ class WhaleWatchTransaction {
       transactionText: json['transactionText'] ?? '',
       shares: json['shares'] ?? 0,
       value: (json['value'] as num?)?.toDouble() ?? 0.0,
-      date: json['date'] != null
-          ? DateTime.parse(json['date'])
-          : DateTime.now(),
+      date:
+          json['date'] != null ? DateTime.parse(json['date']) : DateTime.now(),
       ownership: json['ownership'] ?? '',
       isBuy: json['isBuy'] ?? false,
       isSale: json['isSale'] ?? false,
@@ -102,23 +101,20 @@ class WhaleWatchAggregate {
   });
 
   factory WhaleWatchAggregate.fromSnapshot(
-    DocumentSnapshot<Map<String, dynamic>> snapshot,
-  ) {
+      DocumentSnapshot<Map<String, dynamic>> snapshot) {
     final data = snapshot.data() ?? {};
     return WhaleWatchAggregate(
       buyTotal: (data['buyTotal'] as num?)?.toDouble() ?? 0.0,
       sellTotal: (data['sellTotal'] as num?)?.toDouble() ?? 0.0,
       buyCount: data['buyCount'] ?? 0,
       sellCount: data['sellCount'] ?? 0,
-      topAccumulatedSymbols:
-          (data['topAccumulatedSymbols'] as List?)
+      topAccumulatedSymbols: (data['topAccumulatedSymbols'] as List?)
               ?.map((e) => TopAccumulatedSymbol.fromJson(e))
               .toList() ??
           [],
       institutionalRankingMode:
           data['institutionalRankingMode'] ?? 'accumulation',
-      recentLargeTransactions:
-          (data['recentLargeTransactions'] as List?)
+      recentLargeTransactions: (data['recentLargeTransactions'] as List?)
               ?.map((e) => WhaleWatchTransaction.fromJson(e))
               .toList() ??
           [],

@@ -276,8 +276,7 @@ Follow the table with a strategic breakdown:
     return prompts.firstWhere(
       (p) => p.key == key,
       orElse: () => throw ArgumentError(
-        'Prompt with key "$key" not found in GenerativeService.',
-      ),
+          'Prompt with key "$key" not found in GenerativeService.'),
     );
   }
 
@@ -380,16 +379,15 @@ Follow the table with a strategic breakdown:
 
   // GenerativeService(this._apiKey, {String baseUrl = 'https://vertexai.googleapis.com/v1'}) : _baseUrl = baseUrl;
   GenerativeService()
-    : // Initialize the Vertex AI service and the generative model
-      // Specify a model that supports your use case
-      model = FirebaseAI.vertexAI().generativeModel(
-        // model: 'gemini-2.5-flash'
-        model: RemoteConfigService.instance.aiModelName.isNotEmpty
-            ? RemoteConfigService.instance.aiModelName
-            : 'gemini-2.5-flash-lite',
-        systemInstruction: systemInstruction,
-        tools: [Tool.googleSearch()],
-      );
+      : // Initialize the Vertex AI service and the generative model
+        // Specify a model that supports your use case
+        model = FirebaseAI.vertexAI().generativeModel(
+            // model: 'gemini-2.5-flash'
+            model: RemoteConfigService.instance.aiModelName.isNotEmpty
+                ? RemoteConfigService.instance.aiModelName
+                : 'gemini-2.5-flash-lite',
+            systemInstruction: systemInstruction,
+            tools: [Tool.googleSearch()]);
 
   Future<String> generateContentFromServer(
     Prompt prompt,
@@ -411,12 +409,8 @@ Follow the table with a strategic breakdown:
         forexHoldingStore != null &&
         prompt.appendPortfolioToPrompt) {
       context += portfolioPrompt(
-        stockPositionStore,
-        optionPositionStore,
-        forexHoldingStore,
-        user: user,
-        includeProfile: !profileAppended,
-      );
+          stockPositionStore, optionPositionStore, forexHoldingStore,
+          user: user, includeProfile: !profileAppended);
     }
     String promptString =
         """You are a financial assistant, provide answers in markdown format.
@@ -460,11 +454,10 @@ Follow the table with a strategic breakdown:
                   .map((e) => e["text"])
                   .join('  \n');
         } else if (resp.data is Map && resp.data["response"] != null) {
-          responseText =
-              (resp.data["response"]["candidates"][0]["content"]["parts"]
-                      as List)
-                  .map((e) => e["text"])
-                  .join('  \n');
+          responseText = (resp.data["response"]["candidates"][0]["content"]
+                  ["parts"] as List)
+              .map((e) => e["text"])
+              .join('  \n');
         }
       }
 
@@ -501,23 +494,20 @@ Follow the table with a strategic breakdown:
     if (accessToken != null) {
       try {
         mcpClient = RobinhoodMcpClient(accessToken);
-        final mcpTools = await mcpClient.listTools().timeout(
-          const Duration(seconds: 5),
-        );
+        final mcpTools =
+            await mcpClient.listTools().timeout(const Duration(seconds: 5));
         if (mcpTools.isNotEmpty) {
           final List<FunctionDeclaration> functionDeclarations = [];
           for (final tool in mcpTools) {
             final name = tool.name;
             final description = tool.description;
             final inputSchema = tool.inputSchema.toJson();
-            functionDeclarations.add(
-              FunctionDeclaration(
-                name,
-                description ?? '',
-                parameters: _parseJsonSchemaProperties(inputSchema),
-                optionalParameters: _getOptionalParameters(inputSchema),
-              ),
-            );
+            functionDeclarations.add(FunctionDeclaration(
+              name,
+              description ?? '',
+              parameters: _parseJsonSchemaProperties(inputSchema),
+              optionalParameters: _getOptionalParameters(inputSchema),
+            ));
             mcpToolNames.add(name);
           }
           if (functionDeclarations.isNotEmpty) {
@@ -574,8 +564,7 @@ Follow the table with a strategic breakdown:
 
     if (mcpConnected) {
       debugPrint(
-        "GenerativeService [generateContent]: Local MCP is connected. Active tools count: ${modelTools.length}",
-      );
+          "GenerativeService [generateContent]: Local MCP is connected. Active tools count: ${modelTools.length}");
       debugPrint("  Tool functions available for Gemini: $mcpToolNames");
 
       final activeModel = FirebaseAI.vertexAI().generativeModel(
@@ -594,8 +583,7 @@ Follow the table with a strategic breakdown:
         while (true) {
           turnCount++;
           debugPrint(
-            "GenerativeService [generateContent Turn $turnCount]: Calling Vertex AI with ${currentContents.length} items in history.",
-          );
+              "GenerativeService [generateContent Turn $turnCount]: Calling Vertex AI with ${currentContents.length} items in history.");
           final response = await activeModel.generateContent(currentContents);
           final text = response.text;
           if (text != null && text.isNotEmpty) {
@@ -604,8 +592,7 @@ Follow the table with a strategic breakdown:
 
           final functionCalls = response.functionCalls;
           debugPrint(
-            "GenerativeService [generateContent Turn $turnCount]: Model generated text length ${text?.length ?? 0}, raw functionCalls count: ${functionCalls.length}",
-          );
+              "GenerativeService [generateContent Turn $turnCount]: Model generated text length ${text?.length ?? 0}, raw functionCalls count: ${functionCalls.length}");
           if (functionCalls.isEmpty) {
             return buffer.isNotEmpty
                 ? buffer.toString()
@@ -615,8 +602,7 @@ Follow the table with a strategic breakdown:
           // We have function calls, execute them!
           final deduplicatedCalls = _deduplicateCalls(functionCalls.toList());
           debugPrint(
-            "GenerativeService [generateContent Turn $turnCount]: Deduplicated functionCalls count: ${deduplicatedCalls.length}",
-          );
+              "GenerativeService [generateContent Turn $turnCount]: Deduplicated functionCalls count: ${deduplicatedCalls.length}");
 
           List<FunctionResponse> responses = [];
           for (final call in deduplicatedCalls) {
@@ -625,8 +611,7 @@ Follow the table with a strategic breakdown:
               buffer.write("\n> *Arguments:* `${jsonEncode(call.args)}`");
             }
             debugPrint(
-              "  Executing tool: ${call.name} with arguments: ${jsonEncode(call.args)}",
-            );
+                "  Executing tool: ${call.name} with arguments: ${jsonEncode(call.args)}");
 
             try {
               final result = await mcpClient.callTool(call.name, call.args);
@@ -642,9 +627,8 @@ Follow the table with a strategic breakdown:
               buffer.write("\n> 📥 **Response:** `$resultStr`\n\n");
               debugPrint("    Success from tool ${call.name}: $resultStr");
             } catch (e) {
-              responses.add(
-                FunctionResponse(call.name, {'error': e.toString()}),
-              );
+              responses
+                  .add(FunctionResponse(call.name, {'error': e.toString()}));
               buffer.write("\n> ❌ **Error:** `$e`\n\n");
               debugPrint("    Error from tool ${call.name}: $e");
             }
@@ -656,26 +640,21 @@ Follow the table with a strategic breakdown:
           }
           if (deduplicatedCalls.isNotEmpty) {
             modelParts.addAll(
-              deduplicatedCalls.map((c) => FunctionCall(c.name, c.args)),
-            );
+                deduplicatedCalls.map((c) => FunctionCall(c.name, c.args)));
           }
 
           debugPrint(
-            "GenerativeService [generateContent Turn $turnCount]: Appending Content.model and Content.functionResponses to conversation history.",
-          );
+              "GenerativeService [generateContent Turn $turnCount]: Appending Content.model and Content.functionResponses to conversation history.");
           currentContents.add(Content.model(modelParts));
           currentContents.add(Content.functionResponses(responses));
         }
       } catch (e, stackTrace) {
         debugPrint(
-          "GenerativeService Exception in local MCP client generateContent: $e",
-        );
+            "GenerativeService Exception in local MCP client generateContent: $e");
         debugPrint("Stack trace: $stackTrace");
         try {
-          final historyJson = jsonEncode(
-            currentContents
-                .map(
-                  (c) => {
+          final historyJson = jsonEncode(currentContents
+              .map((c) => {
                     'role': c.role,
                     'parts': c.parts.map((p) {
                       if (p is TextPart)
@@ -684,25 +663,22 @@ Follow the table with a strategic breakdown:
                         return {
                           'type': 'functionCall',
                           'name': p.name,
-                          'args': p.args,
+                          'args': p.args
                         };
                       if (p is FunctionResponse)
                         return {
                           'type': 'functionResponse',
                           'name': p.name,
-                          'response': p.response,
+                          'response': p.response
                         };
                       return {'type': 'unknown', 'string': p.toString()};
                     }).toList(),
-                  },
-                )
-                .toList(),
-          );
+                  })
+              .toList());
           debugPrint("Current Contents context at failure: $historyJson");
         } catch (encodeError) {
           debugPrint(
-            "Failed to encode currentContents for debugging: $encodeError",
-          );
+              "Failed to encode currentContents for debugging: $encodeError");
         }
         return "Error: $e";
       } finally {
@@ -726,11 +702,10 @@ Follow the table with a strategic breakdown:
               .map((e) => e["text"])
               .join('  \n');
         } else if (resp.data is Map && resp.data["response"] != null) {
-          response =
-              (resp.data["response"]["candidates"][0]["content"]["parts"]
-                      as List)
-                  .map((e) => e["text"])
-                  .join('  \n');
+          response = (resp.data["response"]["candidates"][0]["content"]["parts"]
+                  as List)
+              .map((e) => e["text"])
+              .join('  \n');
         }
       } catch (e) {
         debugPrint("Error parsing chat response: $e");
@@ -760,12 +735,8 @@ Follow the table with a strategic breakdown:
         forexHoldingStore != null &&
         prompt.appendPortfolioToPrompt) {
       context += portfolioPrompt(
-        stockPositionStore,
-        optionPositionStore,
-        forexHoldingStore,
-        user: user,
-        includeProfile: !profileAppended,
-      );
+          stockPositionStore, optionPositionStore, forexHoldingStore,
+          user: user, includeProfile: !profileAppended);
     }
 
     String promptString = "${prompt.prompt}\n$context";
@@ -807,23 +778,20 @@ Follow the table with a strategic breakdown:
     if (accessToken != null) {
       try {
         mcpClient = RobinhoodMcpClient(accessToken);
-        final mcpTools = await mcpClient.listTools().timeout(
-          const Duration(seconds: 5),
-        );
+        final mcpTools =
+            await mcpClient.listTools().timeout(const Duration(seconds: 5));
         if (mcpTools.isNotEmpty) {
           final List<FunctionDeclaration> functionDeclarations = [];
           for (final tool in mcpTools) {
             final name = tool.name;
             final description = tool.description;
             final inputSchema = tool.inputSchema.toJson();
-            functionDeclarations.add(
-              FunctionDeclaration(
-                name,
-                description ?? '',
-                parameters: _parseJsonSchemaProperties(inputSchema),
-                optionalParameters: _getOptionalParameters(inputSchema),
-              ),
-            );
+            functionDeclarations.add(FunctionDeclaration(
+              name,
+              description ?? '',
+              parameters: _parseJsonSchemaProperties(inputSchema),
+              optionalParameters: _getOptionalParameters(inputSchema),
+            ));
             mcpToolNames.add(name);
           }
           if (functionDeclarations.isNotEmpty) {
@@ -882,9 +850,8 @@ Follow the table with a strategic breakdown:
             model: RemoteConfigService.instance.aiModelName.isNotEmpty
                 ? RemoteConfigService.instance.aiModelName
                 : 'gemini-2.5-flash-lite',
-            systemInstruction: buildSystemInstruction(
-              mcpToolNames: mcpToolNames,
-            ),
+            systemInstruction:
+                buildSystemInstruction(mcpToolNames: mcpToolNames),
             tools: modelTools,
           )
         : model;
@@ -894,13 +861,11 @@ Follow the table with a strategic breakdown:
 
     if (mcpConnected) {
       debugPrint(
-        "GenerativeService [streamChatMessage]: Local MCP is connected. Active tools count: ${modelTools.length}",
-      );
+          "GenerativeService [streamChatMessage]: Local MCP is connected. Active tools count: ${modelTools.length}");
       debugPrint("  Tool functions available for Gemini: $mcpToolNames");
     } else {
       debugPrint(
-        "GenerativeService [streamChatMessage]: Standard stream call (no local MCP connection).",
-      );
+          "GenerativeService [streamChatMessage]: Standard stream call (no local MCP connection).");
     }
 
     try {
@@ -911,21 +876,17 @@ Follow the table with a strategic breakdown:
         final turnBuffer = StringBuffer();
 
         debugPrint(
-          "GenerativeService [streamChatMessage Turn $turnCount]: Calling generateContentStream with ${currentContents.length} items in history.",
-        );
+            "GenerativeService [streamChatMessage Turn $turnCount]: Calling generateContentStream with ${currentContents.length} items in history.");
         int eventCount = 0;
-        await for (final event in activeModel.generateContentStream(
-          currentContents,
-        )) {
+        await for (final event
+            in activeModel.generateContentStream(currentContents)) {
           eventCount++;
           if (event.functionCalls.isNotEmpty) {
             debugPrint(
-              "GenerativeService [streamChatMessage Turn $turnCount Event $eventCount]: Received ${event.functionCalls.length} raw functionCalls: ${event.functionCalls.map((c) => c.name).toList()}",
-            );
+                "GenerativeService [streamChatMessage Turn $turnCount Event $eventCount]: Received ${event.functionCalls.length} raw functionCalls: ${event.functionCalls.map((c) => c.name).toList()}");
             for (final call in event.functionCalls) {
               debugPrint(
-                "    Raw Call name: ${call.name}, args: ${jsonEncode(call.args)}",
-              );
+                  "    Raw Call name: ${call.name}, args: ${jsonEncode(call.args)}");
             }
             pendingCalls.addAll(event.functionCalls);
           }
@@ -947,21 +908,18 @@ Follow the table with a strategic breakdown:
         // Commit turnBuffer to mainBuffer
         mainBuffer.write(turnBuffer.toString());
         debugPrint(
-          "GenerativeService [streamChatMessage Turn $turnCount]: Finished parsing stream. Total events: $eventCount. Accumulated text length: ${turnBuffer.length}, raw pending function calls collected: ${pendingCalls.length}",
-        );
+            "GenerativeService [streamChatMessage Turn $turnCount]: Finished parsing stream. Total events: $eventCount. Accumulated text length: ${turnBuffer.length}, raw pending function calls collected: ${pendingCalls.length}");
 
         if (pendingCalls.isEmpty || mcpClient == null) {
           debugPrint(
-            "GenerativeService [streamChatMessage Turn $turnCount]: No function calls generated. Conversing complete!",
-          );
+              "GenerativeService [streamChatMessage Turn $turnCount]: No function calls generated. Conversing complete!");
           break;
         }
 
         // We have pending calls, deduplicate and execute them!
         final deduplicatedCalls = _deduplicateCalls(pendingCalls);
         debugPrint(
-          "GenerativeService [streamChatMessage Turn $turnCount]: Deduplicated functionCalls count: ${deduplicatedCalls.length}",
-        );
+            "GenerativeService [streamChatMessage Turn $turnCount]: Deduplicated functionCalls count: ${deduplicatedCalls.length}");
 
         List<FunctionResponse> responses = [];
         for (final call in deduplicatedCalls) {
@@ -971,8 +929,7 @@ Follow the table with a strategic breakdown:
           }
           yield mainBuffer.toString();
           debugPrint(
-            "  Executing tool: ${call.name} with arguments: ${jsonEncode(call.args)}",
-          );
+              "  Executing tool: ${call.name} with arguments: ${jsonEncode(call.args)}");
 
           try {
             final result = await mcpClient.callTool(call.name, call.args);
@@ -1003,13 +960,11 @@ Follow the table with a strategic breakdown:
         }
         if (deduplicatedCalls.isNotEmpty) {
           modelParts.addAll(
-            deduplicatedCalls.map((c) => FunctionCall(c.name, c.args)),
-          );
+              deduplicatedCalls.map((c) => FunctionCall(c.name, c.args)));
         }
 
         debugPrint(
-          "GenerativeService [streamChatMessage Turn $turnCount]: Appending Content.model and Content.functionResponses to conversation history.",
-        );
+            "GenerativeService [streamChatMessage Turn $turnCount]: Appending Content.model and Content.functionResponses to conversation history.");
         currentContents.add(Content.model(modelParts));
         currentContents.add(Content.functionResponses(responses));
       }
@@ -1017,10 +972,8 @@ Follow the table with a strategic breakdown:
       debugPrint("GenerativeService Exception in streamChatMessage: $e");
       debugPrint("Stack trace: $stackTrace");
       try {
-        final historyJson = jsonEncode(
-          currentContents
-              .map(
-                (c) => {
+        final historyJson = jsonEncode(currentContents
+            .map((c) => {
                   'role': c.role,
                   'parts': c.parts.map((p) {
                     if (p is TextPart) return {'type': 'text', 'text': p.text};
@@ -1028,25 +981,22 @@ Follow the table with a strategic breakdown:
                       return {
                         'type': 'functionCall',
                         'name': p.name,
-                        'args': p.args,
+                        'args': p.args
                       };
                     if (p is FunctionResponse)
                       return {
                         'type': 'functionResponse',
                         'name': p.name,
-                        'response': p.response,
+                        'response': p.response
                       };
                     return {'type': 'unknown', 'string': p.toString()};
                   }).toList(),
-                },
-              )
-              .toList(),
-        );
+                })
+            .toList());
         debugPrint("Current Contents context at failure: $historyJson");
       } catch (encodeError) {
         debugPrint(
-          "Failed to encode currentContents for debugging: $encodeError",
-        );
+            "Failed to encode currentContents for debugging: $encodeError");
       }
       rethrow;
     } finally {
@@ -1075,12 +1025,8 @@ Follow the table with a strategic breakdown:
         forexHoldingStore != null &&
         prompt.appendPortfolioToPrompt) {
       context += portfolioPrompt(
-        stockPositionStore,
-        optionPositionStore,
-        forexHoldingStore,
-        user: user,
-        includeProfile: !profileAppended,
-      );
+          stockPositionStore, optionPositionStore, forexHoldingStore,
+          user: user, includeProfile: !profileAppended);
     }
 
     String promptString = "${prompt.prompt}\n$context";
@@ -1115,9 +1061,8 @@ Follow the table with a strategic breakdown:
 
   String investmentProfilePrompt(User user) {
     String profilePrompt = "";
-    profilePrompt += user.name != null
-        ? "Portfolio of ${user.name}\n"
-        : "Portfolio\n";
+    profilePrompt +=
+        user.name != null ? "Portfolio of ${user.name}\n" : "Portfolio\n";
 
     profilePrompt += "## Investment Profile\n";
     if (user.investmentProfile?.investmentGoals != null &&
@@ -1199,9 +1144,8 @@ Follow the table with a strategic breakdown:
             ? fundamentals!.peRatio.toString()
             : "-";
         final divObj = fundamentals?.dividendYield;
-        final divYield = divObj != null
-            ? formatPercentage.format(divObj / 100)
-            : "-";
+        final divYield =
+            divObj != null ? formatPercentage.format(divObj / 100) : "-";
         final high52 = fundamentals?.high52Weeks != null
             ? formatCurrency.format(fundamentals!.high52Weeks)
             : "-";
@@ -1231,8 +1175,8 @@ Follow the table with a strategic breakdown:
 
       var markPrice =
           item.optionInstrument?.optionMarketData?.adjustedMarkPrice ??
-          item.optionInstrument?.optionMarketData?.markPrice ??
-          0;
+              item.optionInstrument?.optionMarketData?.markPrice ??
+              0;
       var markPriceStr = formatCurrency.format(markPrice);
       var marketValueStr = formatCurrency.format(item.marketValue);
 
@@ -1246,16 +1190,16 @@ Follow the table with a strategic breakdown:
 
       var expiry =
           item.legs.isNotEmpty && item.legs.first.expirationDate != null
-          ? formatDate.format(item.legs.first.expirationDate!)
-          : "";
+              ? formatDate.format(item.legs.first.expirationDate!)
+              : "";
 
       // Greeks & Risk
       var iv =
           item.optionInstrument?.optionMarketData?.impliedVolatility != null
-          ? formatPercentage.format(
-              item.optionInstrument!.optionMarketData!.impliedVolatility,
-            )
-          : "-";
+              ? formatPercentage.format(
+                  item.optionInstrument!.optionMarketData!.impliedVolatility,
+                )
+              : "-";
       var delta =
           item.optionInstrument?.optionMarketData?.delta?.toString() ?? "-";
       var theta =
@@ -1264,24 +1208,20 @@ Follow the table with a strategic breakdown:
           item.optionInstrument?.optionMarketData?.gamma?.toString() ?? "-";
       var vega =
           item.optionInstrument?.optionMarketData?.vega?.toString() ?? "-";
-      var chanceProfit =
-          item.optionInstrument?.optionMarketData?.chanceOfProfitLong != null
+      var chanceProfit = item
+                  .optionInstrument?.optionMarketData?.chanceOfProfitLong !=
+              null
           ? (side == 'Long'
-                ? formatPercentage.format(
-                    item.optionInstrument!.optionMarketData!.chanceOfProfitLong,
-                  )
-                : (item
-                              .optionInstrument
-                              ?.optionMarketData
-                              ?.chanceOfProfitShort !=
-                          null
-                      ? formatPercentage.format(
-                          item
-                              .optionInstrument!
-                              .optionMarketData!
-                              .chanceOfProfitShort,
-                        )
-                      : "-"))
+              ? formatPercentage.format(
+                  item.optionInstrument!.optionMarketData!.chanceOfProfitLong,
+                )
+              : (item.optionInstrument?.optionMarketData?.chanceOfProfitShort !=
+                      null
+                  ? formatPercentage.format(
+                      item.optionInstrument!.optionMarketData!
+                          .chanceOfProfitShort,
+                    )
+                  : "-"))
           : "-";
 
       positionPrompt +=
@@ -1332,12 +1272,10 @@ Follow the table with a strategic breakdown:
     try {
       final resourceUri = Uri.parse('https://agent.robinhood.com/mcp/trading');
       final resourceMetaUri = Uri.parse(
-        '${resourceUri.origin}/.well-known/oauth-protected-resource${resourceUri.path}',
-      );
+          '${resourceUri.origin}/.well-known/oauth-protected-resource${resourceUri.path}');
 
-      final resResponse = await http
-          .get(resourceMetaUri)
-          .timeout(const Duration(seconds: 5));
+      final resResponse =
+          await http.get(resourceMetaUri).timeout(const Duration(seconds: 5));
       if (resResponse.statusCode == 200) {
         final resData = jsonDecode(resResponse.body);
         final authServers = resData['authorization_servers'] as List<dynamic>?;
@@ -1345,40 +1283,33 @@ Follow the table with a strategic breakdown:
           final authServerStr = authServers.first as String;
           final authServerUri = Uri.parse(authServerStr);
           final authMetaUri = Uri.parse(
-            '${authServerUri.origin}/.well-known/oauth-authorization-server${authServerUri.path}',
-          );
+              '${authServerUri.origin}/.well-known/oauth-authorization-server${authServerUri.path}');
 
-          final authResponse = await http
-              .get(authMetaUri)
-              .timeout(const Duration(seconds: 5));
+          final authResponse =
+              await http.get(authMetaUri).timeout(const Duration(seconds: 5));
           if (authResponse.statusCode == 200) {
             final authData = jsonDecode(authResponse.body);
 
             registrationEndpoint =
                 authData['registration_endpoint'] as String? ??
-                registrationEndpoint;
+                    registrationEndpoint;
             authorizationEndpoint =
                 authData['authorization_endpoint'] as String? ??
-                authorizationEndpoint;
+                    authorizationEndpoint;
             tokenEndpoint =
                 authData['token_endpoint'] as String? ?? tokenEndpoint;
 
             await prefs.setString(
-              'mcp_registration_endpoint',
-              registrationEndpoint,
-            );
+                'mcp_registration_endpoint', registrationEndpoint);
             await prefs.setString(
-              'mcp_authorization_endpoint',
-              authorizationEndpoint,
-            );
+                'mcp_authorization_endpoint', authorizationEndpoint);
             await prefs.setString('mcp_token_endpoint', tokenEndpoint);
           }
         }
       }
     } catch (e) {
       debugPrint(
-        "Error performing OAuth discovery: $e. Using fallback endpoints.",
-      );
+          "Error performing OAuth discovery: $e. Using fallback endpoints.");
     }
 
     return {
@@ -1414,7 +1345,9 @@ Follow the table with a strategic breakdown:
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'client_name': 'RealizeAlpha',
-          'redirect_uris': ['http://127.0.0.1:33418/'],
+          'redirect_uris': [
+            'http://127.0.0.1:33418/',
+          ],
           'grant_types': ['authorization_code', 'refresh_token'],
           'response_types': ['code'],
           'token_endpoint_auth_method': 'none',
@@ -1429,14 +1362,12 @@ Follow the table with a strategic breakdown:
           await prefs.setString('mcp_client_id', clientId);
           await prefs.setString('mcp_redirect_uri', redirectUri);
           debugPrint(
-            "Successfully registered MCP client: $clientId with redirect URI: $redirectUri",
-          );
+              "Successfully registered MCP client: $clientId with redirect URI: $redirectUri");
           return clientId;
         }
       }
       throw Exception(
-        'Failed to register client: ${response.statusCode} - ${response.body}',
-      );
+          'Failed to register client: ${response.statusCode} - ${response.body}');
     } catch (e) {
       debugPrint("Error registering dynamic client: $e");
       rethrow;
@@ -1534,26 +1465,23 @@ Follow the table with a strategic breakdown:
     final codeVerifier = _generateCodeVerifier();
     final codeChallenge = _generateCodeChallenge(codeVerifier);
 
-    final authUrl = Uri.parse(authorizationEndpoint)
-        .replace(
-          queryParameters: {
-            'response_type': 'code',
-            'client_id': clientId,
-            'redirect_uri': redirectUri,
-            'state': state,
-            'code_challenge': codeChallenge,
-            'code_challenge_method': 'S256',
-            'scope': 'internal',
-            'resource': 'https://agent.robinhood.com/mcp/trading',
-          },
-        )
-        .toString();
+    final authUrl = Uri.parse(authorizationEndpoint).replace(
+      queryParameters: {
+        'response_type': 'code',
+        'client_id': clientId,
+        'redirect_uri': redirectUri,
+        'state': state,
+        'code_challenge': codeChallenge,
+        'code_challenge_method': 'S256',
+        'scope': 'internal',
+        'resource': 'https://agent.robinhood.com/mcp/trading',
+      },
+    ).toString();
 
     try {
       debugPrint("Launching MCP Authorization URL: $authUrl");
       debugPrint(
-        "Expected redirect URI: $redirectUri, Callback scheme: ${Uri.parse(redirectUri).scheme}",
-      );
+          "Expected redirect URI: $redirectUri, Callback scheme: ${Uri.parse(redirectUri).scheme}");
 
       String? resultUrl;
       if (context != null &&
@@ -1590,8 +1518,7 @@ Follow the table with a strategic breakdown:
       final errorDescription = returnedUri.queryParameters['error_description'];
       if (error != null && error.isNotEmpty) {
         debugPrint(
-          "Authorization failed with error: $error, description: $errorDescription",
-        );
+            "Authorization failed with error: $error, description: $errorDescription");
         return false;
       }
 
@@ -1599,39 +1526,34 @@ Follow the table with a strategic breakdown:
       final returnedState = returnedUri.queryParameters['state'];
 
       debugPrint(
-        "Code present: ${code != null && code.isNotEmpty}, State match: ${returnedState == state}",
-      );
+          "Code present: ${code != null && code.isNotEmpty}, State match: ${returnedState == state}");
 
       if (code == null || code.isEmpty) {
         debugPrint(
-          "Authorization failed: No authorization code returned. Query parameters: ${returnedUri.queryParameters}",
-        );
+            "Authorization failed: No authorization code returned. Query parameters: ${returnedUri.queryParameters}");
         return false;
       }
       if (returnedState != state) {
         debugPrint(
-          "Authorization failed: State mismatch. Expected: $state, Got: $returnedState",
-        );
+            "Authorization failed: State mismatch. Expected: $state, Got: $returnedState");
         return false;
       }
 
       debugPrint("Exchanging authorization code for tokens...");
-      final tokenResponse = await http
-          .post(
-            Uri.parse(tokenEndpoint),
-            headers: {
-              'Content-Type': 'application/x-www-form-urlencoded',
-              'Accept': 'application/json',
-            },
-            body: {
-              'grant_type': 'authorization_code',
-              'code': code,
-              'redirect_uri': redirectUri,
-              'client_id': clientId,
-              'code_verifier': codeVerifier,
-            },
-          )
-          .timeout(const Duration(seconds: 15));
+      final tokenResponse = await http.post(
+        Uri.parse(tokenEndpoint),
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Accept': 'application/json',
+        },
+        body: {
+          'grant_type': 'authorization_code',
+          'code': code,
+          'redirect_uri': redirectUri,
+          'client_id': clientId,
+          'code_verifier': codeVerifier,
+        },
+      ).timeout(const Duration(seconds: 15));
 
       if (tokenResponse.statusCode == 200) {
         final data = jsonDecode(tokenResponse.body);
@@ -1648,14 +1570,12 @@ Follow the table with a strategic breakdown:
               DateTime.now().millisecondsSinceEpoch + (expiresIn * 1000);
           await prefs.setInt('mcp_token_expiry_ms', expiryMs);
           debugPrint(
-            "MCP Authorization successful. Access token obtained via manual PKCE.",
-          );
+              "MCP Authorization successful. Access token obtained via manual PKCE.");
           return true;
         }
       } else {
         debugPrint(
-          "Failed to exchange code for token: ${tokenResponse.statusCode} - ${tokenResponse.body}",
-        );
+            "Failed to exchange code for token: ${tokenResponse.statusCode} - ${tokenResponse.body}");
       }
     } catch (e) {
       debugPrint("Authorization flow failed: $e");
@@ -1713,10 +1633,9 @@ Schema _parseJsonSchema(Map<String, dynamic> schemaMap) {
   if (typeObj is String) {
     type = typeObj;
   } else if (typeObj is List) {
-    final nonNullType = typeObj.cast<dynamic>().firstWhere(
-      (t) => t != 'null',
-      orElse: () => null,
-    );
+    final nonNullType = typeObj
+        .cast<dynamic>()
+        .firstWhere((t) => t != 'null', orElse: () => null);
     if (nonNullType != null) {
       type = nonNullType.toString();
     } else if (typeObj.isNotEmpty) {
@@ -1798,8 +1717,7 @@ List<FunctionCall> _deduplicateCalls(List<FunctionCall> calls) {
         deduplicated.add(call);
       } else {
         debugPrint(
-          "GenerativeService: Skipping duplicate function call from stream: ${call.name} with args: ${call.args}",
-        );
+            "GenerativeService: Skipping duplicate function call from stream: ${call.name} with args: ${call.args}");
       }
     } catch (e) {
       // Fallback if jsonEncode fails on args
@@ -1831,14 +1749,18 @@ class RobinhoodMcpClient {
           icons: const [],
           websiteUrl: '',
         ),
-        options: mcp.McpClientOptions(capabilities: mcp.ClientCapabilities()),
+        options: mcp.McpClientOptions(
+          capabilities: mcp.ClientCapabilities(),
+        ),
       );
 
       _transport = mcp.StreamableHttpClientTransport(
         Uri.parse('https://agent.robinhood.com/mcp/trading'),
         opts: mcp.StreamableHttpClientTransportOptions(
           requestInit: {
-            'headers': {'Authorization': 'Bearer $_accessToken'},
+            'headers': {
+              'Authorization': 'Bearer $_accessToken',
+            },
           },
         ),
       );
@@ -1875,7 +1797,10 @@ class RobinhoodMcpClient {
   Future<dynamic> callTool(String name, Map<String, dynamic> arguments) async {
     await _ensureConnected();
     final response = await _client!.callTool(
-      mcp.CallToolRequest(name: name, arguments: arguments),
+      mcp.CallToolRequest(
+        name: name,
+        arguments: arguments,
+      ),
     );
     return response.toJson();
   }

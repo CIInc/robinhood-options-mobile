@@ -52,46 +52,21 @@ class SpendingAccount {
       }
     }
 
-    final id = (json['id'] ?? json['account_id'] ?? json['uuid'] ?? '')
-        .toString();
-    final acctNum =
-        (json['account_number'] ??
-                json['mask'] ??
-                json['rhs_account_number'] ??
-                '')
-            .toString();
+    final id = (json['id'] ?? json['account_id'] ?? json['uuid'] ?? '').toString();
+    final acctNum = (json['account_number'] ?? json['mask'] ?? json['rhs_account_number'] ?? '').toString();
     final routing = json['routing_number']?.toString();
     final status = (json['status'] ?? json['state'] ?? 'active').toString();
 
-    final bal =
-        parseDouble(
-          json['balance'] ?? json['current_balance'] ?? json['total_balance'],
-        ) ??
-        0.0;
-    final avail =
-        parseDouble(
-          json['available_balance'] ??
-              json['cash_available'] ??
-              json['available'],
-        ) ??
-        bal;
-    final unsettled =
-        parseDouble(json['unsettled_charges'] ?? json['pending_charges']) ??
-        0.0;
-    final interest =
-        parseDouble(json['interest_earned'] ?? json['ytd_interest']) ?? 0.0;
+    final bal = parseDouble(json['balance'] ?? json['current_balance'] ?? json['total_balance']) ?? 0.0;
+    final avail = parseDouble(json['available_balance'] ?? json['cash_available'] ?? json['available']) ?? bal;
+    final unsettled = parseDouble(json['unsettled_charges'] ?? json['pending_charges']) ?? 0.0;
+    final interest = parseDouble(json['interest_earned'] ?? json['ytd_interest']) ?? 0.0;
     final apyVal = parseDouble(json['apy'] ?? json['interest_rate']) ?? 0.0;
 
     final card = json['card'] is Map ? json['card'] : null;
-    final cardStat = card != null
-        ? card['status']?.toString()
-        : json['card_status']?.toString();
-    final cardFour = card != null
-        ? card['last_four']?.toString()
-        : json['card_last_four']?.toString();
-    final cType = card != null
-        ? card['type']?.toString()
-        : json['card_type']?.toString();
+    final cardStat = card != null ? card['status']?.toString() : json['card_status']?.toString();
+    final cardFour = card != null ? card['last_four']?.toString() : json['card_last_four']?.toString();
+    final cType = card != null ? card['type']?.toString() : json['card_type']?.toString();
 
     return SpendingAccount(
       id: id,

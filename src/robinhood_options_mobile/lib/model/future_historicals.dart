@@ -8,14 +8,8 @@ class FutureHistoricals {
   final String bounds;
   final List<InstrumentHistorical> historicals;
 
-  FutureHistoricals(
-    this.instrumentId,
-    this.symbol,
-    this.interval,
-    this.span,
-    this.bounds,
-    this.historicals,
-  );
+  FutureHistoricals(this.instrumentId, this.symbol, this.interval, this.span,
+      this.bounds, this.historicals);
 
   /*
 {
@@ -48,14 +42,13 @@ class FutureHistoricals {
 }
   */
   FutureHistoricals.fromJson(dynamic json)
-    : instrumentId = json['instrument_id'] ?? '',
-      symbol = json['symbol'] ?? '',
-      interval = json['interval'] ?? '',
-      span = json['span'] ?? '',
-      bounds = json['bounds'] ?? '',
-      historicals =
-          (json['data_points'] as List<dynamic>?)
-              ?.map((e) => InstrumentHistorical.fromJson(e))
-              .toList() ??
-          [];
+      : instrumentId = json['instrument_id'] ?? '',
+        symbol = json['symbol'] ?? '',
+        interval = json['interval'] ?? '',
+        span = json['span'] ?? '',
+        bounds = json['bounds'] ?? '',
+        historicals = (json['data_points'] as List<dynamic>?)
+                ?.map((e) => InstrumentHistorical.fromJson(e))
+                .toList() ??
+            [];
 }

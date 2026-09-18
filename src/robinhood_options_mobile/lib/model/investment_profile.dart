@@ -14,12 +14,12 @@ class InvestmentProfile {
   });
 
   InvestmentProfile.fromJson(Map<String, Object?> json)
-    : investmentGoals = json['investmentGoals'] as String?,
-      timeHorizon = json['timeHorizon'] as String?,
-      riskTolerance = json['riskTolerance'] as String?,
-      totalPortfolioValue = json['totalPortfolioValue'] != null
-          ? (json['totalPortfolioValue'] as num).toDouble()
-          : null;
+      : investmentGoals = json['investmentGoals'] as String?,
+        timeHorizon = json['timeHorizon'] as String?,
+        riskTolerance = json['riskTolerance'] as String?,
+        totalPortfolioValue = json['totalPortfolioValue'] != null
+            ? (json['totalPortfolioValue'] as num).toDouble()
+            : null;
 
   Map<String, Object?> toJson() {
     return {

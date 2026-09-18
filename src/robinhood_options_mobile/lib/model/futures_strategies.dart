@@ -18,13 +18,13 @@ class FuturesStrategyTemplate {
   });
 
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'name': name,
-    'description': description,
-    'config': config.toJson(),
-    'createdAt': createdAt.toIso8601String(),
-    'lastUsedAt': lastUsedAt?.toIso8601String(),
-  };
+        'id': id,
+        'name': name,
+        'description': description,
+        'config': config.toJson(),
+        'createdAt': createdAt.toIso8601String(),
+        'lastUsedAt': lastUsedAt?.toIso8601String(),
+      };
 
   factory FuturesStrategyTemplate.fromJson(Map<String, dynamic> json) {
     return FuturesStrategyTemplate(

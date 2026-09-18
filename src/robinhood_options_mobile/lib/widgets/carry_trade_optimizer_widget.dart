@@ -34,9 +34,8 @@ class _CarryTradeOptimizerWidgetState extends State<CarryTradeOptimizerWidget>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   CarryStrategyType _selectedStrategy = CarryStrategyType.riskAdjusted;
-  final TextEditingController _capitalController = TextEditingController(
-    text: '10000',
-  );
+  final TextEditingController _capitalController =
+      TextEditingController(text: '10000');
   double _capital = 10000.0;
   String _categoryFilter = 'All'; // All, Major, Cross, Emerging
   static const List<String> _universeCategories = [
@@ -221,8 +220,7 @@ class _CarryTradeOptimizerWidgetState extends State<CarryTradeOptimizerWidget>
           widget.brokerageUser!,
           widget.service!,
           analytics: widget.analytics ?? FirebaseAnalytics.instance,
-          observer:
-              widget.observer ??
+          observer: widget.observer ??
               FirebaseAnalyticsObserver(analytics: FirebaseAnalytics.instance),
           holding: dummyHolding,
           positionType: pair.recommendedDirection,
@@ -234,10 +232,8 @@ class _CarryTradeOptimizerWidgetState extends State<CarryTradeOptimizerWidget>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final macroProvider = Provider.of<AgenticTradingProvider?>(
-      context,
-      listen: false,
-    );
+    final macroProvider =
+        Provider.of<AgenticTradingProvider?>(context, listen: false);
     final macroRegime = macroProvider?.macroAssessment?.status ?? 'NEUTRAL';
 
     return Scaffold(
@@ -305,9 +301,8 @@ class _CarryTradeOptimizerWidgetState extends State<CarryTradeOptimizerWidget>
       return true;
     }).toList();
 
-    filteredPairs.sort(
-      (a, b) => b.recommendedYield.compareTo(a.recommendedYield),
-    );
+    filteredPairs
+        .sort((a, b) => b.recommendedYield.compareTo(a.recommendedYield));
 
     return ListView(
       padding: const EdgeInsets.all(16.0),
@@ -317,23 +312,19 @@ class _CarryTradeOptimizerWidgetState extends State<CarryTradeOptimizerWidget>
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           margin: const EdgeInsets.only(bottom: 12),
           decoration: BoxDecoration(
-            color: theme.colorScheme.surfaceContainerHighest.withValues(
-              alpha: 0.35,
-            ),
+            color: theme.colorScheme.surfaceContainerHighest
+                .withValues(alpha: 0.35),
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
-              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
-            ),
+                color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5)),
           ),
           child: Row(
             children: [
-              Icon(
-                Icons.sensors,
-                size: 16,
-                color: _lastMarketDataUpdate != null
-                    ? Colors.green
-                    : Colors.grey,
-              ),
+              Icon(Icons.sensors,
+                  size: 16,
+                  color: _lastMarketDataUpdate != null
+                      ? Colors.green
+                      : Colors.grey),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -360,18 +351,17 @@ class _CarryTradeOptimizerWidgetState extends State<CarryTradeOptimizerWidget>
           color: macroRegime == 'RISK_OFF'
               ? Colors.red.withValues(alpha: 0.1)
               : (macroRegime == 'RISK_ON'
-                    ? Colors.green.withValues(alpha: 0.1)
-                    : theme.colorScheme.surfaceContainerHighest.withValues(
-                        alpha: 0.5,
-                      )),
+                  ? Colors.green.withValues(alpha: 0.1)
+                  : theme.colorScheme.surfaceContainerHighest
+                      .withValues(alpha: 0.5)),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
             side: BorderSide(
               color: macroRegime == 'RISK_OFF'
                   ? Colors.red.withValues(alpha: 0.4)
                   : (macroRegime == 'RISK_ON'
-                        ? Colors.green.withValues(alpha: 0.4)
-                        : theme.colorScheme.outlineVariant),
+                      ? Colors.green.withValues(alpha: 0.4)
+                      : theme.colorScheme.outlineVariant),
             ),
           ),
           child: Padding(
@@ -382,8 +372,8 @@ class _CarryTradeOptimizerWidgetState extends State<CarryTradeOptimizerWidget>
                   macroRegime == 'RISK_OFF'
                       ? Icons.shield_outlined
                       : (macroRegime == 'RISK_ON'
-                            ? Icons.trending_up
-                            : Icons.balance),
+                          ? Icons.trending_up
+                          : Icons.balance),
                   color: macroRegime == 'RISK_OFF'
                       ? Colors.red
                       : (macroRegime == 'RISK_ON' ? Colors.green : Colors.teal),
@@ -403,8 +393,8 @@ class _CarryTradeOptimizerWidgetState extends State<CarryTradeOptimizerWidget>
                         macroRegime == 'RISK_OFF'
                             ? 'High unwind risk. Consider defensive carry or tight stops.'
                             : (macroRegime == 'RISK_ON'
-                                  ? 'Favorable carry environment. Yield spreads are stable.'
-                                  : 'Neutral carry climate. Focus on high Carry-to-Risk pairs.'),
+                                ? 'Favorable carry environment. Yield spreads are stable.'
+                                : 'Neutral carry climate. Focus on high Carry-to-Risk pairs.'),
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant,
                         ),
@@ -435,20 +425,15 @@ class _CarryTradeOptimizerWidgetState extends State<CarryTradeOptimizerWidget>
               final cb = centralBanks[index];
               return Container(
                 margin: const EdgeInsets.only(right: 8),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
-                ),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceContainerHighest.withValues(
-                    alpha: 0.4,
-                  ),
+                  color: theme.colorScheme.surfaceContainerHighest
+                      .withValues(alpha: 0.4),
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
-                    color: theme.colorScheme.outlineVariant.withValues(
-                      alpha: 0.5,
-                    ),
-                  ),
+                      color: theme.colorScheme.outlineVariant
+                          .withValues(alpha: 0.5)),
                 ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -518,7 +503,9 @@ class _CarryTradeOptimizerWidgetState extends State<CarryTradeOptimizerWidget>
             margin: const EdgeInsets.only(bottom: 12),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
-              side: BorderSide(color: theme.colorScheme.outlineVariant),
+              side: BorderSide(
+                color: theme.colorScheme.outlineVariant,
+              ),
             ),
             child: Padding(
               padding: const EdgeInsets.all(16.0),
@@ -540,9 +527,7 @@ class _CarryTradeOptimizerWidgetState extends State<CarryTradeOptimizerWidget>
                             const SizedBox(width: 8),
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 2,
-                              ),
+                                  horizontal: 8, vertical: 2),
                               decoration: BoxDecoration(
                                 color: pair.recommendedDirection == 'Buy'
                                     ? Colors.green.withValues(alpha: 0.15)
@@ -566,15 +551,12 @@ class _CarryTradeOptimizerWidgetState extends State<CarryTradeOptimizerWidget>
                       const SizedBox(width: 8),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 3,
-                        ),
+                            horizontal: 8, vertical: 3),
                         decoration: BoxDecoration(
                           color: riskColor.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(6),
                           border: Border.all(
-                            color: riskColor.withValues(alpha: 0.4),
-                          ),
+                              color: riskColor.withValues(alpha: 0.4)),
                         ),
                         child: Text(
                           _getRiskLabel(pair.unwindRisk),
@@ -675,9 +657,7 @@ class _CarryTradeOptimizerWidgetState extends State<CarryTradeOptimizerWidget>
                       FilledButton.tonal(
                         style: FilledButton.styleFrom(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 4,
-                          ),
+                              horizontal: 12, vertical: 4),
                           visualDensity: VisualDensity.compact,
                         ),
                         onPressed: () => _navigateToTradePair(pair),
@@ -702,17 +682,12 @@ class _CarryTradeOptimizerWidgetState extends State<CarryTradeOptimizerWidget>
       macroRegime: macroRegime,
     );
 
-    final totalAnnualCarry = allocations.fold(
-      0.0,
-      (acc, a) => acc + a.expectedAnnualCarry,
-    );
-    final totalDailyCarry = allocations.fold(
-      0.0,
-      (acc, a) => acc + a.expectedDailyCarry,
-    );
-    final blendedYield = _capital > 0
-        ? (totalAnnualCarry / _capital) * 100.0
-        : 0.0;
+    final totalAnnualCarry =
+        allocations.fold(0.0, (acc, a) => acc + a.expectedAnnualCarry);
+    final totalDailyCarry =
+        allocations.fold(0.0, (acc, a) => acc + a.expectedDailyCarry);
+    final blendedYield =
+        _capital > 0 ? (totalAnnualCarry / _capital) * 100.0 : 0.0;
 
     return ListView(
       padding: const EdgeInsets.all(16.0),
@@ -720,9 +695,8 @@ class _CarryTradeOptimizerWidgetState extends State<CarryTradeOptimizerWidget>
         // Capital Input & Strategy Card
         Card(
           elevation: 0,
-          color: theme.colorScheme.surfaceContainerHighest.withValues(
-            alpha: 0.4,
-          ),
+          color:
+              theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
             side: BorderSide(color: theme.colorScheme.outlineVariant),
@@ -734,9 +708,8 @@ class _CarryTradeOptimizerWidgetState extends State<CarryTradeOptimizerWidget>
               children: [
                 Text(
                   'Carry Basket Configuration',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: theme.textTheme.titleMedium
+                      ?.copyWith(fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 12),
                 Row(
@@ -745,8 +718,7 @@ class _CarryTradeOptimizerWidgetState extends State<CarryTradeOptimizerWidget>
                       child: TextFormField(
                         controller: _capitalController,
                         keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true,
-                        ),
+                            decimal: true),
                         decoration: const InputDecoration(
                           labelText: 'Portfolio Capital',
                           prefixText: '\$ ',
@@ -775,9 +747,8 @@ class _CarryTradeOptimizerWidgetState extends State<CarryTradeOptimizerWidget>
                 const SizedBox(height: 16),
                 Text(
                   'Optimization Strategy',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: theme.textTheme.bodyMedium
+                      ?.copyWith(fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 8),
                 SegmentedButton<CarryStrategyType>(
@@ -886,9 +857,8 @@ class _CarryTradeOptimizerWidgetState extends State<CarryTradeOptimizerWidget>
         const SizedBox(height: 8),
         Card(
           elevation: 0,
-          color: theme.colorScheme.surfaceContainerHighest.withValues(
-            alpha: 0.3,
-          ),
+          color:
+              theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
@@ -899,7 +869,10 @@ class _CarryTradeOptimizerWidgetState extends State<CarryTradeOptimizerWidget>
               children: [
                 Column(
                   children: [
-                    Text('Monthly Roll', style: theme.textTheme.bodySmall),
+                    Text(
+                      'Monthly Roll',
+                      style: theme.textTheme.bodySmall,
+                    ),
                     Text(
                       '+\$${(totalDailyCarry * 30).toStringAsFixed(2)}',
                       style: const TextStyle(fontWeight: FontWeight.bold),
@@ -909,7 +882,10 @@ class _CarryTradeOptimizerWidgetState extends State<CarryTradeOptimizerWidget>
                 Container(width: 1, height: 28, color: theme.dividerColor),
                 Column(
                   children: [
-                    Text('Annual Projection', style: theme.textTheme.bodySmall),
+                    Text(
+                      'Annual Projection',
+                      style: theme.textTheme.bodySmall,
+                    ),
                     Text(
                       '+\$${totalAnnualCarry.toStringAsFixed(2)}',
                       style: const TextStyle(fontWeight: FontWeight.bold),
@@ -925,9 +901,8 @@ class _CarryTradeOptimizerWidgetState extends State<CarryTradeOptimizerWidget>
         // Recommended Allocations
         Text(
           'Optimized Allocations',
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
+          style: theme.textTheme.titleMedium
+              ?.copyWith(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 8),
         ...allocations.map((alloc) {
@@ -1027,9 +1002,8 @@ class _CarryTradeOptimizerWidgetState extends State<CarryTradeOptimizerWidget>
         const SizedBox(height: 16),
         Text(
           'Unwind Vulnerability Indicators',
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
+          style: theme.textTheme.titleMedium
+              ?.copyWith(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 8),
         _buildRiskFactorTile(
@@ -1056,9 +1030,8 @@ class _CarryTradeOptimizerWidgetState extends State<CarryTradeOptimizerWidget>
         const SizedBox(height: 16),
         Text(
           'Defensive Risk Controls',
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
+          style: theme.textTheme.titleMedium
+              ?.copyWith(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 8),
         Card(

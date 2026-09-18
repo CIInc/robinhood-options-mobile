@@ -58,10 +58,8 @@ class _ComboOrdersWidgetState extends State<ComboOrdersWidget> {
       return orderFilters.contains(element.state);
     }).toList();
 
-    filteredOrders.sort(
-      (a, b) =>
-          (b.createdAt ?? DateTime(0)).compareTo(a.createdAt ?? DateTime(0)),
-    );
+    filteredOrders.sort((a, b) =>
+        (b.createdAt ?? DateTime(0)).compareTo(a.createdAt ?? DateTime(0)));
 
     final netPremiumBalance = filteredOrders.fold<double>(0.0, (total, order) {
       final sign = order.direction == 'credit' ? 1 : -1;
@@ -130,24 +128,18 @@ class _ComboOrdersWidgetState extends State<ComboOrdersWidget> {
                     const SizedBox(width: 8),
                     FilterChip(
                       label: const Text('Queued / Open'),
-                      selected:
-                          orderFilters.contains('queued') ||
+                      selected: orderFilters.contains('queued') ||
                           orderFilters.contains('confirmed'),
                       onSelected: (selected) {
                         setState(() {
                           if (selected) {
-                            orderFilters.addAll([
-                              'queued',
-                              'confirmed',
-                              'unconfirmed',
-                            ]);
+                            orderFilters
+                                .addAll(['queued', 'confirmed', 'unconfirmed']);
                           } else {
-                            orderFilters.removeWhere(
-                              (s) =>
-                                  s == 'queued' ||
-                                  s == 'confirmed' ||
-                                  s == 'unconfirmed',
-                            );
+                            orderFilters.removeWhere((s) =>
+                                s == 'queued' ||
+                                s == 'confirmed' ||
+                                s == 'unconfirmed');
                           }
                         });
                       },
@@ -174,34 +166,34 @@ class _ComboOrdersWidgetState extends State<ComboOrdersWidget> {
         ),
       ),
       sliver: SliverList(
-        delegate: SliverChildBuilderDelegate((context, index) {
-          if (index == displayCount) {
-            return Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 16.0,
-                vertical: 4.0,
-              ),
-              child: Center(
-                child: TextButton.icon(
-                  onPressed: () {
-                    setState(() {
-                      _showAll = !_showAll;
-                    });
-                  },
-                  icon: Icon(_showAll ? Icons.expand_less : Icons.expand_more),
-                  label: Text(
-                    _showAll
+        delegate: SliverChildBuilderDelegate(
+          (context, index) {
+            if (index == displayCount) {
+              return Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+                child: Center(
+                  child: TextButton.icon(
+                    onPressed: () {
+                      setState(() {
+                        _showAll = !_showAll;
+                      });
+                    },
+                    icon:
+                        Icon(_showAll ? Icons.expand_less : Icons.expand_more),
+                    label: Text(_showAll
                         ? 'Show Less'
-                        : 'Show All (${filteredOrders.length})',
+                        : 'Show All (${filteredOrders.length})'),
                   ),
                 ),
-              ),
-            );
-          }
+              );
+            }
 
-          final order = filteredOrders[index];
-          return _buildOrderTile(order, theme);
-        }, childCount: displayCount + (hasOverflow ? 1 : 0)),
+            final order = filteredOrders[index];
+            return _buildOrderTile(order, theme);
+          },
+          childCount: displayCount + (hasOverflow ? 1 : 0),
+        ),
       ),
     );
   }
@@ -258,9 +250,8 @@ class _ComboOrdersWidgetState extends State<ComboOrdersWidget> {
                 formatMediumDate.format(order.createdAt!),
                 style: TextStyle(
                   fontSize: 11,
-                  color: theme.colorScheme.onSurfaceVariant.withValues(
-                    alpha: 0.8,
-                  ),
+                  color:
+                      theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
                 ),
               ),
           ],
@@ -273,8 +264,8 @@ class _ComboOrdersWidgetState extends State<ComboOrdersWidget> {
               order.price != null
                   ? formatCurrency.format(order.price)
                   : (order.netAmount > 0
-                        ? formatCurrency.format(order.netAmount)
-                        : 'Market'),
+                      ? formatCurrency.format(order.netAmount)
+                      : 'Market'),
               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
             ),
             const SizedBox(height: 4),

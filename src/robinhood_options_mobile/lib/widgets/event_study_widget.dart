@@ -13,11 +13,8 @@ class _RollingPoint {
 }
 
 class EventStudyWidget extends StatefulWidget {
-  const EventStudyWidget({
-    super.key,
-    this.initialSymbol,
-    this.initialEventDate,
-  });
+  const EventStudyWidget(
+      {super.key, this.initialSymbol, this.initialEventDate});
 
   final String? initialSymbol;
   final DateTime? initialEventDate;
@@ -42,8 +39,7 @@ class _EventStudyWidgetState extends State<EventStudyWidget> {
   void initState() {
     super.initState();
     _symbolController = TextEditingController(
-      text: widget.initialSymbol?.toUpperCase() ?? 'AAPL',
-    );
+        text: widget.initialSymbol?.toUpperCase() ?? 'AAPL');
     final today = DateTime.now();
     final requestedEventDate =
         widget.initialEventDate ?? today.subtract(const Duration(days: 7));
@@ -90,10 +86,8 @@ class _EventStudyWidgetState extends State<EventStudyWidget> {
         postWindow < 1 ||
         rollingWindow < 5 ||
         rollingWindow > 120) {
-      setState(
-        () => _error =
-            'Enter event windows of at least 1 day and a rolling window from 5 to 120 days.',
-      );
+      setState(() => _error =
+          'Enter event windows of at least 1 day and a rolling window from 5 to 120 days.');
       return;
     }
 
@@ -103,9 +97,8 @@ class _EventStudyWidgetState extends State<EventStudyWidget> {
       _result = null;
     });
     try {
-      final callable = FirebaseFunctions.instance.httpsCallable(
-        'analyzeEventStudy',
-      );
+      final callable =
+          FirebaseFunctions.instance.httpsCallable('analyzeEventStudy');
       final response = await callable.call({
         'symbol': symbol,
         'benchmark': benchmark,
@@ -117,8 +110,7 @@ class _EventStudyWidgetState extends State<EventStudyWidget> {
       });
       if (mounted) {
         setState(
-          () => _result = Map<String, dynamic>.from(response.data as Map),
-        );
+            () => _result = Map<String, dynamic>.from(response.data as Map));
       }
     } catch (error) {
       if (mounted) setState(() => _error = error.toString());
@@ -138,8 +130,7 @@ class _EventStudyWidgetState extends State<EventStudyWidget> {
   }
 
   Widget _windowPreset(String label, int preWindow, int postWindow) {
-    final isSelected =
-        _preWindowController.text == preWindow.toString() &&
+    final isSelected = _preWindowController.text == preWindow.toString() &&
         _postWindowController.text == postWindow.toString();
     return ChoiceChip(
       label: Text(label),
@@ -156,10 +147,8 @@ class _EventStudyWidgetState extends State<EventStudyWidget> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Text(
-            'Measure the market reaction around a known event.',
-            style: theme.textTheme.bodyLarge,
-          ),
+          Text('Measure the market reaction around a known event.',
+              style: theme.textTheme.bodyLarge),
           const SizedBox(height: 8),
           Container(
             padding: const EdgeInsets.all(12),
@@ -170,18 +159,14 @@ class _EventStudyWidgetState extends State<EventStudyWidget> {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(
-                  Icons.info_outline,
-                  size: 18,
-                  color: theme.colorScheme.onPrimaryContainer,
-                ),
+                Icon(Icons.info_outline,
+                    size: 18, color: theme.colorScheme.onPrimaryContainer),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     'Choose the date the market learned about the event. Weekend and holiday dates use the nearest trading session.',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onPrimaryContainer,
-                    ),
+                    style: theme.textTheme.bodySmall
+                        ?.copyWith(color: theme.colorScheme.onPrimaryContainer),
                   ),
                 ),
               ],
@@ -192,145 +177,115 @@ class _EventStudyWidgetState extends State<EventStudyWidget> {
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(children: [
                       Expanded(
-                        child: TextField(
-                          controller: _symbolController,
-                          textCapitalization: TextCapitalization.characters,
-                          inputFormatters: [
-                            FilteringTextInputFormatter.allow(
-                              RegExp(r'[a-zA-Z0-9.^=-]'),
-                            ),
-                          ],
-                          decoration: const InputDecoration(
-                            labelText: 'Stock',
-                            prefixIcon: Icon(Icons.show_chart),
-                          ),
-                        ),
-                      ),
+                          child: TextField(
+                              controller: _symbolController,
+                              textCapitalization: TextCapitalization.characters,
+                              inputFormatters: [
+                                FilteringTextInputFormatter.allow(
+                                    RegExp(r'[a-zA-Z0-9.^=-]')),
+                              ],
+                              decoration: const InputDecoration(
+                                  labelText: 'Stock',
+                                  prefixIcon: Icon(Icons.show_chart)))),
                       const SizedBox(width: 12),
                       Expanded(
-                        child: TextField(
-                          controller: _benchmarkController,
-                          textCapitalization: TextCapitalization.characters,
-                          inputFormatters: [
-                            FilteringTextInputFormatter.allow(
-                              RegExp(r'[a-zA-Z0-9.^=-]'),
-                            ),
-                          ],
-                          decoration: const InputDecoration(
-                            labelText: 'Benchmark',
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  DropdownButtonFormField<String>(
-                    initialValue: _eventType,
-                    decoration: const InputDecoration(labelText: 'Event type'),
-                    items:
-                        const [
-                              'Earnings',
-                              'FDA decision',
-                              'Product launch',
-                              'Guidance',
-                              'Other',
-                            ]
-                            .map(
-                              (type) => DropdownMenuItem(
-                                value: type,
-                                child: Text(type),
-                              ),
-                            )
-                            .toList(),
-                    onChanged: (value) =>
-                        setState(() => _eventType = value ?? 'Other'),
-                  ),
-                  const SizedBox(height: 12),
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: const Icon(Icons.event),
-                    title: const Text('Event date'),
-                    subtitle: Text(DateFormat.yMMMMd().format(_eventDate)),
-                    trailing: const Icon(Icons.calendar_today),
-                    onTap: _pickDate,
-                  ),
-                  Row(
-                    children: [
+                          child: TextField(
+                              controller: _benchmarkController,
+                              textCapitalization: TextCapitalization.characters,
+                              inputFormatters: [
+                                FilteringTextInputFormatter.allow(
+                                    RegExp(r'[a-zA-Z0-9.^=-]')),
+                              ],
+                              decoration: const InputDecoration(
+                                  labelText: 'Benchmark'))),
+                    ]),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
+                      initialValue: _eventType,
+                      decoration:
+                          const InputDecoration(labelText: 'Event type'),
+                      items: const [
+                        'Earnings',
+                        'FDA decision',
+                        'Product launch',
+                        'Guidance',
+                        'Other'
+                      ]
+                          .map((type) =>
+                              DropdownMenuItem(value: type, child: Text(type)))
+                          .toList(),
+                      onChanged: (value) =>
+                          setState(() => _eventType = value ?? 'Other'),
+                    ),
+                    const SizedBox(height: 12),
+                    ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: const Icon(Icons.event),
+                        title: const Text('Event date'),
+                        subtitle: Text(DateFormat.yMMMMd().format(_eventDate)),
+                        trailing: const Icon(Icons.calendar_today),
+                        onTap: _pickDate),
+                    Row(children: [
                       Expanded(
-                        child: TextField(
-                          controller: _preWindowController,
-                          keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(
-                            labelText: 'Days before',
-                          ),
-                        ),
-                      ),
+                          child: TextField(
+                              controller: _preWindowController,
+                              keyboardType: TextInputType.number,
+                              decoration: const InputDecoration(
+                                  labelText: 'Days before'))),
                       const SizedBox(width: 12),
                       Expanded(
-                        child: TextField(
-                          controller: _postWindowController,
-                          keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(
-                            labelText: 'Days after',
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _rollingWindowController,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'Rolling statistics window',
-                      helperText: '5-120 trading days',
-                      suffixText: 'days',
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text('Window presets', style: theme.textTheme.labelMedium),
-                  const SizedBox(height: 4),
-                  Wrap(
-                    spacing: 8,
-                    children: [
-                      _windowPreset('5 / 5', 5, 5),
-                      _windowPreset('10 / 10', 10, 10),
-                      _windowPreset('20 / 20', 20, 20),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton.icon(
-                      onPressed: _isLoading ? null : _runStudy,
-                      icon: const Icon(Icons.insights),
-                      label: Text(
-                        _isLoading ? 'Analyzing...' : 'Run event study',
+                          child: TextField(
+                              controller: _postWindowController,
+                              keyboardType: TextInputType.number,
+                              decoration: const InputDecoration(
+                                  labelText: 'Days after'))),
+                    ]),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _rollingWindowController,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        labelText: 'Rolling statistics window',
+                        helperText: '5-120 trading days',
+                        suffixText: 'days',
                       ),
                     ),
-                  ),
-                ],
-              ),
+                    const SizedBox(height: 8),
+                    Text('Window presets', style: theme.textTheme.labelMedium),
+                    const SizedBox(height: 4),
+                    Wrap(
+                      spacing: 8,
+                      children: [
+                        _windowPreset('5 / 5', 5, 5),
+                        _windowPreset('10 / 10', 10, 10),
+                        _windowPreset('20 / 20', 20, 20),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                        width: double.infinity,
+                        child: FilledButton.icon(
+                            onPressed: _isLoading ? null : _runStudy,
+                            icon: const Icon(Icons.insights),
+                            label: Text(_isLoading
+                                ? 'Analyzing...'
+                                : 'Run event study'))),
+                  ]),
             ),
           ),
           if (_error != null)
             Padding(
-              padding: const EdgeInsets.only(top: 16),
-              child: Text(
-                _error!,
-                style: TextStyle(color: theme.colorScheme.error),
-              ),
-            ),
+                padding: const EdgeInsets.only(top: 16),
+                child: Text(_error!,
+                    style: TextStyle(color: theme.colorScheme.error))),
           if (_isLoading)
             const Padding(
-              padding: EdgeInsets.all(32),
-              child: Center(child: CircularProgressIndicator()),
-            ),
+                padding: EdgeInsets.all(32),
+                child: Center(child: CircularProgressIndicator())),
           if (_result != null) ..._buildResults(theme),
         ],
       ),
@@ -342,16 +297,12 @@ class _EventStudyWidgetState extends State<EventStudyWidget> {
     final points = (result['points'] as List).cast<Map>();
     return [
       const SizedBox(height: 20),
+      Text('${result['symbol']} around ${result['eventType']}',
+          style: theme.textTheme.titleLarge
+              ?.copyWith(fontWeight: FontWeight.bold)),
       Text(
-        '${result['symbol']} around ${result['eventType']}',
-        style: theme.textTheme.titleLarge?.copyWith(
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-      Text(
-        'Trading event date: ${result['tradingEventDate']}  |  ${result['sampleSize']} observations',
-        style: theme.textTheme.bodySmall,
-      ),
+          'Trading event date: ${result['tradingEventDate']}  |  ${result['sampleSize']} observations',
+          style: theme.textTheme.bodySmall),
       const SizedBox(height: 12),
       _buildReactionSummary(result, theme),
       const SizedBox(height: 12),
@@ -390,89 +341,58 @@ class _EventStudyWidgetState extends State<EventStudyWidget> {
                 Expanded(
                   child: Text(
                     'Rolling statistics',
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: theme.textTheme.titleSmall
+                        ?.copyWith(fontWeight: FontWeight.bold),
                   ),
                 ),
-                Text(
-                  '${result['rollingWindow']}-day window',
-                  style: theme.textTheme.labelMedium,
-                ),
+                Text('${result['rollingWindow']}-day window',
+                    style: theme.textTheme.labelMedium),
               ],
             ),
             const SizedBox(height: 4),
             Text(
-              'Annualized volatility, market sensitivity, and co-movement with ${result['benchmark']}.',
-              style: theme.textTheme.bodySmall,
-            ),
+                'Annualized volatility, market sensitivity, and co-movement with ${result['benchmark']}.',
+                style: theme.textTheme.bodySmall),
             const SizedBox(height: 12),
             Row(
               children: [
                 Expanded(
-                  child: _metric(
-                    'Volatility',
-                    _percent(latest['volatility']),
-                    theme,
-                  ),
-                ),
+                    child: _metric(
+                        'Volatility', _percent(latest['volatility']), theme)),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: _metric('Beta', _number(latest['beta']), theme),
-                ),
+                    child: _metric('Beta', _number(latest['beta']), theme)),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: _metric(
-                    'Correlation',
-                    _number(latest['correlation']),
-                    theme,
-                  ),
-                ),
+                    child: _metric(
+                        'Correlation', _number(latest['correlation']), theme)),
               ],
             ),
             const SizedBox(height: 14),
             _rollingChart(
-              'Volatility',
-              stats,
-              'volatility',
-              Colors.orange,
-              theme,
-            ),
+                'Volatility', stats, 'volatility', Colors.orange, theme),
             const SizedBox(height: 14),
             _rollingChart('Beta', stats, 'beta', Colors.blue, theme),
             const SizedBox(height: 14),
             _rollingChart(
-              'Correlation',
-              stats,
-              'correlation',
-              Colors.green,
-              theme,
-            ),
+                'Correlation', stats, 'correlation', Colors.green, theme),
             const SizedBox(height: 4),
             Text(
-              'Latest observation: ${latest['date']}  |  ${latest['sampleSize']} daily returns',
-              style: theme.textTheme.labelSmall,
-            ),
+                'Latest observation: ${latest['date']}  |  ${latest['sampleSize']} daily returns',
+                style: theme.textTheme.labelSmall),
           ],
         ),
       ),
     );
   }
 
-  Widget _rollingChart(
-    String title,
-    List<Map<String, dynamic>> stats,
-    String key,
-    Color color,
-    ThemeData theme,
-  ) {
+  Widget _rollingChart(String title, List<Map<String, dynamic>> stats,
+      String key, Color color, ThemeData theme) {
     final points = stats
-        .map(
-          (point) => _RollingPoint(
-            DateTime.parse(point['date'].toString()),
-            (point[key] as num).toDouble(),
-          ),
-        )
+        .map((point) => _RollingPoint(
+              DateTime.parse(point['date'].toString()),
+              (point[key] as num).toDouble(),
+            ))
         .toList();
     final series = charts.Series<_RollingPoint, DateTime>(
       id: title,
@@ -512,9 +432,8 @@ class _EventStudyWidgetState extends State<EventStudyWidget> {
         (result['eventDayAbnormalReturn'] as num?)?.toDouble() ?? 0;
     final isPositive = abnormalReturn >= 0;
     final color = isPositive ? Colors.green : Colors.red;
-    final label = isPositive
-        ? 'Positive market reaction'
-        : 'Negative market reaction';
+    final label =
+        isPositive ? 'Positive market reaction' : 'Negative market reaction';
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -524,37 +443,24 @@ class _EventStudyWidgetState extends State<EventStudyWidget> {
       ),
       child: Row(
         children: [
-          Icon(
-            isPositive ? Icons.trending_up : Icons.trending_down,
-            color: color,
-          ),
+          Icon(isPositive ? Icons.trending_up : Icons.trending_down,
+              color: color),
           const SizedBox(width: 10),
           Expanded(
-            child: Text(
-              label,
-              style: theme.textTheme.titleSmall?.copyWith(
-                color: color,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+            child: Text(label,
+                style: theme.textTheme.titleSmall
+                    ?.copyWith(color: color, fontWeight: FontWeight.bold)),
           ),
-          Text(
-            _percent(abnormalReturn),
-            style: theme.textTheme.titleMedium?.copyWith(
-              color: color,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+          Text(_percent(abnormalReturn),
+              style: theme.textTheme.titleMedium
+                  ?.copyWith(color: color, fontWeight: FontWeight.bold)),
         ],
       ),
     );
   }
 
   Widget _buildEventPath(
-    List<Map> points,
-    Map<String, dynamic> result,
-    ThemeData theme,
-  ) {
+      List<Map> points, Map<String, dynamic> result, ThemeData theme) {
     if (points.isEmpty) return const SizedBox.shrink();
     final maxMagnitude = points.fold<double>(0, (current, point) {
       final value = (point['abnormalReturn'] as num).toDouble().abs();
@@ -567,17 +473,12 @@ class _EventStudyWidgetState extends State<EventStudyWidget> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Event window',
-              style: theme.textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+            Text('Event window',
+                style: theme.textTheme.titleSmall
+                    ?.copyWith(fontWeight: FontWeight.bold)),
             const SizedBox(height: 4),
-            Text(
-              'Relative performance versus the selected benchmark.',
-              style: theme.textTheme.bodySmall,
-            ),
+            Text('Relative performance versus the selected benchmark.',
+                style: theme.textTheme.bodySmall),
             const SizedBox(height: 12),
             ...points.map((point) {
               final value = (point['abnormalReturn'] as num).toDouble();
@@ -587,11 +488,10 @@ class _EventStudyWidgetState extends State<EventStudyWidget> {
                 child: Row(
                   children: [
                     SizedBox(
-                      width: 42,
-                      child: Text(
-                        point['offset'] == 0 ? 'Event' : 'T${point['offset']}',
-                      ),
-                    ),
+                        width: 42,
+                        child: Text(point['offset'] == 0
+                            ? 'Event'
+                            : 'T${point['offset']}')),
                     Expanded(
                       child: Align(
                         alignment: value >= 0
@@ -616,44 +516,33 @@ class _EventStudyWidgetState extends State<EventStudyWidget> {
               );
             }),
             const Divider(height: 20),
-            Text(
-              'Trading-day details',
-              style: theme.textTheme.labelLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+            Text('Trading-day details',
+                style: theme.textTheme.labelLarge
+                    ?.copyWith(fontWeight: FontWeight.bold)),
             const SizedBox(height: 4),
-            Text(
-              'Returns are normalized to the first day of the window.',
-              style: theme.textTheme.bodySmall,
-            ),
+            Text('Returns are normalized to the first day of the window.',
+                style: theme.textTheme.bodySmall),
             const SizedBox(height: 6),
-            ...points.map(
-              (point) => ListTile(
-                contentPadding: EdgeInsets.zero,
-                dense: true,
-                leading: SizedBox(
-                  width: 42,
-                  child: Text(
-                    point['offset'] == 0 ? 'Event' : 'T${point['offset']}',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ),
-                title: Text(point['date'].toString()),
-                trailing: Text(
-                  _percent(point['abnormalReturn']),
-                  style: TextStyle(
-                    color: (point['abnormalReturn'] as num) >= 0
-                        ? Colors.green
-                        : Colors.red,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                subtitle: Text(
-                  'Stock ${_percent(point['assetReturn'])}  |  ${result['benchmark']} ${_percent(point['benchmarkReturn'])}',
-                ),
-              ),
-            ),
+            ...points.map((point) => ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  dense: true,
+                  leading: SizedBox(
+                      width: 42,
+                      child: Text(
+                          point['offset'] == 0
+                              ? 'Event'
+                              : 'T${point['offset']}',
+                          style: const TextStyle(fontWeight: FontWeight.bold))),
+                  title: Text(point['date'].toString()),
+                  trailing: Text(_percent(point['abnormalReturn']),
+                      style: TextStyle(
+                          color: (point['abnormalReturn'] as num) >= 0
+                              ? Colors.green
+                              : Colors.red,
+                          fontWeight: FontWeight.w600)),
+                  subtitle: Text(
+                      'Stock ${_percent(point['assetReturn'])}  |  ${result['benchmark']} ${_percent(point['benchmarkReturn'])}'),
+                )),
           ],
         ),
       ),
@@ -661,55 +550,36 @@ class _EventStudyWidgetState extends State<EventStudyWidget> {
   }
 
   Widget _metric(String label, String value, ThemeData theme) => Container(
-    width: double.infinity,
-    height: 78,
-    padding: const EdgeInsets.all(12),
-    decoration: BoxDecoration(
-      color: theme.colorScheme.surfaceContainerHighest,
-      borderRadius: BorderRadius.circular(8),
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: theme.textTheme.labelSmall),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
+        width: double.infinity,
+        height: 78,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+            color: theme.colorScheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(8)),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label, style: theme.textTheme.labelSmall),
+            const SizedBox(height: 4),
+            Text(value,
+                style: theme.textTheme.titleMedium
+                    ?.copyWith(fontWeight: FontWeight.bold))
+          ],
         ),
-      ],
-    ),
-  );
+      );
 
   Widget _buildMetricGrid(Map<String, dynamic> result, ThemeData theme) {
     final metrics = [
       _metric(
-        'Event-day return',
-        _percent(result['eventDayAssetReturn']),
-        theme,
-      ),
+          'Event-day return', _percent(result['eventDayAssetReturn']), theme),
       _metric(
-        'Market return',
-        _percent(result['eventDayBenchmarkReturn']),
-        theme,
-      ),
+          'Market return', _percent(result['eventDayBenchmarkReturn']), theme),
+      _metric('Event-day abnormal', _percent(result['eventDayAbnormalReturn']),
+          theme),
       _metric(
-        'Event-day abnormal',
-        _percent(result['eventDayAbnormalReturn']),
-        theme,
-      ),
-      _metric(
-        'Window return',
-        _percent(result['cumulativeAssetReturn']),
-        theme,
-      ),
-      _metric(
-        'Window abnormal',
-        _percent(result['cumulativeAbnormalReturn']),
-        theme,
-      ),
+          'Window return', _percent(result['cumulativeAssetReturn']), theme),
+      _metric('Window abnormal', _percent(result['cumulativeAbnormalReturn']),
+          theme),
     ];
     return GridView.count(
       crossAxisCount: 2,

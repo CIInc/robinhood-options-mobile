@@ -6,6 +6,7 @@ import 'package:robinhood_options_mobile/model/tax_document.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 
+
 /// Comprehensive dashboard for reviewing Form 1099 tax documents, monthly account statements,
 /// trade confirmations, ADR pass-through fees, and foreign tax withholding status.
 class TaxDocumentsWidget extends StatefulWidget {
@@ -76,16 +77,16 @@ class _TaxDocumentsWidgetState extends State<TaxDocumentsWidget>
       final docsFuture = rhService
           .getAccountDocumentsModel(widget.brokerageUser)
           .catchError((e) {
-            debugPrint('Error fetching account documents: $e');
-            return <AccountDocument>[];
-          });
+        debugPrint('Error fetching account documents: $e');
+        return <AccountDocument>[];
+      });
 
       final adrFuture = rhService
           .getAdrFeesModel(widget.brokerageUser)
           .catchError((e) {
-            debugPrint('Error fetching ADR fees: $e');
-            return <AdrFee>[];
-          });
+        debugPrint('Error fetching ADR fees: $e');
+        return <AdrFee>[];
+      });
 
       // Preload common foreign securities withholding statuses
       final symbols = ['BTI', 'ASML', 'BABA', 'TSM'];
@@ -97,9 +98,9 @@ class _TaxDocumentsWidgetState extends State<TaxDocumentsWidget>
               symbol: sym,
             )
             .catchError((e) {
-              debugPrint('Error fetching tax withholding for $sym: $e');
-              return null;
-            }),
+          debugPrint('Error fetching tax withholding for $sym: $e');
+          return null;
+        }),
       );
 
       final results = await Future.wait([
@@ -111,9 +112,8 @@ class _TaxDocumentsWidgetState extends State<TaxDocumentsWidget>
       final docs = results[0] as List<AccountDocument>;
       final adrFees = results[1] as List<AdrFee>;
       final withholdingsRaw = results[2] as List<TaxWithholdingStatus?>;
-      var withholdings = withholdingsRaw
-          .whereType<TaxWithholdingStatus>()
-          .toList();
+      var withholdings =
+          withholdingsRaw.whereType<TaxWithholdingStatus>().toList();
 
       // If no per-instrument foreign withholding statuses returned, provide account default certification
       if (withholdings.isEmpty) {
@@ -147,10 +147,8 @@ class _TaxDocumentsWidgetState extends State<TaxDocumentsWidget>
       final uri = Uri.tryParse(doc.downloadUrl!);
       if (uri != null) {
         try {
-          final launched = await launchUrl(
-            uri,
-            mode: LaunchMode.externalApplication,
-          );
+          final launched =
+              await launchUrl(uri, mode: LaunchMode.externalApplication);
           if (launched) return;
         } catch (e) {
           debugPrint('Error launching document URL: $e');
@@ -232,10 +230,8 @@ class _TaxDocumentsWidgetState extends State<TaxDocumentsWidget>
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
                       color: Colors.green.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(6),
@@ -445,9 +441,18 @@ class _TaxDocumentsWidgetState extends State<TaxDocumentsWidget>
           controller: _tabController,
           labelPadding: const EdgeInsets.symmetric(horizontal: 12),
           tabs: const [
-            Tab(icon: Icon(Icons.receipt_long, size: 18), text: 'Tax Forms'),
-            Tab(icon: Icon(Icons.description, size: 18), text: 'Statements'),
-            Tab(icon: Icon(Icons.public, size: 18), text: 'ADR & Withholding'),
+            Tab(
+              icon: Icon(Icons.receipt_long, size: 18),
+              text: 'Tax Forms',
+            ),
+            Tab(
+              icon: Icon(Icons.description, size: 18),
+              text: 'Statements',
+            ),
+            Tab(
+              icon: Icon(Icons.public, size: 18),
+              text: 'ADR & Withholding',
+            ),
           ],
         ),
       ),
@@ -569,18 +574,14 @@ class _TaxDocumentsWidgetState extends State<TaxDocumentsWidget>
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: colorScheme.surfaceContainerHighest.withValues(
-                        alpha: 0.4,
-                      ),
+                      color: colorScheme.surfaceContainerHighest
+                          .withValues(alpha: 0.4),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: const Row(
                       children: [
-                        Icon(
-                          Icons.lightbulb_outline,
-                          size: 16,
-                          color: Colors.teal,
-                        ),
+                        Icon(Icons.lightbulb_outline,
+                            size: 16, color: Colors.teal),
                         SizedBox(width: 8),
                         Expanded(
                           child: Text(
@@ -646,20 +647,18 @@ class _TaxDocumentsWidgetState extends State<TaxDocumentsWidget>
                   },
                 ),
                 const SizedBox(width: 8),
-                ...summary.availableTaxYears.map(
-                  (yr) => Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: FilterChip(
-                      label: Text(yr.toString()),
-                      selected: _selectedTaxYear == yr,
-                      onSelected: (selected) {
-                        setState(() {
-                          _selectedTaxYear = selected ? yr : null;
-                        });
-                      },
-                    ),
-                  ),
-                ),
+                ...summary.availableTaxYears.map((yr) => Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: FilterChip(
+                        label: Text(yr.toString()),
+                        selected: _selectedTaxYear == yr,
+                        onSelected: (selected) {
+                          setState(() {
+                            _selectedTaxYear = selected ? yr : null;
+                          });
+                        },
+                      ),
+                    )),
               ],
             ),
           ),
@@ -875,9 +874,8 @@ class _TaxDocumentsWidgetState extends State<TaxDocumentsWidget>
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: colorScheme.surfaceContainerHighest.withValues(
-                        alpha: 0.4,
-                      ),
+                      color: colorScheme.surfaceContainerHighest
+                          .withValues(alpha: 0.4),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Row(
@@ -979,9 +977,7 @@ class _TaxDocumentsWidgetState extends State<TaxDocumentsWidget>
               message: 'No foreign securities withholding data available.',
             )
           else
-            ...summary.withholdings.map(
-              (status) => _buildWithholdingCard(status),
-            ),
+            ...summary.withholdings.map((status) => _buildWithholdingCard(status)),
         ],
       ),
     );
@@ -1142,7 +1138,10 @@ class _TaxDocumentsWidgetState extends State<TaxDocumentsWidget>
                   const SizedBox(height: 2),
                   Text(
                     status.description ?? status.statusLabel,
-                    style: TextStyle(fontSize: 11, color: colorScheme.outline),
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: colorScheme.outline,
+                    ),
                   ),
                 ],
               ),

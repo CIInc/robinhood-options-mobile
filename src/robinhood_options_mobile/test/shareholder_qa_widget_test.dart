@@ -39,61 +39,57 @@ void main() {
   );
 
   testWidgets(
-    'ShareholderQaWidget renders header, status chip, shareholder banner, filter chips, and questions',
-    (WidgetTester tester) async {
-      tester.view.physicalSize = const Size(800, 2400);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(() => tester.view.resetPhysicalSize());
+      'ShareholderQaWidget renders header, status chip, shareholder banner, filter chips, and questions',
+      (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(800, 2400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() => tester.view.resetPhysicalSize());
 
-      final demoService = DemoService();
+    final demoService = DemoService();
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: ShareholderQaWidget(
-            brokerageUser: testUser,
-            service: demoService,
-            instrument: testInstrument,
-            symbol: 'AAPL',
-          ),
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ShareholderQaWidget(
+          brokerageUser: testUser,
+          service: demoService,
+          instrument: testInstrument,
+          symbol: 'AAPL',
         ),
-      );
+      ),
+    );
 
-      await tester.pump();
-      await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pumpAndSettle();
 
-      // Verify AppBar title
-      expect(find.text('Shareholder Q&A'), findsOneWidget);
+    // Verify AppBar title
+    expect(find.text('Shareholder Q&A'), findsOneWidget);
 
-      // Verify status chip
-      expect(find.text('VOTING OPEN'), findsOneWidget);
+    // Verify status chip
+    expect(find.text('VOTING OPEN'), findsOneWidget);
 
-      // Verify verified shareholder banner
-      expect(find.text('Verified Shareholder Status'), findsOneWidget);
-      expect(find.text('Say Technologies'), findsWidgets);
+    // Verify verified shareholder banner
+    expect(find.text('Verified Shareholder Status'), findsOneWidget);
+    expect(find.text('Say Technologies'), findsWidgets);
 
-      // Verify filter chips
-      expect(find.text('Top (Shares)'), findsOneWidget);
-      expect(find.text('Most Votes'), findsOneWidget);
-      expect(find.textContaining('Answered'), findsOneWidget);
-      expect(find.text('My Votes'), findsOneWidget);
+    // Verify filter chips
+    expect(find.text('Top (Shares)'), findsOneWidget);
+    expect(find.text('Most Votes'), findsOneWidget);
+    expect(find.textContaining('Answered'), findsOneWidget);
+    expect(find.text('My Votes'), findsOneWidget);
 
-      // Verify question content
-      expect(
+    // Verify question content
+    expect(
         find.text(
-          'How is Apple Intelligence driving upgrade supercycles and expanding high-margin Services revenue globally?',
-        ),
-        findsOneWidget,
-      );
-      expect(find.textContaining('Chief Executive Officer'), findsOneWidget);
+            'How is Apple Intelligence driving upgrade supercycles and expanding high-margin Services revenue globally?'),
+        findsOneWidget);
+    expect(find.textContaining('Chief Executive Officer'), findsOneWidget);
 
-      // Verify Ask Question button / FAB
-      expect(find.text('Ask Question'), findsOneWidget);
-    },
-  );
+    // Verify Ask Question button / FAB
+    expect(find.text('Ask Question'), findsOneWidget);
+  });
 
-  testWidgets('ShareholderQaWidget filters by Answered only', (
-    WidgetTester tester,
-  ) async {
+  testWidgets('ShareholderQaWidget filters by Answered only',
+      (WidgetTester tester) async {
     tester.view.physicalSize = const Size(800, 2400);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(() => tester.view.resetPhysicalSize());
@@ -119,24 +115,19 @@ void main() {
 
     // Answered question from Tim Cook should still be visible
     expect(
-      find.text(
-        'How is Apple Intelligence driving upgrade supercycles and expanding high-margin Services revenue globally?',
-      ),
-      findsOneWidget,
-    );
+        find.text(
+            'How is Apple Intelligence driving upgrade supercycles and expanding high-margin Services revenue globally?'),
+        findsOneWidget);
 
     // Unanswered question should not be visible
     expect(
-      find.text(
-        'Are there any updates on Apple Silicon roadmaps for data center / cloud inference?',
-      ),
-      findsNothing,
-    );
+        find.text(
+            'Are there any updates on Apple Silicon roadmaps for data center / cloud inference?'),
+        findsNothing);
   });
 
-  testWidgets('ShareholderQaWidget toggles upvote on a question', (
-    WidgetTester tester,
-  ) async {
+  testWidgets('ShareholderQaWidget toggles upvote on a question',
+      (WidgetTester tester) async {
     tester.view.physicalSize = const Size(800, 2400);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(() => tester.view.resetPhysicalSize());
@@ -169,9 +160,8 @@ void main() {
     expect(find.byType(ShareholderQaWidget), findsOneWidget);
   });
 
-  testWidgets('ShareholderQaWidget opens submit question bottom sheet', (
-    WidgetTester tester,
-  ) async {
+  testWidgets('ShareholderQaWidget opens submit question bottom sheet',
+      (WidgetTester tester) async {
     tester.view.physicalSize = const Size(800, 2400);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(() => tester.view.resetPhysicalSize());
@@ -198,7 +188,10 @@ void main() {
     // Verify modal bottom sheet is open
     expect(find.text('Ask Management'), findsOneWidget);
     expect(find.text('Submit Question'), findsOneWidget);
-    expect(find.textContaining('Focus on long-term strategy'), findsOneWidget);
+    expect(
+        find.textContaining(
+            'Focus on long-term strategy'),
+        findsOneWidget);
 
     // Tap Close icon to dismiss
     await tester.tap(find.byIcon(Icons.close));
@@ -207,43 +200,41 @@ void main() {
     expect(find.text('Ask Management'), findsNothing);
   });
 
-  testWidgets(
-    'ShareholderQaCard renders compact preview and responds to taps',
-    (WidgetTester tester) async {
-      tester.view.physicalSize = const Size(800, 1200);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(() => tester.view.resetPhysicalSize());
+  testWidgets('ShareholderQaCard renders compact preview and responds to taps',
+      (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(800, 1200);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() => tester.view.resetPhysicalSize());
 
-      final demoService = DemoService();
+    final demoService = DemoService();
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: ShareholderQaCard(
-              brokerageUser: testUser,
-              service: demoService,
-              instrument: testInstrument,
-            ),
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: ShareholderQaCard(
+            brokerageUser: testUser,
+            service: demoService,
+            instrument: testInstrument,
           ),
         ),
-      );
+      ),
+    );
 
-      await tester.pump();
-      await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pumpAndSettle();
 
-      // Verify card contents
-      expect(find.text('Shareholder Q&A (Say)'), findsOneWidget);
-      expect(find.text('ACTIVE'), findsOneWidget);
-      expect(find.textContaining('Q3 2026 Earnings Call'), findsOneWidget);
-      expect(find.text('TOP QUESTION'), findsOneWidget);
+    // Verify card contents
+    expect(find.text('Shareholder Q&A (Say)'), findsOneWidget);
+    expect(find.text('ACTIVE'), findsOneWidget);
+    expect(find.textContaining('Q3 2026 Earnings Call'), findsOneWidget);
+    expect(find.text('TOP QUESTION'), findsOneWidget);
 
-      // Tap card
-      await tester.tap(find.byType(Card));
-      await tester.pump();
-      await tester.pumpAndSettle();
+    // Tap card
+    await tester.tap(find.byType(Card));
+    await tester.pump();
+    await tester.pumpAndSettle();
 
-      // ShareholderQaWidget should be pushed onto Navigator
-      expect(find.byType(ShareholderQaWidget), findsOneWidget);
-    },
-  );
+    // ShareholderQaWidget should be pushed onto Navigator
+    expect(find.byType(ShareholderQaWidget), findsOneWidget);
+  });
 }

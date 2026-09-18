@@ -18,26 +18,26 @@ enum ChartDateSpan {
   year_2,
   year_3,
   year_5,
-  all,
+  all
 }
 
 extension ChartDateSpanDisplay on ChartDateSpan {
   String get label => switch (this) {
-    ChartDateSpan.hour => '1H',
-    ChartDateSpan.day => '1D',
-    ChartDateSpan.week => '1W',
-    ChartDateSpan.month => '1M',
-    ChartDateSpan.month_3 => '3M',
-    ChartDateSpan.rolling_30 => '30D',
-    ChartDateSpan.rolling_60 => '60D',
-    ChartDateSpan.rolling_90 => '90D',
-    ChartDateSpan.ytd => 'YTD',
-    ChartDateSpan.year => '1Y',
-    ChartDateSpan.year_2 => '2Y',
-    ChartDateSpan.year_3 => '3Y',
-    ChartDateSpan.year_5 => '5Y',
-    ChartDateSpan.all => 'All',
-  };
+        ChartDateSpan.hour => '1H',
+        ChartDateSpan.day => '1D',
+        ChartDateSpan.week => '1W',
+        ChartDateSpan.month => '1M',
+        ChartDateSpan.month_3 => '3M',
+        ChartDateSpan.rolling_30 => '30D',
+        ChartDateSpan.rolling_60 => '60D',
+        ChartDateSpan.rolling_90 => '90D',
+        ChartDateSpan.ytd => 'YTD',
+        ChartDateSpan.year => '1Y',
+        ChartDateSpan.year_2 => '2Y',
+        ChartDateSpan.year_3 => '3Y',
+        ChartDateSpan.year_5 => '5Y',
+        ChartDateSpan.all => 'All',
+      };
 }
 
 enum Bounds { regular, t24_7, trading }
@@ -52,7 +52,7 @@ enum DisplayValue {
   todayReturnPercent,
   todayReturn,
   totalReturnPercent,
-  totalReturn,
+  totalReturn
 }
 
 enum BrokerageSource { robinhood, schwab, demo, plaid, fidelity, paper }
@@ -124,8 +124,7 @@ String convertChartSpanFilter(ChartDateSpan chartDateSpanFilter) {
 }
 
 List<String> convertChartSpanFilterWithInterval(
-  ChartDateSpan chartDateSpanFilter,
-) {
+    ChartDateSpan chartDateSpanFilter) {
   String interval = "5minute";
   String span = "day";
   switch (chartDateSpanFilter) {

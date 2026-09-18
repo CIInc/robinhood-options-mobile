@@ -48,66 +48,52 @@ class _ForexPositionsPageWidgetState extends State<ForexPositionsPageWidget> {
   @override
   Widget build(BuildContext context) {
     return Material(
-      child: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            centerTitle: false,
-            pinned: true,
-            actions: [
-              if (auth.currentUser != null)
-                AutoTradeStatusBadgeWidget(
-                  user: widget.user,
-                  userDocRef: widget.userDocRef,
-                  service: widget.service,
-                  userAvatar: auth.currentUser!.photoURL == null
-                      ? const Icon(Icons.account_circle)
-                      : CircleAvatar(
-                          maxRadius: 11,
-                          backgroundImage: CachedNetworkImageProvider(
-                            auth.currentUser!.photoURL!,
-                          ),
-                        ),
-                  onProfileTap: () {
-                    showProfile(
+        child: CustomScrollView(slivers: [
+      SliverAppBar(
+        centerTitle: false,
+        pinned: true,
+        actions: [
+          if (auth.currentUser != null)
+            AutoTradeStatusBadgeWidget(
+              user: widget.user,
+              userDocRef: widget.userDocRef,
+              service: widget.service,
+              userAvatar: auth.currentUser!.photoURL == null
+                  ? const Icon(Icons.account_circle)
+                  : CircleAvatar(
+                      maxRadius: 11,
+                      backgroundImage: CachedNetworkImageProvider(
+                          auth.currentUser!.photoURL!)),
+              onProfileTap: () {
+                showProfile(context, auth, _firestoreService, widget.analytics,
+                    widget.observer, widget.brokerageUser, widget.service);
+              },
+            )
+          else
+            IconButton(
+                icon: const Icon(Icons.account_circle_outlined),
+                onPressed: () {
+                  showProfile(
                       context,
                       auth,
                       _firestoreService,
                       widget.analytics,
                       widget.observer,
                       widget.brokerageUser,
-                      widget.service,
-                    );
-                  },
-                )
-              else
-                IconButton(
-                  icon: const Icon(Icons.account_circle_outlined),
-                  onPressed: () {
-                    showProfile(
-                      context,
-                      auth,
-                      _firestoreService,
-                      widget.analytics,
-                      widget.observer,
-                      widget.brokerageUser,
-                      widget.service,
-                    );
-                  },
-                ),
-            ],
-          ),
-          ForexPositionsWidget(
-            widget.brokerageUser,
-            widget.service,
-            widget.filteredPositions,
-            analytics: widget.analytics,
-            observer: widget.observer,
-            generativeService: widget.generativeService,
-            user: widget.user,
-            userDocRef: widget.userDocRef,
-          ),
+                      widget.service);
+                }),
         ],
       ),
-    );
+      ForexPositionsWidget(
+        widget.brokerageUser,
+        widget.service,
+        widget.filteredPositions,
+        analytics: widget.analytics,
+        observer: widget.observer,
+        generativeService: widget.generativeService,
+        user: widget.user,
+        userDocRef: widget.userDocRef,
+      )
+    ]));
   }
 }

@@ -49,13 +49,12 @@ class _OptionOrderFilterBottomSheetState
 
   Widget get orderFilterWidget {
     return SizedBox(
-      height: 56,
-      child: ListView.builder(
-        padding: const EdgeInsets.all(4.0),
-        scrollDirection: Axis.horizontal,
-        itemBuilder: (context, index) {
-          return Row(
-            children: [
+        height: 56,
+        child: ListView.builder(
+          padding: const EdgeInsets.all(4.0),
+          scrollDirection: Axis.horizontal,
+          itemBuilder: (context, index) {
+            return Row(children: [
               Padding(
                 padding: const EdgeInsets.all(4.0),
                 child: FilterChip(
@@ -116,42 +115,36 @@ class _OptionOrderFilterBottomSheetState
                   },
                 ),
               ),
-            ],
-          );
-        },
-        itemCount: 1,
-      ),
-    );
+            ]);
+          },
+          itemCount: 1,
+        ));
   }
 
   Widget get orderSymbolFilterWidget {
     return SizedBox(
-      height: 56,
-      child: ListView.builder(
-        padding: const EdgeInsets.all(4.0),
-        scrollDirection: Axis.horizontal,
-        itemBuilder: (context, index) {
-          return Row(
-            children: orderSymbolFilterWidgets(
-              widget.orderSymbols!,
-              widget.optionAggregatePositions!,
-            ).toList(),
-          );
-        },
-        itemCount: 1,
-      ),
-    );
+        height: 56,
+        child: ListView.builder(
+          padding: const EdgeInsets.all(4.0),
+          scrollDirection: Axis.horizontal,
+          itemBuilder: (context, index) {
+            return Row(
+                children: orderSymbolFilterWidgets(
+                        widget.orderSymbols!, widget.optionAggregatePositions!)
+                    .toList());
+          },
+          itemCount: 1,
+        ));
   }
 
   Widget get orderDateFilterWidget {
     return SizedBox(
-      height: 56,
-      child: ListView.builder(
-        padding: const EdgeInsets.all(4.0),
-        scrollDirection: Axis.horizontal,
-        itemBuilder: (context, index) {
-          return Row(
-            children: [
+        height: 56,
+        child: ListView.builder(
+          padding: const EdgeInsets.all(4.0),
+          scrollDirection: Axis.horizontal,
+          itemBuilder: (context, index) {
+            return Row(children: [
               Padding(
                 padding: const EdgeInsets.all(4.0),
                 child: ChoiceChip(
@@ -236,18 +229,14 @@ class _OptionOrderFilterBottomSheetState
                   },
                 ),
               ),
-            ],
-          );
-        },
-        itemCount: 1,
-      ),
-    );
+            ]);
+          },
+          itemCount: 1,
+        ));
   }
 
   Iterable<Widget> orderSymbolFilterWidgets(
-    List<String> chainSymbols,
-    List<OptionAggregatePosition> options,
-  ) sync* {
+      List<String> chainSymbols, List<OptionAggregatePosition> options) sync* {
     for (final String chainSymbol in chainSymbols) {
       yield Padding(
         padding: const EdgeInsets.all(4.0),

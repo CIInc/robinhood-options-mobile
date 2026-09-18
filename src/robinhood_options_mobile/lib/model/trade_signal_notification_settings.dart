@@ -40,27 +40,24 @@ class TradeSignalNotificationSettings {
   });
 
   TradeSignalNotificationSettings.fromJson(Map<String, dynamic> json)
-    : enabled = json['enabled'] as bool? ?? true,
-      signalTypes =
-          (json['signalTypes'] as List<dynamic>?)
-              ?.map((e) => e.toString())
-              .toList() ??
-          ['BUY', 'SELL'],
-      symbols =
-          (json['symbols'] as List<dynamic>?)
-              ?.map((e) => e.toString())
-              .toList() ??
-          [],
-      intervals =
-          (json['intervals'] as List<dynamic>?)
-              ?.map((e) => e.toString())
-              .toList() ??
-          [],
-      includeHold = json['includeHold'] as bool? ?? false,
-      minConfidence = json['minConfidence'] != null
-          ? (json['minConfidence'] as num).toDouble()
-          : null,
-      macroAlerts = json['macroAlerts'] as bool? ?? true;
+      : enabled = json['enabled'] as bool? ?? true,
+        signalTypes = (json['signalTypes'] as List<dynamic>?)
+                ?.map((e) => e.toString())
+                .toList() ??
+            ['BUY', 'SELL'],
+        symbols = (json['symbols'] as List<dynamic>?)
+                ?.map((e) => e.toString())
+                .toList() ??
+            [],
+        intervals = (json['intervals'] as List<dynamic>?)
+                ?.map((e) => e.toString())
+                .toList() ??
+            [],
+        includeHold = json['includeHold'] as bool? ?? false,
+        minConfidence = json['minConfidence'] != null
+            ? (json['minConfidence'] as num).toDouble()
+            : null,
+        macroAlerts = json['macroAlerts'] as bool? ?? true;
 
   Map<String, dynamic> toJson() {
     return {

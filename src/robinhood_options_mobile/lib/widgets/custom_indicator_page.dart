@@ -29,8 +29,7 @@ class _CustomIndicatorPageState extends State<CustomIndicatorPage> {
     _parameters = Map.from(widget.indicator?.parameters ?? {});
     _condition = widget.indicator?.condition ?? SignalCondition.GreaterThan;
     _thresholdController = TextEditingController(
-      text: widget.indicator?.threshold?.toString() ?? '',
-    );
+        text: widget.indicator?.threshold?.toString() ?? '');
     _compareToPrice = widget.indicator?.compareToPrice ?? false;
     _signalType = widget.indicator?.signalType ?? SignalType.BUY;
 
@@ -95,13 +94,16 @@ class _CustomIndicatorPageState extends State<CustomIndicatorPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          widget.indicator == null
-              ? 'Add Custom Indicator'
-              : 'Edit Custom Indicator',
-        ),
+        title: Text(widget.indicator == null
+            ? 'Add Custom Indicator'
+            : 'Edit Custom Indicator'),
         elevation: 0,
-        actions: [TextButton(onPressed: _save, child: const Text('Save'))],
+        actions: [
+          TextButton(
+            onPressed: _save,
+            child: const Text('Save'),
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
@@ -162,7 +164,11 @@ class _CustomIndicatorPageState extends State<CustomIndicatorPage> {
               const SizedBox(height: 24),
               Row(
                 children: [
-                  Icon(Icons.tune, size: 20, color: colorScheme.primary),
+                  Icon(
+                    Icons.tune,
+                    size: 20,
+                    color: colorScheme.primary,
+                  ),
                   const SizedBox(width: 8),
                   Text(
                     'Configuration',
@@ -287,9 +293,7 @@ class _CustomIndicatorPageState extends State<CustomIndicatorPage> {
                           ),
                           prefixIcon: const Icon(Icons.traffic),
                           contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 16,
-                          ),
+                              horizontal: 16, vertical: 16),
                         ),
                         items: SignalType.values.map((type) {
                           return DropdownMenuItem(
@@ -315,9 +319,7 @@ class _CustomIndicatorPageState extends State<CustomIndicatorPage> {
                           ),
                           prefixIcon: const Icon(Icons.rule),
                           contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 16,
-                          ),
+                              horizontal: 16, vertical: 16),
                         ),
                         items: SignalCondition.values.map((condition) {
                           return DropdownMenuItem(
@@ -343,9 +345,7 @@ class _CustomIndicatorPageState extends State<CustomIndicatorPage> {
                                 ),
                                 prefixIcon: const Icon(Icons.attach_money),
                                 contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 16,
-                                ),
+                                    horizontal: 16, vertical: 16),
                               ),
                               child: Text(
                                 'Current Price',
@@ -364,9 +364,7 @@ class _CustomIndicatorPageState extends State<CustomIndicatorPage> {
                                 ),
                                 prefixIcon: const Icon(Icons.numbers),
                                 contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 16,
-                                ),
+                                    horizontal: 16, vertical: 16),
                               ),
                               keyboardType: TextInputType.number,
                               validator: (value) =>
@@ -376,8 +374,7 @@ class _CustomIndicatorPageState extends State<CustomIndicatorPage> {
                       SwitchListTile(
                         title: const Text('Compare to Current Price'),
                         subtitle: const Text(
-                          'Use current market price instead of a fixed value',
-                        ),
+                            'Use current market price instead of a fixed value'),
                         value: _compareToPrice,
                         onChanged: (value) {
                           setState(() {
@@ -417,60 +414,59 @@ class _CustomIndicatorPageState extends State<CustomIndicatorPage> {
           items = ['default'];
         }
 
-        fields.add(
-          DropdownButtonFormField<String>(
-            initialValue: items.contains(value) ? value : items.first,
-            decoration: InputDecoration(
-              labelText: 'Component',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              prefixIcon: const Icon(Icons.layers),
-              isDense: true,
+        fields.add(DropdownButtonFormField<String>(
+          initialValue: items.contains(value) ? value : items.first,
+          decoration: InputDecoration(
+            labelText: 'Component',
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
             ),
-            items: items.map((item) {
-              return DropdownMenuItem(value: item, child: Text(item));
-            }).toList(),
-            onChanged: (val) {
-              if (val != null) {
-                setState(() {
-                  _parameters[key] = val;
-                });
-              }
-            },
+            prefixIcon: const Icon(Icons.layers),
+            isDense: true,
           ),
-        );
+          items: items.map((item) {
+            return DropdownMenuItem(
+              value: item,
+              child: Text(item),
+            );
+          }).toList(),
+          onChanged: (val) {
+            if (val != null) {
+              setState(() {
+                _parameters[key] = val;
+              });
+            }
+          },
+        ));
       } else {
         // Capitalize first letter of key for label
         final label = key.substring(0, 1).toUpperCase() + key.substring(1);
 
-        fields.add(
-          TextFormField(
-            initialValue: value.toString(),
-            decoration: InputDecoration(
-              labelText: label,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              prefixIcon: const Icon(Icons.input),
-              isDense: true,
+        fields.add(TextFormField(
+          initialValue: value.toString(),
+          decoration: InputDecoration(
+            labelText: label,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
             ),
-            keyboardType: TextInputType.number,
-            validator: (val) {
-              if (val == null || val.isEmpty) return 'Required';
-              if (num.tryParse(val) == null) return 'Invalid number';
-              return null;
-            },
-            onChanged: (val) {
-              if (val.isNotEmpty) {
-                final numVal = num.tryParse(val);
-                if (numVal != null) {
-                  _parameters[key] = numVal;
-                }
-              }
-            },
+            prefixIcon: const Icon(Icons.input),
+            isDense: true,
           ),
-        );
+          keyboardType: TextInputType.number,
+          validator: (val) {
+            if (val == null || val.isEmpty) return 'Required';
+            if (num.tryParse(val) == null) return 'Invalid number';
+            return null;
+          },
+          onChanged: (val) {
+            if (val.isNotEmpty) {
+              final numVal = num.tryParse(val);
+              if (numVal != null) {
+                _parameters[key] = numVal;
+              }
+            }
+          },
+        ));
       }
       fields.add(const SizedBox(height: 12));
     });
@@ -495,9 +491,8 @@ class _CustomIndicatorPageState extends State<CustomIndicatorPage> {
         type: _type,
         parameters: _parameters,
         condition: _condition,
-        threshold: _compareToPrice
-            ? null
-            : double.tryParse(_thresholdController.text),
+        threshold:
+            _compareToPrice ? null : double.tryParse(_thresholdController.text),
         compareToPrice: _compareToPrice,
         signalType: _signalType,
       );

@@ -93,7 +93,10 @@ class _SlideToConfirmState extends State<SlideToConfirm> {
                       color: widget.sliderColor,
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(Icons.arrow_forward, color: widget.iconColor),
+                    child: Icon(
+                      Icons.arrow_forward,
+                      color: widget.iconColor,
+                    ),
                   ),
                 ),
               ),

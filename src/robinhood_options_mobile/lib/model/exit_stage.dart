@@ -5,12 +5,12 @@ class ExitStage {
   ExitStage({required this.profitTargetPercent, required this.quantityPercent});
 
   Map<String, dynamic> toJson() => {
-    'profitTargetPercent': profitTargetPercent,
-    'quantityPercent': quantityPercent,
-  };
+        'profitTargetPercent': profitTargetPercent,
+        'quantityPercent': quantityPercent,
+      };
 
   factory ExitStage.fromJson(Map<String, dynamic> json) => ExitStage(
-    profitTargetPercent: (json['profitTargetPercent'] as num).toDouble(),
-    quantityPercent: (json['quantityPercent'] as num).toDouble(),
-  );
+        profitTargetPercent: (json['profitTargetPercent'] as num).toDouble(),
+        quantityPercent: (json['quantityPercent'] as num).toDouble(),
+      );
 }

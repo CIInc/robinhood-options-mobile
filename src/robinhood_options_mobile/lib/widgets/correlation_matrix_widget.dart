@@ -58,13 +58,11 @@ class _CorrelationMatrixWidgetState extends State<CorrelationMatrixWidget> {
 
     for (final symbol in symbolsToProcess) {
       // Check cache first to avoid re-fetching
-      final cached = _historicalsStore.items.firstWhereOrNull(
-        (h) =>
-            h.symbol == symbol &&
-            h.span == 'year' &&
-            h.bounds == 'regular' &&
-            h.interval == 'day',
-      );
+      final cached = _historicalsStore.items.firstWhereOrNull((h) =>
+          h.symbol == symbol &&
+          h.span == 'year' &&
+          h.bounds == 'regular' &&
+          h.interval == 'day');
 
       if (cached != null) {
         if (cached.historicals.isNotEmpty) {
@@ -96,13 +94,10 @@ class _CorrelationMatrixWidgetState extends State<CorrelationMatrixWidget> {
 
       try {
         final historicals = await widget.service.getInstrumentHistoricals(
-          widget.user,
-          _historicalsStore,
-          symbol,
-          chartDateSpanFilter: ChartDateSpan.year,
-          chartBoundsFilter: Bounds.regular,
-          chartInterval: 'day',
-        );
+            widget.user, _historicalsStore, symbol,
+            chartDateSpanFilter: ChartDateSpan.year,
+            chartBoundsFilter: Bounds.regular,
+            chartInterval: 'day');
 
         if (historicals.historicals.isNotEmpty) {
           List<double> prices = [];
@@ -241,16 +236,11 @@ class _CorrelationMatrixWidgetState extends State<CorrelationMatrixWidget> {
                       ),
                       const Padding(
                         padding: EdgeInsets.symmetric(
-                          horizontal: 16.0,
-                          vertical: 8.0,
-                        ),
-                        child: Text(
-                          "Benchmarks",
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.grey,
-                          ),
-                        ),
+                            horizontal: 16.0, vertical: 8.0),
+                        child: Text("Benchmarks",
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.grey)),
                       ),
                       ...benchmarkSymbols.map((sym) {
                         final isSelected = currentlySelected.contains(sym);
@@ -274,16 +264,11 @@ class _CorrelationMatrixWidgetState extends State<CorrelationMatrixWidget> {
                       const Divider(),
                       const Padding(
                         padding: EdgeInsets.symmetric(
-                          horizontal: 16.0,
-                          vertical: 8.0,
-                        ),
-                        child: Text(
-                          "Portfolio",
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.grey,
-                          ),
-                        ),
+                            horizontal: 16.0, vertical: 8.0),
+                        child: Text("Portfolio",
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.grey)),
                       ),
                       ...portfolioSymbols.map((sym) {
                         final isSelected = currentlySelected.contains(sym);
@@ -343,10 +328,8 @@ class _CorrelationMatrixWidgetState extends State<CorrelationMatrixWidget> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Row(
               children: [
-                Icon(
-                  Icons.grid_on,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
+                Icon(Icons.grid_on,
+                    color: Theme.of(context).colorScheme.primary),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -379,7 +362,7 @@ class _CorrelationMatrixWidgetState extends State<CorrelationMatrixWidget> {
                       ),
                     );
                   },
-                ),
+                )
               ],
             ),
           ),
@@ -399,7 +382,7 @@ class _CorrelationMatrixWidgetState extends State<CorrelationMatrixWidget> {
           IconButton(
             icon: const Icon(Icons.info_outline),
             onPressed: () => _showLegendDialog(context),
-          ),
+          )
         ],
       ),
       body: _buildBody(),
@@ -412,30 +395,27 @@ class _CorrelationMatrixWidgetState extends State<CorrelationMatrixWidget> {
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const CircularProgressIndicator(),
-                const SizedBox(height: 20),
-                Text(_loadingStatus ?? 'Initializing...'),
-                if (_totalSymbols > 0)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 10.0),
-                    child: Text(
-                      '$_loadedSymbols / $_totalSymbols symbols loaded',
-                    ),
-                  ),
-              ],
-            ),
-          );
+              child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const CircularProgressIndicator(),
+              const SizedBox(height: 20),
+              Text(_loadingStatus ?? 'Initializing...'),
+              if (_totalSymbols > 0)
+                Padding(
+                  padding: const EdgeInsets.only(top: 10.0),
+                  child:
+                      Text('$_loadedSymbols / $_totalSymbols symbols loaded'),
+                )
+            ],
+          ));
         }
         if (snapshot.hasError) {
           return Center(child: Text('Error: ${snapshot.error}'));
         }
         if (!snapshot.hasData || snapshot.data!.isEmpty) {
           return const Center(
-            child: Text('No sufficient data for correlation analysis.'),
-          );
+              child: Text('No sufficient data for correlation analysis.'));
         }
 
         final matrix = snapshot.data!;
@@ -455,77 +435,51 @@ class _CorrelationMatrixWidgetState extends State<CorrelationMatrixWidget> {
                     headingRowHeight: 40,
                     columns: [
                       const DataColumn(label: Text('')), // Corner
-                      ...symbols.map(
-                        (s) => DataColumn(
+                      ...symbols.map((s) => DataColumn(
                           label: SizedBox(
-                            width: 40,
-                            child: Center(
-                              child: Text(
-                                s,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
+                              width: 40,
+                              child: Center(
+                                  child: Text(s,
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 12)))))),
                     ],
                     rows: symbols.map((symRow) {
-                      return DataRow(
-                        cells: [
-                          DataCell(
-                            Text(
-                              symRow,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ),
-                          ...symbols.map((symCol) {
-                            final corr = matrix[symRow]?[symCol] ?? 0.0;
-                            final isSelf = symRow == symCol;
-                            return DataCell(
-                              InkWell(
-                                onTap: () => _showDetailDialog(
-                                  context,
-                                  symRow,
-                                  symCol,
-                                  corr,
-                                ),
-                                child: Container(
-                                  width: 40,
-                                  height: 50,
-                                  alignment: Alignment.center,
-                                  color: isSelf
-                                      ? Colors.grey.withValues(alpha: 0.2)
-                                      : _getColorForCorrelation(corr),
-                                  child: isSelf
-                                      ? const Text(
-                                          "1",
-                                          style: TextStyle(
-                                            fontSize: 10,
-                                            color: Colors.grey,
-                                          ),
-                                        )
-                                      : Text(
-                                          corr.toStringAsFixed(2),
-                                          style: TextStyle(
+                      return DataRow(cells: [
+                        DataCell(Text(symRow,
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 12))),
+                        ...symbols.map((symCol) {
+                          final corr = matrix[symRow]?[symCol] ?? 0.0;
+                          final isSelf = symRow == symCol;
+                          return DataCell(
+                            InkWell(
+                              onTap: () => _showDetailDialog(
+                                  context, symRow, symCol, corr),
+                              child: Container(
+                                width: 40,
+                                height: 50,
+                                alignment: Alignment.center,
+                                color: isSelf
+                                    ? Colors.grey.withValues(alpha: 0.2)
+                                    : _getColorForCorrelation(corr),
+                                child: isSelf
+                                    ? const Text("1",
+                                        style: TextStyle(
+                                            fontSize: 10, color: Colors.grey))
+                                    : Text(
+                                        corr.toStringAsFixed(2),
+                                        style: TextStyle(
                                             fontSize: 11,
                                             color: _getTextColorForCorrelation(
-                                              corr,
-                                            ),
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                ),
+                                                corr),
+                                            fontWeight: FontWeight.w500),
+                                      ),
                               ),
-                            );
-                          }),
-                        ],
-                      );
+                            ),
+                          );
+                        })
+                      ]);
                     }).toList(),
                   ),
                 ),
@@ -548,7 +502,7 @@ class _CorrelationMatrixWidgetState extends State<CorrelationMatrixWidget> {
             color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 4,
             offset: const Offset(0, -2),
-          ),
+          )
         ],
       ),
       child: Column(
@@ -557,20 +511,17 @@ class _CorrelationMatrixWidgetState extends State<CorrelationMatrixWidget> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                "Correlation Strength",
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
+              const Text("Correlation Strength",
+                  style: TextStyle(fontWeight: FontWeight.bold)),
               IconButton(
-                icon: const Icon(Icons.refresh, size: 20),
-                onPressed: () {
-                  setState(() {
-                    _loadedSymbols = 0;
-                    _correlationFuture = _calculateCorrelationMatrix();
-                  });
-                },
-                tooltip: 'Refresh Data',
-              ),
+                  icon: const Icon(Icons.refresh, size: 20),
+                  onPressed: () {
+                    setState(() {
+                      _loadedSymbols = 0;
+                      _correlationFuture = _calculateCorrelationMatrix();
+                    });
+                  },
+                  tooltip: 'Refresh Data')
             ],
           ),
           const SizedBox(height: 10),
@@ -598,18 +549,12 @@ class _CorrelationMatrixWidgetState extends State<CorrelationMatrixWidget> {
           const Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                "Inverse",
-                style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
-              ),
-              Text(
-                "Uncorrelated",
-                style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
-              ),
-              Text(
-                "Positive",
-                style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
-              ),
+              Text("Inverse",
+                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+              Text("Uncorrelated",
+                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+              Text("Positive",
+                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
             ],
           ),
         ],
@@ -618,81 +563,66 @@ class _CorrelationMatrixWidgetState extends State<CorrelationMatrixWidget> {
   }
 
   void _showDetailDialog(
-    BuildContext context,
-    String sym1,
-    String sym2,
-    double corr,
-  ) {
+      BuildContext context, String sym1, String sym2, double corr) {
     int sampleSize = _sampleSizes[sym1]?[sym2] ?? 0;
     showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('$sym1 ↔ $sym2'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              corr.toStringAsFixed(4),
-              style: TextStyle(
-                fontSize: 32,
-                fontWeight: FontWeight.bold,
-                color: _getColorForCorrelation(corr).withValues(alpha: 1.0),
+        context: context,
+        builder: (context) => AlertDialog(
+              title: Text('$sym1 ↔ $sym2'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(corr.toStringAsFixed(4),
+                      style: TextStyle(
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                          color: _getColorForCorrelation(corr)
+                              .withValues(alpha: 1.0))),
+                  const SizedBox(height: 10),
+                  Text(_getCorrelationDescription(corr),
+                      textAlign: TextAlign.center),
+                  const SizedBox(height: 10),
+                  Text("Based on $sampleSize overlapping trading days.",
+                      style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                ],
               ),
-            ),
-            const SizedBox(height: 10),
-            Text(_getCorrelationDescription(corr), textAlign: TextAlign.center),
-            const SizedBox(height: 10),
-            Text(
-              "Based on $sampleSize overlapping trading days.",
-              style: const TextStyle(fontSize: 10, color: Colors.grey),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Close"),
-          ),
-        ],
-      ),
-    );
+              actions: [
+                TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text("Close"))
+              ],
+            ));
   }
 
   void _showLegendDialog(BuildContext context) {
     showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Correlation Analysis'),
-        content: const SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                "This matrix displays the correlation coefficient (Pearson) between asset returns over the last year.",
+        context: context,
+        builder: (context) => AlertDialog(
+              title: const Text('Correlation Analysis'),
+              content: const SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                        "This matrix displays the correlation coefficient (Pearson) between asset returns over the last year."),
+                    SizedBox(height: 10),
+                    Text(
+                        "• +1.0: Perfect positive correlation. Assets move together."),
+                    Text("• 0.0: No linear correlation."),
+                    Text(
+                        "• -1.0: Perfect negative correlation. Assets move in opposite directions."),
+                    SizedBox(height: 10),
+                    Text(
+                        "Use this to check portfolio diversification. Ideally, you want a mix of assets with low correlation to reduce overall risk.")
+                  ],
+                ),
               ),
-              SizedBox(height: 10),
-              Text(
-                "• +1.0: Perfect positive correlation. Assets move together.",
-              ),
-              Text("• 0.0: No linear correlation."),
-              Text(
-                "• -1.0: Perfect negative correlation. Assets move in opposite directions.",
-              ),
-              SizedBox(height: 10),
-              Text(
-                "Use this to check portfolio diversification. Ideally, you want a mix of assets with low correlation to reduce overall risk.",
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Got it"),
-          ),
-        ],
-      ),
-    );
+              actions: [
+                TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text("Got it"))
+              ],
+            ));
   }
 
   String _getCorrelationDescription(double corr) {

@@ -52,10 +52,8 @@ class _DayTradeMonitorWidgetState extends State<DayTradeMonitorWidget> {
 
     dynamic rawJson;
     try {
-      rawJson = await widget.service.getRecentDayTrades(
-        widget.brokerageUser,
-        accountNum,
-      );
+      rawJson = await widget.service
+          .getRecentDayTrades(widget.brokerageUser, accountNum);
     } catch (e) {
       debugPrint('Error fetching recent day trades: $e');
     }
@@ -113,8 +111,7 @@ class _DayTradeMonitorWidgetState extends State<DayTradeMonitorWidget> {
               return const Center(child: CircularProgressIndicator());
             }
 
-            final summary =
-                snapshot.data ??
+            final summary = snapshot.data ??
                 DayTradeSummary(
                   accountNumber: account?.accountNumber ?? '',
                   dayTrades: [],
@@ -205,8 +202,8 @@ class _DayTradeMonitorWidgetState extends State<DayTradeMonitorWidget> {
                       Text(
                         account != null && account.type.isNotEmpty
                             ? (account.type.toLowerCase().endsWith('account')
-                                  ? account.type.toUpperCase()
-                                  : '${account.type.toUpperCase()} ACCOUNT')
+                                ? account.type.toUpperCase()
+                                : '${account.type.toUpperCase()} ACCOUNT')
                             : 'MARGIN ACCOUNT',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant,
@@ -220,16 +217,13 @@ class _DayTradeMonitorWidgetState extends State<DayTradeMonitorWidget> {
                 Tooltip(
                   message: summary.statusTitle,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
                       color: statusColor.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: statusColor.withValues(alpha: 0.5),
-                      ),
+                      border:
+                          Border.all(color: statusColor.withValues(alpha: 0.5)),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -305,8 +299,8 @@ class _DayTradeMonitorWidgetState extends State<DayTradeMonitorWidget> {
                   summary.isPdtExempt
                       ? 'Exempt'
                       : (summary.remainingDayTrades == 0
-                            ? '0 Left'
-                            : '${summary.remainingDayTrades} Left'),
+                          ? '0 Left'
+                          : '${summary.remainingDayTrades} Left'),
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     color: statusColor,
@@ -319,9 +313,8 @@ class _DayTradeMonitorWidgetState extends State<DayTradeMonitorWidget> {
               width: double.infinity,
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: theme.colorScheme.surfaceContainerHighest.withValues(
-                  alpha: 0.5,
-                ),
+                color: theme.colorScheme.surfaceContainerHighest
+                    .withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Text(
@@ -460,11 +453,8 @@ class _DayTradeMonitorWidgetState extends State<DayTradeMonitorWidget> {
           children: [
             Row(
               children: [
-                Icon(
-                  Icons.security,
-                  size: 20,
-                  color: theme.colorScheme.primary,
-                ),
+                Icon(Icons.security,
+                    size: 20, color: theme.colorScheme.primary),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -498,9 +488,8 @@ class _DayTradeMonitorWidgetState extends State<DayTradeMonitorWidget> {
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
-                    color: summary.dayTradesProtection
-                        ? Colors.green
-                        : Colors.red,
+                    color:
+                        summary.dayTradesProtection ? Colors.green : Colors.red,
                   ),
                 ),
                 backgroundColor: summary.dayTradesProtection
@@ -523,8 +512,8 @@ class _DayTradeMonitorWidgetState extends State<DayTradeMonitorWidget> {
                   summary.dayTradeBuyingPower != null
                       ? _currencyFormat.format(summary.dayTradeBuyingPower)
                       : (account?.buyingPower != null
-                            ? _currencyFormat.format(account!.buyingPower)
-                            : 'N/A'),
+                          ? _currencyFormat.format(account!.buyingPower)
+                          : 'N/A'),
                   style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
               ],
@@ -625,9 +614,8 @@ class _DayTradeMonitorWidgetState extends State<DayTradeMonitorWidget> {
         const SizedBox(height: 12),
         if (displayedTrades.isEmpty)
           Card(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 16),
               child: Center(
@@ -636,9 +624,8 @@ class _DayTradeMonitorWidgetState extends State<DayTradeMonitorWidget> {
                     Icon(
                       Icons.event_available,
                       size: 48,
-                      color: theme.colorScheme.onSurfaceVariant.withValues(
-                        alpha: 0.5,
-                      ),
+                      color: theme.colorScheme.onSurfaceVariant
+                          .withValues(alpha: 0.5),
                     ),
                     const SizedBox(height: 12),
                     Text(
@@ -682,17 +669,18 @@ class _DayTradeMonitorWidgetState extends State<DayTradeMonitorWidget> {
               ? Colors.deepPurple.withValues(alpha: 0.15)
               : Colors.teal.withValues(alpha: 0.15),
           foregroundColor: isOption ? Colors.deepPurple : Colors.teal,
-          child: Icon(isOption ? Icons.call_split : Icons.show_chart, size: 20),
+          child: Icon(
+            isOption ? Icons.call_split : Icons.show_chart,
+            size: 20,
+          ),
         ),
         title: Row(
           children: [
             Flexible(
               child: Text(
                 trade.symbol,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 15,
-                ),
+                style:
+                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
@@ -705,10 +693,8 @@ class _DayTradeMonitorWidgetState extends State<DayTradeMonitorWidget> {
               ),
               child: Text(
                 trade.type.toUpperCase(),
-                style: const TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                ),
+                style:
+                    const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
               ),
             ),
           ],
@@ -742,8 +728,8 @@ class _DayTradeMonitorWidgetState extends State<DayTradeMonitorWidget> {
             color: isExpired
                 ? Colors.grey.withValues(alpha: 0.15)
                 : (remainingDays <= 1
-                      ? Colors.green.withValues(alpha: 0.15)
-                      : Colors.amber.withValues(alpha: 0.15)),
+                    ? Colors.green.withValues(alpha: 0.15)
+                    : Colors.amber.withValues(alpha: 0.15)),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Column(
@@ -754,16 +740,16 @@ class _DayTradeMonitorWidgetState extends State<DayTradeMonitorWidget> {
                 isExpired
                     ? 'Expired'
                     : (remainingDays == 1
-                          ? 'Rolls off today'
-                          : 'Rolls off in $remainingDays days'),
+                        ? 'Rolls off today'
+                        : 'Rolls off in $remainingDays days'),
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.bold,
                   color: isExpired
                       ? Colors.grey
                       : (remainingDays <= 1
-                            ? Colors.green.shade800
-                            : Colors.amber.shade900),
+                          ? Colors.green.shade800
+                          : Colors.amber.shade900),
                 ),
               ),
               const SizedBox(height: 2),
@@ -795,10 +781,8 @@ class _DayTradeMonitorWidgetState extends State<DayTradeMonitorWidget> {
           'Learn how day trades, restrictions, and roll-offs work',
           style: TextStyle(fontSize: 12),
         ),
-        childrenPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 8,
-        ),
+        childrenPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         children: const [
           ListTile(
             title: Text('What counts as a Day Trade?'),

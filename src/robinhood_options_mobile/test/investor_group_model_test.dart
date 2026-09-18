@@ -45,15 +45,11 @@ void main() {
       // Verify all fields are correctly deserialized
       expect(deserializedGroup.id, equals('test-group-id'));
       expect(deserializedGroup.name, equals('Tech Investors'));
-      expect(
-        deserializedGroup.description,
-        equals('A group for tech stock enthusiasts'),
-      );
+      expect(deserializedGroup.description,
+          equals('A group for tech stock enthusiasts'));
       expect(deserializedGroup.createdBy, equals('user123'));
       expect(
-        deserializedGroup.members,
-        equals(['user123', 'user456', 'user789']),
-      );
+          deserializedGroup.members, equals(['user123', 'user456', 'user789']));
       expect(deserializedGroup.admins, equals(['user123', 'user456']));
       expect(deserializedGroup.pendingInvitations, equals(['user999']));
       expect(deserializedGroup.isPrivate, equals(true));
@@ -211,23 +207,22 @@ void main() {
     });
 
     test(
-      'InvestorGroup.hasPendingInvitation should correctly identify pending invitations',
-      () {
-        final group = InvestorGroup(
-          id: 'test-group',
-          name: 'Test Group',
-          createdBy: 'user123',
-          members: ['user123'],
-          pendingInvitations: ['user456', 'user789'],
-          dateCreated: DateTime.now(),
-        );
+        'InvestorGroup.hasPendingInvitation should correctly identify pending invitations',
+        () {
+      final group = InvestorGroup(
+        id: 'test-group',
+        name: 'Test Group',
+        createdBy: 'user123',
+        members: ['user123'],
+        pendingInvitations: ['user456', 'user789'],
+        dateCreated: DateTime.now(),
+      );
 
-        expect(group.hasPendingInvitation('user456'), isTrue);
-        expect(group.hasPendingInvitation('user789'), isTrue);
-        expect(group.hasPendingInvitation('user123'), isFalse);
-        expect(group.hasPendingInvitation('user999'), isFalse);
-      },
-    );
+      expect(group.hasPendingInvitation('user456'), isTrue);
+      expect(group.hasPendingInvitation('user789'), isTrue);
+      expect(group.hasPendingInvitation('user123'), isFalse);
+      expect(group.hasPendingInvitation('user999'), isFalse);
+    });
 
     test('InvestorGroup should handle null pendingInvitations', () {
       final group = InvestorGroup(
@@ -302,64 +297,55 @@ void main() {
       group.setCopyTradeSettings('user123', settings);
       expect(group.getCopyTradeSettings('user123'), isNotNull);
       expect(group.getCopyTradeSettings('user123')!.enabled, equals(true));
-      expect(
-        group.getCopyTradeSettings('user123')!.targetUserId,
-        equals('user456'),
-      );
+      expect(group.getCopyTradeSettings('user123')!.targetUserId,
+          equals('user456'));
       expect(group.getCopyTradeSettings('user456'), isNull);
     });
 
-    test(
-      'InvestorGroup should serialize and deserialize copy trade settings',
-      () {
-        final now = DateTime.now();
-        final settings1 = CopyTradeSettings(
-          enabled: true,
-          targetUserId: 'user456',
-          maxQuantity: 50,
-        );
-        final settings2 = CopyTradeSettings(
-          enabled: true,
-          targetUserId: 'user123',
-          maxAmount: 1000,
-        );
+    test('InvestorGroup should serialize and deserialize copy trade settings',
+        () {
+      final now = DateTime.now();
+      final settings1 = CopyTradeSettings(
+        enabled: true,
+        targetUserId: 'user456',
+        maxQuantity: 50,
+      );
+      final settings2 = CopyTradeSettings(
+        enabled: true,
+        targetUserId: 'user123',
+        maxAmount: 1000,
+      );
 
-        final group = InvestorGroup(
-          id: 'test-group',
-          name: 'Test Group',
-          createdBy: 'user123',
-          members: ['user123', 'user456'],
-          dateCreated: now,
-          memberCopyTradeSettings: {'user123': settings1, 'user456': settings2},
-        );
+      final group = InvestorGroup(
+        id: 'test-group',
+        name: 'Test Group',
+        createdBy: 'user123',
+        members: ['user123', 'user456'],
+        dateCreated: now,
+        memberCopyTradeSettings: {
+          'user123': settings1,
+          'user456': settings2,
+        },
+      );
 
-        final json = group.toJson();
-        expect(json['memberCopyTradeSettings'], isNotNull);
+      final json = group.toJson();
+      expect(json['memberCopyTradeSettings'], isNotNull);
 
-        json['dateCreated'] = Timestamp.fromDate(now);
-        final deserializedGroup = InvestorGroup.fromJson(json);
+      json['dateCreated'] = Timestamp.fromDate(now);
+      final deserializedGroup = InvestorGroup.fromJson(json);
 
-        expect(deserializedGroup.memberCopyTradeSettings, isNotNull);
-        expect(deserializedGroup.getCopyTradeSettings('user123'), isNotNull);
-        expect(
-          deserializedGroup.getCopyTradeSettings('user123')!.enabled,
-          equals(true),
-        );
-        expect(
-          deserializedGroup.getCopyTradeSettings('user123')!.targetUserId,
-          equals('user456'),
-        );
-        expect(
-          deserializedGroup.getCopyTradeSettings('user123')!.maxQuantity,
-          equals(50),
-        );
+      expect(deserializedGroup.memberCopyTradeSettings, isNotNull);
+      expect(deserializedGroup.getCopyTradeSettings('user123'), isNotNull);
+      expect(deserializedGroup.getCopyTradeSettings('user123')!.enabled,
+          equals(true));
+      expect(deserializedGroup.getCopyTradeSettings('user123')!.targetUserId,
+          equals('user456'));
+      expect(deserializedGroup.getCopyTradeSettings('user123')!.maxQuantity,
+          equals(50));
 
-        expect(deserializedGroup.getCopyTradeSettings('user456'), isNotNull);
-        expect(
-          deserializedGroup.getCopyTradeSettings('user456')!.maxAmount,
-          equals(1000),
-        );
-      },
-    );
+      expect(deserializedGroup.getCopyTradeSettings('user456'), isNotNull);
+      expect(deserializedGroup.getCopyTradeSettings('user456')!.maxAmount,
+          equals(1000));
+    });
   });
 }

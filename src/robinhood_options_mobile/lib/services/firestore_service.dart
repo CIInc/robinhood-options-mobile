@@ -29,7 +29,7 @@ class FirestoreService {
   final FirebaseFirestore _db;
 
   FirestoreService({FirebaseFirestore? firestore})
-    : _db = firestore ?? FirebaseFirestore.instance;
+      : _db = firestore ?? FirebaseFirestore.instance;
 
   final String instrumentCollectionName = 'instrument';
   final String userCollectionName = 'user';
@@ -57,46 +57,39 @@ class FirestoreService {
         toFirestore: (obj, _) => obj.toJson(),
       );
 
-  late final CollectionReference<User> userCollection = _db
-      .collection(userCollectionName)
-      .withConverter<User>(
-        fromFirestore: (snapshots, _) => User.fromJson(snapshots.data()!),
-        toFirestore: (obj, _) => obj.toJson(),
-      );
+  late final CollectionReference<User> userCollection =
+      _db.collection(userCollectionName).withConverter<User>(
+            fromFirestore: (snapshots, _) => User.fromJson(snapshots.data()!),
+            toFirestore: (obj, _) => obj.toJson(),
+          );
 
-  late final CollectionReference<InvestorGroup> investorGroupCollection = _db
-      .collection(investorGroupCollectionName)
-      .withConverter<InvestorGroup>(
-        fromFirestore: (snapshots, _) =>
-            InvestorGroup.fromJson(snapshots.data()!),
-        toFirestore: (obj, _) => obj.toJson(),
-      );
+  late final CollectionReference<InvestorGroup> investorGroupCollection =
+      _db.collection(investorGroupCollectionName).withConverter<InvestorGroup>(
+            fromFirestore: (snapshots, _) =>
+                InvestorGroup.fromJson(snapshots.data()!),
+            toFirestore: (obj, _) => obj.toJson(),
+          );
 
   late final CollectionReference<OptionInstrument> optionInstrumentCollection =
       _db
           .collection(optionInstrumentCollectionName)
           .withConverter<OptionInstrument>(
-            fromFirestore: (snapshots, _) =>
-                OptionInstrument.fromJson(snapshots.data()!),
-            toFirestore: (obj, _) => obj.toJson(),
-          );
+              fromFirestore: (snapshots, _) =>
+                  OptionInstrument.fromJson(snapshots.data()!),
+              toFirestore: (obj, _) => obj.toJson());
 
   late final CollectionReference<OptionMarketData> optionMarketDataCollection =
       _db
           .collection(optionMarketDataCollectionName)
           .withConverter<OptionMarketData>(
-            fromFirestore: (snapshots, _) =>
-                OptionMarketData.fromJson(snapshots.data()!),
-            toFirestore: (obj, _) => obj.toJson(),
-          );
+              fromFirestore: (snapshots, _) =>
+                  OptionMarketData.fromJson(snapshots.data()!),
+              toFirestore: (obj, _) => obj.toJson());
 
   /// User Methods
 
-  Future<void> addUser(
-    DocumentReference<User> documentReference,
-    User user, {
-    Function? onError,
-  }) async {
+  Future<void> addUser(DocumentReference<User> documentReference, User user,
+      {Function? onError}) async {
     try {
       await documentReference.set(user);
       debugPrint("User added with ID: $documentReference - ${user.name}");
@@ -109,11 +102,8 @@ class FirestoreService {
     debugPrint(documentReference.path);
   }
 
-  Future<void> updateUser(
-    DocumentReference<User> documentReference,
-    User user, {
-    Function? onError,
-  }) async {
+  Future<void> updateUser(DocumentReference<User> documentReference, User user,
+      {Function? onError}) async {
     user.dateUpdated = DateTime.now();
     try {
       await documentReference.update(user.toJson());
@@ -129,7 +119,9 @@ class FirestoreService {
 
   Future<void> updateUserField(String uid, {DateTime? lastVisited}) async {
     var userDocumentReference = userCollection.doc(uid);
-    var fields = {'dateUpdated': DateTime.now()};
+    var fields = {
+      'dateUpdated': DateTime.now(),
+    };
     if (lastVisited != null) {
       fields['lastVisited'] = lastVisited;
     }
@@ -169,8 +161,7 @@ class FirestoreService {
   }
 
   Future<List<OptionMarketData>> getOptionMarketDataList(
-    List<String> ids,
-  ) async {
+      List<String> ids) async {
     if (ids.isEmpty) return [];
     List<OptionMarketData> results = [];
     for (var id in ids) {
@@ -187,22 +178,18 @@ class FirestoreService {
   }
 
   Stream<QuerySnapshot<User>> searchUsers(
-  // CollectionReference<User> usersCollection,
-  {
-    String? searchTerm,
-    UserRole? userRole,
-    int limit = -1,
-    String sort = 'dateUpdated',
-    bool sortDescending = true,
-  }) {
+      // CollectionReference<User> usersCollection,
+      {String? searchTerm,
+      UserRole? userRole,
+      int limit = -1,
+      String sort = 'dateUpdated',
+      bool sortDescending = true}) {
     Query<User> query = userCollection;
     if (searchTerm != null && searchTerm.isNotEmpty) {
       query = query
           .where('nameLower', isGreaterThanOrEqualTo: searchTerm.toLowerCase())
-          .where(
-            'nameLower',
-            isLessThanOrEqualTo: '${searchTerm.toLowerCase()}\uf8ff',
-          );
+          .where('nameLower',
+              isLessThanOrEqualTo: '${searchTerm.toLowerCase()}\uf8ff');
     }
     if (userRole != null) {
       query = query.where('role', isEqualTo: userRole.enumValue());
@@ -210,17 +197,15 @@ class FirestoreService {
     if (limit != -1) {
       query = query.limit(limit);
     }
-    Stream<QuerySnapshot<User>> stream = query
-        .orderBy(sort, descending: sortDescending)
-        .snapshots();
+    Stream<QuerySnapshot<User>> stream =
+        query.orderBy(sort, descending: sortDescending).snapshots();
     return stream;
   }
 
   /// Instrument Methods
 
   Future<DocumentReference<Map<String, dynamic>>?> addInstrument(
-    Instrument instrument,
-  ) async {
+      Instrument instrument) async {
     try {
       return await _db
           .collection(instrumentCollectionName)
@@ -235,9 +220,7 @@ class FirestoreService {
   }
 
   Future<void> updateInstrument(
-    Instrument instrument,
-    DocumentReference<Instrument> doc,
-  ) async {
+      Instrument instrument, DocumentReference<Instrument> doc) async {
     instrument.dateUpdated = DateTime.now();
     try {
       await doc.set(instrument, SetOptions(merge: true));
@@ -279,11 +262,8 @@ class FirestoreService {
     }
   }
 
-  Future<Instrument?> getInstrument({
-    String? id,
-    String? url,
-    String? symbol,
-  }) async {
+  Future<Instrument?> getInstrument(
+      {String? id, String? url, String? symbol}) async {
     Query<Instrument> query = instrumentCollection;
     if (id != null) {
       query = query.where('id', isEqualTo: id);
@@ -302,12 +282,8 @@ class FirestoreService {
     }
   }
 
-  Stream<List<Instrument>> searchInstruments({
-    String? id,
-    List<String>? ids,
-    String? url,
-    String? symbol,
-  }) {
+  Stream<List<Instrument>> searchInstruments(
+      {String? id, List<String>? ids, String? url, String? symbol}) {
     Query<Instrument> query = instrumentCollection;
     if (id != null) {
       query = query.where('id', isEqualTo: id);
@@ -318,19 +294,15 @@ class FirestoreService {
 
         List<List<String>> subList = [];
         for (var i = 0; i < ids.length; i += 30) {
-          subList.add(
-            ids.sublist(i, i + 30 > ids.length ? ids.length : i + 30),
-          );
+          subList
+              .add(ids.sublist(i, i + 30 > ids.length ? ids.length : i + 30));
         }
         List<Stream<List<Instrument>>> results = [];
         for (var subIds in subList) {
           Query<Instrument> batchedquery = instrumentCollection;
           batchedquery = batchedquery.where('id', whereIn: subIds);
-          results.add(
-            batchedquery.snapshots().map(
-              (snapshot) => snapshot.docs.map((doc) => doc.data()).toList(),
-            ),
-          );
+          results.add(batchedquery.snapshots().map(
+              (snapshot) => snapshot.docs.map((doc) => doc.data()).toList()));
         }
         return StreamGroup.merge(results).asBroadcastStream();
       } else {
@@ -343,9 +315,9 @@ class FirestoreService {
     if (symbol != null) {
       query = query.where('symbol', isEqualTo: symbol);
     }
-    return query.snapshots().map(
-      (snapshot) => snapshot.docs.map((doc) => doc.data()).toList(),
-    );
+    return query
+        .snapshots()
+        .map((snapshot) => snapshot.docs.map((doc) => doc.data()).toList());
     // .map((snapshot) =>
     //     snapshot.docs.map((doc) => Instrument.fromJson(doc.data())).toList());
   }
@@ -397,40 +369,28 @@ class FirestoreService {
       query = query.where('fundamentalsObj.sector', isEqualTo: sector);
     }
     if (marketCapMin != null) {
-      query = query.where(
-        'fundamentalsObj.market_cap',
-        isGreaterThanOrEqualTo: marketCapMin,
-      );
+      query = query.where('fundamentalsObj.market_cap',
+          isGreaterThanOrEqualTo: marketCapMin);
     }
     if (marketCapMax != null) {
-      query = query.where(
-        'fundamentalsObj.market_cap',
-        isLessThanOrEqualTo: marketCapMax,
-      );
+      query = query.where('fundamentalsObj.market_cap',
+          isLessThanOrEqualTo: marketCapMax);
     }
     if (peMin != null) {
-      query = query.where(
-        'fundamentalsObj.pe_ratio',
-        isGreaterThanOrEqualTo: peMin,
-      );
+      query = query.where('fundamentalsObj.pe_ratio',
+          isGreaterThanOrEqualTo: peMin);
     }
     if (peMax != null) {
-      query = query.where(
-        'fundamentalsObj.pe_ratio',
-        isLessThanOrEqualTo: peMax,
-      );
+      query =
+          query.where('fundamentalsObj.pe_ratio', isLessThanOrEqualTo: peMax);
     }
     if (dividendYieldMin != null) {
-      query = query.where(
-        'fundamentalsObj.dividend_yield',
-        isGreaterThanOrEqualTo: dividendYieldMin,
-      );
+      query = query.where('fundamentalsObj.dividend_yield',
+          isGreaterThanOrEqualTo: dividendYieldMin);
     }
     if (dividendYieldMax != null) {
-      query = query.where(
-        'fundamentalsObj.dividend_yield',
-        isLessThanOrEqualTo: dividendYieldMax,
-      );
+      query = query.where('fundamentalsObj.dividend_yield',
+          isLessThanOrEqualTo: dividendYieldMax);
     }
     query = query.orderBy(sort, descending: sortDescending);
     if (limit != null) {
@@ -443,29 +403,23 @@ class FirestoreService {
   /// InstrumentPosition Methods
 
   Future<List<InstrumentPosition>> getInstrumentPositions(
-    DocumentReference userDoc,
-  ) async {
-    var querySnapshot = await userDoc
-        .collection(instrumentPositionCollectionName)
-        .get();
+      DocumentReference userDoc) async {
+    var querySnapshot =
+        await userDoc.collection(instrumentPositionCollectionName).get();
     return querySnapshot.docs
         .map((doc) => InstrumentPosition.fromJson(doc.data()))
         .toList();
   }
 
   Future<DocumentReference<Map<String, dynamic>>> addInstrumentPosition(
-    InstrumentPosition instrument,
-    DocumentReference userDoc,
-  ) {
+      InstrumentPosition instrument, DocumentReference userDoc) {
     return userDoc
         .collection(instrumentPositionCollectionName)
         .add(instrument.toJson());
   }
 
   Future<void> updateInstrumentPosition(
-    InstrumentPosition instrumentPosition,
-    DocumentReference doc,
-  ) async {
+      InstrumentPosition instrumentPosition, DocumentReference doc) async {
     // return doc.set(instrumentPosition, SetOptions(merge: true));
     return doc.update(instrumentPosition.toJson());
   }
@@ -494,29 +448,23 @@ class FirestoreService {
   /// OptionPosition Methods
 
   Future<List<OptionAggregatePosition>> getOptionPositions(
-    DocumentReference userDoc,
-  ) async {
-    var querySnapshot = await userDoc
-        .collection(optionPositionCollectionName)
-        .get();
+      DocumentReference userDoc) async {
+    var querySnapshot =
+        await userDoc.collection(optionPositionCollectionName).get();
     return querySnapshot.docs
         .map((doc) => OptionAggregatePosition.fromJson(doc.data()))
         .toList();
   }
 
   Future<DocumentReference<Map<String, dynamic>>> addOptionPosition(
-    OptionAggregatePosition option,
-    DocumentReference userDoc,
-  ) {
+      OptionAggregatePosition option, DocumentReference userDoc) {
     return userDoc
         .collection(optionPositionCollectionName)
         .add(option.toJson());
   }
 
   Future<void> updateOptionPosition(
-    OptionAggregatePosition optionPosition,
-    DocumentReference doc,
-  ) async {
+      OptionAggregatePosition optionPosition, DocumentReference doc) async {
     // return doc.set(optionPosition, SetOptions(merge: true));
     return doc.update(optionPosition.toJson());
   }
@@ -563,16 +511,12 @@ class FirestoreService {
   /// ForexPosition Methods
 
   Future<DocumentReference<Map<String, dynamic>>> addForexPosition(
-    ForexHolding forex,
-    DocumentReference userDoc,
-  ) {
+      ForexHolding forex, DocumentReference userDoc) {
     return userDoc.collection(forexPositionCollectionName).add(forex.toJson());
   }
 
   Future<void> updateForexPosition(
-    ForexHolding forexPosition,
-    DocumentReference doc,
-  ) async {
+      ForexHolding forexPosition, DocumentReference doc) async {
     // return doc.set(forexPosition, SetOptions(merge: true));
     return doc.update(forexPosition.toJson());
   }
@@ -666,30 +610,24 @@ class FirestoreService {
   // }
 
   Future<void> upsertInstrumentOrders(
-    List<InstrumentOrder> instrumentOrders,
-    DocumentReference userDoc, {
-    bool updateIfExists = true,
-  }) async {
+      List<InstrumentOrder> instrumentOrders, DocumentReference userDoc,
+      {bool updateIfExists = true}) async {
     if (instrumentOrders.isEmpty) return;
 
     // TODO: Revisit client-side writes after upgrading or isolating the iOS
     // Firebase/FlutterFire SDK issue that caused client commits to hang.
     debugPrint(
-      'Firestore order sync: sending ${instrumentOrders.length} orders for ${userDoc.path}',
-    );
-    final callable = FirebaseFunctions.instance.httpsCallable(
-      'syncInstrumentOrders',
-    );
-    final result = await callable
-        .call({
-          'orders': instrumentOrders.map((order) {
-            final payload = order.toJson();
-            payload['created_at'] = order.createdAt?.toIso8601String();
-            payload['updated_at'] = order.updatedAt?.toIso8601String();
-            return payload;
-          }).toList(),
-        })
-        .timeout(const Duration(minutes: 2));
+        'Firestore order sync: sending ${instrumentOrders.length} orders for ${userDoc.path}');
+    final callable =
+        FirebaseFunctions.instance.httpsCallable('syncInstrumentOrders');
+    final result = await callable.call({
+      'orders': instrumentOrders.map((order) {
+        final payload = order.toJson();
+        payload['created_at'] = order.createdAt?.toIso8601String();
+        payload['updated_at'] = order.updatedAt?.toIso8601String();
+        return payload;
+      }).toList(),
+    }).timeout(const Duration(minutes: 2));
     debugPrint('Firestore order sync: server acknowledged ${result.data}');
   }
 
@@ -760,30 +698,24 @@ class FirestoreService {
   // }
 
   Future<void> upsertOptionOrders(
-    List<OptionOrder> optionOrders,
-    DocumentReference userDoc, {
-    bool updateIfExists = true,
-  }) async {
+      List<OptionOrder> optionOrders, DocumentReference userDoc,
+      {bool updateIfExists = true}) async {
     var batch = _db.batch();
     for (var optionOrder in optionOrders) {
-      var optionOrderDoc = userDoc
-          .collection(optionOrderCollectionName)
-          .doc(optionOrder.id);
+      var optionOrderDoc =
+          userDoc.collection(optionOrderCollectionName).doc(optionOrder.id);
       batch.set(optionOrderDoc, optionOrder.toJson());
     }
     await batch.commit();
   }
 
   Future<void> upsertComboOrders(
-    List<ComboOrder> comboOrders,
-    DocumentReference userDoc, {
-    bool updateIfExists = true,
-  }) async {
+      List<ComboOrder> comboOrders, DocumentReference userDoc,
+      {bool updateIfExists = true}) async {
     var batch = _db.batch();
     for (var comboOrder in comboOrders) {
-      var comboOrderDoc = userDoc
-          .collection(comboOrderCollectionName)
-          .doc(comboOrder.id);
+      var comboOrderDoc =
+          userDoc.collection(comboOrderCollectionName).doc(comboOrder.id);
       batch.set(comboOrderDoc, comboOrder.toJson());
     }
     await batch.commit();
@@ -856,15 +788,12 @@ class FirestoreService {
   // }
 
   Future<void> upsertOptionEvents(
-    List<OptionEvent> optionEvents,
-    DocumentReference userDoc, {
-    bool updateIfExists = true,
-  }) async {
+      List<OptionEvent> optionEvents, DocumentReference userDoc,
+      {bool updateIfExists = true}) async {
     var batch = _db.batch();
     for (var optionEvent in optionEvents) {
-      var optionEventDoc = userDoc
-          .collection(optionEventCollectionName)
-          .doc(optionEvent.id);
+      var optionEventDoc =
+          userDoc.collection(optionEventCollectionName).doc(optionEvent.id);
       batch.set(optionEventDoc, optionEvent.toJson());
     }
     await batch.commit();
@@ -905,15 +834,12 @@ class FirestoreService {
   // }
 
   Future<void> upsertDividends(
-    List<dynamic> dividends,
-    DocumentReference userDoc, {
-    bool updateIfExists = true,
-  }) async {
+      List<dynamic> dividends, DocumentReference userDoc,
+      {bool updateIfExists = true}) async {
     var batch = _db.batch();
     for (var dividend in dividends) {
-      var dividendDoc = userDoc
-          .collection(dividendCollectionName)
-          .doc(dividend['id']);
+      var dividendDoc =
+          userDoc.collection(dividendCollectionName).doc(dividend['id']);
       batch.set(dividendDoc, dividend);
     }
     await batch.commit();
@@ -980,15 +906,12 @@ class FirestoreService {
   // }
 
   Future<void> upsertInterests(
-    List<dynamic> interests,
-    DocumentReference userDoc, {
-    bool updateIfExists = true,
-  }) async {
+      List<dynamic> interests, DocumentReference userDoc,
+      {bool updateIfExists = true}) async {
     var batch = _db.batch();
     for (var interest in interests) {
-      var interestDoc = userDoc
-          .collection(interestCollectionName)
-          .doc(interest['id']);
+      var interestDoc =
+          userDoc.collection(interestCollectionName).doc(interest['id']);
       batch.set(interestDoc, interest);
     }
     await batch.commit();
@@ -998,16 +921,14 @@ class FirestoreService {
 
   /// Create a new investor group
   Future<DocumentReference<InvestorGroup>> createInvestorGroup(
-    InvestorGroup group,
-  ) async {
+      InvestorGroup group) async {
     try {
       final docRef = await investorGroupCollection.add(group);
       // Update the group with its own ID
       group.id = docRef.id;
       await docRef.update({'id': docRef.id});
       debugPrint(
-        "Investor group created with ID: ${docRef.id} - ${group.name}",
-      );
+          "Investor group created with ID: ${docRef.id} - ${group.name}");
       return docRef;
     } on FirebaseException catch (e) {
       debugPrint('Failed to create investor group: ${e.message}');
@@ -1043,17 +964,16 @@ class FirestoreService {
   }
 
   /// Search investor groups by name
-  Stream<QuerySnapshot<InvestorGroup>> searchInvestorGroups({
-    String? searchTerm,
-  }) {
+  Stream<QuerySnapshot<InvestorGroup>> searchInvestorGroups(
+      {String? searchTerm}) {
     Query<InvestorGroup> query = investorGroupCollection;
     if (searchTerm != null && searchTerm.isNotEmpty) {
       String searchTermLower = searchTerm.toLowerCase();
       // Note: This is a basic implementation. For better search, consider using
       // a dedicated search service like Algolia or Elasticsearch
-      query = query.orderBy('name').startAt([searchTermLower]).endAt([
-        '$searchTermLower\uf8ff',
-      ]);
+      query = query
+          .orderBy('name')
+          .startAt([searchTermLower]).endAt(['$searchTermLower\uf8ff']);
     }
     return query.orderBy('dateCreated', descending: true).snapshots();
   }
@@ -1189,9 +1109,8 @@ class FirestoreService {
     try {
       await investorGroupCollection.doc(groupId).update({
         'members': FieldValue.arrayRemove([userId]),
-        'admins': FieldValue.arrayRemove([
-          userId,
-        ]), // Also remove from admins if present
+        'admins': FieldValue.arrayRemove(
+            [userId]), // Also remove from admins if present
         'dateUpdated': DateTime.now(),
       });
 
@@ -1204,8 +1123,7 @@ class FirestoreService {
 
   /// Get all groups where user has a pending invitation
   Stream<QuerySnapshot<InvestorGroup>> getUserPendingInvitations(
-    String userId,
-  ) {
+      String userId) {
     return investorGroupCollection
         .where('pendingInvitations', arrayContains: userId)
         .orderBy('dateCreated', descending: true)
@@ -1229,16 +1147,15 @@ class FirestoreService {
 
   /// Mark a message as read
   Future<void> markGroupMessageAsRead(
-    String groupId,
-    String messageId,
-    String userId,
-  ) async {
+      String groupId, String messageId, String userId) async {
     try {
       await investorGroupCollection
           .doc(groupId)
           .collection('messages')
           .doc(messageId)
-          .update({'readBy.$userId': Timestamp.now()});
+          .update({
+        'readBy.$userId': Timestamp.now(),
+      });
       // debugPrint("Message $messageId marked as read by $userId");
     } on FirebaseException catch (e) {
       debugPrint('Failed to mark message as read: ${e.message}');
@@ -1300,10 +1217,10 @@ class FirestoreService {
     final result = await FirebaseFunctions.instance
         .httpsCallable('getGroupPerformanceAnalytics')
         .call({
-          'groupId': groupId,
-          'startDate': startDate?.toIso8601String(),
-          'endDate': endDate?.toIso8601String(),
-        });
+      'groupId': groupId,
+      'startDate': startDate?.toIso8601String(),
+      'endDate': endDate?.toIso8601String(),
+    });
     return Map<String, dynamic>.from(result.data as Map);
   }
 
@@ -1320,11 +1237,8 @@ class FirestoreService {
       }
 
       // Fetch performance metrics for all members
-      final memberMetrics = await getMembersPerformanceMetrics(
-        groupId,
-        startDate,
-        endDate,
-      );
+      final memberMetrics =
+          await getMembersPerformanceMetrics(groupId, startDate, endDate);
 
       double groupTotalReturnDollars = 0;
       double groupAverageReturn = 0;
@@ -1372,14 +1286,12 @@ class FirestoreService {
         groupTotalReturnPercent: groupAverageReturn,
         groupTotalReturnDollars: groupTotalReturnDollars,
         groupAverageReturnPercent: groupAverageReturn,
-        groupAverageReturnDollars: membersTraded > 0
-            ? groupTotalReturnDollars / membersTraded
-            : 0,
+        groupAverageReturnDollars:
+            membersTraded > 0 ? groupTotalReturnDollars / membersTraded : 0,
         totalMembersTraded: membersTraded,
         totalGroupTrades: totalTrades,
-        groupWinRate: totalTrades > 0
-            ? (totalWinningTrades / totalTrades) * 100
-            : 0,
+        groupWinRate:
+            totalTrades > 0 ? (totalWinningTrades / totalTrades) * 100 : 0,
         groupAverageSharpeRatio: groupAverageSharpeRatio,
         topPerformerReturnPercent: topPerformerReturn,
         topPerformerId: topPerformerId,
@@ -1429,23 +1341,18 @@ class FirestoreService {
             );
 
         if (startDate != null) {
-          orderQuery = orderQuery.where(
-            'created_at',
-            isGreaterThanOrEqualTo: startDate,
-          );
+          orderQuery =
+              orderQuery.where('created_at', isGreaterThanOrEqualTo: startDate);
         }
         if (endDate != null) {
-          orderQuery = orderQuery.where(
-            'created_at',
-            isLessThanOrEqualTo: endDate,
-          );
+          orderQuery =
+              orderQuery.where('created_at', isLessThanOrEqualTo: endDate);
         }
 
         final orders = await orderQuery.orderBy('created_at').get();
 
         debugPrint(
-          'Processing member $memberName: found ${orders.docs.length} orders',
-        );
+            'Processing member $memberName: found ${orders.docs.length} orders');
 
         // Calculate metrics from orders
         double totalReturn = 0;
@@ -1471,8 +1378,7 @@ class FirestoreService {
             // Debug: log all fields in the first order
             if (orders.docs.indexOf(orderDoc) == 0) {
               debugPrint(
-                'Sample order - state: ${order.state}, side: ${order.side}, qty: ${order.cumulativeQuantity}',
-              );
+                  'Sample order - state: ${order.state}, side: ${order.side}, qty: ${order.cumulativeQuantity}');
             }
 
             // Check order state - only process filled orders
@@ -1540,8 +1446,7 @@ class FirestoreService {
                 final sellFeesForMatch = fees * (matchedQty / quantity);
                 final buyFeesForMatch = buyFees * (matchedQty / buyQty);
 
-                final pnl =
-                    (avgPrice - buyPrice) * matchedQty -
+                final pnl = (avgPrice - buyPrice) * matchedQty -
                     sellFeesForMatch -
                     buyFeesForMatch;
                 final costBasis = buyPrice * matchedQty;
@@ -1562,9 +1467,8 @@ class FirestoreService {
 
                 // Calculate hold time for this matched trade
                 if (buyDate != null && order.createdAt != null) {
-                  final holdTimeHours = order.createdAt!
-                      .difference(buyDate)
-                      .inHours;
+                  final holdTimeHours =
+                      order.createdAt!.difference(buyDate).inHours;
                   totalHoldTime += holdTimeHours;
                 }
 
@@ -1586,9 +1490,8 @@ class FirestoreService {
         }
 
         // Calculate derived metrics
-        final winRate = totalTrades > 0
-            ? (winningTrades / totalTrades) * 100
-            : 0.0;
+        final winRate =
+            totalTrades > 0 ? (winningTrades / totalTrades) * 100 : 0.0;
         final profitFactor = totalLossAmount > 0
             ? totalWinAmount / totalLossAmount
             : (totalWinAmount > 0 ? double.infinity : 0.0);
@@ -1600,9 +1503,8 @@ class FirestoreService {
           final variance =
               (sumOfReturnsSquared / totalTrades) - (avgReturn * avgReturn);
           final stdDev = variance > 0 ? math.sqrt(variance) : 0;
-          sharpeRatio = stdDev > 0
-              ? (avgReturn / stdDev) * (math.sqrt(252))
-              : 0;
+          sharpeRatio =
+              stdDev > 0 ? (avgReturn / stdDev) * (math.sqrt(252)) : 0;
         }
 
         if (totalTrades > 0) {
@@ -1621,8 +1523,7 @@ class FirestoreService {
             : 0.0;
 
         debugPrint(
-          'Member $memberName metrics: totalTrades=$totalTrades, return=$totalReturn%, returnDollars=\$$totalReturnDollars, winRate=$winRate%',
-        );
+            'Member $memberName metrics: totalTrades=$totalTrades, return=$totalReturn%, returnDollars=\$$totalReturnDollars, winRate=$winRate%');
 
         memberMetrics.add(
           MemberPerformanceMetrics(
@@ -1648,8 +1549,7 @@ class FirestoreService {
       }
 
       debugPrint(
-        'Total members processed: ${memberMetrics.length}, members with trades: ${memberMetrics.where((m) => m.totalTrades > 0).length}',
-      );
+          'Total members processed: ${memberMetrics.length}, members with trades: ${memberMetrics.where((m) => m.totalTrades > 0).length}');
 
       return memberMetrics;
     } on FirebaseException catch (e) {
@@ -1672,9 +1572,7 @@ class FirestoreService {
   }
 
   Stream<DocumentSnapshot<InstrumentNote>> getInstrumentNoteStream(
-    String userId,
-    String symbol,
-  ) {
+      String userId, String symbol) {
     return getNotesCollection(userId).doc(symbol).snapshots();
   }
 
@@ -1701,8 +1599,7 @@ class FirestoreService {
   /// Paper Trading Methods
 
   Future<DocumentSnapshot<Map<String, dynamic>>> getPaperAccountDoc(
-    String userId,
-  ) async {
+      String userId) async {
     return _db
         .collection(userCollectionName)
         .doc(userId)
@@ -1712,8 +1609,7 @@ class FirestoreService {
   }
 
   Stream<DocumentSnapshot<Map<String, dynamic>>> getPaperAccountStream(
-    String userId,
-  ) {
+      String userId) {
     return _db
         .collection(userCollectionName)
         .doc(userId)
@@ -1738,8 +1634,7 @@ class FirestoreService {
   }
 
   Future<List<OptionAggregatePosition>> listPaperOptionPositions(
-    String userId,
-  ) async {
+      String userId) async {
     final snapshot = await getPaperAccountDoc(userId);
     if (snapshot.exists && snapshot.data()?['optionPositions'] != null) {
       return (snapshot.data()?['optionPositions'] as List)
@@ -1749,15 +1644,14 @@ class FirestoreService {
     return [];
   }
 
-  Future<List<Map<String, dynamic>>> listPaperOrders(
-    String userId, {
-    int limit = 50,
-  }) async {
+  Future<List<Map<String, dynamic>>> listPaperOrders(String userId,
+      {int limit = 50}) async {
     final snapshot = await getPaperAccountDoc(userId);
     if (snapshot.exists && snapshot.data()?['history'] != null) {
-      return List<Map<String, dynamic>>.from(
-        snapshot.data()?['history'],
-      ).reversed.take(limit).toList();
+      return List<Map<String, dynamic>>.from(snapshot.data()?['history'])
+          .reversed
+          .take(limit)
+          .toList();
     }
     return [];
   }
@@ -1774,8 +1668,7 @@ class FirestoreService {
   }
 
   Stream<List<OptionAggregatePosition>> streamPaperOptionPositions(
-    String userId,
-  ) {
+      String userId) {
     return getPaperAccountStream(userId).map((snapshot) {
       if (snapshot.exists && snapshot.data()?['optionPositions'] != null) {
         return (snapshot.data()?['optionPositions'] as List)
@@ -1786,10 +1679,8 @@ class FirestoreService {
     });
   }
 
-  Future<List<Map<String, dynamic>>> getPaperHistory(
-    String userId, {
-    int limit = 250,
-  }) async {
+  Future<List<Map<String, dynamic>>> getPaperHistory(String userId,
+      {int limit = 250}) async {
     final querySnapshot = await _db
         .collection(userCollectionName)
         .doc(userId)
@@ -1801,10 +1692,8 @@ class FirestoreService {
     return querySnapshot.docs.map((doc) => doc.data()).toList();
   }
 
-  Stream<List<Map<String, dynamic>>> streamPaperOrders(
-    String userId, {
-    int limit = 50,
-  }) {
+  Stream<List<Map<String, dynamic>>> streamPaperOrders(String userId,
+      {int limit = 50}) {
     return getPaperAccountStream(userId).map((snapshot) {
       if (snapshot.exists && snapshot.data()?['history'] != null) {
         return List<Map<String, dynamic>>.from(snapshot.data()?['history'])
@@ -1818,10 +1707,8 @@ class FirestoreService {
 
   /// Streams the durable paper fills (append-only paper_orders
   /// subcollection), newest first.
-  Stream<List<Map<String, dynamic>>> streamPaperFills(
-    String userId, {
-    int limit = 500,
-  }) {
+  Stream<List<Map<String, dynamic>>> streamPaperFills(String userId,
+      {int limit = 500}) {
     return _db
         .collection(userCollectionName)
         .doc(userId)
@@ -1860,10 +1747,8 @@ class FirestoreService {
     }
   }
 
-  Future<List<EmotionLog>> getEmotionLogs(
-    DocumentReference userDoc, {
-    int limit = 50,
-  }) async {
+  Future<List<EmotionLog>> getEmotionLogs(DocumentReference userDoc,
+      {int limit = 50}) async {
     try {
       final querySnapshot = await userDoc
           .collection(emotionLogCollectionName)
@@ -1880,20 +1765,16 @@ class FirestoreService {
     }
   }
 
-  Stream<List<EmotionLog>> streamEmotionLogs(
-    DocumentReference userDoc, {
-    int limit = 50,
-  }) {
+  Stream<List<EmotionLog>> streamEmotionLogs(DocumentReference userDoc,
+      {int limit = 50}) {
     return userDoc
         .collection(emotionLogCollectionName)
         .orderBy('timestamp', descending: true)
         .limit(limit)
         .snapshots()
-        .map(
-          (snapshot) => snapshot.docs
-              .map((doc) => EmotionLog.fromJson(doc.data(), doc.id))
-              .toList(),
-        );
+        .map((snapshot) => snapshot.docs
+            .map((doc) => EmotionLog.fromJson(doc.data(), doc.id))
+            .toList());
   }
 
   Future<void> deleteEmotionLog(DocumentReference userDoc, String logId) async {

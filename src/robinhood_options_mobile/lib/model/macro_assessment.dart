@@ -55,8 +55,7 @@ class MacroAssessment {
       confidence: map['confidence']?.toInt() ?? 50,
       signalDivergence: map['signalDivergence'] != null
           ? SignalDivergence.fromMap(
-              Map<String, dynamic>.from(map['signalDivergence']),
-            )
+              Map<String, dynamic>.from(map['signalDivergence']))
           : SignalDivergence(
               bullishCount: 0,
               bearishCount: 0,
@@ -64,24 +63,18 @@ class MacroAssessment {
               isConflicted: true,
             ),
       indicators: MacroIndicators.fromMap(
-        Map<String, dynamic>.from(map['indicators'] ?? {}),
-      ),
+          Map<String, dynamic>.from(map['indicators'] ?? {})),
       sectorRotation: map['sectorRotation'] != null
           ? SectorRotation.fromMap(
-              Map<String, dynamic>.from(map['sectorRotation']),
-            )
+              Map<String, dynamic>.from(map['sectorRotation']))
           : null,
       assetAllocation: map['assetAllocation'] != null
           ? AssetAllocation.fromMap(
-              Map<String, dynamic>.from(map['assetAllocation']),
-            )
+              Map<String, dynamic>.from(map['assetAllocation']))
           : null,
       strategies: map['strategies'] != null
-          ? List<MacroStrategy>.from(
-              map['strategies'].map(
-                (x) => MacroStrategy.fromMap(Map<String, dynamic>.from(x)),
-              ),
-            )
+          ? List<MacroStrategy>.from(map['strategies']
+              .map((x) => MacroStrategy.fromMap(Map<String, dynamic>.from(x))))
           : null,
       reason: map['reason'] ?? '',
       aiAnalysis: map['aiAnalysis'],
@@ -202,17 +195,14 @@ class MacroIndicators {
       vix: MacroIndicator.fromMap(Map<String, dynamic>.from(map['vix'] ?? {})),
       tnx: MacroIndicator.fromMap(Map<String, dynamic>.from(map['tnx'] ?? {})),
       marketTrend: MacroIndicator.fromMap(
-        Map<String, dynamic>.from(map['marketTrend'] ?? {}),
-      ),
+          Map<String, dynamic>.from(map['marketTrend'] ?? {})),
       technologyLeadership: map['technologyLeadership'] != null
           ? MacroIndicator.fromMap(
-              Map<String, dynamic>.from(map['technologyLeadership'] ?? {}),
-            )
+              Map<String, dynamic>.from(map['technologyLeadership'] ?? {}))
           : null,
       yieldCurve: map['yieldCurve'] != null
           ? MacroIndicator.fromMap(
-              Map<String, dynamic>.from(map['yieldCurve'] ?? {}),
-            )
+              Map<String, dynamic>.from(map['yieldCurve'] ?? {}))
           : null,
       gold: map['gold'] != null
           ? MacroIndicator.fromMap(Map<String, dynamic>.from(map['gold'] ?? {}))
@@ -231,53 +221,43 @@ class MacroIndicators {
           : null,
       putCallRatio: map['putCallRatio'] != null
           ? MacroIndicator.fromMap(
-              Map<String, dynamic>.from(map['putCallRatio'] ?? {}),
-            )
+              Map<String, dynamic>.from(map['putCallRatio'] ?? {}))
           : null,
       advDecline: map['advDecline'] != null
           ? MacroIndicator.fromMap(
-              Map<String, dynamic>.from(map['advDecline'] ?? {}),
-            )
+              Map<String, dynamic>.from(map['advDecline'] ?? {}))
           : null,
       riskAppetite: map['riskAppetite'] != null
           ? MacroIndicator.fromMap(
-              Map<String, dynamic>.from(map['riskAppetite'] ?? {}),
-            )
+              Map<String, dynamic>.from(map['riskAppetite'] ?? {}))
           : null,
       creditSpreads: map['creditSpreads'] != null
           ? MacroIndicator.fromMap(
-              Map<String, dynamic>.from(map['creditSpreads'] ?? {}),
-            )
+              Map<String, dynamic>.from(map['creditSpreads'] ?? {}))
           : null,
       globalRisk: map['globalRisk'] != null
           ? MacroIndicator.fromMap(
-              Map<String, dynamic>.from(map['globalRisk'] ?? {}),
-            )
+              Map<String, dynamic>.from(map['globalRisk'] ?? {}))
           : null,
       copper: map['copper'] != null
           ? MacroIndicator.fromMap(
-              Map<String, dynamic>.from(map['copper'] ?? {}),
-            )
+              Map<String, dynamic>.from(map['copper'] ?? {}))
           : null,
       interestRateVol: map['interestRateVol'] != null
           ? MacroIndicator.fromMap(
-              Map<String, dynamic>.from(map['interestRateVol'] ?? {}),
-            )
+              Map<String, dynamic>.from(map['interestRateVol'] ?? {}))
           : null,
       bankingHealth: map['bankingHealth'] != null
           ? MacroIndicator.fromMap(
-              Map<String, dynamic>.from(map['bankingHealth'] ?? {}),
-            )
+              Map<String, dynamic>.from(map['bankingHealth'] ?? {}))
           : null,
       breadthQuality: map['breadthQuality'] != null
           ? MacroIndicator.fromMap(
-              Map<String, dynamic>.from(map['breadthQuality'] ?? {}),
-            )
+              Map<String, dynamic>.from(map['breadthQuality'] ?? {}))
           : null,
       globalLeadership: map['globalLeadership'] != null
           ? MacroIndicator.fromMap(
-              Map<String, dynamic>.from(map['globalLeadership'] ?? {}),
-            )
+              Map<String, dynamic>.from(map['globalLeadership'] ?? {}))
           : null,
     );
   }

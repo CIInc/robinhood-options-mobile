@@ -16,8 +16,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'portfolio_alert_service_test.dart' show buildPosition;
 
 Widget wrap(Widget child) => MaterialApp(
-  home: Scaffold(body: SingleChildScrollView(child: child)),
-);
+      home: Scaffold(
+        body: SingleChildScrollView(child: child),
+      ),
+    );
 
 PortfolioAlert alert(String id, PortfolioAlertSeverity severity) =>
     PortfolioAlert(
@@ -31,13 +33,22 @@ PortfolioAlert alert(String id, PortfolioAlertSeverity severity) =>
     );
 
 void main() {
-  testWidgets('portfolio stats stay mounted while balances are hidden', (
-    tester,
-  ) async {
+  testWidgets('portfolio stats stay mounted while balances are hidden',
+      (tester) async {
     SharedPreferences.setMockInitialValues({'show_balances': true});
     final accountStore = AccountStore();
     final statsKey = GlobalKey();
-    final account = Account('', 2500, 'account-1', 'cash', 10000, '', 0, 0, 0);
+    final account = Account(
+      '',
+      2500,
+      'account-1',
+      'cash',
+      10000,
+      '',
+      0,
+      0,
+      0,
+    );
 
     await tester.pumpWidget(
       ChangeNotifierProvider.value(
@@ -68,33 +79,29 @@ void main() {
   });
 
   group('ActionCenterWidget', () {
-    testWidgets('renders nothing when there is nothing to act on', (
-      tester,
-    ) async {
-      await tester.pumpWidget(
-        wrap(ActionCenterWidget(alerts: const [], onAlertTap: (_) {})),
-      );
+    testWidgets('renders nothing when there is nothing to act on',
+        (tester) async {
+      await tester.pumpWidget(wrap(
+        ActionCenterWidget(alerts: const [], onAlertTap: (_) {}),
+      ));
 
       expect(find.text('Action Center'), findsNothing);
     });
 
-    testWidgets('collapses past the third alert and expands on demand', (
-      tester,
-    ) async {
-      await tester.pumpWidget(
-        wrap(
-          ActionCenterWidget(
-            alerts: [
-              alert('a', PortfolioAlertSeverity.critical),
-              alert('b', PortfolioAlertSeverity.warning),
-              alert('c', PortfolioAlertSeverity.warning),
-              alert('d', PortfolioAlertSeverity.info),
-              alert('e', PortfolioAlertSeverity.info),
-            ],
-            onAlertTap: (_) {},
-          ),
+    testWidgets('collapses past the third alert and expands on demand',
+        (tester) async {
+      await tester.pumpWidget(wrap(
+        ActionCenterWidget(
+          alerts: [
+            alert('a', PortfolioAlertSeverity.critical),
+            alert('b', PortfolioAlertSeverity.warning),
+            alert('c', PortfolioAlertSeverity.warning),
+            alert('d', PortfolioAlertSeverity.info),
+            alert('e', PortfolioAlertSeverity.info),
+          ],
+          onAlertTap: (_) {},
         ),
-      );
+      ));
 
       expect(find.text('Alert a'), findsOneWidget);
       expect(find.text('Alert d'), findsNothing);
@@ -107,31 +114,27 @@ void main() {
     });
 
     testWidgets('counts only actionable alerts in the badge', (tester) async {
-      await tester.pumpWidget(
-        wrap(
-          ActionCenterWidget(
-            alerts: [
-              alert('a', PortfolioAlertSeverity.critical),
-              alert('b', PortfolioAlertSeverity.positive),
-            ],
-            onAlertTap: (_) {},
-          ),
+      await tester.pumpWidget(wrap(
+        ActionCenterWidget(
+          alerts: [
+            alert('a', PortfolioAlertSeverity.critical),
+            alert('b', PortfolioAlertSeverity.positive),
+          ],
+          onAlertTap: (_) {},
         ),
-      );
+      ));
 
       expect(find.text('1'), findsOneWidget);
     });
 
     testWidgets('routes a tapped alert to its target', (tester) async {
       PortfolioAlert? tapped;
-      await tester.pumpWidget(
-        wrap(
-          ActionCenterWidget(
-            alerts: [alert('a', PortfolioAlertSeverity.critical)],
-            onAlertTap: (value) => tapped = value,
-          ),
+      await tester.pumpWidget(wrap(
+        ActionCenterWidget(
+          alerts: [alert('a', PortfolioAlertSeverity.critical)],
+          onAlertTap: (value) => tapped = value,
         ),
-      );
+      ));
 
       await tester.tap(find.text('Alert a'));
       await tester.pump();
@@ -141,21 +144,18 @@ void main() {
   });
 
   group('MetricDisclosureCard', () {
-    testWidgets('hides the advanced tier until it is asked for', (
-      tester,
-    ) async {
-      await tester.pumpWidget(
-        wrap(
-          const MetricDisclosureCard(
-            icon: Icons.shield_outlined,
-            title: 'Risk',
-            headline: '64',
-            status: 'Moderate Risk',
-            tiles: [DisclosureTile(label: 'Volatility', value: '14.2%')],
-            advanced: Text('Sharpe 1.2'),
-          ),
+    testWidgets('hides the advanced tier until it is asked for',
+        (tester) async {
+      await tester.pumpWidget(wrap(
+        const MetricDisclosureCard(
+          icon: Icons.shield_outlined,
+          title: 'Risk',
+          headline: '64',
+          status: 'Moderate Risk',
+          tiles: [DisclosureTile(label: 'Volatility', value: '14.2%')],
+          advanced: Text('Sharpe 1.2'),
         ),
-      );
+      ));
 
       expect(find.text('64'), findsOneWidget);
       expect(find.text('Moderate Risk'), findsOneWidget);
@@ -168,53 +168,45 @@ void main() {
     });
 
     testWidgets('starts expanded for advanced users', (tester) async {
-      await tester.pumpWidget(
-        wrap(
-          const MetricDisclosureCard(
-            icon: Icons.shield_outlined,
-            title: 'Risk',
-            headline: '64',
-            initiallyExpanded: true,
-            advanced: Text('Sharpe 1.2'),
-          ),
+      await tester.pumpWidget(wrap(
+        const MetricDisclosureCard(
+          icon: Icons.shield_outlined,
+          title: 'Risk',
+          headline: '64',
+          initiallyExpanded: true,
+          advanced: Text('Sharpe 1.2'),
         ),
-      );
+      ));
       await tester.pumpAndSettle();
 
       expect(find.text('Sharpe 1.2'), findsOneWidget);
     });
 
-    testWidgets('omits the disclosure row when there is no advanced tier', (
-      tester,
-    ) async {
-      await tester.pumpWidget(
-        wrap(
-          const MetricDisclosureCard(
-            icon: Icons.shield_outlined,
-            title: 'Risk',
-            headline: '64',
-          ),
+    testWidgets('omits the disclosure row when there is no advanced tier',
+        (tester) async {
+      await tester.pumpWidget(wrap(
+        const MetricDisclosureCard(
+          icon: Icons.shield_outlined,
+          title: 'Risk',
+          headline: '64',
         ),
-      );
+      ));
 
       expect(find.text('Advanced Metrics'), findsNothing);
     });
   });
 
   group('PortfolioRiskSummaryWidget', () {
-    testWidgets('leads with a qualitative score, not the raw metrics', (
-      tester,
-    ) async {
-      await tester.pumpWidget(
-        wrap(
-          PortfolioRiskSummaryWidget(
-            positions: [
-              buildPosition(symbol: 'NVDA', price: 100, quantity: 40),
-              buildPosition(symbol: 'AAPL', price: 100, quantity: 10),
-            ],
-          ),
+    testWidgets('leads with a qualitative score, not the raw metrics',
+        (tester) async {
+      await tester.pumpWidget(wrap(
+        PortfolioRiskSummaryWidget(
+          positions: [
+            buildPosition(symbol: 'NVDA', price: 100, quantity: 40),
+            buildPosition(symbol: 'AAPL', price: 100, quantity: 10),
+          ],
         ),
-      );
+      ));
 
       expect(find.text('High Risk'), findsOneWidget);
       // HHI is detail, so it stays behind the disclosure.
@@ -228,24 +220,21 @@ void main() {
     });
 
     testWidgets('reads as diversified for an even book', (tester) async {
-      await tester.pumpWidget(
-        wrap(
-          PortfolioRiskSummaryWidget(
-            positions: [
-              for (final symbol in ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'])
-                buildPosition(symbol: symbol, price: 100, quantity: 10),
-            ],
-          ),
+      await tester.pumpWidget(wrap(
+        PortfolioRiskSummaryWidget(
+          positions: [
+            for (final symbol in ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'])
+              buildPosition(symbol: symbol, price: 100, quantity: 10),
+          ],
         ),
-      );
+      ));
 
       expect(find.text('Well Diversified'), findsOneWidget);
     });
 
     testWidgets('renders nothing without holdings', (tester) async {
-      await tester.pumpWidget(
-        wrap(const PortfolioRiskSummaryWidget(positions: [])),
-      );
+      await tester
+          .pumpWidget(wrap(const PortfolioRiskSummaryWidget(positions: [])));
 
       expect(find.text('Concentration'), findsNothing);
     });
@@ -254,15 +243,13 @@ void main() {
   group('PortfolioSectionGridWidget', () {
     testWidgets('shows every section and reports taps', (tester) async {
       PortfolioSection? tapped;
-      await tester.pumpWidget(
-        wrap(
-          PortfolioSectionGridWidget(
-            onSectionTap: (section) => tapped = section,
-            summaries: const {PortfolioSection.risk: 'Moderate'},
-            flagged: const {PortfolioSection.taxes},
-          ),
+      await tester.pumpWidget(wrap(
+        PortfolioSectionGridWidget(
+          onSectionTap: (section) => tapped = section,
+          summaries: const {PortfolioSection.risk: 'Moderate'},
+          flagged: const {PortfolioSection.taxes},
         ),
-      );
+      ));
 
       for (final section in PortfolioSection.values) {
         expect(find.text(section.label), findsOneWidget);
@@ -277,12 +264,10 @@ void main() {
       expect(cardHeights, hasLength(1));
       final titleBottom = tester.getBottomLeft(find.text('Browse')).dy;
       final firstCardTop = tester
-          .getTopLeft(
-            find.ancestor(
-              of: find.text(PortfolioSection.positions.label),
-              matching: find.byType(Card),
-            ),
-          )
+          .getTopLeft(find.ancestor(
+            of: find.text(PortfolioSection.positions.label),
+            matching: find.byType(Card),
+          ))
           .dy;
       expect(firstCardTop - titleBottom, 12);
       // A summary replaces the static description on its tile.
@@ -316,9 +301,8 @@ void main() {
       'currentDrawdown': -0.04,
     };
 
-    testWidgets('shows one score and keeps the metrics collapsed', (
-      tester,
-    ) async {
+    testWidgets('shows one score and keeps the metrics collapsed',
+        (tester) async {
       await tester.pumpWidget(wrap(const RiskAnalyticsCard(data: metrics)));
 
       expect(find.text('Risk Score'), findsOneWidget);
@@ -368,25 +352,17 @@ void main() {
     });
 
     testWidgets('scores a calm portfolio as low risk', (tester) async {
-      await tester.pumpWidget(
-        wrap(
-          const RiskAnalyticsCard(
-            data: {'volatility': 0.05, 'maxDrawdown': 0.03, 'beta': 1.0},
-          ),
-        ),
-      );
+      await tester.pumpWidget(wrap(const RiskAnalyticsCard(
+        data: {'volatility': 0.05, 'maxDrawdown': 0.03, 'beta': 1.0},
+      )));
 
       expect(find.text('Low Risk'), findsOneWidget);
     });
 
     testWidgets('scores a wild portfolio as high risk', (tester) async {
-      await tester.pumpWidget(
-        wrap(
-          const RiskAnalyticsCard(
-            data: {'volatility': 0.45, 'maxDrawdown': 0.55, 'beta': 2.4},
-          ),
-        ),
-      );
+      await tester.pumpWidget(wrap(const RiskAnalyticsCard(
+        data: {'volatility': 0.45, 'maxDrawdown': 0.55, 'beta': 2.4},
+      )));
 
       expect(find.text('High Risk'), findsOneWidget);
       expect(find.text('100'), findsOneWidget);

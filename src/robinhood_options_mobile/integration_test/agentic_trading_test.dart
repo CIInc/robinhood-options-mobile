@@ -4,11 +4,9 @@ import 'package:integration_test/integration_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:robinhood_options_mobile/main.dart' as app;
 
-Future<void> pumpManual(
-  WidgetTester tester, {
-  int count = 5,
-  Duration duration = const Duration(milliseconds: 500),
-}) async {
+Future<void> pumpManual(WidgetTester tester,
+    {int count = 5,
+    Duration duration = const Duration(milliseconds: 500)}) async {
   for (int i = 0; i < count; i++) {
     await tester.pump(duration);
   }
@@ -18,9 +16,8 @@ void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   group('Agentic Trading Integration Tests', () {
-    testWidgets('Verify Agentic Trading Settings Entry and Toggle', (
-      WidgetTester tester,
-    ) async {
+    testWidgets('Verify Agentic Trading Settings Entry and Toggle',
+        (WidgetTester tester) async {
       SharedPreferences.setMockInitialValues({});
       app.main();
 
@@ -37,43 +34,31 @@ void main() {
         final openDemoBtn = find.text('Open Demo Account');
         final scrollable = find.byType(Scrollable).first;
         try {
-          await tester.scrollUntilVisible(
-            openDemoBtn,
-            500.0,
-            scrollable: scrollable,
-          );
+          await tester.scrollUntilVisible(openDemoBtn, 500.0,
+              scrollable: scrollable);
         } catch (e) {
           await tester.ensureVisible(
-            find.text('Open Demo Account', skipOffstage: false),
-          );
+              find.text('Open Demo Account', skipOffstage: false));
         }
         await pumpManual(tester);
         await tester.tap(openDemoBtn);
 
-        await pumpManual(
-          tester,
-          count: 10,
-          duration: const Duration(milliseconds: 500),
-        );
+        await pumpManual(tester,
+            count: 10, duration: const Duration(milliseconds: 500));
       }
 
       // Navigate to Automated Trading
       final agenticTradingCardFinder = find.text('Stocks Auto-Trading');
 
       final verticalScrollable = find
-          .byWidgetPredicate(
-            (widget) =>
-                widget is Scrollable &&
-                widget.axisDirection == AxisDirection.down,
-          )
+          .byWidgetPredicate((widget) =>
+              widget is Scrollable &&
+              widget.axisDirection == AxisDirection.down)
           .first;
 
       try {
-        await tester.scrollUntilVisible(
-          agenticTradingCardFinder,
-          500.0,
-          scrollable: verticalScrollable,
-        );
+        await tester.scrollUntilVisible(agenticTradingCardFinder, 500.0,
+            scrollable: verticalScrollable);
         await pumpManual(tester);
         await tester.ensureVisible(agenticTradingCardFinder);
       } catch (e) {
@@ -98,17 +83,13 @@ void main() {
       // The presence of 'RealizeAlpha' confirms we are on Home.
       if (find.text('RealizeAlpha').evaluate().isNotEmpty) {
         debugPrint(
-          "Confirmed: 'RealizeAlpha' text found. Navigation prevented as expected in Demo mode.",
-        );
+            "Confirmed: 'RealizeAlpha' text found. Navigation prevented as expected in Demo mode.");
         expect(find.text('RealizeAlpha'), findsAtLeastNWidgets(1));
-        expect(
-          find.text('Stocks Auto-Trading'),
-          findsAtLeastNWidgets(1),
-        ); // Card title still visible
+        expect(find.text('Stocks Auto-Trading'),
+            findsAtLeastNWidgets(1)); // Card title still visible
       } else {
         debugPrint(
-          "Unexpected navigation occurred? Or RealizeAlpha not found.",
-        );
+            "Unexpected navigation occurred? Or RealizeAlpha not found.");
         // If we somehow navigated, we would look for new page elements, but we expect to stay.
       }
 

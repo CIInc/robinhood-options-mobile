@@ -116,10 +116,7 @@ class _RiskSectionPageState extends State<RiskSectionPage> {
   }
 
   Widget _healthCard(
-    BuildContext context,
-    double score,
-    Map<String, dynamic> metrics,
-  ) {
+      BuildContext context, double score, Map<String, dynamic> metrics) {
     final theme = Theme.of(context);
     final color = score >= 80
         ? Colors.green
@@ -139,10 +136,8 @@ class _RiskSectionPageState extends State<RiskSectionPage> {
             ),
             child: Text(
               PortfolioHealthCard.grade(score),
-              style: theme.textTheme.titleLarge?.copyWith(
-                color: color,
-                fontWeight: FontWeight.bold,
-              ),
+              style: theme.textTheme.titleLarge
+                  ?.copyWith(color: color, fontWeight: FontWeight.bold),
             ),
           ),
           const SizedBox(width: 16),
@@ -150,19 +145,15 @@ class _RiskSectionPageState extends State<RiskSectionPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Portfolio Health',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+                Text('Portfolio Health',
+                    style: theme.textTheme.titleMedium
+                        ?.copyWith(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 2),
                 Text(
                   '${PortfolioHealthCard.label(score)} · '
                   '${score.toStringAsFixed(0)}/100',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
+                  style: theme.textTheme.bodyMedium
+                      ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                 ),
               ],
             ),

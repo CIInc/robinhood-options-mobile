@@ -98,23 +98,18 @@ class PlaidService implements IBrokerageService {
     //   throw Exception(responseJson['error']);
     // }
     final client = generateClient(
-      Response('', 200),
-      tokenEndpoint, // .scAuthEndpoint
-      ['internal'],
-      ' ',
-      clientId,
-      null,
-      null,
-      null,
-    );
+        Response('', 200),
+        tokenEndpoint, // .scAuthEndpoint
+        ['internal'],
+        ' ',
+        clientId,
+        null,
+        null,
+        null);
     debugPrint('OAuth2 client created');
     debugPrint(jsonEncode(client.credentials));
     var user = BrokerageUser(
-      BrokerageSource.plaid,
-      '',
-      client.credentials.toJson(),
-      client,
-    );
+        BrokerageSource.plaid, '', client.credentials.toJson(), client);
     //user.save(userStore).then((value) {});
     return user;
   }
@@ -122,11 +117,7 @@ class PlaidService implements IBrokerageService {
   @override
   Future<UserInfo?> getUser(BrokerageUser user) async {
     return UserInfo(
-      url: 'url',
-      id: 'id',
-      idInfo: 'idInfo',
-      username: user.userName!,
-    );
+        url: 'url', id: 'id', idInfo: 'idInfo', username: user.userName!);
     // dynamic resultJson;
     // resultJson = await getJson(user, url);
     // var usr = UserInfo.fromSchwab(resultJson);
@@ -134,21 +125,15 @@ class PlaidService implements IBrokerageService {
   }
 
   @override
-  Future<List<Account>> getAccounts(
-    BrokerageUser user,
-    AccountStore store,
-    PortfolioStore? portfolioStore,
-    OptionPositionStore? optionPositionStore, {
-    InstrumentPositionStore? instrumentPositionStore,
-    DocumentReference? userDoc,
-  }) async {
+  Future<List<Account>> getAccounts(BrokerageUser user, AccountStore store,
+      PortfolioStore? portfolioStore, OptionPositionStore? optionPositionStore,
+      {InstrumentPositionStore? instrumentPositionStore,
+      DocumentReference? userDoc}) async {
     // https://createplaidlinktoken-tct53t2egq-uc.a.run.app
-    HttpsCallable callable = FirebaseFunctions.instance.httpsCallable(
-      'getInvestmentsHoldings',
-    );
+    HttpsCallable callable =
+        FirebaseFunctions.instance.httpsCallable('getInvestmentsHoldings');
     final resp = await callable.call(<String, dynamic>{
-      'access_token':
-          user.oauth2Client?.credentials.accessToken ??
+      'access_token': user.oauth2Client?.credentials.accessToken ??
           jsonDecode(user.credentials!)['accessToken'], // for Plaid
       // jsonDecode(user.credentials!)['access_token'],
       // 'scopes': []
@@ -172,9 +157,8 @@ class PlaidService implements IBrokerageService {
       // var portfolio = Portfolio.fromSchwabJson(result);
       // portfolioStore.addOrUpdate(portfolio);
       for (var positionJson in result['holdings']) {
-        var security = result['securities'].firstWhere(
-          (h) => h['security_id'] == positionJson['security_id'],
-        );
+        var security = result['securities']
+            .firstWhere((h) => h['security_id'] == positionJson['security_id']);
 
         // Valid security types are:
         // cash: Cash, currency, and money market funds
@@ -191,10 +175,7 @@ class PlaidService implements IBrokerageService {
           // instrumentPositionStore!.addOrUpdate(stockPosition);
         } else if (security['type'] == "derivative") {
           var optionPosition = OptionAggregatePosition.fromPlaidJson(
-            positionJson,
-            security,
-            account,
-          );
+              positionJson, security, account);
 
           // TODO
           // var optionInstrument = await getOptionInstrument(user, optionPosition.symbol, optionPosition.direction, strike, fromDate)
@@ -212,12 +193,11 @@ class PlaidService implements IBrokerageService {
   }
 
   Future<OptionInstrument> getOptionInstrument(
-    BrokerageUser user,
-    String symbol,
-    String contractType,
-    double strike,
-    String fromDate,
-  ) async {
+      BrokerageUser user,
+      String symbol,
+      String contractType,
+      double strike,
+      String fromDate) async {
     var url =
         "$endpoint/marketdata/v1/chains?symbol=$symbol&contractType=$contractType&includeUnderlyingQuote=true&strategy=SINGLE&strike=${strike.toString()}&fromDate=$fromDate&toDate=2024-10-18";
     var resultJson = await getJson(user, url);
@@ -240,68 +220,51 @@ class PlaidService implements IBrokerageService {
     }
     String responseStr = await user.oauth2Client!.read(Uri.parse(url));
     debugPrint(
-      "${(responseStr.length / 1000)}K in ${stopwatch.elapsed.inMilliseconds}ms $url",
-    );
+        "${(responseStr.length / 1000)}K in ${stopwatch.elapsed.inMilliseconds}ms $url");
     dynamic responseJson = jsonDecode(responseStr);
     return responseJson;
   }
 
   @override
   Future<List<Portfolio>> getPortfolios(
-    BrokerageUser user,
-    PortfolioStore store,
-  ) {
+      BrokerageUser user, PortfolioStore store) {
     // TODO: implement getPortfolios
     throw UnimplementedError();
   }
 
   @override
   Future<List<ForexHolding>> getNummusHoldings(
-    BrokerageUser user,
-    ForexHoldingStore store, {
-    bool nonzero = true,
-    DocumentReference? userDoc,
-  }) {
+      BrokerageUser user, ForexHoldingStore store,
+      {bool nonzero = true, DocumentReference? userDoc}) {
     // TODO: implement getNummusHoldings
     throw UnimplementedError();
   }
 
   @override
   Future<Instrument?> getInstrumentBySymbol(
-    BrokerageUser user,
-    InstrumentStore store,
-    String symbol,
-  ) {
+      BrokerageUser user, InstrumentStore store, String symbol) {
     // TODO: implement getInstrumentBySymbol
     throw UnimplementedError();
   }
 
   @override
   Future<List<OptionInstrument>> getOptionInstrumentByIds(
-    BrokerageUser user,
-    List<String> ids,
-  ) {
+      BrokerageUser user, List<String> ids) {
     // TODO: implement getOptionInstrumentByIds
     throw UnimplementedError();
   }
 
   @override
   Future<List<OptionMarketData>> getOptionMarketDataByIds(
-    BrokerageUser user,
-    List<String> ids,
-  ) {
+      BrokerageUser user, List<String> ids) {
     // TODO: implement getOptionMarketDataByIds
     throw UnimplementedError();
   }
 
   @override
-  Future<OptionPositionStore> getOptionPositionStore(
-    BrokerageUser user,
-    OptionPositionStore store,
-    InstrumentStore instrumentStore, {
-    bool nonzero = true,
-    DocumentReference? userDoc,
-  }) {
+  Future<OptionPositionStore> getOptionPositionStore(BrokerageUser user,
+      OptionPositionStore store, InstrumentStore instrumentStore,
+      {bool nonzero = true, DocumentReference? userDoc}) {
     // var symbols = store.items
     //     .where((e) =>
     //         e.instrumentObj !=
@@ -314,13 +277,12 @@ class PlaidService implements IBrokerageService {
 
   @override
   Future<InstrumentPositionStore> getStockPositionStore(
-    BrokerageUser user,
-    InstrumentPositionStore store,
-    InstrumentStore instrumentStore,
-    QuoteStore quoteStore, {
-    bool nonzero = true,
-    DocumentReference? userDoc,
-  }) async {
+      BrokerageUser user,
+      InstrumentPositionStore store,
+      InstrumentStore instrumentStore,
+      QuoteStore quoteStore,
+      {bool nonzero = true,
+      DocumentReference? userDoc}) async {
     // var instrumentIds = store.items.map((e) => e.instrumentId).toList();
     // var instrumentObjs =
     //     await getInstrumentsByIds(user, instrumentStore, instrumentIds);
@@ -331,9 +293,9 @@ class PlaidService implements IBrokerageService {
     //   store.update(position);
     // }
     var symbols = store.items
-        .where(
-          (e) => e.instrumentObj != null,
-        ) // Figure out why in certain conditions, instrumentObj is null
+        .where((e) =>
+            e.instrumentObj !=
+            null) // Figure out why in certain conditions, instrumentObj is null
         .map((e) => e.instrumentObj!.symbol)
         .toList();
     // Remove old quotes (that would be returned from cache) to get current ones
@@ -345,8 +307,7 @@ class PlaidService implements IBrokerageService {
     var quoteObjs = await getQuoteByIds(user, quoteStore, symbols);
     for (var quoteObj in quoteObjs) {
       var position = store.items.firstWhere(
-        (element) => element.instrumentObj!.symbol == quoteObj.symbol,
-      );
+          (element) => element.instrumentObj!.symbol == quoteObj.symbol);
       position.instrumentObj!.quoteObj = quoteObj;
       store.update(position);
     }
@@ -355,38 +316,31 @@ class PlaidService implements IBrokerageService {
 
   @override
   Future<List<OptionAggregatePosition>> refreshOptionMarketData(
-    BrokerageUser user,
-    OptionPositionStore optionPositionStore,
-    OptionInstrumentStore optionInstrumentStore,
-  ) {
+      BrokerageUser user,
+      OptionPositionStore optionPositionStore,
+      OptionInstrumentStore optionInstrumentStore) {
     // TODO: implement refreshOptionMarketData
     throw UnimplementedError();
   }
 
   @override
   Future<List<OptionAggregatePosition>> getAggregateOptionPositions(
-    BrokerageUser user, {
-    bool nonzero = true,
-  }) {
+      BrokerageUser user,
+      {bool nonzero = true}) {
     // TODO: implement getAggregateOptionPositions
     throw UnimplementedError();
   }
 
   @override
   Future<List<Instrument>> getInstrumentsByIds(
-    BrokerageUser user,
-    InstrumentStore store,
-    List<String> ids,
-  ) {
+      BrokerageUser user, InstrumentStore store, List<String> ids) {
     // TODO: implement getInstrumentsByIds
     throw UnimplementedError();
   }
 
   @override
   Future<List<Instrument>> getListMostPopular(
-    BrokerageUser user,
-    InstrumentStore instrumentStore,
-  ) {
+      BrokerageUser user, InstrumentStore instrumentStore) {
     // TODO: implement getListMostPopular
     // throw UnimplementedError();
     return Future.value([]);
@@ -394,9 +348,7 @@ class PlaidService implements IBrokerageService {
 
   @override
   Future<List<Instrument>> getTopMovers(
-    BrokerageUser user,
-    InstrumentStore instrumentStore,
-  ) {
+      BrokerageUser user, InstrumentStore instrumentStore) {
     // TODO: implement getListMovers
     // throw UnimplementedError();
     return Future.value([]);
@@ -404,63 +356,46 @@ class PlaidService implements IBrokerageService {
 
   @override
   Stream<List> streamDividends(
-    BrokerageUser user,
-    InstrumentStore instrumentStore, {
-    DocumentReference? userDoc,
-  }) {
+      BrokerageUser user, InstrumentStore instrumentStore,
+      {DocumentReference? userDoc}) {
     // TODO: implement streamDividends
     throw UnimplementedError();
   }
 
   @override
-  Stream<List<Watchlist>> streamLists(
-    BrokerageUser user,
-    InstrumentStore instrumentStore,
-    QuoteStore quoteStore,
-  ) {
+  Stream<List<Watchlist>> streamLists(BrokerageUser user,
+      InstrumentStore instrumentStore, QuoteStore quoteStore) {
     // TODO: implement streamLists
     throw UnimplementedError();
   }
 
   @override
-  Stream<List<InstrumentOrder>> streamPositionOrders(
-    BrokerageUser user,
-    InstrumentOrderStore store,
-    InstrumentStore instrumentStore, {
-    DocumentReference? userDoc,
-  }) {
+  Stream<List<InstrumentOrder>> streamPositionOrders(BrokerageUser user,
+      InstrumentOrderStore store, InstrumentStore instrumentStore,
+      {DocumentReference? userDoc}) {
     // TODO: implement streamPositionOrders
     throw UnimplementedError();
   }
 
   @override
-  Stream<Watchlist> streamList(
-    BrokerageUser user,
-    InstrumentStore instrumentStore,
-    QuoteStore quoteStore,
-    String key, {
-    String ownerType = "custom",
-  }) {
+  Stream<Watchlist> streamList(BrokerageUser user,
+      InstrumentStore instrumentStore, QuoteStore quoteStore, String key,
+      {String ownerType = "custom"}) {
     // TODO: implement streamList
     throw UnimplementedError();
   }
 
   @override
   Future<List<Quote>> getQuoteByIds(
-    BrokerageUser user,
-    QuoteStore store,
-    List<String> symbols, {
-    bool fromCache = true,
-  }) async {
+      BrokerageUser user, QuoteStore store, List<String> symbols,
+      {bool fromCache = true}) async {
     Iterable<Quote> cached = [];
     if (fromCache) {
       cached = store.items.where((element) => symbols.contains(element.symbol));
     }
     var nonCached = symbols
-        .where(
-          (element) =>
-              !cached.any((cachedQuote) => cachedQuote.symbol == element),
-        )
+        .where((element) =>
+            !cached.any((cachedQuote) => cachedQuote.symbol == element))
         .toSet()
         .toList();
     if (nonCached.isEmpty) {
@@ -492,53 +427,41 @@ class PlaidService implements IBrokerageService {
   }
 
   @override
-  Future<List<InstrumentPosition>> refreshPositionQuote(
-    BrokerageUser user,
-    InstrumentPositionStore store,
-    QuoteStore quoteStore,
-  ) {
+  Future<List<InstrumentPosition>> refreshPositionQuote(BrokerageUser user,
+      InstrumentPositionStore store, QuoteStore quoteStore) {
     // TODO: implement refreshPositionQuote
     throw UnimplementedError();
   }
 
   @override
   Future<List<Fundamentals>> getFundamentalsById(
-    BrokerageUser user,
-    List<String> instruments,
-    InstrumentStore store,
-  ) {
+      BrokerageUser user, List<String> instruments, InstrumentStore store) {
     // TODO: implement getFundamentalsById
     throw UnimplementedError();
   }
 
   @override
   Future<PortfolioHistoricals> getPortfolioPerformance(
-    BrokerageUser user,
-    PortfolioHistoricalsStore store,
-    String account, {
-    Bounds chartBoundsFilter = Bounds.t24_7,
-    ChartDateSpan chartDateSpanFilter = ChartDateSpan.day,
-  }) async {
+      BrokerageUser user, PortfolioHistoricalsStore store, String account,
+      {Bounds chartBoundsFilter = Bounds.t24_7,
+      ChartDateSpan chartDateSpanFilter = ChartDateSpan.day}) async {
     throw UnimplementedError();
   }
 
   @override
   Future<PortfolioHistoricals> getPortfolioHistoricals(
-    BrokerageUser user,
-    PortfolioHistoricalsStore store,
-    String account,
-    Bounds chartBoundsFilter,
-    ChartDateSpan chartDateSpanFilter,
-  ) {
+      BrokerageUser user,
+      PortfolioHistoricalsStore store,
+      String account,
+      Bounds chartBoundsFilter,
+      ChartDateSpan chartDateSpanFilter) {
     // TODO: implement getPortfolioHistoricals
     throw UnimplementedError();
   }
 
   @override
-  Future<List<MidlandMoversItem>> getMovers(
-    BrokerageUser user, {
-    String direction = "up",
-  }) {
+  Future<List<MidlandMoversItem>> getMovers(BrokerageUser user,
+      {String direction = "up"}) {
     // TODO: implement getMovers
     // throw UnimplementedError();
     return Future.value([]);
@@ -546,103 +469,88 @@ class PlaidService implements IBrokerageService {
 
   @override
   Future<List<ForexQuote>> getForexQuoteByIds(
-    BrokerageUser user,
-    List<String> ids,
-  ) {
+      BrokerageUser user, List<String> ids) {
     // TODO: implement getForexQuoteByIds
     throw UnimplementedError();
   }
 
   @override
-  Future<Watchlist> getList(
-    String key,
-    BrokerageUser user, {
-    String ownerType = "custom",
-  }) {
+  Future<Watchlist> getList(String key, BrokerageUser user,
+      {String ownerType = "custom"}) {
     // TODO: implement getList
     throw UnimplementedError();
   }
 
   @override
   Future<List<ForexHolding>> refreshNummusHoldings(
-    BrokerageUser user,
-    ForexHoldingStore store,
-  ) {
+      BrokerageUser user, ForexHoldingStore store) {
     // TODO: implement refreshNummusHoldings
     throw UnimplementedError();
   }
 
   @override
   Stream<List<OptionOrder>> streamOptionOrders(
-    BrokerageUser user,
-    OptionOrderStore store, {
-    DocumentReference? userDoc,
-  }) {
+      BrokerageUser user, OptionOrderStore store,
+      {DocumentReference? userDoc}) {
     // TODO: implement streamOptionOrders
     throw UnimplementedError();
   }
 
   @override
   Future placeOptionsOrder(
-    BrokerageUser user,
-    Account account,
-    OptionInstrument optionInstrument,
-    String side,
-    String positionEffect,
-    String creditOrDebit,
-    double price,
-    int quantity, {
-    String type = 'limit',
-    String trigger = 'immediate',
-    double? stopPrice,
-    String timeInForce = 'gtc',
-    Map<String, dynamic>? trailingPeg,
-  }) {
+      BrokerageUser user,
+      Account account,
+      OptionInstrument optionInstrument,
+      String side,
+      String positionEffect,
+      String creditOrDebit,
+      double price,
+      int quantity,
+      {String type = 'limit',
+      String trigger = 'immediate',
+      double? stopPrice,
+      String timeInForce = 'gtc',
+      Map<String, dynamic>? trailingPeg}) {
     // TODO: implement placeOptionsOrder
     throw UnimplementedError();
   }
 
   @override
   Future placeMultiLegOptionsOrder(
-    BrokerageUser user,
-    Account account,
-    List<Map<String, dynamic>> legs,
-    String creditOrDebit,
-    double price,
-    int quantity, {
-    String type = 'limit',
-    String trigger = 'immediate',
-    String timeInForce = 'gtc',
-  }) {
+      BrokerageUser user,
+      Account account,
+      List<Map<String, dynamic>> legs,
+      String creditOrDebit,
+      double price,
+      int quantity,
+      {String type = 'limit',
+      String trigger = 'immediate',
+      String timeInForce = 'gtc'}) {
     // TODO: implement placeMultiLegOptionsOrder
     throw UnimplementedError();
   }
 
   @override
   Future placeInstrumentOrder(
-    BrokerageUser user,
-    Account account,
-    Instrument instrument,
-    String symbol,
-    String side,
-    double? price,
-    int quantity, {
-    String type = 'limit',
-    String trigger = 'immediate',
-    double? stopPrice,
-    String timeInForce = 'gtc',
-    Map<String, dynamic>? trailingPeg,
-  }) {
+      BrokerageUser user,
+      Account account,
+      Instrument instrument,
+      String symbol,
+      String side,
+      double? price,
+      int quantity,
+      {String type = 'limit',
+      String trigger = 'immediate',
+      double? stopPrice,
+      String timeInForce = 'gtc',
+      Map<String, dynamic>? trailingPeg}) {
     // TODO: implement placeInstrumentOrder
     throw UnimplementedError();
   }
 
   @override
   Future<Instrument> getInstrument(
-    BrokerageUser user,
-    InstrumentStore store,
-    String instrumentUrl,
-  ) {
+      BrokerageUser user, InstrumentStore store, String instrumentUrl) {
     // TODO: implement getInstrument
     throw UnimplementedError();
   }
@@ -661,65 +569,48 @@ class PlaidService implements IBrokerageService {
 
   @override
   Future<OptionHistoricals> getOptionHistoricals(
-    BrokerageUser user,
-    OptionHistoricalsStore store,
-    List<String> ids, {
-    Bounds chartBoundsFilter = Bounds.regular,
-    ChartDateSpan chartDateSpanFilter = ChartDateSpan.day,
-  }) {
+      BrokerageUser user, OptionHistoricalsStore store, List<String> ids,
+      {Bounds chartBoundsFilter = Bounds.regular,
+      ChartDateSpan chartDateSpanFilter = ChartDateSpan.day}) {
     // TODO: implement getOptionHistoricals
     throw UnimplementedError();
   }
 
   @override
   Future<List<OptionOrder>> getOptionOrders(
-    BrokerageUser user,
-    OptionOrderStore store,
-    String chainId,
-  ) {
+      BrokerageUser user, OptionOrderStore store, String chainId) {
     // TODO: implement getOptionOrders
     throw UnimplementedError();
   }
 
   @override
   Future<Quote> refreshQuote(
-    BrokerageUser user,
-    QuoteStore store,
-    String symbol,
-  ) {
+      BrokerageUser user, QuoteStore store, String symbol) {
     // TODO: implement refreshQuote
     throw UnimplementedError();
   }
 
   @override
-  Future<InstrumentHistoricals> getInstrumentHistoricals(
-    BrokerageUser user,
-    InstrumentHistoricalsStore store,
-    String symbolOrInstrumentId, {
-    bool includeInactive = true,
-    Bounds chartBoundsFilter = Bounds.trading,
-    ChartDateSpan chartDateSpanFilter = ChartDateSpan.day,
-    String? chartInterval,
-  }) {
+  Future<InstrumentHistoricals> getInstrumentHistoricals(BrokerageUser user,
+      InstrumentHistoricalsStore store, String symbolOrInstrumentId,
+      {bool includeInactive = true,
+      Bounds chartBoundsFilter = Bounds.trading,
+      ChartDateSpan chartDateSpanFilter = ChartDateSpan.day,
+      String? chartInterval}) {
     // TODO: implement getInstrumentHistoricals
     throw UnimplementedError();
   }
 
   @override
-  Future<List<InstrumentOrder>> getInstrumentOrders(
-    BrokerageUser user,
-    InstrumentOrderStore store,
-    List<String> instrumentUrls,
-  ) {
+  Future<List<InstrumentOrder>> getInstrumentOrders(BrokerageUser user,
+      InstrumentOrderStore store, List<String> instrumentUrls) {
     // TODO: implement getInstrumentOrders
     throw UnimplementedError();
   }
 
   @override
   Future<Fundamentals> getFundamentals(
-    BrokerageUser user,
-    Instrument instrumentObj,
-  ) {
+      BrokerageUser user, Instrument instrumentObj) {
     // TODO: implement getFundamentals
     throw UnimplementedError();
   }
@@ -737,28 +628,19 @@ class PlaidService implements IBrokerageService {
 
   @override
   Future<void> addToList(
-    BrokerageUser user,
-    String listId,
-    String instrumentId,
-  ) async {
+      BrokerageUser user, String listId, String instrumentId) async {
     // TODO: implement addToList
   }
 
   @override
   Future<void> removeFromList(
-    BrokerageUser user,
-    String listId,
-    String instrumentId,
-  ) async {
+      BrokerageUser user, String listId, String instrumentId) async {
     // TODO: implement removeFromList
   }
 
   @override
-  Future<void> createList(
-    BrokerageUser user,
-    String name, {
-    String? emoji,
-  }) async {
+  Future<void> createList(BrokerageUser user, String name,
+      {String? emoji}) async {
     // TODO: implement createList
   }
 
@@ -774,12 +656,9 @@ class PlaidService implements IBrokerageService {
   }
 
   @override
-  Future<List> getDividends(
-    BrokerageUser user,
-    DividendStore dividendStore,
-    InstrumentStore instrumentStore, {
-    String? instrumentId,
-  }) {
+  Future<List> getDividends(BrokerageUser user, DividendStore dividendStore,
+      InstrumentStore instrumentStore,
+      {String? instrumentId}) {
     // TODO: implement getDividends
     throw UnimplementedError();
   }
@@ -798,9 +677,7 @@ class PlaidService implements IBrokerageService {
 
   @override
   Future<List<OptionEvent>> getOptionEventsByInstrumentUrl(
-    BrokerageUser user,
-    String instrumentUrl,
-  ) {
+      BrokerageUser user, String instrumentUrl) {
     // TODO: implement getOptionEventsByInstrumentUrl
     throw UnimplementedError();
   }
@@ -824,23 +701,18 @@ class PlaidService implements IBrokerageService {
   }
 
   @override
-  Future<ForexHistoricals> getForexHistoricals(
-    BrokerageUser user,
-    String id, {
-    Bounds chartBoundsFilter = Bounds.t24_7,
-    ChartDateSpan chartDateSpanFilter = ChartDateSpan.day,
-  }) {
+  Future<ForexHistoricals> getForexHistoricals(BrokerageUser user, String id,
+      {Bounds chartBoundsFilter = Bounds.t24_7,
+      ChartDateSpan chartDateSpanFilter = ChartDateSpan.day}) {
     // TODO: implement getForexHistoricals
     throw UnimplementedError();
   }
 
   @override
   Future<FutureHistoricals?> getFuturesHistoricals(
-    BrokerageUser user,
-    String id, {
-    Bounds chartBoundsFilter = Bounds.regular,
-    ChartDateSpan chartDateSpanFilter = ChartDateSpan.day,
-  }) {
+      BrokerageUser user, String id,
+      {Bounds chartBoundsFilter = Bounds.regular,
+      ChartDateSpan chartDateSpanFilter = ChartDateSpan.day}) {
     // TODO: implement getFuturesHistoricals
     throw UnimplementedError();
   }
@@ -859,79 +731,63 @@ class PlaidService implements IBrokerageService {
 
   @override
   Future<List<OptionChain>> getOptionChainsByIds(
-    BrokerageUser user,
-    List<String> ids,
-  ) {
+      BrokerageUser user, List<String> ids) {
     // TODO: implement getOptionChainsByIds
     throw UnimplementedError();
   }
 
   @override
   Future<OptionMarketData?> getOptionMarketData(
-    BrokerageUser user,
-    OptionInstrument optionInstrument,
-  ) async {
+      BrokerageUser user, OptionInstrument optionInstrument) async {
     var url =
         "$endpoint/marketdata/v1/chains?symbol=${optionInstrument.chainSymbol}&contractType=${optionInstrument.type}&includeUnderlyingQuote=true&strategy=SINGLE&strike=${optionInstrument.strikePrice.toString()}&fromDate=${DateFormat('yyyy-MM-dd').format(optionInstrument.expirationDate!)}&toDate=${DateFormat('yyyy-MM-dd').format(optionInstrument.expirationDate!)}";
     var resultJson = await getJson(user, url);
 
     var result = OptionMarketData.fromSchwabJson(
-      (((((resultJson['${optionInstrument.type.toLowerCase()}ExpDateMap']
-                                      as Map)
-                                  .entries
-                                  .first)
-                              .value
-                          as Map)
-                      .entries
-                      .first)
-                  .value
-              as List)
-          .first,
-    );
+        (((((resultJson['${optionInstrument.type.toLowerCase()}ExpDateMap']
+                                as Map)
+                            .entries
+                            .first)
+                        .value as Map)
+                    .entries
+                    .first)
+                .value as List)
+            .first);
     return result;
   }
 
   @override
   Stream<List<OptionEvent>> streamOptionEvents(
-    BrokerageUser user,
-    OptionEventStore store, {
-    int pageSize = 20,
-    DocumentReference? userDoc,
-  }) {
+      BrokerageUser user, OptionEventStore store,
+      {int pageSize = 20, DocumentReference? userDoc}) {
     // TODO: implement streamOptionEvents
     throw UnimplementedError();
   }
 
   @override
   Stream<List<OptionInstrument>> streamOptionInstruments(
-    BrokerageUser user,
-    OptionInstrumentStore store,
-    Instrument instrument,
-    String? expirationDates,
-    String? type, {
-    String? state = "active",
-    bool includeMarketData = false,
-  }) {
+      BrokerageUser user,
+      OptionInstrumentStore store,
+      Instrument instrument,
+      String? expirationDates,
+      String? type,
+      {String? state = "active",
+      bool includeMarketData = false}) {
     // TODO: implement streamOptionInstruments
     throw UnimplementedError();
   }
 
   @override
   Stream<List> streamInterests(
-    BrokerageUser user,
-    InstrumentStore instrumentStore, {
-    DocumentReference? userDoc,
-  }) {
+      BrokerageUser user, InstrumentStore instrumentStore,
+      {DocumentReference? userDoc}) {
     // TODO: implement streamInterests
     throw UnimplementedError();
   }
 
   @override
-  Future<List> getInterests(
-    BrokerageUser user,
-    InterestStore dividendStore, {
-    String? instrumentId,
-  }) {
+  Future<List> getInterests(BrokerageUser user, InterestStore dividendStore,
+      {String? instrumentId}) {
     // TODO: implement getInterests
     throw UnimplementedError();
   }
@@ -950,38 +806,32 @@ class PlaidService implements IBrokerageService {
   }
 
   @override
-  Future<List<ComboOrder>> getComboOrders(
-    BrokerageUser user, {
-    String? accountNumber,
-    int? limit,
-  }) async {
+  Future<List<ComboOrder>> getComboOrders(BrokerageUser user,
+      {String? accountNumber, int? limit}) async {
     return [];
   }
 
   @override
   Stream<List<ComboOrder>> streamComboOrders(
-    BrokerageUser user,
-    ComboOrderStore store, {
-    DocumentReference? userDoc,
-    String? symbol,
-    String? accountNumber,
-  }) async* {
+      BrokerageUser user, ComboOrderStore store,
+      {DocumentReference? userDoc,
+      String? symbol,
+      String? accountNumber}) async* {
     yield [];
   }
 
   @override
   Future<dynamic> placeComboOrder(
-    BrokerageUser user,
-    Account account,
-    List<Map<String, dynamic>> legs,
-    String creditOrDebit,
-    double price,
-    int quantity, {
-    String type = 'limit',
-    String trigger = 'immediate',
-    String timeInForce = 'gtc',
-    String? openingStrategy,
-  }) async {
+      BrokerageUser user,
+      Account account,
+      List<Map<String, dynamic>> legs,
+      String creditOrDebit,
+      double price,
+      int quantity,
+      {String type = 'limit',
+      String trigger = 'immediate',
+      String timeInForce = 'gtc',
+      String? openingStrategy}) async {
     return {
       'status': 'not_supported',
       'message': 'Combo orders not supported for Plaid manual accounts.',
@@ -999,66 +849,49 @@ class PlaidService implements IBrokerageService {
 
   @override
   Future<dynamic> getRecentDayTrades(
-    BrokerageUser user,
-    String accountNumber,
-  ) async {
+      BrokerageUser user, String accountNumber) async {
     return null;
   }
 
   @override
-  Future<dynamic> getShortInterest(
-    BrokerageUser user,
-    String instrumentId, {
-    String? startDate,
-  }) async {
+  Future<dynamic> getShortInterest(BrokerageUser user, String instrumentId,
+      {String? startDate}) async {
     return null;
   }
 
   @override
   Future<dynamic> getShortingAvailability(
-    BrokerageUser user,
-    String instrumentId,
-  ) async {
+      BrokerageUser user, String instrumentId) async {
     return null;
   }
 
   @override
   Future<dynamic> getRetailSentiment(
-    BrokerageUser user,
-    String instrumentId,
-  ) async {
+      BrokerageUser user, String instrumentId) async {
     return null;
   }
 
   @override
   Future<dynamic> getInsiderSummary(
-    BrokerageUser user,
-    String instrumentId,
-  ) async {
+      BrokerageUser user, String instrumentId) async {
     return null;
   }
 
   @override
   Future<dynamic> getInsiderTransactions(
-    BrokerageUser user,
-    String instrumentId,
-  ) async {
+      BrokerageUser user, String instrumentId) async {
     return null;
   }
 
   @override
   Future<dynamic> getHedgeFundSummary(
-    BrokerageUser user,
-    String instrumentId,
-  ) async {
+      BrokerageUser user, String instrumentId) async {
     return null;
   }
 
   @override
   Future<dynamic> getHedgeFundTransactions(
-    BrokerageUser user,
-    String instrumentId,
-  ) async {
+      BrokerageUser user, String instrumentId) async {
     return null;
   }
 
@@ -1068,10 +901,8 @@ class PlaidService implements IBrokerageService {
   }
 
   @override
-  Future<dynamic> getScreeners(
-    BrokerageUser user, {
-    bool includeFilters = false,
-  }) async {
+  Future<dynamic> getScreeners(BrokerageUser user,
+      {bool includeFilters = false}) async {
     return null;
   }
 
@@ -1102,43 +933,31 @@ class PlaidService implements IBrokerageService {
 
   @override
   Future<dynamic> getInstrumentBuyingPower(
-    BrokerageUser user,
-    String accountNumber,
-    String instrumentId,
-  ) async {
+      BrokerageUser user, String accountNumber, String instrumentId) async {
     return null;
   }
 
   @override
   Future<dynamic> getInstrumentWarnings(
-    BrokerageUser user,
-    String instrumentId,
-  ) async {
+      BrokerageUser user, String instrumentId) async {
     return null;
   }
 
   @override
   Future<dynamic> getOptionChainCollateral(
-    BrokerageUser user,
-    String chainId,
-    String accountNumber,
-  ) async {
+      BrokerageUser user, String chainId, String accountNumber) async {
     return null;
   }
 
   @override
   Future<dynamic> getOptionsUpgradeStatus(
-    BrokerageUser user,
-    String accountNumber,
-  ) async {
+      BrokerageUser user, String accountNumber) async {
     return null;
   }
 
   @override
-  Future<List<dynamic>> getStockLoanPayments(
-    BrokerageUser user, {
-    String? accountNumber,
-  }) async {
+  Future<List<dynamic>> getStockLoanPayments(BrokerageUser user,
+      {String? accountNumber}) async {
     return [];
   }
 
@@ -1168,9 +987,7 @@ class PlaidService implements IBrokerageService {
   }
 
   @override
-  Future<List<AchRelationship>> getAchRelationshipsModel(
-    BrokerageUser user,
-  ) async {
+  Future<List<AchRelationship>> getAchRelationshipsModel(BrokerageUser user) async {
     return [];
   }
 
@@ -1191,17 +1008,13 @@ class PlaidService implements IBrokerageService {
 
   @override
   Future<dynamic> getTaxWithholdingStatus(
-    BrokerageUser user,
-    String instrumentId,
-  ) async {
+      BrokerageUser user, String instrumentId) async {
     return null;
   }
 
   @override
-  Future<List<AccountDocument>> getAccountDocumentsModel(
-    BrokerageUser user, {
-    String? type,
-  }) async {
+  Future<List<AccountDocument>> getAccountDocumentsModel(BrokerageUser user,
+      {String? type}) async {
     return [];
   }
 
@@ -1212,33 +1025,26 @@ class PlaidService implements IBrokerageService {
 
   @override
   Future<TaxWithholdingStatus?> getTaxWithholdingStatusModel(
-    BrokerageUser user,
-    String instrumentId, {
-    String? symbol,
-  }) async {
+      BrokerageUser user, String instrumentId,
+      {String? symbol}) async {
     return null;
   }
 
   @override
-  Future<List<dynamic>> getSplitPayments(
-    BrokerageUser user, {
-    String? instrumentId,
-  }) async {
+  Future<List<dynamic>> getSplitPayments(BrokerageUser user,
+      {String? instrumentId}) async {
     return [];
   }
 
   @override
-  Future<List<SplitPayment>> getSplitPaymentsModel(
-    BrokerageUser user, {
-    String? instrumentId,
-  }) async {
+  Future<List<SplitPayment>> getSplitPaymentsModel(BrokerageUser user,
+      {String? instrumentId}) async {
     return [];
   }
 
   @override
   Future<CorporateActionSplitsSummary> getCorporateActionSplitsSummary(
-    BrokerageUser user,
-  ) async {
+      BrokerageUser user) async {
     return const CorporateActionSplitsSummary();
   }
 
@@ -1249,55 +1055,44 @@ class PlaidService implements IBrokerageService {
 
   @override
   Future<dynamic> placeForexOrder(
-    BrokerageUser user,
-    String pairId,
-    String side, // 'buy' or 'sell'
-    double? price,
-    double quantity, {
-    String type = 'market', // market, limit
-    String timeInForce = 'gtc',
-    double? stopPrice,
-  }) {
+      BrokerageUser user,
+      String pairId,
+      String side, // 'buy' or 'sell'
+      double? price,
+      double quantity,
+      {String type = 'market', // market, limit
+      String timeInForce = 'gtc',
+      double? stopPrice}) {
     throw UnimplementedError();
   }
 
   @override
   Future<List<dynamic>> getFuturesOrders(
-    BrokerageUser user,
-    String account,
-  ) async {
+      BrokerageUser user, String account) async {
     return [];
   }
 
   @override
   Future<List<dynamic>> getFuturesContractsByIds(
-    BrokerageUser user,
-    List<String> contractIds,
-  ) async {
+      BrokerageUser user, List<String> contractIds) async {
     return [];
   }
 
   @override
   Future<dynamic> getFuturesContractBySymbol(
-    BrokerageUser user,
-    String symbol,
-  ) async {
+      BrokerageUser user, String symbol) async {
     return null;
   }
 
   @override
   Future<List<dynamic>> getFuturesContractsBySymbols(
-    BrokerageUser user,
-    List<String> symbols,
-  ) async {
+      BrokerageUser user, List<String> symbols) async {
     return [];
   }
 
   @override
   Future<List<dynamic>> getFuturesClosesByIds(
-    BrokerageUser user,
-    List<String> contractIds,
-  ) async {
+      BrokerageUser user, List<String> contractIds) async {
     return [];
   }
 
@@ -1315,43 +1110,33 @@ class PlaidService implements IBrokerageService {
     String timeInForce = 'GTC',
     String positionEffect = 'OPENING',
   }) {
-    return Future.error('Futures orders are not supported in PlaidService');
+    return Future.error(
+      'Futures orders are not supported in PlaidService',
+    );
   }
 
   @override
   Future<dynamic> getShareholderQaEvents(
-    BrokerageUser user,
-    String instrumentId,
-  ) async {
+      BrokerageUser user, String instrumentId) async {
     return null;
   }
 
   @override
   Future<ShareholderQaSection?> getShareholderQaSectionModel(
-    BrokerageUser user,
-    String instrumentId, {
-    String? symbol,
-  }) async {
+      BrokerageUser user, String instrumentId,
+      {String? symbol}) async {
     return null;
   }
 
   @override
-  Future<bool> upvoteQuestion(
-    BrokerageUser user,
-    String instrumentId,
-    String eventId,
-    String questionId,
-  ) async {
+  Future<bool> upvoteQuestion(BrokerageUser user, String instrumentId,
+      String eventId, String questionId) async {
     return false;
   }
 
   @override
-  Future<ShareholderQuestion?> submitQuestion(
-    BrokerageUser user,
-    String instrumentId,
-    String eventId,
-    String questionText,
-  ) async {
+  Future<ShareholderQuestion?> submitQuestion(BrokerageUser user,
+      String instrumentId, String eventId, String questionText) async {
     return null;
   }
 
@@ -1359,42 +1144,33 @@ class PlaidService implements IBrokerageService {
   Future<List<dynamic>> getExternalTokens(BrokerageUser user) async => [];
 
   @override
-  Future<List<ExternalToken>> getExternalTokensModel(
-    BrokerageUser user,
-  ) async => [];
+  Future<List<ExternalToken>> getExternalTokensModel(BrokerageUser user) async => [];
 
   @override
-  Future<bool> revokeExternalToken(BrokerageUser user, String tokenId) async =>
-      false;
+  Future<bool> revokeExternalToken(BrokerageUser user, String tokenId) async => false;
 
   @override
   Future<List<dynamic>> getNotificationStack(BrokerageUser user) async => [];
 
   @override
-  Future<List<NotificationItem>> getNotificationStackModel(
-    BrokerageUser user,
-  ) async => [];
+  Future<List<NotificationItem>> getNotificationStackModel(BrokerageUser user) async => [];
 
   @override
   Future<dynamic> getInboxThreads(BrokerageUser user) async => null;
 
   @override
-  Future<List<NotificationItem>> getInboxThreadsModel(
-    BrokerageUser user,
-  ) async => [];
+  Future<List<NotificationItem>> getInboxThreadsModel(BrokerageUser user) async => [];
 
   @override
   Future<dynamic> getSpendingAccount(BrokerageUser user) async => null;
 
   @override
-  Future<SpendingAccount?> getSpendingAccountModel(BrokerageUser user) async =>
-      null;
+  Future<SpendingAccount?> getSpendingAccountModel(BrokerageUser user) async => null;
 
   @override
   Future<dynamic> getRetirementHistory(BrokerageUser user) async => null;
 
   @override
-  Future<RetirementHistory> getRetirementHistoryModel(
-    BrokerageUser user,
-  ) async => const RetirementHistory();
+  Future<RetirementHistory> getRetirementHistoryModel(BrokerageUser user) async =>
+      const RetirementHistory();
 }

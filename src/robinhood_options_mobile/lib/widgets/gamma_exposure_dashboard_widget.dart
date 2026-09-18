@@ -75,19 +75,14 @@ class _GammaExposureDashboardWidgetState
   void _navigateToInstrument(String symbol) async {
     if (widget.service == null || widget.brokerageUser == null) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Please link a brokerage account to view details."),
-          ),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text("Please link a brokerage account to view details.")));
       }
       return;
     }
 
-    final instrumentStore = Provider.of<InstrumentStore>(
-      context,
-      listen: false,
-    );
+    final instrumentStore =
+        Provider.of<InstrumentStore>(context, listen: false);
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -108,45 +103,39 @@ class _GammaExposureDashboardWidgetState
 
     try {
       final instrument = await widget.service!.getInstrumentBySymbol(
-        widget.brokerageUser!,
-        instrumentStore,
-        symbol,
-      );
+          widget.brokerageUser!, instrumentStore, symbol);
 
       if (instrument != null && mounted) {
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
 
         Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => InstrumentWidget(
-              widget.brokerageUser!,
-              widget.service!,
-              instrument,
-              analytics: widget.analytics!,
-              observer: widget.observer!,
-              generativeService: widget.generativeService!,
-              user: widget.user,
-              userDocRef: widget.userDocRef,
-            ),
-          ),
-        );
+            context,
+            MaterialPageRoute(
+                builder: (context) => InstrumentWidget(
+                      widget.brokerageUser!,
+                      widget.service!,
+                      instrument,
+                      analytics: widget.analytics!,
+                      observer: widget.observer!,
+                      generativeService: widget.generativeService!,
+                      user: widget.user,
+                      userDocRef: widget.userDocRef,
+                    )));
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).hideCurrentSnackBar();
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text("Failed to load instrument details for $symbol"),
-            ),
+                content: Text("Failed to load instrument details for $symbol")),
           );
         }
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("Error: $e")));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error: $e")),
+        );
       }
     }
   }
@@ -159,24 +148,20 @@ class _GammaExposureDashboardWidgetState
     });
 
     try {
-      final instrumentStore = Provider.of<InstrumentStore>(
-        context,
-        listen: false,
-      );
+      final instrumentStore =
+          Provider.of<InstrumentStore>(context, listen: false);
       final quoteStore = Provider.of<QuoteStore>(context, listen: false);
 
-      Instrument? instrument = instrumentStore.items.firstWhereOrNull(
-        (i) => i.symbol == symbol,
-      );
+      Instrument? instrument =
+          instrumentStore.items.firstWhereOrNull((i) => i.symbol == symbol);
       instrument ??= await widget.service!.getInstrumentBySymbol(
         widget.brokerageUser!,
         instrumentStore,
         symbol,
       );
 
-      Quote? quote = quoteStore.items.firstWhereOrNull(
-        (q) => q.symbol == symbol,
-      );
+      Quote? quote =
+          quoteStore.items.firstWhereOrNull((q) => q.symbol == symbol);
       quote ??= await widget.service!.getQuote(
         widget.brokerageUser!,
         quoteStore,
@@ -223,10 +208,8 @@ class _GammaExposureDashboardWidgetState
                 child: CircularProgressIndicator(strokeWidth: 2),
               ),
               SizedBox(width: 16),
-              Text(
-                'Loading instrument preview...',
-                style: TextStyle(fontSize: 13),
-              ),
+              Text('Loading instrument preview...',
+                  style: TextStyle(fontSize: 13)),
             ],
           ),
         ),
@@ -285,8 +268,8 @@ class _GammaExposureDashboardWidgetState
     final changeColor = (change == null || change == 0)
         ? theme.colorScheme.outline
         : change > 0
-        ? Colors.green
-        : Colors.red;
+            ? Colors.green
+            : Colors.red;
 
     final String changeSign = (change != null && change > 0) ? '+' : '';
 
@@ -464,20 +447,16 @@ class _GammaExposureDashboardWidgetState
 
       try {
         if (mounted) {
-          final instrumentPositionStore = Provider.of<InstrumentPositionStore>(
-            context,
-            listen: false,
-          );
+          final instrumentPositionStore =
+              Provider.of<InstrumentPositionStore>(context, listen: false);
           symbolsToFetch.addAll(instrumentPositionStore.symbols);
         }
       } catch (_) {}
 
       try {
         if (mounted) {
-          final optionPositionStore = Provider.of<OptionPositionStore>(
-            context,
-            listen: false,
-          );
+          final optionPositionStore =
+              Provider.of<OptionPositionStore>(context, listen: false);
           symbolsToFetch.addAll(optionPositionStore.symbols);
         }
       } catch (_) {}
@@ -499,9 +478,8 @@ class _GammaExposureDashboardWidgetState
           .toSet()
           .toList();
 
-      final callable = FirebaseFunctions.instance.httpsCallable(
-        'getTopGammaExposure',
-      );
+      final callable =
+          FirebaseFunctions.instance.httpsCallable('getTopGammaExposure');
       final result = await callable.call<Map<String, dynamic>>({
         if (uniqueSymbols.isNotEmpty) 'symbols': uniqueSymbols,
       });
@@ -510,11 +488,8 @@ class _GammaExposureDashboardWidgetState
       if (responseMap['status'] == 'ok' && responseMap['data'] != null) {
         final List<dynamic> list = responseMap['data'] as List<dynamic>;
         final dataList = list
-            .map(
-              (e) => GammaExposureData.fromJson(
-                Map<String, dynamic>.from(e as Map),
-              ),
-            )
+            .map((e) =>
+                GammaExposureData.fromJson(Map<String, dynamic>.from(e as Map)))
             .toList();
         if (mounted) {
           setState(() {
@@ -550,10 +525,8 @@ class _GammaExposureDashboardWidgetState
             children: [
               CircularProgressIndicator(),
               SizedBox(height: 12),
-              Text(
-                'Fetching live GEX leaders...',
-                style: TextStyle(fontSize: 12),
-              ),
+              Text('Fetching live GEX leaders...',
+                  style: TextStyle(fontSize: 12)),
             ],
           ),
         ),
@@ -568,26 +541,20 @@ class _GammaExposureDashboardWidgetState
             children: [
               Icon(Icons.warning_amber_rounded, color: theme.colorScheme.error),
               const SizedBox(height: 8),
-              Text(
-                'Failed to load GEX leaders',
-                style: theme.textTheme.titleSmall?.copyWith(
-                  color: theme.colorScheme.error,
-                ),
-              ),
+              Text('Failed to load GEX leaders',
+                  style: theme.textTheme.titleSmall
+                      ?.copyWith(color: theme.colorScheme.error)),
               const SizedBox(height: 4),
-              Text(
-                _topGexError ?? 'Unknown error',
-                style: theme.textTheme.labelSmall,
-                textAlign: TextAlign.center,
-              ),
+              Text(_topGexError ?? 'Unknown error',
+                  style: theme.textTheme.labelSmall,
+                  textAlign: TextAlign.center),
               const SizedBox(height: 12),
               FilledButton.icon(
                 onPressed: _fetchTopGEX,
                 icon: const Icon(Icons.refresh, size: 16),
                 label: const Text('Try Again'),
                 style: FilledButton.styleFrom(
-                  visualDensity: VisualDensity.compact,
-                ),
+                    visualDensity: VisualDensity.compact),
               ),
             ],
           ),
@@ -599,9 +566,8 @@ class _GammaExposureDashboardWidgetState
     final List<GammaExposureData> leaders = List.from(rawLeaders);
     switch (_selectedSortOption) {
       case GexSortOption.absNetGex:
-        leaders.sort(
-          (a, b) => b.totalNetGEX.abs().compareTo(a.totalNetGEX.abs()),
-        );
+        leaders
+            .sort((a, b) => b.totalNetGEX.abs().compareTo(a.totalNetGEX.abs()));
         break;
       case GexSortOption.mostPositive:
         leaders.sort((a, b) => b.totalNetGEX.compareTo(a.totalNetGEX));
@@ -643,18 +609,14 @@ class _GammaExposureDashboardWidgetState
                 Expanded(
                   child: Row(
                     children: [
-                      Icon(
-                        Icons.troubleshoot,
-                        color: theme.colorScheme.primary,
-                        size: 20,
-                      ),
+                      Icon(Icons.troubleshoot,
+                          color: theme.colorScheme.primary, size: 20),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           'GEX Leaders',
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: theme.textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.bold),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -674,25 +636,25 @@ class _GammaExposureDashboardWidgetState
                       },
                       itemBuilder: (BuildContext context) =>
                           GexSortOption.values.map((opt) {
-                            return PopupMenuItem<GexSortOption>(
-                              value: opt,
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    _selectedSortOption == opt
-                                        ? Icons.radio_button_checked
-                                        : Icons.radio_button_unchecked,
-                                    color: _selectedSortOption == opt
-                                        ? theme.colorScheme.primary
-                                        : theme.colorScheme.outline,
-                                    size: 18,
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Text(opt.label),
-                                ],
+                        return PopupMenuItem<GexSortOption>(
+                          value: opt,
+                          child: Row(
+                            children: [
+                              Icon(
+                                _selectedSortOption == opt
+                                    ? Icons.radio_button_checked
+                                    : Icons.radio_button_unchecked,
+                                color: _selectedSortOption == opt
+                                    ? theme.colorScheme.primary
+                                    : theme.colorScheme.outline,
+                                size: 18,
                               ),
-                            );
-                          }).toList(),
+                              const SizedBox(width: 12),
+                              Text(opt.label),
+                            ],
+                          ),
+                        );
+                      }).toList(),
                     ),
                     IconButton(
                       icon: const Icon(Icons.refresh, size: 20),
@@ -708,9 +670,8 @@ class _GammaExposureDashboardWidgetState
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
             child: Text(
               'Market makers net dealer positioning for major indices & equities. Tap any row to load detail chart.',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.outline,
-              ),
+              style: theme.textTheme.bodySmall
+                  ?.copyWith(color: theme.colorScheme.outline),
             ),
           ),
           const SizedBox(height: 4),
@@ -720,9 +681,8 @@ class _GammaExposureDashboardWidgetState
               children: [
                 Text(
                   'Sorted by: ',
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: theme.colorScheme.outline,
-                  ),
+                  style: theme.textTheme.labelSmall
+                      ?.copyWith(color: theme.colorScheme.outline),
                 ),
                 Text(
                   _selectedSortOption.label,
@@ -750,10 +710,10 @@ class _GammaExposureDashboardWidgetState
               final isCurrent = item.symbol == _activeSymbol;
               final positioningColor =
                   item.dealerPositioning == DealerPositioning.longGamma
-                  ? Colors.green
-                  : item.dealerPositioning == DealerPositioning.shortGamma
-                  ? Colors.red
-                  : theme.colorScheme.outline;
+                      ? Colors.green
+                      : item.dealerPositioning == DealerPositioning.shortGamma
+                          ? Colors.red
+                          : theme.colorScheme.outline;
 
               return InkWell(
                 onTap: () {
@@ -769,9 +729,7 @@ class _GammaExposureDashboardWidgetState
                       ? theme.colorScheme.primary.withValues(alpha: 0.05)
                       : null,
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 16.0,
-                    vertical: 12.0,
-                  ),
+                      horizontal: 16.0, vertical: 12.0),
                   child: Row(
                     children: [
                       SizedBox(
@@ -790,9 +748,8 @@ class _GammaExposureDashboardWidgetState
                             ),
                             Text(
                               '\$${item.spotPrice.toStringAsFixed(2)}',
-                              style: theme.textTheme.labelSmall?.copyWith(
-                                color: theme.colorScheme.outline,
-                              ),
+                              style: theme.textTheme.labelSmall
+                                  ?.copyWith(color: theme.colorScheme.outline),
                             ),
                           ],
                         ),
@@ -819,9 +776,8 @@ class _GammaExposureDashboardWidgetState
                                   child: Text(
                                     'C/P: ${(item.gexRatio * 100).toStringAsFixed(0)}/${((1 - item.gexRatio) * 100).toStringAsFixed(0)}',
                                     style: theme.textTheme.bodySmall?.copyWith(
-                                      fontSize: 10,
-                                      color: theme.colorScheme.outline,
-                                    ),
+                                        fontSize: 10,
+                                        color: theme.colorScheme.outline),
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
@@ -835,25 +791,20 @@ class _GammaExposureDashboardWidgetState
                                 child: Row(
                                   children: [
                                     Expanded(
-                                      flex: (item.gexRatio * 100).round().clamp(
-                                        1,
-                                        99,
-                                      ),
+                                      flex: (item.gexRatio * 100)
+                                          .round()
+                                          .clamp(1, 99),
                                       child: Container(
-                                        color: Colors.green.withValues(
-                                          alpha: 0.8,
-                                        ),
-                                      ),
+                                          color: Colors.green
+                                              .withValues(alpha: 0.8)),
                                     ),
                                     Expanded(
                                       flex: ((1 - item.gexRatio) * 100)
                                           .round()
                                           .clamp(1, 99),
                                       child: Container(
-                                        color: Colors.red.withValues(
-                                          alpha: 0.8,
-                                        ),
-                                      ),
+                                          color: Colors.red
+                                              .withValues(alpha: 0.8)),
                                     ),
                                   ],
                                 ),
@@ -865,15 +816,12 @@ class _GammaExposureDashboardWidgetState
                       const SizedBox(width: 16),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
+                            horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
                           color: positioningColor.withValues(alpha: 0.08),
                           borderRadius: BorderRadius.circular(6),
                           border: Border.all(
-                            color: positioningColor.withValues(alpha: 0.2),
-                          ),
+                              color: positioningColor.withValues(alpha: 0.2)),
                         ),
                         child: Text(
                           item.dealerPositioning.displayLabel,
@@ -1045,10 +993,8 @@ class _GammaExposureDashboardWidgetState
                         return Padding(
                           padding: const EdgeInsets.only(right: 8.0),
                           child: ChoiceChip(
-                            label: Text(
-                              sym,
-                              style: const TextStyle(fontSize: 12),
-                            ),
+                            label:
+                                Text(sym, style: const TextStyle(fontSize: 12)),
                             selected: isSelected,
                             onSelected: (selected) {
                               if (selected) {
@@ -1067,10 +1013,7 @@ class _GammaExposureDashboardWidgetState
                       const Padding(
                         padding: EdgeInsets.only(right: 8.0),
                         child: VerticalDivider(
-                          width: 16,
-                          indent: 10,
-                          endIndent: 10,
-                        ),
+                            width: 16, indent: 10, endIndent: 10),
                       ),
                     ],
                     ...['SPY', 'QQQ', 'IWM', 'TSLA', 'NVDA', 'AAPL'].map((sym) {
@@ -1109,9 +1052,10 @@ class _GammaExposureDashboardWidgetState
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Text(
                 'Analysis for $_activeSymbol',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                style: Theme.of(context)
+                    .textTheme
+                    .titleLarge
+                    ?.copyWith(fontWeight: FontWeight.bold),
               ),
             ),
             const SizedBox(height: 12),
@@ -1126,7 +1070,7 @@ class _GammaExposureDashboardWidgetState
                 symbol: _activeSymbol,
                 spotPrice: _activeInstrument?.symbol == _activeSymbol
                     ? (_activeQuote?.lastTradePrice ??
-                          _activeInstrument?.quoteObj?.lastTradePrice)
+                        _activeInstrument?.quoteObj?.lastTradePrice)
                     : null,
                 generativeService: widget.generativeService,
               ),
@@ -1137,22 +1081,23 @@ class _GammaExposureDashboardWidgetState
               child: Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                  color: Theme.of(context)
+                      .colorScheme
+                      .surfaceContainerHighest
+                      .withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: Theme.of(context).colorScheme.outlineVariant,
-                  ),
+                      color: Theme.of(context).colorScheme.outlineVariant),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       'Understanding GEX',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleMedium
+                          ?.copyWith(fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 8),
                     const Text(
@@ -1195,13 +1140,8 @@ class _GammaExposureDashboardWidgetState
     );
   }
 
-  Widget _buildEduItem(
-    BuildContext context,
-    IconData icon,
-    Color color,
-    String title,
-    String description,
-  ) {
+  Widget _buildEduItem(BuildContext context, IconData icon, Color color,
+      String title, String description) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1211,13 +1151,9 @@ class _GammaExposureDashboardWidgetState
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 13,
-                ),
-              ),
+              Text(title,
+                  style: const TextStyle(
+                      fontWeight: FontWeight.bold, fontSize: 13)),
               const SizedBox(height: 2),
               Text(description, style: Theme.of(context).textTheme.bodySmall),
             ],

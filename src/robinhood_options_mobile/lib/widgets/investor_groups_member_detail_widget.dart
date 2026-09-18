@@ -79,15 +79,13 @@ class _InvestorGroupsMemberDetailWidgetState
     if (widget.currentUser == null || !_hasSelection) return;
 
     // Batch flow if multi-select and more than one trade selected
-    final isBatch =
-        _multiSelectMode &&
+    final isBatch = _multiSelectMode &&
         (_selectedOptionOrders.length + _selectedInstrumentOrders.length > 1);
 
     if (!isBatch) {
       // Single trade path
-      final option = _selectedOptionOrders.isNotEmpty
-          ? _selectedOptionOrders.first
-          : null;
+      final option =
+          _selectedOptionOrders.isNotEmpty ? _selectedOptionOrders.first : null;
       final instrument = _selectedInstrumentOrders.isNotEmpty
           ? _selectedInstrumentOrders.first
           : null;
@@ -114,8 +112,7 @@ class _InvestorGroupsMemberDetailWidgetState
           .map((o) => o.instrumentObj?.symbol ?? 'Unknown'),
     ];
 
-    final confirmed =
-        await showDialog<bool>(
+    final confirmed = await showDialog<bool>(
           context: context,
           builder: (ctx) => AlertDialog(
             title: const Text('Confirm Batch Copy'),
@@ -132,10 +129,8 @@ class _InvestorGroupsMemberDetailWidgetState
                     style: const TextStyle(fontSize: 12, color: Colors.grey),
                   ),
                 const SizedBox(height: 16),
-                const Text(
-                  'Proceed to copy all selected trades?',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
+                const Text('Proceed to copy all selected trades?',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
               ],
             ),
             actions: [
@@ -203,17 +198,14 @@ class _InvestorGroupsMemberDetailWidgetState
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          widget.user.name ?? widget.user.email ?? 'Member Portfolio',
-        ),
+        title:
+            Text(widget.user.name ?? widget.user.email ?? 'Member Portfolio'),
         actions: [
           IconButton(
             tooltip: _multiSelectMode ? 'Single Select' : 'Multi-Select',
-            icon: Icon(
-              _multiSelectMode
-                  ? Icons.check_box
-                  : Icons.check_box_outline_blank,
-            ),
+            icon: Icon(_multiSelectMode
+                ? Icons.check_box
+                : Icons.check_box_outline_blank),
             onPressed: _toggleMultiSelect,
           ),
           if (_hasSelection)
@@ -232,10 +224,8 @@ class _InvestorGroupsMemberDetailWidgetState
               children: [
                 ListTile(
                   leading: const Icon(Icons.account_circle, size: 40),
-                  title: Text(
-                    widget.user.name ?? 'User',
-                    style: const TextStyle(fontSize: 20),
-                  ),
+                  title: Text(widget.user.name ?? 'User',
+                      style: const TextStyle(fontSize: 20)),
                 ),
                 // const Divider(),
               ],
@@ -257,12 +247,10 @@ class _InvestorGroupsMemberDetailWidgetState
                   .orderBy('created_at', descending: true)
                   .limit(10)
                   .snapshots()
-                  .map(
-                    (snapshot) => snapshot.docs
-                        .map((doc) => OptionOrder.fromJson(doc.data()))
-                        .where((o) => o.state != 'cancelled')
-                        .toList(),
-                  ),
+                  .map((snapshot) => snapshot.docs
+                      .map((doc) => OptionOrder.fromJson(doc.data()))
+                      .where((o) => o.state != 'cancelled')
+                      .toList()),
               builder: (context, snapshot) {
                 if (!snapshot.hasData) return const SizedBox();
                 final orders = snapshot.data!;
@@ -281,17 +269,11 @@ class _InvestorGroupsMemberDetailWidgetState
                   itemBuilder: (context, index) {
                     final o = orders[index];
                     Widget subtitle = Text(
-                      "${o.state} ${o.updatedAt != null ? formatDate.format(o.updatedAt!) : ''}",
-                    );
+                        "${o.state} ${o.updatedAt != null ? formatDate.format(o.updatedAt!) : ''}");
                     if (o.optionEvents != null && o.optionEvents!.isNotEmpty) {
                       final event = o.optionEvents!.first;
                       subtitle = Text(
-                        "${o.state} ${o.updatedAt != null ? formatDate.format(o.updatedAt!) : ''}\n${event.type == "expiration" ? "Expired" : (event.type == "assignment" ? "Assigned" : (event.type == "exercise" ? "Exercised" : event.type))} ${event.eventDate != null
-                            ? event.eventDate!.year == DateTime.now().year
-                                  ? formatCompactDate.format(event.eventDate!)
-                                  : formatCompactDate2.format(event.eventDate!)
-                            : ''} at ${event.underlyingPrice != null ? formatCurrency.format(event.underlyingPrice) : ""}",
-                      );
+                          "${o.state} ${o.updatedAt != null ? formatDate.format(o.updatedAt!) : ''}\n${event.type == "expiration" ? "Expired" : (event.type == "assignment" ? "Assigned" : (event.type == "exercise" ? "Exercised" : event.type))} ${event.eventDate != null ? event.eventDate!.year == DateTime.now().year ? formatCompactDate.format(event.eventDate!) : formatCompactDate2.format(event.eventDate!) : ''} at ${event.underlyingPrice != null ? formatCurrency.format(event.underlyingPrice) : ""}");
                     }
 
                     final isCredit = o.direction == "credit";
@@ -299,29 +281,24 @@ class _InvestorGroupsMemberDetailWidgetState
 
                     return Card(
                       margin: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
+                          horizontal: 8, vertical: 4),
                       elevation: isSelected ? 6 : 1,
                       shape: RoundedRectangleBorder(
                         side: isSelected
                             ? BorderSide(
                                 color: Theme.of(context).colorScheme.primary,
-                                width: 1.5,
-                              )
+                                width: 1.5)
                             : BorderSide(color: Colors.transparent, width: 0),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: ListTile(
                         leading: CircleAvatar(
-                          child:
-                              o.optionEvents != null &&
+                          child: o.optionEvents != null &&
                                   o.optionEvents!.isNotEmpty
                               ? const Icon(Icons.check, size: 20)
                               : Text(
                                   "${o.legs.isNotEmpty && o.legs.first.side!.toLowerCase() == 'buy' ? '+' : '-'}${o.quantity != null ? o.quantity!.round().toString() : ''}",
-                                  style: const TextStyle(fontSize: 14),
-                                ),
+                                  style: const TextStyle(fontSize: 14)),
                         ),
                         title: Text(
                           "${o.chainSymbol} ${o.legs.isNotEmpty ? o.legs.first.optionType : ''}\n${o.legs.isNotEmpty && o.legs.first.expirationDate != null ? formatCompactDate.format(o.legs.first.expirationDate!) : ''} \$${o.legs.isNotEmpty ? formatCompactNumber.format(o.legs.first.strikePrice) : ''}",
@@ -348,8 +325,8 @@ class _InvestorGroupsMemberDetailWidgetState
                                 (o.processedPremium != null
                                     ? formatCurrency.format(o.processedPremium)
                                     : o.premium != null
-                                    ? formatCurrency.format(o.premium)
-                                    : ""),
+                                        ? formatCurrency.format(o.premium)
+                                        : ""),
                             style: TextStyle(
                               fontSize: 15.0,
                               fontWeight: FontWeight.bold,
@@ -360,8 +337,7 @@ class _InvestorGroupsMemberDetailWidgetState
                             ),
                           ),
                         ),
-                        isThreeLine:
-                            o.optionEvents != null &&
+                        isThreeLine: o.optionEvents != null &&
                             o.optionEvents!.isNotEmpty,
                         onTap: () {
                           if (widget.currentUser == null ||
@@ -396,10 +372,9 @@ class _InvestorGroupsMemberDetailWidgetState
                             _selectedInstrumentOrders.clear();
                           });
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Multi-select enabled for options'),
-                            ),
-                          );
+                              const SnackBar(
+                                  content: Text(
+                                      'Multi-select enabled for options')));
                         },
                       ),
                     );
@@ -421,24 +396,20 @@ class _InvestorGroupsMemberDetailWidgetState
             child: StreamBuilder<List<InstrumentOrder>>(
               stream: widget.userDoc
                   .collection(
-                    widget.firestoreService.instrumentOrderCollectionName,
-                  )
+                      widget.firestoreService.instrumentOrderCollectionName)
                   .orderBy('created_at', descending: true)
                   .limit(10)
                   .snapshots()
-                  .map(
-                    (snapshot) => snapshot.docs
-                        .map((doc) => InstrumentOrder.fromJson(doc.data()))
-                        .where((o) => o.state != 'cancelled')
-                        .toList(),
-                  ),
+                  .map((snapshot) => snapshot.docs
+                      .map((doc) => InstrumentOrder.fromJson(doc.data()))
+                      .where((o) => o.state != 'cancelled')
+                      .toList()),
               builder: (context, snapshot) {
                 if (!snapshot.hasData) return const SizedBox();
                 final orders = snapshot.data!;
                 if (orders.isEmpty) {
                   return const ListTile(
-                    title: Text('No stock/ETF transactions.'),
-                  );
+                      title: Text('No stock/ETF transactions.'));
                 }
                 final instrumentIds = orders
                     .map((o) => o.instrumentId)
@@ -473,78 +444,63 @@ class _InvestorGroupsMemberDetailWidgetState
                         double amount = 0.0;
                         if ((o.price != null || o.averagePrice != null) &&
                             o.quantity != null) {
-                          amount =
-                              (o.price ?? o.averagePrice!) *
+                          amount = (o.price ?? o.averagePrice!) *
                               o.quantity! *
                               (o.side == "buy" ? -1 : 1);
                         }
-                        final isSelected = _selectedInstrumentOrders.contains(
-                          o,
-                        );
+                        final isSelected =
+                            _selectedInstrumentOrders.contains(o);
                         return Card(
                           margin: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
+                              horizontal: 8, vertical: 4),
                           elevation: isSelected ? 6 : 1,
                           shape: RoundedRectangleBorder(
                             side: isSelected
                                 ? BorderSide(
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.primary,
-                                    width: 1.5,
-                                  )
+                                    color:
+                                        Theme.of(context).colorScheme.primary,
+                                    width: 1.5)
                                 : BorderSide(
-                                    color: Colors.transparent,
-                                    width: 0,
-                                  ),
+                                    color: Colors.transparent, width: 0),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: ListTile(
                             leading: CircleAvatar(
-                              child: Builder(
-                                builder: (context) {
-                                  String qtyStr = '';
-                                  if (o.quantity != null) {
-                                    final q = o.quantity!;
-                                    // Preserve integer without decimals; otherwise show up to 2 decimals
-                                    if (q % 1 == 0) {
-                                      qtyStr = q.round().toString();
-                                    } else {
-                                      qtyStr = q.toStringAsFixed(2);
-                                    }
-                                    // Limit length (avoid overflow on very large fractional values)
-                                    if (qtyStr.length > 6) {
-                                      qtyStr = qtyStr.substring(0, 6);
-                                    }
-                                    final sign = o.side == 'buy' ? '+' : '-';
-                                    qtyStr = '$sign$qtyStr';
+                              child: Builder(builder: (context) {
+                                String qtyStr = '';
+                                if (o.quantity != null) {
+                                  final q = o.quantity!;
+                                  // Preserve integer without decimals; otherwise show up to 2 decimals
+                                  if (q % 1 == 0) {
+                                    qtyStr = q.round().toString();
+                                  } else {
+                                    qtyStr = q.toStringAsFixed(2);
                                   }
-                                  return Text(
-                                    qtyStr,
-                                    style: const TextStyle(fontSize: 14),
-                                    overflow: TextOverflow.fade,
-                                    softWrap: false,
-                                  );
-                                },
-                              ),
+                                  // Limit length (avoid overflow on very large fractional values)
+                                  if (qtyStr.length > 6) {
+                                    qtyStr = qtyStr.substring(0, 6);
+                                  }
+                                  final sign = o.side == 'buy' ? '+' : '-';
+                                  qtyStr = '$sign$qtyStr';
+                                }
+                                return Text(
+                                  qtyStr,
+                                  style: const TextStyle(fontSize: 14),
+                                  overflow: TextOverflow.fade,
+                                  softWrap: false,
+                                );
+                              }),
                             ),
                             title: Text(
-                              "${o.instrumentObj != null ? o.instrumentObj!.symbol : ''} ${o.type} ${o.side} ${o.price != null
-                                  ? formatCurrency.format(o.price)
-                                  : o.averagePrice != null
-                                  ? formatCurrency.format(o.averagePrice)
-                                  : ''}",
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w500,
-                              ),
+                              "${o.instrumentObj != null ? o.instrumentObj!.symbol : ''} ${o.type} ${o.side} ${o.price != null ? formatCurrency.format(o.price) : o.averagePrice != null ? formatCurrency.format(o.averagePrice) : ''}",
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.w500),
                             ),
                             subtitle: Text(
                               "${o.state} ${o.updatedAt != null ? formatDate.format(o.updatedAt!) : ''}",
                             ),
-                            trailing:
-                                (o.price != null || o.averagePrice != null) &&
+                            trailing: (o.price != null ||
+                                        o.averagePrice != null) &&
                                     o.quantity != null
                                 ? Container(
                                     padding: const EdgeInsets.symmetric(
@@ -552,22 +508,20 @@ class _InvestorGroupsMemberDetailWidgetState
                                       vertical: 6,
                                     ),
                                     decoration: BoxDecoration(
-                                      color:
-                                          (amount > 0
-                                                  ? Colors.green
-                                                  : (amount < 0
-                                                        ? Colors.red
-                                                        : Colors.grey))
-                                              .withValues(alpha: 0.15),
+                                      color: (amount > 0
+                                              ? Colors.green
+                                              : (amount < 0
+                                                  ? Colors.red
+                                                  : Colors.grey))
+                                          .withValues(alpha: 0.15),
                                       borderRadius: BorderRadius.circular(8),
                                       border: Border.all(
-                                        color:
-                                            (amount > 0
-                                                    ? Colors.green
-                                                    : (amount < 0
-                                                          ? Colors.red
-                                                          : Colors.grey))
-                                                .withValues(alpha: 0.3),
+                                        color: (amount > 0
+                                                ? Colors.green
+                                                : (amount < 0
+                                                    ? Colors.red
+                                                    : Colors.grey))
+                                            .withValues(alpha: 0.3),
                                         width: 1,
                                       ),
                                     ),
@@ -579,8 +533,8 @@ class _InvestorGroupsMemberDetailWidgetState
                                         color: amount > 0
                                             ? Colors.green[800]
                                             : (amount < 0
-                                                  ? Colors.red[800]
-                                                  : Colors.grey[800]),
+                                                ? Colors.red[800]
+                                                : Colors.grey[800]),
                                         letterSpacing: 0.5,
                                       ),
                                     ),
@@ -619,12 +573,9 @@ class _InvestorGroupsMemberDetailWidgetState
                                 _selectedOptionOrders.clear();
                               });
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    'Multi-select enabled for stocks/ETFs',
-                                  ),
-                                ),
-                              );
+                                  const SnackBar(
+                                      content: Text(
+                                          'Multi-select enabled for stocks/ETFs')));
                             },
                           ),
                         );
@@ -637,18 +588,15 @@ class _InvestorGroupsMemberDetailWidgetState
           ),
         ],
       ),
-      floatingActionButton:
-          _hasSelection &&
+      floatingActionButton: _hasSelection &&
               widget.currentUser != null &&
               auth.currentUser != null
           ? FloatingActionButton.extended(
               onPressed: _copySelected,
               icon: const Icon(Icons.content_copy),
-              label: Text(
-                _multiSelectMode
-                    ? 'Copy (${_selectedOptionOrders.length + _selectedInstrumentOrders.length})'
-                    : 'Copy Trade',
-              ),
+              label: Text(_multiSelectMode
+                  ? 'Copy (${_selectedOptionOrders.length + _selectedInstrumentOrders.length})'
+                  : 'Copy Trade'),
             )
           : null,
     );

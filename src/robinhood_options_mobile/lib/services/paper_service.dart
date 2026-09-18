@@ -102,23 +102,22 @@ class PaperService implements IBrokerageService {
   /// Maps the app's chart spans to range/interval combinations supported by
   /// Yahoo Finance, which is the market-data source for paper trading.
   static ({String range, String interval, String appInterval})
-  chartDataParameters(
-    ChartDateSpan chartDateSpanFilter, {
-    String? chartInterval,
-  }) {
-    final appInterval =
-        chartInterval ??
+      chartDataParameters(ChartDateSpan chartDateSpanFilter,
+          {String? chartInterval}) {
+    final appInterval = chartInterval ??
         switch (chartDateSpanFilter) {
           ChartDateSpan.month_3 ||
           ChartDateSpan.rolling_30 ||
           ChartDateSpan.rolling_60 ||
           ChartDateSpan.rolling_90 ||
           ChartDateSpan.ytd ||
-          ChartDateSpan.year => 'day',
+          ChartDateSpan.year =>
+            'day',
           ChartDateSpan.year_2 ||
           ChartDateSpan.year_3 ||
           ChartDateSpan.year_5 ||
-          ChartDateSpan.all => 'week',
+          ChartDateSpan.all =>
+            'week',
           _ => '5minute',
         };
 
@@ -171,16 +170,11 @@ class PaperService implements IBrokerageService {
   }
 
   @override
-  Future<List<Account>> getAccounts(
-    BrokerageUser user,
-    AccountStore store,
-    PortfolioStore? portfolioStore,
-    OptionPositionStore? optionPositionStore, {
-    InstrumentPositionStore? instrumentPositionStore,
-    DocumentReference? userDoc,
-  }) async {
-    final userId =
-        userDoc?.id ??
+  Future<List<Account>> getAccounts(BrokerageUser user, AccountStore store,
+      PortfolioStore? portfolioStore, OptionPositionStore? optionPositionStore,
+      {InstrumentPositionStore? instrumentPositionStore,
+      DocumentReference? userDoc}) async {
+    final userId = userDoc?.id ??
         auth.currentUser?.uid ??
         user.userInfo?.id ??
         user.userName ??
@@ -209,12 +203,8 @@ class PaperService implements IBrokerageService {
 
     if (instrumentPositionStore != null) {
       await getStockPositionStore(
-        user,
-        instrumentPositionStore,
-        InstrumentStore(),
-        QuoteStore(),
-        userDoc: userDoc,
-      );
+          user, instrumentPositionStore, InstrumentStore(), QuoteStore(),
+          userDoc: userDoc);
     }
 
     return [account];
@@ -222,11 +212,8 @@ class PaperService implements IBrokerageService {
 
   @override
   Future<List<Portfolio>> getPortfolios(
-    BrokerageUser user,
-    PortfolioStore store,
-  ) async {
-    final userId =
-        auth.currentUser?.uid ??
+      BrokerageUser user, PortfolioStore store) async {
+    final userId = auth.currentUser?.uid ??
         user.userInfo?.id ??
         user.userName ??
         'default_paper_user';
@@ -272,13 +259,12 @@ class PaperService implements IBrokerageService {
 
   @override
   Future<InstrumentPositionStore> getStockPositionStore(
-    BrokerageUser user,
-    InstrumentPositionStore store,
-    InstrumentStore instrumentStore,
-    QuoteStore quoteStore, {
-    bool nonzero = true,
-    DocumentReference? userDoc,
-  }) async {
+      BrokerageUser user,
+      InstrumentPositionStore store,
+      InstrumentStore instrumentStore,
+      QuoteStore quoteStore,
+      {bool nonzero = true,
+      DocumentReference? userDoc}) async {
     final engine = await _engine();
     final positions = engine.positions.toList();
 
@@ -300,15 +286,11 @@ class PaperService implements IBrokerageService {
             .toSet()
             .toList();
         if (instrumentIds.isNotEmpty) {
-          final fetchedById = await getInstrumentsByIds(
-            user,
-            instrumentStore,
-            instrumentIds,
-          );
+          final fetchedById =
+              await getInstrumentsByIds(user, instrumentStore, instrumentIds);
           for (var pos in positionsNeedingInstrument) {
-            final match = fetchedById.firstWhereOrNull(
-              (i) => pos.instrument.contains(i.id),
-            );
+            final match = fetchedById
+                .firstWhereOrNull((i) => pos.instrument.contains(i.id));
             if (match != null) {
               pos.instrumentObj = match;
               if (!symbols.contains(match.symbol)) {
@@ -325,25 +307,18 @@ class PaperService implements IBrokerageService {
 
         for (var pos in positions) {
           if (pos.instrumentObj != null) {
-            pos.instrumentObj =
-                fetchedInstruments.firstWhereOrNull(
-                  (i) => i.symbol == pos.instrumentObj!.symbol,
-                ) ??
+            pos.instrumentObj = fetchedInstruments.firstWhereOrNull(
+                    (i) => i.symbol == pos.instrumentObj!.symbol) ??
                 pos.instrumentObj;
           } else {
-            pos.instrumentObj = fetchedInstruments.firstWhereOrNull(
-              (i) =>
-                  pos.instrument.contains(i.symbol) ||
-                  pos.instrument.contains(i.id),
-            );
+            pos.instrumentObj = fetchedInstruments.firstWhereOrNull((i) =>
+                pos.instrument.contains(i.symbol) ||
+                pos.instrument.contains(i.id));
           }
           if (pos.instrumentObj != null) {
             pos.instrumentObj!.fundamentalsObj = fetchedFundamentals
-                .firstWhereOrNull(
-                  (fundamentals) => fundamentals.instrument.contains(
-                    '/${pos.instrumentObj!.symbol}/',
-                  ),
-                );
+                .firstWhereOrNull((fundamentals) => fundamentals.instrument
+                    .contains('/${pos.instrumentObj!.symbol}/'));
           }
         }
         await getQuoteByIds(user, quoteStore, symbols);
@@ -351,9 +326,8 @@ class PaperService implements IBrokerageService {
           if (pos.instrumentObj != null &&
               pos.instrumentObj!.quoteObj == null &&
               quoteStore.items.isNotEmpty) {
-            final quote = quoteStore.items.firstWhereOrNull(
-              (q) => q.symbol == pos.instrumentObj!.symbol,
-            );
+            final quote = quoteStore.items
+                .firstWhereOrNull((q) => q.symbol == pos.instrumentObj!.symbol);
             if (quote != null) {
               pos.instrumentObj!.quoteObj = quote;
             }
@@ -371,19 +345,14 @@ class PaperService implements IBrokerageService {
 
   @override
   Future<List<ForexHolding>> getNummusHoldings(
-    BrokerageUser user,
-    ForexHoldingStore store, {
-    bool nonzero = true,
-    DocumentReference? userDoc,
-  }) async {
+      BrokerageUser user, ForexHoldingStore store,
+      {bool nonzero = true, DocumentReference? userDoc}) async {
     return [];
   }
 
   @override
   Future<List<ForexHolding>> refreshNummusHoldings(
-    BrokerageUser user,
-    ForexHoldingStore store,
-  ) async {
+      BrokerageUser user, ForexHoldingStore store) async {
     return [];
   }
 
@@ -394,22 +363,15 @@ class PaperService implements IBrokerageService {
 
   @override
   Future<List<ForexQuote>> getForexQuoteByIds(
-    BrokerageUser user,
-    List<String> ids,
-  ) async {
+      BrokerageUser user, List<String> ids) async {
     return await yahooService.getForexQuotesByIds(ids);
   }
 
   @override
-  Future<OptionPositionStore> getOptionPositionStore(
-    BrokerageUser user,
-    OptionPositionStore store,
-    InstrumentStore instrumentStore, {
-    bool nonzero = true,
-    DocumentReference? userDoc,
-  }) async {
-    final userId =
-        userDoc?.id ??
+  Future<OptionPositionStore> getOptionPositionStore(BrokerageUser user,
+      OptionPositionStore store, InstrumentStore instrumentStore,
+      {bool nonzero = true, DocumentReference? userDoc}) async {
+    final userId = userDoc?.id ??
         auth.currentUser?.uid ??
         user.userInfo?.id ??
         user.userName ??
@@ -420,19 +382,16 @@ class PaperService implements IBrokerageService {
       // Collect option instrument IDs to fetch metadata/market data
       final optionIds = positions
           .where((p) => p.optionInstrument == null)
-          .map(
-            (p) =>
-                p.legs.first.option.split('/').where((s) => s.isNotEmpty).last,
-          )
+          .map((p) =>
+              p.legs.first.option.split('/').where((s) => s.isNotEmpty).last)
           .toSet()
           .toList();
 
       if (optionIds.isNotEmpty) {
         final fetched = await getOptionInstrumentByIds(user, optionIds);
         for (var pos in positions) {
-          pos.optionInstrument ??= fetched.firstWhereOrNull(
-            (i) => pos.legs.first.option.contains(i.id),
-          );
+          pos.optionInstrument ??= fetched
+              .firstWhereOrNull((i) => pos.legs.first.option.contains(i.id));
         }
       }
 
@@ -445,10 +404,9 @@ class PaperService implements IBrokerageService {
         final marketData = await getOptionMarketDataByIds(user, allOptionIds);
         for (var pos in positions) {
           if (pos.optionInstrument != null) {
-            pos.optionInstrument!.optionMarketData = marketData
-                .firstWhereOrNull(
-                  (m) => m.instrumentId == pos.optionInstrument!.id,
-                );
+            pos.optionInstrument!.optionMarketData =
+                marketData.firstWhereOrNull(
+                    (m) => m.instrumentId == pos.optionInstrument!.id);
           }
         }
       }
@@ -463,11 +421,9 @@ class PaperService implements IBrokerageService {
 
   @override
   Future<List<OptionAggregatePosition>> getAggregateOptionPositions(
-    BrokerageUser user, {
-    bool nonzero = true,
-  }) async {
-    final userId =
-        auth.currentUser?.uid ??
+      BrokerageUser user,
+      {bool nonzero = true}) async {
+    final userId = auth.currentUser?.uid ??
         user.userInfo?.id ??
         user.userName ??
         'default_paper_user';
@@ -476,47 +432,39 @@ class PaperService implements IBrokerageService {
 
   @override
   Stream<List<OptionInstrument>> streamOptionInstruments(
-    BrokerageUser user,
-    OptionInstrumentStore store,
-    Instrument instrument,
-    String? expirationDates,
-    String? type, {
-    String? state = "active",
-    bool includeMarketData = false,
-  }) {
+      BrokerageUser user,
+      OptionInstrumentStore store,
+      Instrument instrument,
+      String? expirationDates,
+      String? type,
+      {String? state = "active",
+      bool includeMarketData = false}) {
     return Stream.value([]);
   }
 
   @override
   Future<List<OptionInstrument>> getOptionInstrumentByIds(
-    BrokerageUser user,
-    List<String> ids,
-  ) async {
+      BrokerageUser user, List<String> ids) async {
     return _firestoreService.getOptionInstruments(ids);
   }
 
   @override
   Future<OptionMarketData?> getOptionMarketData(
-    BrokerageUser user,
-    OptionInstrument optionInstrument,
-  ) async {
+      BrokerageUser user, OptionInstrument optionInstrument) async {
     return _firestoreService.getOptionMarketData(optionInstrument.id);
   }
 
   @override
   Future<List<OptionMarketData>> getOptionMarketDataByIds(
-    BrokerageUser user,
-    List<String> ids,
-  ) async {
+      BrokerageUser user, List<String> ids) async {
     return _firestoreService.getOptionMarketDataList(ids);
   }
 
   @override
   Future<List<OptionAggregatePosition>> refreshOptionMarketData(
-    BrokerageUser user,
-    OptionPositionStore optionPositionStore,
-    OptionInstrumentStore optionInstrumentStore,
-  ) async {
+      BrokerageUser user,
+      OptionPositionStore optionPositionStore,
+      OptionInstrumentStore optionInstrumentStore) async {
     if (optionPositionStore.items.isEmpty) {
       return [];
     }
@@ -531,9 +479,8 @@ class PaperService implements IBrokerageService {
     for (var optionMarketDatum in optionMarketData) {
       try {
         var optionPosition = optionPositionStore.items.singleWhere((element) {
-          return element.legs.first.option.contains(
-            optionMarketDatum.instrumentId,
-          );
+          return element.legs.first.option
+              .contains(optionMarketDatum.instrumentId);
         });
 
         if (optionPosition.optionInstrument != null) {
@@ -550,50 +497,33 @@ class PaperService implements IBrokerageService {
 
   @override
   Future<List<OptionEvent>> getOptionEventsByInstrumentUrl(
-    BrokerageUser user,
-    String instrumentUrl,
-  ) async {
+      BrokerageUser user, String instrumentUrl) async {
     return [];
   }
 
   @override
   Stream<List<OptionEvent>> streamOptionEvents(
-    BrokerageUser user,
-    OptionEventStore store, {
-    int pageSize = 20,
-    DocumentReference? userDoc,
-  }) {
+      BrokerageUser user, OptionEventStore store,
+      {int pageSize = 20, DocumentReference? userDoc}) {
     return Stream.value([]);
   }
 
   @override
   Future<List<OptionChain>> getOptionChainsByIds(
-    BrokerageUser user,
-    List<String> ids,
-  ) async {
+      BrokerageUser user, List<String> ids) async {
     return [];
   }
 
   @override
   Future<OptionChain> getOptionChains(BrokerageUser user, String id) async {
     // Return empty mock for paper options
-    return OptionChain(
-      id,
-      'paper_symbol',
-      true,
-      0.0,
-      [],
-      100.0,
-      const MinTicks(0.05, 0.01, 3.0),
-    );
+    return OptionChain(id, 'paper_symbol', true, 0.0, [], 100.0,
+        const MinTicks(0.05, 0.01, 3.0));
   }
 
   @override
   Future<Instrument> getInstrument(
-    BrokerageUser user,
-    InstrumentStore store,
-    String instrumentUrl,
-  ) async {
+      BrokerageUser user, InstrumentStore store, String instrumentUrl) async {
     // Try to extract symbol from URL if it's like .../instruments/AAPL/
     var parts = instrumentUrl.split('/').where((s) => s.isNotEmpty).toList();
     var symbol = parts.last;
@@ -607,10 +537,7 @@ class PaperService implements IBrokerageService {
 
   @override
   Future<Instrument?> getInstrumentBySymbol(
-    BrokerageUser user,
-    InstrumentStore store,
-    String symbol,
-  ) async {
+      BrokerageUser user, InstrumentStore store, String symbol) async {
     final instruments = await yahooService.getInstruments([symbol]);
     if (instruments.isNotEmpty) {
       store.add(instruments[0]);
@@ -621,10 +548,7 @@ class PaperService implements IBrokerageService {
 
   @override
   Future<List<Instrument>> getInstrumentsByIds(
-    BrokerageUser user,
-    InstrumentStore store,
-    List<String> ids,
-  ) async {
+      BrokerageUser user, InstrumentStore store, List<String> ids) async {
     if (ids.isEmpty) return [];
     final instruments = await yahooService.getInstruments(ids);
     for (var i in instruments) {
@@ -635,11 +559,8 @@ class PaperService implements IBrokerageService {
 
   @override
   Future<List<Quote>> getQuoteByIds(
-    BrokerageUser user,
-    QuoteStore store,
-    List<String> symbols, {
-    bool fromCache = true,
-  }) async {
+      BrokerageUser user, QuoteStore store, List<String> symbols,
+      {bool fromCache = true}) async {
     if (symbols.isEmpty) return [];
     try {
       // Try Fidelity API first for better real-time quotes
@@ -651,8 +572,7 @@ class PaperService implements IBrokerageService {
         return quotes;
       } catch (e) {
         debugPrint(
-          'Error fetching quotes from Fidelity, falling back to Yahoo: $e',
-        );
+            'Error fetching quotes from Fidelity, falling back to Yahoo: $e');
         // Fallback to Yahoo Finance
         final quotes = await yahooService.getQuotesByIds(symbols);
         for (var q in quotes) {
@@ -668,10 +588,7 @@ class PaperService implements IBrokerageService {
 
   @override
   Future<Quote> getQuote(
-    BrokerageUser user,
-    QuoteStore store,
-    String symbol,
-  ) async {
+      BrokerageUser user, QuoteStore store, String symbol) async {
     try {
       // Try Fidelity API first for better real-time quotes
       try {
@@ -683,8 +600,7 @@ class PaperService implements IBrokerageService {
         }
       } catch (e) {
         debugPrint(
-          'Error fetching quote from Fidelity, falling back to Yahoo: $e',
-        );
+            'Error fetching quote from Fidelity, falling back to Yahoo: $e');
       }
 
       // Fallback to Yahoo Finance
@@ -699,19 +615,13 @@ class PaperService implements IBrokerageService {
 
   @override
   Future<Quote> refreshQuote(
-    BrokerageUser user,
-    QuoteStore store,
-    String symbol,
-  ) async {
+      BrokerageUser user, QuoteStore store, String symbol) async {
     return getQuote(user, store, symbol);
   }
 
   @override
-  Future<List<InstrumentPosition>> refreshPositionQuote(
-    BrokerageUser user,
-    InstrumentPositionStore store,
-    QuoteStore quoteStore,
-  ) async {
+  Future<List<InstrumentPosition>> refreshPositionQuote(BrokerageUser user,
+      InstrumentPositionStore store, QuoteStore quoteStore) async {
     final symbols = store.items
         .map((e) => e.instrumentObj?.symbol ?? '')
         .where((s) => s.isNotEmpty)
@@ -723,20 +633,15 @@ class PaperService implements IBrokerageService {
   }
 
   @override
-  Future<List<Fundamentals>> getFundamentalsById(
-    BrokerageUser user,
-    List<String> instruments,
-    InstrumentStore store,
-  ) async {
+  Future<List<Fundamentals>> getFundamentalsById(BrokerageUser user,
+      List<String> instruments, InstrumentStore store) async {
     if (instruments.isEmpty) return [];
     return yahooService.getFundamentals(instruments);
   }
 
   @override
   Future<Fundamentals> getFundamentals(
-    BrokerageUser user,
-    Instrument instrumentObj,
-  ) async {
+      BrokerageUser user, Instrument instrumentObj) async {
     final results = await yahooService.getFundamentals([instrumentObj.symbol]);
     if (results.isNotEmpty) {
       return results[0];
@@ -748,9 +653,7 @@ class PaperService implements IBrokerageService {
   /// daily close, saved history) so every surface — account, portfolio,
   /// historicals — reports the same numbers.
   Future<PaperEquitySnapshot> _equitySnapshot(
-    BrokerageUser user,
-    String userId,
-  ) async {
+      BrokerageUser user, String userId) async {
     final paperAccountDoc = await _firestoreService.getPaperAccountDoc(userId);
     final data = paperAccountDoc.data() ?? {};
     final cashBalance = (data['cashBalance'] as num?)?.toDouble() ?? 100000.0;
@@ -779,15 +682,11 @@ class PaperService implements IBrokerageService {
             .toList();
         if (instrumentIds.isNotEmpty) {
           final instrumentStore = InstrumentStore();
-          final fetchedById = await getInstrumentsByIds(
-            user,
-            instrumentStore,
-            instrumentIds,
-          );
+          final fetchedById =
+              await getInstrumentsByIds(user, instrumentStore, instrumentIds);
           for (var pos in positionsNeedingInstrument) {
-            final match = fetchedById.firstWhereOrNull(
-              (i) => pos.instrument.contains(i.id),
-            );
+            final match = fetchedById
+                .firstWhereOrNull((i) => pos.instrument.contains(i.id));
             if (match != null) {
               pos.instrumentObj = match;
               if (!symbols.contains(match.symbol)) {
@@ -805,9 +704,8 @@ class PaperService implements IBrokerageService {
           if (pos.instrumentObj != null &&
               pos.instrumentObj!.quoteObj == null &&
               quoteStore.items.isNotEmpty) {
-            final quote = quoteStore.items.firstWhereOrNull(
-              (q) => q.symbol == pos.instrumentObj!.symbol,
-            );
+            final quote = quoteStore.items
+                .firstWhereOrNull((q) => q.symbol == pos.instrumentObj!.symbol);
             if (quote != null) {
               pos.instrumentObj!.quoteObj = quote;
             }
@@ -837,9 +735,8 @@ class PaperService implements IBrokerageService {
     // Futures positions: open P&L marked to the last saved price.
     if (data['futuresPositions'] != null) {
       final futuresPositions = (data['futuresPositions'] as List)
-          .map(
-            (e) => FuturesPaperPosition.fromJson(Map<String, dynamic>.from(e)),
-          )
+          .map((e) =>
+              FuturesPaperPosition.fromJson(Map<String, dynamic>.from(e)))
           .toList();
       for (var fp in futuresPositions) {
         positionsValue += fp.openPnl;
@@ -851,9 +748,8 @@ class PaperService implements IBrokerageService {
     final historyData = await _firestoreService.getPaperHistory(userId);
     final equityHistoricals = historyData.map((e) {
       if (e['begins_at'] is Timestamp) {
-        e['begins_at'] = (e['begins_at'] as Timestamp)
-            .toDate()
-            .toIso8601String();
+        e['begins_at'] =
+            (e['begins_at'] as Timestamp).toDate().toIso8601String();
       }
       return EquityHistorical.fromJson(e);
     }).toList();
@@ -879,14 +775,12 @@ class PaperService implements IBrokerageService {
 
   @override
   Future<PortfolioHistoricals> getPortfolioHistoricals(
-    BrokerageUser user,
-    PortfolioHistoricalsStore store,
-    String account,
-    Bounds chartBoundsFilter,
-    ChartDateSpan chartDateSpanFilter,
-  ) async {
-    final userId =
-        auth.currentUser?.uid ??
+      BrokerageUser user,
+      PortfolioHistoricalsStore store,
+      String account,
+      Bounds chartBoundsFilter,
+      ChartDateSpan chartDateSpanFilter) async {
+    final userId = auth.currentUser?.uid ??
         user.userInfo?.id ??
         user.userName ??
         'default_paper_user';
@@ -895,22 +789,19 @@ class PaperService implements IBrokerageService {
     final previousClose = snapshot.previousClose ?? balance;
 
     // Append the live valuation as the latest point.
-    final equityHistoricals = List<EquityHistorical>.from(
-      snapshot.equityHistoricals,
-    );
-    equityHistoricals.add(
-      EquityHistorical(
-        balance, // adjustedOpenEquity
-        balance, // adjustedCloseEquity
-        previousClose, // openEquity
-        balance, // closeEquity
-        balance,
-        balance,
-        DateTime.now(),
-        balance - previousClose, // netReturn vs previous close
-        'regular',
-      ),
-    );
+    final equityHistoricals =
+        List<EquityHistorical>.from(snapshot.equityHistoricals);
+    equityHistoricals.add(EquityHistorical(
+      balance, // adjustedOpenEquity
+      balance, // adjustedCloseEquity
+      previousClose, // openEquity
+      balance, // closeEquity
+      balance,
+      balance,
+      DateTime.now(),
+      balance - previousClose, // netReturn vs previous close
+      'regular',
+    ));
 
     // The period open is the first point in the series; the change the UI
     // derives (close - open) is now meaningful instead of always zero.
@@ -937,29 +828,18 @@ class PaperService implements IBrokerageService {
 
   @override
   Future<PortfolioHistoricals> getPortfolioPerformance(
-    BrokerageUser user,
-    PortfolioHistoricalsStore store,
-    String account, {
-    Bounds chartBoundsFilter = Bounds.t24_7,
-    ChartDateSpan chartDateSpanFilter = ChartDateSpan.day,
-  }) async {
+      BrokerageUser user, PortfolioHistoricalsStore store, String account,
+      {Bounds chartBoundsFilter = Bounds.t24_7,
+      ChartDateSpan chartDateSpanFilter = ChartDateSpan.day}) async {
     return getPortfolioHistoricals(
-      user,
-      store,
-      account,
-      chartBoundsFilter,
-      chartDateSpanFilter,
-    );
+        user, store, account, chartBoundsFilter, chartDateSpanFilter);
   }
 
   @override
   Future<OptionHistoricals> getOptionHistoricals(
-    BrokerageUser user,
-    OptionHistoricalsStore store,
-    List<String> ids, {
-    Bounds chartBoundsFilter = Bounds.regular,
-    ChartDateSpan chartDateSpanFilter = ChartDateSpan.day,
-  }) async {
+      BrokerageUser user, OptionHistoricalsStore store, List<String> ids,
+      {Bounds chartBoundsFilter = Bounds.regular,
+      ChartDateSpan chartDateSpanFilter = ChartDateSpan.day}) async {
     // For now, return empty or mock data for paper options
     final historicals = OptionHistoricals(
       convertChartBoundsFilter(chartBoundsFilter),
@@ -977,75 +857,59 @@ class PaperService implements IBrokerageService {
   }
 
   @override
-  Future<ForexHistoricals> getForexHistoricals(
-    BrokerageUser user,
-    String id, {
-    Bounds chartBoundsFilter = Bounds.t24_7,
-    ChartDateSpan chartDateSpanFilter = ChartDateSpan.day,
-  }) async {
-    return await yahooService.getForexHistoricals(
-      id,
-      chartBoundsFilter: chartBoundsFilter,
-      chartDateSpanFilter: chartDateSpanFilter,
-    );
+  Future<ForexHistoricals> getForexHistoricals(BrokerageUser user, String id,
+      {Bounds chartBoundsFilter = Bounds.t24_7,
+      ChartDateSpan chartDateSpanFilter = ChartDateSpan.day}) async {
+    return await yahooService.getForexHistoricals(id,
+        chartBoundsFilter: chartBoundsFilter,
+        chartDateSpanFilter: chartDateSpanFilter);
   }
 
   @override
-  Future<InstrumentHistoricals> getInstrumentHistoricals(
-    BrokerageUser user,
-    InstrumentHistoricalsStore store,
-    String symbolOrInstrumentId, {
-    bool includeInactive = true,
-    Bounds chartBoundsFilter = Bounds.trading,
-    ChartDateSpan chartDateSpanFilter = ChartDateSpan.day,
-    String? chartInterval,
-  }) async {
+  Future<InstrumentHistoricals> getInstrumentHistoricals(BrokerageUser user,
+      InstrumentHistoricalsStore store, String symbolOrInstrumentId,
+      {bool includeInactive = true,
+      Bounds chartBoundsFilter = Bounds.trading,
+      ChartDateSpan chartDateSpanFilter = ChartDateSpan.day,
+      String? chartInterval}) async {
     final span = convertChartSpanFilter(chartDateSpanFilter);
     final bounds = convertChartBoundsFilter(chartBoundsFilter);
-    final parameters = chartDataParameters(
-      chartDateSpanFilter,
-      chartInterval: chartInterval,
-    );
+    final parameters =
+        chartDataParameters(chartDateSpanFilter, chartInterval: chartInterval);
 
     try {
       final data = await yahooService.getHistoricals(
-        symbolOrInstrumentId,
-        parameters.range,
-        parameters.interval,
-      );
+          symbolOrInstrumentId, parameters.range, parameters.interval);
       final historicals = InstrumentHistoricals(
-        '',
-        symbolOrInstrumentId,
-        parameters.appInterval,
-        span,
-        bounds,
-        null,
-        null,
-        null,
-        null,
-        'https://api.robinhood.com/instruments/$symbolOrInstrumentId/',
-        symbolOrInstrumentId,
-        data,
-      );
+          '',
+          symbolOrInstrumentId,
+          parameters.appInterval,
+          span,
+          bounds,
+          null,
+          null,
+          null,
+          null,
+          'https://api.robinhood.com/instruments/$symbolOrInstrumentId/',
+          symbolOrInstrumentId,
+          data);
       store.addOrUpdate(historicals);
       return historicals;
     } catch (e) {
       debugPrint('Error fetching historicals from Yahoo: $e');
       // Fallback to empty historicals if Yahoo fails
       final historicals = InstrumentHistoricals(
-        '',
-        symbolOrInstrumentId,
-        parameters.appInterval,
-        span,
-        bounds,
-        null,
-        null,
-        null,
-        null,
-        '',
-        null,
-        [],
-      );
+          '',
+          symbolOrInstrumentId,
+          parameters.appInterval,
+          span,
+          bounds,
+          null,
+          null,
+          null,
+          null,
+          '',
+          null, []);
       store.addOrUpdate(historicals);
       return historicals;
     }
@@ -1053,49 +917,38 @@ class PaperService implements IBrokerageService {
 
   @override
   Future<FutureHistoricals?> getFuturesHistoricals(
-    BrokerageUser user,
-    String id, {
-    Bounds chartBoundsFilter = Bounds.regular,
-    ChartDateSpan chartDateSpanFilter = ChartDateSpan.day,
-  }) async {
+      BrokerageUser user, String id,
+      {Bounds chartBoundsFilter = Bounds.regular,
+      ChartDateSpan chartDateSpanFilter = ChartDateSpan.day}) async {
     return null;
   }
 
   @override
   Stream<List<dynamic>> streamDividends(
-    BrokerageUser user,
-    InstrumentStore instrumentStore, {
-    DocumentReference? userDoc,
-  }) {
+      BrokerageUser user, InstrumentStore instrumentStore,
+      {DocumentReference? userDoc}) {
     return Stream.value([]);
   }
 
   @override
-  Future<List<dynamic>> getDividends(
-    BrokerageUser user,
-    DividendStore dividendStore,
-    InstrumentStore instrumentStore, {
-    String? instrumentId,
-  }) async {
+  Future<List<dynamic>> getDividends(BrokerageUser user,
+      DividendStore dividendStore, InstrumentStore instrumentStore,
+      {String? instrumentId}) async {
     // Return empty results for paper trading for now
     return [];
   }
 
   @override
   Stream<List<dynamic>> streamInterests(
-    BrokerageUser user,
-    InstrumentStore instrumentStore, {
-    DocumentReference? userDoc,
-  }) {
+      BrokerageUser user, InstrumentStore instrumentStore,
+      {DocumentReference? userDoc}) {
     return Stream.value([]);
   }
 
   @override
   Future<List<dynamic>> getInterests(
-    BrokerageUser user,
-    InterestStore interestStore, {
-    String? instrumentId,
-  }) async {
+      BrokerageUser user, InterestStore interestStore,
+      {String? instrumentId}) async {
     // Return empty results for paper trading for now
     return [];
   }
@@ -1107,24 +960,20 @@ class PaperService implements IBrokerageService {
       null;
   @override
   Future<dynamic> getRatingsOverview(
-    BrokerageUser user,
-    String instrumentId,
-  ) async => null;
+          BrokerageUser user, String instrumentId) async =>
+      null;
   @override
   Future<List<dynamic>> getEarnings(
-    BrokerageUser user,
-    String instrumentId,
-  ) async => [];
+          BrokerageUser user, String instrumentId) async =>
+      [];
   @override
   Future<List<dynamic>> getSimilar(
-    BrokerageUser user,
-    String instrumentId,
-  ) async => [];
+          BrokerageUser user, String instrumentId) async =>
+      [];
   @override
   Future<List<dynamic>> getSplits(
-    BrokerageUser user,
-    Instrument instrumentObj,
-  ) async => [];
+          BrokerageUser user, Instrument instrumentObj) async =>
+      [];
 
   @override
   Future<dynamic> search(BrokerageUser user, String query) async {
@@ -1132,32 +981,25 @@ class PaperService implements IBrokerageService {
   }
 
   @override
-  Future<List<MidlandMoversItem>> getMovers(
-    BrokerageUser user, {
-    String direction = "up",
-  }) async {
+  Future<List<MidlandMoversItem>> getMovers(BrokerageUser user,
+      {String direction = "up"}) async {
     final movers = await yahooService.getMovers(direction: direction);
     return movers.map((q) {
       return MidlandMoversItem(
-        'https://api.robinhood.com/instruments/${q['symbol']}/', // dummy
-        q['symbol'] ?? '',
-        DateTime.now(),
-        (q['changePercent'] as num?)?.toDouble(),
-        (q['price'] as num?)?.toDouble(),
-        q['description'] ?? '',
-      );
+          'https://api.robinhood.com/instruments/${q['symbol']}/', // dummy
+          q['symbol'] ?? '',
+          DateTime.now(),
+          (q['changePercent'] as num?)?.toDouble(),
+          (q['price'] as num?)?.toDouble(),
+          q['description'] ?? '');
     }).toList();
   }
 
   @override
   Future<List<Instrument>> getTopMovers(
-    BrokerageUser user,
-    InstrumentStore instrumentStore,
-  ) async {
-    final actives = await yahooService.getStockScreener(
-      scrIds: 'most_actives',
-      count: 10,
-    );
+      BrokerageUser user, InstrumentStore instrumentStore) async {
+    final actives =
+        await yahooService.getStockScreener(scrIds: 'most_actives', count: 10);
     final results = actives['finance']?['result']?[0]?['records'] ?? [];
 
     List<String> symbols = [];
@@ -1172,11 +1014,8 @@ class PaperService implements IBrokerageService {
 
     List<Instrument> instruments = [];
     for (var symbol in symbols) {
-      final instrument = await getInstrumentBySymbol(
-        user,
-        instrumentStore,
-        symbol,
-      );
+      final instrument =
+          await getInstrumentBySymbol(user, instrumentStore, symbol);
       if (instrument != null) {
         instrument.quoteObj = mapQuotes[symbol.toUpperCase()];
         instruments.add(instrument);
@@ -1187,13 +1026,9 @@ class PaperService implements IBrokerageService {
 
   @override
   Future<List<Instrument>> getListMostPopular(
-    BrokerageUser user,
-    InstrumentStore instrumentStore,
-  ) async {
-    final popular = await yahooService.getStockScreener(
-      scrIds: 'most_actives',
-      count: 10,
-    );
+      BrokerageUser user, InstrumentStore instrumentStore) async {
+    final popular =
+        await yahooService.getStockScreener(scrIds: 'most_actives', count: 10);
     final results = popular['finance']?['result']?[0]?['records'] ?? [];
 
     List<String> symbols = [];
@@ -1208,11 +1043,8 @@ class PaperService implements IBrokerageService {
 
     List<Instrument> instruments = [];
     for (var symbol in symbols) {
-      final instrument = await getInstrumentBySymbol(
-        user,
-        instrumentStore,
-        symbol,
-      );
+      final instrument =
+          await getInstrumentBySymbol(user, instrumentStore, symbol);
       if (instrument != null) {
         instrument.quoteObj = mapQuotes[symbol.toUpperCase()];
         instruments.add(instrument);
@@ -1222,36 +1054,25 @@ class PaperService implements IBrokerageService {
   }
 
   @override
-  Stream<List<Watchlist>> streamLists(
-    BrokerageUser user,
-    InstrumentStore instrumentStore,
-    QuoteStore quoteStore,
-  ) {
+  Stream<List<Watchlist>> streamLists(BrokerageUser user,
+      InstrumentStore instrumentStore, QuoteStore quoteStore) {
     return Stream.value([]);
   }
 
   @override
   Future<List<dynamic>> getLists(
-    BrokerageUser user,
-    String instrumentId,
-  ) async => [];
+          BrokerageUser user, String instrumentId) async =>
+      [];
   @override
-  Stream<Watchlist> streamList(
-    BrokerageUser user,
-    InstrumentStore instrumentStore,
-    QuoteStore quoteStore,
-    String key, {
-    String ownerType = "custom",
-  }) {
+  Stream<Watchlist> streamList(BrokerageUser user,
+      InstrumentStore instrumentStore, QuoteStore quoteStore, String key,
+      {String ownerType = "custom"}) {
     throw UnimplementedError();
   }
 
   @override
-  Future<Watchlist> getList(
-    String key,
-    BrokerageUser user, {
-    String ownerType = "custom",
-  }) async {
+  Future<Watchlist> getList(String key, BrokerageUser user,
+      {String ownerType = "custom"}) async {
     throw UnimplementedError();
   }
 
@@ -1259,34 +1080,21 @@ class PaperService implements IBrokerageService {
   Future<List<Watchlist>> getAllLists(BrokerageUser user) async => [];
   @override
   Future<void> addToList(
-    BrokerageUser user,
-    String listId,
-    String instrumentId,
-  ) async {}
+      BrokerageUser user, String listId, String instrumentId) async {}
   @override
   Future<void> removeFromList(
-    BrokerageUser user,
-    String listId,
-    String instrumentId,
-  ) async {}
+      BrokerageUser user, String listId, String instrumentId) async {}
   @override
-  Future<void> createList(
-    BrokerageUser user,
-    String name, {
-    String? emoji,
-  }) async {}
+  Future<void> createList(BrokerageUser user, String name,
+      {String? emoji}) async {}
   @override
   Future<void> deleteList(BrokerageUser user, String listId) async {}
 
   @override
-  Stream<List<InstrumentOrder>> streamPositionOrders(
-    BrokerageUser user,
-    InstrumentOrderStore store,
-    InstrumentStore instrumentStore, {
-    DocumentReference? userDoc,
-  }) {
-    final userId =
-        userDoc?.id ??
+  Stream<List<InstrumentOrder>> streamPositionOrders(BrokerageUser user,
+      InstrumentOrderStore store, InstrumentStore instrumentStore,
+      {DocumentReference? userDoc}) {
+    final userId = userDoc?.id ??
         auth.currentUser?.uid ??
         user.userInfo?.id ??
         user.userName ??
@@ -1299,7 +1107,7 @@ class PaperService implements IBrokerageService {
       'futures',
       'strategy',
       'expiration',
-      'margin',
+      'margin'
     };
 
     // Two live sources: working orders from the account document, and the
@@ -1318,39 +1126,33 @@ class PaperService implements IBrokerageService {
 
     controller = StreamController<List<InstrumentOrder>>(
       onListen: () {
-        accountSub = _firestoreService.getPaperAccountStream(userId).listen((
-          snapshot,
-        ) {
+        accountSub =
+            _firestoreService.getPaperAccountStream(userId).listen((snapshot) {
           final data = snapshot.data() ?? {};
           working = (data['pendingOrders'] as List? ?? [])
               .map((e) => Map<String, dynamic>.from(e))
               .where((o) => o['assetType']?.toString() == 'stock')
-              .map(
-                (o) => InstrumentOrder.fromPaperJson({
-                  'id': o['id'],
-                  'symbol': o['symbol'],
-                  'side': o['side'],
-                  'order_type': o['orderType'],
-                  'state': 'confirmed',
-                  'quantity': o['quantity'],
-                  'price': o['limitPrice'] ?? o['stopPrice'],
-                  'instrument': (o['instrumentJson'] as Map?)?['url'],
-                  'created_at': o['createdAt'],
-                  'updated_at': o['createdAt'],
-                  'time_in_force': o['timeInForce'],
-                  'trigger': o['stopPrice'] != null ? 'stop' : 'immediate',
-                }),
-              )
+              .map((o) => InstrumentOrder.fromPaperJson({
+                    'id': o['id'],
+                    'symbol': o['symbol'],
+                    'side': o['side'],
+                    'order_type': o['orderType'],
+                    'state': 'confirmed',
+                    'quantity': o['quantity'],
+                    'price': o['limitPrice'] ?? o['stopPrice'],
+                    'instrument': (o['instrumentJson'] as Map?)?['url'],
+                    'created_at': o['createdAt'],
+                    'updated_at': o['createdAt'],
+                    'time_in_force': o['timeInForce'],
+                    'trigger': o['stopPrice'] != null ? 'stop' : 'immediate',
+                  }))
               .toList();
           emit();
         });
         fillsSub = _firestoreService.streamPaperFills(userId).listen((list) {
           fills = list
-              .where(
-                (d) => !nonStockTypes.contains(
-                  d['type']?.toString().toLowerCase(),
-                ),
-              )
+              .where((d) =>
+                  !nonStockTypes.contains(d['type']?.toString().toLowerCase()))
               .map((d) => InstrumentOrder.fromPaperJson(d))
               .toList();
           emit();
@@ -1366,21 +1168,16 @@ class PaperService implements IBrokerageService {
 
   @override
   Stream<List<OptionOrder>> streamOptionOrders(
-    BrokerageUser user,
-    OptionOrderStore store, {
-    DocumentReference? userDoc,
-  }) {
+      BrokerageUser user, OptionOrderStore store,
+      {DocumentReference? userDoc}) {
     return Stream.value([]);
   }
 
   final List<ComboOrder> _paperComboOrders = [];
 
   @override
-  Future<List<ComboOrder>> getComboOrders(
-    BrokerageUser user, {
-    String? accountNumber,
-    int? limit,
-  }) async {
+  Future<List<ComboOrder>> getComboOrders(BrokerageUser user,
+      {String? accountNumber, int? limit}) async {
     return List.from(_paperComboOrders);
   }
 
@@ -1407,17 +1204,16 @@ class PaperService implements IBrokerageService {
 
   @override
   Future<dynamic> placeComboOrder(
-    BrokerageUser user,
-    Account account,
-    List<Map<String, dynamic>> legs,
-    String creditOrDebit,
-    double price,
-    int quantity, {
-    String type = 'limit',
-    String trigger = 'immediate',
-    String timeInForce = 'gtc',
-    String? openingStrategy,
-  }) async {
+      BrokerageUser user,
+      Account account,
+      List<Map<String, dynamic>> legs,
+      String creditOrDebit,
+      double price,
+      int quantity,
+      {String type = 'limit',
+      String trigger = 'immediate',
+      String timeInForce = 'gtc',
+      String? openingStrategy}) async {
     final now = DateTime.now();
     final newId = 'paper-combo-order-${now.millisecondsSinceEpoch}';
     final parsedLegs = legs.map((l) => ComboLeg.fromJson(l)).toList();
@@ -1444,14 +1240,16 @@ class PaperService implements IBrokerageService {
       updatedAt: now,
     );
     _paperComboOrders.insert(0, newOrder);
-    return http.Response(jsonEncode({'id': newId, 'state': 'filled'}), 201);
+    return http.Response(
+      jsonEncode({'id': newId, 'state': 'filled'}),
+      201,
+    );
   }
 
   @override
   Future<dynamic> cancelComboOrder(BrokerageUser user, String cancelUrl) async {
-    final order = _paperComboOrders.firstWhereOrNull(
-      (o) => o.cancelUrl == cancelUrl,
-    );
+    final order =
+        _paperComboOrders.firstWhereOrNull((o) => o.cancelUrl == cancelUrl);
     if (order != null) {
       final updated = ComboOrder(
         id: order.id,
@@ -1490,16 +1288,12 @@ class PaperService implements IBrokerageService {
 
   @override
   Future<List<OptionOrder>> getOptionOrders(
-    BrokerageUser user,
-    OptionOrderStore store,
-    String chainId,
-  ) async => [];
+          BrokerageUser user, OptionOrderStore store, String chainId) async =>
+      [];
   @override
-  Future<List<InstrumentOrder>> getInstrumentOrders(
-    BrokerageUser user,
-    InstrumentOrderStore store,
-    List<String> instrumentUrls,
-  ) async => [];
+  Future<List<InstrumentOrder>> getInstrumentOrders(BrokerageUser user,
+          InstrumentOrderStore store, List<String> instrumentUrls) async =>
+      [];
 
   /// Returns the single app-wide paper trading engine, bound to the signed-in
   /// Firebase user and fully loaded from Firestore. All paper order execution
@@ -1509,8 +1303,7 @@ class PaperService implements IBrokerageService {
     final firebaseUser = auth.currentUser;
     if (firebaseUser == null) {
       throw Exception(
-        'Paper trading requires a signed-in session. Please sign in again.',
-      );
+          'Paper trading requires a signed-in session. Please sign in again.');
     }
     await paperTradingStore.ensureLoaded(firebaseUser);
     return paperTradingStore;
@@ -1519,28 +1312,24 @@ class PaperService implements IBrokerageService {
   /// Wraps an order body in an [http.Response] to match the return shape of
   /// the real brokerage services (e.g. RobinhoodService).
   http.Response _orderResponse(Map<String, dynamic> order) {
-    return http.Response(
-      jsonEncode(order),
-      201,
-      headers: {'content-type': 'application/json'},
-    );
+    return http.Response(jsonEncode(order), 201,
+        headers: {'content-type': 'application/json'});
   }
 
   @override
   Future<dynamic> placeInstrumentOrder(
-    BrokerageUser user,
-    Account account,
-    Instrument instrument,
-    String symbol,
-    String side,
-    double? price,
-    int quantity, {
-    String type = 'limit',
-    String trigger = 'immediate',
-    double? stopPrice,
-    String timeInForce = 'gtc',
-    Map<String, dynamic>? trailingPeg,
-  }) async {
+      BrokerageUser user,
+      Account account,
+      Instrument instrument,
+      String symbol,
+      String side,
+      double? price,
+      int quantity,
+      {String type = 'limit',
+      String trigger = 'immediate',
+      double? stopPrice,
+      String timeInForce = 'gtc',
+      Map<String, dynamic>? trailingPeg}) async {
     final store = await _engine();
 
     // Map Robinhood order semantics (type + trigger + trailing peg) to the
@@ -1550,8 +1339,8 @@ class PaperService implements IBrokerageService {
       engineType = trailingPeg != null
           ? 'trailing_stop'
           : engineType == 'limit'
-          ? 'stop_limit'
-          : 'stop';
+              ? 'stop_limit'
+              : 'stop';
     }
 
     final result = await store.submitStockOrder(
@@ -1559,9 +1348,8 @@ class PaperService implements IBrokerageService {
       quantity: quantity.toDouble(),
       side: side.toLowerCase(),
       orderType: engineType,
-      limitPrice: engineType == 'limit' || engineType == 'stop_limit'
-          ? price
-          : null,
+      limitPrice:
+          engineType == 'limit' || engineType == 'stop_limit' ? price : null,
       stopPrice: stopPrice,
       marketPrice: instrument.quoteObj?.lastTradePrice ?? price,
       timeInForce: timeInForce,
@@ -1580,12 +1368,10 @@ class PaperService implements IBrokerageService {
       'cancel': result.state == 'confirmed' ? result.id : null,
       'instrument': instrument.url,
       'instrument_id': instrument.id,
-      'cumulative_quantity': result.state == 'filled'
-          ? quantity.toString()
-          : '0',
-      'average_price': result.state == 'filled'
-          ? displayPrice?.toString()
-          : null,
+      'cumulative_quantity':
+          result.state == 'filled' ? quantity.toString() : '0',
+      'average_price':
+          result.state == 'filled' ? displayPrice?.toString() : null,
       'fees': '0.00',
       'state': result.state,
       'pending_cancel_open_agent': null,
@@ -1605,20 +1391,19 @@ class PaperService implements IBrokerageService {
 
   @override
   Future<dynamic> placeOptionsOrder(
-    BrokerageUser user,
-    Account account,
-    OptionInstrument optionInstrument,
-    String side,
-    String positionEffect,
-    String creditOrDebit,
-    double price,
-    int quantity, {
-    String type = 'limit',
-    String trigger = 'immediate',
-    double? stopPrice,
-    String timeInForce = 'gtc',
-    Map<String, dynamic>? trailingPeg,
-  }) async {
+      BrokerageUser user,
+      Account account,
+      OptionInstrument optionInstrument,
+      String side,
+      String positionEffect,
+      String creditOrDebit,
+      double price,
+      int quantity,
+      {String type = 'limit',
+      String trigger = 'immediate',
+      double? stopPrice,
+      String timeInForce = 'gtc',
+      Map<String, dynamic>? trailingPeg}) async {
     final store = await _engine();
 
     String engineType = type.toLowerCase();
@@ -1626,8 +1411,8 @@ class PaperService implements IBrokerageService {
       engineType = trailingPeg != null
           ? 'trailing_stop'
           : engineType == 'limit'
-          ? 'stop_limit'
-          : 'stop';
+              ? 'stop_limit'
+              : 'stop';
     }
 
     final result = await store.submitOptionOrder(
@@ -1635,9 +1420,8 @@ class PaperService implements IBrokerageService {
       quantity: quantity.toDouble(),
       side: side.toLowerCase(),
       orderType: engineType,
-      limitPrice: engineType == 'limit' || engineType == 'stop_limit'
-          ? price
-          : null,
+      limitPrice:
+          engineType == 'limit' || engineType == 'stop_limit' ? price : null,
       stopPrice: stopPrice,
       marketPrice:
           optionInstrument.optionMarketData?.adjustedMarkPrice ?? price,
@@ -1668,17 +1452,15 @@ class PaperService implements IBrokerageService {
           'strike_price': optionInstrument.strikePrice,
           'option_type': optionInstrument.type,
           'executions': [],
-        },
+        }
       ],
       'pending_quantity': result.state == 'filled' ? '0' : quantity.toString(),
       'premium': (price * 100).toString(),
-      'processed_premium': result.state == 'filled'
-          ? (price * 100 * quantity).toString()
-          : '0',
+      'processed_premium':
+          result.state == 'filled' ? (price * 100 * quantity).toString() : '0',
       'price': price.toString(),
-      'processed_quantity': result.state == 'filled'
-          ? quantity.toString()
-          : '0',
+      'processed_quantity':
+          result.state == 'filled' ? quantity.toString() : '0',
       'quantity': quantity.toString(),
       'state': result.state,
       'time_in_force': timeInForce,
@@ -1695,26 +1477,23 @@ class PaperService implements IBrokerageService {
 
   @override
   Future<dynamic> placeMultiLegOptionsOrder(
-    BrokerageUser user,
-    Account account,
-    List<Map<String, dynamic>> legs,
-    String creditOrDebit,
-    double price,
-    int quantity, {
-    String type = 'limit',
-    String trigger = 'immediate',
-    String timeInForce = 'gtc',
-  }) async {
+      BrokerageUser user,
+      Account account,
+      List<Map<String, dynamic>> legs,
+      String creditOrDebit,
+      double price,
+      int quantity,
+      {String type = 'limit',
+      String trigger = 'immediate',
+      String timeInForce = 'gtc'}) async {
     final store = await _engine();
 
     // Resolve OptionInstrument objects from the leg option URLs.
     final optionIds = legs
-        .map(
-          (leg) => (leg['option']?.toString() ?? '')
-              .split('/')
-              .where((s) => s.isNotEmpty)
-              .lastOrNull,
-        )
+        .map((leg) => (leg['option']?.toString() ?? '')
+            .split('/')
+            .where((s) => s.isNotEmpty)
+            .lastOrNull)
         .whereType<String>()
         .toList();
     final instruments = await getOptionInstrumentByIds(user, optionIds);
@@ -1722,13 +1501,11 @@ class PaperService implements IBrokerageService {
     final legsData = <Map<String, dynamic>>[];
     for (var leg in legs) {
       final optionUrl = leg['option']?.toString() ?? '';
-      final instrument = instruments.firstWhereOrNull(
-        (i) => optionUrl.contains(i.id),
-      );
+      final instrument =
+          instruments.firstWhereOrNull((i) => optionUrl.contains(i.id));
       if (instrument == null) {
         throw Exception(
-          'Could not resolve option instrument for leg: $optionUrl',
-        );
+            'Could not resolve option instrument for leg: $optionUrl');
       }
       legsData.add({
         'instrument': instrument,
@@ -1767,16 +1544,11 @@ class PaperService implements IBrokerageService {
   Future<List<ForexOrder>> getForexOrders(BrokerageUser user) async => [];
 
   @override
-  Future<dynamic> placeForexOrder(
-    BrokerageUser user,
-    String pairId,
-    String side,
-    double? price,
-    double quantity, {
-    String type = 'market',
-    String timeInForce = 'gtc',
-    double? stopPrice,
-  }) async {
+  Future<dynamic> placeForexOrder(BrokerageUser user, String pairId,
+      String side, double? price, double quantity,
+      {String type = 'market',
+      String timeInForce = 'gtc',
+      double? stopPrice}) async {
     final nowIso = DateTime.now().toIso8601String();
     final orderId = 'paper_forex_${DateTime.now().millisecondsSinceEpoch}';
     final execPrice = price ?? 1.0;
@@ -1821,66 +1593,49 @@ class PaperService implements IBrokerageService {
 
   @override
   Future<dynamic> getRecentDayTrades(
-    BrokerageUser user,
-    String accountNumber,
-  ) async {
+      BrokerageUser user, String accountNumber) async {
     return null;
   }
 
   @override
-  Future<dynamic> getShortInterest(
-    BrokerageUser user,
-    String instrumentId, {
-    String? startDate,
-  }) async {
+  Future<dynamic> getShortInterest(BrokerageUser user, String instrumentId,
+      {String? startDate}) async {
     return null;
   }
 
   @override
   Future<dynamic> getShortingAvailability(
-    BrokerageUser user,
-    String instrumentId,
-  ) async {
+      BrokerageUser user, String instrumentId) async {
     return null;
   }
 
   @override
   Future<dynamic> getRetailSentiment(
-    BrokerageUser user,
-    String instrumentId,
-  ) async {
+      BrokerageUser user, String instrumentId) async {
     return null;
   }
 
   @override
   Future<dynamic> getInsiderSummary(
-    BrokerageUser user,
-    String instrumentId,
-  ) async {
+      BrokerageUser user, String instrumentId) async {
     return null;
   }
 
   @override
   Future<dynamic> getInsiderTransactions(
-    BrokerageUser user,
-    String instrumentId,
-  ) async {
+      BrokerageUser user, String instrumentId) async {
     return null;
   }
 
   @override
   Future<dynamic> getHedgeFundSummary(
-    BrokerageUser user,
-    String instrumentId,
-  ) async {
+      BrokerageUser user, String instrumentId) async {
     return null;
   }
 
   @override
   Future<dynamic> getHedgeFundTransactions(
-    BrokerageUser user,
-    String instrumentId,
-  ) async {
+      BrokerageUser user, String instrumentId) async {
     return null;
   }
 
@@ -1890,10 +1645,8 @@ class PaperService implements IBrokerageService {
   }
 
   @override
-  Future<dynamic> getScreeners(
-    BrokerageUser user, {
-    bool includeFilters = false,
-  }) async {
+  Future<dynamic> getScreeners(BrokerageUser user,
+      {bool includeFilters = false}) async {
     return null;
   }
 
@@ -1924,44 +1677,42 @@ class PaperService implements IBrokerageService {
 
   @override
   Future<dynamic> getInstrumentBuyingPower(
-    BrokerageUser user,
-    String accountNumber,
-    String instrumentId,
-  ) async {
+      BrokerageUser user, String accountNumber, String instrumentId) async {
     return null;
   }
 
   @override
   Future<dynamic> getInstrumentWarnings(
-    BrokerageUser user,
-    String instrumentId,
-  ) async {
+      BrokerageUser user, String instrumentId) async {
     return null;
   }
 
   @override
   Future<dynamic> getOptionChainCollateral(
-    BrokerageUser user,
-    String chainId,
-    String accountNumber,
-  ) async {
+      BrokerageUser user, String chainId, String accountNumber) async {
     return {
       'collateral': {
-        'cash': {'amount': '0.0000', 'direction': 'debit', 'infinite': false},
-        'equities': [],
+        'cash': {
+          'amount': '0.0000',
+          'direction': 'debit',
+          'infinite': false,
+        },
+        'equities': []
       },
       'collateral_held_for_orders': {
-        'cash': {'amount': '0.0000', 'direction': 'debit', 'infinite': false},
-        'equities': [],
-      },
+        'cash': {
+          'amount': '0.0000',
+          'direction': 'debit',
+          'infinite': false,
+        },
+        'equities': []
+      }
     };
   }
 
   @override
   Future<dynamic> getOptionsUpgradeStatus(
-    BrokerageUser user,
-    String accountNumber,
-  ) async {
+      BrokerageUser user, String accountNumber) async {
     return {
       'should_show_options_upgrade': false,
       'option_level': 'option_level_3',
@@ -1982,10 +1733,8 @@ class PaperService implements IBrokerageService {
   }
 
   @override
-  Future<List<dynamic>> getStockLoanPayments(
-    BrokerageUser user, {
-    String? accountNumber,
-  }) async {
+  Future<List<dynamic>> getStockLoanPayments(BrokerageUser user,
+      {String? accountNumber}) async {
     return [];
   }
 
@@ -2015,9 +1764,7 @@ class PaperService implements IBrokerageService {
   }
 
   @override
-  Future<List<AchRelationship>> getAchRelationshipsModel(
-    BrokerageUser user,
-  ) async {
+  Future<List<AchRelationship>> getAchRelationshipsModel(BrokerageUser user) async {
     return [];
   }
 
@@ -2038,17 +1785,13 @@ class PaperService implements IBrokerageService {
 
   @override
   Future<dynamic> getTaxWithholdingStatus(
-    BrokerageUser user,
-    String instrumentId,
-  ) async {
+      BrokerageUser user, String instrumentId) async {
     return null;
   }
 
   @override
-  Future<List<AccountDocument>> getAccountDocumentsModel(
-    BrokerageUser user, {
-    String? type,
-  }) async {
+  Future<List<AccountDocument>> getAccountDocumentsModel(BrokerageUser user,
+      {String? type}) async {
     return [];
   }
 
@@ -2059,73 +1802,56 @@ class PaperService implements IBrokerageService {
 
   @override
   Future<TaxWithholdingStatus?> getTaxWithholdingStatusModel(
-    BrokerageUser user,
-    String instrumentId, {
-    String? symbol,
-  }) async {
+      BrokerageUser user, String instrumentId,
+      {String? symbol}) async {
     return null;
   }
 
   @override
-  Future<List<dynamic>> getSplitPayments(
-    BrokerageUser user, {
-    String? instrumentId,
-  }) async {
+  Future<List<dynamic>> getSplitPayments(BrokerageUser user,
+      {String? instrumentId}) async {
     return [];
   }
 
   @override
-  Future<List<SplitPayment>> getSplitPaymentsModel(
-    BrokerageUser user, {
-    String? instrumentId,
-  }) async {
+  Future<List<SplitPayment>> getSplitPaymentsModel(BrokerageUser user,
+      {String? instrumentId}) async {
     return [];
   }
 
   @override
   Future<CorporateActionSplitsSummary> getCorporateActionSplitsSummary(
-    BrokerageUser user,
-  ) async {
+      BrokerageUser user) async {
     return const CorporateActionSplitsSummary();
   }
 
   @override
   Future<List<dynamic>> getFuturesOrders(
-    BrokerageUser user,
-    String account,
-  ) async {
+      BrokerageUser user, String account) async {
     return [];
   }
 
   @override
   Future<List<dynamic>> getFuturesContractsByIds(
-    BrokerageUser user,
-    List<String> contractIds,
-  ) async {
+      BrokerageUser user, List<String> contractIds) async {
     return [];
   }
 
   @override
   Future<dynamic> getFuturesContractBySymbol(
-    BrokerageUser user,
-    String symbol,
-  ) async {
+      BrokerageUser user, String symbol) async {
     return null;
   }
 
   @override
   Future<List<dynamic>> getFuturesContractsBySymbols(
-    BrokerageUser user,
-    List<String> symbols,
-  ) async {
+      BrokerageUser user, List<String> symbols) async {
     return [];
   }
 
   @override
   Future<List<dynamic>> getFuturesClosesByIds(
-    BrokerageUser user,
-    List<String> contractIds,
-  ) async {
+      BrokerageUser user, List<String> contractIds) async {
     return [];
   }
 
@@ -2143,43 +1869,33 @@ class PaperService implements IBrokerageService {
     String timeInForce = 'GTC',
     String positionEffect = 'OPENING',
   }) {
-    return Future.error('Futures orders are not supported in PaperService');
+    return Future.error(
+      'Futures orders are not supported in PaperService',
+    );
   }
 
   @override
   Future<dynamic> getShareholderQaEvents(
-    BrokerageUser user,
-    String instrumentId,
-  ) async {
+      BrokerageUser user, String instrumentId) async {
     return null;
   }
 
   @override
   Future<ShareholderQaSection?> getShareholderQaSectionModel(
-    BrokerageUser user,
-    String instrumentId, {
-    String? symbol,
-  }) async {
+      BrokerageUser user, String instrumentId,
+      {String? symbol}) async {
     return null;
   }
 
   @override
-  Future<bool> upvoteQuestion(
-    BrokerageUser user,
-    String instrumentId,
-    String eventId,
-    String questionId,
-  ) async {
+  Future<bool> upvoteQuestion(BrokerageUser user, String instrumentId,
+      String eventId, String questionId) async {
     return false;
   }
 
   @override
-  Future<ShareholderQuestion?> submitQuestion(
-    BrokerageUser user,
-    String instrumentId,
-    String eventId,
-    String questionText,
-  ) async {
+  Future<ShareholderQuestion?> submitQuestion(BrokerageUser user,
+      String instrumentId, String eventId, String questionText) async {
     return null;
   }
 
@@ -2187,42 +1903,33 @@ class PaperService implements IBrokerageService {
   Future<List<dynamic>> getExternalTokens(BrokerageUser user) async => [];
 
   @override
-  Future<List<ExternalToken>> getExternalTokensModel(
-    BrokerageUser user,
-  ) async => [];
+  Future<List<ExternalToken>> getExternalTokensModel(BrokerageUser user) async => [];
 
   @override
-  Future<bool> revokeExternalToken(BrokerageUser user, String tokenId) async =>
-      false;
+  Future<bool> revokeExternalToken(BrokerageUser user, String tokenId) async => false;
 
   @override
   Future<List<dynamic>> getNotificationStack(BrokerageUser user) async => [];
 
   @override
-  Future<List<NotificationItem>> getNotificationStackModel(
-    BrokerageUser user,
-  ) async => [];
+  Future<List<NotificationItem>> getNotificationStackModel(BrokerageUser user) async => [];
 
   @override
   Future<dynamic> getInboxThreads(BrokerageUser user) async => null;
 
   @override
-  Future<List<NotificationItem>> getInboxThreadsModel(
-    BrokerageUser user,
-  ) async => [];
+  Future<List<NotificationItem>> getInboxThreadsModel(BrokerageUser user) async => [];
 
   @override
   Future<dynamic> getSpendingAccount(BrokerageUser user) async => null;
 
   @override
-  Future<SpendingAccount?> getSpendingAccountModel(BrokerageUser user) async =>
-      null;
+  Future<SpendingAccount?> getSpendingAccountModel(BrokerageUser user) async => null;
 
   @override
   Future<dynamic> getRetirementHistory(BrokerageUser user) async => null;
 
   @override
-  Future<RetirementHistory> getRetirementHistoryModel(
-    BrokerageUser user,
-  ) async => const RetirementHistory();
+  Future<RetirementHistory> getRetirementHistoryModel(BrokerageUser user) async =>
+      const RetirementHistory();
 }

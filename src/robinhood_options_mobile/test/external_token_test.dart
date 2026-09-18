@@ -30,10 +30,8 @@ void main() {
       expect(token.id, 'tok_1234');
       expect(token.clientId, 'app_tradingview');
       expect(token.applicationName, 'TradingView Pro');
-      expect(
-        token.applicationDescription,
-        'Advanced technical charting and pine script signals',
-      );
+      expect(token.applicationDescription,
+          'Advanced technical charting and pine script signals');
       expect(token.applicationUrl, 'https://tradingview.com');
       expect(token.scopes, ['read', 'trade']);
       expect(token.isActive, isTrue);
@@ -140,44 +138,37 @@ void main() {
       expect(token.formattedUpdated, isNotEmpty);
     });
 
-    test(
-      'parses real Robinhood Financial Aggregator (Yodlee / Charles Schwab)',
-      () {
-        final json = {
-          'oauth_application': {
-            'client_id': 'ZChWJMwkQdmTTCOyHieGIJu4I6ktHPlbhH2PhtQ5',
-            'name': 'Yodlee',
-            'description': '',
-            'icon': '',
-          },
-          'fourth_party_application': {
-            'display_name': 'Charles Schwab',
-            'logo_url':
-                'https://cdn.yodlee.com/COBLOGO/OBAggregator_generic_icon.svg',
-          },
-          'id': '8300476890',
-          'created': '2026-09-14T16:01:00.953562-04:00',
-          'updated': '2026-09-14T16:01:00.953575-04:00',
-          'initial_login_time': '2024-07-13T14:26:18.519352-04:00',
-        };
+    test('parses real Robinhood Financial Aggregator (Yodlee / Charles Schwab)', () {
+      final json = {
+        'oauth_application': {
+          'client_id': 'ZChWJMwkQdmTTCOyHieGIJu4I6ktHPlbhH2PhtQ5',
+          'name': 'Yodlee',
+          'description': '',
+          'icon': '',
+        },
+        'fourth_party_application': {
+          'display_name': 'Charles Schwab',
+          'logo_url': 'https://cdn.yodlee.com/COBLOGO/OBAggregator_generic_icon.svg',
+        },
+        'id': '8300476890',
+        'created': '2026-09-14T16:01:00.953562-04:00',
+        'updated': '2026-09-14T16:01:00.953575-04:00',
+        'initial_login_time': '2024-07-13T14:26:18.519352-04:00',
+      };
 
-        final token = ExternalToken.fromJson(json);
+      final token = ExternalToken.fromJson(json);
 
-        expect(token.id, '8300476890');
-        expect(token.clientId, 'ZChWJMwkQdmTTCOyHieGIJu4I6ktHPlbhH2PhtQ5');
-        expect(token.applicationName, 'Yodlee');
-        expect(token.isAgent, isFalse);
-        expect(token.isAggregator, isTrue);
-        expect(token.primaryTitle, 'Charles Schwab');
-        expect(token.subtitle, 'Connected via Yodlee');
-        expect(token.typeLabel, 'Linked Service');
-        expect(
-          token.fourthPartyLogoUrl,
-          'https://cdn.yodlee.com/COBLOGO/OBAggregator_generic_icon.svg',
-        );
-        expect(token.isActive, isTrue);
-      },
-    );
+      expect(token.id, '8300476890');
+      expect(token.clientId, 'ZChWJMwkQdmTTCOyHieGIJu4I6ktHPlbhH2PhtQ5');
+      expect(token.applicationName, 'Yodlee');
+      expect(token.isAgent, isFalse);
+      expect(token.isAggregator, isTrue);
+      expect(token.primaryTitle, 'Charles Schwab');
+      expect(token.subtitle, 'Connected via Yodlee');
+      expect(token.typeLabel, 'Linked Service');
+      expect(token.fourthPartyLogoUrl, 'https://cdn.yodlee.com/COBLOGO/OBAggregator_generic_icon.svg');
+      expect(token.isActive, isTrue);
+    });
 
     test('parses real Robinhood Direct OAuth App (X1)', () {
       final json = {
@@ -206,112 +197,107 @@ void main() {
       expect(token.isActive, isTrue);
     });
 
-    test(
-      'evaluates trade permissions and relative time helpers accurately',
-      () {
-        final agentToken = ExternalToken(
-          id: 'tok_agent',
-          applicationName: 'Robinhood Trading MCP',
-          agentId: 'c64a4bc3-9a3b-4861-bf28-dfb78e124efb',
-          agenticAccounts: ['970049961'],
-          scopes: ['read', 'trade'],
-          createdAt: DateTime.now().subtract(const Duration(days: 35)),
-          updatedAt: DateTime.now().subtract(const Duration(hours: 2)),
-          initialLoginTime: DateTime.now().subtract(const Duration(days: 45)),
-          isActive: true,
-        );
+    test('evaluates trade permissions and relative time helpers accurately', () {
+      final agentToken = ExternalToken(
+        id: 'tok_agent',
+        applicationName: 'Robinhood Trading MCP',
+        agentId: 'c64a4bc3-9a3b-4861-bf28-dfb78e124efb',
+        agenticAccounts: ['970049961'],
+        scopes: ['read', 'trade'],
+        createdAt: DateTime.now().subtract(const Duration(days: 35)),
+        updatedAt: DateTime.now().subtract(const Duration(hours: 2)),
+        initialLoginTime: DateTime.now().subtract(const Duration(days: 45)),
+        isActive: true,
+      );
 
-        expect(agentToken.hasTradePermission, isTrue);
-        expect(agentToken.permissionSummary, 'Trading & Data Access');
-        expect(agentToken.relativeLastActive, 'Today');
-        expect(agentToken.relativeFirstLogin, '1mo ago');
+      expect(agentToken.hasTradePermission, isTrue);
+      expect(agentToken.permissionSummary, 'Trading & Data Access');
+      expect(agentToken.relativeLastActive, 'Today');
+      expect(agentToken.relativeFirstLogin, '1mo ago');
 
-        final readOnlyToken = ExternalToken(
-          id: 'tok_read',
-          applicationName: 'Tax Tool',
-          scopes: ['read', 'account:read'],
-          createdAt: DateTime.now().subtract(const Duration(days: 2)),
-          updatedAt: DateTime.now().subtract(const Duration(days: 2)),
-          isActive: true,
-        );
+      final readOnlyToken = ExternalToken(
+        id: 'tok_read',
+        applicationName: 'Tax Tool',
+        scopes: ['read', 'account:read'],
+        createdAt: DateTime.now().subtract(const Duration(days: 2)),
+        updatedAt: DateTime.now().subtract(const Duration(days: 2)),
+        isActive: true,
+      );
 
-        expect(readOnlyToken.hasTradePermission, isFalse);
-        expect(readOnlyToken.permissionSummary, 'Read Only Access');
-        expect(readOnlyToken.relativeLastActive, '2d ago');
-      },
-    );
+      expect(readOnlyToken.hasTradePermission, isFalse);
+      expect(readOnlyToken.permissionSummary, 'Read Only Access');
+      expect(readOnlyToken.relativeLastActive, '2d ago');
+    });
 
-    testWidgets(
-      'ConnectedAgentsWidget renders correctly with overview and tokens',
-      (WidgetTester tester) async {
-        tester.view.physicalSize = const Size(1200, 2400);
-        tester.view.devicePixelRatio = 1.0;
-        addTearDown(tester.view.resetPhysicalSize);
-        addTearDown(tester.view.resetDevicePixelRatio);
+    testWidgets('ConnectedAgentsWidget renders correctly with overview and tokens',
+        (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1200, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
 
-        final service = DemoService();
-        final user = BrokerageUser(
-          BrokerageSource.demo,
-          'demo_user',
-          null,
-          null,
-        );
+      final service = DemoService();
+      final user = BrokerageUser(
+        BrokerageSource.demo,
+        'demo_user',
+        null,
+        null,
+      );
 
-        await tester.pumpWidget(
-          MaterialApp(
-            home: ConnectedAgentsWidget(brokerageUser: user, service: service),
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ConnectedAgentsWidget(
+            brokerageUser: user,
+            service: service,
           ),
-        );
+        ),
+      );
 
-        // Wait for future to complete
-        await tester.pumpAndSettle();
+      // Wait for future to complete
+      await tester.pumpAndSettle();
 
-        // Verify AppBar and Header
-        expect(find.text('Connected Agents & Apps'), findsOneWidget);
-        expect(find.text('Authorized Access'), findsOneWidget);
+      // Verify AppBar and Header
+      expect(find.text('Connected Agents & Apps'), findsOneWidget);
+      expect(find.text('Authorized Access'), findsOneWidget);
 
-        // Verify Category Chips
-        expect(find.textContaining('All ('), findsOneWidget);
-        expect(find.textContaining('AI Agents ('), findsOneWidget);
-        expect(find.textContaining('Linked Services ('), findsOneWidget);
-        expect(find.textContaining('Direct Apps ('), findsOneWidget);
+      // Verify Category Chips
+      expect(find.textContaining('All ('), findsOneWidget);
+      expect(find.textContaining('AI Agents ('), findsOneWidget);
+      expect(find.textContaining('Linked Services ('), findsOneWidget);
+      expect(find.textContaining('Direct Apps ('), findsOneWidget);
 
-        // Verify presence of tokens
-        expect(find.text('Robinhood Trading MCP'), findsWidgets);
-        expect(find.text('Charles Schwab'), findsOneWidget);
+      // Verify presence of tokens
+      expect(find.text('Robinhood Trading MCP'), findsWidgets);
+      expect(find.text('Charles Schwab'), findsOneWidget);
 
-        // Test search filter
-        await tester.enterText(find.byType(TextField), 'Schwab');
-        await tester.pumpAndSettle();
+      // Test search filter
+      await tester.enterText(find.byType(TextField), 'Schwab');
+      await tester.pumpAndSettle();
 
-        expect(find.text('Charles Schwab'), findsOneWidget);
-        expect(find.text('Robinhood Trading MCP'), findsNothing);
+      expect(find.text('Charles Schwab'), findsOneWidget);
+      expect(find.text('Robinhood Trading MCP'), findsNothing);
 
-        // Test opening details bottom sheet
-        await tester.tap(find.text('Details').first);
-        await tester.pumpAndSettle();
+      // Test opening details bottom sheet
+      await tester.tap(find.text('Details').first);
+      await tester.pumpAndSettle();
 
-        expect(find.text('Identifiers & Credentials'), findsOneWidget);
-        expect(find.text('Connection Lifecycle'), findsOneWidget);
-        expect(find.text('Technical Details (JSON)'), findsOneWidget);
+      expect(find.text('Identifiers & Credentials'), findsOneWidget);
+      expect(find.text('Connection Lifecycle'), findsOneWidget);
+      expect(find.text('Technical Details (JSON)'), findsOneWidget);
 
-        // Close bottom sheet (drag down or tap outside)
-        Navigator.of(
-          tester.element(find.text('Identifiers & Credentials')),
-        ).pop();
-        await tester.pumpAndSettle();
+      // Close bottom sheet (drag down or tap outside)
+      Navigator.of(tester.element(find.text('Identifiers & Credentials'))).pop();
+      await tester.pumpAndSettle();
 
-        // Test toggling to compact view
-        await tester.tap(find.byIcon(Icons.view_headline_outlined));
-        await tester.pumpAndSettle();
+      // Test toggling to compact view
+      await tester.tap(find.byIcon(Icons.view_headline_outlined));
+      await tester.pumpAndSettle();
 
-        expect(find.byType(ListTile), findsWidgets);
-      },
-    );
+      expect(find.byType(ListTile), findsWidgets);
+    });
 
-    testWidgets('renders cleanly without overflow on compact 320px viewport', (
-      tester,
-    ) async {
+    testWidgets('renders cleanly without overflow on compact 320px viewport',
+        (tester) async {
       tester.view.physicalSize = const Size(320, 800);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() {
@@ -320,11 +306,19 @@ void main() {
       });
 
       final service = DemoService();
-      final user = BrokerageUser(BrokerageSource.demo, 'demo_user', null, null);
+      final user = BrokerageUser(
+        BrokerageSource.demo,
+        'demo_user',
+        null,
+        null,
+      );
 
       await tester.pumpWidget(
         MaterialApp(
-          home: ConnectedAgentsWidget(brokerageUser: user, service: service),
+          home: ConnectedAgentsWidget(
+            brokerageUser: user,
+            service: service,
+          ),
         ),
       );
 
@@ -348,7 +342,12 @@ void main() {
 
     test('integrates with DemoService and supports token revocation', () async {
       final service = DemoService();
-      final user = BrokerageUser(BrokerageSource.demo, 'demo_user', null, null);
+      final user = BrokerageUser(
+        BrokerageSource.demo,
+        'demo_user',
+        null,
+        null,
+      );
 
       final tokens = await service.getExternalTokensModel(user);
       expect(tokens, isNotEmpty);
@@ -362,9 +361,7 @@ void main() {
       expect(revoked, isTrue);
 
       final updatedTokens = await service.getExternalTokensModel(user);
-      final revokedToken = updatedTokens.firstWhere(
-        (t) => t.id == firstToken.id,
-      );
+      final revokedToken = updatedTokens.firstWhere((t) => t.id == firstToken.id);
       expect(revokedToken.isActive, isFalse);
       expect(revokedToken.statusLabel, 'Revoked');
     });

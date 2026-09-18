@@ -63,18 +63,15 @@ class _InvestorGroupChatWidgetState extends State<InvestorGroupChatWidget> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(
-                        Icons.chat_bubble_outline,
-                        size: 64,
-                        color: Theme.of(context).colorScheme.outline,
-                      ),
+                      Icon(Icons.chat_bubble_outline,
+                          size: 64,
+                          color: Theme.of(context).colorScheme.outline),
                       const SizedBox(height: 16),
-                      Text(
-                        'No messages yet. Start the conversation!',
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                      ),
+                      Text('No messages yet. Start the conversation!',
+                          style: TextStyle(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant)),
                     ],
                   ),
                 );
@@ -88,8 +85,7 @@ class _InvestorGroupChatWidgetState extends State<InvestorGroupChatWidget> {
                 itemBuilder: (context, index) {
                   final message = messages[index].data();
                   final isMe = message.senderId == auth.currentUser?.uid;
-                  final showHeader =
-                      index == messages.length - 1 ||
+                  final showHeader = index == messages.length - 1 ||
                       messages[index + 1].data().senderId != message.senderId;
 
                   // Check if date changed compared to next message (which is physically below in list but newer in time?)
@@ -119,10 +115,7 @@ class _InvestorGroupChatWidgetState extends State<InvestorGroupChatWidget> {
                     // To avoid spamming while scrolling, maybe check if it's visible?
                     // But ListView.builder only builds visible items.
                     widget.firestoreService.markGroupMessageAsRead(
-                      widget.group.id,
-                      message.id,
-                      auth.currentUser!.uid,
-                    );
+                        widget.group.id, message.id, auth.currentUser!.uid);
                   }
 
                   return Column(
@@ -166,9 +159,10 @@ class _InvestorGroupChatWidgetState extends State<InvestorGroupChatWidget> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
           decoration: BoxDecoration(
-            color: Theme.of(
-              context,
-            ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+            color: Theme.of(context)
+                .colorScheme
+                .surfaceContainerHighest
+                .withValues(alpha: 0.5),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Text(
@@ -205,18 +199,16 @@ class _InvestorGroupChatWidgetState extends State<InvestorGroupChatWidget> {
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 4.0),
         child: Row(
-          mainAxisAlignment: isMe
-              ? MainAxisAlignment.end
-              : MainAxisAlignment.start,
+          mainAxisAlignment:
+              isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (!isMe && showHeader) ...[
               if (message.senderPhotoUrl != null)
                 CircleAvatar(
                   radius: 16,
-                  backgroundImage: CachedNetworkImageProvider(
-                    message.senderPhotoUrl!,
-                  ),
+                  backgroundImage:
+                      CachedNetworkImageProvider(message.senderPhotoUrl!),
                 )
               else
                 const CircleAvatar(
@@ -229,9 +221,8 @@ class _InvestorGroupChatWidgetState extends State<InvestorGroupChatWidget> {
             ],
             Flexible(
               child: Column(
-                crossAxisAlignment: isMe
-                    ? CrossAxisAlignment.end
-                    : CrossAxisAlignment.start,
+                crossAxisAlignment:
+                    isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
                 children: [
                   if (showHeader && !isMe) ...[
                     Padding(
@@ -268,16 +259,14 @@ class _InvestorGroupChatWidgetState extends State<InvestorGroupChatWidget> {
                       color: isMe
                           ? theme.colorScheme.primary
                           : theme.colorScheme.surfaceContainerHighest
-                                .withValues(alpha: 0.5),
+                              .withValues(alpha: 0.5),
                       borderRadius: BorderRadius.only(
                         topLeft: const Radius.circular(20),
                         topRight: const Radius.circular(20),
-                        bottomLeft: isMe
-                            ? const Radius.circular(20)
-                            : Radius.zero,
-                        bottomRight: isMe
-                            ? Radius.zero
-                            : const Radius.circular(20),
+                        bottomLeft:
+                            isMe ? const Radius.circular(20) : Radius.zero,
+                        bottomRight:
+                            isMe ? Radius.zero : const Radius.circular(20),
                       ),
                       border: !isMe
                           ? Border.all(
@@ -337,7 +326,7 @@ class _InvestorGroupChatWidgetState extends State<InvestorGroupChatWidget> {
                                               .withValues(alpha: 0.7),
                                         ),
                                       ),
-                                    ),
+                                    )
                                 ],
                               ],
                             ),
@@ -381,24 +370,23 @@ class _InvestorGroupChatWidgetState extends State<InvestorGroupChatWidget> {
             // We'll use a FutureBuilder to fetch basic user info.
 
             return FutureBuilder<DocumentSnapshot<User>>(
-              future: widget.firestoreService.getUser(userId).first,
-              builder: (context, snapshot) {
-                final user = snapshot.data?.data();
-                final name = user?.name ?? 'Unknown User';
-                final photoUrl = user?.photoUrl;
+                future: widget.firestoreService.getUser(userId).first,
+                builder: (context, snapshot) {
+                  final user = snapshot.data?.data();
+                  final name = user?.name ?? 'Unknown User';
+                  final photoUrl = user?.photoUrl;
 
-                return ListTile(
-                  leading: CircleAvatar(
-                    backgroundImage: photoUrl != null
-                        ? CachedNetworkImageProvider(photoUrl)
-                        : null,
-                    child: photoUrl == null ? const Icon(Icons.person) : null,
-                  ),
-                  title: Text(name),
-                  subtitle: Text(DateFormat.jm().format(time)),
-                );
-              },
-            );
+                  return ListTile(
+                    leading: CircleAvatar(
+                      backgroundImage: photoUrl != null
+                          ? CachedNetworkImageProvider(photoUrl)
+                          : null,
+                      child: photoUrl == null ? const Icon(Icons.person) : null,
+                    ),
+                    title: Text(name),
+                    subtitle: Text(DateFormat.jm().format(time)),
+                  );
+                });
           }),
         ],
       ),
@@ -444,13 +432,10 @@ class _InvestorGroupChatWidgetState extends State<InvestorGroupChatWidget> {
                     borderSide: BorderSide.none,
                   ),
                   filled: true,
-                  fillColor: Theme.of(
-                    context,
-                  ).colorScheme.surfaceContainerHighest,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 10,
-                  ),
+                  fillColor:
+                      Theme.of(context).colorScheme.surfaceContainerHighest,
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                 ),
                 minLines: 1,
                 maxLines: 5,
@@ -476,12 +461,8 @@ class _InvestorGroupChatWidgetState extends State<InvestorGroupChatWidget> {
     );
   }
 
-  void _showMessageOptions(
-    BuildContext context,
-    GroupMessage message,
-    bool canEdit,
-    bool canDelete,
-  ) {
+  void _showMessageOptions(BuildContext context, GroupMessage message,
+      bool canEdit, bool canDelete) {
     showModalBottomSheet(
       context: context,
       builder: (context) => SafeArea(
@@ -500,10 +481,8 @@ class _InvestorGroupChatWidgetState extends State<InvestorGroupChatWidget> {
             if (canDelete)
               ListTile(
                 leading: const Icon(Icons.delete, color: Colors.red),
-                title: const Text(
-                  'Delete',
-                  style: TextStyle(color: Colors.red),
-                ),
+                title:
+                    const Text('Delete', style: TextStyle(color: Colors.red)),
                 onTap: () {
                   Navigator.pop(context);
                   _deleteMessage(message);
@@ -547,15 +526,13 @@ class _InvestorGroupChatWidgetState extends State<InvestorGroupChatWidget> {
 
     if (confirm == true) {
       try {
-        await widget.firestoreService.deleteGroupMessage(
-          widget.group.id,
-          message.id,
-        );
+        await widget.firestoreService
+            .deleteGroupMessage(widget.group.id, message.id);
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('Error deleting message: $e')));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error deleting message: $e')),
+          );
         }
       }
     }
@@ -578,10 +555,8 @@ class _InvestorGroupChatWidgetState extends State<InvestorGroupChatWidget> {
           timestamp: _editingMessage!.timestamp,
           type: _editingMessage!.type,
         );
-        await widget.firestoreService.updateGroupMessage(
-          widget.group.id,
-          updatedMessage,
-        );
+        await widget.firestoreService
+            .updateGroupMessage(widget.group.id, updatedMessage);
         setState(() {
           _editingMessage = null;
         });
@@ -596,17 +571,15 @@ class _InvestorGroupChatWidgetState extends State<InvestorGroupChatWidget> {
           timestamp: DateTime.now(),
         );
 
-        await widget.firestoreService.sendGroupMessage(
-          widget.group.id,
-          message,
-        );
+        await widget.firestoreService
+            .sendGroupMessage(widget.group.id, message);
       }
       _messageController.clear();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error sending message: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error sending message: $e')),
+        );
       }
     } finally {
       if (mounted) {

@@ -51,8 +51,8 @@ void main() {
             'shares_short_prior': 58200000,
             'days_to_cover': 6.4,
             'settlement_date': '2026-08-15',
-          },
-        ],
+          }
+        ]
       };
 
       final si = ShortInterest.fromJson(json);
@@ -68,111 +68,103 @@ void main() {
     });
 
     test(
-      'parses real Robinhood API short interest daily_data response accurately',
-      () {
-        final json = {
-          "status": "SUCCESS",
-          "data": [
-            {
-              "status": "SUCCESS",
-              "data": {
-                "symbol": "PCG",
-                "instrument_id": "f87d7cd7-a842-47cc-9b32-c607d96e7dfb",
-                "exchange_symbol": "NYSE",
-                "daily_data": [
-                  {
-                    "shares_short": "37485031.0485",
-                    "shares_upper_bound": "45062286.3985",
-                    "shares_lower_bound": "28715885.2164",
-                    "pc_freefloat": "1.8",
-                    "pc_freefloat_upper_bound": "2.1639",
-                    "pc_freefloat_lower_bound": "1.3789",
-                    "date": "2026-09-07",
-                  },
-                  {
-                    "shares_short": "41010570.7579",
-                    "shares_upper_bound": "59965035.1079",
-                    "shares_lower_bound": "18356397.7737",
-                    "pc_freefloat": "1.9693",
-                    "pc_freefloat_upper_bound": "2.8795",
-                    "pc_freefloat_lower_bound": "0.8815",
-                    "date": "2026-09-08",
-                  },
-                  {
-                    "shares_short": "38745955.5719",
-                    "shares_upper_bound": "50392318.9219",
-                    "shares_lower_bound": "25010769.7326",
-                    "pc_freefloat": "1.8606",
-                    "pc_freefloat_upper_bound": "2.4199",
-                    "pc_freefloat_lower_bound": "1.201",
-                    "date": "2026-09-09",
-                  },
-                ],
-              },
-            },
-          ],
-        };
+        'parses real Robinhood API short interest daily_data response accurately',
+        () {
+      final json = {
+        "status": "SUCCESS",
+        "data": [
+          {
+            "status": "SUCCESS",
+            "data": {
+              "symbol": "PCG",
+              "instrument_id": "f87d7cd7-a842-47cc-9b32-c607d96e7dfb",
+              "exchange_symbol": "NYSE",
+              "daily_data": [
+                {
+                  "shares_short": "37485031.0485",
+                  "shares_upper_bound": "45062286.3985",
+                  "shares_lower_bound": "28715885.2164",
+                  "pc_freefloat": "1.8",
+                  "pc_freefloat_upper_bound": "2.1639",
+                  "pc_freefloat_lower_bound": "1.3789",
+                  "date": "2026-09-07"
+                },
+                {
+                  "shares_short": "41010570.7579",
+                  "shares_upper_bound": "59965035.1079",
+                  "shares_lower_bound": "18356397.7737",
+                  "pc_freefloat": "1.9693",
+                  "pc_freefloat_upper_bound": "2.8795",
+                  "pc_freefloat_lower_bound": "0.8815",
+                  "date": "2026-09-08"
+                },
+                {
+                  "shares_short": "38745955.5719",
+                  "shares_upper_bound": "50392318.9219",
+                  "shares_lower_bound": "25010769.7326",
+                  "pc_freefloat": "1.8606",
+                  "pc_freefloat_upper_bound": "2.4199",
+                  "pc_freefloat_lower_bound": "1.201",
+                  "date": "2026-09-09"
+                }
+              ]
+            }
+          }
+        ]
+      };
 
-        final si = ShortInterest.fromJson(
-          json,
-          fallbackAverageDailyVolume: 20000000,
-        );
+      final si =
+          ShortInterest.fromJson(json, fallbackAverageDailyVolume: 20000000);
 
-        expect(si.instrumentId, 'f87d7cd7-a842-47cc-9b32-c607d96e7dfb');
-        expect(si.symbol, 'PCG');
-        expect(si.freeFloatPercentage, closeTo(1.8606, 0.0001));
-        expect(si.sharesShort, closeTo(38745955.5719, 0.01));
-        expect(si.sharesShortPrior, closeTo(41010570.7579, 0.01));
-        expect(
-          si.shortInterestChange,
-          closeTo(38745955.5719 - 41010570.7579, 0.01),
-        );
-        expect(si.settlementDate, DateTime(2026, 9, 9));
-        expect(si.sharesShortUpperBound, closeTo(50392318.9219, 0.01));
-        expect(si.sharesShortLowerBound, closeTo(25010769.7326, 0.01));
-        expect(si.pcFreeFloatUpperBound, closeTo(2.4199, 0.0001));
-        expect(si.pcFreeFloatLowerBound, closeTo(1.201, 0.0001));
-        expect(si.freeFloat, isNotNull);
-        expect(si.daysToCover, closeTo(38745955.5719 / 20000000, 0.01));
+      expect(si.instrumentId, 'f87d7cd7-a842-47cc-9b32-c607d96e7dfb');
+      expect(si.symbol, 'PCG');
+      expect(si.freeFloatPercentage, closeTo(1.8606, 0.0001));
+      expect(si.sharesShort, closeTo(38745955.5719, 0.01));
+      expect(si.sharesShortPrior, closeTo(41010570.7579, 0.01));
+      expect(
+          si.shortInterestChange, closeTo(38745955.5719 - 41010570.7579, 0.01));
+      expect(si.settlementDate, DateTime(2026, 9, 9));
+      expect(si.sharesShortUpperBound, closeTo(50392318.9219, 0.01));
+      expect(si.sharesShortLowerBound, closeTo(25010769.7326, 0.01));
+      expect(si.pcFreeFloatUpperBound, closeTo(2.4199, 0.0001));
+      expect(si.pcFreeFloatLowerBound, closeTo(1.201, 0.0001));
+      expect(si.freeFloat, isNotNull);
+      expect(si.daysToCover, closeTo(38745955.5719 / 20000000, 0.01));
 
-        // Check summary construction with both responses
-        final shortingJson = {
-          "instrument":
-              "https://api.robinhood.com/instruments/f87d7cd7-a842-47cc-9b32-c607d96e7dfb/",
-          "instrument_id": "f87d7cd7-a842-47cc-9b32-c607d96e7dfb",
-          "fee": "0.0000",
-          "fee_timestamp": "2026-09-10T23:45:00Z",
-          "inventory_range": ">1M",
-          "inventory_timestamp": "2026-09-10T22:01:00.050936Z",
-          "daily_fee": "0.0000",
-          "created_at": "2025-08-06T23:11:01.583130Z",
-          "updated_at": "2026-09-10T22:01:57.223877Z",
-        };
+      // Check summary construction with both responses
+      final shortingJson = {
+        "instrument":
+            "https://api.robinhood.com/instruments/f87d7cd7-a842-47cc-9b32-c607d96e7dfb/",
+        "instrument_id": "f87d7cd7-a842-47cc-9b32-c607d96e7dfb",
+        "fee": "0.0000",
+        "fee_timestamp": "2026-09-10T23:45:00Z",
+        "inventory_range": ">1M",
+        "inventory_timestamp": "2026-09-10T22:01:00.050936Z",
+        "daily_fee": "0.0000",
+        "created_at": "2025-08-06T23:11:01.583130Z",
+        "updated_at": "2026-09-10T22:01:57.223877Z"
+      };
 
-        final summary = ShortInterestSummary.fromResponses(
-          shortInterestResponse: json,
-          shortingAvailabilityResponse: shortingJson,
-          instrumentId: 'f87d7cd7-a842-47cc-9b32-c607d96e7dfb',
-          symbol: 'PCG',
-          fallbackAverageDailyVolume: 20000000,
-        );
+      final summary = ShortInterestSummary.fromResponses(
+        shortInterestResponse: json,
+        shortingAvailabilityResponse: shortingJson,
+        instrumentId: 'f87d7cd7-a842-47cc-9b32-c607d96e7dfb',
+        symbol: 'PCG',
+        fallbackAverageDailyVolume: 20000000,
+      );
 
-        expect(summary.hasData, isTrue);
-        expect(summary.shortInterest!.freeFloatPercentage, closeTo(1.86, 0.01));
-        expect(summary.shortInterest!.daysToCover, isNotNull);
-        expect(summary.availability!.borrowFeeRatePercentage, 0.0);
-        expect(summary.availability!.inventory, '>1M');
-        expect(summary.squeezeRisk, ShortSqueezeRisk.low);
-        expect(summary.borrowCostLevel, BorrowCostLevel.easyToBorrow);
-      },
-    );
+      expect(summary.hasData, isTrue);
+      expect(summary.shortInterest!.freeFloatPercentage, closeTo(1.86, 0.01));
+      expect(summary.shortInterest!.daysToCover, isNotNull);
+      expect(summary.availability!.borrowFeeRatePercentage, 0.0);
+      expect(summary.availability!.inventory, '>1M');
+      expect(summary.squeezeRisk, ShortSqueezeRisk.low);
+      expect(summary.borrowCostLevel, BorrowCostLevel.easyToBorrow);
+    });
 
     test('handles missing or empty fields safely', () {
-      final si = ShortInterest.fromJson(
-        {},
-        fallbackInstrumentId: 'fallback_id',
-        fallbackSymbol: 'XYZ',
-      );
+      final si = ShortInterest.fromJson({},
+          fallbackInstrumentId: 'fallback_id', fallbackSymbol: 'XYZ');
 
       expect(si.instrumentId, 'fallback_id');
       expect(si.symbol, 'XYZ');
@@ -195,7 +187,7 @@ void main() {
         "inventory_timestamp": "2026-09-10T22:01:00.050936Z",
         "daily_fee": "0.0000",
         "created_at": "2025-08-06T23:11:01.583130Z",
-        "updated_at": "2026-09-10T22:01:57.223877Z",
+        "updated_at": "2026-09-10T22:01:57.223877Z"
       };
 
       final avail = ShortingAvailability.fromJson(json);
@@ -243,9 +235,7 @@ void main() {
       expect(avail.borrowFeeRatePercentage, closeTo(18.5, 0.01));
       expect(avail.isHardToBorrow, isTrue);
       expect(
-        avail.hardToBorrowReason,
-        'High demand and tight loan availability',
-      );
+          avail.hardToBorrowReason, 'High demand and tight loan availability');
       expect(avail.marginRequirement, 2.0);
       expect(avail.locateRequired, isTrue);
       expect(avail.updatedAt, isNotNull);
@@ -360,30 +350,29 @@ void main() {
     });
 
     test(
-      'computes Extreme Squeeze Risk for heavily shorted stock with high borrow fees',
-      () {
-        final summary = ShortInterestSummary(
+        'computes Extreme Squeeze Risk for heavily shorted stock with high borrow fees',
+        () {
+      final summary = ShortInterestSummary(
+        instrumentId: 'inst_ext',
+        shortInterest: const ShortInterest(
           instrumentId: 'inst_ext',
-          shortInterest: const ShortInterest(
-            instrumentId: 'inst_ext',
-            pcFreeFloat: 0.38, // 38%
-            daysToCover: 8.5,
-          ),
-          availability: const ShortingAvailability(
-            instrumentId: 'inst_ext',
-            borrowFeeRate: 0.22, // 22%
-            isHardToBorrow: true,
-            inventory: 'LOW',
-          ),
-        );
+          pcFreeFloat: 0.38, // 38%
+          daysToCover: 8.5,
+        ),
+        availability: const ShortingAvailability(
+          instrumentId: 'inst_ext',
+          borrowFeeRate: 0.22, // 22%
+          isHardToBorrow: true,
+          inventory: 'LOW',
+        ),
+      );
 
-        expect(summary.squeezeRisk, ShortSqueezeRisk.extreme);
-        expect(summary.squeezeRisk.label, 'Extreme Squeeze Risk');
-        expect(summary.squeezeRisk.color, Colors.red);
-        expect(summary.borrowCostLevel, BorrowCostLevel.high);
-        expect(summary.borrowCostLevel.label, 'Hard to Borrow');
-      },
-    );
+      expect(summary.squeezeRisk, ShortSqueezeRisk.extreme);
+      expect(summary.squeezeRisk.label, 'Extreme Squeeze Risk');
+      expect(summary.squeezeRisk.color, Colors.red);
+      expect(summary.borrowCostLevel, BorrowCostLevel.high);
+      expect(summary.borrowCostLevel.label, 'Hard to Borrow');
+    });
   });
 
   group('DemoService Short Endpoints', () {
@@ -405,37 +394,29 @@ void main() {
       expect(summary.shortInterest!.daysToCover, 1.9);
     });
 
-    test(
-      'fetches demo short availability for GME with elevated fees',
-      () async {
-        final resSi = await demoService.getShortInterest(user, 'inst_gme_01');
-        final resAvail = await demoService.getShortingAvailability(
-          user,
-          'inst_gme_01',
-        );
+    test('fetches demo short availability for GME with elevated fees',
+        () async {
+      final resSi = await demoService.getShortInterest(user, 'inst_gme_01');
+      final resAvail =
+          await demoService.getShortingAvailability(user, 'inst_gme_01');
 
-        final summary = ShortInterestSummary.fromResponses(
-          shortInterestResponse: resSi,
-          shortingAvailabilityResponse: resAvail,
-          instrumentId: 'inst_gme_01',
-          symbol: 'GME',
-        );
+      final summary = ShortInterestSummary.fromResponses(
+        shortInterestResponse: resSi,
+        shortingAvailabilityResponse: resAvail,
+        instrumentId: 'inst_gme_01',
+        symbol: 'GME',
+      );
 
-        expect(summary.shortInterest!.freeFloatPercentage, closeTo(24.5, 0.01));
-        expect(summary.shortInterest!.daysToCover, 6.4);
-        expect(summary.availability!.inventory, 'LOW');
-        expect(
-          summary.availability!.borrowFeeRatePercentage,
-          closeTo(18.5, 0.01),
-        );
-        expect(summary.availability!.isHardToBorrow, isTrue);
-        expect(summary.availability!.locateRequired, isTrue);
-        expect(
-          summary.squeezeRisk,
-          isIn([ShortSqueezeRisk.high, ShortSqueezeRisk.extreme]),
-        );
-        expect(summary.borrowCostLevel, BorrowCostLevel.high);
-      },
-    );
+      expect(summary.shortInterest!.freeFloatPercentage, closeTo(24.5, 0.01));
+      expect(summary.shortInterest!.daysToCover, 6.4);
+      expect(summary.availability!.inventory, 'LOW');
+      expect(
+          summary.availability!.borrowFeeRatePercentage, closeTo(18.5, 0.01));
+      expect(summary.availability!.isHardToBorrow, isTrue);
+      expect(summary.availability!.locateRequired, isTrue);
+      expect(summary.squeezeRisk,
+          isIn([ShortSqueezeRisk.high, ShortSqueezeRisk.extreme]));
+      expect(summary.borrowCostLevel, BorrowCostLevel.high);
+    });
   });
 }

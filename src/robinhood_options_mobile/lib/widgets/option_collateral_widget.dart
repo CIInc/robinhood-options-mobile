@@ -54,8 +54,7 @@ class _OptionCollateralWidgetState extends State<OptionCollateralWidget>
   }
 
   void _loadData() {
-    final effectiveChainId =
-        widget.chainId ??
+    final effectiveChainId = widget.chainId ??
         widget.instrument?.tradeableChainId ??
         'demo_chain_${widget.symbol ?? "GOOG"}';
     final accountNumber = widget.account.accountNumber;
@@ -67,15 +66,10 @@ class _OptionCollateralWidgetState extends State<OptionCollateralWidget>
   }
 
   Future<OptionChainCollateral?> _fetchCollateral(
-    String chainId,
-    String accountNumber,
-  ) async {
+      String chainId, String accountNumber) async {
     try {
       final json = await widget.service.getOptionChainCollateral(
-        widget.brokerageUser,
-        chainId,
-        accountNumber,
-      );
+          widget.brokerageUser, chainId, accountNumber);
       if (json != null) {
         return OptionChainCollateral.fromJson(chainId, accountNumber, json);
       }
@@ -87,23 +81,17 @@ class _OptionCollateralWidgetState extends State<OptionCollateralWidget>
 
   Future<OptionUpgradeStatus?> _fetchUpgradeStatus(String accountNumber) async {
     try {
-      final json = await widget.service.getOptionsUpgradeStatus(
-        widget.brokerageUser,
-        accountNumber,
-      );
+      final json = await widget.service
+          .getOptionsUpgradeStatus(widget.brokerageUser, accountNumber);
       if (json != null) {
-        return OptionUpgradeStatus.fromJson(
-          json,
-          defaultAccountLevel: widget.account.optionLevel,
-        );
+        return OptionUpgradeStatus.fromJson(json,
+            defaultAccountLevel: widget.account.optionLevel);
       }
     } catch (e) {
       debugPrint('Error loading options upgrade status: $e');
     }
-    return OptionUpgradeStatus.fromJson(
-      null,
-      defaultAccountLevel: widget.account.optionLevel,
-    );
+    return OptionUpgradeStatus.fromJson(null,
+        defaultAccountLevel: widget.account.optionLevel);
   }
 
   @override
@@ -125,10 +113,8 @@ class _OptionCollateralWidgetState extends State<OptionCollateralWidget>
               titleSymbol != null
                   ? '$titleSymbol Options Chain • Acct ${widget.account.accountNumber}'
                   : 'Account ${widget.account.accountNumber}',
-              style: TextStyle(
-                fontSize: 12,
-                color: colorScheme.onSurfaceVariant,
-              ),
+              style:
+                  TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant),
             ),
           ],
         ),
@@ -155,7 +141,10 @@ class _OptionCollateralWidgetState extends State<OptionCollateralWidget>
       ),
       body: TabBarView(
         controller: _tabController,
-        children: [_buildCollateralTab(context), _buildUpgradeTab(context)],
+        children: [
+          _buildCollateralTab(context),
+          _buildUpgradeTab(context),
+        ],
       ),
     );
   }
@@ -205,9 +194,7 @@ class _OptionCollateralWidgetState extends State<OptionCollateralWidget>
   }
 
   Widget _buildCollateralSummaryCard(
-    BuildContext context,
-    OptionChainCollateral collateral,
-  ) {
+      BuildContext context, OptionChainCollateral collateral) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
@@ -324,7 +311,10 @@ class _OptionCollateralWidgetState extends State<OptionCollateralWidget>
         const SizedBox(height: 4),
         Text(
           value,
-          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+          style: const TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ],
     );
@@ -381,11 +371,8 @@ class _OptionCollateralWidgetState extends State<OptionCollateralWidget>
                 leading: CircleAvatar(
                   radius: 16,
                   backgroundColor: colorScheme.secondaryContainer,
-                  child: Icon(
-                    Icons.attach_money,
-                    size: 18,
-                    color: colorScheme.onSecondaryContainer,
-                  ),
+                  child: Icon(Icons.attach_money,
+                      size: 18, color: colorScheme.onSecondaryContainer),
                 ),
                 title: const Text('Cash Collateral'),
                 subtitle: Text(
@@ -408,40 +395,38 @@ class _OptionCollateralWidgetState extends State<OptionCollateralWidget>
                 style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 6),
-              ...breakdown.activeEquities.map(
-                (eq) => ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  dense: true,
-                  leading: CircleAvatar(
-                    radius: 14,
-                    backgroundColor: colorScheme.tertiaryContainer,
-                    child: Text(
-                      eq.symbol.isNotEmpty ? eq.symbol[0] : 'S',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: colorScheme.onTertiaryContainer,
+              ...breakdown.activeEquities.map((eq) => ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    dense: true,
+                    leading: CircleAvatar(
+                      radius: 14,
+                      backgroundColor: colorScheme.tertiaryContainer,
+                      child: Text(
+                        eq.symbol.isNotEmpty ? eq.symbol[0] : 'S',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: colorScheme.onTertiaryContainer,
+                        ),
                       ),
                     ),
-                  ),
-                  title: Text(
-                    eq.symbol.isNotEmpty ? eq.symbol : 'Underlying Shares',
-                    style: const TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                  subtitle: Text(
-                    eq.uncoveredShares > 0.0001
-                        ? 'Direction: ${eq.direction.toUpperCase()} • Uncovered: ${eq.formattedUncoveredShares}'
-                        : 'Direction: ${eq.direction.toUpperCase()}',
-                  ),
-                  trailing: Text(
-                    '${eq.formattedQuantity} shares',
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
+                    title: Text(
+                      eq.symbol.isNotEmpty ? eq.symbol : 'Underlying Shares',
+                      style: const TextStyle(fontWeight: FontWeight.w600),
                     ),
-                  ),
-                ),
-              ),
+                    subtitle: Text(
+                      eq.uncoveredShares > 0.0001
+                          ? 'Direction: ${eq.direction.toUpperCase()} • Uncovered: ${eq.formattedUncoveredShares}'
+                          : 'Direction: ${eq.direction.toUpperCase()}',
+                    ),
+                    trailing: Text(
+                      '${eq.formattedQuantity} shares',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  )),
             ],
             if (!breakdown.hasCollateral)
               Padding(
@@ -530,11 +515,8 @@ class _OptionCollateralWidgetState extends State<OptionCollateralWidget>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.shield_outlined,
-              size: 64,
-              color: Theme.of(context).colorScheme.outline,
-            ),
+            Icon(Icons.shield_outlined,
+                size: 64, color: Theme.of(context).colorScheme.outline),
             const SizedBox(height: 16),
             const Text(
               'No Options Collateral Locked',
@@ -566,12 +548,9 @@ class _OptionCollateralWidgetState extends State<OptionCollateralWidget>
           return const Center(child: CircularProgressIndicator());
         }
 
-        final upgradeStatus =
-            snapshot.data ??
-            OptionUpgradeStatus.fromJson(
-              null,
-              defaultAccountLevel: widget.account.optionLevel,
-            );
+        final upgradeStatus = snapshot.data ??
+            OptionUpgradeStatus.fromJson(null,
+                defaultAccountLevel: widget.account.optionLevel);
 
         return ListView(
           padding: const EdgeInsets.all(16),
@@ -590,9 +569,7 @@ class _OptionCollateralWidgetState extends State<OptionCollateralWidget>
   }
 
   Widget _buildTierStatusCard(
-    BuildContext context,
-    OptionUpgradeStatus status,
-  ) {
+      BuildContext context, OptionUpgradeStatus status) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final isL3 = status.currentTier >= 3;
@@ -637,9 +614,7 @@ class _OptionCollateralWidgetState extends State<OptionCollateralWidget>
                           const SizedBox(width: 8),
                           Container(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 2,
-                            ),
+                                horizontal: 8, vertical: 2),
                             decoration: BoxDecoration(
                               color: isL3
                                   ? Colors.green.withValues(alpha: 0.15)
@@ -653,9 +628,8 @@ class _OptionCollateralWidgetState extends State<OptionCollateralWidget>
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.bold,
-                                color: isL3
-                                    ? Colors.green
-                                    : colorScheme.primary,
+                                color:
+                                    isL3 ? Colors.green : colorScheme.primary,
                               ),
                             ),
                           ),
@@ -678,10 +652,8 @@ class _OptionCollateralWidgetState extends State<OptionCollateralWidget>
             const SizedBox(height: 12),
             Text(
               status.subtitle,
-              style: TextStyle(
-                fontSize: 13,
-                color: colorScheme.onSurfaceVariant,
-              ),
+              style:
+                  TextStyle(fontSize: 13, color: colorScheme.onSurfaceVariant),
             ),
           ],
         ),
@@ -690,9 +662,7 @@ class _OptionCollateralWidgetState extends State<OptionCollateralWidget>
   }
 
   Widget _buildFeaturesComparisonCard(
-    BuildContext context,
-    OptionUpgradeStatus status,
-  ) {
+      BuildContext context, OptionUpgradeStatus status) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
@@ -721,9 +691,8 @@ class _OptionCollateralWidgetState extends State<OptionCollateralWidget>
               description:
                   'Debit & credit spreads, iron condors, straddles, strangles, calendars',
               isAvailable: status.currentTier >= 3,
-              color: status.currentTier >= 3
-                  ? Colors.green
-                  : colorScheme.primary,
+              color:
+                  status.currentTier >= 3 ? Colors.green : colorScheme.primary,
             ),
             if (status.tierFeatures.isNotEmpty) ...[
               const SizedBox(height: 12),
@@ -785,9 +754,7 @@ class _OptionCollateralWidgetState extends State<OptionCollateralWidget>
   }
 
   Widget _buildRequirementsCard(
-    BuildContext context,
-    OptionUpgradeStatus status,
-  ) {
+      BuildContext context, OptionUpgradeStatus status) {
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
@@ -814,7 +781,10 @@ class _OptionCollateralWidgetState extends State<OptionCollateralWidget>
                     ),
                     const SizedBox(width: 8),
                     Expanded(
-                      child: Text(req, style: const TextStyle(fontSize: 13)),
+                      child: Text(
+                        req,
+                        style: const TextStyle(fontSize: 13),
+                      ),
                     ),
                   ],
                 ),
@@ -827,9 +797,7 @@ class _OptionCollateralWidgetState extends State<OptionCollateralWidget>
   }
 
   Widget _buildUpgradeActionButton(
-    BuildContext context,
-    OptionUpgradeStatus status,
-  ) {
+      BuildContext context, OptionUpgradeStatus status) {
     if (status.currentTier >= 3) {
       return Container(
         padding: const EdgeInsets.all(16),

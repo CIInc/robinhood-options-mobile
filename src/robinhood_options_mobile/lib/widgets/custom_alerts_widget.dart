@@ -24,11 +24,9 @@ class _CustomAlertsWidgetState extends State<CustomAlertsWidget> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          widget.initialSymbol != null
-              ? '${widget.initialSymbol} Alerts'
-              : 'Custom Alerts',
-        ),
+        title: Text(widget.initialSymbol != null
+            ? '${widget.initialSymbol} Alerts'
+            : 'Custom Alerts'),
       ),
       body: StreamBuilder<List<CustomAlert>>(
         stream: _service.getAlerts(),
@@ -50,11 +48,8 @@ class _CustomAlertsWidgetState extends State<CustomAlertsWidget> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(
-                    Icons.notifications_off,
-                    size: 64,
-                    color: Colors.grey,
-                  ),
+                  const Icon(Icons.notifications_off,
+                      size: 64, color: Colors.grey),
                   const SizedBox(height: 16),
                   Text(
                     widget.initialSymbol != null
@@ -94,8 +89,7 @@ class _CustomAlertsWidgetState extends State<CustomAlertsWidget> {
                 valueText =
                     'RSI(${alert.period}): ${numberFormatter.format(alert.value)}';
               } else if (alert.type == AlertType.gex) {
-                valueText =
-                    (alert.condition == AlertCondition.above ||
+                valueText = (alert.condition == AlertCondition.above ||
                         alert.condition == AlertCondition.below)
                     ? '\$${alert.value}M GEX'
                     : alert.condition.name.replaceAll('_', ' ').toUpperCase();
@@ -120,8 +114,7 @@ class _CustomAlertsWidgetState extends State<CustomAlertsWidget> {
                       return AlertDialog(
                         title: const Text("Confirm"),
                         content: const Text(
-                          "Are you sure you want to delete this alert?",
-                        ),
+                            "Are you sure you want to delete this alert?"),
                         actions: <Widget>[
                           TextButton(
                             onPressed: () => Navigator.of(context).pop(false),
@@ -129,10 +122,8 @@ class _CustomAlertsWidgetState extends State<CustomAlertsWidget> {
                           ),
                           TextButton(
                             onPressed: () => Navigator.of(context).pop(true),
-                            child: const Text(
-                              "Delete",
-                              style: TextStyle(color: Colors.red),
-                            ),
+                            child: const Text("Delete",
+                                style: TextStyle(color: Colors.red)),
                           ),
                         ],
                       );
@@ -147,9 +138,8 @@ class _CustomAlertsWidgetState extends State<CustomAlertsWidget> {
                 },
                 child: ListTile(
                   leading: CircleAvatar(
-                    backgroundColor: Theme.of(
-                      context,
-                    ).colorScheme.surfaceContainerHighest,
+                    backgroundColor:
+                        Theme.of(context).colorScheme.surfaceContainerHighest,
                     child: _buildIcon(alert.type),
                   ),
                   title: RichText(
@@ -165,8 +155,7 @@ class _CustomAlertsWidgetState extends State<CustomAlertsWidget> {
                             text:
                                 '${alert.condition.name.replaceAll('_', ' ').toUpperCase()} ',
                             style: TextStyle(
-                              color: Theme.of(context).colorScheme.secondary,
-                            ),
+                                color: Theme.of(context).colorScheme.secondary),
                           ),
                         TextSpan(
                           text: valueText,
@@ -183,10 +172,8 @@ class _CustomAlertsWidgetState extends State<CustomAlertsWidget> {
                           padding: const EdgeInsets.only(top: 2, bottom: 2),
                           child: Text(
                             alert.rules
-                                .map(
-                                  (r) =>
-                                      '${r.type.name.toUpperCase()} ${r.condition.name.replaceAll('_', ' ')} ${r.type == AlertType.price ? currencyFormatter.format(r.value) : (r.type == AlertType.volatility || r.condition == AlertCondition.percent_change || r.condition == AlertCondition.spike || r.condition == AlertCondition.drop ? '${r.value}%' : r.value)}',
-                                )
+                                .map((r) =>
+                                    '${r.type.name.toUpperCase()} ${r.condition.name.replaceAll('_', ' ')} ${r.type == AlertType.price ? currencyFormatter.format(r.value) : (r.type == AlertType.volatility || r.condition == AlertCondition.percent_change || r.condition == AlertCondition.spike || r.condition == AlertCondition.drop ? '${r.value}%' : r.value)}')
                                 .join(' • '),
                             style: Theme.of(context).textTheme.bodySmall,
                             maxLines: 2,
@@ -204,8 +191,7 @@ class _CustomAlertsWidgetState extends State<CustomAlertsWidget> {
                   trailing: Switch(
                     value: alert.active,
                     onChanged: (val) {
-                      _service.updateAlert(
-                        CustomAlert(
+                      _service.updateAlert(CustomAlert(
                           id: alert.id,
                           userId: alert.userId,
                           symbol: alert.symbol,
@@ -218,9 +204,7 @@ class _CustomAlertsWidgetState extends State<CustomAlertsWidget> {
                           active: val,
                           lastTriggered: alert.lastTriggered,
                           createdAt: alert.createdAt,
-                          deviceToken: alert.deviceToken,
-                        ),
-                      );
+                          deviceToken: alert.deviceToken));
                     },
                   ),
                   onTap: () => _showAlertEditor(context, alert),
@@ -271,14 +255,12 @@ class _CustomAlertsWidgetState extends State<CustomAlertsWidget> {
     if (result != null && mounted) {
       if (alert != null) {
         _service.updateAlert(result);
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Alert updated')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Alert updated')));
       } else {
         _service.createAlert(result);
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Alert created')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Alert created')));
       }
     }
   }
@@ -289,7 +271,11 @@ class _AlertEditorDialog extends StatefulWidget {
   final String? initialSymbol;
   final String? userId;
 
-  const _AlertEditorDialog({this.alert, this.initialSymbol, this.userId});
+  const _AlertEditorDialog({
+    this.alert,
+    this.initialSymbol,
+    this.userId,
+  });
 
   @override
   State<_AlertEditorDialog> createState() => _AlertEditorDialogState();
@@ -312,8 +298,8 @@ class _RuleEditState {
       text: (value == 0.0 && isNew)
           ? ''
           : (value == value.roundToDouble() && value != 0
-                ? value.toInt().toString()
-                : (value == 0.0 ? '' : value.toString())),
+              ? value.toInt().toString()
+              : (value == 0.0 ? '' : value.toString())),
     );
     periodController = TextEditingController(text: period.toString());
   }
@@ -359,14 +345,12 @@ class _AlertEditorDialogState extends State<_AlertEditorDialog> {
 
     if (alert != null && alert.rules.isNotEmpty) {
       _rules = alert.rules
-          .map(
-            (r) => _RuleEditState(
-              type: r.type,
-              condition: r.condition,
-              value: r.value,
-              period: r.period ?? 14,
-            ),
-          )
+          .map((r) => _RuleEditState(
+                type: r.type,
+                condition: r.condition,
+                value: r.value,
+                period: r.period ?? 14,
+              ))
           .toList();
     } else if (alert != null) {
       _rules = [
@@ -422,15 +406,13 @@ class _AlertEditorDialogState extends State<_AlertEditorDialog> {
 
   void _addRule() {
     setState(() {
-      _rules.add(
-        _RuleEditState(
-          type: AlertType.price,
-          condition: AlertCondition.above,
-          value: 0.0,
-          period: 14,
-          isNew: true,
-        ),
-      );
+      _rules.add(_RuleEditState(
+        type: AlertType.price,
+        condition: AlertCondition.above,
+        value: 0.0,
+        period: 14,
+        isNew: true,
+      ));
     });
   }
 
@@ -473,7 +455,10 @@ class _AlertEditorDialogState extends State<_AlertEditorDialog> {
         ];
       case AlertType.moving_average:
       case AlertType.rsi:
-        return [AlertCondition.above, AlertCondition.below];
+        return [
+          AlertCondition.above,
+          AlertCondition.below,
+        ];
       case AlertType.gex:
         return [
           AlertCondition.above,
@@ -524,7 +509,9 @@ class _AlertEditorDialogState extends State<_AlertEditorDialog> {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surfaceContainerLow,
-        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outlineVariant,
+        ),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Column(
@@ -554,15 +541,13 @@ class _AlertEditorDialogState extends State<_AlertEditorDialog> {
             isExpanded: true,
             decoration: const InputDecoration(labelText: 'Type'),
             items: AlertType.values
-                .map(
-                  (t) => DropdownMenuItem(
-                    value: t,
-                    child: Text(
-                      t.name.toUpperCase(),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                )
+                .map((t) => DropdownMenuItem(
+                      value: t,
+                      child: Text(
+                        t.name.toUpperCase(),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ))
                 .toList(),
             onChanged: (val) {
               if (val != null) {
@@ -582,15 +567,13 @@ class _AlertEditorDialogState extends State<_AlertEditorDialog> {
             isExpanded: true,
             decoration: const InputDecoration(labelText: 'Condition'),
             items: _getConditionsForType(rule.type)
-                .map(
-                  (c) => DropdownMenuItem(
-                    value: c,
-                    child: Text(
-                      c.name.replaceAll('_', ' ').toUpperCase(),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                )
+                .map((c) => DropdownMenuItem(
+                      value: c,
+                      child: Text(
+                        c.name.replaceAll('_', ' ').toUpperCase(),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ))
                 .toList(),
             onChanged: (val) {
               if (val != null) setState(() => rule.condition = val);
@@ -619,9 +602,8 @@ class _AlertEditorDialogState extends State<_AlertEditorDialog> {
                 child: TextFormField(
                   controller: rule.valueController,
                   decoration: _getValueDecoration(rule),
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
                   validator: (val) {
                     if (val == null || val.isEmpty) return 'Required';
                     final numVal = double.tryParse(val);
@@ -667,9 +649,8 @@ class _AlertEditorDialogState extends State<_AlertEditorDialog> {
                       Expanded(
                         child: TextFormField(
                           controller: _symbolController,
-                          decoration: const InputDecoration(
-                            labelText: 'Symbol',
-                          ),
+                          decoration:
+                              const InputDecoration(labelText: 'Symbol'),
                           textCapitalization: TextCapitalization.characters,
                           onChanged: (val) {
                             _symbol = val.toUpperCase();
@@ -695,9 +676,8 @@ class _AlertEditorDialogState extends State<_AlertEditorDialog> {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.surfaceContainerHighest,
+                      color:
+                          Theme.of(context).colorScheme.surfaceContainerHighest,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(
@@ -709,9 +689,8 @@ class _AlertEditorDialogState extends State<_AlertEditorDialog> {
                         ),
                         Text(
                           _currentQuote?.lastTradePrice != null
-                              ? NumberFormat.simpleCurrency().format(
-                                  _currentQuote!.lastTradePrice,
-                                )
+                              ? NumberFormat.simpleCurrency()
+                                  .format(_currentQuote!.lastTradePrice)
                               : '--',
                           style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
@@ -729,17 +708,15 @@ class _AlertEditorDialogState extends State<_AlertEditorDialog> {
                       helperText: 'How conditions should be combined',
                     ),
                     items: AlertLogic.values
-                        .map(
-                          (logic) => DropdownMenuItem(
-                            value: logic,
-                            child: Text(
-                              logic == AlertLogic.all
-                                  ? 'Trigger when ALL rules match (AND)'
-                                  : 'Trigger when ANY rule matches (OR)',
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        )
+                        .map((logic) => DropdownMenuItem(
+                              value: logic,
+                              child: Text(
+                                logic == AlertLogic.all
+                                    ? 'Trigger when ALL rules match (AND)'
+                                    : 'Trigger when ANY rule matches (OR)',
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ))
                         .toList(),
                     onChanged: (val) {
                       if (val != null) setState(() => _logic = val);
@@ -749,9 +726,9 @@ class _AlertEditorDialogState extends State<_AlertEditorDialog> {
                 ],
                 Text(
                   _rules.length > 1 ? 'Rules' : 'Rule',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                 ),
                 const SizedBox(height: 8),
                 for (int i = 0; i < _rules.length; i++) ...[

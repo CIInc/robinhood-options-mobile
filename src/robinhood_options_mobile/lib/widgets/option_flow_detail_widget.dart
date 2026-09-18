@@ -66,15 +66,12 @@ class _OptionFlowDetailWidgetState extends State<OptionFlowDetailWidget> {
       final item = widget.item;
 
       // Enrich prompt with flag interpretations
-      final flagContext = item.flags
-          .map((f) {
-            final doc = OptionsFlowStore.flagDocumentation[f];
-            return doc != null ? "$f: $doc" : f;
-          })
-          .join('\n');
+      final flagContext = item.flags.map((f) {
+        final doc = OptionsFlowStore.flagDocumentation[f];
+        return doc != null ? "$f: $doc" : f;
+      }).join('\n');
 
-      final prompt =
-          '''
+      final prompt = '''
 Analyze this ${item.isUnusual ? "unusual " : ""}option flow for ${item.symbol}:
 - Contract: ${item.symbol} \$${item.strike} ${item.type} Expiring ${item.expirationDate}
 - Trade: \$${item.premium} Premium (${item.flowType.name.toUpperCase()})
@@ -183,18 +180,16 @@ Based on this specific trade data and the flags, provide a professional trading 
                     borderRadius: BorderRadius.circular(30),
                     child: CircleAvatar(
                       radius: 24,
-                      backgroundColor: Theme.of(
-                        context,
-                      ).colorScheme.primaryContainer,
+                      backgroundColor:
+                          Theme.of(context).colorScheme.primaryContainer,
                       child: Text(
                         item.symbol[0],
                         style: TextStyle(
-                          fontSize: 20,
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.onPrimaryContainer,
-                          fontWeight: FontWeight.bold,
-                        ),
+                            fontSize: 20,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onPrimaryContainer,
+                            fontWeight: FontWeight.bold),
                       ),
                     ),
                   ),
@@ -204,24 +199,28 @@ Based on this specific trade data and the flags, provide a professional trading 
                     borderRadius: BorderRadius.circular(8),
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 8.0,
-                        vertical: 4.0,
-                      ),
+                          horizontal: 8.0, vertical: 4.0),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
                             item.symbol,
-                            style: Theme.of(context).textTheme.headlineSmall
-                                ?.copyWith(fontWeight: FontWeight.bold),
+                            style: Theme.of(context)
+                                .textTheme
+                                .headlineSmall
+                                ?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
                           ),
                           Text(
                             _currencyFormat.format(item.spotPrice),
-                            style: Theme.of(context).textTheme.titleMedium
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleMedium
                                 ?.copyWith(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onSurfaceVariant,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant,
                                 ),
                           ),
                         ],
@@ -238,17 +237,14 @@ Based on this specific trade data and the flags, provide a professional trading 
                       borderRadius: BorderRadius.circular(20),
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
+                            horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
-                          color:
-                              (item.sentiment == Sentiment.bullish
-                                      ? Colors.green
-                                      : item.sentiment == Sentiment.bearish
+                          color: (item.sentiment == Sentiment.bullish
+                                  ? Colors.green
+                                  : item.sentiment == Sentiment.bearish
                                       ? Colors.red
                                       : Colors.grey)
-                                  .withValues(alpha: 0.1),
+                              .withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Row(
@@ -257,14 +253,14 @@ Based on this specific trade data and the flags, provide a professional trading 
                               item.sentiment == Sentiment.bullish
                                   ? Icons.trending_up
                                   : item.sentiment == Sentiment.bearish
-                                  ? Icons.trending_down
-                                  : Icons.remove,
+                                      ? Icons.trending_down
+                                      : Icons.remove,
                               size: 16,
                               color: item.sentiment == Sentiment.bullish
                                   ? Colors.green
                                   : item.sentiment == Sentiment.bearish
-                                  ? Colors.red
-                                  : Colors.grey,
+                                      ? Colors.red
+                                      : Colors.grey,
                             ),
                             const SizedBox(width: 4),
                             Text(
@@ -278,8 +274,8 @@ Based on this specific trade data and the flags, provide a professional trading 
                                 color: item.sentiment == Sentiment.bullish
                                     ? Colors.green
                                     : item.sentiment == Sentiment.bearish
-                                    ? Colors.red
-                                    : Colors.grey,
+                                        ? Colors.red
+                                        : Colors.grey,
                               ),
                             ),
                           ],
@@ -298,54 +294,47 @@ Based on this specific trade data and the flags, provide a professional trading 
                 children: [
                   if (item.isUnusual)
                     OptionFlowBadge(
-                      label: 'UNUSUAL',
-                      fontSize: 11,
-                      color: isDark ? Colors.purple.shade200 : Colors.purple,
-                      icon: Icons.bolt,
-                    ),
+                        label: 'UNUSUAL',
+                        fontSize: 11,
+                        color: isDark ? Colors.purple.shade200 : Colors.purple,
+                        icon: Icons.bolt),
                   if (item.daysToExpiration == 0)
                     OptionFlowBadge(
-                      label: '0DTE',
-                      fontSize: 11,
-                      color: Colors.red,
-                      icon: Icons.timer_off,
-                    ),
+                        label: '0DTE',
+                        fontSize: 11,
+                        color: Colors.red,
+                        icon: Icons.timer_off),
                   if (item.flowType == FlowType.sweep)
                     OptionFlowBadge(
-                      label: 'SWEEP',
-                      fontSize: 11,
-                      color: Colors.orange,
-                      icon: Icons.waves,
-                    ),
+                        label: 'SWEEP',
+                        fontSize: 11,
+                        color: Colors.orange,
+                        icon: Icons.waves),
                   if (item.flowType == FlowType.block)
                     OptionFlowBadge(
-                      label: 'BLOCK',
-                      fontSize: 11,
-                      color: Colors.blue,
-                      icon: Icons.view_module,
-                    ),
+                        label: 'BLOCK',
+                        fontSize: 11,
+                        color: Colors.blue,
+                        icon: Icons.view_module),
                   if (item.flowType == FlowType.darkPool)
                     OptionFlowBadge(
-                      label: 'DARK POOL',
-                      fontSize: 11,
-                      color: Colors.grey.shade800,
-                      icon: Icons.visibility_off,
-                    ),
+                        label: 'DARK POOL',
+                        fontSize: 11,
+                        color: Colors.grey.shade800,
+                        icon: Icons.visibility_off),
                   if (item.details.isNotEmpty)
                     OptionFlowBadge(
-                      label: item.details,
-                      fontSize: 11,
-                      color: Theme.of(context).colorScheme.secondary,
-                      icon: null,
-                    ),
+                        label: item.details,
+                        fontSize: 11,
+                        color: Theme.of(context).colorScheme.secondary,
+                        icon: null),
                 ],
               ),
               if (item.flags.isNotEmpty) ...[
                 const SizedBox(height: 16),
                 ...OptionsFlowStore.flagCategories.entries.map((entry) {
-                  final categoryFlags = item.flags
-                      .where((f) => entry.value.contains(f))
-                      .toList();
+                  final categoryFlags =
+                      item.flags.where((f) => entry.value.contains(f)).toList();
                   if (categoryFlags.isEmpty) return const SizedBox.shrink();
 
                   return Column(
@@ -354,9 +343,11 @@ Based on this specific trade data and the flags, provide a professional trading 
                       Text(
                         entry.key,
                         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          fontWeight: FontWeight.bold,
-                        ),
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
+                              fontWeight: FontWeight.bold,
+                            ),
                       ),
                       const SizedBox(height: 8),
                       Wrap(
@@ -366,12 +357,10 @@ Based on this specific trade data and the flags, provide a professional trading 
                           final index = item.flags.indexOf(flag);
                           final reason =
                               index != -1 && index < item.reasons.length
-                              ? item.reasons[index]
-                              : null;
+                                  ? item.reasons[index]
+                                  : null;
                           return OptionFlowFlagBadge(
-                            flag: flag,
-                            reason: reason,
-                          );
+                              flag: flag, reason: reason);
                         }).toList(),
                       ),
                       const SizedBox(height: 12),
@@ -379,53 +368,46 @@ Based on this specific trade data and the flags, provide a professional trading 
                   );
                 }),
                 // Display any flags not in categories
-                Builder(
-                  builder: (context) {
-                    final allCategorized = OptionsFlowStore
-                        .flagCategories
-                        .values
-                        .expand((e) => e)
-                        .toSet();
-                    final uncategorized = item.flags
-                        .where((f) => !allCategorized.contains(f))
-                        .toList();
+                Builder(builder: (context) {
+                  final allCategorized = OptionsFlowStore.flagCategories.values
+                      .expand((e) => e)
+                      .toSet();
+                  final uncategorized = item.flags
+                      .where((f) => !allCategorized.contains(f))
+                      .toList();
 
-                    if (uncategorized.isEmpty) return const SizedBox.shrink();
+                  if (uncategorized.isEmpty) return const SizedBox.shrink();
 
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Other Signals',
-                          style: Theme.of(context).textTheme.labelSmall
-                              ?.copyWith(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurfaceVariant,
-                                fontWeight: FontWeight.bold,
-                              ),
-                        ),
-                        const SizedBox(height: 8),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: uncategorized.map((flag) {
-                            final index = item.flags.indexOf(flag);
-                            final reason =
-                                index != -1 && index < item.reasons.length
-                                ? item.reasons[index]
-                                : null;
-                            return OptionFlowFlagBadge(
-                              flag: flag,
-                              reason: reason,
-                            );
-                          }).toList(),
-                        ),
-                        const SizedBox(height: 12),
-                      ],
-                    );
-                  },
-                ),
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Other Signals',
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
+                              fontWeight: FontWeight.bold,
+                            ),
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: uncategorized.map((flag) {
+                          final index = item.flags.indexOf(flag);
+                          final reason =
+                              index != -1 && index < item.reasons.length
+                                  ? item.reasons[index]
+                                  : null;
+                          return OptionFlowFlagBadge(
+                              flag: flag, reason: reason);
+                        }).toList(),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+                  );
+                }),
               ],
               if (item.score > 0) ...[
                 const SizedBox(height: 4),
@@ -437,8 +419,10 @@ Based on this specific trade data and the flags, provide a professional trading 
                       Text(
                         'Conviction Score',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
+                            ),
                       ),
                       Tooltip(
                         message:
@@ -454,29 +438,20 @@ Based on this specific trade data and the flags, provide a professional trading 
                         textStyle: const TextStyle(color: Colors.white),
                         child: Container(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
+                              horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
-                            color: getScoreColor(
-                              context,
-                              item.score,
-                            ).withValues(alpha: 0.1),
+                            color: getScoreColor(context, item.score)
+                                .withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(6),
                             border: Border.all(
-                              color: getScoreColor(
-                                context,
-                                item.score,
-                              ).withValues(alpha: 0.3),
-                            ),
+                                color: getScoreColor(context, item.score)
+                                    .withValues(alpha: 0.3)),
                           ),
                           child: Row(
                             children: [
-                              Icon(
-                                Icons.star,
-                                size: 14,
-                                color: getScoreColor(context, item.score),
-                              ),
+                              Icon(Icons.star,
+                                  size: 14,
+                                  color: getScoreColor(context, item.score)),
                               const SizedBox(width: 4),
                               Text(
                                 '${item.score}/100',
@@ -496,12 +471,10 @@ Based on this specific trade data and the flags, provide a professional trading 
                   borderRadius: BorderRadius.circular(4),
                   child: LinearProgressIndicator(
                     value: item.score / 100,
-                    backgroundColor: Theme.of(
-                      context,
-                    ).colorScheme.surfaceContainerHighest,
+                    backgroundColor:
+                        Theme.of(context).colorScheme.surfaceContainerHighest,
                     valueColor: AlwaysStoppedAnimation<Color>(
-                      getScoreColor(context, item.score),
-                    ),
+                        getScoreColor(context, item.score)),
                     minHeight: 6,
                   ),
                 ),
@@ -512,9 +485,10 @@ Based on this specific trade data and the flags, provide a professional trading 
                 const SizedBox(height: 8),
                 Card(
                   elevation: 0,
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.primaryContainer.withValues(alpha: 0.24),
+                  color: Theme.of(context)
+                      .colorScheme
+                      .primaryContainer
+                      .withValues(alpha: 0.24),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                     side: BorderSide(
@@ -528,15 +502,15 @@ Based on this specific trade data and the flags, provide a professional trading 
                       children: [
                         Row(
                           children: [
-                            Icon(
-                              Icons.fact_check_outlined,
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
+                            Icon(Icons.fact_check_outlined,
+                                color: Theme.of(context).colorScheme.primary),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
                                 'Confirm before acting',
-                                style: Theme.of(context).textTheme.titleSmall
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleSmall
                                     ?.copyWith(fontWeight: FontWeight.bold),
                               ),
                             ),
@@ -545,35 +519,27 @@ Based on this specific trade data and the flags, provide a professional trading 
                         const SizedBox(height: 4),
                         Text(
                           'These checks are based on the signals detected for this trade.',
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurfaceVariant,
-                              ),
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant,
+                                  ),
                         ),
                         const SizedBox(height: 16),
-                        ...recommendations
-                            .take(3)
-                            .map(
+                        ...recommendations.take(3).map(
                               (entry) => _buildRecommendationRow(
-                                context,
-                                entry.key,
-                                entry.value,
-                              ),
+                                  context, entry.key, entry.value),
                             ),
                         if (recommendations.length > 3)
                           Align(
                             alignment: Alignment.centerLeft,
                             child: TextButton.icon(
                               onPressed: () => _showAllRecommendations(
-                                context,
-                                recommendations,
-                              ),
+                                  context, recommendations),
                               icon: const Icon(Icons.menu_book_outlined),
                               label: Text(
-                                'View all ${recommendations.length} recommendations',
-                              ),
+                                  'View all ${recommendations.length} recommendations'),
                             ),
                           ),
                       ],
@@ -586,43 +552,41 @@ Based on this specific trade data and the flags, provide a professional trading 
               const SizedBox(height: 8),
               Card(
                 elevation: 0,
-                color: Theme.of(
-                  context,
-                ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                color: Theme.of(context)
+                    .colorScheme
+                    .surfaceContainerHighest
+                    .withValues(alpha: 0.3),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
+                    borderRadius: BorderRadius.circular(12)),
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Column(
                     children: [
-                      _buildDetailRow(
-                        'Time',
-                        '${_dateFormat.format(item.lastTradeDate ?? DateTime.fromMillisecondsSinceEpoch(0))}, ${_timeFormat.format(item.lastTradeDate ?? DateTime.fromMillisecondsSinceEpoch(0))}',
-                      ),
+                      _buildDetailRow('Time',
+                          '${_dateFormat.format(item.lastTradeDate ?? DateTime.fromMillisecondsSinceEpoch(0))}, ${_timeFormat.format(item.lastTradeDate ?? DateTime.fromMillisecondsSinceEpoch(0))}'),
                       const Divider(height: 16),
                       _buildDetailRow(
                         'Premium',
                         _currencyFormat.format(item.premium),
                         valueColor: item.premium >= 1000000
                             ? (isDark
-                                  ? Colors.amber.shade300
-                                  : Colors.amber.shade800)
+                                ? Colors.amber.shade300
+                                : Colors.amber.shade800)
                             : null,
                         valueWidget: item.premium >= 1000000
                             ? Row(
                                 children: [
-                                  Icon(
-                                    Icons.star,
-                                    size: 16,
-                                    color: isDark
-                                        ? Colors.amber.shade300
-                                        : Colors.amber.shade800,
-                                  ),
+                                  Icon(Icons.star,
+                                      size: 16,
+                                      color: isDark
+                                          ? Colors.amber.shade300
+                                          : Colors.amber.shade800),
                                   const SizedBox(width: 4),
                                   Text(
                                     _currencyFormat.format(item.premium),
-                                    style: Theme.of(context).textTheme.bodyLarge
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyLarge
                                         ?.copyWith(
                                           fontWeight: FontWeight.bold,
                                           color: isDark
@@ -641,31 +605,26 @@ Based on this specific trade data and the flags, provide a professional trading 
                         valueColor: item.type == 'Call'
                             ? Colors.green
                             : item.type == 'Put'
-                            ? Colors.red
-                            : null,
+                                ? Colors.red
+                                : null,
                         valueWidget: Container(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 2,
-                          ),
+                              horizontal: 8, vertical: 2),
                           decoration: BoxDecoration(
-                            color:
-                                (item.type == 'Call'
-                                        ? Colors.green
-                                        : item.type == 'Put'
+                            color: (item.type == 'Call'
+                                    ? Colors.green
+                                    : item.type == 'Put'
                                         ? Colors.red
                                         : Colors.grey)
-                                    .withValues(alpha: 0.1),
+                                .withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(4),
                             border: Border.all(
-                              color:
-                                  (item.type == 'Call'
-                                          ? Colors.green
-                                          : item.type == 'Put'
-                                          ? Colors.red
-                                          : Colors.grey)
-                                      .withValues(alpha: 0.3),
-                            ),
+                                color: (item.type == 'Call'
+                                        ? Colors.green
+                                        : item.type == 'Put'
+                                            ? Colors.red
+                                            : Colors.grey)
+                                    .withValues(alpha: 0.3)),
                           ),
                           child: Text(
                             item.type.toUpperCase(),
@@ -674,22 +633,18 @@ Based on this specific trade data and the flags, provide a professional trading 
                               color: item.type == 'Call'
                                   ? Colors.green
                                   : item.type == 'Put'
-                                  ? Colors.red
-                                  : Colors.grey,
+                                      ? Colors.red
+                                      : Colors.grey,
                             ),
                           ),
                         ),
                       ),
                       const Divider(height: 16),
-                      _buildDetailRow(
-                        'Strike',
-                        '\$${item.strike.toStringAsFixed(1)} ($moneynessLabel)',
-                      ),
+                      _buildDetailRow('Strike',
+                          '\$${item.strike.toStringAsFixed(1)} ($moneynessLabel)'),
                       const Divider(height: 16),
-                      _buildDetailRow(
-                        'Expiration',
-                        '${_dateFormat.format(item.expirationDate)} ($daysLabel)',
-                      ),
+                      _buildDetailRow('Expiration',
+                          '${_dateFormat.format(item.expirationDate)} ($daysLabel)'),
                     ],
                   ),
                 ),
@@ -699,12 +654,12 @@ Based on this specific trade data and the flags, provide a professional trading 
               const SizedBox(height: 8),
               Card(
                 elevation: 0,
-                color: Theme.of(
-                  context,
-                ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                color: Theme.of(context)
+                    .colorScheme
+                    .surfaceContainerHighest
+                    .withValues(alpha: 0.3),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
+                    borderRadius: BorderRadius.circular(12)),
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Column(
@@ -723,8 +678,8 @@ Based on this specific trade data and the flags, provide a professional trading 
                           valueColor: item.changePercent! > 0
                               ? Colors.green
                               : item.changePercent! < 0
-                              ? Colors.red
-                              : null,
+                                  ? Colors.red
+                                  : null,
                         ),
                         const Divider(height: 16),
                       ],
@@ -737,16 +692,21 @@ Based on this specific trade data and the flags, provide a professional trading 
                             children: [
                               Text(
                                 '${_currencyFormat.format(item.bid)} / ${_currencyFormat.format(item.ask)}',
-                                style: Theme.of(context).textTheme.bodyLarge
-                                    ?.copyWith(fontWeight: FontWeight.w500),
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodyLarge
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.w500,
+                                    ),
                               ),
                               if (item.ask! > 0)
                                 Text(
                                   'Spread: ${((item.ask! - item.bid!) / item.ask! * 100).toStringAsFixed(1)}%',
-                                  style: Theme.of(context).textTheme.bodySmall
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
                                       ?.copyWith(
-                                        color:
-                                            ((item.ask! - item.bid!) /
+                                        color: ((item.ask! - item.bid!) /
                                                     item.ask!) >
                                                 0.1
                                             ? Colors.orange
@@ -758,26 +718,21 @@ Based on this specific trade data and the flags, provide a professional trading 
                         ),
                         const Divider(height: 16),
                       ],
-                      _buildDetailRow(
-                        'Implied Volatility',
-                        '${(item.impliedVolatility * 100).toStringAsFixed(1)}%',
-                      ),
+                      _buildDetailRow('Implied Volatility',
+                          '${(item.impliedVolatility * 100).toStringAsFixed(1)}%'),
                       if (item.marketCap != null) ...[
                         const Divider(height: 16),
-                        _buildDetailRow(
-                          'Market Cap',
-                          _compactFormat.format(item.marketCap),
-                        ),
+                        _buildDetailRow('Market Cap',
+                            _compactFormat.format(item.marketCap)),
                       ],
                       if (item.sector != null) ...[
                         const Divider(height: 16),
                         InkWell(
                           onTap: () {
                             Navigator.pop(context);
-                            Provider.of<OptionsFlowStore>(
-                              context,
-                              listen: false,
-                            ).setFilterSector(item.sector);
+                            Provider.of<OptionsFlowStore>(context,
+                                    listen: false)
+                                .setFilterSector(item.sector);
                           },
                           child: Padding(
                             padding: const EdgeInsets.symmetric(vertical: 4.0),
@@ -786,11 +741,13 @@ Based on this specific trade data and the flags, provide a professional trading 
                               children: [
                                 Text(
                                   'Sector',
-                                  style: Theme.of(context).textTheme.bodyMedium
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodyMedium
                                       ?.copyWith(
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.onSurfaceVariant,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurfaceVariant,
                                       ),
                                 ),
                                 Row(
@@ -802,19 +759,17 @@ Based on this specific trade data and the flags, provide a professional trading 
                                           .bodyLarge
                                           ?.copyWith(
                                             fontWeight: FontWeight.w500,
-                                            color: Theme.of(
-                                              context,
-                                            ).colorScheme.primary,
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .primary,
                                           ),
                                     ),
                                     const SizedBox(width: 4),
-                                    Icon(
-                                      Icons.filter_list,
-                                      size: 14,
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.primary,
-                                    ),
+                                    Icon(Icons.filter_list,
+                                        size: 14,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .primary),
                                   ],
                                 ),
                               ],
@@ -822,34 +777,30 @@ Based on this specific trade data and the flags, provide a professional trading 
                           ),
                         ),
                       ],
-                      Builder(
-                        builder: (context) {
-                          final pricePerShare = item.volume > 0
-                              ? item.premium / (item.volume * 100)
-                              : 0.0;
-                          final breakEven = item.type.toUpperCase() == 'CALL'
-                              ? item.strike + pricePerShare
-                              : item.strike - pricePerShare;
-                          final breakEvenPct =
-                              (breakEven - item.spotPrice) / item.spotPrice;
+                      Builder(builder: (context) {
+                        final pricePerShare = item.volume > 0
+                            ? item.premium / (item.volume * 100)
+                            : 0.0;
+                        final breakEven = item.type.toUpperCase() == 'CALL'
+                            ? item.strike + pricePerShare
+                            : item.strike - pricePerShare;
+                        final breakEvenPct =
+                            (breakEven - item.spotPrice) / item.spotPrice;
 
-                          return Column(
-                            children: [
-                              const Divider(height: 16),
-                              _buildDetailRow(
-                                'Break Even',
-                                '${_currencyFormat.format(breakEven)} (${(breakEvenPct * 100).toStringAsFixed(1)}%)',
-                                valueColor: Colors.blue,
-                              ),
-                              const SizedBox(height: 16),
-                              StrategyPayoffChart(
-                                item: item,
-                                breakEven: breakEven,
-                              ),
-                            ],
-                          );
-                        },
-                      ),
+                        return Column(
+                          children: [
+                            const Divider(height: 16),
+                            _buildDetailRow(
+                              'Break Even',
+                              '${_currencyFormat.format(breakEven)} (${(breakEvenPct * 100).toStringAsFixed(1)}%)',
+                              valueColor: Colors.blue,
+                            ),
+                            const SizedBox(height: 16),
+                            StrategyPayoffChart(
+                                item: item, breakEven: breakEven),
+                          ],
+                        );
+                      }),
                     ],
                   ),
                 ),
@@ -859,12 +810,12 @@ Based on this specific trade data and the flags, provide a professional trading 
               const SizedBox(height: 8),
               Card(
                 elevation: 0,
-                color: Theme.of(
-                  context,
-                ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                color: Theme.of(context)
+                    .colorScheme
+                    .surfaceContainerHighest
+                    .withValues(alpha: 0.3),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
+                    borderRadius: BorderRadius.circular(12)),
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Column(
@@ -878,7 +829,9 @@ Based on this specific trade data and the flags, provide a professional trading 
                           ),
                         )
                       else if (_isGenerating)
-                        const Center(child: CircularProgressIndicator())
+                        const Center(
+                          child: CircularProgressIndicator(),
+                        )
                       else
                         Center(
                           child: ElevatedButton.icon(
@@ -896,12 +849,12 @@ Based on this specific trade data and the flags, provide a professional trading 
               const SizedBox(height: 8),
               Card(
                 elevation: 0,
-                color: Theme.of(
-                  context,
-                ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                color: Theme.of(context)
+                    .colorScheme
+                    .surfaceContainerHighest
+                    .withValues(alpha: 0.3),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
+                    borderRadius: BorderRadius.circular(12)),
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Column(
@@ -910,40 +863,38 @@ Based on this specific trade data and the flags, provide a professional trading 
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(
-                            'Volume',
-                            style: Theme.of(context).textTheme.bodyMedium
-                                ?.copyWith(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onSurfaceVariant,
-                                ),
-                          ),
-                          Text(
-                            _compactFormat.format(item.volume),
-                            style: Theme.of(context).textTheme.bodyLarge
-                                ?.copyWith(fontWeight: FontWeight.bold),
-                          ),
+                          Text('Volume',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyMedium
+                                  ?.copyWith(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurfaceVariant)),
+                          Text(_compactFormat.format(item.volume),
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyLarge
+                                  ?.copyWith(fontWeight: FontWeight.bold)),
                         ],
                       ),
                       const SizedBox(height: 8),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(
-                            'Open Interest',
-                            style: Theme.of(context).textTheme.bodyMedium
-                                ?.copyWith(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onSurfaceVariant,
-                                ),
-                          ),
-                          Text(
-                            _compactFormat.format(item.openInterest),
-                            style: Theme.of(context).textTheme.bodyLarge
-                                ?.copyWith(fontWeight: FontWeight.bold),
-                          ),
+                          Text('Open Interest',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyMedium
+                                  ?.copyWith(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurfaceVariant)),
+                          Text(_compactFormat.format(item.openInterest),
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyLarge
+                                  ?.copyWith(fontWeight: FontWeight.bold)),
                         ],
                       ),
                       if (item.openInterest > 0) ...[
@@ -951,42 +902,40 @@ Based on this specific trade data and the flags, provide a professional trading 
                         ClipRRect(
                           borderRadius: BorderRadius.circular(4),
                           child: LinearProgressIndicator(
-                            value: (item.volume / item.openInterest).clamp(
-                              0.0,
-                              1.0,
-                            ),
-                            backgroundColor: Theme.of(
-                              context,
-                            ).colorScheme.surfaceContainerHighest,
+                            value: (item.volume / item.openInterest)
+                                .clamp(0.0, 1.0),
+                            backgroundColor: Theme.of(context)
+                                .colorScheme
+                                .surfaceContainerHighest,
                             valueColor: AlwaysStoppedAnimation<Color>(
-                              (item.volume / item.openInterest) > 5
-                                  ? (isDark
+                                (item.volume / item.openInterest) > 5
+                                    ? (isDark
                                         ? Colors.purple.shade200
                                         : Colors.purple)
-                                  : (item.volume / item.openInterest) > 1
-                                  ? (isDark
-                                        ? Colors.amber
-                                        : Colors.amber.shade900)
-                                  : Colors.blue,
-                            ),
+                                    : (item.volume / item.openInterest) > 1
+                                        ? (isDark
+                                            ? Colors.amber
+                                            : Colors.amber.shade900)
+                                        : Colors.blue),
                             minHeight: 8,
                           ),
                         ),
                         const SizedBox(height: 4),
                         Text(
                           'Volume is ${(item.volume / item.openInterest).toStringAsFixed(1)}x Open Interest',
-                          style: Theme.of(context).textTheme.bodySmall
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodySmall
                               ?.copyWith(
-                                color: (item.volume / item.openInterest) > 1
-                                    ? (isDark
+                                  color: (item.volume / item.openInterest) > 1
+                                      ? (isDark
                                           ? Colors.amber
                                           : Colors.amber.shade900)
-                                    : Theme.of(
-                                        context,
-                                      ).colorScheme.onSurfaceVariant,
-                              ),
+                                      : Theme.of(context)
+                                          .colorScheme
+                                          .onSurfaceVariant),
                         ),
-                      ],
+                      ]
                     ],
                   ),
                 ),
@@ -1004,8 +953,7 @@ Based on this specific trade data and the flags, provide a professional trading 
                       icon: const Icon(Icons.add_alert, size: 18),
                       label: const Text('Alert'),
                       style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                      ),
+                          padding: const EdgeInsets.symmetric(horizontal: 8)),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -1015,8 +963,7 @@ Based on this specific trade data and the flags, provide a professional trading 
                       icon: const Icon(Icons.list, size: 18),
                       label: const Text('Chain'),
                       style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                      ),
+                          padding: const EdgeInsets.symmetric(horizontal: 8)),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -1026,8 +973,7 @@ Based on this specific trade data and the flags, provide a professional trading 
                       icon: const Icon(Icons.show_chart, size: 18),
                       label: const Text('Trade'),
                       style: FilledButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                      ),
+                          padding: const EdgeInsets.symmetric(horizontal: 8)),
                     ),
                   ),
                 ],
@@ -1043,27 +989,21 @@ Based on this specific trade data and the flags, provide a professional trading 
   Widget _buildSectionHeader(BuildContext context, String title) {
     return Text(
       title,
-      style: Theme.of(
-        context,
-      ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
     );
   }
 
   Widget _buildRecommendationRow(
-    BuildContext context,
-    String label,
-    String recommendation,
-  ) {
+      BuildContext context, String label, String recommendation) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            Icons.check_circle_outline,
-            size: 18,
-            color: Theme.of(context).colorScheme.primary,
-          ),
+          Icon(Icons.check_circle_outline,
+              size: 18, color: Theme.of(context).colorScheme.primary),
           const SizedBox(width: 10),
           Expanded(
             child: Text.rich(
@@ -1084,9 +1024,7 @@ Based on this specific trade data and the flags, provide a professional trading 
   }
 
   void _showAllRecommendations(
-    BuildContext context,
-    List<MapEntry<String, String>> recommendations,
-  ) {
+      BuildContext context, List<MapEntry<String, String>> recommendations) {
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
@@ -1103,16 +1041,16 @@ Based on this specific trade data and the flags, provide a professional trading 
           children: [
             Text(
               'Interpretation Checklist',
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
             ),
             const SizedBox(height: 8),
             Text(
               'Review each active signal before treating this flow as directional.',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
             ),
             const SizedBox(height: 24),
             ...recommendations.map(
@@ -1125,12 +1063,8 @@ Based on this specific trade data and the flags, provide a professional trading 
     );
   }
 
-  Widget _buildDetailRow(
-    String label,
-    String value, {
-    Widget? valueWidget,
-    Color? valueColor,
-  }) {
+  Widget _buildDetailRow(String label, String value,
+      {Widget? valueWidget, Color? valueColor}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Row(
@@ -1139,16 +1073,16 @@ Based on this specific trade data and the flags, provide a professional trading 
           Text(
             label,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
           ),
           valueWidget ??
               Text(
                 value,
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  fontWeight: FontWeight.w500,
-                  color: valueColor,
-                ),
+                      fontWeight: FontWeight.w500,
+                      color: valueColor,
+                    ),
               ),
         ],
       ),
@@ -1159,8 +1093,7 @@ Based on this specific trade data and the flags, provide a professional trading 
     if (widget.service == null || widget.brokerageUser == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Brokerage connection required for details'),
-        ),
+            content: Text('Brokerage connection required for details')),
       );
       return null;
     }
@@ -1174,15 +1107,10 @@ Based on this specific trade data and the flags, provide a professional trading 
 
     try {
       // Fetch instrument
-      final instrumentStore = Provider.of<InstrumentStore>(
-        context,
-        listen: false,
-      );
+      final instrumentStore =
+          Provider.of<InstrumentStore>(context, listen: false);
       final instrument = await widget.service!.getInstrumentBySymbol(
-        widget.brokerageUser!,
-        instrumentStore,
-        symbol,
-      );
+          widget.brokerageUser!, instrumentStore, symbol);
 
       if (!mounted) return null;
       Navigator.pop(context); // Hide loading
@@ -1190,9 +1118,9 @@ Based on this specific trade data and the flags, provide a professional trading 
     } catch (e) {
       if (!mounted) return null;
       Navigator.pop(context); // Hide loading
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error fetching details: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error fetching details: $e')),
+      );
       return null;
     }
   }
@@ -1358,7 +1286,10 @@ Based on this specific trade data and the flags, provide a professional trading 
                             label: Text('Bearish'),
                             icon: Icon(Icons.trending_down, color: Colors.red),
                           ),
-                          ButtonSegment(value: 'any', label: Text('Any')),
+                          ButtonSegment(
+                            value: 'any',
+                            label: Text('Any'),
+                          ),
                         ],
                         selected: {sentiment},
                         onSelectionChanged: (Set<String> newSelection) {
@@ -1381,14 +1312,12 @@ Based on this specific trade data and the flags, provide a professional trading 
                         child: FilledButton(
                           onPressed: () {
                             if (symbolController.text.isEmpty) return;
-                            Provider.of<OptionsFlowStore>(
-                              context,
-                              listen: false,
-                            ).createAlert(
+                            Provider.of<OptionsFlowStore>(context,
+                                    listen: false)
+                                .createAlert(
                               symbol: symbolController.text.toUpperCase(),
-                              minPremium: double.tryParse(
-                                premiumController.text,
-                              ),
+                              minPremium:
+                                  double.tryParse(premiumController.text),
                               sentiment: sentiment,
                             );
                             Navigator.pop(context);
@@ -1403,8 +1332,7 @@ Based on this specific trade data and the flags, provide a professional trading 
                       ),
                       // Add extra padding at bottom for keyboard
                       SizedBox(
-                        height: MediaQuery.of(context).viewInsets.bottom,
-                      ),
+                          height: MediaQuery.of(context).viewInsets.bottom),
                     ],
                   ),
                 ),
@@ -1417,32 +1345,20 @@ Based on this specific trade data and the flags, provide a professional trading 
   }
 
   Widget _buildRecentFlowSection(
-    BuildContext context,
-    OptionFlowItem currentItem,
-  ) {
+      BuildContext context, OptionFlowItem currentItem) {
     final store = Provider.of<OptionsFlowStore>(context, listen: false);
-    final recentItems =
-        store.items
-            .where(
-              (item) =>
-                  item.symbol == currentItem.symbol &&
-                  item != currentItem && // Exclude current item
-                  (item.lastTradeDate ?? DateTime.fromMillisecondsSinceEpoch(0))
-                      .isAfter(
-                        currentItem.lastTradeDate ??
-                            DateTime.fromMillisecondsSinceEpoch(
-                              0,
-                            ).subtract(const Duration(days: 7)),
-                      ),
-            ) // Last 7 days
-            .toList()
-          ..sort(
-            (a, b) =>
-                (b.lastTradeDate ?? DateTime.fromMillisecondsSinceEpoch(0))
-                    .compareTo(
-                      a.lastTradeDate ?? DateTime.fromMillisecondsSinceEpoch(0),
-                    ),
-          );
+    final recentItems = store.items
+        .where((item) =>
+            item.symbol == currentItem.symbol &&
+            item != currentItem && // Exclude current item
+            (item.lastTradeDate ?? DateTime.fromMillisecondsSinceEpoch(0))
+                .isAfter(currentItem.lastTradeDate ??
+                    DateTime.fromMillisecondsSinceEpoch(0)
+                        .subtract(const Duration(days: 7)))) // Last 7 days
+        .toList()
+      ..sort((a, b) =>
+          (b.lastTradeDate ?? DateTime.fromMillisecondsSinceEpoch(0)).compareTo(
+              a.lastTradeDate ?? DateTime.fromMillisecondsSinceEpoch(0)));
 
     if (recentItems.isEmpty) return const SizedBox.shrink();
 
@@ -1453,12 +1369,12 @@ Based on this specific trade data and the flags, provide a professional trading 
         const SizedBox(height: 8),
         Card(
           elevation: 0,
-          color: Theme.of(
-            context,
-          ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
+          color: Theme.of(context)
+              .colorScheme
+              .surfaceContainerHighest
+              .withValues(alpha: 0.3),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           child: ListView.separated(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -1490,12 +1406,11 @@ Based on this specific trade data and the flags, provide a professional trading 
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
                 trailing: OptionFlowFlagBadge(
-                  flag: item.sentiment == Sentiment.bullish
-                      ? 'BULLISH'
-                      : 'BEARISH',
-                  small: true,
-                  showTooltip: false,
-                ),
+                    flag: item.sentiment == Sentiment.bullish
+                        ? 'BULLISH'
+                        : 'BEARISH',
+                    small: true,
+                    showTooltip: false),
                 onTap: () {
                   // pushReplacement
                   Navigator.push(
@@ -1523,22 +1438,18 @@ Based on this specific trade data and the flags, provide a professional trading 
   }
 
   void _shareItem(BuildContext context, OptionFlowItem item) {
-    final text =
-        '${item.symbol} ${item.type} Flow\n'
+    final text = '${item.symbol} ${item.type} Flow\n'
         'Strike: \$${item.strike}\n'
         'Exp: ${_dateFormat.format(item.expirationDate)}\n'
         'Premium: ${_currencyFormat.format(item.premium)}\n'
         'Sentiment: ${item.sentiment.toString().split('.').last.toUpperCase()}\n'
         'Score: ${item.score}/100';
     final box = context.findRenderObject() as RenderBox?;
-    SharePlus.instance.share(
-      ShareParams(
-        text: text,
-        sharePositionOrigin: box != null
-            ? box.localToGlobal(Offset.zero) & box.size
-            : null,
-      ),
-    );
+    SharePlus.instance.share(ShareParams(
+      text: text,
+      sharePositionOrigin:
+          box != null ? box.localToGlobal(Offset.zero) & box.size : null,
+    ));
   }
 }
 
@@ -1554,101 +1465,87 @@ class StrategyPayoffChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final width = constraints.maxWidth;
-        final range =
-            (breakEven - item.spotPrice).abs() *
-            2.5; // Show 3x the distance to break even
-        // Ensure we have a minimum range to avoid division by zero or tiny ranges
-        final effectiveRange = range < 1.0 ? item.spotPrice * 0.1 : range;
+    return LayoutBuilder(builder: (context, constraints) {
+      final width = constraints.maxWidth;
+      final range = (breakEven - item.spotPrice).abs() *
+          2.5; // Show 3x the distance to break even
+      // Ensure we have a minimum range to avoid division by zero or tiny ranges
+      final effectiveRange = range < 1.0 ? item.spotPrice * 0.1 : range;
 
-        final minPrice = item.spotPrice - effectiveRange;
-        final maxPrice = item.spotPrice + effectiveRange;
-        final totalRange = maxPrice - minPrice;
+      final minPrice = item.spotPrice - effectiveRange;
+      final maxPrice = item.spotPrice + effectiveRange;
+      final totalRange = maxPrice - minPrice;
 
-        if (totalRange <= 0) return const SizedBox();
+      if (totalRange <= 0) return const SizedBox();
 
-        double getPos(double price) {
-          return ((price - minPrice) / totalRange) * width;
-        }
+      double getPos(double price) {
+        return ((price - minPrice) / totalRange) * width;
+      }
 
-        return SizedBox(
-          height: 50, // Increased height for better visibility
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              // Axis line
-              Container(
-                height: 2,
-                width: double.infinity,
-                color: Theme.of(context).dividerColor,
-              ),
-              // Spot Price
-              Positioned(
-                left: getPos(item.spotPrice).clamp(0, width - 40),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.arrow_drop_down,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                    Text(
-                      'Spot',
+      return SizedBox(
+        height: 50, // Increased height for better visibility
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            // Axis line
+            Container(
+              height: 2,
+              width: double.infinity,
+              color: Theme.of(context).dividerColor,
+            ),
+            // Spot Price
+            Positioned(
+              left: getPos(item.spotPrice).clamp(0, width - 40),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.arrow_drop_down,
+                      color: Theme.of(context).colorScheme.primary),
+                  Text('Spot',
                       style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                    ),
-                  ],
-                ),
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).colorScheme.primary)),
+                ],
               ),
-              // Break Even
-              Positioned(
-                left: getPos(breakEven).clamp(0, width - 40),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.arrow_drop_up, color: Colors.blue),
-                    const Text(
-                      'BE',
+            ),
+            // Break Even
+            Positioned(
+              left: getPos(breakEven).clamp(0, width - 40),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.arrow_drop_up, color: Colors.blue),
+                  const Text('BE',
                       style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.blue,
-                      ),
-                    ),
-                  ],
-                ),
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blue)),
+                ],
               ),
-              // Strike
-              Positioned(
-                left: getPos(item.strike).clamp(0, width - 40),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 2,
-                      height: 10,
-                      color: Theme.of(context).colorScheme.onSurface,
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Strike',
+            ),
+            // Strike
+            Positioned(
+              left: getPos(item.strike).clamp(0, width - 40),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 2,
+                    height: 10,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                  const SizedBox(height: 2),
+                  Text('Strike',
                       style: TextStyle(
-                        fontSize: 10,
-                        color: Theme.of(context).colorScheme.onSurface,
-                      ),
-                    ),
-                  ],
-                ),
+                          fontSize: 10,
+                          color: Theme.of(context).colorScheme.onSurface)),
+                ],
               ),
-            ],
-          ),
-        );
-      },
-    );
+            ),
+          ],
+        ),
+      );
+    });
   }
 }

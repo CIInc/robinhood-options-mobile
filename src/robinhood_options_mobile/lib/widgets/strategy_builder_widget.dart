@@ -54,9 +54,8 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
   List<OptionInstrument?> selectedLegs = [];
   List<String?> selectedLegActions = [];
   Future<OptionChain>? futureOptionChain;
-  final TextEditingController _quantityController = TextEditingController(
-    text: '1',
-  );
+  final TextEditingController _quantityController =
+      TextEditingController(text: '1');
   final TextEditingController _priceController = TextEditingController();
   bool _isPreviewing = false;
   bool placingOrder = false;
@@ -71,15 +70,15 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
   void initState() {
     super.initState();
     _isPaperTrade = widget.user.source == BrokerageSource.paper;
-    _sortedTags =
-        OptionStrategy.strategies.expand((s) => s.tags).toSet().toList()
-          ..sort();
+    _sortedTags = OptionStrategy.strategies
+        .expand((s) => s.tags)
+        .toSet()
+        .toList()
+      ..sort();
     selectedStrategy = OptionStrategy.strategies.first;
     _resetLegs();
-    futureOptionChain = widget.service.getOptionChains(
-      widget.user,
-      widget.instrument.id,
-    );
+    futureOptionChain =
+        widget.service.getOptionChains(widget.user, widget.instrument.id);
   }
 
   @override
@@ -94,13 +93,9 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
   void _resetLegs() {
     if (selectedStrategy != null) {
       selectedLegs = List<OptionInstrument?>.filled(
-        selectedStrategy!.legTemplates.length,
-        null,
-      );
-      selectedLegActions = List<String?>.filled(
-        selectedStrategy!.legTemplates.length,
-        null,
-      );
+          selectedStrategy!.legTemplates.length, null);
+      selectedLegActions =
+          List<String?>.filled(selectedStrategy!.legTemplates.length, null);
     }
     _selectedPnL.value = null;
   }
@@ -158,8 +153,8 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                         side: BorderSide(
-                          color: Theme.of(context).colorScheme.outlineVariant,
-                        ),
+                            color:
+                                Theme.of(context).colorScheme.outlineVariant),
                       ),
                       child: InkWell(
                         onTap: _showStrategyPicker,
@@ -172,31 +167,22 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
                               Row(
                                 children: [
                                   if (selectedStrategy != null) ...[
-                                    Builder(
-                                      builder: (context) {
-                                        final icon = _getStrategyIcon(
-                                          selectedStrategy!,
-                                        );
-                                        final color = _getStrategyColor(
-                                          selectedStrategy!,
-                                          context,
-                                        );
-                                        return Container(
-                                          padding: const EdgeInsets.all(8),
-                                          decoration: BoxDecoration(
-                                            color: color.withValues(alpha: 0.1),
-                                            borderRadius: BorderRadius.circular(
-                                              8,
-                                            ),
-                                          ),
-                                          child: Icon(
-                                            icon,
-                                            color: color,
-                                            size: 24,
-                                          ),
-                                        );
-                                      },
-                                    ),
+                                    Builder(builder: (context) {
+                                      final icon =
+                                          _getStrategyIcon(selectedStrategy!);
+                                      final color = _getStrategyColor(
+                                          selectedStrategy!, context);
+                                      return Container(
+                                        padding: const EdgeInsets.all(8),
+                                        decoration: BoxDecoration(
+                                          color: color.withValues(alpha: 0.1),
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                        ),
+                                        child:
+                                            Icon(icon, color: color, size: 24),
+                                      );
+                                    }),
                                     const SizedBox(width: 16),
                                   ],
                                   Expanded(
@@ -210,9 +196,9 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
                                               .textTheme
                                               .labelMedium
                                               ?.copyWith(
-                                                color: Theme.of(
-                                                  context,
-                                                ).colorScheme.onSurfaceVariant,
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .onSurfaceVariant,
                                               ),
                                         ),
                                         const SizedBox(height: 4),
@@ -231,21 +217,19 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
                                   ),
                                   Container(
                                     padding: const EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                      vertical: 6,
-                                    ),
+                                        horizontal: 12, vertical: 6),
                                     decoration: BoxDecoration(
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.primaryContainer,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .primaryContainer,
                                       borderRadius: BorderRadius.circular(20),
                                     ),
                                     child: Text(
                                       'Change',
                                       style: TextStyle(
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.onPrimaryContainer,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onPrimaryContainer,
                                         fontWeight: FontWeight.bold,
                                         fontSize: 12,
                                       ),
@@ -258,11 +242,13 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
                                 const SizedBox(height: 12),
                                 Text(
                                   selectedStrategy!.description,
-                                  style: Theme.of(context).textTheme.bodyMedium
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodyMedium
                                       ?.copyWith(
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.onSurfaceVariant,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurfaceVariant,
                                       ),
                                 ),
                               ],
@@ -273,22 +259,19 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
                                   spacing: 8,
                                   runSpacing: 4,
                                   children: selectedStrategy!.tags.map((tag) {
-                                    Color color = Theme.of(
-                                      context,
-                                    ).colorScheme.surfaceContainerHighest;
+                                    Color color = Theme.of(context)
+                                        .colorScheme
+                                        .surfaceContainerHighest;
                                     if (tag == 'Bullish') {
-                                      color = Colors.green.withValues(
-                                        alpha: 0.1,
-                                      );
+                                      color =
+                                          Colors.green.withValues(alpha: 0.1);
                                     } else if (tag == 'Bearish') {
                                       color = Colors.red.withValues(alpha: 0.1);
                                     }
 
                                     return Container(
                                       padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                        vertical: 2,
-                                      ),
+                                          horizontal: 8, vertical: 2),
                                       decoration: BoxDecoration(
                                         color: color,
                                         borderRadius: BorderRadius.circular(4),
@@ -297,9 +280,9 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
                                         tag,
                                         style: TextStyle(
                                           fontSize: 11,
-                                          color: Theme.of(
-                                            context,
-                                          ).colorScheme.onSurfaceVariant,
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onSurfaceVariant,
                                         ),
                                       ),
                                     );
@@ -322,11 +305,7 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
                         final template = selectedStrategy!.legTemplates[index];
                         final selectedLeg = selectedLegs[index];
                         return _buildLegCard(
-                          context,
-                          index,
-                          template,
-                          selectedLeg,
-                        );
+                            context, index, template, selectedLeg);
                       },
                     ),
                     if (_canReview()) ...[
@@ -341,14 +320,12 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
                                   IconButton(
                                     icon: const Icon(Icons.remove),
                                     onPressed: () {
-                                      int current =
-                                          int.tryParse(
-                                            _quantityController.text,
-                                          ) ??
+                                      int current = int.tryParse(
+                                              _quantityController.text) ??
                                           1;
                                       if (current > 1) {
-                                        _quantityController.text = (current - 1)
-                                            .toString();
+                                        _quantityController.text =
+                                            (current - 1).toString();
                                         setState(() {});
                                       }
                                     },
@@ -360,9 +337,7 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
                                         labelText: 'Quantity',
                                         border: OutlineInputBorder(),
                                         contentPadding: EdgeInsets.symmetric(
-                                          horizontal: 12,
-                                          vertical: 16,
-                                        ),
+                                            horizontal: 12, vertical: 16),
                                       ),
                                       keyboardType: TextInputType.number,
                                       textAlign: TextAlign.center,
@@ -372,13 +347,11 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
                                   IconButton(
                                     icon: const Icon(Icons.add),
                                     onPressed: () {
-                                      int current =
-                                          int.tryParse(
-                                            _quantityController.text,
-                                          ) ??
+                                      int current = int.tryParse(
+                                              _quantityController.text) ??
                                           1;
-                                      _quantityController.text = (current + 1)
-                                          .toString();
+                                      _quantityController.text =
+                                          (current + 1).toString();
                                       setState(() {});
                                     },
                                   ),
@@ -394,14 +367,11 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
                                   border: OutlineInputBorder(),
                                   prefixText: '\$',
                                   contentPadding: EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 16,
-                                  ),
+                                      horizontal: 12, vertical: 16),
                                 ),
                                 keyboardType:
                                     const TextInputType.numberWithOptions(
-                                      decimal: true,
-                                    ),
+                                        decimal: true),
                                 onChanged: (value) {
                                   setState(() {});
                                   _selectedPnL.value = null;
@@ -419,18 +389,16 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
                           children: [
                             Row(
                               children: [
-                                Icon(
-                                  Icons.show_chart,
-                                  size: 20,
-                                  color: Theme.of(context).colorScheme.primary,
-                                ),
+                                Icon(Icons.show_chart,
+                                    size: 20,
+                                    color:
+                                        Theme.of(context).colorScheme.primary),
                                 const SizedBox(width: 8),
                                 const Text(
                                   "Profit & Loss",
                                   style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold),
                                 ),
                               ],
                             ),
@@ -441,11 +409,8 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
                                 if (selectedPnL != null) {
                                   displayPnL = selectedPnL;
                                 } else {
-                                  final currentPrice =
-                                      widget
-                                          .instrument
-                                          .quoteObj
-                                          ?.lastTradePrice ??
+                                  final currentPrice = widget.instrument
+                                          .quoteObj?.lastTradePrice ??
                                       0.0;
                                   final pnl = _calculatePnL(currentPrice);
                                   displayPnL = PnLPoint(currentPrice, pnl);
@@ -467,9 +432,9 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
                                       'at ${formatCurrency.format(displayPnL.price)}',
                                       style: TextStyle(
                                         fontSize: 12,
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.onSurfaceVariant,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurfaceVariant,
                                       ),
                                     ),
                                   ],
@@ -496,9 +461,8 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
                                 type: charts.SelectionModelType.info,
                                 changedListener: (charts.SelectionModel model) {
                                   if (model.hasDatumSelection) {
-                                    _selectedPnL.value =
-                                        model.selectedDatum.first.datum
-                                            as PnLPoint;
+                                    _selectedPnL.value = model
+                                        .selectedDatum.first.datum as PnLPoint;
                                   } else {
                                     _selectedPnL.value = null;
                                   }
@@ -509,21 +473,16 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
                               charts.InitialSelection(
                                 selectedDataConfig: [
                                   charts.SeriesDatumConfig<num>(
-                                    'Profit & Loss',
-                                    widget
-                                            .instrument
-                                            .quoteObj
-                                            ?.lastTradePrice ??
-                                        0,
-                                  ),
+                                      'Profit & Loss',
+                                      widget.instrument.quoteObj
+                                              ?.lastTradePrice ??
+                                          0)
                                 ],
                                 shouldPreserveSelectionOnDraw: true,
                               ),
                               charts.RangeAnnotation([
                                 if (widget
-                                        .instrument
-                                        .quoteObj
-                                        ?.lastTradePrice !=
+                                        .instrument.quoteObj?.lastTradePrice !=
                                     null)
                                   charts.LineAnnotationSegment(
                                     widget.instrument.quoteObj!.lastTradePrice!,
@@ -542,32 +501,26 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
                                 ...(_calculateMetrics()['breakevens']
                                             as List<double>? ??
                                         [])
-                                    .map(
-                                      (be) => charts.LineAnnotationSegment(
-                                        be,
-                                        charts.RangeAnnotationAxisType.domain,
-                                        startLabel: 'BE',
-                                        color: charts
-                                            .MaterialPalette
-                                            .gray
-                                            .shade400,
-                                        dashPattern: [2, 2],
-                                      ),
-                                    ),
+                                    .map((be) => charts.LineAnnotationSegment(
+                                          be,
+                                          charts.RangeAnnotationAxisType.domain,
+                                          startLabel: 'BE',
+                                          color: charts
+                                              .MaterialPalette.gray.shade400,
+                                          dashPattern: [2, 2],
+                                        )),
                               ]),
                               charts.SelectNearest(
-                                eventTrigger:
-                                    charts.SelectionTrigger.tapAndDrag,
-                              ),
+                                  eventTrigger:
+                                      charts.SelectionTrigger.tapAndDrag),
                               charts.LinePointHighlighter(
-                                symbolRenderer: charts.CircleSymbolRenderer(),
-                              ),
+                                  symbolRenderer:
+                                      charts.CircleSymbolRenderer()),
                             ],
                             domainAxis: charts.NumericAxisSpec(
                               tickProviderSpec:
                                   const charts.BasicNumericTickProviderSpec(
-                                    zeroBound: false,
-                                  ),
+                                      zeroBound: false),
                               renderSpec: charts.SmallTickRendererSpec(
                                 labelStyle: charts.TextStyleSpec(
                                   fontSize: 10,
@@ -578,8 +531,7 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
                             primaryMeasureAxis: charts.NumericAxisSpec(
                               tickProviderSpec:
                                   const charts.BasicNumericTickProviderSpec(
-                                    zeroBound: false,
-                                  ),
+                                      zeroBound: false),
                               renderSpec: charts.GridlineRendererSpec(
                                 labelStyle: charts.TextStyleSpec(
                                   fontSize: 10,
@@ -651,10 +603,7 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
                 Text(
                   text,
                   style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: color,
-                  ),
+                      fontSize: 18, fontWeight: FontWeight.bold, color: color),
                 ),
               ],
             ),
@@ -681,24 +630,18 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
     );
   }
 
-  Widget _buildLegCard(
-    BuildContext context,
-    int index,
-    StrategyLegTemplate template,
-    OptionInstrument? selectedLeg,
-  ) {
+  Widget _buildLegCard(BuildContext context, int index,
+      StrategyLegTemplate template, OptionInstrument? selectedLeg) {
     final theme = Theme.of(context);
     final isAny = template.action == LegAction.any && selectedLeg == null;
     final isBuy = template.action == LegAction.any
         ? selectedLegActions[index]?.toLowerCase() == 'buy'
         : template.action == LegAction.buy;
-    final actionColor = isAny
-        ? Colors.grey
-        : (isBuy ? Colors.green : Colors.red);
+    final actionColor =
+        isAny ? Colors.grey : (isBuy ? Colors.green : Colors.red);
 
-    final backgroundColor = selectedLeg != null
-        ? actionColor.withValues(alpha: 0.05)
-        : null;
+    final backgroundColor =
+        selectedLeg != null ? actionColor.withValues(alpha: 0.05) : null;
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4), // 8
@@ -732,9 +675,7 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
                       children: [
                         Container(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
-                          ),
+                              horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
                             color: actionColor.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(4),
@@ -769,16 +710,13 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
                             children: [
                               Text(
                                 '\$${selectedLeg.strikePrice} ${selectedLeg.type.toUpperCase()}',
-                                style: theme.textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
+                                style: theme.textTheme.titleMedium
+                                    ?.copyWith(fontWeight: FontWeight.bold),
                               ),
                               const SizedBox(width: 8),
                               Container(
                                 padding: const EdgeInsets.symmetric(
-                                  horizontal: 6,
-                                  vertical: 2,
-                                ),
+                                    horizontal: 6, vertical: 2),
                                 decoration: BoxDecoration(
                                   color:
                                       theme.colorScheme.surfaceContainerHighest,
@@ -786,9 +724,8 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
                                 ),
                                 child: Text(
                                   selectedLeg.expirationDate != null
-                                      ? DateFormat(
-                                          'MMM d',
-                                        ).format(selectedLeg.expirationDate!)
+                                      ? DateFormat('MMM d')
+                                          .format(selectedLeg.expirationDate!)
                                       : '-',
                                   style: theme.textTheme.bodySmall,
                                 ),
@@ -803,40 +740,30 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
                                 alignment: Alignment.centerLeft,
                                 child: Row(
                                   children: [
-                                    _buildLegDetail(
-                                      theme,
-                                      'Mark',
-                                      '\$${selectedLeg.optionMarketData!.markPrice?.toStringAsFixed(2)}',
-                                    ),
+                                    _buildLegDetail(theme, 'Mark',
+                                        '\$${selectedLeg.optionMarketData!.markPrice?.toStringAsFixed(2)}'),
                                     const SizedBox(width: 6),
                                     _buildLegDetail(
-                                      theme,
-                                      'Δ',
-                                      selectedLeg.optionMarketData!.delta
-                                              ?.toStringAsFixed(2) ??
-                                          '-',
-                                    ),
+                                        theme,
+                                        'Δ',
+                                        selectedLeg.optionMarketData!.delta
+                                                ?.toStringAsFixed(2) ??
+                                            '-'),
                                     const SizedBox(width: 6),
                                     _buildLegDetail(
-                                      theme,
-                                      'IV',
-                                      selectedLeg
-                                                  .optionMarketData!
-                                                  .impliedVolatility !=
-                                              null
-                                          ? "${(selectedLeg.optionMarketData!.impliedVolatility! * 100).toStringAsFixed(1)}%"
-                                          : "-",
-                                    ),
+                                        theme,
+                                        'IV',
+                                        selectedLeg.optionMarketData!
+                                                    .impliedVolatility !=
+                                                null
+                                            ? "${(selectedLeg.optionMarketData!.impliedVolatility! * 100).toStringAsFixed(1)}%"
+                                            : "-"),
                                     const SizedBox(width: 6),
                                     _buildLegDetail(
-                                      theme,
-                                      'OI',
-                                      formatCompactNumber.format(
-                                        selectedLeg
-                                            .optionMarketData!
-                                            .openInterest,
-                                      ),
-                                    ),
+                                        theme,
+                                        'OI',
+                                        formatCompactNumber.format(selectedLeg
+                                            .optionMarketData!.openInterest)),
                                   ],
                                 ),
                               ),
@@ -906,16 +833,12 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
             children: [
               Row(
                 children: [
-                  Icon(
-                    Icons.functions,
-                    size: 20,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
+                  Icon(Icons.functions,
+                      size: 20, color: Theme.of(context).colorScheme.primary),
                   const SizedBox(width: 8),
-                  const Text(
-                    'Greeks',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
+                  const Text('Greeks',
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 ],
               ),
               const SizedBox(height: 16),
@@ -932,10 +855,7 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
                     if (e.value < 0) valueColor = Colors.red;
                   }
                   return _buildMetricItem(
-                    e.key,
-                    e.value.toStringAsFixed(4),
-                    valueColor,
-                  );
+                      e.key, e.value.toStringAsFixed(4), valueColor);
                 }).toList(),
               ),
             ],
@@ -990,16 +910,12 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
             children: [
               Row(
                 children: [
-                  Icon(
-                    Icons.analytics_outlined,
-                    size: 20,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
+                  Icon(Icons.analytics_outlined,
+                      size: 20, color: Theme.of(context).colorScheme.primary),
                   const SizedBox(width: 8),
-                  const Text(
-                    'Analysis',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
+                  const Text('Analysis',
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 ],
               ),
               const SizedBox(height: 16),
@@ -1054,18 +970,16 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
                     'Breakeven',
                     breakevens.isEmpty
                         ? '-'
-                        : breakevens
-                              .map((e) {
-                                String s = '\$${e.toStringAsFixed(2)}';
-                                if (currentPrice != null && currentPrice > 0) {
-                                  double pct =
-                                      ((e - currentPrice) / currentPrice) * 100;
-                                  String sign = pct >= 0 ? '+' : '';
-                                  s += ' ($sign${pct.toStringAsFixed(1)}%)';
-                                }
-                                return s;
-                              })
-                              .join('\n'),
+                        : breakevens.map((e) {
+                            String s = '\$${e.toStringAsFixed(2)}';
+                            if (currentPrice != null && currentPrice > 0) {
+                              double pct =
+                                  ((e - currentPrice) / currentPrice) * 100;
+                              String sign = pct >= 0 ? '+' : '';
+                              s += ' ($sign${pct.toStringAsFixed(1)}%)';
+                            }
+                            return s;
+                          }).join('\n'),
                     null,
                   ),
                   if (currentPrice != null)
@@ -1087,22 +1001,14 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: TextStyle(
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
-            fontSize: 12,
-          ),
-        ),
+        Text(label,
+            style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                fontSize: 12)),
         const SizedBox(height: 4),
-        Text(
-          value,
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-            color: valueColor,
-          ),
-        ),
+        Text(value,
+            style: TextStyle(
+                fontWeight: FontWeight.bold, fontSize: 16, color: valueColor)),
       ],
     );
   }
@@ -1169,9 +1075,8 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
 
     double netCost = entryCost * 100;
 
-    List<double> pnls = sortedPoints
-        .map((p) => calculatePayoff(p) - netCost)
-        .toList();
+    List<double> pnls =
+        sortedPoints.map((p) => calculatePayoff(p) - netCost).toList();
 
     // Calculate Slope at Infinity
     double slope = 0.0;
@@ -1335,15 +1240,13 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
 
   double? _calculateEstimatedPrice() {
     if (selectedStrategy?.type != StrategyType.custom &&
-        !selectedLegs.every(
-          (leg) => leg != null && leg.optionMarketData != null,
-        )) {
+        !selectedLegs
+            .every((leg) => leg != null && leg.optionMarketData != null)) {
       return null;
     }
     if (selectedStrategy?.type == StrategyType.custom &&
-        !selectedLegs.any(
-          (leg) => leg != null && leg.optionMarketData != null,
-        )) {
+        !selectedLegs
+            .any((leg) => leg != null && leg.optionMarketData != null)) {
       return null;
     }
 
@@ -1401,39 +1304,33 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
         children: <Widget>[
           Text(
             "Review Order",
-            style: theme.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
+            style: theme.textTheme.headlineSmall
+                ?.copyWith(fontWeight: FontWeight.bold),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 24),
           Card(
             elevation: 2,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             child: Padding(
               padding: const EdgeInsets.all(20.0),
               child: Column(
                 children: [
                   Text(
                     "${selectedStrategy!.name} Strategy",
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: theme.textTheme.titleLarge
+                        ?.copyWith(fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     "${quantity}x Contracts",
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      color: theme.colorScheme.secondary,
-                    ),
+                    style: theme.textTheme.titleMedium
+                        ?.copyWith(color: theme.colorScheme.secondary),
                   ),
                   const SizedBox(height: 24),
-                  _buildPreviewRow(
-                    "Underlying",
-                    "${widget.instrument.symbol} \$${widget.instrument.quoteObj?.lastTradePrice?.toStringAsFixed(2) ?? '-'}",
-                  ),
+                  _buildPreviewRow("Underlying",
+                      "${widget.instrument.symbol} \$${widget.instrument.quoteObj?.lastTradePrice?.toStringAsFixed(2) ?? '-'}"),
                   _buildPreviewRow("Order Type", "Limit"),
                   _buildPreviewRow("Price", "\$${price.toStringAsFixed(2)}"),
                   _buildPreviewRow("Effect", creditOrDebit.toUpperCase()),
@@ -1441,10 +1338,8 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
                     padding: EdgeInsets.symmetric(vertical: 12.0),
                     child: Divider(),
                   ),
-                  const Text(
-                    'Legs',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
+                  const Text('Legs',
+                      style: TextStyle(fontWeight: FontWeight.bold)),
                   const SizedBox(height: 8),
                   ...selectedLegs.asMap().entries.map((entry) {
                     final index = entry.key;
@@ -1459,19 +1354,16 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
                         children: [
                           Container(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 2,
-                            ),
+                                horizontal: 8, vertical: 2),
                             decoration: BoxDecoration(
                               color: isBuy
                                   ? Colors.green.withValues(alpha: 0.1)
                                   : Colors.red.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(4),
                               border: Border.all(
-                                color: isBuy
-                                    ? Colors.green.withValues(alpha: 0.5)
-                                    : Colors.red.withValues(alpha: 0.5),
-                              ),
+                                  color: isBuy
+                                      ? Colors.green.withValues(alpha: 0.5)
+                                      : Colors.red.withValues(alpha: 0.5)),
                             ),
                             child: Text(
                               isBuy ? 'BUY' : 'SELL',
@@ -1483,10 +1375,9 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
                             ),
                           ),
                           const SizedBox(width: 8),
-                          Text(
-                            '${template.ratio}x',
-                            style: const TextStyle(fontWeight: FontWeight.bold),
-                          ),
+                          Text('${template.ratio}x',
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.bold)),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
@@ -1508,46 +1399,37 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
                     padding: EdgeInsets.symmetric(vertical: 12.0),
                     child: Divider(),
                   ),
-                  Builder(
-                    builder: (context) {
-                      final metrics = _calculateMetrics();
-                      final maxProfit = metrics['maxProfit'] as double?;
-                      final maxLoss = metrics['maxLoss'] as double?;
-                      final breakevens = metrics['breakevens'] as List<double>?;
+                  Builder(builder: (context) {
+                    final metrics = _calculateMetrics();
+                    final maxProfit = metrics['maxProfit'] as double?;
+                    final maxLoss = metrics['maxLoss'] as double?;
+                    final breakevens = metrics['breakevens'] as List<double>?;
 
-                      String formatVal(double? val) {
-                        if (val == null) return '-';
-                        if (val.isInfinite) return 'Unlimited';
-                        return formatCurrency.format(val);
-                      }
+                    String formatVal(double? val) {
+                      if (val == null) return '-';
+                      if (val.isInfinite) return 'Unlimited';
+                      return formatCurrency.format(val);
+                    }
 
-                      return Column(
-                        children: [
+                    return Column(
+                      children: [
+                        _buildPreviewRow("Max Profit", formatVal(maxProfit),
+                            valueColor: Colors.green),
+                        _buildPreviewRow("Max Loss", formatVal(maxLoss),
+                            valueColor: Colors.red),
+                        if (breakevens != null && breakevens.isNotEmpty)
                           _buildPreviewRow(
-                            "Max Profit",
-                            formatVal(maxProfit),
-                            valueColor: Colors.green,
-                          ),
-                          _buildPreviewRow(
-                            "Max Loss",
-                            formatVal(maxLoss),
-                            valueColor: Colors.red,
-                          ),
-                          if (breakevens != null && breakevens.isNotEmpty)
-                            _buildPreviewRow(
                               "Breakeven",
                               breakevens
                                   .map((e) => formatCurrency.format(e))
-                                  .join(', '),
-                            ),
-                          const Padding(
-                            padding: EdgeInsets.symmetric(vertical: 12.0),
-                            child: Divider(),
-                          ),
-                        ],
-                      );
-                    },
-                  ),
+                                  .join(', ')),
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 12.0),
+                          child: Divider(),
+                        ),
+                      ],
+                    );
+                  }),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -1564,9 +1446,8 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
                   const SizedBox(height: 8),
                   SwitchListTile(
                     title: const Text("Paper Trade"),
-                    subtitle: const Text(
-                      "Simulate this trade with virtual money",
-                    ),
+                    subtitle:
+                        const Text("Simulate this trade with virtual money"),
                     value: _isPaperTrade,
                     onChanged: (val) {
                       setState(() {
@@ -1584,16 +1465,11 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
                       return Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(
-                            "Buying Power",
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                          Text(
-                            formatCurrency.format(buyingPower),
-                            style: theme.textTheme.bodyMedium,
-                          ),
+                          Text("Buying Power",
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: theme.colorScheme.onSurfaceVariant)),
+                          Text(formatCurrency.format(buyingPower),
+                              style: theme.textTheme.bodyMedium),
                         ],
                       );
                     },
@@ -1627,31 +1503,21 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
     );
   }
 
-  Widget _buildPreviewRow(
-    String label,
-    String value, {
-    bool isBold = false,
-    Color? valueColor,
-  }) {
+  Widget _buildPreviewRow(String label, String value,
+      {bool isBold = false, Color? valueColor}) {
     final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            label,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-          Text(
-            value,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
-              color: valueColor ?? theme.colorScheme.onSurface,
-            ),
-          ),
+          Text(label,
+              style: theme.textTheme.bodyMedium
+                  ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+          Text(value,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+                  color: valueColor ?? theme.colorScheme.onSurface)),
         ],
       ),
     );
@@ -1669,10 +1535,8 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
     try {
       // RiskGuard Check
       var accountStore = Provider.of<AccountStore>(context, listen: false);
-      var agenticProvider = Provider.of<AgenticTradingProvider>(
-        context,
-        listen: false,
-      );
+      var agenticProvider =
+          Provider.of<AgenticTradingProvider>(context, listen: false);
       final portfolioState = <String, dynamic>{};
 
       if (_isPaperTrade) {
@@ -1680,8 +1544,7 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
         portfolioState['buyingPower'] = paperStore.cashBalance;
         portfolioState['cashAvailable'] = paperStore.cashBalance;
       } else if (accountStore.items.isNotEmpty) {
-        final buyingPower =
-            accountStore.items[0].buyingPower ??
+        final buyingPower = accountStore.items[0].buyingPower ??
             accountStore.items[0].portfolioCash ??
             0.0;
         portfolioState['buyingPower'] = buyingPower;
@@ -1689,20 +1552,19 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
             accountStore.items[0].portfolioCash ?? 0.0;
       }
 
-      final riskResult = await FirebaseFunctions.instance
-          .httpsCallable('riskguardTask')
-          .call({
-            'proposal': {
-              'symbol': widget.instrument.symbol,
-              'quantity': quantity,
-              'price': price.abs(),
-              'action': creditOrDebit == 'debit' ? 'BUY' : 'SELL',
-              'multiplier': 100,
-              'strategy': selectedStrategy?.name,
-            },
-            'portfolioState': portfolioState,
-            'config': agenticProvider.config,
-          });
+      final riskResult =
+          await FirebaseFunctions.instance.httpsCallable('riskguardTask').call({
+        'proposal': {
+          'symbol': widget.instrument.symbol,
+          'quantity': quantity,
+          'price': price.abs(),
+          'action': creditOrDebit == 'debit' ? 'BUY' : 'SELL',
+          'multiplier': 100,
+          'strategy': selectedStrategy?.name,
+        },
+        'portfolioState': portfolioState,
+        'config': agenticProvider.config,
+      });
 
       if (riskResult.data['approved'] == false) {
         if (!mounted) return;
@@ -1711,8 +1573,7 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
           builder: (context) => AlertDialog(
             title: const Text('RiskGuard Warning'),
             content: Text(
-              riskResult.data['reason'] ?? 'Trade rejected by RiskGuard.',
-            ),
+                riskResult.data['reason'] ?? 'Trade rejected by RiskGuard.'),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context, false),
@@ -1737,24 +1598,21 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
             .entries
             .where((entry) => entry.value != null)
             .map((entry) {
-              final index = entry.key;
-              final leg = entry.value!;
-              final template = selectedStrategy!.legTemplates[index];
-              final isBuy = template.action == LegAction.any
-                  ? selectedLegActions[index]?.toLowerCase() == 'buy'
-                  : template.action == LegAction.buy;
-              return {
-                'instrument': leg,
-                'side': isBuy ? 'buy' : 'sell',
-                'ratio': template.ratio,
-              };
-            })
-            .toList();
+          final index = entry.key;
+          final leg = entry.value!;
+          final template = selectedStrategy!.legTemplates[index];
+          final isBuy = template.action == LegAction.any
+              ? selectedLegActions[index]?.toLowerCase() == 'buy'
+              : template.action == LegAction.buy;
+          return {
+            'instrument': leg,
+            'side': isBuy ? 'buy' : 'sell',
+            'ratio': template.ratio,
+          };
+        }).toList();
 
-        await Provider.of<PaperTradingStore>(
-          context,
-          listen: false,
-        ).executeComplexOptionStrategy(
+        await Provider.of<PaperTradingStore>(context, listen: false)
+            .executeComplexOptionStrategy(
           price: price,
           quantity: quantity.toDouble(),
           strategyName: selectedStrategy?.name ?? "Custom",
@@ -1767,27 +1625,25 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
             .entries
             .where((entry) => entry.value != null)
             .map((entry) {
-              final index = entry.key;
-              final leg = entry.value!;
-              final template = selectedStrategy!.legTemplates[index];
-              final isBuy = template.action == LegAction.any
-                  ? selectedLegActions[index]?.toLowerCase() == 'buy'
-                  : template.action == LegAction.buy;
-              return {
-                'position_effect': 'open', // Assuming opening a new position
-                'side': isBuy ? 'buy' : 'sell',
-                'ratio_quantity': template.ratio,
-                'option': leg.url,
-              };
-            })
-            .toList();
+          final index = entry.key;
+          final leg = entry.value!;
+          final template = selectedStrategy!.legTemplates[index];
+          final isBuy = template.action == LegAction.any
+              ? selectedLegActions[index]?.toLowerCase() == 'buy'
+              : template.action == LegAction.buy;
+          return {
+            'position_effect': 'open', // Assuming opening a new position
+            'side': isBuy ? 'buy' : 'sell',
+            'ratio_quantity': template.ratio,
+            'option': leg.url,
+          };
+        }).toList();
 
         await widget.service.placeMultiLegOptionsOrder(
           widget.user,
-          Provider.of<AccountStore>(
-            context,
-            listen: false,
-          ).items.first, // Assuming first account
+          Provider.of<AccountStore>(context, listen: false)
+              .items
+              .first, // Assuming first account
           legs,
           creditOrDebit,
           price,
@@ -1798,20 +1654,17 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              _isPaperTrade
+              content: Text(_isPaperTrade
                   ? 'Paper Order placed successfully'
-                  : 'Order placed successfully',
-            ),
-          ),
+                  : 'Order placed successfully')),
         );
         Navigator.pop(context); // Go back
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error placing order: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error placing order: $e')),
+        );
       }
     } finally {
       if (mounted) {
@@ -1860,7 +1713,10 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
           subtitleBuilder: (option) {
             final reason = _getOptionInvalidReason(option, index);
             if (reason != null) {
-              return Text(reason, style: const TextStyle(color: Colors.red));
+              return Text(
+                reason,
+                style: const TextStyle(color: Colors.red),
+              );
             }
             return null;
           },
@@ -2161,7 +2017,7 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
         domainFn: (PnLPoint point, _) => point.price,
         measureFn: (PnLPoint point, _) => point.pnl,
         data: data,
-      ),
+      )
     ];
   }
 
@@ -2245,11 +2101,9 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
                             borderRadius: BorderRadius.circular(12),
                             side: isSelected
                                 ? BorderSide(
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.primary,
-                                    width: 2,
-                                  )
+                                    color:
+                                        Theme.of(context).colorScheme.primary,
+                                    width: 2)
                                 : BorderSide.none,
                           ),
                           child: InkWell(
@@ -2269,9 +2123,8 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
                                   Row(
                                     children: [
                                       CircleAvatar(
-                                        backgroundColor: iconColor.withValues(
-                                          alpha: 0.1,
-                                        ),
+                                        backgroundColor:
+                                            iconColor.withValues(alpha: 0.1),
                                         child: Icon(icon, color: iconColor),
                                       ),
                                       const SizedBox(width: 16),
@@ -2293,9 +2146,8 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
                                             Wrap(
                                               spacing: 8,
                                               runSpacing: 4,
-                                              children: strategy.tags.map((
-                                                tag,
-                                              ) {
+                                              children:
+                                                  strategy.tags.map((tag) {
                                                 Color color = Theme.of(context)
                                                     .colorScheme
                                                     .surfaceContainerHighest;
@@ -2303,22 +2155,19 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
                                                   color = Colors.green
                                                       .withValues(alpha: 0.1);
                                                 } else if (tag == 'Bearish') {
-                                                  color = Colors.red.withValues(
-                                                    alpha: 0.1,
-                                                  );
+                                                  color = Colors.red
+                                                      .withValues(alpha: 0.1);
                                                 }
                                                 return Container(
-                                                  padding:
-                                                      const EdgeInsets.symmetric(
-                                                        horizontal: 6,
-                                                        vertical: 2,
-                                                      ),
+                                                  padding: const EdgeInsets
+                                                      .symmetric(
+                                                      horizontal: 6,
+                                                      vertical: 2),
                                                   decoration: BoxDecoration(
                                                     color: color,
                                                     borderRadius:
                                                         BorderRadius.circular(
-                                                          4,
-                                                        ),
+                                                            4),
                                                   ),
                                                   child: Text(
                                                     tag,
@@ -2336,12 +2185,10 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
                                         ),
                                       ),
                                       if (isSelected)
-                                        Icon(
-                                          Icons.check_circle,
-                                          color: Theme.of(
-                                            context,
-                                          ).colorScheme.primary,
-                                        ),
+                                        Icon(Icons.check_circle,
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .primary),
                                     ],
                                   ),
                                   const SizedBox(height: 12),
@@ -2351,9 +2198,9 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
                                         .textTheme
                                         .bodyMedium
                                         ?.copyWith(
-                                          color: Theme.of(
-                                            context,
-                                          ).colorScheme.onSurfaceVariant,
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onSurfaceVariant,
                                         ),
                                   ),
                                   const SizedBox(height: 12),
@@ -2369,9 +2216,8 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
                                     child: Column(
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
-                                      children: strategy.legTemplates.map((
-                                        leg,
-                                      ) {
+                                      children:
+                                          strategy.legTemplates.map((leg) {
                                         final isBuy =
                                             leg.action == LegAction.buy;
                                         final isSell =
@@ -2379,21 +2225,20 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
                                         final color = isBuy
                                             ? Colors.green
                                             : (isSell
-                                                  ? Colors.red
-                                                  : Colors.grey);
+                                                ? Colors.red
+                                                : Colors.grey);
                                         return Padding(
                                           padding: const EdgeInsets.symmetric(
-                                            vertical: 2,
-                                          ),
+                                              vertical: 2),
                                           child: Row(
                                             children: [
                                               Icon(
                                                 isBuy
                                                     ? Icons.add_circle_outline
                                                     : (isSell
-                                                          ? Icons
-                                                                .remove_circle_outline
-                                                          : Icons.help_outline),
+                                                        ? Icons
+                                                            .remove_circle_outline
+                                                        : Icons.help_outline),
                                                 size: 14,
                                                 color: color,
                                               ),
@@ -2403,9 +2248,9 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
                                                 style: TextStyle(
                                                   fontSize: 12,
                                                   fontWeight: FontWeight.w500,
-                                                  color: Theme.of(
-                                                    context,
-                                                  ).colorScheme.onSurface,
+                                                  color: Theme.of(context)
+                                                      .colorScheme
+                                                      .onSurface,
                                                 ),
                                               ),
                                             ],

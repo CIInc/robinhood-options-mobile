@@ -28,26 +28,25 @@ import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
 class InstrumentOptionChainWidget extends StatefulWidget {
   const InstrumentOptionChainWidget(
-    this.brokerageUser,
-    this.service,
-    //this.account,
-    this.instrument, {
-    super.key,
-    required this.analytics,
-    required this.observer,
-    required this.generativeService,
-    this.optionPosition,
-    required this.user,
-    required this.userDocRef,
-    this.onOptionSelected,
-    this.initialActionFilter,
-    this.initialTypeFilter,
-    this.initialExpirationDate,
-    this.selectedOption,
-    this.title,
-    this.subtitleBuilder,
-    this.isOptionEnabled,
-  });
+      this.brokerageUser,
+      this.service,
+      //this.account,
+      this.instrument,
+      {super.key,
+      required this.analytics,
+      required this.observer,
+      required this.generativeService,
+      this.optionPosition,
+      required this.user,
+      required this.userDocRef,
+      this.onOptionSelected,
+      this.initialActionFilter,
+      this.initialTypeFilter,
+      this.initialExpirationDate,
+      this.selectedOption,
+      this.title,
+      this.subtitleBuilder,
+      this.isOptionEnabled});
 
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
@@ -114,14 +113,10 @@ class _InstrumentOptionChainWidgetState
 
     if (widget.user?.defaultOptionFilterPreset != null &&
         widget.user?.optionFilterPresets != null &&
-        widget.user!.optionFilterPresets!.containsKey(
-          widget.user!.defaultOptionFilterPreset,
-        )) {
-      filterSettings = Map.from(
-        widget.user!.optionFilterPresets![widget
-            .user!
-            .defaultOptionFilterPreset]!,
-      );
+        widget.user!.optionFilterPresets!
+            .containsKey(widget.user!.defaultOptionFilterPreset)) {
+      filterSettings = Map.from(widget
+          .user!.optionFilterPresets![widget.user!.defaultOptionFilterPreset]!);
     }
 
     widget.analytics.logScreenView(
@@ -130,31 +125,24 @@ class _InstrumentOptionChainWidgetState
   }
 
   Future<void> _generateAIRecommendations(
-    BuildContext context,
-    GenerativeProvider generativeProvider,
-    List<OptionInstrument>? optionInstruments,
-    Instrument instrument,
-  ) async {
+      BuildContext context,
+      GenerativeProvider generativeProvider,
+      List<OptionInstrument>? optionInstruments,
+      Instrument instrument) async {
     var userSettings = await _showAIOptionsDialog(context);
     if (userSettings == null) return;
 
-    var prompt = widget.generativeService.prompts.firstWhere(
-      (p) => p.key == 'select-option',
-    );
-    var historicalDataString = OptionInstrument.toMarkdownTable(
-      optionInstruments ?? [],
-    );
+    var prompt = widget.generativeService.prompts
+        .firstWhere((p) => p.key == 'select-option');
+    var historicalDataString =
+        OptionInstrument.toMarkdownTable(optionInstruments ?? []);
     var historicalDataString2 = Instrument.toMarkdownTable([instrument]);
     var basePrompt = prompt.prompt
         .replaceAll("{{symbol}}", instrument.symbol)
         .replaceAll(
-          "{{type}}",
-          typeFilter != null ? typeFilter!.toLowerCase() : '',
-        )
-        .replaceAll(
-          "{{action}}",
-          actionFilter != null ? actionFilter!.toLowerCase() : 'buy or sell',
-        );
+            "{{type}}", typeFilter != null ? typeFilter!.toLowerCase() : '')
+        .replaceAll("{{action}}",
+            actionFilter != null ? actionFilter!.toLowerCase() : 'buy or sell');
 
     var today = DateTime.now();
     var dateString = DateFormat.yMMMEd().format(today);
@@ -167,8 +155,7 @@ class _InstrumentOptionChainWidgetState
       userContext += "\n- Custom Instructions: ${userSettings['custom']}";
     }
 
-    var finalPrompt =
-        '$basePrompt'
+    var finalPrompt = '$basePrompt'
         '$userContext'
         '\nUse the following stock data: $historicalDataString2'
         '\nUse the following option chain data:\n$historicalDataString'
@@ -192,10 +179,8 @@ class _InstrumentOptionChainWidgetState
     });
 
     try {
-      var response = await widget.generativeService.sendChatMessage(
-        finalPrompt,
-        user: widget.user,
-      );
+      var response = await widget.generativeService
+          .sendChatMessage(finalPrompt, user: widget.user);
       var jsonString = response;
       // Robust JSON extraction
       final jsonStart = jsonString.indexOf('[');
@@ -222,11 +207,9 @@ class _InstrumentOptionChainWidgetState
       if (recommendations.isNotEmpty) {
         setState(() {
           if (expirationDateFilter != null) {
-            aiRecommendationsMap[expirationDateFilter!.toString().substring(
-                  0,
-                  10,
-                )] =
-                recommendations;
+            aiRecommendationsMap[expirationDateFilter!
+                .toString()
+                .substring(0, 10)] = recommendations;
           }
         });
 
@@ -236,40 +219,30 @@ class _InstrumentOptionChainWidgetState
         var type = firstRec['type'];
 
         // Find the option
-        var optionIndex = filteredOptionsInstruments!.indexWhere(
-          (oi) =>
-              oi.strikePrice == strikePrice &&
-              oi.type.toLowerCase() == type.toLowerCase(),
-        );
+        var optionIndex = filteredOptionsInstruments!.indexWhere((oi) =>
+            oi.strikePrice == strikePrice &&
+            oi.type.toLowerCase() == type.toLowerCase());
 
         if (optionIndex != -1) {
           // Scroll to option
           itemScrollController.scrollTo(
-            index: optionIndex > 2 ? optionIndex - 2 : 0,
-            duration: const Duration(milliseconds: 500),
-            curve: Curves.easeInOutCubic,
-            alignment: 0,
-          );
+              index: optionIndex > 2 ? optionIndex - 2 : 0,
+              duration: const Duration(milliseconds: 500),
+              curve: Curves.easeInOutCubic,
+              alignment: 0);
         } else {
           if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                 content: Text(
-                  "Could not find the suggested option in the current list. Reason: ${firstRec['reason']}",
-                ),
-              ),
-            );
+                    "Could not find the suggested option in the current list. Reason: ${firstRec['reason']}")));
           }
         }
       }
     } catch (e) {
       debugPrint('Error parsing AI response: $e');
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Error parsing AI response. Please try again."),
-          ),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text("Error parsing AI response. Please try again.")));
       }
     } finally {
       if (mounted) {
@@ -330,20 +303,12 @@ class _InstrumentOptionChainWidgetState
     } catch (e) {
       debugPrint('Error: $e');
       return Scaffold(
-        body: buildScrollView(
-          instrument,
-          done: true,
-          widgets: [
-            SliverToBoxAdapter(
-              child: Center(
-                child: Text(
-                  '\n\nError loading option chain. Please try again.',
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
+          body: buildScrollView(instrument, done: true, widgets: [
+        SliverToBoxAdapter(
+          child: Center(
+              child: Text('\n\nError loading option chain. Please try again.')),
+        )
+      ]));
     }
 
     /*
@@ -353,34 +318,30 @@ class _InstrumentOptionChainWidgetState
         */
 
     return Scaffold(
-      body: FutureBuilder<OptionChain>(
-        future: futureOptionChain,
-        builder: (context, snapshot) {
-          if (snapshot.hasData) {
-            instrument.optionChainObj = snapshot.data!;
+        body: FutureBuilder<OptionChain>(
+      future: futureOptionChain,
+      builder: (context, snapshot) {
+        if (snapshot.hasData) {
+          instrument.optionChainObj = snapshot.data!;
 
-            expirationDates = instrument.optionChainObj!.expirationDates;
-            expirationDates!.sort((a, b) => a.compareTo(b));
-            if (expirationDates!.isNotEmpty) {
-              if (widget.selectedOption != null &&
-                  expirationDateFilter == null) {
-                expirationDateFilter = expirationDates!.firstWhereOrNull(
-                  (d) =>
-                      d.year == widget.selectedOption!.expirationDate!.year &&
-                      d.month == widget.selectedOption!.expirationDate!.month &&
-                      d.day == widget.selectedOption!.expirationDate!.day,
-                );
-              }
-              if (expirationDateFilter != null &&
-                  !expirationDates!.any(
-                    (d) => d.isAtSameMomentAs(expirationDateFilter!),
-                  )) {
-                expirationDateFilter = null;
-              }
-              expirationDateFilter ??= expirationDates!.first;
+          expirationDates = instrument.optionChainObj!.expirationDates;
+          expirationDates!.sort((a, b) => a.compareTo(b));
+          if (expirationDates!.isNotEmpty) {
+            if (widget.selectedOption != null && expirationDateFilter == null) {
+              expirationDateFilter = expirationDates!.firstWhereOrNull((d) =>
+                  d.year == widget.selectedOption!.expirationDate!.year &&
+                  d.month == widget.selectedOption!.expirationDate!.month &&
+                  d.day == widget.selectedOption!.expirationDate!.day);
             }
+            if (expirationDateFilter != null &&
+                !expirationDates!
+                    .any((d) => d.isAtSameMomentAs(expirationDateFilter!))) {
+              expirationDateFilter = null;
+            }
+            expirationDateFilter ??= expirationDates!.first;
+          }
 
-            optionInstrumentStream ??= widget.service.streamOptionInstruments(
+          optionInstrumentStream ??= widget.service.streamOptionInstruments(
               user,
               Provider.of<OptionInstrumentStore>(context, listen: false),
               instrument,
@@ -388,345 +349,287 @@ class _InstrumentOptionChainWidgetState
                   ? formatExpirationDate.format(expirationDateFilter!)
                   : null,
               null, // 'call'
-              includeMarketData: filterSettings.isNotEmpty,
-            );
+              includeMarketData: filterSettings.isNotEmpty);
 
-            return StreamBuilder<List<OptionInstrument>>(
+          return StreamBuilder<List<OptionInstrument>>(
               stream: optionInstrumentStream,
-              builder:
-                  (
-                    BuildContext context,
-                    AsyncSnapshot<List<OptionInstrument>>
-                    optionInstrumentsnapshot,
-                  ) {
-                    if (optionInstrumentsnapshot.hasData) {
-                      optionInstruments = optionInstrumentsnapshot.data!;
+              builder: (BuildContext context,
+                  AsyncSnapshot<List<OptionInstrument>>
+                      optionInstrumentsnapshot) {
+                if (optionInstrumentsnapshot.hasData) {
+                  optionInstruments = optionInstrumentsnapshot.data!;
 
-                      var newfilteredOptionsInstruments = optionInstruments!.where((
-                        oi,
-                      ) {
-                        bool matches =
-                            (typeFilter == null ||
-                                typeFilter!.toLowerCase() ==
-                                    oi.type.toLowerCase()) &&
-                            (expirationDateFilter == null ||
-                                expirationDateFilter!.isAtSameMomentAs(
-                                  oi.expirationDate!,
-                                ));
+                  var newfilteredOptionsInstruments =
+                      optionInstruments!.where((oi) {
+                    bool matches = (typeFilter == null ||
+                            typeFilter!.toLowerCase() ==
+                                oi.type.toLowerCase()) &&
+                        (expirationDateFilter == null ||
+                            expirationDateFilter!
+                                .isAtSameMomentAs(oi.expirationDate!));
 
-                        if (!matches) {
-                          return false;
-                        }
+                    if (!matches) {
+                      return false;
+                    }
 
-                        if (filterSettings.isNotEmpty) {
-                          final marketData = oi.optionMarketData;
-                          // If we are filtering but have no market data, exclude the option
-                          if (marketData == null) {
-                            return false;
-                          }
+                    if (filterSettings.isNotEmpty) {
+                      final marketData = oi.optionMarketData;
+                      // If we are filtering but have no market data, exclude the option
+                      if (marketData == null) {
+                        return false;
+                      }
 
-                          if (filterSettings['minDelta'] != null &&
-                              (marketData.delta == null ||
-                                  marketData.delta!.abs() <
-                                      filterSettings['minDelta'])) {
-                            return false;
-                          }
-                          if (filterSettings['maxDelta'] != null &&
-                              (marketData.delta == null ||
-                                  marketData.delta!.abs() >
-                                      filterSettings['maxDelta'])) {
-                            return false;
-                          }
+                      if (filterSettings['minDelta'] != null &&
+                          (marketData.delta == null ||
+                              marketData.delta!.abs() <
+                                  filterSettings['minDelta'])) {
+                        return false;
+                      }
+                      if (filterSettings['maxDelta'] != null &&
+                          (marketData.delta == null ||
+                              marketData.delta!.abs() >
+                                  filterSettings['maxDelta'])) {
+                        return false;
+                      }
 
-                          if (filterSettings['minOpenInterest'] != null &&
-                              (marketData.openInterest <
-                                  filterSettings['minOpenInterest'])) {
-                            return false;
-                          }
-                          if (filterSettings['minVolume'] != null &&
-                              (marketData.volume <
-                                  filterSettings['minVolume'])) {
-                            return false;
-                          }
+                      if (filterSettings['minOpenInterest'] != null &&
+                          (marketData.openInterest <
+                              filterSettings['minOpenInterest'])) {
+                        return false;
+                      }
+                      if (filterSettings['minVolume'] != null &&
+                          (marketData.volume < filterSettings['minVolume'])) {
+                        return false;
+                      }
 
-                          if (filterSettings['maxBidAskSpread'] != null) {
-                            if (marketData.askPrice != null &&
-                                marketData.bidPrice != null) {
-                              if ((marketData.askPrice! -
-                                      marketData.bidPrice!) >
-                                  filterSettings['maxBidAskSpread']) {
-                                return false;
-                              }
-                            }
-                          }
-
-                          if (filterSettings['minVega'] != null &&
-                              (marketData.vega == null ||
-                                  marketData.vega! <
-                                      filterSettings['minVega'])) {
+                      if (filterSettings['maxBidAskSpread'] != null) {
+                        if (marketData.askPrice != null &&
+                            marketData.bidPrice != null) {
+                          if ((marketData.askPrice! - marketData.bidPrice!) >
+                              filterSettings['maxBidAskSpread']) {
                             return false;
-                          }
-                          if (filterSettings['maxVega'] != null &&
-                              (marketData.vega == null ||
-                                  marketData.vega! >
-                                      filterSettings['maxVega'])) {
-                            return false;
-                          }
-
-                          if (filterSettings['minTheta'] != null &&
-                              (marketData.theta == null ||
-                                  marketData.theta!.abs() <
-                                      filterSettings['minTheta'])) {
-                            return false;
-                          }
-                          if (filterSettings['maxTheta'] != null &&
-                              (marketData.theta == null ||
-                                  marketData.theta!.abs() >
-                                      filterSettings['maxTheta'])) {
-                            return false;
-                          }
-
-                          if (filterSettings['minGamma'] != null &&
-                              (marketData.gamma == null ||
-                                  marketData.gamma!.abs() <
-                                      filterSettings['minGamma'])) {
-                            return false;
-                          }
-                          if (filterSettings['maxGamma'] != null &&
-                              (marketData.gamma == null ||
-                                  marketData.gamma!.abs() >
-                                      filterSettings['maxGamma'])) {
-                            return false;
-                          }
-
-                          if (filterSettings['minRho'] != null &&
-                              (marketData.rho == null ||
-                                  marketData.rho!.abs() <
-                                      filterSettings['minRho'])) {
-                            return false;
-                          }
-                          if (filterSettings['maxRho'] != null &&
-                              (marketData.rho == null ||
-                                  marketData.rho!.abs() >
-                                      filterSettings['maxRho'])) {
-                            return false;
-                          }
-
-                          if (filterSettings['minImpliedVolatility'] != null &&
-                              (marketData.impliedVolatility == null ||
-                                  marketData.impliedVolatility! <
-                                      filterSettings['minImpliedVolatility'])) {
-                            return false;
-                          }
-                          if (filterSettings['maxImpliedVolatility'] != null &&
-                              (marketData.impliedVolatility == null ||
-                                  marketData.impliedVolatility! >
-                                      filterSettings['maxImpliedVolatility'])) {
-                            return false;
-                          }
-
-                          if (filterSettings['minPremiumCollateralPercent'] !=
-                                  null &&
-                              actionFilter == 'Sell') {
-                            if (oi.type == 'put' &&
-                                oi.strikePrice != null &&
-                                marketData.markPrice != null) {
-                              double percent =
-                                  (marketData.markPrice! / oi.strikePrice!) *
-                                  100;
-                              if (percent <
-                                  filterSettings['minPremiumCollateralPercent']) {
-                                return false;
-                              }
-                            } else if (oi.type == 'call' &&
-                                instrument.quoteObj?.lastTradePrice != null &&
-                                marketData.markPrice != null) {
-                              double percent =
-                                  (marketData.markPrice! /
-                                      instrument.quoteObj!.lastTradePrice!) *
-                                  100;
-                              if (percent <
-                                  filterSettings['minPremiumCollateralPercent']) {
-                                return false;
-                              }
-                            }
-                          }
-                        }
-                        return true;
-                      }).toList();
-                      if (newfilteredOptionsInstruments.length !=
-                              filteredOptionsInstruments?.length ||
-                          instrumentPosition == null) {
-                        filteredOptionsInstruments =
-                            newfilteredOptionsInstruments;
-                        for (
-                          int index = 0;
-                          index < filteredOptionsInstruments!.length;
-                          index++
-                        ) {
-                          OptionInstrument optionInstrument =
-                              filteredOptionsInstruments![index];
-
-                          if (widget.selectedOption != null &&
-                              ((widget.selectedOption!.id.isNotEmpty &&
-                                      optionInstrument.id.isNotEmpty &&
-                                      widget.selectedOption!.id ==
-                                          optionInstrument.id) ||
-                                  (widget.selectedOption!.strikePrice ==
-                                          optionInstrument.strikePrice &&
-                                      widget.selectedOption!.type ==
-                                          optionInstrument.type &&
-                                      widget
-                                              .selectedOption!
-                                              .expirationDate
-                                              ?.year ==
-                                          optionInstrument
-                                              .expirationDate
-                                              ?.year &&
-                                      widget
-                                              .selectedOption!
-                                              .expirationDate
-                                              ?.month ==
-                                          optionInstrument
-                                              .expirationDate
-                                              ?.month &&
-                                      widget
-                                              .selectedOption!
-                                              .expirationDate
-                                              ?.day ==
-                                          optionInstrument
-                                              .expirationDate
-                                              ?.day))) {
-                            instrumentPosition = index;
-                            debugPrint(
-                              'instrumentPosition (selected): $instrumentPosition',
-                            );
-
-                            WidgetsBinding.instance.addPostFrameCallback((_) {
-                              if (itemScrollController.isAttached) {
-                                itemScrollController.scrollTo(
-                                  index: index > 2 ? index - 2 : 0,
-                                  duration: const Duration(milliseconds: 250),
-                                  curve: Curves.easeInOutCubic,
-                                  alignment: 0,
-                                );
-                              }
-                            });
-                            break;
-                          }
-
-                          OptionInstrument? prevOptionInstrument = index > 0
-                              ? filteredOptionsInstruments![index - 1]
-                              : null;
-                          if (instrumentPosition == null &&
-                              (instrument
-                                          .quoteObj!
-                                          .lastExtendedHoursTradePrice ??
-                                      instrument.quoteObj!.lastTradePrice!) <
-                                  optionInstrument.strikePrice! &&
-                              (prevOptionInstrument == null ||
-                                  (instrument
-                                              .quoteObj!
-                                              .lastExtendedHoursTradePrice ??
-                                          instrument
-                                              .quoteObj!
-                                              .lastTradePrice!) >=
-                                      prevOptionInstrument.strikePrice!)) {
-                            instrumentPosition = index;
-                            debugPrint(
-                              'instrumentPosition: $instrumentPosition',
-                            );
-                            WidgetsBinding.instance.addPostFrameCallback((_) {
-                              if (itemScrollController.isAttached) {
-                                itemScrollController.scrollTo(
-                                  index: index > 2 ? index - 2 : 0,
-                                  duration: const Duration(milliseconds: 250),
-                                  curve: Curves.easeInOutCubic,
-                                  alignment: 0,
-                                );
-                              }
-                            });
                           }
                         }
                       }
 
-                      return buildScrollView(
-                        instrument,
-                        optionInstruments: filteredOptionsInstruments,
-                        done:
-                            snapshot.connectionState == ConnectionState.done &&
-                            optionInstrumentsnapshot.connectionState ==
-                                ConnectionState.done,
-                      );
-                    } else if (snapshot.hasError) {
-                      debugPrint("${snapshot.error}");
-                      return Text("${snapshot.error}");
+                      if (filterSettings['minVega'] != null &&
+                          (marketData.vega == null ||
+                              marketData.vega! < filterSettings['minVega'])) {
+                        return false;
+                      }
+                      if (filterSettings['maxVega'] != null &&
+                          (marketData.vega == null ||
+                              marketData.vega! > filterSettings['maxVega'])) {
+                        return false;
+                      }
+
+                      if (filterSettings['minTheta'] != null &&
+                          (marketData.theta == null ||
+                              marketData.theta!.abs() <
+                                  filterSettings['minTheta'])) {
+                        return false;
+                      }
+                      if (filterSettings['maxTheta'] != null &&
+                          (marketData.theta == null ||
+                              marketData.theta!.abs() >
+                                  filterSettings['maxTheta'])) {
+                        return false;
+                      }
+
+                      if (filterSettings['minGamma'] != null &&
+                          (marketData.gamma == null ||
+                              marketData.gamma!.abs() <
+                                  filterSettings['minGamma'])) {
+                        return false;
+                      }
+                      if (filterSettings['maxGamma'] != null &&
+                          (marketData.gamma == null ||
+                              marketData.gamma!.abs() >
+                                  filterSettings['maxGamma'])) {
+                        return false;
+                      }
+
+                      if (filterSettings['minRho'] != null &&
+                          (marketData.rho == null ||
+                              marketData.rho!.abs() <
+                                  filterSettings['minRho'])) {
+                        return false;
+                      }
+                      if (filterSettings['maxRho'] != null &&
+                          (marketData.rho == null ||
+                              marketData.rho!.abs() >
+                                  filterSettings['maxRho'])) {
+                        return false;
+                      }
+
+                      if (filterSettings['minImpliedVolatility'] != null &&
+                          (marketData.impliedVolatility == null ||
+                              marketData.impliedVolatility! <
+                                  filterSettings['minImpliedVolatility'])) {
+                        return false;
+                      }
+                      if (filterSettings['maxImpliedVolatility'] != null &&
+                          (marketData.impliedVolatility == null ||
+                              marketData.impliedVolatility! >
+                                  filterSettings['maxImpliedVolatility'])) {
+                        return false;
+                      }
+
+                      if (filterSettings['minPremiumCollateralPercent'] !=
+                              null &&
+                          actionFilter == 'Sell') {
+                        if (oi.type == 'put' &&
+                            oi.strikePrice != null &&
+                            marketData.markPrice != null) {
+                          double percent =
+                              (marketData.markPrice! / oi.strikePrice!) * 100;
+                          if (percent <
+                              filterSettings['minPremiumCollateralPercent']) {
+                            return false;
+                          }
+                        } else if (oi.type == 'call' &&
+                            instrument.quoteObj?.lastTradePrice != null &&
+                            marketData.markPrice != null) {
+                          double percent = (marketData.markPrice! /
+                                  instrument.quoteObj!.lastTradePrice!) *
+                              100;
+                          if (percent <
+                              filterSettings['minPremiumCollateralPercent']) {
+                            return false;
+                          }
+                        }
+                      }
                     }
-                    return buildScrollView(
-                      instrument,
-                      done:
-                          snapshot.connectionState == ConnectionState.done &&
+                    return true;
+                  }).toList();
+                  if (newfilteredOptionsInstruments.length !=
+                          filteredOptionsInstruments?.length ||
+                      instrumentPosition == null) {
+                    filteredOptionsInstruments = newfilteredOptionsInstruments;
+                    for (int index = 0;
+                        index < filteredOptionsInstruments!.length;
+                        index++) {
+                      OptionInstrument optionInstrument =
+                          filteredOptionsInstruments![index];
+
+                      if (widget.selectedOption != null &&
+                          ((widget.selectedOption!.id.isNotEmpty &&
+                                  optionInstrument.id.isNotEmpty &&
+                                  widget.selectedOption!.id ==
+                                      optionInstrument.id) ||
+                              (widget.selectedOption!.strikePrice ==
+                                      optionInstrument.strikePrice &&
+                                  widget.selectedOption!.type ==
+                                      optionInstrument.type &&
+                                  widget.selectedOption!.expirationDate?.year ==
+                                      optionInstrument.expirationDate?.year &&
+                                  widget.selectedOption!.expirationDate
+                                          ?.month ==
+                                      optionInstrument.expirationDate?.month &&
+                                  widget.selectedOption!.expirationDate?.day ==
+                                      optionInstrument.expirationDate?.day))) {
+                        instrumentPosition = index;
+                        debugPrint(
+                            'instrumentPosition (selected): $instrumentPosition');
+
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          if (itemScrollController.isAttached) {
+                            itemScrollController.scrollTo(
+                                index: index > 2 ? index - 2 : 0,
+                                duration: const Duration(milliseconds: 250),
+                                curve: Curves.easeInOutCubic,
+                                alignment: 0);
+                          }
+                        });
+                        break;
+                      }
+
+                      OptionInstrument? prevOptionInstrument = index > 0
+                          ? filteredOptionsInstruments![index - 1]
+                          : null;
+                      if (instrumentPosition == null &&
+                          (instrument.quoteObj!.lastExtendedHoursTradePrice ??
+                                  instrument.quoteObj!.lastTradePrice!) <
+                              optionInstrument.strikePrice! &&
+                          (prevOptionInstrument == null ||
+                              (instrument.quoteObj!
+                                          .lastExtendedHoursTradePrice ??
+                                      instrument.quoteObj!.lastTradePrice!) >=
+                                  prevOptionInstrument.strikePrice!)) {
+                        instrumentPosition = index;
+                        debugPrint('instrumentPosition: $instrumentPosition');
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          if (itemScrollController.isAttached) {
+                            itemScrollController.scrollTo(
+                                index: index > 2 ? index - 2 : 0,
+                                duration: const Duration(milliseconds: 250),
+                                curve: Curves.easeInOutCubic,
+                                alignment: 0);
+                          }
+                        });
+                      }
+                    }
+                  }
+
+                  return buildScrollView(instrument,
+                      optionInstruments: filteredOptionsInstruments,
+                      done: snapshot.connectionState == ConnectionState.done &&
                           optionInstrumentsnapshot.connectionState ==
-                              ConnectionState.done,
-                    );
-                  },
-            );
-          } else if (snapshot.hasError) {
-            debugPrint("${snapshot.error}");
-            return Text("${snapshot.error}");
-          }
-          return buildScrollView(
-            instrument,
-            done: snapshot.connectionState == ConnectionState.done,
-          );
-        },
-      ),
-    );
+                              ConnectionState.done);
+                } else if (snapshot.hasError) {
+                  debugPrint("${snapshot.error}");
+                  return Text("${snapshot.error}");
+                }
+                return buildScrollView(instrument,
+                    done: snapshot.connectionState == ConnectionState.done &&
+                        optionInstrumentsnapshot.connectionState ==
+                            ConnectionState.done);
+              });
+        } else if (snapshot.hasError) {
+          debugPrint("${snapshot.error}");
+          return Text("${snapshot.error}");
+        }
+        return buildScrollView(instrument,
+            done: snapshot.connectionState == ConnectionState.done);
+      },
+    ));
   }
 
-  RefreshIndicator buildScrollView(
-    Instrument instrument, {
-    List<OptionInstrument>? optionInstruments,
-    bool done = false,
-    List<Widget> widgets = const [],
-  }) {
+  RefreshIndicator buildScrollView(Instrument instrument,
+      {List<OptionInstrument>? optionInstruments,
+      bool done = false,
+      List<Widget> widgets = const []}) {
     var slivers = <Widget>[];
-    slivers.add(
-      SliverAppBar(
-        centerTitle: false,
-        title: headerTitle(instrument),
-        //expandedHeight: 240,
-        floating: false,
-        snap: false,
-        pinned: true,
-        actions: [
-          if (optionInstruments != null)
-            Consumer<GenerativeProvider>(
+    slivers.add(SliverAppBar(
+      centerTitle: false,
+      title: headerTitle(instrument),
+      //expandedHeight: 240,
+      floating: false,
+      snap: false,
+      pinned: true,
+      actions: [
+        if (optionInstruments != null)
+          Consumer<GenerativeProvider>(
               builder: (context, generativeProvider, child) {
-                return IconButton(
-                  icon: isGeneratingAI
-                      ? const SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2.0,
-                            color: Colors.white,
-                          ),
-                        )
-                      : const Icon(Icons.auto_awesome), // recommend_outlined
-                  tooltip: 'Find Best Contract',
-                  onPressed: () async {
-                    await _generateAIRecommendations(
-                      context,
-                      generativeProvider,
-                      optionInstruments,
-                      instrument,
-                    );
-                  },
-                );
+            return IconButton(
+              icon: isGeneratingAI
+                  ? const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.0,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(Icons.auto_awesome), // recommend_outlined
+              tooltip: 'Find Best Contract',
+              onPressed: () async {
+                await _generateAIRecommendations(
+                    context, generativeProvider, optionInstruments, instrument);
               },
-            ),
-          IconButton(
+            );
+          }),
+        IconButton(
             icon: Icon(
               Icons.filter_list,
               color: filterSettings.isNotEmpty
@@ -736,20 +639,16 @@ class _InstrumentOptionChainWidgetState
             tooltip: 'Filter Options',
             onPressed: () {
               _showFilterDialog(context);
-            },
-          ),
-          IconButton(
+            }),
+        IconButton(
             icon: const Icon(Icons.shield_outlined),
             tooltip: 'Options Collateral & Tiers',
             onPressed: () {
               Account? currentAccount;
               try {
-                final accountStore = Provider.of<AccountStore>(
-                  context,
-                  listen: false,
-                );
-                currentAccount =
-                    accountStore.selectedAccount ??
+                final accountStore =
+                    Provider.of<AccountStore>(context, listen: false);
+                currentAccount = accountStore.selectedAccount ??
                     (accountStore.items.isNotEmpty
                         ? accountStore.items.first
                         : null);
@@ -778,43 +677,36 @@ class _InstrumentOptionChainWidgetState
                   ),
                 ),
               );
-            },
-          ),
-          IconButton(
+            }),
+        IconButton(
             icon: const Icon(Icons.arrow_downward),
             tooltip: 'Scroll to Current Price',
             onPressed: () {
               if (instrumentPosition != null) {
                 itemScrollController.scrollTo(
-                  index: instrumentPosition! > 2 ? instrumentPosition! - 2 : 0,
-                  duration: const Duration(milliseconds: 250),
-                  curve: Curves.easeInOutCubic,
-                  alignment: 0,
-                );
+                    index:
+                        instrumentPosition! > 2 ? instrumentPosition! - 2 : 0,
+                    duration: const Duration(milliseconds: 250),
+                    curve: Curves.easeInOutCubic,
+                    alignment: 0);
               }
-            },
-          ),
-        ],
-      ),
-    );
+            })
+      ],
+    ));
 
     if (done == false) {
-      slivers.add(
-        const SliverToBoxAdapter(
+      slivers.add(const SliverToBoxAdapter(
           child: SizedBox(
-            height: 3, //150.0,
-            child: Align(
-              alignment: Alignment.center,
-              child: Center(
+        height: 3, //150.0,
+        child: Align(
+            alignment: Alignment.center,
+            child: Center(
                 child: LinearProgressIndicator(
-                  //value: controller.value,
-                  //semanticsLabel: 'Linear progress indicator',
-                ), //CircularProgressIndicator(),
-              ),
-            ),
-          ),
-        ),
-      );
+                    //value: controller.value,
+                    //semanticsLabel: 'Linear progress indicator',
+                    ) //CircularProgressIndicator(),
+                )),
+      )));
     }
     slivers.addAll(widgets);
     if (optionInstruments != null) {
@@ -824,19 +716,18 @@ class _InstrumentOptionChainWidgetState
         height: 25.0,
       )));
       */
-      slivers.add(
-        SliverStickyHeader(
+      slivers.add(SliverStickyHeader(
           header: Material(
-            //elevation: 2,
-            child: Container(
-              //height: 208.0, //60.0,
-              //padding: EdgeInsets.symmetric(horizontal: 16.0),
-              alignment: Alignment.centerLeft,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.start,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  /*
+              //elevation: 2,
+              child: Container(
+                  //height: 208.0, //60.0,
+                  //padding: EdgeInsets.symmetric(horizontal: 16.0),
+                  alignment: Alignment.centerLeft,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      /*
                       Container(
                           //height: 40,
                           padding:
@@ -849,25 +740,18 @@ class _InstrumentOptionChainWidgetState
                                 fontSize: 20.0, fontWeight: FontWeight.bold),
                           )),
                           */
-                  optionChainFilterWidget,
-                ],
-              ),
-            ),
-          ),
+                      optionChainFilterWidget,
+                    ],
+                  ))),
           sliver: optionInstrumentsWidget(
-            optionInstruments,
-            instrument,
-            actionFilter!,
-            optionPosition: widget.optionPosition,
-          ),
-        ),
-      );
+              optionInstruments, instrument, actionFilter!,
+              optionPosition: widget.optionPosition)));
     }
 
     return RefreshIndicator(
-      onRefresh: _pullRefresh,
-      child: CustomScrollView(controller: scrollController, slivers: slivers),
-    );
+        onRefresh: _pullRefresh,
+        child:
+            CustomScrollView(controller: scrollController, slivers: slivers));
   }
 
   Future<void> _pullRefresh() async {
@@ -893,9 +777,8 @@ class _InstrumentOptionChainWidgetState
             child: Row(
               children: [
                 Expanded(
-                  child: _buildFilterChip('Buy', actionFilter == "Buy", (
-                    selected,
-                  ) {
+                  child: _buildFilterChip('Buy', actionFilter == "Buy",
+                      (selected) {
                     setState(() {
                       actionFilter = selected ? "Buy" : null;
                       instrumentPosition = null;
@@ -904,9 +787,8 @@ class _InstrumentOptionChainWidgetState
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: _buildFilterChip('Sell', actionFilter == "Sell", (
-                    selected,
-                  ) {
+                  child: _buildFilterChip('Sell', actionFilter == "Sell",
+                      (selected) {
                     setState(() {
                       actionFilter = selected ? "Sell" : null;
                       instrumentPosition = null;
@@ -915,9 +797,8 @@ class _InstrumentOptionChainWidgetState
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: _buildFilterChip('Call', typeFilter == "Call", (
-                    selected,
-                  ) {
+                  child: _buildFilterChip('Call', typeFilter == "Call",
+                      (selected) {
                     setState(() {
                       typeFilter = selected ? "Call" : null;
                       instrumentPosition = null;
@@ -926,9 +807,8 @@ class _InstrumentOptionChainWidgetState
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: _buildFilterChip('Put', typeFilter == "Put", (
-                    selected,
-                  ) {
+                  child:
+                      _buildFilterChip('Put', typeFilter == "Put", (selected) {
                     setState(() {
                       typeFilter = selected ? "Put" : null;
                       instrumentPosition = null;
@@ -950,14 +830,14 @@ class _InstrumentOptionChainWidgetState
   }
 
   Widget _buildFilterChip(
-    String label,
-    bool selected,
-    Function(bool) onSelected,
-  ) {
+      String label, bool selected, Function(bool) onSelected) {
     return FilterChip(
       label: SizedBox(
         width: double.infinity,
-        child: Text(label, textAlign: TextAlign.center),
+        child: Text(
+          label,
+          textAlign: TextAlign.center,
+        ),
       ),
       selected: selected,
       onSelected: onSelected,
@@ -976,68 +856,64 @@ class _InstrumentOptionChainWidgetState
   }
 
   Widget optionInstrumentsWidget(
-    List<OptionInstrument> filteredOptionsInstruments,
-    Instrument instrument,
-    String actionFilter, {
-    OptionAggregatePosition? optionPosition,
-  }) {
+      List<OptionInstrument> filteredOptionsInstruments,
+      Instrument instrument,
+      String actionFilter,
+      {OptionAggregatePosition? optionPosition}) {
     return Consumer<OptionPositionStore>(
-      builder: (context, optionPositionStore, child) {
-        var optionPositions = optionPositionStore.items
-            .where((e) => e.symbol == widget.instrument.symbol)
-            .toList();
+        builder: (context, optionPositionStore, child) {
+      var optionPositions = optionPositionStore.items
+          .where((e) => e.symbol == widget.instrument.symbol)
+          .toList();
 
-        return SliverFillRemaining(
-          child: ScrollablePositionedList.builder(
-            itemCount: filteredOptionsInstruments.length,
-            itemBuilder: (context, index) {
-              var optionInstrument = filteredOptionsInstruments[index];
-              OptionInstrument? prevOptionInstrument;
-              if (index > 0) {
-                prevOptionInstrument = filteredOptionsInstruments[index - 1];
-              }
+      return SliverFillRemaining(
+        child: ScrollablePositionedList.builder(
+          itemCount: filteredOptionsInstruments.length,
+          itemBuilder: (context, index) {
+            var optionInstrument = filteredOptionsInstruments[index];
+            OptionInstrument? prevOptionInstrument;
+            if (index > 0) {
+              prevOptionInstrument = filteredOptionsInstruments[index - 1];
+            }
 
-              var optionPositionsMatchingInstrument = optionPositions.where(
-                (e) =>
-                    e.optionInstrument != null &&
-                    e.optionInstrument!.id == optionInstrument.id,
-              );
-              var optionInstrumentQuantity =
-                  optionPositionsMatchingInstrument.isNotEmpty
-                  ? optionPositionsMatchingInstrument
+            var optionPositionsMatchingInstrument = optionPositions.where((e) =>
+                e.optionInstrument != null &&
+                e.optionInstrument!.id == optionInstrument.id);
+            var optionInstrumentQuantity =
+                optionPositionsMatchingInstrument.isNotEmpty
+                    ? optionPositionsMatchingInstrument
                         .map((e) => e.quantity ?? 0)
                         .reduce((a, b) => a + b)
                         .toDouble()
-                  : 0.0;
+                    : 0.0;
 
-              return OptionInstrumentItem(
-                key: ValueKey(optionInstrument.id),
-                optionInstrument: optionInstrument,
-                prevOptionInstrument: prevOptionInstrument,
-                instrument: instrument,
-                brokerageUser: widget.brokerageUser,
-                service: widget.service,
-                optionInstrumentQuantity: optionInstrumentQuantity,
-                selectedOption: widget.selectedOption,
-                subtitleBuilder: widget.subtitleBuilder,
-                isOptionEnabled: widget.isOptionEnabled,
-                onOptionSelected: widget.onOptionSelected,
-                actionFilter: actionFilter,
-                optionPosition: optionPosition,
-                analytics: widget.analytics,
-                observer: widget.observer,
-                generativeService: widget.generativeService,
-                user: widget.user,
-                userDocRef: widget.userDocRef,
-                aiRecommendationsMap: aiRecommendationsMap,
-                isLast: index == filteredOptionsInstruments.length - 1,
-              );
-            },
-            itemScrollController: itemScrollController,
-          ),
-        );
-      },
-    );
+            return OptionInstrumentItem(
+              key: ValueKey(optionInstrument.id),
+              optionInstrument: optionInstrument,
+              prevOptionInstrument: prevOptionInstrument,
+              instrument: instrument,
+              brokerageUser: widget.brokerageUser,
+              service: widget.service,
+              optionInstrumentQuantity: optionInstrumentQuantity,
+              selectedOption: widget.selectedOption,
+              subtitleBuilder: widget.subtitleBuilder,
+              isOptionEnabled: widget.isOptionEnabled,
+              onOptionSelected: widget.onOptionSelected,
+              actionFilter: actionFilter,
+              optionPosition: optionPosition,
+              analytics: widget.analytics,
+              observer: widget.observer,
+              generativeService: widget.generativeService,
+              user: widget.user,
+              userDocRef: widget.userDocRef,
+              aiRecommendationsMap: aiRecommendationsMap,
+              isLast: index == filteredOptionsInstruments.length - 1,
+            );
+          },
+          itemScrollController: itemScrollController,
+        ),
+      );
+    });
   }
 
   Widget headerTitle(Instrument instrument) {
@@ -1049,18 +925,14 @@ class _InstrumentOptionChainWidgetState
           style: const TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
         ),
         if (instrument.quoteObj != null)
-          priceAndChangeWidget(
-            instrument,
-            textStyle: const TextStyle(fontSize: 12.0),
-          ),
+          priceAndChangeWidget(instrument,
+              textStyle: const TextStyle(fontSize: 12.0))
       ],
     );
   }
 
-  Widget priceAndChangeWidget(
-    Instrument instrument, {
-    textStyle = const TextStyle(fontSize: 20.0),
-  }) {
+  Widget priceAndChangeWidget(Instrument instrument,
+      {textStyle = const TextStyle(fontSize: 20.0)}) {
     final change = instrument.quoteObj!.changeToday;
     final changePercent = instrument.quoteObj!.changePercentToday;
     final isPositive = change > 0;
@@ -1081,12 +953,10 @@ class _InstrumentOptionChainWidgetState
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
-          formatCurrency.format(
-            instrument.quoteObj!.lastExtendedHoursTradePrice ??
-                instrument.quoteObj!.lastTradePrice,
-          ),
-          style: textStyle,
-        ),
+            formatCurrency.format(
+                instrument.quoteObj!.lastExtendedHoursTradePrice ??
+                    instrument.quoteObj!.lastTradePrice),
+            style: textStyle),
         const SizedBox(width: 8),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -1107,10 +977,9 @@ class _InstrumentOptionChainWidgetState
               Text(
                 formatPercentage.format(changePercent.abs()),
                 style: textStyle.copyWith(
-                  fontSize: (textStyle.fontSize ?? 14) - 2,
-                  color: color,
-                  fontWeight: FontWeight.bold,
-                ),
+                    fontSize: (textStyle.fontSize ?? 14) - 2,
+                    color: color,
+                    fontWeight: FontWeight.bold),
               ),
             ],
           ),
@@ -1125,11 +994,9 @@ class _InstrumentOptionChainWidgetState
         yield Padding(
           padding: const EdgeInsets.symmetric(horizontal: 4.0),
           child: FilterChip(
-            label: Text(
-              expirationDate.year == DateTime.now().year
-                  ? formatCompactDate.format(expirationDate)
-                  : DateFormat.yMMMd().format(expirationDate),
-            ),
+            label: Text(expirationDate.year == DateTime.now().year
+                ? formatCompactDate.format(expirationDate)
+                : DateFormat.yMMMd().format(expirationDate)),
             selected: expirationDateFilter! == expirationDate,
             onSelected: (bool selected) {
               setState(() {
@@ -1226,12 +1093,12 @@ class _OptionInstrumentItemState extends State<OptionInstrumentItem> {
     widget.service
         .getOptionMarketData(widget.brokerageUser, widget.optionInstrument)
         .then((value) {
-          if (mounted) {
-            setState(() {
-              widget.optionInstrument.optionMarketData = value;
-            });
-          }
+      if (mounted) {
+        setState(() {
+          widget.optionInstrument.optionMarketData = value;
         });
+      }
+    });
   }
 
   bool get isSelected {
@@ -1253,28 +1120,23 @@ class _OptionInstrumentItemState extends State<OptionInstrumentItem> {
 
   @override
   Widget build(BuildContext context) {
-    var expirationDateStr = widget.optionInstrument.expirationDate
-        ?.toString()
-        .substring(0, 10);
+    var expirationDateStr =
+        widget.optionInstrument.expirationDate?.toString().substring(0, 10);
     var recommendations = expirationDateStr != null
         ? widget.aiRecommendationsMap[expirationDateStr]
         : null;
-    var recommendation = recommendations?.firstWhereOrNull(
-      (r) =>
-          r['strike_price'] == widget.optionInstrument.strikePrice &&
-          r['type'].toLowerCase() ==
-              widget.optionInstrument.type.toLowerCase() &&
-          (r['expiration_date'] == null ||
-              r['expiration_date'] ==
-                  widget.optionInstrument.expirationDate?.toString().substring(
-                    0,
-                    10,
-                  )),
-    );
+    var recommendation = recommendations?.firstWhereOrNull((r) =>
+        r['strike_price'] == widget.optionInstrument.strikePrice &&
+        r['type'].toLowerCase() == widget.optionInstrument.type.toLowerCase() &&
+        (r['expiration_date'] == null ||
+            r['expiration_date'] ==
+                widget.optionInstrument.expirationDate
+                    ?.toString()
+                    .substring(0, 10)));
 
     final currentPrice =
         widget.instrument.quoteObj!.lastExtendedHoursTradePrice ??
-        widget.instrument.quoteObj!.lastTradePrice!;
+            widget.instrument.quoteObj!.lastTradePrice!;
 
     return Column(
       children: [
@@ -1284,80 +1146,72 @@ class _OptionInstrumentItemState extends State<OptionInstrumentItem> {
           _buildPriceDivider(context),
         ],
         Card(
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-            side: BorderSide(
-              color: Theme.of(
-                context,
-              ).colorScheme.outlineVariant.withValues(alpha: 0.1),
-            ),
-          ),
-          color: isSelected
-              ? Theme.of(
-                  context,
-                ).colorScheme.primaryContainer.withValues(alpha: 0.5)
-              : null,
-          child: InkWell(
-            borderRadius: BorderRadius.circular(12),
-            onTap:
-                (widget.isOptionEnabled != null &&
-                    !widget.isOptionEnabled!(widget.optionInstrument))
-                ? null
-                : () {
-                    if (widget.onOptionSelected != null) {
-                      widget.onOptionSelected!(
-                        widget.optionInstrument,
-                        widget.actionFilter,
-                      );
-                      Navigator.pop(context);
-                    } else {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => OptionInstrumentWidget(
-                            widget.brokerageUser,
-                            widget.service,
-                            widget.optionInstrument,
-                            optionPosition: widget.optionInstrumentQuantity > 0
-                                ? widget.optionPosition
-                                : null,
-                            analytics: widget.analytics,
-                            observer: widget.observer,
-                            generativeService: widget.generativeService,
-                            user: widget.user,
-                            userDocRef: widget.userDocRef,
-                          ),
-                        ),
-                      );
-                    }
-                  },
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                Padding(
-                  padding: const EdgeInsets.all(12.0),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (widget.optionInstrumentQuantity > 0)
-                        Padding(
-                          padding: const EdgeInsets.only(right: 12.0),
-                          child: CircleAvatar(
-                            radius: 16,
-                            child: Text(
-                              formatCompactNumber.format(
-                                widget.optionInstrumentQuantity,
-                              ),
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ),
-                      Expanded(
-                        child: Column(
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: BorderSide(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .outlineVariant
+                        .withValues(alpha: 0.1))),
+            color: isSelected
+                ? Theme.of(context)
+                    .colorScheme
+                    .primaryContainer
+                    .withValues(alpha: 0.5)
+                : null,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: (widget.isOptionEnabled != null &&
+                      !widget.isOptionEnabled!(widget.optionInstrument))
+                  ? null
+                  : () {
+                      if (widget.onOptionSelected != null) {
+                        widget.onOptionSelected!(
+                            widget.optionInstrument, widget.actionFilter);
+                        Navigator.pop(context);
+                      } else {
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => OptionInstrumentWidget(
+                                      widget.brokerageUser,
+                                      widget.service,
+                                      widget.optionInstrument,
+                                      optionPosition:
+                                          widget.optionInstrumentQuantity > 0
+                                              ? widget.optionPosition
+                                              : null,
+                                      analytics: widget.analytics,
+                                      observer: widget.observer,
+                                      generativeService:
+                                          widget.generativeService,
+                                      user: widget.user,
+                                      userDocRef: widget.userDocRef,
+                                    )));
+                      }
+                    },
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  Padding(
+                    padding: const EdgeInsets.all(12.0),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (widget.optionInstrumentQuantity > 0)
+                          Padding(
+                              padding: const EdgeInsets.only(right: 12.0),
+                              child: CircleAvatar(
+                                  radius: 16,
+                                  child: Text(
+                                      formatCompactNumber.format(
+                                          widget.optionInstrumentQuantity),
+                                      style: const TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.bold)))),
+                        Expanded(
+                            child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(
@@ -1365,24 +1219,21 @@ class _OptionInstrumentItemState extends State<OptionInstrumentItem> {
                                 Text(
                                   '\$${formatCompactNumber.format(widget.optionInstrument.strikePrice)}',
                                   style: TextStyle(
-                                    fontSize: 18.0,
-                                    fontWeight: FontWeight.bold,
-                                    color: isSelected
-                                        ? Theme.of(
-                                            context,
-                                          ).colorScheme.onPrimaryContainer
-                                        : null,
-                                  ),
+                                      fontSize: 18.0,
+                                      fontWeight: FontWeight.bold,
+                                      color: isSelected
+                                          ? Theme.of(context)
+                                              .colorScheme
+                                              .onPrimaryContainer
+                                          : null),
                                 ),
                                 const SizedBox(width: 8),
                                 Container(
                                   padding: const EdgeInsets.symmetric(
-                                    horizontal: 6,
-                                    vertical: 2,
-                                  ),
+                                      horizontal: 6, vertical: 2),
                                   decoration: BoxDecoration(
-                                    color:
-                                        widget.optionInstrument.type == 'call'
+                                    color: widget.optionInstrument.type ==
+                                            'call'
                                         ? Colors.green.withValues(alpha: 0.1)
                                         : Colors.red.withValues(alpha: 0.1),
                                     borderRadius: BorderRadius.circular(4),
@@ -1394,8 +1245,8 @@ class _OptionInstrumentItemState extends State<OptionInstrumentItem> {
                                       fontWeight: FontWeight.bold,
                                       color:
                                           widget.optionInstrument.type == 'call'
-                                          ? Colors.green
-                                          : Colors.red,
+                                              ? Colors.green
+                                              : Colors.red,
                                     ),
                                   ),
                                 ),
@@ -1404,223 +1255,205 @@ class _OptionInstrumentItemState extends State<OptionInstrumentItem> {
                             const SizedBox(height: 8),
                             (widget.subtitleBuilder != null &&
                                     widget.subtitleBuilder!(
-                                          widget.optionInstrument,
-                                        ) !=
+                                            widget.optionInstrument) !=
                                         null)
-                                ? widget.subtitleBuilder!(
-                                    widget.optionInstrument,
-                                  )!
+                                ? widget
+                                    .subtitleBuilder!(widget.optionInstrument)!
                                 : _buildOptionSubtitle(
-                                    widget.optionInstrument,
-                                    widget.instrument,
-                                  ),
+                                    widget.optionInstrument, widget.instrument),
                           ],
-                        ),
-                      ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          if (widget.optionInstrument.optionMarketData != null)
-                            Text(
-                              formatCurrency.format(
-                                widget
-                                    .optionInstrument
-                                    .optionMarketData!
-                                    .markPrice,
-                              ),
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                color: isSelected
-                                    ? Theme.of(
-                                        context,
-                                      ).colorScheme.onPrimaryContainer
-                                    : null,
-                              ),
-                            ),
-                          const SizedBox(height: 4),
-                          if (widget.optionInstrument.optionMarketData != null)
-                            _buildChangeBadge(
-                              widget
-                                  .optionInstrument
-                                  .optionMarketData!
-                                  .changePercentToday,
-                            ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                if (recommendation != null)
-                  Container(
-                    margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-                    padding: const EdgeInsets.all(16.0),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context)
-                          .colorScheme
-                          .surfaceContainerHighest
-                          .withValues(alpha: 0.3),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: Theme.of(context).colorScheme.outlineVariant,
-                      ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
+                        )),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
-                            Icon(
-                              Icons.auto_awesome,
-                              size: 20,
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              "AI Insight",
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Theme.of(context).colorScheme.primary,
+                            if (widget.optionInstrument.optionMarketData !=
+                                null)
+                              Text(
+                                formatCurrency.format(widget.optionInstrument
+                                    .optionMarketData!.markPrice),
+                                style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    color: isSelected
+                                        ? Theme.of(context)
+                                            .colorScheme
+                                            .onPrimaryContainer
+                                        : null),
                               ),
-                            ),
-                            const Spacer(),
-                            if (recommendation['confidence'] != null)
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color:
-                                      (recommendation['confidence'] ?? 0) > 75
-                                      ? Colors.green.withValues(alpha: 0.1)
-                                      : ((recommendation['confidence'] ?? 0) >
-                                                50
-                                            ? Colors.orange.withValues(
-                                                alpha: 0.1,
-                                              )
-                                            : Colors.red.withValues(
-                                                alpha: 0.1,
-                                              )),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  "${recommendation['confidence']}% Confidence",
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                    color:
-                                        (recommendation['confidence'] ?? 0) > 75
-                                        ? Colors.green
-                                        : ((recommendation['confidence'] ?? 0) >
-                                                  50
-                                              ? Colors.orange
-                                              : Colors.red),
-                                  ),
-                                ),
-                              ),
+                            const SizedBox(height: 4),
+                            if (widget.optionInstrument.optionMarketData !=
+                                null)
+                              _buildChangeBadge(widget.optionInstrument
+                                  .optionMarketData!.changePercentToday),
                           ],
-                        ),
-                        const SizedBox(height: 12),
-                        if (recommendation['risk_level'] != null ||
-                            recommendation['strategy_type'] != null)
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 12.0),
-                            child: Wrap(
-                              spacing: 8.0,
-                              runSpacing: 8.0,
-                              children: [
-                                if (recommendation['risk_level'] != null)
-                                  _buildTag(
-                                    context,
-                                    "Risk: ${recommendation['risk_level']}",
-                                    Theme.of(
-                                      context,
-                                    ).colorScheme.errorContainer,
-                                    Theme.of(
-                                      context,
-                                    ).colorScheme.onErrorContainer,
-                                  ),
-                                if (recommendation['strategy_type'] != null)
-                                  _buildTag(
-                                    context,
-                                    recommendation['strategy_type'],
-                                    Theme.of(
-                                      context,
-                                    ).colorScheme.secondaryContainer,
-                                    Theme.of(
-                                      context,
-                                    ).colorScheme.onSecondaryContainer,
-                                  ),
-                                if (recommendation['market_sentiment'] != null)
-                                  _buildTag(
-                                    context,
-                                    recommendation['market_sentiment'],
-                                    Theme.of(
-                                      context,
-                                    ).colorScheme.primaryContainer,
-                                    Theme.of(
-                                      context,
-                                    ).colorScheme.onPrimaryContainer,
-                                    icon:
-                                        recommendation['market_sentiment'] ==
-                                            'Bullish'
-                                        ? Icons.trending_up
-                                        : (recommendation['market_sentiment'] ==
-                                                  'Bearish'
-                                              ? Icons.trending_down
-                                              : Icons.trending_flat),
-                                  ),
-                              ],
-                            ),
-                          ),
-                        if (recommendation['predicted_price_target'] != null)
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 8.0),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Icon(
-                                  Icons.track_changes,
-                                  size: 16,
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onSurfaceVariant,
-                                ),
-                                const SizedBox(width: 4),
-                                Expanded(
-                                  child: Text(
-                                    "Target: ${recommendation['predicted_price_target']}",
-                                    style: TextStyle(
-                                      fontStyle: FontStyle.italic,
-                                      fontSize: 13,
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.onSurfaceVariant,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        MarkdownBody(
-                          data: recommendation['reason'],
-                          styleSheet: MarkdownStyleSheet(
-                            p: TextStyle(
-                              fontSize: 14,
-                              height: 1.5,
-                              color: Theme.of(context).colorScheme.onSurface,
-                            ),
-                          ),
-                        ),
+                        )
                       ],
                     ),
                   ),
-              ],
-            ),
-          ),
-        ),
+                  if (recommendation != null)
+                    Container(
+                      margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                      padding: const EdgeInsets.all(16.0),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .surfaceContainerHighest
+                            .withValues(alpha: 0.3),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: Theme.of(context).colorScheme.outlineVariant,
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.auto_awesome,
+                                  size: 20,
+                                  color: Theme.of(context).colorScheme.primary),
+                              const SizedBox(width: 8),
+                              Text(
+                                "AI Insight",
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                              ),
+                              const Spacer(),
+                              if (recommendation['confidence'] != null)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: (recommendation['confidence'] ?? 0) >
+                                            75
+                                        ? Colors.green.withValues(alpha: 0.1)
+                                        : ((recommendation['confidence'] ?? 0) >
+                                                50
+                                            ? Colors.orange
+                                                .withValues(alpha: 0.1)
+                                            : Colors.red
+                                                .withValues(alpha: 0.1)),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    "${recommendation['confidence']}% Confidence",
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: (recommendation['confidence'] ??
+                                                  0) >
+                                              75
+                                          ? Colors.green
+                                          : ((recommendation['confidence'] ??
+                                                      0) >
+                                                  50
+                                              ? Colors.orange
+                                              : Colors.red),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          if (recommendation['risk_level'] != null ||
+                              recommendation['strategy_type'] != null)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 12.0),
+                              child: Wrap(
+                                spacing: 8.0,
+                                runSpacing: 8.0,
+                                children: [
+                                  if (recommendation['risk_level'] != null)
+                                    _buildTag(
+                                      context,
+                                      "Risk: ${recommendation['risk_level']}",
+                                      Theme.of(context)
+                                          .colorScheme
+                                          .errorContainer,
+                                      Theme.of(context)
+                                          .colorScheme
+                                          .onErrorContainer,
+                                    ),
+                                  if (recommendation['strategy_type'] != null)
+                                    _buildTag(
+                                      context,
+                                      recommendation['strategy_type'],
+                                      Theme.of(context)
+                                          .colorScheme
+                                          .secondaryContainer,
+                                      Theme.of(context)
+                                          .colorScheme
+                                          .onSecondaryContainer,
+                                    ),
+                                  if (recommendation['market_sentiment'] !=
+                                      null)
+                                    _buildTag(
+                                      context,
+                                      recommendation['market_sentiment'],
+                                      Theme.of(context)
+                                          .colorScheme
+                                          .primaryContainer,
+                                      Theme.of(context)
+                                          .colorScheme
+                                          .onPrimaryContainer,
+                                      icon:
+                                          recommendation['market_sentiment'] ==
+                                                  'Bullish'
+                                              ? Icons.trending_up
+                                              : (recommendation[
+                                                          'market_sentiment'] ==
+                                                      'Bearish'
+                                                  ? Icons.trending_down
+                                                  : Icons.trending_flat),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          if (recommendation['predicted_price_target'] != null)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 8.0),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Icon(Icons.track_changes,
+                                      size: 16,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurfaceVariant),
+                                  const SizedBox(width: 4),
+                                  Expanded(
+                                    child: Text(
+                                      "Target: ${recommendation['predicted_price_target']}",
+                                      style: TextStyle(
+                                          fontStyle: FontStyle.italic,
+                                          fontSize: 13,
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onSurfaceVariant),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          MarkdownBody(
+                            data: recommendation['reason'],
+                            styleSheet: MarkdownStyleSheet(
+                              p: TextStyle(
+                                  fontSize: 14,
+                                  height: 1.5,
+                                  color:
+                                      Theme.of(context).colorScheme.onSurface),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            )),
         if (widget.isLast &&
             currentPrice >= widget.optionInstrument.strikePrice!) ...[
           _buildPriceDivider(context),
@@ -1635,20 +1468,17 @@ class _OptionInstrumentItemState extends State<OptionInstrumentItem> {
       child: Row(
         children: [
           Expanded(
-            child: Divider(color: Theme.of(context).colorScheme.outlineVariant),
-          ),
+              child:
+                  Divider(color: Theme.of(context).colorScheme.outlineVariant)),
           Container(
             margin: const EdgeInsets.symmetric(horizontal: 16.0),
-            padding: const EdgeInsets.symmetric(
-              horizontal: 12.0,
-              vertical: 6.0,
-            ),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 12.0, vertical: 6.0),
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.secondaryContainer,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: Theme.of(context).colorScheme.outlineVariant,
-              ),
+                  color: Theme.of(context).colorScheme.outlineVariant),
             ),
             child: Column(
               children: [
@@ -1673,24 +1503,21 @@ class _OptionInstrumentItemState extends State<OptionInstrumentItem> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    _priceAndChangeWidget(
-                      widget.instrument,
-                      textStyle: TextStyle(
-                        fontSize: 14.0,
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onSecondaryContainer,
-                      ),
-                    ),
+                    _priceAndChangeWidget(widget.instrument,
+                        textStyle: TextStyle(
+                            fontSize: 14.0,
+                            fontWeight: FontWeight.bold,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSecondaryContainer)),
                   ],
                 ),
               ],
             ),
           ),
           Expanded(
-            child: Divider(color: Theme.of(context).colorScheme.outlineVariant),
-          ),
+              child:
+                  Divider(color: Theme.of(context).colorScheme.outlineVariant)),
         ],
       ),
     );
@@ -1741,9 +1568,7 @@ class _OptionInstrumentItemState extends State<OptionInstrumentItem> {
   }
 
   Widget _buildOptionSubtitle(
-    OptionInstrument optionInstrument,
-    Instrument instrument,
-  ) {
+      OptionInstrument optionInstrument, Instrument instrument) {
     if (optionInstrument.optionMarketData == null) {
       return const SizedBox.shrink();
     }
@@ -1768,29 +1593,26 @@ class _OptionInstrumentItemState extends State<OptionInstrumentItem> {
             children: [
               if (breakEven != null) ...[
                 _buildInfoBadge(
-                  context,
-                  "BE: ${formatCurrency.format(breakEven)}",
-                  Colors.teal.withValues(alpha: 0.1),
-                  Colors.teal,
-                ),
+                    context,
+                    "BE: ${formatCurrency.format(breakEven)}",
+                    Colors.teal.withValues(alpha: 0.1),
+                    Colors.teal),
                 const SizedBox(width: 8),
               ],
               if (chanceOfProfit != null) ...[
                 _buildInfoBadge(
-                  context,
-                  "Prob: ${formatPercentage.format(chanceOfProfit)}",
-                  Colors.blue.withValues(alpha: 0.1),
-                  Colors.blue,
-                ),
+                    context,
+                    "Prob: ${formatPercentage.format(chanceOfProfit)}",
+                    Colors.blue.withValues(alpha: 0.1),
+                    Colors.blue),
                 const SizedBox(width: 8),
               ],
               if (data.impliedVolatility != null)
                 _buildInfoBadge(
-                  context,
-                  "IV: ${formatPercentage.format(data.impliedVolatility)}",
-                  Colors.purple.withValues(alpha: 0.1),
-                  Colors.purple,
-                ),
+                    context,
+                    "IV: ${formatPercentage.format(data.impliedVolatility)}",
+                    Colors.purple.withValues(alpha: 0.1),
+                    Colors.purple),
             ],
           ),
         ),
@@ -1800,53 +1622,35 @@ class _OptionInstrumentItemState extends State<OptionInstrumentItem> {
           child: Row(
             children: [
               _buildInfoBadge(
-                context,
-                "Vol: ${formatCompactNumber.format(data.volume)}",
-                Colors.grey.withValues(alpha: 0.1),
-                Colors.grey,
-              ),
+                  context,
+                  "Vol: ${formatCompactNumber.format(data.volume)}",
+                  Colors.grey.withValues(alpha: 0.1),
+                  Colors.grey),
               const SizedBox(width: 8),
               _buildInfoBadge(
-                context,
-                "OI: ${formatCompactNumber.format(data.openInterest)}",
-                Colors.grey.withValues(alpha: 0.1),
-                Colors.grey,
-              ),
+                  context,
+                  "OI: ${formatCompactNumber.format(data.openInterest)}",
+                  Colors.grey.withValues(alpha: 0.1),
+                  Colors.grey),
               const SizedBox(width: 8),
               if (data.delta != null) ...[
-                _buildInfoBadge(
-                  context,
-                  "Δ ${data.delta?.toStringAsFixed(3)}",
-                  Colors.blueGrey.withValues(alpha: 0.1),
-                  Colors.blueGrey,
-                ),
+                _buildInfoBadge(context, "Δ ${data.delta?.toStringAsFixed(3)}",
+                    Colors.blueGrey.withValues(alpha: 0.1), Colors.blueGrey),
                 const SizedBox(width: 8),
               ],
               if (data.theta != null) ...[
-                _buildInfoBadge(
-                  context,
-                  "Θ ${data.theta?.toStringAsFixed(3)}",
-                  Colors.blueGrey.withValues(alpha: 0.1),
-                  Colors.blueGrey,
-                ),
+                _buildInfoBadge(context, "Θ ${data.theta?.toStringAsFixed(3)}",
+                    Colors.blueGrey.withValues(alpha: 0.1), Colors.blueGrey),
                 const SizedBox(width: 8),
               ],
               if (data.gamma != null) ...[
-                _buildInfoBadge(
-                  context,
-                  "Γ ${data.gamma?.toStringAsFixed(3)}",
-                  Colors.blueGrey.withValues(alpha: 0.1),
-                  Colors.blueGrey,
-                ),
+                _buildInfoBadge(context, "Γ ${data.gamma?.toStringAsFixed(3)}",
+                    Colors.blueGrey.withValues(alpha: 0.1), Colors.blueGrey),
                 const SizedBox(width: 8),
               ],
               if (data.vega != null) ...[
-                _buildInfoBadge(
-                  context,
-                  "V ${data.vega?.toStringAsFixed(3)}",
-                  Colors.blueGrey.withValues(alpha: 0.1),
-                  Colors.blueGrey,
-                ),
+                _buildInfoBadge(context, "V ${data.vega?.toStringAsFixed(3)}",
+                    Colors.blueGrey.withValues(alpha: 0.1), Colors.blueGrey),
                 const SizedBox(width: 8),
               ],
             ],
@@ -1857,31 +1661,21 @@ class _OptionInstrumentItemState extends State<OptionInstrumentItem> {
   }
 
   Widget _buildInfoBadge(
-    BuildContext context,
-    String text,
-    Color bg,
-    Color fg,
-  ) {
+      BuildContext context, String text, Color bg, Color fg) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(4),
       ),
-      child: Text(
-        text,
-        style: TextStyle(fontSize: 11, color: fg, fontWeight: FontWeight.w500),
-      ),
+      child: Text(text,
+          style:
+              TextStyle(fontSize: 11, color: fg, fontWeight: FontWeight.w500)),
     );
   }
 
-  Widget _buildTag(
-    BuildContext context,
-    String label,
-    Color bg,
-    Color fg, {
-    IconData? icon,
-  }) {
+  Widget _buildTag(BuildContext context, String label, Color bg, Color fg,
+      {IconData? icon}) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
@@ -1897,21 +1691,16 @@ class _OptionInstrumentItemState extends State<OptionInstrumentItem> {
           ],
           Text(
             label,
-            style: TextStyle(
-              fontSize: 12,
-              color: fg,
-              fontWeight: FontWeight.w500,
-            ),
+            style:
+                TextStyle(fontSize: 12, color: fg, fontWeight: FontWeight.w500),
           ),
         ],
       ),
     );
   }
 
-  Widget _priceAndChangeWidget(
-    Instrument instrument, {
-    textStyle = const TextStyle(fontSize: 20.0),
-  }) {
+  Widget _priceAndChangeWidget(Instrument instrument,
+      {textStyle = const TextStyle(fontSize: 20.0)}) {
     final change = instrument.quoteObj!.changeToday;
     final changePercent = instrument.quoteObj!.changePercentToday;
     final isPositive = change > 0;
@@ -1932,12 +1721,10 @@ class _OptionInstrumentItemState extends State<OptionInstrumentItem> {
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
-          formatCurrency.format(
-            instrument.quoteObj!.lastExtendedHoursTradePrice ??
-                instrument.quoteObj!.lastTradePrice,
-          ),
-          style: textStyle,
-        ),
+            formatCurrency.format(
+                instrument.quoteObj!.lastExtendedHoursTradePrice ??
+                    instrument.quoteObj!.lastTradePrice),
+            style: textStyle),
         const SizedBox(width: 8),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -1958,10 +1745,9 @@ class _OptionInstrumentItemState extends State<OptionInstrumentItem> {
               Text(
                 formatPercentage.format(changePercent.abs()),
                 style: textStyle.copyWith(
-                  fontSize: (textStyle.fontSize ?? 14) - 2,
-                  color: color,
-                  fontWeight: FontWeight.bold,
-                ),
+                    fontSize: (textStyle.fontSize ?? 14) - 2,
+                    color: color,
+                    fontWeight: FontWeight.bold),
               ),
             ],
           ),
@@ -2018,10 +1804,8 @@ class _AIOptionsSheetState extends State<AIOptionsSheet> {
             style: Theme.of(context).textTheme.titleLarge,
           ),
           const SizedBox(height: 24),
-          Text(
-            'Risk Tolerance',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
+          Text('Risk Tolerance',
+              style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8.0,
@@ -2065,10 +1849,8 @@ class _AIOptionsSheetState extends State<AIOptionsSheet> {
             }).toList(),
           ),
           const SizedBox(height: 16),
-          Text(
-            'Custom Instructions (Optional)',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
+          Text('Custom Instructions (Optional)',
+              style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
           TextField(
             controller: customController,
@@ -2078,9 +1860,10 @@ class _AIOptionsSheetState extends State<AIOptionsSheet> {
                 borderRadius: BorderRadius.circular(12),
               ),
               filled: true,
-              fillColor: Theme.of(
-                context,
-              ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+              fillColor: Theme.of(context)
+                  .colorScheme
+                  .surfaceContainerHighest
+                  .withValues(alpha: 0.3),
             ),
             maxLines: 2,
           ),
@@ -2179,16 +1962,16 @@ class _FilterOptionsSheetState extends State<FilterOptionsSheet> {
       try {
         await widget.userDocRef!.update({'optionFilterPresets': presets});
         if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('Preset "$name" saved.')));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Preset "$name" saved.')),
+          );
         }
       } catch (e) {
         debugPrint('Error saving preset: $e');
         if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('Error saving preset: $e')));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error saving preset: $e')),
+          );
         }
       }
     }
@@ -2204,16 +1987,16 @@ class _FilterOptionsSheetState extends State<FilterOptionsSheet> {
       try {
         await widget.userDocRef!.update({'optionFilterPresets': presets});
         if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('Preset "$name" deleted.')));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Preset "$name" deleted.')),
+          );
         }
       } catch (e) {
         debugPrint('Error deleting preset: $e');
         if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('Error deleting preset: $e')));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error deleting preset: $e')),
+          );
         }
       }
     }
@@ -2234,22 +2017,17 @@ class _FilterOptionsSheetState extends State<FilterOptionsSheet> {
 
   bool get _hasChanges {
     if (selectedPreset != null && presets.containsKey(selectedPreset)) {
-      return !const DeepCollectionEquality().equals(
-        settings,
-        presets[selectedPreset],
-      );
+      return !const DeepCollectionEquality()
+          .equals(settings, presets[selectedPreset]);
     }
-    return !const DeepCollectionEquality().equals(
-      settings,
-      widget.initialSettings,
-    );
+    return !const DeepCollectionEquality()
+        .equals(settings, widget.initialSettings);
   }
 
   TextEditingController _getController(String key) {
     if (!_controllers.containsKey(key)) {
-      _controllers[key] = TextEditingController(
-        text: settings[key]?.toString() ?? '',
-      );
+      _controllers[key] =
+          TextEditingController(text: settings[key]?.toString() ?? '');
     }
     return _controllers[key]!;
   }
@@ -2304,9 +2082,8 @@ class _FilterOptionsSheetState extends State<FilterOptionsSheet> {
                           selectedPreset = null;
                           settings.clear();
                           widget.user!.defaultOptionFilterPreset = null;
-                          widget.userDocRef!.update({
-                            'defaultOptionFilterPreset': null,
-                          });
+                          widget.userDocRef!
+                              .update({'defaultOptionFilterPreset': null});
                           _controllers.forEach((key, controller) {
                             controller.clear();
                           });
@@ -2329,9 +2106,7 @@ class _FilterOptionsSheetState extends State<FilterOptionsSheet> {
                             labelText: 'Load Preset',
                             border: OutlineInputBorder(),
                             contentPadding: EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
-                            ),
+                                horizontal: 12, vertical: 8),
                           ),
                           items: [
                             const DropdownMenuItem<String>(
@@ -2357,17 +2132,15 @@ class _FilterOptionsSheetState extends State<FilterOptionsSheet> {
                                     widget.userDocRef != null) {
                                   widget.user!.defaultOptionFilterPreset =
                                       value;
-                                  widget.userDocRef!.update({
-                                    'defaultOptionFilterPreset': value,
-                                  });
+                                  widget.userDocRef!.update(
+                                      {'defaultOptionFilterPreset': value});
                                 }
                               } else if (value == null) {
                                 if (widget.user != null &&
                                     widget.userDocRef != null) {
                                   widget.user!.defaultOptionFilterPreset = null;
-                                  widget.userDocRef!.update({
-                                    'defaultOptionFilterPreset': null,
-                                  });
+                                  widget.userDocRef!.update(
+                                      {'defaultOptionFilterPreset': null});
                                 }
                               }
                             });
@@ -2385,15 +2158,13 @@ class _FilterOptionsSheetState extends State<FilterOptionsSheet> {
                                   context: context,
                                   builder: (context) {
                                     final controller = TextEditingController(
-                                      text: selectedPreset,
-                                    );
+                                        text: selectedPreset);
                                     return AlertDialog(
                                       title: const Text('Save Preset'),
                                       content: TextField(
                                         controller: controller,
                                         decoration: const InputDecoration(
-                                          labelText: 'Preset Name',
-                                        ),
+                                            labelText: 'Preset Name'),
                                         autofocus: true,
                                       ),
                                       actions: [
@@ -2404,9 +2175,7 @@ class _FilterOptionsSheetState extends State<FilterOptionsSheet> {
                                         ),
                                         TextButton(
                                           onPressed: () => Navigator.pop(
-                                            context,
-                                            controller.text,
-                                          ),
+                                              context, controller.text),
                                           child: const Text('Save'),
                                         ),
                                       ],
@@ -2428,8 +2197,7 @@ class _FilterOptionsSheetState extends State<FilterOptionsSheet> {
                               builder: (context) => AlertDialog(
                                 title: const Text('Delete Preset'),
                                 content: Text(
-                                  'Are you sure you want to delete "$selectedPreset"?',
-                                ),
+                                    'Are you sure you want to delete "$selectedPreset"?'),
                                 actions: [
                                   TextButton(
                                     onPressed: () => Navigator.pop(context),
@@ -2454,88 +2222,36 @@ class _FilterOptionsSheetState extends State<FilterOptionsSheet> {
                 ],
                 const SizedBox(height: 16),
                 _buildSectionHeader('Liquidity'),
-                _buildInput(
-                  'Min Open Interest',
-                  'minOpenInterest',
-                  isInt: true,
-                  icon: Icons.groups,
-                ),
-                _buildInput(
-                  'Min Volume',
-                  'minVolume',
-                  isInt: true,
-                  icon: Icons.bar_chart,
-                ),
-                _buildInput(
-                  'Max Bid/Ask Spread',
-                  'maxBidAskSpread',
-                  icon: Icons.compare_arrows,
-                ),
+                _buildInput('Min Open Interest', 'minOpenInterest',
+                    isInt: true, icon: Icons.groups),
+                _buildInput('Min Volume', 'minVolume',
+                    isInt: true, icon: Icons.bar_chart),
+                _buildInput('Max Bid/Ask Spread', 'maxBidAskSpread',
+                    icon: Icons.compare_arrows),
                 const SizedBox(height: 16),
                 _buildSectionHeader('Greeks'),
-                _buildRangeInput(
-                  'Delta (Risk)',
-                  'minDelta',
-                  'maxDelta',
-                  step: 0.01,
-                  iconText: 'Δ',
-                  minLimit: 0.0,
-                  maxLimit: 1.0,
-                ),
-                _buildRangeInput(
-                  'Gamma (Acceleration)',
-                  'minGamma',
-                  'maxGamma',
-                  step: 0.01,
-                  iconText: 'Γ',
-                  minLimit: 0.0,
-                  maxLimit: 1.0,
-                ),
-                _buildRangeInput(
-                  'Theta (Time Decay)',
-                  'minTheta',
-                  'maxTheta',
-                  step: 0.01,
-                  iconText: 'Θ',
-                  minLimit: 0.0,
-                  maxLimit: 5.0,
-                ),
-                _buildRangeInput(
-                  'Vega (Volatility)',
-                  'minVega',
-                  'maxVega',
-                  step: 0.01,
-                  iconText: 'ν',
-                  minLimit: 0.0,
-                  maxLimit: 5.0,
-                ),
-                _buildRangeInput(
-                  'Rho (Interest Rate)',
-                  'minRho',
-                  'maxRho',
-                  step: 0.01,
-                  iconText: 'ρ',
-                  minLimit: 0.0,
-                  maxLimit: 5.0,
-                ),
-                _buildRangeInput(
-                  'Implied Volatility',
-                  'minImpliedVolatility',
-                  'maxImpliedVolatility',
-                  step: 0.01,
-                  icon: Icons.waves,
-                  minLimit: 0.0,
-                  maxLimit: 5.0,
-                ),
+                _buildRangeInput('Delta (Risk)', 'minDelta', 'maxDelta',
+                    step: 0.01, iconText: 'Δ', minLimit: 0.0, maxLimit: 1.0),
+                _buildRangeInput('Gamma (Acceleration)', 'minGamma', 'maxGamma',
+                    step: 0.01, iconText: 'Γ', minLimit: 0.0, maxLimit: 1.0),
+                _buildRangeInput('Theta (Time Decay)', 'minTheta', 'maxTheta',
+                    step: 0.01, iconText: 'Θ', minLimit: 0.0, maxLimit: 5.0),
+                _buildRangeInput('Vega (Volatility)', 'minVega', 'maxVega',
+                    step: 0.01, iconText: 'ν', minLimit: 0.0, maxLimit: 5.0),
+                _buildRangeInput('Rho (Interest Rate)', 'minRho', 'maxRho',
+                    step: 0.01, iconText: 'ρ', minLimit: 0.0, maxLimit: 5.0),
+                _buildRangeInput('Implied Volatility', 'minImpliedVolatility',
+                    'maxImpliedVolatility',
+                    step: 0.01,
+                    icon: Icons.waves,
+                    minLimit: 0.0,
+                    maxLimit: 5.0),
                 if (widget.action == 'Sell') ...[
                   const SizedBox(height: 16),
                   _buildSectionHeader('Strategy'),
                   _buildInput(
-                    'Min Premium/Collateral %',
-                    'minPremiumCollateralPercent',
-                    suffix: '%',
-                    icon: Icons.percent,
-                  ),
+                      'Min Premium/Collateral %', 'minPremiumCollateralPercent',
+                      suffix: '%', icon: Icons.percent),
                 ],
                 const SizedBox(height: 16),
               ],
@@ -2554,16 +2270,15 @@ class _FilterOptionsSheetState extends State<FilterOptionsSheet> {
           Text(
             title,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              color: Theme.of(context).colorScheme.primary,
-              fontWeight: FontWeight.bold,
-            ),
+                  color: Theme.of(context).colorScheme.primary,
+                  fontWeight: FontWeight.bold,
+                ),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Divider(
-              color: Theme.of(
-                context,
-              ).colorScheme.primary.withValues(alpha: 0.2),
+              color:
+                  Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
               thickness: 1,
             ),
           ),
@@ -2572,13 +2287,8 @@ class _FilterOptionsSheetState extends State<FilterOptionsSheet> {
     );
   }
 
-  Widget _buildInput(
-    String label,
-    String key, {
-    bool isInt = false,
-    String? suffix,
-    IconData? icon,
-  }) {
+  Widget _buildInput(String label, String key,
+      {bool isInt = false, String? suffix, IconData? icon}) {
     final controller = _getController(key);
     return Padding(
       padding: const EdgeInsets.only(bottom: 16.0),
@@ -2588,11 +2298,8 @@ class _FilterOptionsSheetState extends State<FilterOptionsSheet> {
           Row(
             children: [
               if (icon != null) ...[
-                Icon(
-                  icon,
-                  size: 18,
-                  color: Theme.of(context).colorScheme.secondary,
-                ),
+                Icon(icon,
+                    size: 18, color: Theme.of(context).colorScheme.secondary),
                 const SizedBox(width: 8),
               ],
               Text(label, style: Theme.of(context).textTheme.bodyMedium),
@@ -2620,14 +2327,13 @@ class _FilterOptionsSheetState extends State<FilterOptionsSheet> {
                 borderRadius: BorderRadius.circular(12),
               ),
               filled: true,
-              fillColor: Theme.of(
-                context,
-              ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+              fillColor: Theme.of(context)
+                  .colorScheme
+                  .surfaceContainerHighest
+                  .withValues(alpha: 0.3),
             ),
-            keyboardType: TextInputType.numberWithOptions(
-              decimal: !isInt,
-              signed: true,
-            ),
+            keyboardType:
+                TextInputType.numberWithOptions(decimal: !isInt, signed: true),
             textInputAction: TextInputAction.next,
             controller: controller,
             onChanged: (value) {
@@ -2649,16 +2355,12 @@ class _FilterOptionsSheetState extends State<FilterOptionsSheet> {
     );
   }
 
-  Widget _buildRangeInput(
-    String label,
-    String minKey,
-    String maxKey, {
-    double step = 1.0,
-    IconData? icon,
-    String? iconText,
-    double minLimit = 0.0,
-    double maxLimit = 1.0,
-  }) {
+  Widget _buildRangeInput(String label, String minKey, String maxKey,
+      {double step = 1.0,
+      IconData? icon,
+      String? iconText,
+      double minLimit = 0.0,
+      double maxLimit = 1.0}) {
     final minController = _getController(minKey);
     final maxController = _getController(maxKey);
 
@@ -2678,24 +2380,18 @@ class _FilterOptionsSheetState extends State<FilterOptionsSheet> {
           Row(
             children: [
               if (icon != null) ...[
-                Icon(
-                  icon,
-                  size: 18,
-                  color: Theme.of(context).colorScheme.secondary,
-                ),
+                Icon(icon,
+                    size: 18, color: Theme.of(context).colorScheme.secondary),
                 const SizedBox(width: 8),
               ] else if (iconText != null) ...[
                 SizedBox(
                   width: 24,
                   child: Center(
-                    child: Text(
-                      iconText,
-                      style: TextStyle(
-                        fontSize: 18,
-                        color: Theme.of(context).colorScheme.secondary,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                    child: Text(iconText,
+                        style: TextStyle(
+                            fontSize: 18,
+                            color: Theme.of(context).colorScheme.secondary,
+                            fontWeight: FontWeight.bold)),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -2732,9 +2428,8 @@ class _FilterOptionsSheetState extends State<FilterOptionsSheet> {
                         .surfaceContainerHighest
                         .withValues(alpha: 0.3),
                   ),
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
                   textInputAction: TextInputAction.next,
                   controller: minController,
                   onChanged: (value) {
@@ -2750,10 +2445,8 @@ class _FilterOptionsSheetState extends State<FilterOptionsSheet> {
               ),
               const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 8.0),
-                child: Text(
-                  "-",
-                  style: TextStyle(fontSize: 20, color: Colors.grey),
-                ),
+                child: Text("-",
+                    style: TextStyle(fontSize: 20, color: Colors.grey)),
               ),
               Expanded(
                 child: TextField(
@@ -2781,9 +2474,8 @@ class _FilterOptionsSheetState extends State<FilterOptionsSheet> {
                         .surfaceContainerHighest
                         .withValues(alpha: 0.3),
                   ),
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
                   textInputAction: TextInputAction.next,
                   controller: maxController,
                   onChanged: (value) {

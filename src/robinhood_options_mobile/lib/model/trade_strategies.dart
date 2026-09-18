@@ -21,13 +21,13 @@ class TradeStrategyTemplate {
   });
 
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'name': name,
-    'description': description,
-    'config': config.toJson(),
-    'createdAt': createdAt.toIso8601String(),
-    'lastUsedAt': lastUsedAt?.toIso8601String(),
-  };
+        'id': id,
+        'name': name,
+        'description': description,
+        'config': config.toJson(),
+        'createdAt': createdAt.toIso8601String(),
+        'lastUsedAt': lastUsedAt?.toIso8601String(),
+      };
 
   factory TradeStrategyTemplate.fromJson(Map<String, dynamic> json) =>
       TradeStrategyTemplate(
@@ -254,7 +254,9 @@ class TradeStrategyDefaults {
           'bollingerBands':
               'Signals buy opportunities near the lower band (oversold).',
         },
-        enabledIndicators: {'bollingerBands': true},
+        enabledIndicators: {
+          'bollingerBands': true,
+        },
         takeProfitPercent: 5.0,
         stopLossPercent: 2.0,
         riskPerTrade: 0.02,
@@ -291,7 +293,7 @@ class TradeStrategyDefaults {
               'fastPeriod': 12,
               'slowPeriod': 26,
               'signalPeriod': 9,
-              'component': 'histogram',
+              'component': 'histogram'
             },
             condition: SignalCondition.CrossOverAbove,
             threshold: 0.0,
@@ -432,7 +434,9 @@ class TradeStrategyDefaults {
         enableSectorLimits: true,
         maxSectorExposure: 0.25,
         enablePartialExits: true,
-        exitStages: [ExitStage(profitTargetPercent: 7.5, quantityPercent: 0.5)],
+        exitStages: [
+          ExitStage(profitTargetPercent: 7.5, quantityPercent: 0.5),
+        ],
         enableVolatilityFilters: true,
         minVolatility: 0.5,
         maxVolatility: 3.5,
@@ -628,7 +632,9 @@ class TradeStrategyDefaults {
         enableDynamicPositionSizing: true,
         trailingStopPercent: 2.0,
         enablePartialExits: true,
-        exitStages: [ExitStage(profitTargetPercent: 7.0, quantityPercent: 0.5)],
+        exitStages: [
+          ExitStage(profitTargetPercent: 7.0, quantityPercent: 0.5),
+        ],
         enableVolatilityFilters: true,
         minVolatility: 0.5,
         maxVolatility: 3.0,
@@ -694,7 +700,9 @@ class TradeStrategyDefaults {
         marketCloseExitEnabled: true,
         marketCloseExitMinutes: 10,
         enablePartialExits: true,
-        exitStages: [ExitStage(profitTargetPercent: 1.5, quantityPercent: 0.5)],
+        exitStages: [
+          ExitStage(profitTargetPercent: 1.5, quantityPercent: 0.5),
+        ],
         riskPerTrade: 0.01,
         enableDynamicPositionSizing: true,
         trailingStopEnabled: true,
@@ -1315,7 +1323,9 @@ class TradeStrategyDefaults {
         marketCloseExitEnabled: true,
         marketCloseExitMinutes: 5,
         enablePartialExits: true,
-        exitStages: [ExitStage(profitTargetPercent: 0.5, quantityPercent: 0.5)],
+        exitStages: [
+          ExitStage(profitTargetPercent: 0.5, quantityPercent: 0.5),
+        ],
       ),
       createdAt: DateTime.now(),
     ),
@@ -1631,7 +1641,9 @@ class TradeStrategyDefaults {
         marketCloseExitEnabled: true,
         marketCloseExitMinutes: 5,
         enablePartialExits: true,
-        exitStages: [ExitStage(profitTargetPercent: 1.0, quantityPercent: 0.5)],
+        exitStages: [
+          ExitStage(profitTargetPercent: 1.0, quantityPercent: 0.5),
+        ],
       ),
       createdAt: DateTime.now(),
     ),
@@ -1643,9 +1655,8 @@ class TradeStrategyDefaults {
       config: TradeStrategyConfig(
         minSignalStrength: 65.0,
         requireAllIndicatorsGreen: false,
-        startDate: DateTime.now().subtract(
-          const Duration(days: 1095),
-        ), // 3 years
+        startDate:
+            DateTime.now().subtract(const Duration(days: 1095)), // 3 years
         endDate: DateTime.now(),
         interval: '1d',
         initialCapital: 50000.0,
@@ -2756,7 +2767,7 @@ class TradeStrategyDefaults {
           'MCD',
           'WMT',
           'MMM',
-          'CAT',
+          'CAT'
         ],
         startDate: DateTime.now().subtract(const Duration(days: 1095)),
         endDate: DateTime.now(),
@@ -3519,9 +3530,8 @@ class TradeStrategyDefaults {
       config: TradeStrategyConfig(
         minSignalStrength: 70.0,
         requireAllIndicatorsGreen: false,
-        startDate: DateTime.now().subtract(
-          const Duration(days: 730),
-        ), // 2 years
+        startDate:
+            DateTime.now().subtract(const Duration(days: 730)), // 2 years
         endDate: DateTime.now(),
         interval: '1d',
         initialCapital: 25000.0,

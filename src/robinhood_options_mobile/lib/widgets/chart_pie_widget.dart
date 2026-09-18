@@ -18,16 +18,14 @@ class PieChart extends StatefulWidget {
   final List<charts.ChartBehavior<String>>? behaviors;
   final void Function(dynamic) onSelected;
 
-  const PieChart(
-    this.seriesList, {
-    super.key,
-    this.animate = true,
-    this.renderer,
-    required this.onSelected,
-    this.behaviors,
-    //this.staticNumericTicks,
-    this.hiddenSeries,
-  });
+  const PieChart(this.seriesList,
+      {super.key,
+      this.animate = true,
+      this.renderer,
+      required this.onSelected,
+      this.behaviors,
+      //this.staticNumericTicks,
+      this.hiddenSeries});
 
   // We need a Stateful widget to build the selection details with the current
   // selection as the state.
@@ -35,9 +33,7 @@ class PieChart extends StatefulWidget {
   State<StatefulWidget> createState() => PieChartState();
 
   static List<charts.Color> makeShades(
-    charts.Color shadeDefault,
-    int colorCnt,
-  ) {
+      charts.Color shadeDefault, int colorCnt) {
     final colors = <charts.Color>[shadeDefault];
 
     // If we need more than 2 colors, then [unselected] collides with one of the
@@ -49,30 +45,17 @@ class PieChart extends StatefulWidget {
 
     // Divide the space between 255 and c500 evenly according to the colorCnt.
     for (var i = 1; i < colorCnt; i++) {
-      colors.add(
-        _getSteppedColor(
-          shadeDefault,
-          i,
-          colorCnt,
-          darker: shadeDefault.darker,
-          lighter: lighterColor,
-        ),
-      );
+      colors.add(_getSteppedColor(shadeDefault, i, colorCnt,
+          darker: shadeDefault.darker, lighter: lighterColor));
     }
 
     colors.add(
-      charts.Color.fromOther(color: shadeDefault, lighter: lighterColor),
-    );
+        charts.Color.fromOther(color: shadeDefault, lighter: lighterColor));
     return colors;
   }
 
-  static charts.Color _getSteppedColor(
-    charts.Color color,
-    int index,
-    int steps, {
-    charts.Color? darker,
-    charts.Color? lighter,
-  }) {
+  static charts.Color _getSteppedColor(charts.Color color, int index, int steps,
+      {charts.Color? darker, charts.Color? lighter}) {
     // Cap fraction to 0.65 so shades preserve hue saturation and high contrast against text
     final fraction = (index / steps) * 0.65;
     return charts.Color(
@@ -91,18 +74,15 @@ class PieChartState extends State<PieChart> {
   Widget build(BuildContext context) {
     return widget.seriesList.isEmpty || widget.seriesList[0].data.isEmpty
         ? Container()
-        : charts.PieChart<String>(
-            widget.seriesList,
+        : charts.PieChart<String>(widget.seriesList,
             defaultRenderer: widget.renderer,
             animate: widget.animate,
             selectionModels: [
               charts.SelectionModelConfig(
-                type: charts.SelectionModelType.info,
-                changedListener: _onSelectionChanged,
-              ),
+                  type: charts.SelectionModelType.info,
+                  changedListener: _onSelectionChanged)
             ],
-            behaviors: widget.behaviors ?? [],
-          );
+            behaviors: widget.behaviors ?? []);
   }
 
   void _onSelectionChanged(charts.SelectionModel model) {

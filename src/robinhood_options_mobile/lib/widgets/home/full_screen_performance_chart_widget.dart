@@ -124,12 +124,11 @@ class _FullScreenPerformanceChartWidgetState
     });
     if (widget.accountNumber != null) {
       _futurePortfolioHistoricals = widget.service.getPortfolioPerformance(
-        widget.user,
-        Provider.of<PortfolioHistoricalsStore>(context, listen: false),
-        widget.accountNumber!,
-        chartBoundsFilter: Bounds.regular,
-        chartDateSpanFilter: _benchmarkChartDateSpanFilter,
-      );
+          widget.user,
+          Provider.of<PortfolioHistoricalsStore>(context, listen: false),
+          widget.accountNumber!,
+          chartBoundsFilter: Bounds.regular,
+          chartDateSpanFilter: _benchmarkChartDateSpanFilter);
     }
 
     final yahooService = YahooService();
@@ -174,18 +173,14 @@ class _FullScreenPerformanceChartWidgetState
         range = "max";
         break;
     }
-    _futureMarketIndexHistoricalsSp500 = yahooService.getMarketIndexHistoricals(
-      symbol: '^GSPC',
-      range: range,
-    );
-    _futureMarketIndexHistoricalsNasdaq = yahooService
-        .getMarketIndexHistoricals(symbol: '^IXIC', range: range);
-    _futureMarketIndexHistoricalsDow = yahooService.getMarketIndexHistoricals(
-      symbol: '^DJI',
-      range: range,
-    );
-    _futureMarketIndexHistoricalsRussell2000 = yahooService
-        .getMarketIndexHistoricals(symbol: 'IWM', range: range);
+    _futureMarketIndexHistoricalsSp500 =
+        yahooService.getMarketIndexHistoricals(symbol: '^GSPC', range: range);
+    _futureMarketIndexHistoricalsNasdaq =
+        yahooService.getMarketIndexHistoricals(symbol: '^IXIC', range: range);
+    _futureMarketIndexHistoricalsDow =
+        yahooService.getMarketIndexHistoricals(symbol: '^DJI', range: range);
+    _futureMarketIndexHistoricalsRussell2000 =
+        yahooService.getMarketIndexHistoricals(symbol: 'IWM', range: range);
 
     // Also reload custom benchmark if exists
     if (_customBenchmarkSymbol != null) {
@@ -220,13 +215,12 @@ class _FullScreenPerformanceChartWidgetState
                 if (symbolController.text.isNotEmpty) {
                   setState(() {
                     _isLoading = true;
-                    _customBenchmarkSymbol = symbolController.text
-                        .toUpperCase();
+                    _customBenchmarkSymbol =
+                        symbolController.text.toUpperCase();
                     _selectedBenchmark = _customBenchmarkSymbol!;
                     _showAllBenchmarks = false; // Auto-focus on the new one
-                    _futureCustomBenchmark = _fetchCustomBenchmark(
-                      _customBenchmarkSymbol!,
-                    );
+                    _futureCustomBenchmark =
+                        _fetchCustomBenchmark(_customBenchmarkSymbol!);
                     _waitForFutures();
                   });
                   Navigator.pop(context);
@@ -293,10 +287,7 @@ class _FullScreenPerformanceChartWidgetState
         break;
     }
     return YahooService().getMarketIndexHistoricals(
-      symbol: symbol,
-      range: range,
-      interval: interval,
-    );
+        symbol: symbol, range: range, interval: interval);
   }
 
   @override
@@ -339,11 +330,9 @@ class _FullScreenPerformanceChartWidgetState
                         color: Colors.blueGrey,
                       ),
                       const SizedBox(width: 8),
-                      Text(
-                        _showAllBenchmarks
-                            ? 'Hide Other Indices'
-                            : 'Show All Indices',
-                      ),
+                      Text(_showAllBenchmarks
+                          ? 'Hide Other Indices'
+                          : 'Show All Indices'),
                     ],
                   ),
                 ),
@@ -373,7 +362,9 @@ class _FullScreenPerformanceChartWidgetState
           ),
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? const Center(
+                    child: CircularProgressIndicator(),
+                  )
                 : PerformanceChartWidget(
                     futureMarketIndexHistoricalsSp500:
                         _futureMarketIndexHistoricalsSp500,
@@ -393,9 +384,8 @@ class _FullScreenPerformanceChartWidgetState
                       widget.onFilterChanged(span);
                     },
                     isFullScreen: true,
-                    selectedBenchmark: _showAllBenchmarks
-                        ? null
-                        : _selectedBenchmark,
+                    selectedBenchmark:
+                        _showAllBenchmarks ? null : _selectedBenchmark,
                     futureCustomBenchmark: _futureCustomBenchmark,
                     customBenchmarkSymbol: _customBenchmarkSymbol,
                   ),

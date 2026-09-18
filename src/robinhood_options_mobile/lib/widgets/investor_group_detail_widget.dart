@@ -85,9 +85,9 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
 
   void _listenToUnreadMessages() {
     if (auth.currentUser != null) {
-      widget.firestoreService.getGroupMessages(widget.groupId).listen((
-        snapshot,
-      ) {
+      widget.firestoreService
+          .getGroupMessages(widget.groupId)
+          .listen((snapshot) {
         int unread = 0;
         for (var doc in snapshot.docs) {
           final message = doc.data();
@@ -170,10 +170,8 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
                         children: [
                           Icon(Icons.delete, color: Colors.red),
                           SizedBox(width: 8),
-                          Text(
-                            'Delete Group',
-                            style: TextStyle(color: Colors.red),
-                          ),
+                          Text('Delete Group',
+                              style: TextStyle(color: Colors.red)),
                         ],
                       ),
                     ),
@@ -206,15 +204,12 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
   Widget _buildCardHubLayout(InvestorGroup group, bool isAdmin, bool isMember) {
     return ChangeNotifierProvider(
       create: (_) {
-        final provider = GroupPerformanceAnalyticsProvider(
-          widget.firestoreService,
-        );
+        final provider =
+            GroupPerformanceAnalyticsProvider(widget.firestoreService);
         // Load analytics with default period
         WidgetsBinding.instance.addPostFrameCallback((_) {
           provider.loadGroupPerformanceAnalytics(
-            group.id,
-            TimePeriodFilter.oneMonth,
-          );
+              group.id, TimePeriodFilter.oneMonth);
         });
         return provider;
       },
@@ -251,12 +246,12 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Theme.of(
-              context,
-            ).primaryColor.withOpacity(_isDarkTheme ? 0.15 : 0.1),
-            Theme.of(
-              context,
-            ).primaryColor.withOpacity(_isDarkTheme ? 0.05 : 0.05),
+            Theme.of(context)
+                .primaryColor
+                .withOpacity(_isDarkTheme ? 0.15 : 0.1),
+            Theme.of(context)
+                .primaryColor
+                .withOpacity(_isDarkTheme ? 0.05 : 0.05),
           ],
         ),
         borderRadius: BorderRadius.circular(16),
@@ -284,9 +279,9 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Theme.of(
-                        context,
-                      ).primaryColor.withOpacity(_isDarkTheme ? 0.2 : 0.3),
+                      color: Theme.of(context)
+                          .primaryColor
+                          .withOpacity(_isDarkTheme ? 0.2 : 0.3),
                       blurRadius: 8,
                       offset: const Offset(0, 4),
                     ),
@@ -298,10 +293,9 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
                   child: Text(
                     group.name.isNotEmpty ? group.name[0].toUpperCase() : 'G',
                     style: const TextStyle(
-                      fontSize: 28,
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
+                        fontSize: 28,
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold),
                   ),
                 ),
               ),
@@ -312,17 +306,17 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
                   children: [
                     Text(
                       group.name,
-                      style: Theme.of(context).textTheme.headlineSmall
-                          ?.copyWith(fontWeight: FontWeight.bold),
+                      style:
+                          Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
                     ),
                     const SizedBox(height: 8),
                     Row(
                       children: [
                         Container(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
+                              horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
                             color: _getBadgeBackground(Colors.orange),
                             borderRadius: BorderRadius.circular(20),
@@ -354,9 +348,7 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
                         const SizedBox(width: 12),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
+                              horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
                             color: _getBadgeBackground(Colors.blue),
                             borderRadius: BorderRadius.circular(20),
@@ -364,11 +356,9 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(
-                                Icons.people,
-                                size: 14,
-                                color: Colors.blue[_isDarkTheme ? 400 : 700],
-                              ),
+                              Icon(Icons.people,
+                                  size: 14,
+                                  color: Colors.blue[_isDarkTheme ? 400 : 700]),
                               const SizedBox(width: 4),
                               Text(
                                 '${group.members.length} member${group.members.length != 1 ? 's' : ''}',
@@ -392,17 +382,17 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
             const SizedBox(height: 16),
             Text(
               group.description!,
-              style: Theme.of(
-                context,
-              ).textTheme.bodyLarge?.copyWith(color: _getSecondaryTextColor()),
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    color: _getSecondaryTextColor(),
+                  ),
             ),
           ],
           const SizedBox(height: 12),
           Text(
             'Created ${DateFormat.yMMMd().format(group.dateCreated)}',
-            style: Theme.of(
-              context,
-            ).textTheme.bodySmall?.copyWith(color: _getTertiaryTextColor()),
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: _getTertiaryTextColor(),
+                ),
           ),
         ],
       ),
@@ -434,39 +424,31 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Theme.of(
-                        context,
-                      ).primaryColor.withOpacity(_isDarkTheme ? 0.15 : 0.1),
+                      color: Theme.of(context)
+                          .primaryColor
+                          .withOpacity(_isDarkTheme ? 0.15 : 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Icon(
-                      Icons.info_outline,
-                      color: Theme.of(context).primaryColor,
-                      size: 24,
-                    ),
+                    child: Icon(Icons.info_outline,
+                        color: Theme.of(context).primaryColor, size: 24),
                   ),
                   const SizedBox(width: 12),
                   Text(
                     'Overview',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                          fontWeight: FontWeight.bold,
+                        ),
                   ),
                   const Spacer(),
                   Badge(
-                    label: Text(
-                      '${group.members.length}',
-                      style: const TextStyle(color: Colors.white),
-                    ),
+                    label: Text('${group.members.length}',
+                        style: const TextStyle(color: Colors.white)),
                     backgroundColor: Theme.of(context).primaryColor,
                     child: const Icon(Icons.people, color: Colors.transparent),
                   ),
                   const SizedBox(width: 8),
-                  Icon(
-                    Icons.arrow_forward_ios,
-                    size: 16,
-                    color: _getTertiaryTextColor(),
-                  ),
+                  Icon(Icons.arrow_forward_ios,
+                      size: 16, color: _getTertiaryTextColor()),
                 ],
               ),
               const SizedBox(height: 16),
@@ -491,11 +473,11 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
                     Text(
                       group.isPrivate ? 'Private Group' : 'Public Group',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: group.isPrivate
-                            ? Colors.orange[_isDarkTheme ? 400 : 900]
-                            : Colors.green[_isDarkTheme ? 400 : 900],
-                        fontWeight: FontWeight.w500,
-                      ),
+                            color: group.isPrivate
+                                ? Colors.orange[_isDarkTheme ? 400 : 900]
+                                : Colors.green[_isDarkTheme ? 400 : 900],
+                            fontWeight: FontWeight.w500,
+                          ),
                     ),
                   ],
                 ),
@@ -503,9 +485,9 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
               const SizedBox(height: 12),
               Text(
                 'Created ${_formatRelativeDate(group.dateCreated)}',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(color: _getTertiaryTextColor()),
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: _getTertiaryTextColor(),
+                    ),
               ),
               const SizedBox(height: 16),
               if (auth.currentUser != null) ...[
@@ -607,30 +589,23 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.green.withOpacity(
-                        _isDarkTheme ? 0.15 : 0.1,
-                      ),
+                      color:
+                          Colors.green.withOpacity(_isDarkTheme ? 0.15 : 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(
-                      Icons.trending_up,
-                      color: Colors.green,
-                      size: 24,
-                    ),
+                    child: const Icon(Icons.trending_up,
+                        color: Colors.green, size: 24),
                   ),
                   const SizedBox(width: 12),
                   Text(
                     'Performance Analytics',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                          fontWeight: FontWeight.bold,
+                        ),
                   ),
                   const Spacer(),
-                  Icon(
-                    Icons.arrow_forward_ios,
-                    size: 16,
-                    color: _getTertiaryTextColor(),
-                  ),
+                  Icon(Icons.arrow_forward_ios,
+                      size: 16, color: _getTertiaryTextColor()),
                 ],
               ),
               const SizedBox(height: 16),
@@ -669,8 +644,8 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
                       Text(
                         'View group performance metrics, rankings, and charts',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: _getSecondaryTextColor(),
-                        ),
+                              color: _getSecondaryTextColor(),
+                            ),
                       ),
                       const SizedBox(height: 12),
                       Align(
@@ -710,17 +685,17 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
             Text(
               label,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: _getTertiaryTextColor(),
-                fontWeight: FontWeight.w500,
-              ),
+                    color: _getTertiaryTextColor(),
+                    fontWeight: FontWeight.w500,
+                  ),
             ),
             const SizedBox(height: 8),
             Text(
               value,
               style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                color: valueColor,
-                fontWeight: FontWeight.bold,
-              ),
+                    color: valueColor,
+                    fontWeight: FontWeight.bold,
+                  ),
             ),
           ],
         ),
@@ -750,29 +725,23 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
                       color: Colors.grey.withOpacity(_isDarkTheme ? 0.15 : 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Icon(
-                      Icons.bookmark_outline,
-                      color: _getTertiaryTextColor(),
-                      size: 24,
-                    ),
+                    child: Icon(Icons.bookmark_outline,
+                        color: _getTertiaryTextColor(), size: 24),
                   ),
                   const SizedBox(width: 12),
                   Text(
                     'Group Watchlists',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                          fontWeight: FontWeight.bold,
+                        ),
                   ),
                   Padding(
                     padding: const EdgeInsets.only(left: 8),
                     child: Chip(
-                      label: const Text(
-                        'Members Only',
-                        style: TextStyle(fontSize: 12),
-                      ),
-                      backgroundColor: Colors.grey.withOpacity(
-                        _isDarkTheme ? 0.2 : 0.1,
-                      ),
+                      label: const Text('Members Only',
+                          style: TextStyle(fontSize: 12)),
+                      backgroundColor:
+                          Colors.grey.withOpacity(_isDarkTheme ? 0.2 : 0.1),
                     ),
                   ),
                 ],
@@ -781,8 +750,8 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
               Text(
                 'Create and manage collaborative watchlists with group members',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: _getSecondaryTextColor(),
-                ),
+                      color: _getSecondaryTextColor(),
+                    ),
               ),
             ],
           ),
@@ -834,22 +803,26 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
                             Container(
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
-                                color: Theme.of(context).colorScheme.primary
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .primary
                                     .withOpacity(_isDarkTheme ? 0.15 : 0.1),
                                 borderRadius: BorderRadius.circular(12),
                               ),
-                              child: Icon(
-                                Icons.bookmark_outline,
-                                color: Theme.of(context).colorScheme.primary,
-                                size: 24,
-                              ),
+                              child: Icon(Icons.bookmark_outline,
+                                  color: Theme.of(context).colorScheme.primary,
+                                  size: 24),
                             ),
                             const SizedBox(width: 12),
                             Flexible(
                               child: Text(
                                 'Group Watchlists',
-                                style: Theme.of(context).textTheme.titleMedium
-                                    ?.copyWith(fontWeight: FontWeight.bold),
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleMedium
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -859,11 +832,11 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
                       ),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
+                            horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.primary
+                          color: Theme.of(context)
+                              .colorScheme
+                              .primary
                               .withOpacity(_isDarkTheme ? 0.2 : 0.15),
                           borderRadius: BorderRadius.circular(20),
                         ),
@@ -877,11 +850,8 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      Icon(
-                        Icons.arrow_forward_ios,
-                        size: 16,
-                        color: _getTertiaryTextColor(),
-                      ),
+                      Icon(Icons.arrow_forward_ios,
+                          size: 16, color: _getTertiaryTextColor()),
                     ],
                   ),
                   const SizedBox(height: 12),
@@ -901,8 +871,12 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
                             children: [
                               Text(
                                 watchlists.first.name,
-                                style: Theme.of(context).textTheme.labelMedium
-                                    ?.copyWith(fontWeight: FontWeight.w600),
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .labelMedium
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.w600,
+                                    ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -916,26 +890,23 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
                                       .map(
                                         (symbol) => Container(
                                           padding: const EdgeInsets.symmetric(
-                                            horizontal: 6,
-                                            vertical: 2,
-                                          ),
+                                              horizontal: 6, vertical: 2),
                                           decoration: BoxDecoration(
                                             color: Theme.of(context)
                                                 .colorScheme
                                                 .primary
                                                 .withOpacity(0.2),
-                                            borderRadius: BorderRadius.circular(
-                                              4,
-                                            ),
+                                            borderRadius:
+                                                BorderRadius.circular(4),
                                           ),
                                           child: Text(
                                             symbol.symbol,
                                             style: TextStyle(
                                               fontSize: 11,
                                               fontWeight: FontWeight.w500,
-                                              color: Theme.of(
-                                                context,
-                                              ).colorScheme.primary,
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .primary,
                                             ),
                                           ),
                                         ),
@@ -964,8 +935,10 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
                   !hasData
                       ? Text(
                           'Create and manage collaborative watchlists with group members',
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(color: _getSecondaryTextColor()),
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: _getSecondaryTextColor(),
+                                  ),
                         )
                       : const SizedBox.shrink(),
                 ],
@@ -1005,37 +978,32 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
                       color: isMember
-                          ? Theme.of(context).primaryColor.withOpacity(
-                              _isDarkTheme ? 0.15 : 0.1,
-                            )
+                          ? Theme.of(context)
+                              .primaryColor
+                              .withOpacity(_isDarkTheme ? 0.15 : 0.1)
                           : Colors.grey.withOpacity(_isDarkTheme ? 0.15 : 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Icon(
-                      Icons.chat_bubble_outline,
-                      color: isMember
-                          ? Theme.of(context).primaryColor
-                          : _getTertiaryTextColor(),
-                      size: 24,
-                    ),
+                    child: Icon(Icons.chat_bubble_outline,
+                        color: isMember
+                            ? Theme.of(context).primaryColor
+                            : _getTertiaryTextColor(),
+                        size: 24),
                   ),
                   const SizedBox(width: 12),
                   Text(
                     'Group Chat',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                          fontWeight: FontWeight.bold,
+                        ),
                   ),
                   const Spacer(),
                   if (isMember && _unreadMessagesCount > 0)
                     Badge(
-                      label: Text(
-                        '$_unreadMessagesCount',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      label: Text('$_unreadMessagesCount',
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold)),
                       backgroundColor: Colors.red[_isDarkTheme ? 600 : 500],
                       child: const Icon(Icons.mail, color: Colors.transparent),
                     ),
@@ -1043,17 +1011,11 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
                     const SizedBox(width: 24),
                   if (isMember) const SizedBox(width: 8),
                   if (isMember)
-                    Icon(
-                      Icons.arrow_forward_ios,
-                      size: 16,
-                      color: _getTertiaryTextColor(),
-                    ),
+                    Icon(Icons.arrow_forward_ios,
+                        size: 16, color: _getTertiaryTextColor()),
                   if (!isMember)
-                    Icon(
-                      Icons.lock_outline,
-                      size: 20,
-                      color: _getTertiaryTextColor(),
-                    ),
+                    Icon(Icons.lock_outline,
+                        size: 20, color: _getTertiaryTextColor()),
                 ],
               ),
               const SizedBox(height: 16),
@@ -1061,11 +1023,9 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
                 StreamBuilder(
                   stream: widget.firestoreService
                       .getGroupMessages(widget.groupId)
-                      .map(
-                        (snapshot) => snapshot.docs.isNotEmpty
-                            ? snapshot.docs.first.data()
-                            : null,
-                      ),
+                      .map((snapshot) => snapshot.docs.isNotEmpty
+                          ? snapshot.docs.first.data()
+                          : null),
                   builder: (context, snapshot) {
                     if (snapshot.hasData && snapshot.data != null) {
                       final lastMessage = snapshot.data!;
@@ -1078,9 +1038,7 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
                               color: _getBackgroundColor(),
                               borderRadius: BorderRadius.circular(10),
                               border: Border.all(
-                                color: _getCardBorderColor(),
-                                width: 1,
-                              ),
+                                  color: _getCardBorderColor(), width: 1),
                             ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1103,10 +1061,11 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
                                 const SizedBox(height: 4),
                                 Text(
                                   lastMessage.text,
-                                  style: Theme.of(context).textTheme.bodySmall
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
                                       ?.copyWith(
-                                        color: _getSecondaryTextColor(),
-                                      ),
+                                          color: _getSecondaryTextColor()),
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
                                 ),
@@ -1116,11 +1075,11 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
                           const SizedBox(height: 8),
                           Text(
                             _formatRelativeDate(lastMessage.timestamp),
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(
-                                  color: _getTertiaryTextColor(),
-                                  fontSize: 11,
-                                ),
+                            style:
+                                Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      color: _getTertiaryTextColor(),
+                                      fontSize: 11,
+                                    ),
                           ),
                           const SizedBox(height: 12),
                           Align(
@@ -1142,22 +1101,19 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
                             color: _getBackgroundColor(),
                             borderRadius: BorderRadius.circular(10),
                             border: Border.all(
-                              color: _getCardBorderColor(),
-                              width: 1,
-                            ),
+                                color: _getCardBorderColor(), width: 1),
                           ),
                           child: Center(
                             child: Column(
                               children: [
-                                Icon(
-                                  Icons.chat_bubble_outline,
-                                  size: 32,
-                                  color: _getTertiaryTextColor(),
-                                ),
+                                Icon(Icons.chat_bubble_outline,
+                                    size: 32, color: _getTertiaryTextColor()),
                                 const SizedBox(height: 8),
                                 Text(
                                   'No messages yet',
-                                  style: Theme.of(context).textTheme.bodySmall
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
                                       ?.copyWith(
                                         color: _getSecondaryTextColor(),
                                       ),
@@ -1203,7 +1159,9 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
                           Expanded(
                             child: Text(
                               'Join the group to chat with members',
-                              style: Theme.of(context).textTheme.bodySmall
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodySmall
                                   ?.copyWith(
                                     color:
                                         Colors.orange[_isDarkTheme ? 400 : 900],
@@ -1279,25 +1237,22 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
                 color: _getBackgroundColor(),
                 shape: BoxShape.circle,
               ),
-              child: Icon(
-                Icons.people_outline,
-                size: 56,
-                color: _getTertiaryTextColor(),
-              ),
+              child: Icon(Icons.people_outline,
+                  size: 56, color: _getTertiaryTextColor()),
             ),
             const SizedBox(height: 20),
             Text(
               'No members yet',
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
             ),
             const SizedBox(height: 8),
             Text(
               'Invite people to join this group',
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(color: _getSecondaryTextColor()),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: _getSecondaryTextColor(),
+                  ),
             ),
           ],
         ),
@@ -1318,10 +1273,8 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
             Widget avatar = CircleAvatar(
               radius: 24,
               backgroundColor: Theme.of(context).primaryColor.withOpacity(0.2),
-              child: Icon(
-                Icons.account_circle,
-                color: Theme.of(context).primaryColor,
-              ),
+              child: Icon(Icons.account_circle,
+                  color: Theme.of(context).primaryColor),
             );
 
             if (snapshot.hasData && snapshot.data!.exists) {
@@ -1333,9 +1286,7 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
                 child: Text(
                   displayName.isNotEmpty ? displayName[0].toUpperCase() : 'U',
                   style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
+                      color: Colors.white, fontWeight: FontWeight.bold),
                 ),
               );
             }
@@ -1353,39 +1304,25 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
                   children: [
                     if (isCreator)
                       Chip(
-                        label: const Text(
-                          'Creator',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
+                        label: const Text('Creator',
+                            style: TextStyle(
+                                fontSize: 11, fontWeight: FontWeight.w600)),
                         backgroundColor: Colors.amber[_isDarkTheme ? 700 : 100],
                         labelStyle: TextStyle(
-                          color: Colors.amber[_isDarkTheme ? 100 : 900],
-                        ),
+                            color: Colors.amber[_isDarkTheme ? 100 : 900]),
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
+                            horizontal: 8, vertical: 4),
                       )
                     else if (isAdmin)
                       Chip(
-                        label: const Text(
-                          'Admin',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
+                        label: const Text('Admin',
+                            style: TextStyle(
+                                fontSize: 11, fontWeight: FontWeight.w600)),
                         backgroundColor: Colors.blue[_isDarkTheme ? 700 : 100],
                         labelStyle: TextStyle(
-                          color: Colors.blue[_isDarkTheme ? 100 : 900],
-                        ),
+                            color: Colors.blue[_isDarkTheme ? 100 : 900]),
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
+                            horizontal: 8, vertical: 4),
                       ),
                     // if (group.isPrivate) const SizedBox(width: 8),
                     // if (group.isPrivate)
@@ -1427,7 +1364,9 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
       context,
       MaterialPageRoute(
         builder: (context) => Scaffold(
-          appBar: AppBar(title: const Text('Group Chat')),
+          appBar: AppBar(
+            title: const Text('Group Chat'),
+          ),
           body: InvestorGroupChatWidget(
             group: group,
             firestoreService: widget.firestoreService,
@@ -1445,10 +1384,8 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
     setState(() => _isLoading = true);
 
     try {
-      await widget.firestoreService.joinInvestorGroup(
-        group.id,
-        auth.currentUser!.uid,
-      );
+      await widget.firestoreService
+          .joinInvestorGroup(group.id, auth.currentUser!.uid);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Successfully joined the group!')),
@@ -1456,9 +1393,9 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error joining group: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error joining group: $e')),
+        );
       }
     } finally {
       if (mounted) {
@@ -1474,9 +1411,8 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
     if (group.createdBy == auth.currentUser!.uid) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text(
-            'Group creator cannot leave. Delete the group instead.',
-          ),
+          content:
+              Text('Group creator cannot leave. Delete the group instead.'),
         ),
       );
       return;
@@ -1485,10 +1421,8 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
     setState(() => _isLoading = true);
 
     try {
-      await widget.firestoreService.leaveInvestorGroup(
-        group.id,
-        auth.currentUser!.uid,
-      );
+      await widget.firestoreService
+          .leaveInvestorGroup(group.id, auth.currentUser!.uid);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Successfully left the group')),
@@ -1497,9 +1431,9 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error leaving group: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error leaving group: $e')),
+        );
       }
     } finally {
       if (mounted) {
@@ -1537,9 +1471,8 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
 
   void _showEditGroupDialog(BuildContext context, InvestorGroup group) {
     final nameController = TextEditingController(text: group.name);
-    final descriptionController = TextEditingController(
-      text: group.description,
-    );
+    final descriptionController =
+        TextEditingController(text: group.description);
     bool isPrivate = group.isPrivate;
 
     showDialog(
@@ -1626,8 +1559,7 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
       builder: (context) => AlertDialog(
         title: const Text('Delete Group'),
         content: Text(
-          'Are you sure you want to delete "${group.name}"? This action cannot be undone.',
-        ),
+            'Are you sure you want to delete "${group.name}"? This action cannot be undone.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -1772,25 +1704,22 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
                 color: Colors.red[_isDarkTheme ? 900 : 50],
                 shape: BoxShape.circle,
               ),
-              child: Icon(
-                Icons.error_outline,
-                size: 64,
-                color: Colors.red[_isDarkTheme ? 400 : 400],
-              ),
+              child: Icon(Icons.error_outline,
+                  size: 64, color: Colors.red[_isDarkTheme ? 400 : 400]),
             ),
             const SizedBox(height: 24),
             Text(
               'Unable to Load Group',
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
             ),
             const SizedBox(height: 12),
             Text(
               error?.toString() ?? 'Unknown error occurred',
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(color: _getSecondaryTextColor()),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: _getSecondaryTextColor(),
+                  ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 32),
@@ -1883,7 +1812,9 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
   void _trackEvent(String eventName) {
     widget.analytics.logEvent(
       name: eventName,
-      parameters: {'group_id': widget.groupId},
+      parameters: {
+        'group_id': widget.groupId,
+      },
     );
   }
 
@@ -1917,7 +1848,10 @@ class _MemberSearchDelegate extends SearchDelegate<String> {
   final InvestorGroup group;
   final FirestoreService firestoreService;
 
-  _MemberSearchDelegate({required this.group, required this.firestoreService});
+  _MemberSearchDelegate({
+    required this.group,
+    required this.firestoreService,
+  });
 
   @override
   List<Widget> buildActions(BuildContext context) {
@@ -1958,7 +1892,9 @@ class _MemberSearchDelegate extends SearchDelegate<String> {
     }).toList();
 
     if (filteredMembers.isEmpty) {
-      return const Center(child: Text('No members found'));
+      return const Center(
+        child: Text('No members found'),
+      );
     }
 
     return ListView.builder(
@@ -1992,9 +1928,9 @@ class _MemberSearchDelegate extends SearchDelegate<String> {
 
             return ListTile(
               leading: CircleAvatar(
-                child: Text(
-                  displayName.isNotEmpty ? displayName[0].toUpperCase() : 'U',
-                ),
+                child: Text(displayName.isNotEmpty
+                    ? displayName[0].toUpperCase()
+                    : 'U'),
               ),
               title: Text(displayName),
               trailing: Row(

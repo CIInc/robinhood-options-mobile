@@ -14,14 +14,13 @@ class MockFirebasePlatform extends FirebasePlatform {
   @override
   FirebaseAppPlatform app([String name = defaultFirebaseAppName]) {
     return FirebaseAppPlatform(
-      name,
-      const FirebaseOptions(
-        apiKey: 'test',
-        appId: 'test',
-        messagingSenderId: 'test',
-        projectId: 'test',
-      ),
-    );
+        name,
+        const FirebaseOptions(
+          apiKey: 'test',
+          appId: 'test',
+          messagingSenderId: 'test',
+          projectId: 'test',
+        ));
   }
 
   @override

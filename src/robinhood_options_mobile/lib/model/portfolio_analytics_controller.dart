@@ -40,8 +40,8 @@ class PortfolioAnalyticsController extends ChangeNotifier {
     this.span,
     YahooService? yahooService,
     ESGService? esgService,
-  }) : _yahooService = yahooService ?? YahooService(),
-       _esgService = esgService ?? ESGService();
+  })  : _yahooService = yahooService ?? YahooService(),
+        _esgService = esgService ?? ESGService();
 
   /// Points the controller at freshly-loaded historicals and recomputes.
   ///
@@ -60,8 +60,11 @@ class PortfolioAnalyticsController extends ChangeNotifier {
     this.fallbackHistoricals = fallbackHistoricals;
     this.span = span;
     for (final customSymbol in _customBenchmarks) {
-      _customBenchmarkFutures[customSymbol] = _yahooService
-          .getMarketIndexHistoricals(symbol: customSymbol, range: _yahooRange);
+      _customBenchmarkFutures[customSymbol] =
+          _yahooService.getMarketIndexHistoricals(
+        symbol: customSymbol,
+        range: _yahooRange,
+      );
     }
     _hasLoaded = false;
     _load();
@@ -92,10 +95,8 @@ class PortfolioAnalyticsController extends ChangeNotifier {
   bool get hasComputed => _hasLoaded;
   String get selectedBenchmark => _selectedBenchmark;
   List<String> get customBenchmarks => List.unmodifiable(_customBenchmarks);
-  List<String> get allBenchmarks => [
-    ...builtInBenchmarks,
-    ..._customBenchmarks,
-  ];
+  List<String> get allBenchmarks =>
+      [...builtInBenchmarks, ..._customBenchmarks];
 
   /// Returns the future for a benchmark ticker (either built-in or custom).
   Future<dynamic>? getBenchmarkFuture(String symbol) {
@@ -127,8 +128,11 @@ class PortfolioAnalyticsController extends ChangeNotifier {
     }
 
     _customBenchmarks.add(normalized);
-    _customBenchmarkFutures[normalized] = _yahooService
-        .getMarketIndexHistoricals(symbol: normalized, range: _yahooRange);
+    _customBenchmarkFutures[normalized] =
+        _yahooService.getMarketIndexHistoricals(
+      symbol: normalized,
+      range: _yahooRange,
+    );
     _selectedBenchmark = normalized;
     notifyListeners();
     return _load();
@@ -150,9 +154,9 @@ class PortfolioAnalyticsController extends ChangeNotifier {
     }
 
     try {
-      final scores = (await _esgService.getESGScores(
-        symbols,
-      )).whereType<ESGScore>().toList();
+      final scores = (await _esgService.getESGScores(symbols))
+          .whereType<ESGScore>()
+          .toList();
 
       var weightedTotal = 0.0;
       var weightedEnvironmental = 0.0;
@@ -241,9 +245,8 @@ class PortfolioAnalyticsController extends ChangeNotifier {
       final benchmark = benchmarkByDate[_dateKey(beginsAt)];
       if (benchmark == null) continue;
 
-      alignedPortfolioPrices.add(
-        historical.adjustedCloseEquity ?? historical.closeEquity ?? 0.0,
-      );
+      alignedPortfolioPrices
+          .add(historical.adjustedCloseEquity ?? historical.closeEquity ?? 0.0);
       alignedBenchmarkPrices.add(benchmark);
       alignedDates.add(beginsAt);
     }
@@ -277,8 +280,7 @@ class PortfolioAnalyticsController extends ChangeNotifier {
     metrics['alignedPortfolioPrices'] = alignedPortfolioPrices;
     metrics['alignedBenchmarkPrices'] = alignedBenchmarkPrices;
     metrics['periodDays'] = periodDays;
-    metrics['excessReturn'] =
-        (metrics['portfolioCumulative'] ?? 0.0) -
+    metrics['excessReturn'] = (metrics['portfolioCumulative'] ?? 0.0) -
         (metrics['benchmarkCumulative'] ?? 0.0);
     metrics['excessReturnHistory'] = _excessReturnHistory(
       alignedDates: alignedDates,
@@ -310,17 +312,15 @@ class PortfolioAnalyticsController extends ChangeNotifier {
     }
 
     if (fallbackHistoricals.isEmpty) return null;
-    return fallbackHistoricals.firstWhereOrNull(
-          (item) => item.span == 'year',
-        ) ??
+    return fallbackHistoricals
+            .firstWhereOrNull((item) => item.span == 'year') ??
         fallbackHistoricals.firstWhereOrNull((item) => item.span == '5year') ??
         fallbackHistoricals.firstWhereOrNull((item) => item.span == '3month') ??
         fallbackHistoricals.first;
   }
 
   Future<Map<String, double>> _resolveBenchmark() async {
-    final future =
-        _customBenchmarkFutures[_selectedBenchmark] ??
+    final future = _customBenchmarkFutures[_selectedBenchmark] ??
         benchmarkHistoricals[_selectedBenchmark];
     if (future == null) return {};
 
@@ -338,9 +338,8 @@ class PortfolioAnalyticsController extends ChangeNotifier {
       for (var i = 0; i < timestamps.length && i < adjcloses.length; i++) {
         final close = adjcloses[i];
         if (close == null) continue;
-        final date = DateTime.fromMillisecondsSinceEpoch(
-          (timestamps[i] as int) * 1000,
-        );
+        final date =
+            DateTime.fromMillisecondsSinceEpoch((timestamps[i] as int) * 1000);
         byDate[_dateKey(date)] = (close as num).toDouble();
       }
       return byDate;
@@ -367,10 +366,8 @@ class PortfolioAnalyticsController extends ChangeNotifier {
       return days > 0 ? days : 1;
     }
     if (alignedDates.isNotEmpty) {
-      final days = alignedDates.last
-          .difference(alignedDates.first)
-          .inDays
-          .abs();
+      final days =
+          alignedDates.last.difference(alignedDates.first).inDays.abs();
       return days > 0 ? days : 1;
     }
     return 1;
@@ -394,8 +391,7 @@ class PortfolioAnalyticsController extends ChangeNotifier {
       for (var i = 0; i < alignedPortfolioPrices.length; i++)
         {
           'date': alignedDates[i],
-          'value':
-              (alignedPortfolioPrices[i] / portfolioBase) -
+          'value': (alignedPortfolioPrices[i] / portfolioBase) -
               (alignedBenchmarkPrices[i] / benchmarkBase),
         },
     ];
@@ -421,9 +417,10 @@ class PortfolioAnalyticsController extends ChangeNotifier {
       // The month's base is the previous trading day's close, so a month's
       // return includes the move on its first day.
       monthStartPrice.putIfAbsent(
-        key,
-        () => i > 0 ? alignedPortfolioPrices[i - 1] : alignedPortfolioPrices[i],
-      );
+          key,
+          () => i > 0
+              ? alignedPortfolioPrices[i - 1]
+              : alignedPortfolioPrices[i]);
       monthEndPrice[key] = alignedPortfolioPrices[i];
     }
 

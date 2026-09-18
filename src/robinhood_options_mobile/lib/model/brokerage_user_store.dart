@@ -19,11 +19,8 @@ class BrokerageUserStore extends ChangeNotifier {
   /// The current total price of all items (assuming all items cost $42).
   //int get totalPrice => _items.length * 42;
 
-  BrokerageUserStore(
-    this._items,
-    this.currentUserIndex, {
-    this.aggregateAllAccounts = false,
-  });
+  BrokerageUserStore(this._items, this.currentUserIndex,
+      {this.aggregateAllAccounts = false});
 
   void add(BrokerageUser item) {
     _items.add(item);
@@ -38,10 +35,8 @@ class BrokerageUserStore extends ChangeNotifier {
   }
 
   bool update(BrokerageUser item) {
-    var index = _items.indexWhere(
-      (element) =>
-          element.userName == item.userName && element.source == item.source,
-    );
+    var index = _items.indexWhere((element) =>
+        element.userName == item.userName && element.source == item.source);
     if (index == -1) {
       return false;
     }
@@ -57,9 +52,8 @@ class BrokerageUserStore extends ChangeNotifier {
   }
 
   void remove(BrokerageUser item) {
-    var index = _items.indexWhere(
-      (element) => element.userName == item.userName,
-    );
+    var index =
+        _items.indexWhere((element) => element.userName == item.userName);
     if (index != -1) {
       _items.removeAt(index);
       notifyListeners();
@@ -68,8 +62,8 @@ class BrokerageUserStore extends ChangeNotifier {
 
   BrokerageUser? get currentUser =>
       _items.isNotEmpty && currentUserIndex < _items.length
-      ? _items[currentUserIndex]
-      : null;
+          ? _items[currentUserIndex]
+          : null;
 
   void setCurrentUserIndex(int userIndex) {
     currentUserIndex = userIndex;
@@ -84,9 +78,9 @@ class BrokerageUserStore extends ChangeNotifier {
   }
 
   BrokerageUserStore.fromJson(Map<String, dynamic> json)
-    : currentUserIndex = json['currentUserIndex'],
-      aggregateAllAccounts = json['aggregateAllAccounts'] ?? false,
-      _items = BrokerageUser.fromJsonArray(json['users']);
+      : currentUserIndex = json['currentUserIndex'],
+        aggregateAllAccounts = json['aggregateAllAccounts'] ?? false,
+        _items = BrokerageUser.fromJsonArray(json['users']);
 
   Map<String, dynamic> toJson() {
     return {

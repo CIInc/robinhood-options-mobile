@@ -30,10 +30,7 @@ class GenerativeProvider extends ChangeNotifier {
     if (chatMessages.isNotEmpty) {
       final last = chatMessages.last;
       chatMessages[chatMessages.length - 1] = ChatMessage(
-        text: text,
-        isUser: last.isUser,
-        timestamp: last.timestamp,
-      );
+          text: text, isUser: last.isUser, timestamp: last.timestamp);
       notifyListeners();
     }
   }

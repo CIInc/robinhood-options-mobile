@@ -68,48 +68,42 @@ class _OptionOrderWidgetState extends State<OptionOrderWidget> {
   Widget build(BuildContext context) {
     var instrumentStore = Provider.of<InstrumentStore>(context, listen: false);
     var quoteStore = Provider.of<QuoteStore>(context, listen: false);
-    var cachedQuotes = quoteStore.items.where(
-      (element) => element.symbol == widget.optionOrder.chainSymbol,
-    );
+    var cachedQuotes = quoteStore.items
+        .where((element) => element.symbol == widget.optionOrder.chainSymbol);
     if (cachedQuotes.isNotEmpty) {
       futureQuote = Future.value(cachedQuotes.first);
     } else {
       futureQuote = widget.service.getQuote(
-        widget.brokerageUser,
-        quoteStore,
-        widget.optionOrder.chainSymbol,
-      );
+          widget.brokerageUser, quoteStore, widget.optionOrder.chainSymbol);
     }
 
     return Scaffold(
       body: FutureBuilder(
-        future: futureQuote,
-        builder: (context, AsyncSnapshot<Quote?> snapshot) {
-          if (snapshot.hasData) {
-            var quote = snapshot.data!;
-            futureInstrument = widget.service.getInstrument(
-              widget.brokerageUser,
-              instrumentStore,
-              snapshot.data!.instrument,
-            );
-            return FutureBuilder(
-              future: futureInstrument,
-              builder: (context, AsyncSnapshot<Instrument> instrumentSnapshot) {
-                if (instrumentSnapshot.hasData) {
-                  var instrument = instrumentSnapshot.data!;
-                  instrument.quoteObj = quote;
-                  return _buildPage(instrument);
-                } else if (instrumentSnapshot.hasError) {
-                  debugPrint("${instrumentSnapshot.error}");
-                  return Text("${instrumentSnapshot.error}");
-                }
-                return Container();
-              },
-            );
-          }
-          return Container();
-        },
-      ),
+          future: futureQuote,
+          builder: (context, AsyncSnapshot<Quote?> snapshot) {
+            if (snapshot.hasData) {
+              var quote = snapshot.data!;
+              futureInstrument = widget.service.getInstrument(
+                  widget.brokerageUser,
+                  instrumentStore,
+                  snapshot.data!.instrument);
+              return FutureBuilder(
+                  future: futureInstrument,
+                  builder:
+                      (context, AsyncSnapshot<Instrument> instrumentSnapshot) {
+                    if (instrumentSnapshot.hasData) {
+                      var instrument = instrumentSnapshot.data!;
+                      instrument.quoteObj = quote;
+                      return _buildPage(instrument);
+                    } else if (instrumentSnapshot.hasError) {
+                      debugPrint("${instrumentSnapshot.error}");
+                      return Text("${instrumentSnapshot.error}");
+                    }
+                    return Container();
+                  });
+            }
+            return Container();
+          }),
       /*
         floatingActionButton: (user != null && user.userName != null)
             ? FloatingActionButton(
@@ -126,246 +120,206 @@ class _OptionOrderWidgetState extends State<OptionOrderWidget> {
   }
 
   Widget _buildPage(Instrument instrument) {
-    return CustomScrollView(
-      slivers: [
-        SliverAppBar(
-          expandedHeight: 120.0,
-          floating: false,
-          snap: false,
-          pinned: true,
-          centerTitle: false,
-          flexibleSpace: FlexibleSpaceBar(
+    return CustomScrollView(slivers: [
+      SliverAppBar(
+        expandedHeight: 120.0,
+        floating: false,
+        snap: false,
+        pinned: true,
+        centerTitle: false,
+        flexibleSpace: FlexibleSpaceBar(
             title: SingleChildScrollView(
-              child: Wrap(
-                crossAxisAlignment: WrapCrossAlignment.center,
-                spacing: 5,
-                children: [
-                  Text(
-                    "${widget.optionOrder.chainSymbol} \$${formatCompactNumber.format(widget.optionOrder.legs.first.strikePrice)} ${widget.optionOrder.strategy}",
-                    style: TextStyle(
+                child: Wrap(
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 5,
+                    children: [
+              Text(
+                  "${widget.optionOrder.chainSymbol} \$${formatCompactNumber.format(widget.optionOrder.legs.first.strikePrice)} ${widget.optionOrder.strategy}",
+                  style: TextStyle(
                       fontSize: 16.0,
                       fontWeight: FontWeight.bold,
-                      color: Theme.of(context).appBarTheme.foregroundColor,
-                    ),
-                  ),
-                  Text(
-                    formatDate.format(
-                      widget.optionOrder.legs.first.expirationDate!,
-                    ),
-                    style: TextStyle(
+                      color: Theme.of(context).appBarTheme.foregroundColor)),
+              Text(
+                  formatDate
+                      .format(widget.optionOrder.legs.first.expirationDate!),
+                  style: TextStyle(
                       fontSize: 14.0,
-                      color: Theme.of(
-                        context,
-                      ).appBarTheme.foregroundColor?.withValues(alpha: 0.7),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-        SliverToBoxAdapter(
-          child: _buildOverview(widget.brokerageUser, instrument),
-        ),
-        SliverToBoxAdapter(
-          child: Card(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                ListTile(
-                  title: const Text(
-                    "Order Detail",
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                  ),
-                  trailing: Chip(
-                    label: Text(widget.optionOrder.state.toUpperCase()),
-                    backgroundColor: widget.optionOrder.state == 'filled'
-                        ? Colors.green.withValues(alpha: 0.2)
-                        : (widget.optionOrder.state == 'cancelled' ||
+                      color: Theme.of(context)
+                          .appBarTheme
+                          .foregroundColor
+                          ?.withValues(alpha: 0.7)))
+            ]))),
+      ),
+      SliverToBoxAdapter(
+        child: _buildOverview(widget.brokerageUser, instrument),
+      ),
+      SliverToBoxAdapter(
+        child: Card(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              ListTile(
+                title: const Text("Order Detail",
+                    style:
+                        TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                trailing: Chip(
+                  label: Text(widget.optionOrder.state.toUpperCase()),
+                  backgroundColor: widget.optionOrder.state == 'filled'
+                      ? Colors.green.withValues(alpha: 0.2)
+                      : (widget.optionOrder.state == 'cancelled' ||
                               widget.optionOrder.state == 'rejected')
-                        ? Colors.red.withValues(alpha: 0.2)
-                        : Colors.orange.withValues(alpha: 0.2),
-                  ),
+                          ? Colors.red.withValues(alpha: 0.2)
+                          : Colors.orange.withValues(alpha: 0.2),
                 ),
-                const Divider(),
-                _buildSectionHeader("Execution"),
-                _buildDetailRow(
-                  "Quantity",
-                  formatCompactNumber.format(widget.optionOrder.quantity),
-                ),
-                _buildDetailRow(
+              ),
+              const Divider(),
+              _buildSectionHeader("Execution"),
+              _buildDetailRow("Quantity",
+                  formatCompactNumber.format(widget.optionOrder.quantity)),
+              _buildDetailRow(
                   "Processed Quantity",
-                  formatCompactNumber.format(
-                    widget.optionOrder.processedQuantity,
-                  ),
-                ),
-                _buildDetailRow(
+                  formatCompactNumber
+                      .format(widget.optionOrder.processedQuantity)),
+              _buildDetailRow(
                   "Price",
                   widget.optionOrder.price != null
                       ? formatCurrency.format(widget.optionOrder.price)
-                      : '',
-                ),
-                _buildDetailRow(
+                      : ''),
+              _buildDetailRow(
                   "Premium",
                   widget.optionOrder.premium != null
                       ? formatCurrency.format(widget.optionOrder.premium)
-                      : '',
-                ),
-                _buildDetailRow(
+                      : ''),
+              _buildDetailRow(
                   "Processed Premium",
                   widget.optionOrder.processedPremium != null
-                      ? formatCurrency.format(
-                          widget.optionOrder.processedPremium,
-                        )
-                      : '',
-                ),
-                const Divider(),
-                _buildSectionHeader("Order Settings"),
-                _buildDetailRow("Direction", widget.optionOrder.direction),
-                _buildDetailRow("Type", widget.optionOrder.type),
+                      ? formatCurrency
+                          .format(widget.optionOrder.processedPremium)
+                      : ''),
+              const Divider(),
+              _buildSectionHeader("Order Settings"),
+              _buildDetailRow("Direction", widget.optionOrder.direction),
+              _buildDetailRow("Type", widget.optionOrder.type),
+              _buildDetailRow("Time in Force", widget.optionOrder.timeInForce),
+              _buildDetailRow("Trigger", widget.optionOrder.trigger),
+              if (widget.optionOrder.stopPrice != null)
+                _buildDetailRow("Stop Price",
+                    formatCurrency.format(widget.optionOrder.stopPrice)),
+              if (widget.optionOrder.openingStrategy != null)
                 _buildDetailRow(
-                  "Time in Force",
-                  widget.optionOrder.timeInForce,
-                ),
-                _buildDetailRow("Trigger", widget.optionOrder.trigger),
-                if (widget.optionOrder.stopPrice != null)
-                  _buildDetailRow(
-                    "Stop Price",
-                    formatCurrency.format(widget.optionOrder.stopPrice),
-                  ),
-                if (widget.optionOrder.openingStrategy != null)
-                  _buildDetailRow(
-                    "Opening Strategy",
-                    widget.optionOrder.openingStrategy!,
-                  ),
-                if (widget.optionOrder.closingStrategy != null)
-                  _buildDetailRow(
-                    "Closing Strategy",
-                    widget.optionOrder.closingStrategy!,
-                  ),
-                const Divider(),
-                _buildSectionHeader("Timestamps"),
+                    "Opening Strategy", widget.optionOrder.openingStrategy!),
+              if (widget.optionOrder.closingStrategy != null)
                 _buildDetailRow(
-                  "Created",
-                  formatDate.format(widget.optionOrder.createdAt!),
-                ),
-                _buildDetailRow(
-                  "Updated",
-                  formatDate.format(widget.optionOrder.updatedAt!),
-                ),
-                // if (widget.optionOrder.cancelUrl != null)
-                //   _buildDetailRow("Cancel Url", widget.optionOrder.cancelUrl!),
-              ],
-            ),
+                    "Closing Strategy", widget.optionOrder.closingStrategy!),
+              const Divider(),
+              _buildSectionHeader("Timestamps"),
+              _buildDetailRow(
+                  "Created", formatDate.format(widget.optionOrder.createdAt!)),
+              _buildDetailRow(
+                  "Updated", formatDate.format(widget.optionOrder.updatedAt!)),
+              // if (widget.optionOrder.cancelUrl != null)
+              //   _buildDetailRow("Cancel Url", widget.optionOrder.cancelUrl!),
+            ],
           ),
         ),
-        SliverToBoxAdapter(
+      ),
+      SliverToBoxAdapter(
           child: Card(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: _buildLegs(widget.optionOrder).toList(),
-            ),
-          ),
-        ),
-        if (widget.optionOrder.cancelUrl != null) ...[
-          SliverToBoxAdapter(
+              child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: _buildLegs(widget.optionOrder).toList(),
+      ))),
+      if (widget.optionOrder.cancelUrl != null) ...[
+        SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  FilledButton(
-                    onPressed: _isCancelling
-                        ? null
-                        : () async {
-                            setState(() {
-                              _isCancelling = true;
-                            });
-                            try {
-                              await widget.service.cancelOrder(
+          padding: const EdgeInsets.all(8.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              FilledButton(
+                  onPressed: _isCancelling
+                      ? null
+                      : () async {
+                          setState(() {
+                            _isCancelling = true;
+                          });
+                          try {
+                            await widget.service.cancelOrder(
                                 widget.brokerageUser,
-                                widget.optionOrder.cancelUrl!,
+                                widget.optionOrder.cancelUrl!);
+                            if (mounted) {
+                              // TODO: Handle response properly, maybe it returns an object or map
+                              // Assuming response is dynamic and we might need to check something
+                              // For now, just show success if no error thrown
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                    content:
+                                        Text('Order cancelled successfully')),
                               );
-                              if (mounted) {
-                                // TODO: Handle response properly, maybe it returns an object or map
-                                // Assuming response is dynamic and we might need to check something
-                                // For now, just show success if no error thrown
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                      'Order cancelled successfully',
-                                    ),
-                                  ),
-                                );
-                                Navigator.pop(context);
-                              }
-                            } catch (e) {
-                              if (mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text('Error cancelling order: $e'),
-                                  ),
-                                );
-                              }
-                            } finally {
-                              if (mounted) {
-                                setState(() {
-                                  _isCancelling = false;
-                                });
-                              }
+                              Navigator.pop(context);
                             }
-                          },
-                    child: _isCancelling
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                        : const Text('CANCEL'),
-                  ),
-                  const SizedBox(width: 4),
-                ],
-              ),
-            ),
+                          } catch (e) {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                    content:
+                                        Text('Error cancelling order: $e')),
+                              );
+                            }
+                          } finally {
+                            if (mounted) {
+                              setState(() {
+                                _isCancelling = false;
+                              });
+                            }
+                          }
+                        },
+                  child: _isCancelling
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: Colors.white))
+                      : const Text('CANCEL')),
+              const SizedBox(width: 4),
+            ],
           ),
-        ],
-        if (!kIsWeb) ...[
-          const SliverToBoxAdapter(child: SizedBox(height: 25.0)),
-          SliverToBoxAdapter(
-            child: AdBannerWidget(size: AdSize.mediumRectangle),
-          ),
-        ],
-        const SliverToBoxAdapter(child: SizedBox(height: 25.0)),
-        const SliverToBoxAdapter(child: DisclaimerWidget()),
-        const SliverToBoxAdapter(child: SizedBox(height: 25.0)),
+        )),
       ],
-    );
+      if (!kIsWeb) ...[
+        const SliverToBoxAdapter(
+            child: SizedBox(
+          height: 25.0,
+        )),
+        SliverToBoxAdapter(child: AdBannerWidget(size: AdSize.mediumRectangle)),
+      ],
+      const SliverToBoxAdapter(
+          child: SizedBox(
+        height: 25.0,
+      )),
+      const SliverToBoxAdapter(child: DisclaimerWidget()),
+      const SliverToBoxAdapter(
+          child: SizedBox(
+        height: 25.0,
+      ))
+    ]);
   }
 
   Iterable<Widget> _buildLegs(OptionOrder optionOrder) sync* {
     for (int i = 0; i < optionOrder.legs.length; i++) {
       var leg = optionOrder.legs[i];
       yield ListTile(
-        title: Text(
-          "Leg ${i + 1}",
-          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-        ),
-      );
+          title: Text("Leg ${i + 1}",
+              style:
+                  const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)));
       yield const Divider();
       yield _buildDetailRow(
-        "Expiration Date",
-        formatDate.format(leg.expirationDate!),
-      );
+          "Expiration Date", formatDate.format(leg.expirationDate!));
       yield _buildDetailRow("Position Type", "${leg.positionType}");
       yield _buildDetailRow("Position Effect", "${leg.positionEffect}");
       yield _buildDetailRow("Option Type", leg.optionType);
       yield _buildDetailRow(
-        "Strike Price",
-        formatCurrency.format(leg.strikePrice),
-      );
+          "Strike Price", formatCurrency.format(leg.strikePrice));
       yield _buildDetailRow("Ratio Quantity", "${leg.ratioQuantity}");
     }
   }
@@ -402,7 +356,10 @@ class _OptionOrderWidgetState extends State<OptionOrderWidget> {
           ),
           Text(
             value,
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ],
       ),
@@ -411,74 +368,69 @@ class _OptionOrderWidgetState extends State<OptionOrderWidget> {
 
   Card _buildOverview(BrokerageUser user, Instrument instrument) {
     return Card(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          ListTile(
-            // leading: const Icon(Icons.album),
-            title: Text('${instrument.simpleName}'),
-            subtitle: Text(instrument.name),
-            trailing: Wrap(
-              spacing: 8,
-              children: [
-                Icon(
+        child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        ListTile(
+          // leading: const Icon(Icons.album),
+          title: Text('${instrument.simpleName}'),
+          subtitle: Text(instrument.name),
+          trailing: Wrap(
+            spacing: 8,
+            children: [
+              Icon(
                   instrument.quoteObj!.changeToday > 0
                       ? Icons.trending_up
                       : (instrument.quoteObj!.changeToday < 0
-                            ? Icons.trending_down
-                            : Icons.trending_flat),
+                          ? Icons.trending_down
+                          : Icons.trending_flat),
                   color: (instrument.quoteObj!.changeToday > 0
                       ? Colors.green
                       : (instrument.quoteObj!.changeToday < 0
-                            ? Colors.red
-                            : Colors.grey)),
-                ),
-                Text(
-                  formatCurrency.format(
+                          ? Colors.red
+                          : Colors.grey))),
+              Text(
+                formatCurrency.format(
                     instrument.quoteObj!.lastExtendedHoursTradePrice ??
-                        instrument.quoteObj!.lastTradePrice,
-                  ),
-                  style: const TextStyle(fontSize: 18.0),
-                  textAlign: TextAlign.right,
-                ),
-              ],
-            ),
+                        instrument.quoteObj!.lastTradePrice),
+                style: const TextStyle(fontSize: 18.0),
+                textAlign: TextAlign.right,
+              ),
+            ],
           ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: <Widget>[
-              TextButton(
-                child: const Text('VIEW STOCK'),
-                onPressed: () {
-                  /*
+        ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: <Widget>[
+            TextButton(
+              child: const Text('VIEW STOCK'),
+              onPressed: () {
+                /*
                 _navKey.currentState!.push(
                   MaterialPageRoute(
                     builder: (_) => SubSecondPage(),
                   ),
                 );
                 */
-                  Navigator.push(
+                Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => InstrumentWidget(
-                        user,
-                        widget.service,
-                        instrument,
-                        analytics: widget.analytics,
-                        observer: widget.observer,
-                        generativeService: widget.generativeService,
-                        user: widget.user,
-                        userDocRef: widget.userDocRef,
-                      ),
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(width: 8),
-            ],
-          ),
-        ],
-      ),
-    );
+                        builder: (context) => InstrumentWidget(
+                              user,
+                              widget.service,
+                              instrument,
+                              analytics: widget.analytics,
+                              observer: widget.observer,
+                              generativeService: widget.generativeService,
+                              user: widget.user,
+                              userDocRef: widget.userDocRef,
+                            )));
+              },
+            ),
+            const SizedBox(width: 8),
+          ],
+        ),
+      ],
+    ));
   }
 }

@@ -109,18 +109,14 @@ class SentimentAnalysisResult {
   factory SentimentAnalysisResult.fromMap(Map<String, dynamic> map) {
     return SentimentAnalysisResult(
       market: SentimentData.fromMap(
-        Map<String, dynamic>.from(map['market'] as Map),
-      ),
+          Map<String, dynamic>.from(map['market'] as Map)),
       trending: (map['trending'] as List<dynamic>)
           .map(
-            (e) => SentimentData.fromMap(Map<String, dynamic>.from(e as Map)),
-          )
+              (e) => SentimentData.fromMap(Map<String, dynamic>.from(e as Map)))
           .toList(),
       feed: (map['feed'] as List<dynamic>)
-          .map(
-            (e) =>
-                SentimentFeedItem.fromMap(Map<String, dynamic>.from(e as Map)),
-          )
+          .map((e) =>
+              SentimentFeedItem.fromMap(Map<String, dynamic>.from(e as Map)))
           .toList(),
     );
   }

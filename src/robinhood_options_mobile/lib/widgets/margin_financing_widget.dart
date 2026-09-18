@@ -117,9 +117,8 @@ class _MarginFinancingWidgetState extends State<MarginFinancingWidget>
           tabs: const [
             Tab(icon: Icon(Icons.gavel_outlined), text: 'Margin Calls'),
             Tab(
-              icon: Icon(Icons.receipt_long_outlined),
-              text: 'Financing Costs',
-            ),
+                icon: Icon(Icons.receipt_long_outlined),
+                text: 'Financing Costs'),
           ],
         ),
       ),
@@ -137,11 +136,8 @@ class _MarginFinancingWidgetState extends State<MarginFinancingWidget>
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(
-                      Icons.error_outline,
-                      size: 48,
-                      color: Colors.red,
-                    ),
+                    const Icon(Icons.error_outline,
+                        size: 48, color: Colors.red),
                     const SizedBox(height: 12),
                     Text(
                       'Failed to load margin financing details: ${snapshot.error}',
@@ -159,8 +155,7 @@ class _MarginFinancingWidgetState extends State<MarginFinancingWidget>
             );
           }
 
-          final summary =
-              snapshot.data ??
+          final summary = snapshot.data ??
               MarginFinancingSummary(
                 accountNumber: '',
                 updatedAt: DateTime.now(),
@@ -182,9 +177,7 @@ class _MarginFinancingWidgetState extends State<MarginFinancingWidget>
   }
 
   Widget _buildMarginCallsTab(
-    BuildContext context,
-    MarginFinancingSummary summary,
-  ) {
+      BuildContext context, MarginFinancingSummary summary) {
     final filteredCalls = summary.marginCalls.where((call) {
       if (_callsFilterIndex == 1) return call.isOpen;
       if (_callsFilterIndex == 2) return call.isSatisfied;
@@ -237,9 +230,7 @@ class _MarginFinancingWidgetState extends State<MarginFinancingWidget>
   }
 
   Widget _buildHeroStatusCard(
-    BuildContext context,
-    MarginFinancingSummary summary,
-  ) {
+      BuildContext context, MarginFinancingSummary summary) {
     final theme = Theme.of(context);
     final hasActive = summary.hasActiveMarginCall;
     final color = hasActive ? Colors.redAccent : Colors.green;
@@ -293,9 +284,7 @@ class _MarginFinancingWidgetState extends State<MarginFinancingWidget>
                     const SizedBox(height: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
+                          horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
                         color: Colors.red.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(6),
@@ -320,9 +309,7 @@ class _MarginFinancingWidgetState extends State<MarginFinancingWidget>
   }
 
   Widget _buildMetricsRow(
-    BuildContext context,
-    MarginFinancingSummary summary,
-  ) {
+      BuildContext context, MarginFinancingSummary summary) {
     return Row(
       children: [
         Expanded(
@@ -402,11 +389,8 @@ class _MarginFinancingWidgetState extends State<MarginFinancingWidget>
         child: Center(
           child: Column(
             children: [
-              Icon(
-                Icons.check_circle_outline_rounded,
-                size: 40,
-                color: theme.colorScheme.primary,
-              ),
+              Icon(Icons.check_circle_outline_rounded,
+                  size: 40, color: theme.colorScheme.primary),
               const SizedBox(height: 8),
               const Text(
                 'No Margin Calls',
@@ -463,16 +447,13 @@ class _MarginFinancingWidgetState extends State<MarginFinancingWidget>
                 ),
                 const SizedBox(width: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 3,
-                  ),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
                     color: stateColor.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: stateColor.withValues(alpha: 0.5),
-                    ),
+                    border:
+                        Border.all(color: stateColor.withValues(alpha: 0.5)),
                   ),
                   child: Text(
                     call.displayState,
@@ -562,7 +543,10 @@ class _MarginFinancingWidgetState extends State<MarginFinancingWidget>
             ),
             if (call.description != null && call.description!.isNotEmpty) ...[
               const SizedBox(height: 8),
-              Text(call.description!, style: theme.textTheme.bodySmall),
+              Text(
+                call.description!,
+                style: theme.textTheme.bodySmall,
+              ),
             ],
           ],
         ),
@@ -583,11 +567,8 @@ class _MarginFinancingWidgetState extends State<MarginFinancingWidget>
           children: [
             Row(
               children: [
-                Icon(
-                  Icons.lightbulb_outline,
-                  size: 18,
-                  color: theme.colorScheme.primary,
-                ),
+                Icon(Icons.lightbulb_outline,
+                    size: 18, color: theme.colorScheme.primary),
                 const SizedBox(width: 8),
                 const Expanded(
                   child: Text(
@@ -616,9 +597,7 @@ class _MarginFinancingWidgetState extends State<MarginFinancingWidget>
   }
 
   Widget _buildFinancingCostsTab(
-    BuildContext context,
-    MarginFinancingSummary summary,
-  ) {
+      BuildContext context, MarginFinancingSummary summary) {
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       children: [
@@ -632,9 +611,8 @@ class _MarginFinancingWidgetState extends State<MarginFinancingWidget>
         if (summary.interestCharges.isEmpty)
           _buildEmptyInterestCard(context)
         else
-          ...summary.interestCharges.map(
-            (charge) => _buildInterestChargeCard(context, charge),
-          ),
+          ...summary.interestCharges
+              .map((charge) => _buildInterestChargeCard(context, charge)),
         const SizedBox(height: 16),
         _buildInterestCalculationExplainer(context, summary),
         const SizedBox(height: 24),
@@ -643,9 +621,7 @@ class _MarginFinancingWidgetState extends State<MarginFinancingWidget>
   }
 
   Widget _buildFinancingSummaryCard(
-    BuildContext context,
-    MarginFinancingSummary summary,
-  ) {
+      BuildContext context, MarginFinancingSummary summary) {
     final theme = Theme.of(context);
     return Card(
       elevation: 2,
@@ -661,19 +637,14 @@ class _MarginFinancingWidgetState extends State<MarginFinancingWidget>
                 Expanded(
                   child: Row(
                     children: [
-                      Icon(
-                        Icons.account_balance_wallet_outlined,
-                        color: theme.colorScheme.primary,
-                        size: 22,
-                      ),
+                      Icon(Icons.account_balance_wallet_outlined,
+                          color: theme.colorScheme.primary, size: 22),
                       const SizedBox(width: 8),
                       const Flexible(
                         child: Text(
                           'Financing Overview',
                           style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
+                              fontSize: 16, fontWeight: FontWeight.bold),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
@@ -682,10 +653,8 @@ class _MarginFinancingWidgetState extends State<MarginFinancingWidget>
                 ),
                 const SizedBox(width: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: theme.colorScheme.primaryContainer,
                     borderRadius: BorderRadius.circular(8),
@@ -783,11 +752,8 @@ class _MarginFinancingWidgetState extends State<MarginFinancingWidget>
         child: Center(
           child: Column(
             children: [
-              Icon(
-                Icons.receipt_long_outlined,
-                size: 40,
-                color: theme.colorScheme.primary,
-              ),
+              Icon(Icons.receipt_long_outlined,
+                  size: 40, color: theme.colorScheme.primary),
               const SizedBox(height: 8),
               const Text(
                 'No Interest Charges',
@@ -809,9 +775,7 @@ class _MarginFinancingWidgetState extends State<MarginFinancingWidget>
   }
 
   Widget _buildInterestChargeCard(
-    BuildContext context,
-    MarginInterestCharge charge,
-  ) {
+      BuildContext context, MarginInterestCharge charge) {
     final theme = Theme.of(context);
     final isPosted = charge.isPosted;
 
@@ -842,17 +806,18 @@ class _MarginFinancingWidgetState extends State<MarginFinancingWidget>
             Expanded(
               child: Text(
                 charge.formattedEffectiveDate ?? 'Monthly Debit',
-                style: const TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14,
-                ),
+                style:
+                    const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
             const SizedBox(width: 8),
             Text(
               charge.formattedAmount,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 15,
+              ),
             ),
           ],
         ),
@@ -903,9 +868,7 @@ class _MarginFinancingWidgetState extends State<MarginFinancingWidget>
   }
 
   Widget _buildInterestCalculationExplainer(
-    BuildContext context,
-    MarginFinancingSummary summary,
-  ) {
+      BuildContext context, MarginFinancingSummary summary) {
     final theme = Theme.of(context);
     return Card(
       elevation: 0,
@@ -918,11 +881,8 @@ class _MarginFinancingWidgetState extends State<MarginFinancingWidget>
           children: [
             Row(
               children: [
-                Icon(
-                  Icons.calculate_outlined,
-                  size: 18,
-                  color: theme.colorScheme.primary,
-                ),
+                Icon(Icons.calculate_outlined,
+                    size: 18, color: theme.colorScheme.primary),
                 const SizedBox(width: 8),
                 const Expanded(
                   child: Text(

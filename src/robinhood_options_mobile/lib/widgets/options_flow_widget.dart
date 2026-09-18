@@ -51,7 +51,7 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
     'AAPL',
     'TSLA',
     'NVDA',
-    'AMD',
+    'AMD'
   ];
 
   @override
@@ -95,10 +95,8 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
     if (widget.initialSymbol == null &&
         (widget.initialSymbols == null || widget.initialSymbols!.isEmpty) &&
         mounted) {
-      Provider.of<OptionsFlowStore>(
-        context,
-        listen: false,
-      ).setFilterSymbols(_defaultSymbols);
+      Provider.of<OptionsFlowStore>(context, listen: false)
+          .setFilterSymbols(_defaultSymbols);
     }
   }
 
@@ -126,17 +124,14 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
                 _showAlertsDialog();
               } else if (value.startsWith('sort_')) {
                 final index = int.parse(value.split('_')[1]);
-                Provider.of<OptionsFlowStore>(
-                  context,
-                  listen: false,
-                ).setSortOption(FlowSortOption.values[index]);
+                Provider.of<OptionsFlowStore>(context, listen: false)
+                    .setSortOption(FlowSortOption.values[index]);
               }
             },
             itemBuilder: (context) {
-              final currentSort = Provider.of<OptionsFlowStore>(
-                context,
-                listen: false,
-              ).sortOption;
+              final currentSort =
+                  Provider.of<OptionsFlowStore>(context, listen: false)
+                      .sortOption;
               return [
                 const PopupMenuItem<String>(
                   value: 'alerts',
@@ -151,10 +146,8 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
                 const PopupMenuDivider(),
                 const PopupMenuItem<String>(
                   enabled: false,
-                  child: Text(
-                    'SORT BY',
-                    style: TextStyle(fontSize: 12, color: Colors.grey),
-                  ),
+                  child: Text('SORT BY',
+                      style: TextStyle(fontSize: 12, color: Colors.grey)),
                 ),
                 CheckedPopupMenuItem<String>(
                   value: 'sort_${FlowSortOption.time.index}',
@@ -213,7 +206,9 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
                   ),
                 ),
                 if (store.items.isNotEmpty)
-                  SliverToBoxAdapter(child: _buildSummaryHeader(store)),
+                  SliverToBoxAdapter(
+                    child: _buildSummaryHeader(store),
+                  ),
                 if (store.items.isEmpty)
                   SliverFillRemaining(
                     hasScrollBody: false,
@@ -244,12 +239,13 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
                           const SizedBox(height: 8),
                           Text(
                             'Try adjusting your filters or refreshing.',
-                            style: Theme.of(context).textTheme.bodyMedium
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodyMedium
                                 ?.copyWith(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onSurfaceVariant,
-                                ),
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant),
                           ),
                           const SizedBox(height: 24),
                           FilledButton.icon(
@@ -281,19 +277,22 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
                   )
                 else
                   SliverList(
-                    delegate: SliverChildBuilderDelegate((context, index) {
-                      final item = store.items[index];
-                      return OptionFlowListItem(
-                        item: item,
-                        brokerageUser: widget.brokerageUser,
-                        service: widget.service,
-                        analytics: widget.analytics,
-                        observer: widget.observer,
-                        generativeService: widget.generativeService,
-                        user: widget.user,
-                        userDocRef: widget.userDocRef,
-                      );
-                    }, childCount: store.items.length),
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) {
+                        final item = store.items[index];
+                        return OptionFlowListItem(
+                          item: item,
+                          brokerageUser: widget.brokerageUser,
+                          service: widget.service,
+                          analytics: widget.analytics,
+                          observer: widget.observer,
+                          generativeService: widget.generativeService,
+                          user: widget.user,
+                          userDocRef: widget.userDocRef,
+                        );
+                      },
+                      childCount: store.items.length,
+                    ),
                   ),
               ],
             ),
@@ -310,8 +309,8 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
 
     final symbolsToShow =
         (widget.initialSymbols != null && widget.initialSymbols!.isNotEmpty)
-        ? List<String>.from(widget.initialSymbols!)
-        : List<String>.from(_defaultSymbols);
+            ? List<String>.from(widget.initialSymbols!)
+            : List<String>.from(_defaultSymbols);
 
     // Add current filter symbol if not present
     if (store.filterSymbol != null &&
@@ -340,9 +339,10 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
                 ),
                 filled: true,
                 contentPadding: const EdgeInsets.symmetric(vertical: 0),
-                fillColor: Theme.of(
-                  context,
-                ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                fillColor: Theme.of(context)
+                    .colorScheme
+                    .surfaceContainerHighest
+                    .withValues(alpha: 0.3),
               ),
               textCapitalization: TextCapitalization.characters,
               onSubmitted: (value) {
@@ -396,18 +396,17 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
                   color: store.filterHighConviction
                       ? Colors.white
                       : (isDark
-                            ? Colors.amber.shade300
-                            : Colors.amber.shade800),
+                          ? Colors.amber.shade300
+                          : Colors.amber.shade800),
                 ),
-                selectedColor: isDark
-                    ? Colors.amber.shade300
-                    : Colors.amber.shade800,
+                selectedColor:
+                    isDark ? Colors.amber.shade300 : Colors.amber.shade800,
                 labelStyle: TextStyle(
                   color: store.filterHighConviction
                       ? Colors.white
                       : (isDark
-                            ? Colors.amber.shade300
-                            : Colors.amber.shade800),
+                          ? Colors.amber.shade300
+                          : Colors.amber.shade800),
                   fontWeight: FontWeight.bold,
                 ),
                 backgroundColor:
@@ -502,10 +501,8 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
                 Container(
                   width: 1,
                   height: 24,
-                  margin: const EdgeInsets.symmetric(
-                    horizontal: 4,
-                    vertical: 10,
-                  ),
+                  margin:
+                      const EdgeInsets.symmetric(horizontal: 4, vertical: 10),
                   color: Theme.of(context).dividerColor,
                 ),
                 const SizedBox(width: 8),
@@ -567,15 +564,14 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
                                 ? Colors.blue.shade200
                                 : Colors.blue.shade700,
                           ),
-                    selectedColor: isDark
-                        ? Colors.blue.shade200
-                        : Colors.blue.shade700,
+                    selectedColor:
+                        isDark ? Colors.blue.shade200 : Colors.blue.shade700,
                     labelStyle: TextStyle(
                       color: isSelected
                           ? Colors.black
                           : (isDark
-                                ? Colors.blue.shade200
-                                : Colors.blue.shade700),
+                              ? Colors.blue.shade200
+                              : Colors.blue.shade700),
                       fontWeight: isSelected ? FontWeight.bold : null,
                     ),
                     backgroundColor:
@@ -598,39 +594,29 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
     final List<Widget> chips = [];
 
     if (store.filterUnusual) {
-      chips.add(
-        InputChip(
-          avatar: Icon(
-            Icons.bolt,
-            size: 16,
-            color: Theme.of(context).colorScheme.primary,
-          ),
-          label: const Text('Unusual Only'),
-          onDeleted: () => store.setFilterUnusual(false),
-          deleteIcon: const Icon(Icons.close, size: 16),
-          labelStyle: const TextStyle(fontSize: 12),
-          padding: EdgeInsets.zero,
-          visualDensity: VisualDensity.compact,
-        ),
-      );
+      chips.add(InputChip(
+        avatar: Icon(Icons.bolt,
+            size: 16, color: Theme.of(context).colorScheme.primary),
+        label: const Text('Unusual Only'),
+        onDeleted: () => store.setFilterUnusual(false),
+        deleteIcon: const Icon(Icons.close, size: 16),
+        labelStyle: const TextStyle(fontSize: 12),
+        padding: EdgeInsets.zero,
+        visualDensity: VisualDensity.compact,
+      ));
     }
 
     if (store.filterHighConviction) {
-      chips.add(
-        InputChip(
-          avatar: Icon(
-            Icons.star,
-            size: 16,
-            color: Theme.of(context).colorScheme.primary,
-          ),
-          label: const Text('High Conviction'),
-          onDeleted: () => store.setFilterHighConviction(false),
-          deleteIcon: const Icon(Icons.close, size: 16),
-          labelStyle: const TextStyle(fontSize: 12),
-          padding: EdgeInsets.zero,
-          visualDensity: VisualDensity.compact,
-        ),
-      );
+      chips.add(InputChip(
+        avatar: Icon(Icons.star,
+            size: 16, color: Theme.of(context).colorScheme.primary),
+        label: const Text('High Conviction'),
+        onDeleted: () => store.setFilterHighConviction(false),
+        deleteIcon: const Icon(Icons.close, size: 16),
+        labelStyle: const TextStyle(fontSize: 12),
+        padding: EdgeInsets.zero,
+        visualDensity: VisualDensity.compact,
+      ));
     }
 
     if (store.filterFlowType != null) {
@@ -641,44 +627,31 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
         icon = Icons.visibility_off;
       }
 
-      chips.add(
-        InputChip(
-          avatar: Icon(
-            icon,
-            size: 16,
-            color: Theme.of(context).colorScheme.primary,
-          ),
-          label: Text(
-            store.filterFlowType!.name.toUpperCase().replaceAll(
-              'DARKPOOL',
-              'DARK POOL',
-            ),
-          ),
-          onDeleted: () => store.setFilterFlowType(null),
-          deleteIcon: const Icon(Icons.close, size: 16),
-          labelStyle: const TextStyle(fontSize: 12),
-          padding: EdgeInsets.zero,
-          visualDensity: VisualDensity.compact,
-        ),
-      );
+      chips.add(InputChip(
+        avatar:
+            Icon(icon, size: 16, color: Theme.of(context).colorScheme.primary),
+        label: Text(store.filterFlowType!.name
+            .toUpperCase()
+            .replaceAll('DARKPOOL', 'DARK POOL')),
+        onDeleted: () => store.setFilterFlowType(null),
+        deleteIcon: const Icon(Icons.close, size: 16),
+        labelStyle: const TextStyle(fontSize: 12),
+        padding: EdgeInsets.zero,
+        visualDensity: VisualDensity.compact,
+      ));
     }
 
     if (store.filterMoneyness != null) {
-      chips.add(
-        InputChip(
-          avatar: Icon(
-            Icons.attach_money,
-            size: 16,
-            color: Theme.of(context).colorScheme.primary,
-          ),
-          label: Text(store.filterMoneyness!),
-          onDeleted: () => store.setFilterMoneyness(null),
-          deleteIcon: const Icon(Icons.close, size: 16),
-          labelStyle: const TextStyle(fontSize: 12),
-          padding: EdgeInsets.zero,
-          visualDensity: VisualDensity.compact,
-        ),
-      );
+      chips.add(InputChip(
+        avatar: Icon(Icons.attach_money,
+            size: 16, color: Theme.of(context).colorScheme.primary),
+        label: Text(store.filterMoneyness!),
+        onDeleted: () => store.setFilterMoneyness(null),
+        deleteIcon: const Icon(Icons.close, size: 16),
+        labelStyle: const TextStyle(fontSize: 12),
+        padding: EdgeInsets.zero,
+        visualDensity: VisualDensity.compact,
+      ));
     }
 
     if (store.filterExpiration != null) {
@@ -694,10 +667,7 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
           final parts = label.split('-');
           if (parts.length == 3) {
             final date = DateTime(
-              int.parse(parts[0]),
-              int.parse(parts[1]),
-              int.parse(parts[2]),
-            );
+                int.parse(parts[0]), int.parse(parts[1]), int.parse(parts[2]));
             final now = DateTime.now();
             final format = date.year == now.year ? 'MMM d' : 'MMM d, yyyy';
             label = DateFormat(format).format(date);
@@ -706,101 +676,76 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
           // ignore
         }
       }
-      chips.add(
-        InputChip(
-          avatar: Icon(
-            Icons.timer,
-            size: 16,
-            color: Theme.of(context).colorScheme.primary,
-          ),
-          label: Text('Exp: $label'),
-          onDeleted: () => store.setFilterExpiration(null),
-          deleteIcon: const Icon(Icons.close, size: 16),
-          labelStyle: const TextStyle(fontSize: 12),
-          padding: EdgeInsets.zero,
-          visualDensity: VisualDensity.compact,
-        ),
-      );
+      chips.add(InputChip(
+        avatar: Icon(Icons.timer,
+            size: 16, color: Theme.of(context).colorScheme.primary),
+        label: Text('Exp: $label'),
+        onDeleted: () => store.setFilterExpiration(null),
+        deleteIcon: const Icon(Icons.close, size: 16),
+        labelStyle: const TextStyle(fontSize: 12),
+        padding: EdgeInsets.zero,
+        visualDensity: VisualDensity.compact,
+      ));
     }
 
     if (store.filterSector != null) {
-      chips.add(
-        InputChip(
-          avatar: Icon(
-            Icons.pie_chart,
-            size: 16,
-            color: Theme.of(context).colorScheme.primary,
-          ),
-          label: Text(store.filterSector!),
-          onDeleted: () => store.setFilterSector(null),
-          deleteIcon: const Icon(Icons.close, size: 16),
-          labelStyle: const TextStyle(fontSize: 12),
-          padding: EdgeInsets.zero,
-          visualDensity: VisualDensity.compact,
-        ),
-      );
+      chips.add(InputChip(
+        avatar: Icon(Icons.pie_chart,
+            size: 16, color: Theme.of(context).colorScheme.primary),
+        label: Text(store.filterSector!),
+        onDeleted: () => store.setFilterSector(null),
+        deleteIcon: const Icon(Icons.close, size: 16),
+        labelStyle: const TextStyle(fontSize: 12),
+        padding: EdgeInsets.zero,
+        visualDensity: VisualDensity.compact,
+      ));
     }
 
     if (store.filterMinCap != null) {
-      chips.add(
-        InputChip(
-          avatar: Icon(
-            Icons.business,
-            size: 16,
-            color: Theme.of(context).colorScheme.primary,
-          ),
-          label: Text('> \$${store.filterMinCap!.toStringAsFixed(0)}B'),
-          onDeleted: () => store.setFilterMinCap(null),
-          deleteIcon: const Icon(Icons.close, size: 16),
-          labelStyle: const TextStyle(fontSize: 12),
-          padding: EdgeInsets.zero,
-          visualDensity: VisualDensity.compact,
-        ),
-      );
+      chips.add(InputChip(
+        avatar: Icon(Icons.business,
+            size: 16, color: Theme.of(context).colorScheme.primary),
+        label: Text('> \$${store.filterMinCap!.toStringAsFixed(0)}B'),
+        onDeleted: () => store.setFilterMinCap(null),
+        deleteIcon: const Icon(Icons.close, size: 16),
+        labelStyle: const TextStyle(fontSize: 12),
+        padding: EdgeInsets.zero,
+        visualDensity: VisualDensity.compact,
+      ));
     }
 
     if (store.filterMinPremium != null) {
-      chips.add(
-        InputChip(
-          avatar: Icon(
-            Icons.monetization_on,
-            size: 16,
-            color: Theme.of(context).colorScheme.primary,
-          ),
-          label: Text('> \$${_compactFormat.format(store.filterMinPremium)}'),
-          onDeleted: () => store.setFilterMinPremium(null),
-          deleteIcon: const Icon(Icons.close, size: 16),
-          labelStyle: const TextStyle(fontSize: 12),
-          padding: EdgeInsets.zero,
-          visualDensity: VisualDensity.compact,
-        ),
-      );
+      chips.add(InputChip(
+        avatar: Icon(Icons.monetization_on,
+            size: 16, color: Theme.of(context).colorScheme.primary),
+        label: Text('> \$${_compactFormat.format(store.filterMinPremium)}'),
+        onDeleted: () => store.setFilterMinPremium(null),
+        deleteIcon: const Icon(Icons.close, size: 16),
+        labelStyle: const TextStyle(fontSize: 12),
+        padding: EdgeInsets.zero,
+        visualDensity: VisualDensity.compact,
+      ));
     }
 
     if (store.filterFlags != null && store.filterFlags!.isNotEmpty) {
       for (final flag in store.filterFlags!) {
         final style = getFlagStyle(
-          context,
-          flag,
-          Theme.of(context).brightness == Brightness.dark,
-        );
-        chips.add(
-          InputChip(
-            avatar: style.icon != null
-                ? Icon(style.icon, size: 16, color: style.color)
-                : null,
-            label: Text(flag),
-            onDeleted: () {
-              final newFlags = List<String>.from(store.filterFlags!);
-              newFlags.remove(flag);
-              store.setFilterFlags(newFlags.isEmpty ? null : newFlags);
-            },
-            deleteIcon: const Icon(Icons.close, size: 16),
-            labelStyle: const TextStyle(fontSize: 12),
-            padding: EdgeInsets.zero,
-            visualDensity: VisualDensity.compact,
-          ),
-        );
+            context, flag, Theme.of(context).brightness == Brightness.dark);
+        chips.add(InputChip(
+          avatar: style.icon != null
+              ? Icon(style.icon, size: 16, color: style.color)
+              : null,
+          label: Text(flag),
+          onDeleted: () {
+            final newFlags = List<String>.from(store.filterFlags!);
+            newFlags.remove(flag);
+            store.setFilterFlags(newFlags.isEmpty ? null : newFlags);
+          },
+          deleteIcon: const Icon(Icons.close, size: 16),
+          labelStyle: const TextStyle(fontSize: 12),
+          padding: EdgeInsets.zero,
+          visualDensity: VisualDensity.compact,
+        ));
       }
     }
 
@@ -844,9 +789,8 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
                         onSubmitted: (value) {
                           if (value.isNotEmpty) {
                             setState(() {
-                              if (!_defaultSymbols.contains(
-                                value.toUpperCase(),
-                              )) {
+                              if (!_defaultSymbols
+                                  .contains(value.toUpperCase())) {
                                 _defaultSymbols.add(value.toUpperCase());
                                 _saveDefaultSymbols();
                               }
@@ -861,12 +805,10 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
                       onPressed: () {
                         if (controller.text.isNotEmpty) {
                           setState(() {
-                            if (!_defaultSymbols.contains(
-                              controller.text.toUpperCase(),
-                            )) {
-                              _defaultSymbols.add(
-                                controller.text.toUpperCase(),
-                              );
+                            if (!_defaultSymbols
+                                .contains(controller.text.toUpperCase())) {
+                              _defaultSymbols
+                                  .add(controller.text.toUpperCase());
                               _saveDefaultSymbols();
                             }
                           });
@@ -915,12 +857,10 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
 
   Widget _buildSummaryHeader(OptionsFlowStore store) {
     final totalPremium = store.totalBullishPremium + store.totalBearishPremium;
-    final bullishPct = totalPremium > 0
-        ? store.totalBullishPremium / totalPremium
-        : 0.0;
-    final bearishPct = totalPremium > 0
-        ? store.totalBearishPremium / totalPremium
-        : 0.0;
+    final bullishPct =
+        totalPremium > 0 ? store.totalBullishPremium / totalPremium : 0.0;
+    final bearishPct =
+        totalPremium > 0 ? store.totalBearishPremium / totalPremium : 0.0;
 
     final netPremium = store.totalBullishPremium - store.totalBearishPremium;
     String sentimentLabel = 'Neutral';
@@ -937,12 +877,10 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
     if (bullishPct > 0.75) sentimentLabel = 'Very Bullish';
     if (bearishPct > 0.75) sentimentLabel = 'Very Bearish';
 
-    final bullishCount = store.items
-        .where((i) => i.sentiment == Sentiment.bullish)
-        .length;
-    final bearishCount = store.items
-        .where((i) => i.sentiment == Sentiment.bearish)
-        .length;
+    final bullishCount =
+        store.items.where((i) => i.sentiment == Sentiment.bullish).length;
+    final bearishCount =
+        store.items.where((i) => i.sentiment == Sentiment.bearish).length;
 
     // Calculate Top Symbols by Premium
     final symbolPremiums = <String, double>{};
@@ -984,9 +922,10 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
     return Card(
       margin: const EdgeInsets.fromLTRB(12, 12, 12, 4),
       elevation: 0,
-      color: Theme.of(
-        context,
-      ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+      color: Theme.of(context)
+          .colorScheme
+          .surfaceContainerHighest
+          .withValues(alpha: 0.5),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -998,18 +937,15 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'MARKET SENTIMENT',
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                    ),
+                    Text('MARKET SENTIMENT',
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurfaceVariant)),
                     const SizedBox(height: 4),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
+                          horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
                         color: sentimentColor.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
@@ -1017,10 +953,9 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
                       child: Text(
                         sentimentLabel.toUpperCase(),
                         style: TextStyle(
-                          color: sentimentColor,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                        ),
+                            color: sentimentColor,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12),
                       ),
                     ),
                   ],
@@ -1028,20 +963,18 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text(
-                      'NET FLOW',
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                    ),
+                    Text('NET FLOW',
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurfaceVariant)),
                     const SizedBox(height: 4),
                     Text(
                       '${netPremium >= 0 ? '+' : ''}${_compactFormat.format(netPremium)}',
                       style: TextStyle(
-                        color: netPremium >= 0 ? Colors.green : Colors.red,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
+                          color: netPremium >= 0 ? Colors.green : Colors.red,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16),
                     ),
                   ],
                 ),
@@ -1056,45 +989,39 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
                     children: [
                       Row(
                         children: [
-                          const Icon(
-                            Icons.arrow_upward,
-                            color: Colors.green,
-                            size: 16,
-                          ),
+                          const Icon(Icons.arrow_upward,
+                              color: Colors.green, size: 16),
                           const SizedBox(width: 4),
-                          Text(
-                            'BULLISH',
-                            style: Theme.of(context).textTheme.labelSmall
-                                ?.copyWith(
-                                  color: Colors.green,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                          ),
+                          Text('BULLISH',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .labelSmall
+                                  ?.copyWith(
+                                      color: Colors.green,
+                                      fontWeight: FontWeight.bold)),
                         ],
                       ),
                       const SizedBox(height: 4),
                       Text(
                         _compactFormat.format(store.totalBullishPremium),
                         style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.green,
-                        ),
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.green),
                       ),
                       Text(
                         '$bullishCount Trades',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Colors.green.withValues(alpha: 0.8),
-                        ),
+                              color: Colors.green.withValues(alpha: 0.8),
+                            ),
                       ),
                     ],
                   ),
                 ),
                 Container(
-                  width: 1,
-                  height: 40,
-                  color: Theme.of(context).dividerColor,
-                ),
+                    width: 1,
+                    height: 40,
+                    color: Theme.of(context).dividerColor),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
@@ -1102,36 +1029,31 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
-                          Text(
-                            'BEARISH',
-                            style: Theme.of(context).textTheme.labelSmall
-                                ?.copyWith(
-                                  color: Colors.red,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                          ),
+                          Text('BEARISH',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .labelSmall
+                                  ?.copyWith(
+                                      color: Colors.red,
+                                      fontWeight: FontWeight.bold)),
                           const SizedBox(width: 4),
-                          const Icon(
-                            Icons.arrow_downward,
-                            color: Colors.red,
-                            size: 16,
-                          ),
+                          const Icon(Icons.arrow_downward,
+                              color: Colors.red, size: 16),
                         ],
                       ),
                       const SizedBox(height: 4),
                       Text(
                         _compactFormat.format(store.totalBearishPremium),
                         style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.red,
-                        ),
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.red),
                       ),
                       Text(
                         '$bearishCount Trades',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Colors.red.withValues(alpha: 0.8),
-                        ),
+                              color: Colors.red.withValues(alpha: 0.8),
+                            ),
                       ),
                     ],
                   ),
@@ -1190,22 +1112,16 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  '${(bullishPct * 100).toStringAsFixed(0)}% Flow',
-                  style: const TextStyle(
-                    color: Colors.green,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                Text(
-                  '${(bearishPct * 100).toStringAsFixed(0)}% Flow',
-                  style: const TextStyle(
-                    color: Colors.red,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
+                Text('${(bullishPct * 100).toStringAsFixed(0)}% Flow',
+                    style: const TextStyle(
+                        color: Colors.green,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500)),
+                Text('${(bearishPct * 100).toStringAsFixed(0)}% Flow',
+                    style: const TextStyle(
+                        color: Colors.red,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500)),
               ],
             ),
             if (topSymbols.isNotEmpty || topFlags.isNotEmpty) ...[
@@ -1218,41 +1134,32 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            'HOT SYMBOLS',
-                            style: Theme.of(context).textTheme.labelSmall
-                                ?.copyWith(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onSurfaceVariant,
-                                ),
-                          ),
+                          Text('HOT SYMBOLS',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .labelSmall
+                                  ?.copyWith(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurfaceVariant)),
                           const SizedBox(height: 8),
-                          ...topSymbols.map(
-                            (e) => InkWell(
-                              onTap: () => store.setFilterSymbol(e.key),
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 4,
+                          ...topSymbols.map((e) => InkWell(
+                                onTap: () => store.setFilterSymbol(e.key),
+                                child: Padding(
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 4),
+                                  child: Row(
+                                    children: [
+                                      Text(e.key,
+                                          style: const TextStyle(
+                                              fontWeight: FontWeight.bold)),
+                                      const Spacer(),
+                                      Text(_compactFormat.format(e.value),
+                                          style: const TextStyle(fontSize: 12)),
+                                    ],
+                                  ),
                                 ),
-                                child: Row(
-                                  children: [
-                                    Text(
-                                      e.key,
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    const Spacer(),
-                                    Text(
-                                      _compactFormat.format(e.value),
-                                      style: const TextStyle(fontSize: 12),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
+                              )),
                         ],
                       ),
                     ),
@@ -1263,39 +1170,33 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            'ACTIVE TRENDS',
-                            style: Theme.of(context).textTheme.labelSmall
-                                ?.copyWith(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onSurfaceVariant,
-                                ),
-                          ),
+                          Text('ACTIVE TRENDS',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .labelSmall
+                                  ?.copyWith(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurfaceVariant)),
                           const SizedBox(height: 8),
                           Wrap(
                             spacing: 4,
                             runSpacing: 4,
                             children: topFlags
-                                .map(
-                                  (e) => InkWell(
-                                    onTap: () {
-                                      final currentFlags =
-                                          store.filterFlags ?? [];
-                                      if (!currentFlags.contains(e.key)) {
-                                        store.setFilterFlags([
-                                          ...currentFlags,
-                                          e.key,
-                                        ]);
-                                      }
-                                    },
-                                    child: OptionFlowFlagBadge(
-                                      flag: e.key,
-                                      small: true,
-                                      showTooltip: false,
-                                    ),
-                                  ),
-                                )
+                                .map((e) => InkWell(
+                                      onTap: () {
+                                        final currentFlags =
+                                            store.filterFlags ?? [];
+                                        if (!currentFlags.contains(e.key)) {
+                                          store.setFilterFlags(
+                                              [...currentFlags, e.key]);
+                                        }
+                                      },
+                                      child: OptionFlowFlagBadge(
+                                          flag: e.key,
+                                          small: true,
+                                          showTooltip: false),
+                                    ))
                                 .toList(),
                           ),
                         ],
@@ -1309,44 +1210,32 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'TOP SECTORS',
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                  ),
+                  Text('TOP SECTORS',
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color:
+                              Theme.of(context).colorScheme.onSurfaceVariant)),
                   const SizedBox(height: 8),
-                  ...topSectors.map(
-                    (e) => InkWell(
-                      onTap: () => store.setFilterSector(e.key),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 4),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                e.key,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                                overflow: TextOverflow.ellipsis,
+                  ...topSectors.map((e) => InkWell(
+                        onTap: () => store.setFilterSector(e.key),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 4),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(e.key,
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.bold),
+                                    overflow: TextOverflow.ellipsis),
                               ),
-                            ),
-                            Text(
-                              _compactFormat.format(e.value),
-                              style: const TextStyle(fontSize: 12),
-                            ),
-                            const SizedBox(width: 4),
-                            const Icon(
-                              Icons.chevron_right,
-                              size: 16,
-                              color: Colors.grey,
-                            ),
-                          ],
+                              Text(_compactFormat.format(e.value),
+                                  style: const TextStyle(fontSize: 12)),
+                              const SizedBox(width: 4),
+                              const Icon(Icons.chevron_right,
+                                  size: 16, color: Colors.grey),
+                            ],
+                          ),
                         ),
-                      ),
-                    ),
-                  ),
+                      )),
                 ],
               ),
             ],
@@ -1412,13 +1301,11 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(
-                                Icons.notifications_off_outlined,
-                                size: 48,
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurfaceVariant,
-                              ),
+                              Icon(Icons.notifications_off_outlined,
+                                  size: 48,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant),
                               const SizedBox(height: 16),
                               Text(
                                 'No alerts configured',
@@ -1453,32 +1340,28 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
                                   .surfaceContainerHighest
                                   .withValues(alpha: 0.3),
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                side: BorderSide(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.outlineVariant,
-                                ),
-                              ),
+                                  borderRadius: BorderRadius.circular(12),
+                                  side: BorderSide(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .outlineVariant)),
                               child: ListTile(
                                 leading: CircleAvatar(
-                                  backgroundColor: Theme.of(
-                                    context,
-                                  ).colorScheme.primaryContainer,
+                                  backgroundColor: Theme.of(context)
+                                      .colorScheme
+                                      .primaryContainer,
                                   child: Text(
                                     alert.symbol[0],
                                     style: TextStyle(
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.onPrimaryContainer,
-                                    ),
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onPrimaryContainer),
                                   ),
                                 ),
                                 title: Text(
                                   alert.symbol,
                                   style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                                      fontWeight: FontWeight.bold),
                                 ),
                                 subtitle: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1504,8 +1387,8 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
                                               fontSize: 12,
                                               color:
                                                   alert.sentiment == 'bullish'
-                                                  ? Colors.green
-                                                  : Colors.red,
+                                                      ? Colors.green
+                                                      : Colors.red,
                                               fontWeight: FontWeight.bold,
                                             ),
                                           ),
@@ -1513,17 +1396,17 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
                                         ],
                                         Text(
                                           '>= \$${_compactFormat.format(alert.minPremium)}',
-                                          style: Theme.of(
-                                            context,
-                                          ).textTheme.bodySmall,
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodySmall,
                                         ),
                                         if (alert.minVolume != null) ...[
                                           const SizedBox(width: 8),
                                           Text(
                                             'Vol >= ${_compactFormat.format(alert.minVolume)}',
-                                            style: Theme.of(
-                                              context,
-                                            ).textTheme.bodySmall,
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .bodySmall,
                                           ),
                                         ],
                                       ],
@@ -1539,9 +1422,9 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
                                             if (alert.flags.isNotEmpty)
                                               'Flags: ${alert.flags.join(', ')}',
                                           ].join(' | '),
-                                          style: Theme.of(
-                                            context,
-                                          ).textTheme.bodySmall,
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodySmall,
                                         ),
                                       ),
                                   ],
@@ -1556,9 +1439,8 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
                                     ),
                                     IconButton(
                                       icon: const Icon(Icons.delete_outline),
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.error,
+                                      color:
+                                          Theme.of(context).colorScheme.error,
                                       onPressed: () =>
                                           store.deleteAlert(alert.id),
                                     ),
@@ -1674,7 +1556,10 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
                             label: Text('Bearish'),
                             icon: Icon(Icons.trending_down, color: Colors.red),
                           ),
-                          ButtonSegment(value: 'any', label: Text('Any')),
+                          ButtonSegment(
+                            value: 'any',
+                            label: Text('Any'),
+                          ),
                         ],
                         selected: {sentiment},
                         onSelectionChanged: (Set<String> newSelection) {
@@ -1703,17 +1588,11 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
                         items: const [
                           DropdownMenuItem(value: 'any', child: Text('Any')),
                           DropdownMenuItem(
-                            value: '0-7',
-                            child: Text('0-7 days'),
-                          ),
+                              value: '0-7', child: Text('0-7 days')),
                           DropdownMenuItem(
-                            value: '8-30',
-                            child: Text('8-30 days'),
-                          ),
+                              value: '8-30', child: Text('8-30 days')),
                           DropdownMenuItem(
-                            value: '30+',
-                            child: Text('30+ days'),
-                          ),
+                              value: '30+', child: Text('30+ days')),
                         ],
                         onChanged: (value) {
                           if (value == null) return;
@@ -1731,9 +1610,8 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
                       ...OptionsFlowStore.flagCategories.entries.map((entry) {
                         return ExpansionTile(
                           title: Text(entry.key),
-                          childrenPadding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                          ),
+                          childrenPadding:
+                              const EdgeInsets.symmetric(horizontal: 8),
                           children: [
                             Wrap(
                               spacing: 8,
@@ -1766,14 +1644,12 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
                         child: FilledButton(
                           onPressed: () {
                             if (symbolController.text.isEmpty) return;
-                            Provider.of<OptionsFlowStore>(
-                              context,
-                              listen: false,
-                            ).createAlert(
+                            Provider.of<OptionsFlowStore>(context,
+                                    listen: false)
+                                .createAlert(
                               symbol: symbolController.text.toUpperCase(),
-                              minPremium: double.tryParse(
-                                premiumController.text,
-                              ),
+                              minPremium:
+                                  double.tryParse(premiumController.text),
                               minVolume: int.tryParse(volumeController.text),
                               sentiment: sentiment,
                               expirationRange: expirationRange,
@@ -1791,8 +1667,7 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
                       ),
                       // Add extra padding at bottom for keyboard
                       SizedBox(
-                        height: MediaQuery.of(context).viewInsets.bottom,
-                      ),
+                          height: MediaQuery.of(context).viewInsets.bottom),
                     ],
                   ),
                 ),
@@ -1819,285 +1694,252 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
 
   void _showHelpDialog() {
     showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      showDragHandle: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.94,
-        minChildSize: 0.5,
-        maxChildSize: 1.0,
-        expand: false,
-        builder: (context, scrollController) => Scaffold(
-          backgroundColor: Colors.transparent,
-          appBar: AppBar(
-            automaticallyImplyLeading: false,
-            // leading: IconButton(
-            //   icon: const Icon(Icons.close),
-            //   onPressed: () => Navigator.pop(context),
-            // ),
-            title: const Text('Options Flow Guide'),
-            backgroundColor: Colors.transparent,
-          ),
-          body: SingleChildScrollView(
-            controller: scrollController,
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'RealizeAlpha provides advanced Options Flow Analysis to help traders gauge institutional sentiment.',
-                  style: Theme.of(context).textTheme.bodyMedium,
+        context: context,
+        isScrollControlled: true,
+        useSafeArea: true,
+        showDragHandle: true,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        builder: (context) => DraggableScrollableSheet(
+              initialChildSize: 0.94,
+              minChildSize: 0.5,
+              maxChildSize: 1.0,
+              expand: false,
+              builder: (context, scrollController) => Scaffold(
+                backgroundColor: Colors.transparent,
+                appBar: AppBar(
+                  automaticallyImplyLeading: false,
+                  // leading: IconButton(
+                  //   icon: const Icon(Icons.close),
+                  //   onPressed: () => Navigator.pop(context),
+                  // ),
+                  title: const Text('Options Flow Guide'),
+                  backgroundColor: Colors.transparent,
                 ),
-                const SizedBox(height: 24),
-                Text(
-                  'Flow Types',
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-                const SizedBox(height: 16),
-                _buildHelpItem(
-                  'SWEEP',
-                  'Orders executed across multiple exchanges to fill a large order quickly. Indicates urgency and stealth. Often a sign of institutional buying.',
-                ),
-                _buildHelpItem(
-                  'BLOCK',
-                  'Large privately negotiated orders. Often institutional rebalancing or hedging. Less urgent than sweeps.',
-                ),
-                _buildHelpItem(
-                  'DARK POOL',
-                  'Off-exchange trading. Used by institutions to hide intent and avoid market impact. Can indicate accumulation.',
-                ),
-                const SizedBox(height: 24),
-                Text(
-                  'Sentiment',
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-                const SizedBox(height: 16),
-                _buildHelpItem(
-                  'BULLISH',
-                  'Positive sentiment. Calls bought at Ask or Puts sold at Bid. Expecting price to rise.',
-                ),
-                _buildHelpItem(
-                  'BEARISH',
-                  'Negative sentiment. Puts bought at Ask or Calls sold at Bid. Expecting price to fall.',
-                ),
-                const SizedBox(height: 24),
-                Text(
-                  'Moneyness',
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-                const SizedBox(height: 16),
-                _buildHelpItem(
-                  'ITM',
-                  'In The Money. Strike price is favorable (e.g. Call Strike < Stock Price). Higher probability, more expensive. Often used for stock replacement.',
-                ),
-                _buildHelpItem(
-                  'OTM',
-                  'Out The Money. Strike price is not yet favorable. Lower probability, cheaper, higher leverage. Pure directional speculation.',
-                ),
-                const SizedBox(height: 24),
-                Text(
-                  'Smart Flags',
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-                const SizedBox(height: 16),
-                ...OptionsFlowStore.flagCategories.entries.map((entry) {
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        entry.key,
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
-                      ),
-                      const SizedBox(height: 8),
-                      ...entry.value.map(
-                        (flag) => _buildHelpItem(
-                          flag,
-                          OptionsFlowStore.flagDocumentation[flag] ??
-                              'Multi-factor institutional signal.',
-                          recommendation:
-                              OptionsFlowStore.flagRecommendations[flag],
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                    ],
-                  );
-                }),
-                const SizedBox(height: 24),
-                Text(
-                  'Conviction Score',
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'A 0-100 rating of trade significance based on:',
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-                const SizedBox(height: 8),
-                _buildBulletPoint(
-                  'Premium Size: >\$1M orders carry heavy weight.',
-                ),
-                _buildBulletPoint(
-                  'Flow Type: Sweeps score higher than Blocks due to urgency.',
-                ),
-                _buildBulletPoint(
-                  'Urgency: OTM, short-dated (0DTE), and aggressive fills add points.',
-                ),
-                _buildBulletPoint(
-                  'Unusual Activity: Volume > Open Interest boosts the score.',
-                ),
-                _buildBulletPoint(
-                  'Multipliers: Golden Sweeps, Whales, Gamma Squeezes, Steamrollers, Earnings Plays, and Divergences amplify the rating.',
-                ),
-                const SizedBox(height: 16),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    const OptionFlowBadge(
-                      label: '0-39',
-                      color: Colors.grey,
-                      showTooltip: false,
-                    ),
-                    OptionFlowBadge(
-                      label: '40-59',
-                      color: Theme.of(context).brightness == Brightness.dark
-                          ? Colors.amber.shade300
-                          : Colors.amber.shade900,
-                      showTooltip: false,
-                    ),
-                    OptionFlowBadge(
-                      label: '60-79',
-                      color: Theme.of(context).brightness == Brightness.dark
-                          ? Colors.green.shade300
-                          : Colors.green.shade700,
-                      showTooltip: false,
-                    ),
-                    OptionFlowBadge(
-                      label: '80+',
-                      color: Theme.of(context).brightness == Brightness.dark
-                          ? Colors.purple.shade300
-                          : Colors.purple.shade700,
-                      icon: Icons.bolt,
-                      showTooltip: false,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 24),
-                Text(
-                  'Key Metrics',
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-                const SizedBox(height: 16),
-                _buildBulletPoint(
-                  'Vol / OI: Volume to Open Interest ratio. High ratio (>1.0) indicates new positioning. >5.0 is explosive.',
-                ),
-                _buildBulletPoint('Premium: Total cash value of the trade.'),
-                _buildBulletPoint(
-                  'Implied Volatility (IV): Market\'s forecast of likely movement.',
-                ),
-                const SizedBox(height: 24),
-                Text(
-                  'Analysis Tips',
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-                const SizedBox(height: 16),
-                _buildBulletPoint(
-                  'Cluster Analysis: Look for multiple orders in the same direction (e.g. many calls) for the same expiration. This is stronger than a single large order.',
-                ),
-                _buildBulletPoint(
-                  'Time Sensitivity: 0DTE and Weekly flows indicate expectation of immediate moves. LEAPS indicate long-term conviction.',
-                ),
-                _buildBulletPoint(
-                  'Sector Rotation: Use the Sector filter to spot money rotating into specific industries (e.g. Tech to Energy).',
-                ),
-                _buildBulletPoint(
-                  'Contrarian Plays: Heavy put flow on a stock that has already dropped significantly might indicate a bottom (Panic Hedge vs Speculation).',
-                ),
-                _buildBulletPoint(
-                  'Combo Confirmation: Multiple aligned flags (e.g. Golden Sweep + Bullish Divergence) can strengthen a thesis, but still require price, liquidity, and catalyst confirmation.',
-                ),
-                const SizedBox(height: 24),
-                Text(
-                  'Strategy Cheat Sheet',
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-                const SizedBox(height: 16),
-                _buildBulletPoint(
-                  'Golden Sweep + OTM Call: Strong Bullish Directional.',
-                ),
-                _buildBulletPoint(
-                  'Whale + Deep ITM Call: Stock Replacement (Bullish, lower risk).',
-                ),
-                _buildBulletPoint(
-                  'High Vol/OI + OTM Put: Bearish Speculation or Hedge.',
-                ),
-                _buildBulletPoint(
-                  'Earnings Play + High IV: Expecting big move (Long Straddle/Strangle).',
-                ),
-                const SizedBox(height: 32),
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.errorContainer.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.error.withValues(alpha: 0.5),
-                    ),
-                  ),
+                body: SingleChildScrollView(
+                  controller: scrollController,
+                  padding: const EdgeInsets.all(24),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.warning_amber_rounded,
-                            color: Theme.of(context).colorScheme.error,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Risk Warning',
-                            style: Theme.of(context).textTheme.titleMedium
-                                ?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: Theme.of(context).colorScheme.error,
-                                ),
-                          ),
-                        ],
+                      Text(
+                        'RealizeAlpha provides advanced Options Flow Analysis to help traders gauge institutional sentiment.',
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                      const SizedBox(height: 24),
+                      Text(
+                        'Flow Types',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      const SizedBox(height: 16),
+                      _buildHelpItem('SWEEP',
+                          'Orders executed across multiple exchanges to fill a large order quickly. Indicates urgency and stealth. Often a sign of institutional buying.'),
+                      _buildHelpItem('BLOCK',
+                          'Large privately negotiated orders. Often institutional rebalancing or hedging. Less urgent than sweeps.'),
+                      _buildHelpItem('DARK POOL',
+                          'Off-exchange trading. Used by institutions to hide intent and avoid market impact. Can indicate accumulation.'),
+                      const SizedBox(height: 24),
+                      Text(
+                        'Sentiment',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      const SizedBox(height: 16),
+                      _buildHelpItem('BULLISH',
+                          'Positive sentiment. Calls bought at Ask or Puts sold at Bid. Expecting price to rise.'),
+                      _buildHelpItem('BEARISH',
+                          'Negative sentiment. Puts bought at Ask or Calls sold at Bid. Expecting price to fall.'),
+                      const SizedBox(height: 24),
+                      Text(
+                        'Moneyness',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      const SizedBox(height: 16),
+                      _buildHelpItem('ITM',
+                          'In The Money. Strike price is favorable (e.g. Call Strike < Stock Price). Higher probability, more expensive. Often used for stock replacement.'),
+                      _buildHelpItem('OTM',
+                          'Out The Money. Strike price is not yet favorable. Lower probability, cheaper, higher leverage. Pure directional speculation.'),
+                      const SizedBox(height: 24),
+                      Text(
+                        'Smart Flags',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      const SizedBox(height: 16),
+                      ...OptionsFlowStore.flagCategories.entries.map((entry) {
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(entry.key,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleMedium
+                                    ?.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .primary)),
+                            const SizedBox(height: 8),
+                            ...entry.value.map((flag) => _buildHelpItem(
+                                flag,
+                                OptionsFlowStore.flagDocumentation[flag] ??
+                                    'Multi-factor institutional signal.',
+                                recommendation: OptionsFlowStore
+                                    .flagRecommendations[flag])),
+                            const SizedBox(height: 16),
+                          ],
+                        );
+                      }),
+                      const SizedBox(height: 24),
+                      Text(
+                        'Conviction Score',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'A 0-100 rating of trade significance based on:',
+                        style: Theme.of(context).textTheme.bodyMedium,
                       ),
                       const SizedBox(height: 8),
-                      Text(
-                        'Options flow data represents institutional activity but does not guarantee future price movements. Institutions often use options for hedging (protection), which can be misleading if interpreted as pure directional speculation. Always perform your own due diligence.',
-                        style: Theme.of(context).textTheme.bodySmall,
+                      _buildBulletPoint(
+                          'Premium Size: >\$1M orders carry heavy weight.'),
+                      _buildBulletPoint(
+                          'Flow Type: Sweeps score higher than Blocks due to urgency.'),
+                      _buildBulletPoint(
+                          'Urgency: OTM, short-dated (0DTE), and aggressive fills add points.'),
+                      _buildBulletPoint(
+                          'Unusual Activity: Volume > Open Interest boosts the score.'),
+                      _buildBulletPoint(
+                          'Multipliers: Golden Sweeps, Whales, Gamma Squeezes, Steamrollers, Earnings Plays, and Divergences amplify the rating.'),
+                      const SizedBox(height: 16),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          const OptionFlowBadge(
+                              label: '0-39',
+                              color: Colors.grey,
+                              showTooltip: false),
+                          OptionFlowBadge(
+                              label: '40-59',
+                              color: Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? Colors.amber.shade300
+                                  : Colors.amber.shade900,
+                              showTooltip: false),
+                          OptionFlowBadge(
+                              label: '60-79',
+                              color: Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? Colors.green.shade300
+                                  : Colors.green.shade700,
+                              showTooltip: false),
+                          OptionFlowBadge(
+                              label: '80+',
+                              color: Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? Colors.purple.shade300
+                                  : Colors.purple.shade700,
+                              icon: Icons.bolt,
+                              showTooltip: false),
+                        ],
                       ),
+                      const SizedBox(height: 24),
+                      Text(
+                        'Key Metrics',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      const SizedBox(height: 16),
+                      _buildBulletPoint(
+                          'Vol / OI: Volume to Open Interest ratio. High ratio (>1.0) indicates new positioning. >5.0 is explosive.'),
+                      _buildBulletPoint(
+                          'Premium: Total cash value of the trade.'),
+                      _buildBulletPoint(
+                          'Implied Volatility (IV): Market\'s forecast of likely movement.'),
+                      const SizedBox(height: 24),
+                      Text(
+                        'Analysis Tips',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      const SizedBox(height: 16),
+                      _buildBulletPoint(
+                          'Cluster Analysis: Look for multiple orders in the same direction (e.g. many calls) for the same expiration. This is stronger than a single large order.'),
+                      _buildBulletPoint(
+                          'Time Sensitivity: 0DTE and Weekly flows indicate expectation of immediate moves. LEAPS indicate long-term conviction.'),
+                      _buildBulletPoint(
+                          'Sector Rotation: Use the Sector filter to spot money rotating into specific industries (e.g. Tech to Energy).'),
+                      _buildBulletPoint(
+                          'Contrarian Plays: Heavy put flow on a stock that has already dropped significantly might indicate a bottom (Panic Hedge vs Speculation).'),
+                      _buildBulletPoint(
+                          'Combo Confirmation: Multiple aligned flags (e.g. Golden Sweep + Bullish Divergence) can strengthen a thesis, but still require price, liquidity, and catalyst confirmation.'),
+                      const SizedBox(height: 24),
+                      Text(
+                        'Strategy Cheat Sheet',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      const SizedBox(height: 16),
+                      _buildBulletPoint(
+                          'Golden Sweep + OTM Call: Strong Bullish Directional.'),
+                      _buildBulletPoint(
+                          'Whale + Deep ITM Call: Stock Replacement (Bullish, lower risk).'),
+                      _buildBulletPoint(
+                          'High Vol/OI + OTM Put: Bearish Speculation or Hedge.'),
+                      _buildBulletPoint(
+                          'Earnings Play + High IV: Expecting big move (Long Straddle/Strangle).'),
+                      const SizedBox(height: 32),
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .errorContainer
+                              .withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .error
+                                .withValues(alpha: 0.5),
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(Icons.warning_amber_rounded,
+                                    color: Theme.of(context).colorScheme.error),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Risk Warning',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .titleMedium
+                                      ?.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                        color:
+                                            Theme.of(context).colorScheme.error,
+                                      ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Options flow data represents institutional activity but does not guarantee future price movements. Institutions often use options for hedging (protection), which can be misleading if interpreted as pure directional speculation. Always perform your own due diligence.',
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 32),
                     ],
                   ),
                 ),
-                const SizedBox(height: 32),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
+              ),
+            ));
   }
 
-  Widget _buildHelpItem(
-    String title,
-    String description, {
-    String? recommendation,
-  }) {
+  Widget _buildHelpItem(String title, String description,
+      {String? recommendation}) {
     final effectiveRecommendation =
         recommendation ?? OptionsFlowStore.flagRecommendations[title];
     return Padding(
@@ -2110,10 +1952,7 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
             child: Align(
               alignment: Alignment.centerLeft,
               child: OptionFlowFlagBadge(
-                flag: title,
-                fontSize: 13,
-                showTooltip: false,
-              ),
+                  flag: title, fontSize: 13, showTooltip: false),
             ),
           ),
           Expanded(
@@ -2134,8 +1973,8 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
                       ],
                     ),
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
                   ),
                 ],
               ],
@@ -2152,11 +1991,8 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            Icons.arrow_right,
-            size: 20,
-            color: Theme.of(context).colorScheme.primary,
-          ),
+          Icon(Icons.arrow_right,
+              size: 20, color: Theme.of(context).colorScheme.primary),
           const SizedBox(width: 8),
           Expanded(child: Text(text)),
         ],
@@ -2193,14 +2029,13 @@ class _FilterDialogState extends State<_FilterDialog> {
     return Consumer<OptionsFlowStore>(
       builder: (context, store, child) {
         // Get available sectors from data
-        final availableSectors =
-            store.allItems
-                .map((e) => e.sector)
-                .where((s) => s != null)
-                .cast<String>()
-                .toSet()
-                .toList()
-              ..sort();
+        final availableSectors = store.allItems
+            .map((e) => e.sector)
+            .where((s) => s != null)
+            .cast<String>()
+            .toSet()
+            .toList()
+          ..sort();
 
         if (availableSectors.isEmpty) {
           availableSectors.addAll([
@@ -2214,7 +2049,7 @@ class _FilterDialogState extends State<_FilterDialog> {
             'Consumer Defensive',
             'Utilities',
             'Real Estate',
-            'Basic Materials',
+            'Basic Materials'
           ]);
           availableSectors.sort();
         }
@@ -2269,18 +2104,13 @@ class _FilterDialogState extends State<_FilterDialog> {
                       textInputAction: TextInputAction.search,
                       onSubmitted: (value) {
                         store.setFilterSymbol(
-                          value.trim().isEmpty ? null : value.trim(),
-                        );
+                            value.trim().isEmpty ? null : value.trim());
                       },
                     ),
                     const SizedBox(height: 24),
-                    const Text(
-                      'Sentiment',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
+                    const Text('Sentiment',
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 16)),
                     const SizedBox(height: 8),
                     Wrap(
                       spacing: 8,
@@ -2290,17 +2120,13 @@ class _FilterDialogState extends State<_FilterDialog> {
                           selected: store.filterSentiment == Sentiment.bullish,
                           onSelected: (bool selected) {
                             store.setFilterSentiment(
-                              selected ? Sentiment.bullish : null,
-                            );
+                                selected ? Sentiment.bullish : null);
                           },
                           selectedColor: Colors.green.withValues(alpha: 0.2),
                           checkmarkColor: Colors.green,
                           avatar: store.filterSentiment == Sentiment.bullish
-                              ? const Icon(
-                                  Icons.trending_up,
-                                  size: 16,
-                                  color: Colors.green,
-                                )
+                              ? const Icon(Icons.trending_up,
+                                  size: 16, color: Colors.green)
                               : null,
                         ),
                         FilterChip(
@@ -2308,29 +2134,21 @@ class _FilterDialogState extends State<_FilterDialog> {
                           selected: store.filterSentiment == Sentiment.bearish,
                           onSelected: (bool selected) {
                             store.setFilterSentiment(
-                              selected ? Sentiment.bearish : null,
-                            );
+                                selected ? Sentiment.bearish : null);
                           },
                           selectedColor: Colors.red.withValues(alpha: 0.2),
                           checkmarkColor: Colors.red,
                           avatar: store.filterSentiment == Sentiment.bearish
-                              ? const Icon(
-                                  Icons.trending_down,
-                                  size: 16,
-                                  color: Colors.red,
-                                )
+                              ? const Icon(Icons.trending_down,
+                                  size: 16, color: Colors.red)
                               : null,
                         ),
                       ],
                     ),
                     const SizedBox(height: 24),
-                    const Text(
-                      'Flow Type',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
+                    const Text('Flow Type',
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 16)),
                     const SizedBox(height: 8),
                     Wrap(
                       spacing: 8,
@@ -2345,80 +2163,68 @@ class _FilterDialogState extends State<_FilterDialog> {
                       }).toList(),
                     ),
                     const SizedBox(height: 24),
-                    const Text(
-                      'Flags',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
+                    const Text('Flags',
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 16)),
                     const SizedBox(height: 8),
-                    Builder(
-                      builder: (context) {
-                        Widget buildChip(String label, String value) {
-                          final isDark =
-                              Theme.of(context).brightness == Brightness.dark;
-                          final style = getFlagStyle(context, value, isDark);
-                          final isSelected =
-                              store.filterFlags?.contains(value) ?? false;
-                          return FilterChip(
-                            label: Text(label),
-                            selected: isSelected,
-                            onSelected: (bool selected) {
-                              final currentFlags = List<String>.from(
-                                store.filterFlags ?? [],
-                              );
-                              if (selected) {
-                                currentFlags.add(value);
-                              } else {
-                                currentFlags.remove(value);
-                              }
-                              store.setFilterFlags(currentFlags);
-                            },
-                            visualDensity: VisualDensity.compact,
-                            avatar: style.icon != null
-                                ? Icon(style.icon, size: 16, color: style.color)
-                                : null,
-                            selectedColor: style.color.withValues(alpha: 0.2),
-                            checkmarkColor: style.color,
-                          );
-                        }
+                    Builder(builder: (context) {
+                      Widget buildChip(String label, String value) {
+                        final isDark =
+                            Theme.of(context).brightness == Brightness.dark;
+                        final style = getFlagStyle(context, value, isDark);
+                        final isSelected =
+                            store.filterFlags?.contains(value) ?? false;
+                        return FilterChip(
+                          label: Text(label),
+                          selected: isSelected,
+                          onSelected: (bool selected) {
+                            final currentFlags =
+                                List<String>.from(store.filterFlags ?? []);
+                            if (selected) {
+                              currentFlags.add(value);
+                            } else {
+                              currentFlags.remove(value);
+                            }
+                            store.setFilterFlags(currentFlags);
+                          },
+                          visualDensity: VisualDensity.compact,
+                          avatar: style.icon != null
+                              ? Icon(style.icon, size: 16, color: style.color)
+                              : null,
+                          selectedColor: style.color.withValues(alpha: 0.2),
+                          checkmarkColor: style.color,
+                        );
+                      }
 
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: OptionsFlowStore.flagCategories.entries.map(
-                            (entry) {
-                              return Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    entry.key,
-                                    style: TextStyle(
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: OptionsFlowStore.flagCategories.entries
+                            .map((entry) {
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(entry.key,
+                                  style: TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.bold,
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.onSurfaceVariant,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Wrap(
-                                    spacing: 8,
-                                    runSpacing: 8,
-                                    children: entry.value
-                                        .map(
-                                          (flag) => buildChip(flag, flag),
-                                        ) // Use flag as label
-                                        .toList(),
-                                  ),
-                                  const SizedBox(height: 12),
-                                ],
-                              );
-                            },
-                          ).toList(),
-                        );
-                      },
-                    ),
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurfaceVariant)),
+                              const SizedBox(height: 4),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: entry.value
+                                    .map((flag) => buildChip(
+                                        flag, flag)) // Use flag as label
+                                    .toList(),
+                              ),
+                              const SizedBox(height: 12),
+                            ],
+                          );
+                        }).toList(),
+                      );
+                    }),
                     const SizedBox(height: 24),
                     SwitchListTile(
                       title: const Text('Unusual Activity Only'),
@@ -2439,13 +2245,9 @@ class _FilterDialogState extends State<_FilterDialog> {
                       contentPadding: EdgeInsets.zero,
                     ),
                     const SizedBox(height: 24),
-                    const Text(
-                      'Sector',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
+                    const Text('Sector',
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 16)),
                     const SizedBox(height: 8),
                     Wrap(
                       spacing: 8,
@@ -2470,13 +2272,9 @@ class _FilterDialogState extends State<_FilterDialog> {
                       ],
                     ),
                     const SizedBox(height: 24),
-                    const Text(
-                      'Min Market Cap',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
+                    const Text('Min Market Cap',
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 16)),
                     const SizedBox(height: 8),
                     Wrap(
                       spacing: 8,
@@ -2514,13 +2312,9 @@ class _FilterDialogState extends State<_FilterDialog> {
                       ],
                     ),
                     const SizedBox(height: 24),
-                    const Text(
-                      'Min Premium',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
+                    const Text('Min Premium',
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 16)),
                     const SizedBox(height: 8),
                     Wrap(
                       spacing: 8,
@@ -2538,9 +2332,8 @@ class _FilterDialogState extends State<_FilterDialog> {
                           label: const Text('> \$25k'),
                           selected: store.filterMinPremium == 25000.0,
                           onSelected: (bool selected) {
-                            store.setFilterMinPremium(
-                              selected ? 25000.0 : null,
-                            );
+                            store
+                                .setFilterMinPremium(selected ? 25000.0 : null);
                           },
                         ),
                         ChoiceChip(
@@ -2548,8 +2341,7 @@ class _FilterDialogState extends State<_FilterDialog> {
                           selected: store.filterMinPremium == 100000.0,
                           onSelected: (bool selected) {
                             store.setFilterMinPremium(
-                              selected ? 100000.0 : null,
-                            );
+                                selected ? 100000.0 : null);
                           },
                         ),
                         ChoiceChip(
@@ -2557,8 +2349,7 @@ class _FilterDialogState extends State<_FilterDialog> {
                           selected: store.filterMinPremium == 500000.0,
                           onSelected: (bool selected) {
                             store.setFilterMinPremium(
-                              selected ? 500000.0 : null,
-                            );
+                                selected ? 500000.0 : null);
                           },
                         ),
                         ChoiceChip(
@@ -2566,20 +2357,15 @@ class _FilterDialogState extends State<_FilterDialog> {
                           selected: store.filterMinPremium == 1000000.0,
                           onSelected: (bool selected) {
                             store.setFilterMinPremium(
-                              selected ? 1000000.0 : null,
-                            );
+                                selected ? 1000000.0 : null);
                           },
                         ),
                       ],
                     ),
                     const SizedBox(height: 24),
-                    const Text(
-                      'Expiration',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
+                    const Text('Expiration',
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 16)),
                     const SizedBox(height: 8),
                     Wrap(
                       spacing: 8,
@@ -2617,13 +2403,9 @@ class _FilterDialogState extends State<_FilterDialog> {
                       ],
                     ),
                     const SizedBox(height: 24),
-                    const Text(
-                      'Moneyness',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
+                    const Text('Moneyness',
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 16)),
                     const SizedBox(height: 8),
                     Wrap(
                       spacing: 8,

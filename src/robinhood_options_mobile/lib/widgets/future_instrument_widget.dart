@@ -50,10 +50,8 @@ class _FutureInstrumentWidgetState extends State<FutureInstrumentWidget> {
     super.initState();
     var contractId = widget.position['contractId'];
     if (contractId != null) {
-      _futureHistoricals = widget.service.getFuturesHistoricals(
-        widget.brokerageUser,
-        contractId.toString(),
-      );
+      _futureHistoricals = widget.service
+          .getFuturesHistoricals(widget.brokerageUser, contractId.toString());
     }
   }
 
@@ -107,9 +105,8 @@ class _FutureInstrumentWidgetState extends State<FutureInstrumentWidget> {
       lastPrice = double.tryParse(pos['lastTradePrice'].toString());
     }
     if (pos['previousClosePrice'] != null) {
-      previousClosePrice = double.tryParse(
-        pos['previousClosePrice'].toString(),
-      );
+      previousClosePrice =
+          double.tryParse(pos['previousClosePrice'].toString());
     }
     if (pos['notionalValue'] != null) {
       notionalValue = double.tryParse(pos['notionalValue'].toString());
@@ -122,7 +119,10 @@ class _FutureInstrumentWidgetState extends State<FutureInstrumentWidget> {
           children: [
             Text(displaySymbol),
             if (description.isNotEmpty)
-              Text(description, style: Theme.of(context).textTheme.bodySmall),
+              Text(
+                description,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
           ],
         ),
       ),
@@ -142,9 +142,7 @@ class _FutureInstrumentWidgetState extends State<FutureInstrumentWidget> {
                       Text(
                         formatCurrency.format(lastPrice ?? 0),
                         style: const TextStyle(
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
-                        ),
+                            fontSize: 32, fontWeight: FontWeight.bold),
                       ),
                       Row(
                         children: [
@@ -152,15 +150,13 @@ class _FutureInstrumentWidgetState extends State<FutureInstrumentWidget> {
                             Text(
                               '${dayPnl >= 0 ? '+' : ''}${formatCurrency.format(dayPnl)}',
                               style: TextStyle(
-                                fontSize: 16,
-                                color: dayPnl >= 0 ? Colors.green : Colors.red,
-                              ),
+                                  fontSize: 16,
+                                  color:
+                                      dayPnl >= 0 ? Colors.green : Colors.red),
                             ),
-                            const Text(
-                              ' Today',
-                              style: TextStyle(fontSize: 16),
-                            ),
-                          ],
+                            const Text(' Today',
+                                style: TextStyle(fontSize: 16)),
+                          ]
                         ],
                       ),
                     ],
@@ -177,9 +173,8 @@ class _FutureInstrumentWidgetState extends State<FutureInstrumentWidget> {
                     var data = snapshot.data!.historicals;
                     if (data.isEmpty) {
                       return const SizedBox(
-                        height: 50,
-                        child: Center(child: Text("No historical data")),
-                      );
+                          height: 50,
+                          child: Center(child: Text("No historical data")));
                     }
                     var series = [
                       charts.Series<InstrumentHistorical, DateTime>(
@@ -191,62 +186,55 @@ class _FutureInstrumentWidgetState extends State<FutureInstrumentWidget> {
                         measureFn: (InstrumentHistorical sales, _) =>
                             sales.closePrice,
                         data: data,
-                      ),
+                      )
                     ];
                     return ChangeNotifierProvider(
-                      create: (context) =>
-                          InstrumentHistoricalsSelectionStore(),
-                      child: Column(
-                        children: [
-                          SizedBox(
-                            height: 250,
-                            child: Builder(
-                              builder: (context) {
+                        create: (context) =>
+                            InstrumentHistoricalsSelectionStore(),
+                        child: Column(
+                          children: [
+                            SizedBox(
+                              height: 250,
+                              child: Builder(builder: (context) {
                                 return TimeSeriesChart(
                                   series,
                                   zeroBound: false,
                                   onSelected: (model) {
                                     if (model != null &&
                                         model.selectedDatum.isNotEmpty) {
-                                      Provider.of<
-                                            InstrumentHistoricalsSelectionStore
-                                          >(context, listen: false)
-                                          .selectionChanged(
-                                            model.selectedDatum.first.datum
-                                                as InstrumentHistorical,
-                                          );
+                                      Provider.of<InstrumentHistoricalsSelectionStore>(
+                                              context,
+                                              listen: false)
+                                          .selectionChanged(model
+                                              .selectedDatum
+                                              .first
+                                              .datum as InstrumentHistorical);
                                     }
                                   },
                                 );
-                              },
+                              }),
                             ),
-                          ),
-                          Consumer<InstrumentHistoricalsSelectionStore>(
-                            builder: (context, store, child) {
+                            Consumer<InstrumentHistoricalsSelectionStore>(
+                                builder: (context, store, child) {
                               if (store.selection != null) {
                                 return Padding(
                                   padding: const EdgeInsets.all(8.0),
                                   child: Text(
-                                    "${DateFormat.yMEd().add_jm().format(store.selection!.beginsAt!)}: ${formatCurrency.format(store.selection!.closePrice)}",
-                                  ),
+                                      "${DateFormat.yMEd().add_jm().format(store.selection!.beginsAt!)}: ${formatCurrency.format(store.selection!.closePrice)}"),
                                 );
                               }
                               return Container();
-                            },
-                          ),
-                        ],
-                      ),
-                    );
+                            }),
+                          ],
+                        ));
                   } else if (snapshot.hasError) {
                     return const SizedBox(
-                      height: 50,
-                      child: Center(child: Text("Error loading chart")),
-                    );
+                        height: 50,
+                        child: Center(child: Text("Error loading chart")));
                   }
                   return const SizedBox(
-                    height: 200,
-                    child: Center(child: CircularProgressIndicator()),
-                  );
+                      height: 200,
+                      child: Center(child: CircularProgressIndicator()));
                 },
               ),
             const Divider(),
@@ -258,23 +246,19 @@ class _FutureInstrumentWidgetState extends State<FutureInstrumentWidget> {
                   _buildRow('Quantity', quantity.toString()),
                   _buildRow('Avg Price', formatCurrency.format(avg)),
                   _buildRow(
-                    'Current Price',
-                    lastPrice != null ? formatCurrency.format(lastPrice) : '—',
-                  ),
+                      'Current Price',
+                      lastPrice != null
+                          ? formatCurrency.format(lastPrice)
+                          : '—'),
                   _buildRow(
-                    'Market Value',
-                    (lastPrice != null && multiplier != null)
-                        ? formatCurrency.format(
-                            lastPrice * quantity.abs() * multiplier,
-                          )
-                        : '—',
-                  ),
+                      'Market Value',
+                      (lastPrice != null && multiplier != null)
+                          ? formatCurrency
+                              .format(lastPrice * quantity.abs() * multiplier)
+                          : '—'),
                   if (openPnl != null)
-                    _buildRow(
-                      'Total Return',
-                      formatCurrency.format(openPnl),
-                      isMoney: true,
-                    ),
+                    _buildRow('Total Return', formatCurrency.format(openPnl),
+                        isMoney: true),
                 ],
               ),
             ),
@@ -285,17 +269,15 @@ class _FutureInstrumentWidgetState extends State<FutureInstrumentWidget> {
               subtitle: Column(
                 children: [
                   _buildRow(
-                    'Notional Value',
-                    notionalValue != null
-                        ? formatCurrency.format(notionalValue)
-                        : '—',
-                  ),
+                      'Notional Value',
+                      notionalValue != null
+                          ? formatCurrency.format(notionalValue)
+                          : '—'),
                   _buildRow(
-                    'Multiplier',
-                    multiplier != null
-                        ? '${multiplier.toStringAsFixed(0)}x'
-                        : '—',
-                  ),
+                      'Multiplier',
+                      multiplier != null
+                          ? '${multiplier.toStringAsFixed(0)}x'
+                          : '—'),
                 ],
               ),
             ),
@@ -309,11 +291,10 @@ class _FutureInstrumentWidgetState extends State<FutureInstrumentWidget> {
                   _buildRow('Root Symbol', contract?['rootSymbol'] ?? '—'),
                   _buildRow('Expiration', expirationDate ?? '—'),
                   _buildRow(
-                    'Previous Close',
-                    previousClosePrice != null
-                        ? formatCurrency.format(previousClosePrice)
-                        : '—',
-                  ),
+                      'Previous Close',
+                      previousClosePrice != null
+                          ? formatCurrency.format(previousClosePrice)
+                          : '—'),
                 ],
               ),
             ),

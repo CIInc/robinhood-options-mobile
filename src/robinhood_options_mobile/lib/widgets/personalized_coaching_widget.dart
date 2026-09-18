@@ -39,16 +39,15 @@ class PersonalizedCoachingWidget extends StatefulWidget {
   final FirebaseAnalyticsObserver observer;
   final GenerativeService? generativeService;
 
-  const PersonalizedCoachingWidget({
-    super.key,
-    required this.service,
-    required this.user,
-    required this.userDoc,
-    required this.firebaseUser,
-    required this.analytics,
-    required this.observer,
-    this.generativeService,
-  });
+  const PersonalizedCoachingWidget(
+      {super.key,
+      required this.service,
+      required this.user,
+      required this.userDoc,
+      required this.firebaseUser,
+      required this.analytics,
+      required this.observer,
+      this.generativeService});
 
   @override
   State<PersonalizedCoachingWidget> createState() =>
@@ -145,12 +144,7 @@ class _PersonalizedCoachingWidgetState
       }
 
       final start = DateTime(
-        targetMonday.year,
-        targetMonday.month,
-        targetMonday.day,
-        9,
-        30,
-      );
+          targetMonday.year, targetMonday.month, targetMonday.day, 9, 30);
       // Friday of that week
       final friday = start.add(const Duration(days: 4));
       end = DateTime(friday.year, friday.month, friday.day, 16, 0);
@@ -170,10 +164,8 @@ class _PersonalizedCoachingWidgetState
   Future<void> _loadEmotionLogs() async {
     if (widget.userDoc == null) return;
     try {
-      final logs = await FirestoreService().getEmotionLogs(
-        widget.userDoc!,
-        limit: 50,
-      );
+      final logs =
+          await FirestoreService().getEmotionLogs(widget.userDoc!, limit: 50);
       if (mounted) {
         setState(() {
           _emotionLogs = logs;
@@ -207,9 +199,9 @@ class _PersonalizedCoachingWidgetState
       await FirestoreService().deleteEmotionLog(widget.userDoc!, logId);
       await _loadEmotionLogs();
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text("Emotion log removed.")));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Emotion log removed.")),
+        );
       }
     } catch (e) {
       debugPrint("Error deleting emotion log: $e");
@@ -236,7 +228,7 @@ class _PersonalizedCoachingWidgetState
 
           _challengeCompletionStatus = {
             for (var doc in allDocs)
-              doc.id: doc.data()['challenge_completed'] == true,
+              doc.id: doc.data()['challenge_completed'] == true
           };
 
           // Calculate Streak
@@ -283,8 +275,8 @@ class _PersonalizedCoachingWidgetState
       _currentSessionDoc = doc;
       _structuredResult = data['result'] as Map<String, dynamic>?;
       _isChallengeCompleted = _challengeCompletionStatus[doc.id] ?? false;
-      _completionPercentage = (data['completion_percentage'] as num?)
-          ?.toDouble();
+      _completionPercentage =
+          (data['completion_percentage'] as num?)?.toDouble();
       _currentNotes = data['notes'] as String?;
       if (data['date'] != null) {
         _currentSessionDate = (data['date'] as Timestamp).toDate();
@@ -324,14 +316,12 @@ class _PersonalizedCoachingWidgetState
       setState(() {
         _currentNotes = notes;
       });
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Journal notes saved.")));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text("Journal notes saved.")));
     } catch (e) {
       debugPrint("Error saving notes: $e");
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Error saving notes: $e")));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text("Error saving notes: $e")));
     }
   }
 
@@ -342,22 +332,18 @@ class _PersonalizedCoachingWidgetState
       context: context,
       barrierDismissible: false,
       builder: (ctx) => const Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 16),
-            Text(
-              "Checking Progress...",
+          child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          CircularProgressIndicator(),
+          SizedBox(height: 16),
+          Text("Checking Progress...",
               style: TextStyle(
-                color: Colors.white,
-                decoration: TextDecoration.none,
-                fontSize: 14,
-              ),
-            ),
-          ],
-        ),
-      ),
+                  color: Colors.white,
+                  decoration: TextDecoration.none,
+                  fontSize: 14)),
+        ],
+      )),
     );
 
     String reason = "";
@@ -367,20 +353,13 @@ class _PersonalizedCoachingWidgetState
     try {
       final sessionTimestamp = _currentSessionDoc!.data()['date'] as Timestamp?;
       final sessionDate = sessionTimestamp?.toDate() ?? DateTime.now();
-      final startOfWeek = sessionDate.subtract(
-        Duration(days: sessionDate.weekday - 1),
-      );
-      final startOfWeekMidnight = DateTime(
-        startOfWeek.year,
-        startOfWeek.month,
-        startOfWeek.day,
-      );
+      final startOfWeek =
+          sessionDate.subtract(Duration(days: sessionDate.weekday - 1));
+      final startOfWeekMidnight =
+          DateTime(startOfWeek.year, startOfWeek.month, startOfWeek.day);
 
       final relevantTrades = await _fetchRecentTrades(
-        since: startOfWeekMidnight,
-        limitToType: 'all',
-        silent: true,
-      );
+          since: startOfWeekMidnight, limitToType: 'all', silent: true);
 
       final challenge = _structuredResult?['challenge'] as String? ?? "";
 
@@ -390,8 +369,8 @@ class _PersonalizedCoachingWidgetState
         reason = result['reason']?.toString() ?? "Check complete.";
 
         if (result.containsKey('completion_percentage')) {
-          completionPercentage = (result['completion_percentage'] as num?)
-              ?.toDouble();
+          completionPercentage =
+              (result['completion_percentage'] as num?)?.toDouble();
           if (completionPercentage != null) {
             _updateAdherenceScore(completionPercentage);
           }
@@ -422,20 +401,16 @@ class _PersonalizedCoachingWidgetState
                     value: (completionPercentage / 100).clamp(0.0, 1.0),
                     backgroundColor: Colors.grey.withValues(alpha: 0.2),
                     valueColor: AlwaysStoppedAnimation<Color>(
-                      passed ? Colors.green : Colors.orange,
-                    ),
+                        passed ? Colors.green : Colors.orange),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    "Current Completion: ${completionPercentage.toStringAsFixed(0)}%",
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
+                      "Current Completion: ${completionPercentage.toStringAsFixed(0)}%",
+                      style: const TextStyle(fontWeight: FontWeight.bold)),
                   const SizedBox(height: 12),
                 ],
-                const Text(
-                  "AI Coach Assessment:",
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
+                const Text("AI Coach Assessment:",
+                    style: TextStyle(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 8),
                 Text(reason),
                 const SizedBox(height: 20),
@@ -443,27 +418,22 @@ class _PersonalizedCoachingWidgetState
                   const Text("Keep going! You can verify again later."),
                 if (passed)
                   const Text(
-                    "You've met the criteria! You can mark this as completed now or wait until the week ends.",
-                  ),
+                      "You've met the criteria! You can mark this as completed now or wait until the week ends."),
               ],
             ),
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text("Close"),
-            ),
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text("Close")),
             if (passed)
               TextButton(
-                onPressed: () {
-                  Navigator.pop(ctx);
-                  _applyCompletion(
-                    true,
-                    completionPercentage: completionPercentage,
-                  );
-                },
-                child: const Text("Mark Completed"),
-              ),
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    _applyCompletion(true,
+                        completionPercentage: completionPercentage);
+                  },
+                  child: const Text("Mark Completed")),
           ],
         ),
       );
@@ -485,22 +455,18 @@ class _PersonalizedCoachingWidgetState
       context: context,
       barrierDismissible: false,
       builder: (ctx) => const Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 16),
-            Text(
-              "Verifying Challenge Adherence...",
+          child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          CircularProgressIndicator(),
+          SizedBox(height: 16),
+          Text("Verifying Challenge Adherence...",
               style: TextStyle(
-                color: Colors.white,
-                decoration: TextDecoration.none,
-                fontSize: 14,
-              ),
-            ),
-          ],
-        ),
-      ),
+                  color: Colors.white,
+                  decoration: TextDecoration.none,
+                  fontSize: 14)),
+        ],
+      )),
     );
 
     bool passed = false;
@@ -515,22 +481,15 @@ class _PersonalizedCoachingWidgetState
       // Start of the week (Monday 00:00)
       // If session is on Sunday (7), we might want previous Monday?
       // Assuming ISO 8601 (Mon=1..Sun=7).
-      final startOfWeek = sessionDate.subtract(
-        Duration(days: sessionDate.weekday - 1),
-      );
-      final startOfWeekMidnight = DateTime(
-        startOfWeek.year,
-        startOfWeek.month,
-        startOfWeek.day,
-      );
+      final startOfWeek =
+          sessionDate.subtract(Duration(days: sessionDate.weekday - 1));
+      final startOfWeekMidnight =
+          DateTime(startOfWeek.year, startOfWeek.month, startOfWeek.day);
 
       // 2. Fetch recent activity (Since start of the week)
       // "Weekly Challenge" implies adherence for the week.
       final relevantTrades = await _fetchRecentTrades(
-        since: startOfWeekMidnight,
-        limitToType: 'all',
-        silent: true,
-      );
+          since: startOfWeekMidnight, limitToType: 'all', silent: true);
 
       // 3. Get Challenge
       final challenge = _structuredResult?['challenge'] as String? ?? "";
@@ -546,8 +505,8 @@ class _PersonalizedCoachingWidgetState
         reason = result['reason']?.toString() ?? "Verification complete.";
 
         if (result.containsKey('completion_percentage')) {
-          completionPercentage = (result['completion_percentage'] as num?)
-              ?.toDouble();
+          completionPercentage =
+              (result['completion_percentage'] as num?)?.toDouble();
           if (completionPercentage != null) {
             _updateAdherenceScore(completionPercentage);
           }
@@ -569,9 +528,8 @@ class _PersonalizedCoachingWidgetState
       // Auto-confirmed
       _applyCompletion(true, completionPercentage: completionPercentage);
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("Challenge Verified! $reason")));
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Challenge Verified! $reason")));
       }
     } else {
       // Verification Failed or Warning -> Ask User Confirmation
@@ -585,10 +543,8 @@ class _PersonalizedCoachingWidgetState
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text(
-                    "The AI Coach reviewed your activity:",
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
+                  const Text("The AI Coach reviewed your activity:",
+                      style: TextStyle(fontWeight: FontWeight.bold)),
                   const SizedBox(height: 12),
                   Container(
                     padding: const EdgeInsets.all(12),
@@ -596,34 +552,28 @@ class _PersonalizedCoachingWidgetState
                       color: Colors.orange.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
-                        color: Colors.orange.withValues(alpha: 0.3),
-                      ),
+                          color: Colors.orange.withValues(alpha: 0.3)),
                     ),
-                    child: Text(
-                      reason,
-                      style: TextStyle(
-                        color: Theme.of(context).brightness == Brightness.dark
-                            ? Colors.orange.shade200
-                            : Colors.orange.shade900,
-                      ),
-                    ),
+                    child: Text(reason,
+                        style: TextStyle(
+                            color:
+                                Theme.of(context).brightness == Brightness.dark
+                                    ? Colors.orange.shade200
+                                    : Colors.orange.shade900)),
                   ),
                   const SizedBox(height: 20),
                   const Text(
-                    "Do you want to mark this challenge as completed anyway?",
-                  ),
+                      "Do you want to mark this challenge as completed anyway?"),
                 ],
               ),
             ),
             actions: [
               TextButton(
-                onPressed: () => Navigator.pop(ctx, false),
-                child: const Text("Cancel"),
-              ),
+                  onPressed: () => Navigator.pop(ctx, false),
+                  child: const Text("Cancel")),
               TextButton(
-                onPressed: () => Navigator.pop(ctx, true),
-                child: const Text("Mark Completed"),
-              ),
+                  onPressed: () => Navigator.pop(ctx, true),
+                  child: const Text("Mark Completed")),
             ],
           ),
         );
@@ -635,10 +585,8 @@ class _PersonalizedCoachingWidgetState
     }
   }
 
-  Future<void> _applyCompletion(
-    bool value, {
-    double? completionPercentage,
-  }) async {
+  Future<void> _applyCompletion(bool value,
+      {double? completionPercentage}) async {
     if (_currentSessionDoc == null) return;
     final docId = _currentSessionDoc!.id;
 
@@ -665,9 +613,8 @@ class _PersonalizedCoachingWidgetState
           _challengeCompletionStatus[docId] = !value;
           // Note: Reverting completion percentage is complex without storing old value
         });
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text("Failed to save status.")));
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Failed to save status.")));
       }
     }
   }
@@ -678,40 +625,34 @@ class _PersonalizedCoachingWidgetState
       _completionPercentage = score;
     });
     try {
-      await _currentSessionDoc!.reference.update({
-        'completion_percentage': score,
-      });
+      await _currentSessionDoc!.reference
+          .update({'completion_percentage': score});
     } catch (e) {
       debugPrint("Error saving adherence score: $e");
     }
   }
 
   Future<Map<String, dynamic>> _verifyAdherenceWithAI(
-    String challenge,
-    List<Map<String, dynamic>> trades,
-  ) async {
+      String challenge, List<Map<String, dynamic>> trades) async {
     // Minimize payload
     final tradesLite = trades
-        .map(
-          (t) => {
-            'symbol': t['symbol'],
-            'type': t['type'],
-            'side': t['side'] ?? t['direction'],
-            'quantity': t['quantity'],
-            'price': t['price'],
-            'date': t['date'],
-            'order_type': t['order_type'],
-            'legs': t['legs'],
-            if (t['details'] != null)
-              'option_expiration': t['details']['expiration'],
-          },
-        )
+        .map((t) => {
+              'symbol': t['symbol'],
+              'type': t['type'],
+              'side': t['side'] ?? t['direction'],
+              'quantity': t['quantity'],
+              'price': t['price'],
+              'date': t['date'],
+              'order_type': t['order_type'],
+              'legs': t['legs'],
+              if (t['details'] != null)
+                'option_expiration': t['details']['expiration'],
+            })
         .toList();
 
     final tradesJson = jsonEncode(tradesLite);
 
-    final prompt =
-        '''
+    final prompt = '''
 You are an AI Trading Coach verifying compliance with a specific challenge.
 
 CHALLENGE: "$challenge"
@@ -770,16 +711,14 @@ Your response MUST be valid JSON. No conversational text. Do not use unescaped d
       // If parsing fails, use the raw text as the reason for failure.
       // The AI likely returned a conversational explanation instead of JSON.
       // Clean up markdown code blocks if present.
-      String cleanText = outputText
-          .replaceAll(RegExp(r'```(?:json)?|```'), '')
-          .trim();
+      String cleanText =
+          outputText.replaceAll(RegExp(r'```(?:json)?|```'), '').trim();
       return {'passed': false, 'reason': cleanText};
     }
   }
 
   Future<void> _deleteSession(
-    QueryDocumentSnapshot<Map<String, dynamic>> doc,
-  ) async {
+      QueryDocumentSnapshot<Map<String, dynamic>> doc) async {
     try {
       await doc.reference.delete();
       if (mounted) {
@@ -805,9 +744,8 @@ Your response MUST be valid JSON. No conversational text. Do not use unescaped d
     } catch (e) {
       debugPrint("Error deleting session: $e");
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("Error deleting session: $e")));
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Error deleting session: $e")));
       }
     }
   }
@@ -819,9 +757,8 @@ Your response MUST be valid JSON. No conversational text. Do not use unescaped d
     final score = _structuredResult!['score'] ?? 0;
     final tips = List<String>.from(_structuredResult!['tips'] ?? []);
     final biases = List<String>.from(_structuredResult!['biases'] ?? []);
-    final weaknesses = List<String>.from(
-      _structuredResult!['weaknesses'] ?? [],
-    );
+    final weaknesses =
+        List<String>.from(_structuredResult!['weaknesses'] ?? []);
     final strengths = List<String>.from(_structuredResult!['strengths'] ?? []);
     final challenge = _structuredResult!['challenge'] as String?;
     final challengeType = _structuredResult!['challenge_type'] as String?;
@@ -861,9 +798,10 @@ Your response MUST be valid JSON. No conversational text. Do not use unescaped d
 
     text += "Analyzed by RealizeAlpha AI Coach.";
 
-    SharePlus.instance.share(
-      ShareParams(text: text, sharePositionOrigin: sharePositionOrigin),
-    );
+    SharePlus.instance.share(ShareParams(
+      text: text,
+      sharePositionOrigin: sharePositionOrigin,
+    ));
   }
 
   void _showHistoryModal() {
@@ -885,18 +823,20 @@ Your response MUST be valid JSON. No conversational text. Do not use unescaped d
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
-                          Theme.of(
-                            context,
-                          ).colorScheme.primaryContainer.withOpacity(0.3),
-                          Theme.of(context).colorScheme.surfaceContainerHighest
+                          Theme.of(context)
+                              .colorScheme
+                              .primaryContainer
+                              .withOpacity(0.3),
+                          Theme.of(context)
+                              .colorScheme
+                              .surfaceContainerHighest
                               .withOpacity(0.1),
                         ],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
-                      borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(20),
-                      ),
+                      borderRadius:
+                          const BorderRadius.vertical(top: Radius.circular(20)),
                     ),
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(20, 20, 12, 16),
@@ -908,9 +848,10 @@ Your response MUST be valid JSON. No conversational text. Do not use unescaped d
                               Container(
                                 padding: const EdgeInsets.all(10),
                                 decoration: BoxDecoration(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.primary.withOpacity(0.15),
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .primary
+                                      .withOpacity(0.15),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Icon(
@@ -920,13 +861,10 @@ Your response MUST be valid JSON. No conversational text. Do not use unescaped d
                                 ),
                               ),
                               const SizedBox(width: 12),
-                              const Text(
-                                "Analysis History",
-                                style: TextStyle(
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
+                              const Text("Analysis History",
+                                  style: TextStyle(
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.bold)),
                             ],
                           ),
                           IconButton(
@@ -951,9 +889,8 @@ Your response MUST be valid JSON. No conversational text. Do not use unescaped d
   }
 
   Widget _buildHistoryList(
-    List<QueryDocumentSnapshot<Map<String, dynamic>>> list,
-    ScrollController controller,
-  ) {
+      List<QueryDocumentSnapshot<Map<String, dynamic>>> list,
+      ScrollController controller) {
     if (list.isEmpty) {
       return Center(
         child: Column(
@@ -962,16 +899,16 @@ Your response MUST be valid JSON. No conversational text. Do not use unescaped d
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: Theme.of(
-                  context,
-                ).colorScheme.surfaceContainerHighest.withOpacity(0.3),
+                color: Theme.of(context)
+                    .colorScheme
+                    .surfaceContainerHighest
+                    .withOpacity(0.3),
                 shape: BoxShape.circle,
               ),
-              child: Icon(
-                Icons.history_toggle_off,
-                size: 64,
-                color: Theme.of(context).colorScheme.primary.withOpacity(0.4),
-              ),
+              child: Icon(Icons.history_toggle_off,
+                  size: 64,
+                  color:
+                      Theme.of(context).colorScheme.primary.withOpacity(0.4)),
             ),
             const SizedBox(height: 24),
             Text(
@@ -1018,9 +955,8 @@ Your response MUST be valid JSON. No conversational text. Do not use unescaped d
             borderRadius: BorderRadius.circular(16),
             side: isSelected
                 ? BorderSide(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.primary.withOpacity(0.3),
+                    color:
+                        Theme.of(context).colorScheme.primary.withOpacity(0.3),
                     width: 2,
                   )
                 : BorderSide.none,
@@ -1060,14 +996,11 @@ Your response MUST be valid JSON. No conversational text. Do not use unescaped d
                           ),
                         ),
                         child: Center(
-                          child: Text(
-                            "$score",
-                            style: TextStyle(
-                              color: _getScoreColor(score),
-                              fontWeight: FontWeight.bold,
-                              fontSize: 18,
-                            ),
-                          ),
+                          child: Text("$score",
+                              style: TextStyle(
+                                  color: _getScoreColor(score),
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18)),
                         ),
                       ),
                       const SizedBox(width: 16),
@@ -1075,59 +1008,46 @@ Your response MUST be valid JSON. No conversational text. Do not use unescaped d
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              archetype,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                              ),
-                            ),
+                            Text(archetype,
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.bold, fontSize: 16)),
                             Text(
                               date != null
                                   ? DateFormat.yMMMd().add_jm().format(date)
                                   : "Unknown Date",
                               style: const TextStyle(
-                                color: Colors.grey,
-                                fontSize: 12,
-                              ),
+                                  color: Colors.grey, fontSize: 12),
                             ),
                           ],
                         ),
                       ),
                       IconButton(
-                        icon: const Icon(
-                          Icons.delete_outline,
-                          color: Colors.grey,
-                        ),
+                        icon: const Icon(Icons.delete_outline,
+                            color: Colors.grey),
                         onPressed: () {
                           showDialog(
                             context: context,
                             builder: (ctx) => AlertDialog(
                               title: const Text("Delete Session?"),
                               content: const Text(
-                                "This cannot be undone. The analysis and journal notes will be lost.",
-                              ),
+                                  "This cannot be undone. The analysis and journal notes will be lost."),
                               actions: [
                                 TextButton(
-                                  onPressed: () => Navigator.pop(ctx),
-                                  child: const Text("Cancel"),
-                                ),
+                                    onPressed: () => Navigator.pop(ctx),
+                                    child: const Text("Cancel")),
                                 TextButton(
-                                  onPressed: () {
-                                    Navigator.pop(ctx);
-                                    _deleteSession(doc);
-                                    Navigator.pop(context); // Close modal too
-                                  },
-                                  child: const Text(
-                                    "Delete",
-                                    style: TextStyle(color: Colors.red),
-                                  ),
-                                ),
+                                    onPressed: () {
+                                      Navigator.pop(ctx);
+                                      _deleteSession(doc);
+                                      Navigator.pop(context); // Close modal too
+                                    },
+                                    child: const Text("Delete",
+                                        style: TextStyle(color: Colors.red))),
                               ],
                             ),
                           );
                         },
-                      ),
+                      )
                     ],
                   ),
                   if (challenge != null && challenge.isNotEmpty) ...[
@@ -1135,12 +1055,11 @@ Your response MUST be valid JSON. No conversational text. Do not use unescaped d
                     Row(
                       children: [
                         Icon(
-                          isCompleted
-                              ? Icons.check_circle
-                              : Icons.flag_outlined,
-                          size: 16,
-                          color: isCompleted ? Colors.green : Colors.grey,
-                        ),
+                            isCompleted
+                                ? Icons.check_circle
+                                : Icons.flag_outlined,
+                            size: 16,
+                            color: isCompleted ? Colors.green : Colors.grey),
                         const SizedBox(width: 6),
                         Expanded(
                           child: Text(
@@ -1148,18 +1067,18 @@ Your response MUST be valid JSON. No conversational text. Do not use unescaped d
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                              fontSize: 12,
-                              color: isCompleted
-                                  ? Colors.green
-                                  : Theme.of(
-                                      context,
-                                    ).textTheme.bodySmall?.color,
-                            ),
+                                fontSize: 12,
+                                color: isCompleted
+                                    ? Colors.green
+                                    : Theme.of(context)
+                                        .textTheme
+                                        .bodySmall
+                                        ?.color),
                           ),
                         ),
                       ],
-                    ),
-                  ],
+                    )
+                  ]
                 ],
               ),
             ),
@@ -1175,267 +1094,216 @@ Your response MUST be valid JSON. No conversational text. Do not use unescaped d
       isScrollControlled: true,
       builder: (context) {
         return StatefulBuilder(
-          builder: (BuildContext context, StateSetter setModalState) {
-            return Padding(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.primary.withOpacity(0.15),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Icon(
-                            Icons.tune,
-                            color: Theme.of(context).colorScheme.primary,
-                            size: 24,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        const Text(
-                          "Analysis Settings",
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
-                    const Text(
-                      "Trade Type",
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    SegmentedButton<String>(
-                      segments: const [
-                        ButtonSegment(value: 'all', label: Text('All')),
-                        ButtonSegment(value: 'stock', label: Text('Stocks')),
-                        ButtonSegment(value: 'option', label: Text('Options')),
-                      ],
-                      selected: {_tradeTypeFilter},
-                      onSelectionChanged: (Set<String> newSelection) {
-                        setState(() {
-                          _tradeTypeFilter = newSelection.first;
-                        });
-                        setModalState(() {});
-                      },
-                    ),
-                    const SizedBox(height: 10),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Text("Time Period: "),
-                        DropdownButton<String>(
-                          value: _analysisWindow,
-                          items: const [
-                            DropdownMenuItem(
-                              value: 'this_week',
-                              child: Text("This Week"),
-                            ),
-                            DropdownMenuItem(
-                              value: 'last_week',
-                              child: Text("Last Week"),
-                            ),
-                            DropdownMenuItem(
-                              value: 'this_month',
-                              child: Text("This Month"),
-                            ),
-                            DropdownMenuItem(
-                              value: 'last_month',
-                              child: Text("Last Month"),
-                            ),
-                            DropdownMenuItem(
-                              value: 'this_year',
-                              child: Text("This Year"),
-                            ),
-                            DropdownMenuItem(
-                              value: 'last_year',
-                              child: Text("Last Year"),
-                            ),
-                            DropdownMenuItem(
-                              value: '7d',
-                              child: Text("Last 7 Days"),
-                            ),
-                            DropdownMenuItem(
-                              value: '30d',
-                              child: Text("Last 30 Days"),
-                            ),
-                            DropdownMenuItem(
-                              value: '60d',
-                              child: Text("Last 60 Days"),
-                            ),
-                            DropdownMenuItem(
-                              value: '90d',
-                              child: Text("Last 90 Days"),
-                            ),
-                            DropdownMenuItem(
-                              value: '180d',
-                              child: Text("Last 180 Days"),
-                            ),
-                          ],
-                          onChanged: (val) {
-                            if (val != null) {
-                              setState(() => _analysisWindow = val);
-                              setModalState(() {});
-                            }
-                          },
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            "Focus Area",
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.grey,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12),
-                            decoration: BoxDecoration(
-                              border: Border.all(color: Colors.grey.shade300),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: DropdownButtonHideUnderline(
-                              child: DropdownButton<String>(
-                                isExpanded: true,
-                                value: _focusArea,
-                                items: const [
-                                  DropdownMenuItem(
-                                    value: 'overall',
-                                    child: Text("Overall Improvement"),
-                                  ),
-                                  DropdownMenuItem(
-                                    value: 'risk',
-                                    child: Text("Risk Management Focus"),
-                                  ),
-                                  DropdownMenuItem(
-                                    value: 'consistency',
-                                    child: Text("Consistency & Discipline"),
-                                  ),
-                                  DropdownMenuItem(
-                                    value: 'profitability',
-                                    child: Text("Profit Minimization"),
-                                  ),
-                                  DropdownMenuItem(
-                                    value: 'psychology',
-                                    child: Text("Trading Psychology"),
-                                  ),
-                                  DropdownMenuItem(
-                                    value: 'technical',
-                                    child: Text("Technical Execution"),
-                                  ),
-                                ],
-                                onChanged: (val) {
-                                  if (val != null) {
-                                    setState(() => _focusArea = val);
-                                    setModalState(() {});
-                                  }
-                                },
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          const Text(
-                            "Coaching Style",
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.grey,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12),
-                            decoration: BoxDecoration(
-                              border: Border.all(color: Colors.grey.shade300),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: DropdownButtonHideUnderline(
-                              child: DropdownButton<String>(
-                                isExpanded: true,
-                                value: _coachingStyle,
-                                items: const [
-                                  DropdownMenuItem(
-                                    value: 'balanced',
-                                    child: Text(
-                                      "Balanced Coach (Constructive)",
-                                    ),
-                                  ),
-                                  DropdownMenuItem(
-                                    value: 'drill_sergeant',
-                                    child: Text(
-                                      "Drill Sergeant (Strict & Harsh)",
-                                    ),
-                                  ),
-                                  DropdownMenuItem(
-                                    value: 'zen',
-                                    child: Text("Zen Master (Mindful & Calm)"),
-                                  ),
-                                  DropdownMenuItem(
-                                    value: 'wall_street',
-                                    child: Text(
-                                      "Wall St. Veteran (No Nonsense)",
-                                    ),
-                                  ),
-                                ],
-                                onChanged: (val) {
-                                  if (val != null) {
-                                    setState(() => _coachingStyle = val);
-                                    setModalState(() {});
-                                  }
-                                },
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 32),
-                    ElevatedButton(
-                      onPressed: () => Navigator.pop(context),
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
+            builder: (BuildContext context, StateSetter setModalState) {
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .primary
+                              .withOpacity(0.15),
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        elevation: 2,
-                      ),
-                      child: const Text(
-                        "Done",
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 0.5,
+                        child: Icon(
+                          Icons.tune,
+                          color: Theme.of(context).colorScheme.primary,
+                          size: 24,
                         ),
                       ),
+                      const SizedBox(width: 12),
+                      const Text("Analysis Settings",
+                          style: TextStyle(
+                              fontSize: 22, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  const Text("Trade Type",
+                      style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.5)),
+                  const SizedBox(height: 12),
+                  SegmentedButton<String>(
+                    segments: const [
+                      ButtonSegment(value: 'all', label: Text('All')),
+                      ButtonSegment(value: 'stock', label: Text('Stocks')),
+                      ButtonSegment(value: 'option', label: Text('Options')),
+                    ],
+                    selected: {_tradeTypeFilter},
+                    onSelectionChanged: (Set<String> newSelection) {
+                      setState(() {
+                        _tradeTypeFilter = newSelection.first;
+                      });
+                      setModalState(() {});
+                    },
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text("Time Period: "),
+                      DropdownButton<String>(
+                        value: _analysisWindow,
+                        items: const [
+                          DropdownMenuItem(
+                              value: 'this_week', child: Text("This Week")),
+                          DropdownMenuItem(
+                              value: 'last_week', child: Text("Last Week")),
+                          DropdownMenuItem(
+                              value: 'this_month', child: Text("This Month")),
+                          DropdownMenuItem(
+                              value: 'last_month', child: Text("Last Month")),
+                          DropdownMenuItem(
+                              value: 'this_year', child: Text("This Year")),
+                          DropdownMenuItem(
+                              value: 'last_year', child: Text("Last Year")),
+                          DropdownMenuItem(
+                              value: '7d', child: Text("Last 7 Days")),
+                          DropdownMenuItem(
+                              value: '30d', child: Text("Last 30 Days")),
+                          DropdownMenuItem(
+                              value: '60d', child: Text("Last 60 Days")),
+                          DropdownMenuItem(
+                              value: '90d', child: Text("Last 90 Days")),
+                          DropdownMenuItem(
+                              value: '180d', child: Text("Last 180 Days")),
+                        ],
+                        onChanged: (val) {
+                          if (val != null) {
+                            setState(() => _analysisWindow = val);
+                            setModalState(() {});
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text("Focus Area",
+                            style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.grey)),
+                        const SizedBox(height: 4),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.grey.shade300),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              isExpanded: true,
+                              value: _focusArea,
+                              items: const [
+                                DropdownMenuItem(
+                                    value: 'overall',
+                                    child: Text("Overall Improvement")),
+                                DropdownMenuItem(
+                                    value: 'risk',
+                                    child: Text("Risk Management Focus")),
+                                DropdownMenuItem(
+                                    value: 'consistency',
+                                    child: Text("Consistency & Discipline")),
+                                DropdownMenuItem(
+                                    value: 'profitability',
+                                    child: Text("Profit Minimization")),
+                                DropdownMenuItem(
+                                    value: 'psychology',
+                                    child: Text("Trading Psychology")),
+                                DropdownMenuItem(
+                                    value: 'technical',
+                                    child: Text("Technical Execution")),
+                              ],
+                              onChanged: (val) {
+                                if (val != null) {
+                                  setState(() => _focusArea = val);
+                                  setModalState(() {});
+                                }
+                              },
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        const Text("Coaching Style",
+                            style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.grey)),
+                        const SizedBox(height: 4),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.grey.shade300),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              isExpanded: true,
+                              value: _coachingStyle,
+                              items: const [
+                                DropdownMenuItem(
+                                    value: 'balanced',
+                                    child:
+                                        Text("Balanced Coach (Constructive)")),
+                                DropdownMenuItem(
+                                    value: 'drill_sergeant',
+                                    child: Text(
+                                        "Drill Sergeant (Strict & Harsh)")),
+                                DropdownMenuItem(
+                                    value: 'zen',
+                                    child: Text("Zen Master (Mindful & Calm)")),
+                                DropdownMenuItem(
+                                    value: 'wall_street',
+                                    child:
+                                        Text("Wall St. Veteran (No Nonsense)")),
+                              ],
+                              onChanged: (val) {
+                                if (val != null) {
+                                  setState(() => _coachingStyle = val);
+                                  setModalState(() {});
+                                }
+                              },
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 32),
+                  ElevatedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 2,
+                    ),
+                    child: const Text("Done",
+                        style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.5)),
+                  ),
+                ],
               ),
-            );
-          },
-        );
+            ),
+          );
+        });
       },
     );
   }
@@ -1469,9 +1337,8 @@ Your response MUST be valid JSON. No conversational text. Do not use unescaped d
     }
     if (detectedBiases.isEmpty && _structuredResult != null) {
       final biases = List<String>.from(_structuredResult!['biases'] ?? []);
-      final weaknesses = List<String>.from(
-        _structuredResult!['weaknesses'] ?? [],
-      );
+      final weaknesses =
+          List<String>.from(_structuredResult!['weaknesses'] ?? []);
       final combined = {...biases, ...weaknesses}.toList();
       for (var w in combined) {
         String sev = 'Moderate';
@@ -1485,20 +1352,17 @@ Your response MUST be valid JSON. No conversational text. Do not use unescaped d
           sev = 'High';
         }
         final parts = w.split(':');
-        final name = parts.first
-            .replaceAll(RegExp(r'^[0-9\.\-\* ]+'), '')
-            .trim();
+        final name =
+            parts.first.replaceAll(RegExp(r'^[0-9\.\-\* ]+'), '').trim();
         final desc = parts.length > 1 ? parts.sublist(1).join(':').trim() : w;
-        detectedBiases.add(
-          DetectedBias(
-            name: name,
-            severity: sev,
-            description: desc,
-            evidence: "Identified during session analysis.",
-            mitigation:
-                "Follow a pre-trade checklist and verify risk-to-reward ratio before entry.",
-          ),
-        );
+        detectedBiases.add(DetectedBias(
+          name: name,
+          severity: sev,
+          description: desc,
+          evidence: "Identified during session analysis.",
+          mitigation:
+              "Follow a pre-trade checklist and verify risk-to-reward ratio before entry.",
+        ));
       }
     }
 
@@ -1515,9 +1379,8 @@ Your response MUST be valid JSON. No conversational text. Do not use unescaped d
             tabs: [
               Tab(icon: Icon(Icons.psychology), text: "Coach"),
               Tab(
-                icon: Icon(Icons.shield_outlined),
-                text: "Biases & Antidotes",
-              ),
+                  icon: Icon(Icons.shield_outlined),
+                  text: "Biases & Antidotes"),
               Tab(icon: Icon(Icons.mood), text: "Emotion Journal"),
               Tab(icon: Icon(Icons.analytics_outlined), text: "Patterns"),
             ],
@@ -1532,15 +1395,10 @@ Your response MUST be valid JSON. No conversational text. Do not use unescaped d
               Padding(
                 padding: const EdgeInsets.only(right: 8.0),
                 child: Chip(
-                  avatar: const Icon(
-                    Icons.whatshot,
-                    color: Colors.orange,
-                    size: 16,
-                  ),
-                  label: Text(
-                    "$streak Streak",
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
+                  avatar: const Icon(Icons.whatshot,
+                      color: Colors.orange, size: 16),
+                  label: Text("$streak Streak",
+                      style: const TextStyle(fontWeight: FontWeight.bold)),
                   backgroundColor: Colors.orange.withOpacity(0.1),
                   side: BorderSide.none,
                   visualDensity: VisualDensity.compact,
@@ -1553,11 +1411,9 @@ Your response MUST be valid JSON. No conversational text. Do not use unescaped d
                     icon: const Icon(Icons.share),
                     onPressed: () {
                       final box = context.findRenderObject() as RenderBox?;
-                      _shareAnalysis(
-                        box != null
-                            ? box.localToGlobal(Offset.zero) & box.size
-                            : null,
-                      );
+                      _shareAnalysis(box != null
+                          ? box.localToGlobal(Offset.zero) & box.size
+                          : null);
                     },
                     tooltip: "Share",
                   );
@@ -1573,7 +1429,7 @@ Your response MUST be valid JSON. No conversational text. Do not use unescaped d
                 icon: const Icon(Icons.history),
                 onPressed: _showHistoryModal,
                 tooltip: "History",
-              ),
+              )
           ],
         ),
         body: TabBarView(
@@ -1594,13 +1450,12 @@ Your response MUST be valid JSON. No conversational text. Do not use unescaped d
                       notes: _currentNotes,
                       onChallengeToggle: _toggleChallengeCompletion,
                       onSaveNotes: _saveNotes,
-                      onAnalyze: _canStartNewAnalysis()
-                          ? _analyzeTrading
-                          : null,
+                      onAnalyze:
+                          _canStartNewAnalysis() ? _analyzeTrading : null,
                       analyzeButtonLabel: _canStartNewAnalysis()
                           ? (_structuredResult == null
-                                ? 'Start AI Analysis'
-                                : 'Update Analysis')
+                              ? 'Start AI Analysis'
+                              : 'Update Analysis')
                           : '$_challengeLabel Active',
                       focusArea: _focusArea,
                       analysisWindow: _analysisWindow,
@@ -1619,18 +1474,13 @@ Your response MUST be valid JSON. No conversational text. Do not use unescaped d
                         padding: EdgeInsets.all(16.0),
                         child: Column(
                           children: [
-                            Icon(
-                              Icons.psychology,
-                              size: 48,
-                              color: Colors.purpleAccent,
-                            ),
+                            Icon(Icons.psychology,
+                                size: 48, color: Colors.purpleAccent),
                             SizedBox(height: 16),
                             Text(
                               "Identify Your Trading Biases",
                               style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
+                                  fontSize: 18, fontWeight: FontWeight.bold),
                             ),
                             SizedBox(height: 8),
                             Text(
@@ -1658,23 +1508,18 @@ Your response MUST be valid JSON. No conversational text. Do not use unescaped d
                             padding: const EdgeInsets.all(8),
                             margin: const EdgeInsets.only(bottom: 10),
                             color: Colors.red.withOpacity(0.1),
-                            child: Text(
-                              _statusMessage,
-                              style: const TextStyle(color: Colors.red),
-                            ),
+                            child: Text(_statusMessage,
+                                style: const TextStyle(color: Colors.red)),
                           ),
                         if (_structuredResult == null) ...[
                           const SizedBox(height: 20),
                           ElevatedButton.icon(
-                            onPressed: _canStartNewAnalysis()
-                                ? _analyzeTrading
-                                : null,
+                            onPressed:
+                                _canStartNewAnalysis() ? _analyzeTrading : null,
                             icon: const Icon(Icons.auto_awesome),
-                            label: Text(
-                              _canStartNewAnalysis()
-                                  ? 'Start AI Analysis'
-                                  : '$_challengeLabel Active',
-                            ),
+                            label: Text(_canStartNewAnalysis()
+                                ? 'Start AI Analysis'
+                                : '$_challengeLabel Active'),
                             style: ElevatedButton.styleFrom(
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               minimumSize: const Size(double.infinity, 50),
@@ -1701,8 +1546,7 @@ Your response MUST be valid JSON. No conversational text. Do not use unescaped d
                   Card(
                     elevation: 1,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
+                        borderRadius: BorderRadius.circular(16)),
                     child: Padding(
                       padding: const EdgeInsets.all(16.0),
                       child: Column(
@@ -1710,20 +1554,17 @@ Your response MUST be valid JSON. No conversational text. Do not use unescaped d
                         children: [
                           Row(
                             children: [
-                              Icon(
-                                Icons.menu_book,
-                                color: Theme.of(context).colorScheme.primary,
-                                size: 20,
-                              ),
+                              Icon(Icons.menu_book,
+                                  color: Theme.of(context).colorScheme.primary,
+                                  size: 20),
                               const SizedBox(width: 8),
                               const Text(
                                 "BEHAVIORAL FINANCE TAXONOMY",
                                 style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 1.0,
-                                  color: Colors.grey,
-                                ),
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 1.0,
+                                    color: Colors.grey),
                               ),
                             ],
                           ),
@@ -1799,24 +1640,20 @@ Your response MUST be valid JSON. No conversational text. Do not use unescaped d
                       ),
                       child: ExpansionTile(
                         tilePadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
-                        ),
+                            horizontal: 16, vertical: 8),
                         childrenPadding: const EdgeInsets.all(0),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
                         ),
                         title: Text(
-                          "Analyzed Activity (${_analyzedTrades.length} Trades)",
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 15,
-                          ),
-                        ),
+                            "Analyzed Activity (${_analyzedTrades.length} Trades)",
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                            )),
                         subtitle: const Text(
-                          "Tap to view the data sent to the AI Coach",
-                          style: TextStyle(fontSize: 12, color: Colors.grey),
-                        ),
+                            "Tap to view the data sent to the AI Coach",
+                            style: TextStyle(fontSize: 12, color: Colors.grey)),
                         children: [
                           ListView.separated(
                             shrinkWrap: true,
@@ -1852,10 +1689,10 @@ Your response MUST be valid JSON. No conversational text. Do not use unescaped d
                                 final legs = t['legs']?.toString() ?? "";
                                 final direction =
                                     t['direction']?.toString().toUpperCase() ??
-                                    "";
+                                        "";
                                 final opening =
                                     t['opening']?.toString().toUpperCase() ??
-                                    "";
+                                        "";
 
                                 if (type == 'call') {
                                   leadingText = "C";
@@ -1872,15 +1709,12 @@ Your response MUST be valid JSON. No conversational text. Do not use unescaped d
                                 subtitlePrefix = "$opening $direction".trim();
                               }
 
-                              bool canNavigate =
-                                  t.containsKey('original') &&
+                              bool canNavigate = t.containsKey('original') &&
                                   t['original'] != null;
 
                               return ListTile(
                                 contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 0,
-                                ),
+                                    horizontal: 16, vertical: 0),
                                 dense: true,
                                 horizontalTitleGap: 12,
                                 minLeadingWidth: 0,
@@ -1888,144 +1722,128 @@ Your response MUST be valid JSON. No conversational text. Do not use unescaped d
                                     ? () {
                                         if (isStock) {
                                           Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (context) =>
-                                                  PositionOrderWidget(
-                                                    widget.user,
-                                                    widget.service,
-                                                    t['original']
-                                                        as InstrumentOrder,
-                                                    analytics: widget.analytics,
-                                                    observer: widget.observer,
-                                                    generativeService: widget
-                                                        .generativeService!,
-                                                    user: widget.firebaseUser,
-                                                    userDocRef: widget.userDoc,
-                                                  ),
-                                            ),
-                                          );
+                                              context,
+                                              MaterialPageRoute(
+                                                  builder: (context) =>
+                                                      PositionOrderWidget(
+                                                        widget.user,
+                                                        widget.service,
+                                                        t['original']
+                                                            as InstrumentOrder,
+                                                        analytics:
+                                                            widget.analytics,
+                                                        observer:
+                                                            widget.observer,
+                                                        generativeService: widget
+                                                            .generativeService!,
+                                                        user:
+                                                            widget.firebaseUser,
+                                                        userDocRef:
+                                                            widget.userDoc,
+                                                      )));
                                         } else {
                                           Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (context) =>
-                                                  OptionOrderWidget(
-                                                    widget.user,
-                                                    widget.service,
-                                                    t['original']
-                                                        as OptionOrder,
-                                                    analytics: widget.analytics,
-                                                    observer: widget.observer,
-                                                    generativeService: widget
-                                                        .generativeService!,
-                                                    user: widget.firebaseUser,
-                                                    userDocRef: widget.userDoc,
-                                                  ),
-                                            ),
-                                          );
+                                              context,
+                                              MaterialPageRoute(
+                                                  builder: (context) =>
+                                                      OptionOrderWidget(
+                                                        widget.user,
+                                                        widget.service,
+                                                        t['original']
+                                                            as OptionOrder,
+                                                        analytics:
+                                                            widget.analytics,
+                                                        observer:
+                                                            widget.observer,
+                                                        generativeService: widget
+                                                            .generativeService!,
+                                                        user:
+                                                            widget.firebaseUser,
+                                                        userDocRef:
+                                                            widget.userDoc,
+                                                      )));
                                         }
                                       }
                                     : null,
                                 leading: CircleAvatar(
-                                  radius: 14,
-                                  backgroundColor: leadingColor.withOpacity(
-                                    0.15,
-                                  ),
-                                  child: Text(
-                                    leadingText,
-                                    style: TextStyle(
-                                      color: leadingColor,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ),
-                                title: Text(
-                                  titleStr,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 13,
-                                  ),
-                                ),
+                                    radius: 14,
+                                    backgroundColor:
+                                        leadingColor.withOpacity(0.15),
+                                    child: Text(leadingText,
+                                        style: TextStyle(
+                                            color: leadingColor,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 12))),
+                                title: Text(titleStr,
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 13)),
                                 subtitle: Wrap(
                                   crossAxisAlignment: WrapCrossAlignment.center,
                                   spacing: 6,
                                   children: [
                                     Text(
-                                      "$subtitlePrefix \u2022 ${DateFormat('MM/dd HH:mm').format(date)}",
-                                      style: const TextStyle(fontSize: 11),
-                                    ),
+                                        "$subtitlePrefix \u2022 ${DateFormat('MM/dd HH:mm').format(date)}",
+                                        style: const TextStyle(fontSize: 11)),
                                     if (t['order_type'] != null)
                                       Container(
                                         padding: const EdgeInsets.symmetric(
-                                          horizontal: 6,
-                                          vertical: 2,
-                                        ),
+                                            horizontal: 6, vertical: 2),
                                         decoration: BoxDecoration(
                                           color: (t['order_type'] == 'limit')
                                               ? Colors.purple.withOpacity(0.1)
                                               : Colors.amber.withOpacity(0.1),
-                                          borderRadius: BorderRadius.circular(
-                                            4,
-                                          ),
+                                          borderRadius:
+                                              BorderRadius.circular(4),
                                         ),
                                         child: Text(
                                           t['order_type']
                                               .toString()
                                               .toUpperCase(),
                                           style: TextStyle(
-                                            fontSize: 9,
-                                            fontWeight: FontWeight.bold,
-                                            color: (t['order_type'] == 'limit')
-                                                ? Colors.purple
-                                                : Colors.amber.shade800,
-                                          ),
+                                              fontSize: 9,
+                                              fontWeight: FontWeight.bold,
+                                              color:
+                                                  (t['order_type'] == 'limit')
+                                                      ? Colors.purple
+                                                      : Colors.amber.shade800),
                                         ),
                                       ),
                                     if (t['trigger'] == 'stop')
                                       Container(
                                         padding: const EdgeInsets.symmetric(
-                                          horizontal: 6,
-                                          vertical: 2,
-                                        ),
+                                            horizontal: 6, vertical: 2),
                                         decoration: BoxDecoration(
                                           color: Colors.orange.withOpacity(0.1),
-                                          borderRadius: BorderRadius.circular(
-                                            4,
-                                          ),
+                                          borderRadius:
+                                              BorderRadius.circular(4),
                                         ),
                                         child: Text(
                                           "STOP",
                                           style: TextStyle(
-                                            fontSize: 9,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.orange.shade700,
-                                          ),
+                                              fontSize: 9,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.orange.shade700),
                                         ),
                                       ),
                                     if (t['state'] != null &&
                                         t['state'] != 'filled')
                                       Container(
                                         padding: const EdgeInsets.symmetric(
-                                          horizontal: 6,
-                                          vertical: 2,
-                                        ),
+                                            horizontal: 6, vertical: 2),
                                         decoration: BoxDecoration(
                                           color: Colors.blue.withOpacity(0.1),
-                                          borderRadius: BorderRadius.circular(
-                                            4,
-                                          ),
+                                          borderRadius:
+                                              BorderRadius.circular(4),
                                         ),
                                         child: Text(
                                           (t['state'] ?? "")
                                               .toString()
                                               .toUpperCase(),
                                           style: TextStyle(
-                                            fontSize: 9,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.blue.shade700,
-                                          ),
+                                              fontSize: 9,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.blue.shade700),
                                         ),
                                       ),
                                   ],
@@ -2035,19 +1853,14 @@ Your response MUST be valid JSON. No conversational text. Do not use unescaped d
                                   crossAxisAlignment: CrossAxisAlignment.end,
                                   children: [
                                     Text(
-                                      "\$${double.tryParse(t['price'].toString())?.toStringAsFixed(2) ?? t['price']}",
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 13,
-                                      ),
-                                    ),
+                                        "\$${double.tryParse(t['price'].toString())?.toStringAsFixed(2) ?? t['price']}",
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 13)),
                                     Text(
-                                      "${t['quantity']} ${isStock ? 'sh' : 'cts'}",
-                                      style: const TextStyle(
-                                        fontSize: 11,
-                                        color: Colors.grey,
-                                      ),
-                                    ),
+                                        "${t['quantity']} ${isStock ? 'sh' : 'cts'}",
+                                        style: const TextStyle(
+                                            fontSize: 11, color: Colors.grey)),
                                   ],
                                 ),
                               );
@@ -2080,10 +1893,7 @@ Your response MUST be valid JSON. No conversational text. Do not use unescaped d
   }
 
   Widget _buildTaxonomyItem(
-    BuildContext context,
-    String title,
-    String explanation,
-  ) {
+      BuildContext context, String title, String explanation) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -2094,11 +1904,8 @@ Your response MUST be valid JSON. No conversational text. Do not use unescaped d
         const SizedBox(height: 2),
         Text(
           explanation,
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey.shade600,
-            height: 1.3,
-          ),
+          style:
+              TextStyle(fontSize: 12, color: Colors.grey.shade600, height: 1.3),
         ),
       ],
     );
@@ -2115,10 +1922,8 @@ Your response MUST be valid JSON. No conversational text. Do not use unescaped d
       String jsonString = text;
 
       // 1. Try finding JSON object in markdown block (flexible tag)
-      final RegExp codeBlockRegex = RegExp(
-        r'```(?:json)?\s*(\{[\s\S]*?\})\s*```',
-        caseSensitive: false,
-      );
+      final RegExp codeBlockRegex =
+          RegExp(r'```(?:json)?\s*(\{[\s\S]*?\})\s*```', caseSensitive: false);
       final match = codeBlockRegex.firstMatch(text);
       if (match != null) {
         jsonString = match.group(1)!;
@@ -2163,9 +1968,8 @@ Your response MUST be valid JSON. No conversational text. Do not use unescaped d
       if (type.contains('market') && !isProtected) marketOrders++;
     }
     final totalMeasured = limitOrders + marketOrders;
-    double limitPct = totalMeasured > 0
-        ? (limitOrders / totalMeasured) * 100
-        : 0;
+    double limitPct =
+        totalMeasured > 0 ? (limitOrders / totalMeasured) * 100 : 0;
 
     // 2. Protection % (Stop triggers)
     int protectedOrders = 0;
@@ -2184,9 +1988,8 @@ Your response MUST be valid JSON. No conversational text. Do not use unescaped d
     }
     int maxDaily = 0;
     if (tradesPerDay.isNotEmpty) {
-      maxDaily = tradesPerDay.values.reduce(
-        (curr, next) => curr > next ? curr : next,
-      );
+      maxDaily =
+          tradesPerDay.values.reduce((curr, next) => curr > next ? curr : next);
     }
 
     // 4. Time of Day Distribution
@@ -2212,10 +2015,8 @@ Your response MUST be valid JSON. No conversational text. Do not use unescaped d
     }
     final topSymbols = symbolCounts.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
-    final top3 = topSymbols
-        .take(3)
-        .map((e) => "${e.key}(${e.value})")
-        .join(", ");
+    final top3 =
+        topSymbols.take(3).map((e) => "${e.key}(${e.value})").join(", ");
 
     // 6. Rapid-fire trade clustering (<10m between trades, indicator of revenge/impulsive trading)
     int rapidFireCount = 0;
@@ -2239,7 +2040,7 @@ Your response MUST be valid JSON. No conversational text. Do not use unescaped d
       'top_traded_symbols': top3,
       'rapid_fire_clustering_count': rapidFireCount,
       'holding_asymmetry_ratio': 2.1,
-      'total_trades': trades.length,
+      'total_trades': trades.length
     };
   }
 
@@ -2266,28 +2067,16 @@ Your response MUST be valid JSON. No conversational text. Do not use unescaped d
       } else if (_analysisWindow == 'this_week') {
         // Monday of this week
         startDate = now.subtract(Duration(days: now.weekday - 1));
-        startDate = DateTime(
-          startDate.year,
-          startDate.month,
-          startDate.day,
-        ); // 00:00
+        startDate =
+            DateTime(startDate.year, startDate.month, startDate.day); // 00:00
       } else if (_analysisWindow == 'last_week') {
         // Monday of last week to Sunday of last week
         final lastMonday = now.subtract(Duration(days: now.weekday - 1 + 7));
         startDate = DateTime(
-          lastMonday.year,
-          lastMonday.month,
-          lastMonday.day,
-        ); // 00:00
+            lastMonday.year, lastMonday.month, lastMonday.day); // 00:00
         final lastSunday = lastMonday.add(const Duration(days: 6));
-        endDate = DateTime(
-          lastSunday.year,
-          lastSunday.month,
-          lastSunday.day,
-          23,
-          59,
-          59,
-        ); // End of day
+        endDate = DateTime(lastSunday.year, lastSunday.month, lastSunday.day,
+            23, 59, 59); // End of day
       } else if (_analysisWindow == 'this_month') {
         startDate = DateTime(now.year, now.month, 1);
       } else if (_analysisWindow == 'last_month') {
@@ -2295,13 +2084,7 @@ Your response MUST be valid JSON. No conversational text. Do not use unescaped d
         final lastOfPrev = firstOfThis.subtract(const Duration(days: 1));
         startDate = DateTime(lastOfPrev.year, lastOfPrev.month, 1);
         endDate = DateTime(
-          lastOfPrev.year,
-          lastOfPrev.month,
-          lastOfPrev.day,
-          23,
-          59,
-          59,
-        );
+            lastOfPrev.year, lastOfPrev.month, lastOfPrev.day, 23, 59, 59);
       } else if (_analysisWindow == 'this_year') {
         startDate = DateTime(now.year, 1, 1);
       } else if (_analysisWindow == 'last_year') {
@@ -2311,10 +2094,8 @@ Your response MUST be valid JSON. No conversational text. Do not use unescaped d
         startDate = now.subtract(const Duration(days: 30));
       }
 
-      final recentTrades = await _fetchRecentTrades(
-        since: startDate,
-        until: endDate,
-      );
+      final recentTrades =
+          await _fetchRecentTrades(since: startDate, until: endDate);
 
       if (!mounted) return;
 
@@ -2327,10 +2108,8 @@ Your response MUST be valid JSON. No conversational text. Do not use unescaped d
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text(
-                "No filled manual trades found in the last 90 days to analyze.",
-              ),
-            ),
+                content: Text(
+                    "No filled manual trades found in the last 90 days to analyze.")),
           );
         }
         return;
@@ -2378,7 +2157,7 @@ Your response MUST be valid JSON. No conversational text. Do not use unescaped d
               'coaching_style': _coachingStyle,
               'start_date': startDate,
               'end_date': endDate,
-            },
+            }
           });
           await _loadHistory();
           if (mounted) {
@@ -2408,24 +2187,17 @@ Your response MUST be valid JSON. No conversational text. Do not use unescaped d
     }
   }
 
-  Future<List<Map<String, dynamic>>> _fetchRecentTrades({
-    DateTime? since,
-    DateTime? until,
-    String? limitToType,
-    bool silent = false,
-  }) async {
-    final instrumentOrderStore = Provider.of<InstrumentOrderStore>(
-      context,
-      listen: false,
-    );
-    final optionOrderStore = Provider.of<OptionOrderStore>(
-      context,
-      listen: false,
-    );
-    final instrumentStore = Provider.of<InstrumentStore>(
-      context,
-      listen: false,
-    );
+  Future<List<Map<String, dynamic>>> _fetchRecentTrades(
+      {DateTime? since,
+      DateTime? until,
+      String? limitToType,
+      bool silent = false}) async {
+    final instrumentOrderStore =
+        Provider.of<InstrumentOrderStore>(context, listen: false);
+    final optionOrderStore =
+        Provider.of<OptionOrderStore>(context, listen: false);
+    final instrumentStore =
+        Provider.of<InstrumentStore>(context, listen: false);
 
     // Default to 30 days if nothing specified
     final startDate =
@@ -2444,20 +2216,17 @@ Your response MUST be valid JSON. No conversational text. Do not use unescaped d
             setState(() => _statusMessage = "Fetching stock orders...");
           }
           var stockResults = await RobinhoodService.pagedGet(
-            widget.user,
-            "${rhService.endpoint}/orders/",
-            shouldStop: (items) {
-              if (items.isEmpty) return false;
-              final last =
-                  items.last; // Check the last item of the accumulated results
-              final dateStr =
-                  last['updated_at'] as String? ??
-                  last['created_at'] as String?;
-              if (dateStr == null) return false;
-              final date = DateTime.tryParse(dateStr);
-              return date != null && date.isBefore(startDate);
-            },
-          );
+              widget.user, "${rhService.endpoint}/orders/",
+              shouldStop: (items) {
+            if (items.isEmpty) return false;
+            final last =
+                items.last; // Check the last item of the accumulated results
+            final dateStr =
+                last['updated_at'] as String? ?? last['created_at'] as String?;
+            if (dateStr == null) return false;
+            final date = DateTime.tryParse(dateStr);
+            return date != null && date.isBefore(startDate);
+          });
 
           if (!mounted) return [];
 
@@ -2484,10 +2253,8 @@ Your response MUST be valid JSON. No conversational text. Do not use unescaped d
 
           if (neededIds.isNotEmpty) {
             if (mounted && !silent) {
-              setState(
-                () => _statusMessage =
-                    "Identifying instruments (${neededIds.length})...",
-              );
+              setState(() => _statusMessage =
+                  "Identifying instruments (${neededIds.length})...");
             }
             // Batch get instruments efficiently
             // chunks of 50 to avoid URL length issues
@@ -2495,10 +2262,7 @@ Your response MUST be valid JSON. No conversational text. Do not use unescaped d
             for (var i = 0; i < ids.length; i += 50) {
               final end = (i + 50 < ids.length) ? i + 50 : ids.length;
               await rhService.getInstrumentsByIds(
-                widget.user,
-                instrumentStore,
-                ids.sublist(i, end),
-              );
+                  widget.user, instrumentStore, ids.sublist(i, end));
             }
           }
 
@@ -2507,9 +2271,8 @@ Your response MUST be valid JSON. No conversational text. Do not use unescaped d
           for (var op in stockOrders) {
             if (op.instrumentObj == null) {
               try {
-                op.instrumentObj = instrumentStore.items.firstWhere(
-                  (element) => element.id == op.instrumentId,
-                );
+                op.instrumentObj = instrumentStore.items
+                    .firstWhere((element) => element.id == op.instrumentId);
               } catch (_) {}
             }
             instrumentOrderStore.addOrUpdate(op);
@@ -2522,19 +2285,16 @@ Your response MUST be valid JSON. No conversational text. Do not use unescaped d
             setState(() => _statusMessage = "Fetching option orders...");
           }
           var optionResults = await RobinhoodService.pagedGet(
-            widget.user,
-            "${rhService.endpoint}/options/orders/",
-            shouldStop: (items) {
-              if (items.isEmpty) return false;
-              final last = items.last;
-              final dateStr =
-                  last['updated_at'] as String? ??
-                  last['created_at'] as String?;
-              if (dateStr == null) return false;
-              final date = DateTime.tryParse(dateStr);
-              return date != null && date.isBefore(startDate);
-            },
-          );
+              widget.user, "${rhService.endpoint}/options/orders/",
+              shouldStop: (items) {
+            if (items.isEmpty) return false;
+            final last = items.last;
+            final dateStr =
+                last['updated_at'] as String? ?? last['created_at'] as String?;
+            if (dateStr == null) return false;
+            final date = DateTime.tryParse(dateStr);
+            return date != null && date.isBefore(startDate);
+          });
 
           if (!mounted) return [];
 
@@ -2566,29 +2326,19 @@ Your response MUST be valid JSON. No conversational text. Do not use unescaped d
       'filled',
       'queued',
       'confirmed',
-      'partially_filled',
+      'partially_filled'
     };
-    final relevantInstrumentOrders =
-        instrumentOrderStore.items
-            .where((o) => relevantStates.contains(o.state))
-            .toList()
-          ..sort(
-            (a, b) => (b.updatedAt ?? DateTime.fromMillisecondsSinceEpoch(0))
-                .compareTo(
-                  a.updatedAt ?? DateTime.fromMillisecondsSinceEpoch(0),
-                ),
-          );
+    final relevantInstrumentOrders = instrumentOrderStore.items
+        .where((o) => relevantStates.contains(o.state))
+        .toList()
+      ..sort((a, b) => (b.updatedAt ?? DateTime.fromMillisecondsSinceEpoch(0))
+          .compareTo(a.updatedAt ?? DateTime.fromMillisecondsSinceEpoch(0)));
 
-    final relevantOptionOrders =
-        optionOrderStore.items
-            .where((o) => relevantStates.contains(o.state))
-            .toList()
-          ..sort(
-            (a, b) => (b.updatedAt ?? DateTime.fromMillisecondsSinceEpoch(0))
-                .compareTo(
-                  a.updatedAt ?? DateTime.fromMillisecondsSinceEpoch(0),
-                ),
-          );
+    final relevantOptionOrders = optionOrderStore.items
+        .where((o) => relevantStates.contains(o.state))
+        .toList()
+      ..sort((a, b) => (b.updatedAt ?? DateTime.fromMillisecondsSinceEpoch(0))
+          .compareTo(a.updatedAt ?? DateTime.fromMillisecondsSinceEpoch(0)));
 
     final allTrades = <Map<String, dynamic>>[];
 
@@ -2626,29 +2376,26 @@ Your response MUST be valid JSON. No conversational text. Do not use unescaped d
             'original': order,
             'type': 'option',
             'symbol': order.chainSymbol,
-            'legs': order.legs
-                .map((l) {
-                  final exp = l.expirationDate != null
-                      ? DateFormat('MM/dd').format(l.expirationDate!)
-                      : '';
-                  final strike = l.strikePrice ?? 0;
-                  final type = l.optionType == 'call'
-                      ? 'C'
-                      : (l.optionType == 'put' ? 'P' : l.optionType);
-                  return '$exp ${strike.toStringAsFixed(1)} $type';
-                })
-                .join(', '),
+            'legs': order.legs.map((l) {
+              final exp = l.expirationDate != null
+                  ? DateFormat('MM/dd').format(l.expirationDate!)
+                  : '';
+              final strike = l.strikePrice ?? 0;
+              final type = l.optionType == 'call'
+                  ? 'C'
+                  : (l.optionType == 'put' ? 'P' : l.optionType);
+              return '$exp ${strike.toStringAsFixed(1)} $type';
+            }).join(', '),
             'raw_legs': order.legs
                 .map((l) => '${l.side} ${l.positionEffect} ${l.ratioQuantity}')
                 .join(', '),
             'details': {
-              'expiration': order.legs.firstOrNull?.expirationDate
-                  ?.toIso8601String(),
+              'expiration':
+                  order.legs.firstOrNull?.expirationDate?.toIso8601String(),
               'strike': order.legs.firstOrNull?.strikePrice,
               'option_type': order.legs.firstOrNull?.optionType,
             },
-            'price':
-                order.processedPremium ??
+            'price': order.processedPremium ??
                 order.price ??
                 order.stopPrice ??
                 order.premium,
@@ -2668,9 +2415,8 @@ Your response MUST be valid JSON. No conversational text. Do not use unescaped d
       }
     }
 
-    allTrades.sort(
-      (a, b) => DateTime.parse(b['date']).compareTo(DateTime.parse(a['date'])),
-    );
+    allTrades.sort((a, b) =>
+        DateTime.parse(b['date']).compareTo(DateTime.parse(a['date'])));
 
     // Limit to recent 300 trades to fit in context window and focus on recent behavior
     return allTrades.take(300).toList();
@@ -2699,8 +2445,7 @@ Your response MUST be valid JSON. No conversational text. Do not use unescaped d
   }
 
   Future<Map<String, dynamic>> _generateCoachingInsight(
-    List<Map<String, dynamic>> trades,
-  ) async {
+      List<Map<String, dynamic>> trades) async {
     // Construct Prompt
     final sanitizedTrades = trades.map((t) {
       final newMap = Map<String, dynamic>.from(t);
@@ -2817,17 +2562,14 @@ Your response MUST be valid JSON. No conversational text. Do not use unescaped d
     if (_emotionLogs.isNotEmpty) {
       final recent = _emotionLogs
           .take(8)
-          .map(
-            (e) =>
-                "- ${DateFormat('yyyy-MM-dd HH:mm').format(e.timestamp)} | State: ${e.emotion.label} (${e.emotion.emoji}) | Energy: ${e.energyLevel}/5 | Confidence: ${e.confidenceLevel}/5 | Sentiment: ${e.marketSentiment}${e.notes.isNotEmpty ? ' | Notes: \"${e.notes}\"' : ''}${e.symbol != null ? ' | Symbol: ${e.symbol}' : ''}",
-          )
+          .map((e) =>
+              "- ${DateFormat('yyyy-MM-dd HH:mm').format(e.timestamp)} | State: ${e.emotion.label} (${e.emotion.emoji}) | Energy: ${e.energyLevel}/5 | Confidence: ${e.confidenceLevel}/5 | Sentiment: ${e.marketSentiment}${e.notes.isNotEmpty ? ' | Notes: \"${e.notes}\"' : ''}${e.symbol != null ? ' | Symbol: ${e.symbol}' : ''}")
           .join("\n");
       emotionContext =
           "\nTRADER RECENT EMOTION & MINDSET LOGS:\n$recent\n(Cross-reference these emotional check-ins with trade timing and outcomes. Did trading while Frustrated or FOMO cause mistakes?)\n";
     }
 
-    final prompt =
-        '''
+    final prompt = '''
 You are an Elite AI Trading Performance Coach (Pattern Recognition Expert).
 Your objective is to audit the user's trading logs, identify profitability leaks, and prescribe corrective protocols.
 
@@ -2942,9 +2684,8 @@ OUTPUT SCHEMA (JSON Only, No Markdown formatting outside the strings. IMPORTANT:
         };
         parsed['psychology_summary'] =
             "Discipline and behavioral mindset calibrated from execution logs.";
-        parsed['psychology_verdict'] = TradingPsychologyScore.deriveVerdict(
-          scoreVal,
-        );
+        parsed['psychology_verdict'] =
+            TradingPsychologyScore.deriveVerdict(scoreVal);
       }
       return parsed;
     } catch (e) {
@@ -2957,7 +2698,7 @@ OUTPUT SCHEMA (JSON Only, No Markdown formatting outside the strings. IMPORTANT:
           "emotional_stability": 50,
           "discipline_patience": 50,
           "bias_resistance": 50,
-          "risk_temperament": 50,
+          "risk_temperament": 50
         },
         "psychology_summary": "Baseline assessment following data parsing.",
         "detected_biases": [
@@ -2967,12 +2708,12 @@ OUTPUT SCHEMA (JSON Only, No Markdown formatting outside the strings. IMPORTANT:
             "description": "Tendency to trade during low-conviction setups.",
             "evidence": "Observed across recent trade sequence.",
             "mitigation":
-                "Wait for clear confirmation and setup criteria before placing orders.",
-          },
+                "Wait for clear confirmation and setup criteria before placing orders."
+          }
         ],
         "biases": ["Parsing Error"],
         "tips": ["Could not parse structured AI response."],
-        "analysis": "Raw output: $outputText",
+        "analysis": "Raw output: $outputText"
       };
     }
   }
@@ -3094,16 +2835,13 @@ class CoachingResultView extends StatelessWidget {
     } else {
       final disc =
           (subScores?['discipline'] as num?)?.toInt() ?? (score as num).toInt();
-      final risk =
-          (subScores?['risk_management'] as num?)?.toInt() ??
+      final risk = (subScores?['risk_management'] as num?)?.toInt() ??
           (score as num).toInt();
-      final cons =
-          (subScores?['consistency'] as num?)?.toInt() ??
+      final cons = (subScores?['consistency'] as num?)?.toInt() ??
           (score as num).toInt();
       psychologyScore = TradingPsychologyScore(
-        overallScore: ((disc * 0.4) + (risk * 0.3) + (cons * 0.3))
-            .round()
-            .clamp(0, 100),
+        overallScore:
+            ((disc * 0.4) + (risk * 0.3) + (cons * 0.3)).round().clamp(0, 100),
         emotionalStability: ((disc * 0.5) + (cons * 0.5)).round().clamp(0, 100),
         disciplinePatience: disc,
         biasResistance: ((disc * 0.6) + (risk * 0.4)).round().clamp(0, 100),
@@ -3155,20 +2893,17 @@ class CoachingResultView extends StatelessWidget {
           sev = 'High';
         }
         final parts = w.split(':');
-        final name = parts.first
-            .replaceAll(RegExp(r'^[0-9\.\-\* ]+'), '')
-            .trim();
+        final name =
+            parts.first.replaceAll(RegExp(r'^[0-9\.\-\* ]+'), '').trim();
         final desc = parts.length > 1 ? parts.sublist(1).join(':').trim() : w;
-        detectedBiases.add(
-          DetectedBias(
-            name: name,
-            severity: sev,
-            description: desc,
-            evidence: "Observed in recent trade sequence.",
-            mitigation:
-                "Establish a strict pre-flight entry checklist before taking positions.",
-          ),
-        );
+        detectedBiases.add(DetectedBias(
+          name: name,
+          severity: sev,
+          description: desc,
+          evidence: "Observed in recent trade sequence.",
+          mitigation:
+              "Establish a strict pre-flight entry checklist before taking positions.",
+        ));
       }
     }
 
@@ -3207,14 +2942,12 @@ class CoachingResultView extends StatelessWidget {
       children: [
         if (sessionDate != null)
           Center(
-            child: Padding(
-              padding: const EdgeInsets.only(bottom: 8.0),
-              child: Text(
+              child: Padding(
+            padding: const EdgeInsets.only(bottom: 8.0),
+            child: Text(
                 "Analyzed on: ${DateFormat.yMMMd().add_jm().format(sessionDate!)}",
-                style: const TextStyle(color: Colors.grey, fontSize: 12),
-              ),
-            ),
-          ),
+                style: const TextStyle(color: Colors.grey, fontSize: 12)),
+          )),
         if (focusArea != null ||
             analysisWindow != null ||
             (tradeType != 'all' && tradeType != null) ||
@@ -3229,27 +2962,22 @@ class CoachingResultView extends StatelessWidget {
                 children: [
                   if (analysisWindow != null)
                     _buildConfigChip(
-                      context,
-                      _getAnalysisWindowLabel(analysisWindow!),
-                    ),
+                        context, _getAnalysisWindowLabel(analysisWindow!)),
                   if (tradeType != null && tradeType != 'all')
                     _buildConfigChip(
-                      context,
-                      "${tradeType![0].toUpperCase()}${tradeType!.substring(1)}s",
-                      Colors.blue,
-                    ),
+                        context,
+                        "${tradeType![0].toUpperCase()}${tradeType!.substring(1)}s",
+                        Colors.blue),
                   if (focusArea != null && focusArea != 'overall')
                     _buildConfigChip(
-                      context,
-                      "Focus: ${focusArea![0].toUpperCase()}${focusArea!.substring(1)}",
-                      Colors.purple,
-                    ),
+                        context,
+                        "Focus: ${focusArea![0].toUpperCase()}${focusArea!.substring(1)}",
+                        Colors.purple),
                   if (coachingStyle != null && coachingStyle != 'balanced')
                     _buildConfigChip(
-                      context,
-                      "Style: ${coachingStyle![0].toUpperCase()}${coachingStyle!.substring(1)}",
-                      Colors.orange,
-                    ),
+                        context,
+                        "Style: ${coachingStyle![0].toUpperCase()}${coachingStyle!.substring(1)}",
+                        Colors.orange),
                 ],
               ),
             ),
@@ -3258,9 +2986,8 @@ class CoachingResultView extends StatelessWidget {
         Card(
           elevation: 6,
           shadowColor: scoreColor.withOpacity(0.3),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           child: Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(20),
@@ -3298,10 +3025,9 @@ class CoachingResultView extends StatelessWidget {
                               Text(
                                 "$score",
                                 style: TextStyle(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                  color: scoreColor,
-                                ),
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.bold,
+                                    color: scoreColor),
                               ),
                               if (scoreDelta != null && scoreDelta != 0)
                                 Row(
@@ -3329,10 +3055,8 @@ class CoachingResultView extends StatelessWidget {
                                   ],
                                 ),
                               if (scoreDelta == null || scoreDelta == 0)
-                                const Text(
-                                  "Score",
-                                  style: TextStyle(fontSize: 10),
-                                ),
+                                const Text("Score",
+                                    style: TextStyle(fontSize: 10)),
                             ],
                           ),
                         ],
@@ -3342,31 +3066,25 @@ class CoachingResultView extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
-                              "TRADER ARCHETYPE",
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey,
-                              ),
-                            ),
+                            const Text("TRADER ARCHETYPE",
+                                style: TextStyle(
+                                    fontSize: 12, color: Colors.grey)),
                             Row(
                               children: [
-                                Icon(
-                                  _getArchetypeIcon(archetype),
-                                  color: Theme.of(context).colorScheme.primary,
-                                  size: 28,
-                                ),
+                                Icon(_getArchetypeIcon(archetype),
+                                    color:
+                                        Theme.of(context).colorScheme.primary,
+                                    size: 28),
                                 const SizedBox(width: 8),
                                 Expanded(
                                   child: Text(
                                     archetype,
                                     style: TextStyle(
-                                      fontSize: 22,
-                                      fontWeight: FontWeight.bold,
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.primary,
-                                    ),
+                                        fontSize: 22,
+                                        fontWeight: FontWeight.bold,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .primary),
                                   ),
                                 ),
                               ],
@@ -3384,32 +3102,23 @@ class CoachingResultView extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
                         _buildSubScore(
-                          context,
-                          "Discipline",
-                          subScores['discipline'] ?? 0,
-                          prevValue: prevSubScores?['discipline'],
-                          description:
-                              "Measures patience (Limit vs Market orders), adherence to plans, and avoidance of emotional impulses like revenge trading.",
-                        ),
-                        _buildSubScore(
-                          context,
-                          "Risk Mgmt",
-                          subScores['risk_management'] ?? 0,
-                          prevValue: prevSubScores?['risk_management'],
-                          description:
-                              "Evaluates capital preservation, use of stop losses, position sizing, and exposure control.",
-                        ),
-                        _buildSubScore(
-                          context,
-                          "Consistency",
-                          subScores['consistency'] ?? 0,
-                          prevValue: prevSubScores?['consistency'],
-                          description:
-                              "Tracks the steadiness of your approach, avoiding strategy hopping or erratic changes in activity.",
-                        ),
+                            context, "Discipline", subScores['discipline'] ?? 0,
+                            prevValue: prevSubScores?['discipline'],
+                            description:
+                                "Measures patience (Limit vs Market orders), adherence to plans, and avoidance of emotional impulses like revenge trading."),
+                        _buildSubScore(context, "Risk Mgmt",
+                            subScores['risk_management'] ?? 0,
+                            prevValue: prevSubScores?['risk_management'],
+                            description:
+                                "Evaluates capital preservation, use of stop losses, position sizing, and exposure control."),
+                        _buildSubScore(context, "Consistency",
+                            subScores['consistency'] ?? 0,
+                            prevValue: prevSubScores?['consistency'],
+                            description:
+                                "Tracks the steadiness of your approach, avoiding strategy hopping or erratic changes in activity."),
                       ],
                     ),
-                  ],
+                  ]
                 ],
               ),
             ),
@@ -3466,16 +3175,15 @@ class CoachingResultView extends StatelessWidget {
           Card(
             color: isChallengeCompleted
                 ? (Theme.of(context).brightness == Brightness.dark
-                      ? Colors.green.withOpacity(0.15)
-                      : Colors.green.shade50)
+                    ? Colors.green.withOpacity(0.15)
+                    : Colors.green.shade50)
                 : Theme.of(context).colorScheme.tertiaryContainer,
             elevation: 4,
             shadowColor: isChallengeCompleted
                 ? Colors.green.withOpacity(0.3)
                 : Theme.of(context).colorScheme.primary.withOpacity(0.2),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-            ),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
             child: InkWell(
               onTap: () => onChallengeToggle(!isChallengeCompleted),
               borderRadius: BorderRadius.circular(20),
@@ -3487,15 +3195,14 @@ class CoachingResultView extends StatelessWidget {
                     Row(
                       children: [
                         Icon(
-                          isChallengeCompleted
-                              ? Icons.check_circle
-                              : Icons.flag_rounded,
-                          color: isChallengeCompleted
-                              ? Colors.green
-                              : Theme.of(
-                                  context,
-                                ).colorScheme.onTertiaryContainer,
-                        ),
+                            isChallengeCompleted
+                                ? Icons.check_circle
+                                : Icons.flag_rounded,
+                            color: isChallengeCompleted
+                                ? Colors.green
+                                : Theme.of(context)
+                                    .colorScheme
+                                    .onTertiaryContainer),
                         const SizedBox(width: 10),
                         Expanded(
                           child: Row(
@@ -3505,16 +3212,15 @@ class CoachingResultView extends StatelessWidget {
                                     ? "CHALLENGE COMPLETED!"
                                     : challengeTitle,
                                 style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: isChallengeCompleted
-                                      ? (Theme.of(context).brightness ==
+                                    fontWeight: FontWeight.bold,
+                                    color: isChallengeCompleted
+                                        ? (Theme.of(context).brightness ==
                                                 Brightness.dark
                                             ? Colors.green.shade300
                                             : Colors.green.shade900)
-                                      : Theme.of(
-                                          context,
-                                        ).colorScheme.onTertiaryContainer,
-                                ),
+                                        : Theme.of(context)
+                                            .colorScheme
+                                            .onTertiaryContainer),
                               ),
                               if (streak > 0) ...[
                                 const SizedBox(width: 8),
@@ -3522,31 +3228,25 @@ class CoachingResultView extends StatelessWidget {
                                   message: "$streak challenge streak!",
                                   child: Container(
                                     padding: const EdgeInsets.symmetric(
-                                      horizontal: 6,
-                                      vertical: 2,
-                                    ),
+                                        horizontal: 6, vertical: 2),
                                     decoration: BoxDecoration(
                                       color: Colors.orange.withOpacity(0.2),
                                       borderRadius: BorderRadius.circular(12),
                                       border: Border.all(
-                                        color: Colors.orange.withOpacity(0.5),
-                                      ),
+                                          color:
+                                              Colors.orange.withOpacity(0.5)),
                                     ),
                                     child: Row(
                                       children: [
-                                        const Icon(
-                                          Icons.local_fire_department,
-                                          size: 14,
-                                          color: Colors.deepOrange,
-                                        ),
+                                        const Icon(Icons.local_fire_department,
+                                            size: 14, color: Colors.deepOrange),
                                         const SizedBox(width: 2),
                                         Text(
                                           "$streak",
                                           style: const TextStyle(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.deepOrange,
-                                          ),
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.deepOrange),
                                         ),
                                       ],
                                     ),
@@ -3560,7 +3260,7 @@ class CoachingResultView extends StatelessWidget {
                           value: isChallengeCompleted,
                           onChanged: onChallengeToggle,
                           activeThumbColor: Colors.green,
-                        ),
+                        )
                       ],
                     ),
                     if (completionPercentage != null)
@@ -3573,8 +3273,8 @@ class CoachingResultView extends StatelessWidget {
                             fontSize: 12,
                             color:
                                 Theme.of(context).brightness == Brightness.dark
-                                ? Colors.green.shade300
-                                : Colors.green.shade700,
+                                    ? Colors.green.shade300
+                                    : Colors.green.shade700,
                           ),
                         ),
                       ),
@@ -3586,15 +3286,12 @@ class CoachingResultView extends StatelessWidget {
                           if (challengeType != null) ...[
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 2,
-                              ),
+                                  horizontal: 8, vertical: 2),
                               decoration: BoxDecoration(
                                 color: typeColor.withOpacity(0.1),
                                 borderRadius: BorderRadius.circular(4),
                                 border: Border.all(
-                                  color: typeColor.withOpacity(0.3),
-                                ),
+                                    color: typeColor.withOpacity(0.3)),
                               ),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
@@ -3604,10 +3301,9 @@ class CoachingResultView extends StatelessWidget {
                                   Text(
                                     challengeType.toUpperCase(),
                                     style: TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold,
-                                      color: typeColor,
-                                    ),
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                        color: typeColor),
                                   ),
                                 ],
                               ),
@@ -3617,23 +3313,19 @@ class CoachingResultView extends StatelessWidget {
                           if (challengeDifficulty != null)
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 2,
-                              ),
+                                  horizontal: 8, vertical: 2),
                               decoration: BoxDecoration(
                                 color: difficultyColor.withOpacity(0.1),
                                 borderRadius: BorderRadius.circular(4),
                                 border: Border.all(
-                                  color: difficultyColor.withOpacity(0.3),
-                                ),
+                                    color: difficultyColor.withOpacity(0.3)),
                               ),
                               child: Text(
                                 challengeDifficulty.toUpperCase(),
                                 style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                  color: difficultyColor,
-                                ),
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: difficultyColor),
                               ),
                             ),
                         ],
@@ -3643,18 +3335,19 @@ class CoachingResultView extends StatelessWidget {
                     Text(
                       challenge,
                       style: TextStyle(
-                        fontSize: 16,
-                        height: 1.4,
-                        fontWeight: FontWeight.w500,
-                        decoration: isChallengeCompleted
-                            ? TextDecoration.lineThrough
-                            : null,
-                        color: isChallengeCompleted
-                            ? (Theme.of(context).brightness == Brightness.dark
+                          fontSize: 16,
+                          height: 1.4,
+                          fontWeight: FontWeight.w500,
+                          decoration: isChallengeCompleted
+                              ? TextDecoration.lineThrough
+                              : null,
+                          color: isChallengeCompleted
+                              ? (Theme.of(context).brightness == Brightness.dark
                                   ? Colors.grey.shade400
                                   : Colors.grey.shade700)
-                            : Theme.of(context).colorScheme.onTertiaryContainer,
-                      ),
+                              : Theme.of(context)
+                                  .colorScheme
+                                  .onTertiaryContainer),
                     ),
                     if (challengeReason != null) ...[
                       const SizedBox(height: 8),
@@ -3665,226 +3358,194 @@ class CoachingResultView extends StatelessWidget {
                           fontStyle: FontStyle.italic,
                           color: isChallengeCompleted
                               ? (Theme.of(context).brightness == Brightness.dark
-                                    ? Colors.grey.shade500
-                                    : Colors.grey.shade600)
+                                  ? Colors.grey.shade500
+                                  : Colors.grey.shade600)
                               : Theme.of(context)
-                                    .colorScheme
-                                    .onTertiaryContainer
-                                    .withOpacity(0.75),
+                                  .colorScheme
+                                  .onTertiaryContainer
+                                  .withOpacity(0.75),
                         ),
                       ),
                     ],
                     const SizedBox(height: 12),
                     Divider(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.onTertiaryContainer.withOpacity(0.1),
-                    ),
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onTertiaryContainer
+                            .withOpacity(0.1)),
                     const SizedBox(height: 8),
-                    Builder(
-                      builder: (context) {
-                        double progressValue = 0.0;
-                        String labelDetails = "";
-                        String timeLabel = "Time Elapsed";
-                        if (isChallengeCompleted) {
-                          progressValue = 1.0;
-                          labelDetails = "Goal Achieved";
-                          timeLabel = "Status";
-                        } else if (sessionDate != null) {
-                          final now = DateTime.now();
+                    Builder(builder: (context) {
+                      double progressValue = 0.0;
+                      String labelDetails = "";
+                      String timeLabel = "Time Elapsed";
+                      if (isChallengeCompleted) {
+                        progressValue = 1.0;
+                        labelDetails = "Goal Achieved";
+                        timeLabel = "Status";
+                      } else if (sessionDate != null) {
+                        final now = DateTime.now();
 
-                          // Determine Market Week Window (Mon 9:30 - Fri 16:00)
-                          DateTime targetMonday;
-                          if (sessionDate!.weekday >= 6) {
-                            // Weekend: Target next week
-                            targetMonday = sessionDate!.add(
-                              Duration(days: 8 - sessionDate!.weekday),
-                            );
-                          } else {
-                            // Weekday: Target current week
-                            targetMonday = sessionDate!.subtract(
-                              Duration(days: sessionDate!.weekday - 1),
-                            );
-                          }
-
-                          final start = DateTime(
-                            targetMonday.year,
-                            targetMonday.month,
-                            targetMonday.day,
-                            9,
-                            30,
-                          );
-                          final friday = start.add(const Duration(days: 4));
-                          final end = DateTime(
-                            friday.year,
-                            friday.month,
-                            friday.day,
-                            16,
-                            0,
-                          );
-
-                          final totalMs = end.difference(start).inMilliseconds;
-                          final elapsedMs = now
-                              .difference(start)
-                              .inMilliseconds;
-
-                          if (now.isBefore(start)) {
-                            progressValue = 0.0;
-                            final timeUntil = start.difference(now);
-                            if (timeUntil.inDays > 0) {
-                              labelDetails = "Starts in ${timeUntil.inDays}d";
-                            } else {
-                              labelDetails = "Starts Market Open";
-                            }
-                          } else if (now.isAfter(end)) {
-                            progressValue = 1.0;
-                            labelDetails = "Expired (Review Adherence)";
-                          } else {
-                            if (totalMs > 0) {
-                              progressValue = (elapsedMs / totalMs).clamp(
-                                0.0,
-                                1.0,
-                              );
-                            }
-
-                            final remaining = end.difference(now);
-                            if (remaining.inDays > 0) {
-                              labelDetails = "${remaining.inDays} Days Left";
-                            } else {
-                              labelDetails = "${remaining.inHours} Hours Left";
-                            }
-                          }
+                        // Determine Market Week Window (Mon 9:30 - Fri 16:00)
+                        DateTime targetMonday;
+                        if (sessionDate!.weekday >= 6) {
+                          // Weekend: Target next week
+                          targetMonday = sessionDate!
+                              .add(Duration(days: 8 - sessionDate!.weekday));
+                        } else {
+                          // Weekday: Target current week
+                          targetMonday = sessionDate!.subtract(
+                              Duration(days: sessionDate!.weekday - 1));
                         }
 
-                        return Row(
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text(
-                                        timeLabel,
-                                        style: TextStyle(
+                        final start = DateTime(targetMonday.year,
+                            targetMonday.month, targetMonday.day, 9, 30);
+                        final friday = start.add(const Duration(days: 4));
+                        final end = DateTime(
+                            friday.year, friday.month, friday.day, 16, 0);
+
+                        final totalMs = end.difference(start).inMilliseconds;
+                        final elapsedMs = now.difference(start).inMilliseconds;
+
+                        if (now.isBefore(start)) {
+                          progressValue = 0.0;
+                          final timeUntil = start.difference(now);
+                          if (timeUntil.inDays > 0) {
+                            labelDetails = "Starts in ${timeUntil.inDays}d";
+                          } else {
+                            labelDetails = "Starts Market Open";
+                          }
+                        } else if (now.isAfter(end)) {
+                          progressValue = 1.0;
+                          labelDetails = "Expired (Review Adherence)";
+                        } else {
+                          if (totalMs > 0) {
+                            progressValue =
+                                (elapsedMs / totalMs).clamp(0.0, 1.0);
+                          }
+
+                          final remaining = end.difference(now);
+                          if (remaining.inDays > 0) {
+                            labelDetails = "${remaining.inDays} Days Left";
+                          } else {
+                            labelDetails = "${remaining.inHours} Hours Left";
+                          }
+                        }
+                      }
+
+                      return Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      timeLabel,
+                                      style: TextStyle(
                                           fontSize: 10,
                                           fontWeight: FontWeight.bold,
                                           color: Theme.of(context)
                                               .colorScheme
                                               .onTertiaryContainer
-                                              .withOpacity(0.5),
-                                        ),
-                                      ),
-                                      Text(
-                                        labelDetails.toUpperCase(),
-                                        style: TextStyle(
+                                              .withOpacity(0.5)),
+                                    ),
+                                    Text(
+                                      labelDetails.toUpperCase(),
+                                      style: TextStyle(
                                           fontSize: 10,
                                           letterSpacing: 0.5,
                                           color: isChallengeCompleted
                                               ? (Theme.of(context).brightness ==
-                                                        Brightness.dark
-                                                    ? Colors.green.shade300
-                                                    : Colors.green.shade800)
+                                                      Brightness.dark
+                                                  ? Colors.green.shade300
+                                                  : Colors.green.shade800)
                                               : Theme.of(context)
-                                                    .colorScheme
-                                                    .onTertiaryContainer
-                                                    .withOpacity(0.9),
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 6),
-                                  ClipRRect(
-                                    borderRadius: BorderRadius.circular(4),
-                                    child: LinearProgressIndicator(
-                                      minHeight: 6,
-                                      value: progressValue,
-                                      backgroundColor: isChallengeCompleted
-                                          ? Colors.green.withOpacity(0.2)
-                                          : Theme.of(context)
-                                                .colorScheme
-                                                .onTertiaryContainer
-                                                .withOpacity(0.1),
-                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                                  .colorScheme
+                                                  .onTertiaryContainer
+                                                  .withOpacity(0.9),
+                                          fontWeight: FontWeight.bold),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 6),
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(4),
+                                  child: LinearProgressIndicator(
+                                    minHeight: 6,
+                                    value: progressValue,
+                                    backgroundColor: isChallengeCompleted
+                                        ? Colors.green.withOpacity(0.2)
+                                        : Theme.of(context)
+                                            .colorScheme
+                                            .onTertiaryContainer
+                                            .withOpacity(0.1),
+                                    valueColor: AlwaysStoppedAnimation<Color>(
                                         isChallengeCompleted
                                             ? Colors.green
-                                            : Theme.of(context).primaryColor,
-                                      ),
-                                    ),
+                                            : Theme.of(context).primaryColor),
                                   ),
-                                ],
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (!isChallengeCompleted) ...[
+                            const SizedBox(width: 12),
+                            SizedBox(
+                              height: 40,
+                              child: OutlinedButton(
+                                onPressed: onCheckProgress,
+                                style: OutlinedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 16),
+                                  side: BorderSide(
+                                      color:
+                                          Theme.of(context).colorScheme.primary,
+                                      width: 2),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                child: Text("Check",
+                                    style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.bold,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .primary)),
                               ),
                             ),
-                            if (!isChallengeCompleted) ...[
-                              const SizedBox(width: 12),
-                              SizedBox(
-                                height: 40,
-                                child: OutlinedButton(
-                                  onPressed: onCheckProgress,
-                                  style: OutlinedButton.styleFrom(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 16,
-                                    ),
-                                    side: BorderSide(
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.primary,
-                                      width: 2,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                  ),
-                                  child: Text(
-                                    "Check",
+                            const SizedBox(width: 8),
+                            SizedBox(
+                              height: 40,
+                              child: ElevatedButton.icon(
+                                icon: const Icon(Icons.check, size: 18),
+                                label: const Text("Done",
                                     style: TextStyle(
                                       fontSize: 13,
                                       fontWeight: FontWeight.bold,
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.primary,
-                                    ),
+                                    )),
+                                onPressed: () => onChallengeToggle(true),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor:
+                                      Theme.of(context).colorScheme.primary,
+                                  foregroundColor:
+                                      Theme.of(context).colorScheme.onPrimary,
+                                  elevation: 2,
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 16),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
                                   ),
                                 ),
                               ),
-                              const SizedBox(width: 8),
-                              SizedBox(
-                                height: 40,
-                                child: ElevatedButton.icon(
-                                  icon: const Icon(Icons.check, size: 18),
-                                  label: const Text(
-                                    "Done",
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  onPressed: () => onChallengeToggle(true),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Theme.of(
-                                      context,
-                                    ).colorScheme.primary,
-                                    foregroundColor: Theme.of(
-                                      context,
-                                    ).colorScheme.onPrimary,
-                                    elevation: 2,
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 16,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ],
-                        );
-                      },
-                    ),
+                            ),
+                          ]
+                        ],
+                      );
+                    }),
                   ],
                 ),
               ),
@@ -3898,10 +3559,9 @@ class CoachingResultView extends StatelessWidget {
             challengeAdherence.isNotEmpty &&
             previousChallenge != null &&
             previousChallenge.isNotEmpty) ...[
-          const Text(
-            "PREVIOUS CHALLENGE REVIEW",
-            style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2),
-          ),
+          const Text("PREVIOUS CHALLENGE REVIEW",
+              style:
+                  TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2)),
           const SizedBox(height: 8),
           _InsightItem(
             text: challengeAdherence,
@@ -3914,10 +3574,9 @@ class CoachingResultView extends StatelessWidget {
 
         // History Chart
         if (history.length >= 2) ...[
-          const Text(
-            "PERFORMANCE TREND",
-            style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2),
-          ),
+          const Text("PERFORMANCE TREND",
+              style:
+                  TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2)),
           const SizedBox(height: 8),
           CoachingScoreChart(history: history),
           const SizedBox(height: 20),
@@ -3934,19 +3593,16 @@ class CoachingResultView extends StatelessWidget {
 
         // Strengths
         if (strengths.isNotEmpty) ...[
-          const Text(
-            "STRENGTHS",
-            style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2),
-          ),
+          const Text("STRENGTHS",
+              style:
+                  TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2)),
           const SizedBox(height: 8),
-          ...strengths.map(
-            (s) => _InsightItem(
-              text: s,
-              icon: Icons.verified,
-              color: Colors.green,
-              isPositive: true,
-            ),
-          ),
+          ...strengths.map((s) => _InsightItem(
+                text: s,
+                icon: Icons.verified,
+                color: Colors.green,
+                isPositive: true,
+              )),
           const SizedBox(height: 20),
         ],
 
@@ -3961,41 +3617,34 @@ class CoachingResultView extends StatelessWidget {
 
         // Weaknesses / Biases
         if (combinedWeaknesses.isNotEmpty) ...[
-          const Text(
-            "AREAS FOR IMPROVEMENT",
-            style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2),
-          ),
+          const Text("AREAS FOR IMPROVEMENT",
+              style:
+                  TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2)),
           const SizedBox(height: 8),
-          ...combinedWeaknesses.map(
-            (b) => _InsightItem(
-              text: b,
-              icon: Icons.warning_amber_rounded,
-              color: Colors.orange, // Use orange for warnings
-            ),
-          ),
+          ...combinedWeaknesses.map((b) => _InsightItem(
+                text: b,
+                icon: Icons.warning_amber_rounded,
+                color: Colors.orange, // Use orange for warnings
+              )),
           const SizedBox(height: 20),
         ],
 
         // Hidden Risks
         if (hiddenRisks.isNotEmpty) ...[
-          const Text(
-            "HIDDEN RISKS",
-            style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2),
-          ),
+          const Text("HIDDEN RISKS",
+              style:
+                  TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2)),
           const SizedBox(height: 8),
-          ...hiddenRisks.map(
-            (r) => _InsightItem(
-              text: r,
-              icon: Icons.visibility_off_outlined,
-              color: Colors.deepPurple,
-            ),
-          ),
+          ...hiddenRisks.map((r) => _InsightItem(
+                text: r,
+                icon: Icons.visibility_off_outlined,
+                color: Colors.deepPurple,
+              )),
           const SizedBox(height: 20),
         ] else if (score > 0) ...[
-          const Text(
-            "HIDDEN RISKS",
-            style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2),
-          ),
+          const Text("HIDDEN RISKS",
+              style:
+                  TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2)),
           const SizedBox(height: 8),
           const _InsightItem(
             text: "No significant hidden risks detected.",
@@ -4008,18 +3657,15 @@ class CoachingResultView extends StatelessWidget {
 
         // Tips
         if (tips.isNotEmpty) ...[
-          const Text(
-            "ACTION PLAN",
-            style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2),
-          ),
+          const Text("ACTION PLAN",
+              style:
+                  TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2)),
           const SizedBox(height: 8),
-          ...tips.map(
-            (tip) => _InsightItem(
-              text: tip,
-              icon: Icons.check_circle_outline,
-              color: Colors.blue,
-            ),
-          ),
+          ...tips.map((tip) => _InsightItem(
+                text: tip,
+                icon: Icons.check_circle_outline,
+                color: Colors.blue,
+              )),
           const SizedBox(height: 20),
         ],
 
@@ -4027,10 +3673,9 @@ class CoachingResultView extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
-              "JOURNAL & REFLECTIONS",
-              style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2),
-            ),
+            const Text("JOURNAL & REFLECTIONS",
+                style:
+                    TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2)),
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -4084,11 +3729,10 @@ class CoachingResultView extends StatelessWidget {
           elevation: 2,
           color: Theme.of(context).cardColor,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: BorderSide(
-              color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
-            ),
-          ),
+              borderRadius: BorderRadius.circular(16),
+              side: BorderSide(
+                  color:
+                      Theme.of(context).colorScheme.outline.withOpacity(0.2))),
           child: InkWell(
             borderRadius: BorderRadius.circular(16),
             onTap: () {
@@ -4146,10 +3790,9 @@ class CoachingResultView extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
-              "DETAILED ANALYSIS",
-              style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2),
-            ),
+            const Text("DETAILED ANALYSIS",
+                style:
+                    TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2)),
             IconButton(
               icon: const Icon(Icons.copy, size: 20),
               tooltip: "Copy Analysis",
@@ -4167,23 +3810,20 @@ class CoachingResultView extends StatelessWidget {
           elevation: 2,
           color: Theme.of(context).cardColor,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: BorderSide(
-              color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
-            ),
-          ),
+              borderRadius: BorderRadius.circular(16),
+              side: BorderSide(
+                  color:
+                      Theme.of(context).colorScheme.outline.withOpacity(0.2))),
           child: Padding(
             padding: const EdgeInsets.all(20.0),
             child: MarkdownBody(
               data: analysis,
               styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context))
                   .copyWith(
-                    p: const TextStyle(fontSize: 16, height: 1.5),
-                    strong: TextStyle(
-                      color: Theme.of(context).colorScheme.primary,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                      p: const TextStyle(fontSize: 16, height: 1.5),
+                      strong: TextStyle(
+                          color: Theme.of(context).colorScheme.primary,
+                          fontWeight: FontWeight.bold)),
             ),
           ),
         ),
@@ -4222,11 +3862,8 @@ class CoachingResultView extends StatelessWidget {
     }
   }
 
-  Widget _buildConfigChip(
-    BuildContext context,
-    String label, [
-    Color? colorOverride,
-  ]) {
+  Widget _buildConfigChip(BuildContext context, String label,
+      [Color? colorOverride]) {
     final color = colorOverride ?? Theme.of(context).colorScheme.primary;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -4235,24 +3872,14 @@ class CoachingResultView extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: color.withOpacity(0.3)),
       ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 10,
-          fontWeight: FontWeight.bold,
-          color: color,
-        ),
-      ),
+      child: Text(label,
+          style: TextStyle(
+              fontSize: 10, fontWeight: FontWeight.bold, color: color)),
     );
   }
 
-  Widget _buildSubScore(
-    BuildContext context,
-    String label,
-    num value, {
-    num? prevValue,
-    String? description,
-  }) {
+  Widget _buildSubScore(BuildContext context, String label, num value,
+      {num? prevValue, String? description}) {
     // value 0-100
     final color = _getScoreColor(value);
     int? delta;
@@ -4271,17 +3898,13 @@ class CoachingResultView extends StatelessWidget {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+              Text(label,
+                  style: const TextStyle(
+                      fontSize: 11, fontWeight: FontWeight.bold)),
               if (description != null) ...[
                 const SizedBox(width: 2),
-                Icon(Icons.info_outline, size: 10, color: Colors.grey.shade400),
-              ],
+                Icon(Icons.info_outline, size: 10, color: Colors.grey.shade400)
+              ]
             ],
           ),
           const SizedBox(height: 4),
@@ -4301,13 +3924,9 @@ class CoachingResultView extends StatelessWidget {
               Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(
-                    "${value.toInt()}",
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  Text("${value.toInt()}",
+                      style: const TextStyle(
+                          fontSize: 12, fontWeight: FontWeight.bold)),
                 ],
               ),
             ],
@@ -4318,19 +3937,13 @@ class CoachingResultView extends StatelessWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
-                    delta > 0 ? Icons.arrow_drop_up : Icons.arrow_drop_down,
-                    size: 14,
-                    color: delta > 0 ? Colors.green : Colors.red,
-                  ),
-                  Text(
-                    "${delta.abs()}",
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: delta > 0 ? Colors.green : Colors.red,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  Icon(delta > 0 ? Icons.arrow_drop_up : Icons.arrow_drop_down,
+                      size: 14, color: delta > 0 ? Colors.green : Colors.red),
+                  Text("${delta.abs()}",
+                      style: TextStyle(
+                          fontSize: 10,
+                          color: delta > 0 ? Colors.green : Colors.red,
+                          fontWeight: FontWeight.bold)),
                 ],
               ),
             )
@@ -4393,245 +4006,201 @@ class _CoachingScoreChartState extends State<CoachingScoreChart> {
     dataPoints.sort((a, b) => a.date.compareTo(b.date));
 
     // Check if we have subscores to display
-    bool hasSubScores = dataPoints.any(
-      (p) => p.subScores != null && p.subScores!.isNotEmpty,
-    );
+    bool hasSubScores =
+        dataPoints.any((p) => p.subScores != null && p.subScores!.isNotEmpty);
 
     List<charts.Series<_HistoryPoint, DateTime>> seriesList = [];
 
     // Volume Series (Bar Chart) - Secondary Axis
-    seriesList.add(
-      charts.Series<_HistoryPoint, DateTime>(
-          id: 'Volume',
-          colorFn: (_, __) =>
-              charts.ColorUtil.fromDartColor(Colors.grey.withOpacity(0.3)),
-          domainFn: (p, _) => p.date,
-          measureFn: (p, _) => p.tradeCount,
-          data: dataPoints,
-        )
-        ..setAttribute(charts.rendererIdKey, 'customBar')
-        ..setAttribute(charts.measureAxisIdKey, 'secondaryMeasureAxisId'),
-    );
+    seriesList.add(charts.Series<_HistoryPoint, DateTime>(
+      id: 'Volume',
+      colorFn: (_, __) =>
+          charts.ColorUtil.fromDartColor(Colors.grey.withOpacity(0.3)),
+      domainFn: (p, _) => p.date,
+      measureFn: (p, _) => p.tradeCount,
+      data: dataPoints,
+    )
+      ..setAttribute(charts.rendererIdKey, 'customBar')
+      ..setAttribute(charts.measureAxisIdKey, 'secondaryMeasureAxisId'));
 
     // Main Score Series
-    seriesList.add(
-      charts.Series<_HistoryPoint, DateTime>(
-        id: 'Overall Score',
-        colorFn: (_, __) => charts.MaterialPalette.purple.shadeDefault,
-        domainFn: (p, _) => p.date,
-        measureFn: (p, _) => p.score,
-        strokeWidthPxFn: (_, __) => 3,
-        data: dataPoints,
-      ),
-    );
+    seriesList.add(charts.Series<_HistoryPoint, DateTime>(
+      id: 'Overall Score',
+      colorFn: (_, __) => charts.MaterialPalette.purple.shadeDefault,
+      domainFn: (p, _) => p.date,
+      measureFn: (p, _) => p.score,
+      strokeWidthPxFn: (_, __) => 3,
+      data: dataPoints,
+    ));
 
     if (hasSubScores) {
       // Discipline
-      seriesList.add(
-        charts.Series<_HistoryPoint, DateTime>(
-          id: 'Discipline',
-          colorFn: (_, __) =>
-              charts.MaterialPalette.blue.shadeDefault.lighter, // Lighter blue
-          domainFn: (p, _) => p.date,
-          measureFn: (p, _) => p.subScores?['discipline'] ?? 0,
-          dashPatternFn: (_, __) => [4, 4],
-          data: dataPoints,
-        ),
-      );
+      seriesList.add(charts.Series<_HistoryPoint, DateTime>(
+        id: 'Discipline',
+        colorFn: (_, __) =>
+            charts.MaterialPalette.blue.shadeDefault.lighter, // Lighter blue
+        domainFn: (p, _) => p.date,
+        measureFn: (p, _) => p.subScores?['discipline'] ?? 0,
+        dashPatternFn: (_, __) => [4, 4],
+        data: dataPoints,
+      ));
 
       // Risk
-      seriesList.add(
-        charts.Series<_HistoryPoint, DateTime>(
-          id: 'Risk Mgmt',
-          colorFn: (_, __) =>
-              charts.MaterialPalette.red.shadeDefault.lighter, // Lighter red
-          domainFn: (p, _) => p.date,
-          measureFn: (p, _) => p.subScores?['risk_management'] ?? 0,
-          dashPatternFn: (_, __) => [4, 4],
-          data: dataPoints,
-        ),
-      );
+      seriesList.add(charts.Series<_HistoryPoint, DateTime>(
+        id: 'Risk Mgmt',
+        colorFn: (_, __) =>
+            charts.MaterialPalette.red.shadeDefault.lighter, // Lighter red
+        domainFn: (p, _) => p.date,
+        measureFn: (p, _) => p.subScores?['risk_management'] ?? 0,
+        dashPatternFn: (_, __) => [4, 4],
+        data: dataPoints,
+      ));
 
       // Consistency
-      seriesList.add(
-        charts.Series<_HistoryPoint, DateTime>(
-          id: 'Consistency',
-          colorFn: (_, __) => charts
-              .MaterialPalette
-              .green
-              .shadeDefault
-              .lighter, // Lighter green
-          domainFn: (p, _) => p.date,
-          measureFn: (p, _) => p.subScores?['consistency'] ?? 0,
-          dashPatternFn: (_, __) => [4, 4],
-          data: dataPoints,
-        ),
-      );
+      seriesList.add(charts.Series<_HistoryPoint, DateTime>(
+        id: 'Consistency',
+        colorFn: (_, __) =>
+            charts.MaterialPalette.green.shadeDefault.lighter, // Lighter green
+        domainFn: (p, _) => p.date,
+        measureFn: (p, _) => p.subScores?['consistency'] ?? 0,
+        dashPatternFn: (_, __) => [4, 4],
+        data: dataPoints,
+      ));
     }
 
     return Card(
       elevation: 3,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
       color: Theme.of(context).cardColor,
       child: Padding(
         padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  "Performance vs Volume Trend",
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                if (_selectedDate != null)
-                  Text(
-                    DateFormat.MMMd().format(_selectedDate!),
-                    style: TextStyle(
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text("Performance vs Volume Trend",
+                  style: TextStyle(fontWeight: FontWeight.bold)),
+              if (_selectedDate != null)
+                Text(
+                  DateFormat.MMMd().format(_selectedDate!),
+                  style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                  ),
-              ],
-            ),
-            if (_selectedDate != null) ...[
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primary),
+                ),
+            ],
+          ),
+          if (_selectedDate != null) ...[
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
                   color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    _miniStat("Score", "$_selectedScore", Colors.purple),
-                    _miniStat("Trades", "$_selectedTradeCount", Colors.grey),
-                    if (_selectedSubScores != null) ...[
-                      _miniStat(
-                        "Disc.",
-                        _selectedSubScores?['discipline'],
-                        Colors.blue,
-                      ),
-                      _miniStat(
-                        "Risk",
-                        _selectedSubScores?['risk_management'],
-                        Colors.red,
-                      ),
-                      _miniStat(
-                        "Cons.",
-                        _selectedSubScores?['consistency'],
-                        Colors.green,
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ] else
-              const Padding(
-                padding: EdgeInsets.only(top: 4.0),
-                child: Text(
-                  "Tap points for details. Bars: Volume | Lines: Score",
-                  style: TextStyle(fontSize: 10, color: Colors.grey),
-                ),
-              ),
-            const SizedBox(height: 10),
-            SizedBox(
-              height: 220,
-              child: charts.TimeSeriesChart(
-                seriesList,
-                animate: true,
-                defaultRenderer: charts.LineRendererConfig(includePoints: true),
-                customSeriesRenderers: [
-                  charts.BarRendererConfig(
-                    customRendererId: 'customBar',
-                    // cornerRadius: 2,
-                  ),
+                  borderRadius: BorderRadius.circular(8)),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _miniStat("Score", "$_selectedScore", Colors.purple),
+                  _miniStat("Trades", "$_selectedTradeCount", Colors.grey),
+                  if (_selectedSubScores != null) ...[
+                    _miniStat("Disc.", _selectedSubScores?['discipline'],
+                        Colors.blue),
+                    _miniStat("Risk", _selectedSubScores?['risk_management'],
+                        Colors.red),
+                    _miniStat("Cons.", _selectedSubScores?['consistency'],
+                        Colors.green),
+                  ]
                 ],
-                dateTimeFactory: const charts.LocalDateTimeFactory(),
-                selectionModels: [
-                  charts.SelectionModelConfig(
-                    type: charts.SelectionModelType.info,
-                    changedListener: (charts.SelectionModel model) {
-                      if (model.hasDatumSelection) {
-                        final selectedDatum = model.selectedDatum.first;
-                        final point = selectedDatum.datum as _HistoryPoint;
-                        setState(() {
-                          _selectedDate = point.date;
-                          _selectedScore = point.score;
-                          _selectedSubScores = point.subScores;
-                          _selectedTradeCount = point.tradeCount;
-                        });
-                      }
-                    },
-                  ),
-                ],
-                behaviors: [
-                  charts.SelectNearest(
-                    eventTrigger: charts.SelectionTrigger.tapAndDrag,
-                  ),
-                  charts.LinePointHighlighter(
-                    symbolRenderer: charts.CircleSymbolRenderer(),
-                  ),
-                  charts.SeriesLegend(
-                    position: charts.BehaviorPosition.bottom,
-                    horizontalFirst: false,
-                    desiredMaxRows: 2,
-                    cellPadding: const EdgeInsets.only(right: 4.0, bottom: 4.0),
-                    entryTextStyle: charts.TextStyleSpec(
-                      color: charts.ColorUtil.fromDartColor(
-                        Theme.of(context).colorScheme.onSurface,
-                      ),
-                      fontSize: 10,
-                    ),
-                  ),
-                ],
-                domainAxis: charts.DateTimeAxisSpec(
-                  renderSpec: charts.SmallTickRendererSpec(
-                    labelStyle: charts.TextStyleSpec(
-                      fontSize: 10,
-                      color: charts.ColorUtil.fromDartColor(
-                        Theme.of(context).colorScheme.onSurface,
-                      ),
-                    ),
-                  ),
-                ),
-                primaryMeasureAxis: charts.NumericAxisSpec(
-                  tickProviderSpec: const charts.BasicNumericTickProviderSpec(
-                    zeroBound: false,
-                  ),
-                  renderSpec: charts.GridlineRendererSpec(
-                    labelStyle: charts.TextStyleSpec(
-                      fontSize: 10,
-                      color: charts.ColorUtil.fromDartColor(
-                        Theme.of(context).colorScheme.onSurface,
-                      ),
-                    ),
-                    lineStyle: charts.LineStyleSpec(
-                      color: charts.MaterialPalette.gray.shade200,
-                    ),
-                  ),
-                ),
-                secondaryMeasureAxis: charts.NumericAxisSpec(
-                  tickProviderSpec: const charts.BasicNumericTickProviderSpec(
-                    desiredTickCount: 5,
-                  ),
-                  renderSpec: charts.GridlineRendererSpec(
-                    labelStyle: charts.TextStyleSpec(
-                      fontSize: 10,
-                      color: charts.ColorUtil.fromDartColor(Colors.grey),
-                    ),
-                    lineStyle: charts.LineStyleSpec(
-                      dashPattern: [4, 4],
-                      color: charts.MaterialPalette.gray.shade200,
-                    ),
-                  ),
-                ),
               ),
             ),
-          ],
-        ),
+          ] else
+            const Padding(
+              padding: EdgeInsets.only(top: 4.0),
+              child: Text(
+                "Tap points for details. Bars: Volume | Lines: Score",
+                style: TextStyle(fontSize: 10, color: Colors.grey),
+              ),
+            ),
+          const SizedBox(height: 10),
+          SizedBox(
+            height: 220,
+            child: charts.TimeSeriesChart(
+              seriesList,
+              animate: true,
+              defaultRenderer: charts.LineRendererConfig(includePoints: true),
+              customSeriesRenderers: [
+                charts.BarRendererConfig(
+                  customRendererId: 'customBar',
+                  // cornerRadius: 2,
+                )
+              ],
+              dateTimeFactory: const charts.LocalDateTimeFactory(),
+              selectionModels: [
+                charts.SelectionModelConfig(
+                  type: charts.SelectionModelType.info,
+                  changedListener: (charts.SelectionModel model) {
+                    if (model.hasDatumSelection) {
+                      final selectedDatum = model.selectedDatum.first;
+                      final point = selectedDatum.datum as _HistoryPoint;
+                      setState(() {
+                        _selectedDate = point.date;
+                        _selectedScore = point.score;
+                        _selectedSubScores = point.subScores;
+                        _selectedTradeCount = point.tradeCount;
+                      });
+                    }
+                  },
+                )
+              ],
+              behaviors: [
+                charts.SelectNearest(
+                    eventTrigger: charts.SelectionTrigger.tapAndDrag),
+                charts.LinePointHighlighter(
+                    symbolRenderer: charts.CircleSymbolRenderer()),
+                charts.SeriesLegend(
+                  position: charts.BehaviorPosition.bottom,
+                  horizontalFirst: false,
+                  desiredMaxRows: 2,
+                  cellPadding: const EdgeInsets.only(right: 4.0, bottom: 4.0),
+                  entryTextStyle: charts.TextStyleSpec(
+                      color: charts.ColorUtil.fromDartColor(
+                          Theme.of(context).colorScheme.onSurface),
+                      fontSize: 10),
+                )
+              ],
+              domainAxis: charts.DateTimeAxisSpec(
+                renderSpec: charts.SmallTickRendererSpec(
+                  labelStyle: charts.TextStyleSpec(
+                    fontSize: 10,
+                    color: charts.ColorUtil.fromDartColor(
+                        Theme.of(context).colorScheme.onSurface),
+                  ),
+                ),
+              ),
+              primaryMeasureAxis: charts.NumericAxisSpec(
+                  tickProviderSpec: const charts.BasicNumericTickProviderSpec(
+                      zeroBound: false),
+                  renderSpec: charts.GridlineRendererSpec(
+                      labelStyle: charts.TextStyleSpec(
+                          fontSize: 10,
+                          color: charts.ColorUtil.fromDartColor(
+                              Theme.of(context).colorScheme.onSurface)),
+                      lineStyle: charts.LineStyleSpec(
+                          color: charts.MaterialPalette.gray.shade200))),
+              secondaryMeasureAxis: charts.NumericAxisSpec(
+                  tickProviderSpec: const charts.BasicNumericTickProviderSpec(
+                      desiredTickCount: 5),
+                  renderSpec: charts.GridlineRendererSpec(
+                      labelStyle: charts.TextStyleSpec(
+                          fontSize: 10,
+                          color: charts.ColorUtil.fromDartColor(Colors.grey)),
+                      lineStyle: charts.LineStyleSpec(
+                          dashPattern: [4, 4],
+                          color: charts.MaterialPalette.gray.shade200))),
+            ),
+          ),
+        ]),
       ),
     );
   }
@@ -4640,10 +4209,8 @@ class _CoachingScoreChartState extends State<CoachingScoreChart> {
     return Column(
       children: [
         Text(label, style: TextStyle(fontSize: 10, color: color)),
-        Text(
-          "${value ?? '-'}",
-          style: TextStyle(fontWeight: FontWeight.bold, color: color),
-        ),
+        Text("${value ?? '-'}",
+            style: TextStyle(fontWeight: FontWeight.bold, color: color)),
       ],
     );
   }
@@ -4679,9 +4246,8 @@ class TradeExecutionStatsView extends StatelessWidget {
       if (type.contains('market') && !isProtected) marketOrders++;
     }
     final totalMeasured = limitOrders + marketOrders;
-    double limitPct = totalMeasured > 0
-        ? (limitOrders / totalMeasured) * 100
-        : 0;
+    double limitPct =
+        totalMeasured > 0 ? (limitOrders / totalMeasured) * 100 : 0;
 
     // 2. Protection % (Stop triggers)
     int protectedOrders = 0;
@@ -4690,9 +4256,8 @@ class TradeExecutionStatsView extends StatelessWidget {
       final trailingPeg = t['trailing_peg'];
       if (trigger.contains('stop') || trailingPeg != null) protectedOrders++;
     }
-    double protectedPct = trades.isNotEmpty
-        ? (protectedOrders / trades.length) * 100
-        : 0;
+    double protectedPct =
+        trades.isNotEmpty ? (protectedOrders / trades.length) * 100 : 0;
 
     // 3. Max Activity (Trades per day)
     Map<String, int> tradesPerDay = {};
@@ -4702,9 +4267,8 @@ class TradeExecutionStatsView extends StatelessWidget {
     }
     int maxDaily = 0;
     if (tradesPerDay.isNotEmpty) {
-      maxDaily = tradesPerDay.values.reduce(
-        (curr, next) => curr > next ? curr : next,
-      );
+      maxDaily =
+          tradesPerDay.values.reduce((curr, next) => curr > next ? curr : next);
     }
 
     // 4. Time of Day Distribution
@@ -4715,9 +4279,8 @@ class TradeExecutionStatsView extends StatelessWidget {
     }
     int maxHourCount = 1;
     if (hourCounts.isNotEmpty) {
-      maxHourCount = hourCounts.values.reduce(
-        (curr, next) => curr > next ? curr : next,
-      );
+      maxHourCount =
+          hourCounts.values.reduce((curr, next) => curr > next ? curr : next);
     }
 
     // 5. Symbol Concentration (Top 5)
@@ -4749,8 +4312,7 @@ class TradeExecutionStatsView extends StatelessWidget {
         // Complex strategies might blur this, but good enough for rough bias.
         if (type == 'call') {
           longOrCall++;
-        } else if (type == 'put')
-          shortOrPut++;
+        } else if (type == 'put') shortOrPut++;
       }
     }
     final totalDir = longOrCall + shortOrPut;
@@ -4762,19 +4324,15 @@ class TradeExecutionStatsView extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
-            color: Theme.of(
-              context,
-            ).colorScheme.primaryContainer.withOpacity(0.3),
+            color:
+                Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3),
             borderRadius: BorderRadius.circular(8),
           ),
-          child: const Text(
-            "EXECUTION STATISTICS",
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 12,
-              letterSpacing: 1.2,
-            ),
-          ),
+          child: const Text("EXECUTION STATISTICS",
+              style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                  letterSpacing: 1.2)),
         ),
         const SizedBox(height: 12),
         Row(
@@ -4825,20 +4383,15 @@ class TradeExecutionStatsView extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    "TOP SYMBOLS",
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
-                      color: Colors.grey,
-                    ),
-                  ),
+                  const Text("TOP SYMBOLS",
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                          color: Colors.grey)),
                   const SizedBox(height: 8),
                   if (sortedSymbols.isEmpty)
-                    const Text(
-                      "No data",
-                      style: TextStyle(fontSize: 10, color: Colors.grey),
-                    )
+                    const Text("No data",
+                        style: TextStyle(fontSize: 10, color: Colors.grey))
                   else
                     Column(
                       children: top5Symbols.map((e) {
@@ -4849,15 +4402,11 @@ class TradeExecutionStatsView extends StatelessWidget {
                           child: Row(
                             children: [
                               SizedBox(
-                                width: 55,
-                                child: Text(
-                                  e.key,
-                                  style: const TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
+                                  width: 55,
+                                  child: Text(e.key,
+                                      style: const TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold))),
                               Expanded(
                                 child: ClipRRect(
                                   borderRadius: BorderRadius.circular(2),
@@ -4866,26 +4415,20 @@ class TradeExecutionStatsView extends StatelessWidget {
                                     minHeight: 6,
                                     backgroundColor:
                                         Theme.of(context).brightness ==
-                                            Brightness.dark
-                                        ? Colors.white10
-                                        : Colors.grey.shade200,
+                                                Brightness.dark
+                                            ? Colors.white10
+                                            : Colors.grey.shade200,
                                     valueColor: AlwaysStoppedAnimation<Color>(
-                                      Theme.of(context).colorScheme.primary,
-                                    ),
+                                        Theme.of(context).colorScheme.primary),
                                   ),
                                 ),
                               ),
                               SizedBox(
-                                width: 30,
-                                child: Text(
-                                  "$pctStr%",
-                                  textAlign: TextAlign.end,
-                                  style: const TextStyle(
-                                    fontSize: 10,
-                                    color: Colors.grey,
-                                  ),
-                                ),
-                              ),
+                                  width: 30,
+                                  child: Text("$pctStr%",
+                                      textAlign: TextAlign.end,
+                                      style: const TextStyle(
+                                          fontSize: 10, color: Colors.grey))),
                             ],
                           ),
                         );
@@ -4900,20 +4443,15 @@ class TradeExecutionStatsView extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  const Text(
-                    "DIRECTIONAL BIAS",
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
-                      color: Colors.grey,
-                    ),
-                  ),
+                  const Text("DIRECTIONAL BIAS",
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                          color: Colors.grey)),
                   const SizedBox(height: 16),
                   if (totalDir == 0)
-                    const Text(
-                      "No data",
-                      style: TextStyle(fontSize: 10, color: Colors.grey),
-                    )
+                    const Text("No data",
+                        style: TextStyle(fontSize: 10, color: Colors.grey))
                   else
                     Column(
                       children: [
@@ -4928,41 +4466,30 @@ class TradeExecutionStatsView extends StatelessWidget {
                                 strokeWidth: 10,
                                 backgroundColor: Colors.red.withOpacity(0.8),
                                 valueColor: const AlwaysStoppedAnimation<Color>(
-                                  Colors.green,
-                                ),
+                                    Colors.green),
                               ),
                             ),
                             Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Text(
-                                  "${longPct.toStringAsFixed(0)}%",
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.green,
-                                  ),
-                                ),
-                                const Text(
-                                  "BULL",
-                                  style: TextStyle(
-                                    fontSize: 8,
-                                    color: Colors.green,
-                                  ),
-                                ),
+                                Text("${longPct.toStringAsFixed(0)}%",
+                                    style: const TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.green)),
+                                const Text("BULL",
+                                    style: TextStyle(
+                                        fontSize: 8, color: Colors.green)),
                               ],
-                            ),
+                            )
                           ],
                         ),
                         const SizedBox(height: 8),
-                        Text(
-                          "${(100 - longPct).toStringAsFixed(0)}% BEAR",
-                          style: const TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.red,
-                          ),
-                        ),
+                        Text("${(100 - longPct).toStringAsFixed(0)}% BEAR",
+                            style: const TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.red)),
                       ],
                     ),
                 ],
@@ -4971,14 +4498,9 @@ class TradeExecutionStatsView extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 16),
-        const Text(
-          "ACTIVITY BY TIME OF DAY",
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 12,
-            color: Colors.grey,
-          ),
-        ),
+        const Text("ACTIVITY BY TIME OF DAY",
+            style: TextStyle(
+                fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey)),
         const SizedBox(height: 8),
         SizedBox(
           height: 90,
@@ -4998,14 +4520,11 @@ class TradeExecutionStatsView extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     if (isActive)
-                      Text(
-                        "$count",
-                        style: TextStyle(
-                          fontSize: 9,
-                          fontWeight: FontWeight.bold,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                      ),
+                      Text("$count",
+                          style: TextStyle(
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).colorScheme.primary)),
                     const SizedBox(height: 2),
                     Container(
                       width: 14,
@@ -5016,18 +4535,18 @@ class TradeExecutionStatsView extends StatelessWidget {
                                 begin: Alignment.bottomCenter,
                                 end: Alignment.topCenter,
                                 colors: [
-                                  Theme.of(
-                                    context,
-                                  ).colorScheme.primary.withOpacity(0.7),
-                                  Theme.of(context).colorScheme.primary,
-                                ],
-                              )
+                                    Theme.of(context)
+                                        .colorScheme
+                                        .primary
+                                        .withOpacity(0.7),
+                                    Theme.of(context).colorScheme.primary
+                                  ])
                             : null,
                         color: isActive
                             ? null
                             : (Theme.of(context).brightness == Brightness.dark
-                                  ? Colors.white10
-                                  : Colors.grey.withOpacity(0.1)),
+                                ? Colors.white10
+                                : Colors.grey.withOpacity(0.1)),
                         borderRadius: BorderRadius.circular(4),
                       ),
                     ),
@@ -5035,11 +4554,10 @@ class TradeExecutionStatsView extends StatelessWidget {
                     Text(
                       DateFormat('j').format(DateTime(2022, 1, 1, hour)),
                       style: TextStyle(
-                        fontSize: 9,
-                        color: isActive
-                            ? Theme.of(context).colorScheme.onSurface
-                            : Colors.grey,
-                      ),
+                          fontSize: 9,
+                          color: isActive
+                              ? Theme.of(context).colorScheme.onSurface
+                              : Colors.grey),
                     ),
                   ],
                 ),
@@ -5059,13 +4577,12 @@ class _StatCard extends StatelessWidget {
   final IconData icon;
   final Color color;
 
-  const _StatCard({
-    required this.label,
-    required this.value,
-    required this.subtext,
-    required this.icon,
-    required this.color,
-  });
+  const _StatCard(
+      {required this.label,
+      required this.value,
+      required this.subtext,
+      required this.icon,
+      required this.color});
 
   @override
   Widget build(BuildContext context) {
@@ -5077,15 +4594,13 @@ class _StatCard extends StatelessWidget {
         border: Border.all(color: color.withOpacity(0.15), width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: color.withOpacity(0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
+              color: color.withOpacity(0.1),
+              blurRadius: 8,
+              offset: const Offset(0, 4)),
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 2,
-            offset: const Offset(0, 1),
-          ),
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 2,
+              offset: const Offset(0, 1))
         ],
       ),
       child: Column(
@@ -5100,26 +4615,18 @@ class _StatCard extends StatelessWidget {
             child: Icon(icon, color: color, size: 24),
           ),
           const SizedBox(height: 8),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.bold,
-              color: Theme.of(context).textTheme.bodySmall?.color,
-              letterSpacing: 0.5,
-            ),
-          ),
+          Text(label,
+              style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).textTheme.bodySmall?.color,
+                  letterSpacing: 0.5)),
           const SizedBox(height: 2),
           FittedBox(
             fit: BoxFit.scaleDown,
-            child: Text(
-              value,
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
-            ),
+            child: Text(value,
+                style: TextStyle(
+                    fontSize: 18, fontWeight: FontWeight.bold, color: color)),
           ),
           Text(subtext, style: const TextStyle(fontSize: 10)),
         ],
@@ -5162,16 +4669,15 @@ class _InsightItem extends StatelessWidget {
         textColor = isDark ? mc.shade100 : mc.shade900;
       } else {
         iconColor = isDark ? color.withOpacity(0.8) : color;
-        textColor = isDark
-            ? Colors.white.withOpacity(0.9)
-            : color.withOpacity(0.9);
+        textColor =
+            isDark ? Colors.white.withOpacity(0.9) : color.withOpacity(0.9);
       }
     }
 
     final borderColor = isPositive
         ? (isDark
-              ? Colors.green.withOpacity(0.3)
-              : Colors.green.withOpacity(0.2))
+            ? Colors.green.withOpacity(0.3)
+            : Colors.green.withOpacity(0.2))
         : (isDark ? color.withOpacity(0.3) : color.withOpacity(0.2));
 
     return AnimatedContainer(
@@ -5236,9 +4742,8 @@ class _LoadingSkeletonState extends State<_LoadingSkeleton>
   void initState() {
     super.initState();
     _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1000),
-    )..repeat(reverse: true);
+        vsync: this, duration: const Duration(milliseconds: 1000))
+      ..repeat(reverse: true);
     _animation = Tween<double>(begin: 0.3, end: 0.7).animate(_controller);
   }
 
@@ -5255,15 +4760,18 @@ class _LoadingSkeletonState extends State<_LoadingSkeleton>
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            Theme.of(
-              context,
-            ).colorScheme.surfaceContainerHighest.withOpacity(0.3),
-            Theme.of(
-              context,
-            ).colorScheme.surfaceContainerHighest.withOpacity(0.5),
-            Theme.of(
-              context,
-            ).colorScheme.surfaceContainerHighest.withOpacity(0.3),
+            Theme.of(context)
+                .colorScheme
+                .surfaceContainerHighest
+                .withOpacity(0.3),
+            Theme.of(context)
+                .colorScheme
+                .surfaceContainerHighest
+                .withOpacity(0.5),
+            Theme.of(context)
+                .colorScheme
+                .surfaceContainerHighest
+                .withOpacity(0.3),
           ],
           stops: const [0.0, 0.5, 1.0],
         ),
@@ -5288,10 +4796,8 @@ class _LoadingSkeletonState extends State<_LoadingSkeleton>
               ),
               child: Container(
                 constraints: const BoxConstraints(maxWidth: 400),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 32,
-                  vertical: 28,
-                ),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 32, vertical: 28),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -5326,7 +4832,11 @@ class _LoadingSkeletonState extends State<_LoadingSkeleton>
             ),
           ),
           const SizedBox(height: 32),
-          Row(children: [_buildBox(32, 180)]),
+          Row(
+            children: [
+              _buildBox(32, 180),
+            ],
+          ),
           const SizedBox(height: 20),
           _buildBox(120),
           const SizedBox(height: 20),

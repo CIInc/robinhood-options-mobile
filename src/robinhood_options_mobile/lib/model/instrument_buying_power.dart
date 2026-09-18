@@ -6,7 +6,11 @@ final _currencyFormat = NumberFormat.simpleCurrency();
 final _percentFormat = NumberFormat.percentPattern()..maximumFractionDigits = 2;
 
 /// Severity level for instrument trade warnings.
-enum InstrumentWarningSeverity { info, warning, critical }
+enum InstrumentWarningSeverity {
+  info,
+  warning,
+  critical,
+}
 
 /// Represents an individual risk or trade warning associated with an instrument.
 class InstrumentTradeWarning {
@@ -38,27 +42,22 @@ class InstrumentTradeWarning {
       );
     }
 
-    final id =
-        json['id']?.toString() ??
+    final id = json['id']?.toString() ??
         json['code']?.toString() ??
         'warn_${DateTime.now().millisecondsSinceEpoch}';
-    final type =
-        json['type']?.toString() ??
+    final type = json['type']?.toString() ??
         json['warning_type']?.toString() ??
         json['category']?.toString() ??
         'warning';
-    final title =
-        json['title']?.toString() ??
+    final title = json['title']?.toString() ??
         json['name']?.toString() ??
         _inferTitleFromType(type);
-    final message =
-        json['message']?.toString() ??
+    final message = json['message']?.toString() ??
         json['text']?.toString() ??
         json['description']?.toString() ??
         '';
 
-    final sevRaw =
-        json['severity']?.toString().toLowerCase() ??
+    final sevRaw = json['severity']?.toString().toLowerCase() ??
         json['level']?.toString().toLowerCase() ??
         '';
     InstrumentWarningSeverity severity = InstrumentWarningSeverity.warning;
@@ -73,8 +72,7 @@ class InstrumentTradeWarning {
       severity = InstrumentWarningSeverity.info;
     }
 
-    final requiresAck =
-        json['requires_acknowledgement'] == true ||
+    final requiresAck = json['requires_acknowledgement'] == true ||
         json['requires_ack'] == true;
     final actionUrl = json['action_url']?.toString() ?? json['url']?.toString();
 
@@ -185,8 +183,7 @@ class InstrumentTradeWarnings {
       return InstrumentTradeWarnings(instrumentId: instrumentId);
     }
 
-    final rawWarnings =
-        json['warnings'] ??
+    final rawWarnings = json['warnings'] ??
         json['results'] ??
         json['items'] ??
         (json is List ? json : null);
@@ -198,12 +195,10 @@ class InstrumentTradeWarnings {
       }
     }
 
-    final halted =
-        json['halted'] == true ||
+    final halted = json['halted'] == true ||
         json['is_halted'] == true ||
         json['trading_halted'] == true;
-    final restricted =
-        json['trade_restricted'] == true ||
+    final restricted = json['trade_restricted'] == true ||
         json['is_trade_restricted'] == true ||
         json['restricted'] == true;
 
@@ -224,9 +219,8 @@ class InstrumentTradeWarnings {
 
     final updatedStr =
         json['updated_at']?.toString() ?? json['timestamp']?.toString();
-    final updatedAt = updatedStr != null
-        ? DateTime.tryParse(updatedStr)
-        : DateTime.now();
+    final updatedAt =
+        updatedStr != null ? DateTime.tryParse(updatedStr) : DateTime.now();
 
     return InstrumentTradeWarnings(
       instrumentId: instrumentId,
@@ -276,7 +270,7 @@ class InstrumentBuyingPower {
   final bool cashOnly;
   final double? marginRate; // Initial margin requirement (e.g., 0.50 = 50%)
   final double?
-  maintenanceMarginRate; // Maintenance margin requirement (e.g., 0.30 = 30%)
+      maintenanceMarginRate; // Maintenance margin requirement (e.g., 0.30 = 30%)
   final double? maxShares;
   final double? maxShortShares;
   final bool isMarginable;
@@ -298,11 +292,8 @@ class InstrumentBuyingPower {
     this.updatedAt,
   });
 
-  factory InstrumentBuyingPower.fromJson(
-    String instrumentId,
-    dynamic json, {
-    String? defaultAccount,
-  }) {
+  factory InstrumentBuyingPower.fromJson(String instrumentId, dynamic json,
+      {String? defaultAccount}) {
     if (json is! Map) {
       return InstrumentBuyingPower(
         instrumentId: instrumentId,
@@ -311,29 +302,24 @@ class InstrumentBuyingPower {
       );
     }
 
-    final acct =
-        json['account_number']?.toString() ??
+    final acct = json['account_number']?.toString() ??
         json['account']?.toString() ??
         defaultAccount;
 
-    final bp =
-        parseDouble(json['buying_power']) ??
+    final bp = parseDouble(json['buying_power']) ??
         parseDouble(json['amount']) ??
         parseDouble(json['equity_buying_power']) ??
         0.0;
 
-    final shortBp =
-        parseDouble(json['short_buying_power']) ??
+    final shortBp = parseDouble(json['short_buying_power']) ??
         parseDouble(json['short_selling_buying_power']);
 
-    final cashOnly =
-        json['cash_only'] == true ||
+    final cashOnly = json['cash_only'] == true ||
         json['is_cash_only'] == true ||
         json['margin_eligible'] == false;
 
     // Margin rates may be normalized (0.50) or percentage (50.0)
-    var mRate =
-        parseDouble(json['margin_rate']) ??
+    var mRate = parseDouble(json['margin_rate']) ??
         parseDouble(json['initial_margin_ratio']) ??
         parseDouble(json['initial_margin_rate']) ??
         parseDouble(json['margin_ratio']);
@@ -341,8 +327,7 @@ class InstrumentBuyingPower {
       mRate = mRate / 100.0;
     }
 
-    var mmRate =
-        parseDouble(json['maintenance_margin_rate']) ??
+    var mmRate = parseDouble(json['maintenance_margin_rate']) ??
         parseDouble(json['maintenance_margin_ratio']) ??
         parseDouble(json['maintenance_ratio']);
     if (mmRate != null && mmRate > 1.0) {
@@ -351,24 +336,21 @@ class InstrumentBuyingPower {
 
     final maxShares =
         parseDouble(json['max_shares']) ?? parseDouble(json['maximum_shares']);
-    final maxShortShares =
-        parseDouble(json['max_short_shares']) ??
+    final maxShortShares = parseDouble(json['max_short_shares']) ??
         parseDouble(json['maximum_short_shares']);
 
     final isMarginable = json['is_marginable'] != null
         ? json['is_marginable'] == true
         : !cashOnly;
 
-    final leverage =
-        parseDouble(json['leverage_ratio']) ??
+    final leverage = parseDouble(json['leverage_ratio']) ??
         parseDouble(json['leverage']) ??
         (mRate != null && mRate > 0 ? (1.0 / mRate) : null);
 
     final updatedStr =
         json['updated_at']?.toString() ?? json['timestamp']?.toString();
-    final updatedAt = updatedStr != null
-        ? DateTime.tryParse(updatedStr)
-        : DateTime.now();
+    final updatedAt =
+        updatedStr != null ? DateTime.tryParse(updatedStr) : DateTime.now();
 
     return InstrumentBuyingPower(
       instrumentId: instrumentId,

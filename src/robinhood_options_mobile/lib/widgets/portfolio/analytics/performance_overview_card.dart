@@ -100,9 +100,8 @@ class PerformanceOverviewCard extends StatelessWidget {
         label: 'Best Day',
         value: formatPercent(bestDay),
         valueColor: colorFor(bestDay),
-        footer: bestDayDate != null
-            ? formatDate(bestDayDate)
-            : 'Single-day peak',
+        footer:
+            bestDayDate != null ? formatDate(bestDayDate) : 'Single-day peak',
         tooltip: 'Highest single-day return observed in the period.',
       ),
       _snapshotTile(
@@ -124,27 +123,20 @@ class PerformanceOverviewCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(
-                Icons.insights,
-                color: Theme.of(context).colorScheme.primary,
-              ),
+              Icon(Icons.insights,
+                  color: Theme.of(context).colorScheme.primary),
               const SizedBox(width: 12),
               Expanded(
-                child: Text(
-                  'Overview',
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
+                child: Text('Overview',
+                    style: Theme.of(context).textTheme.titleLarge),
               ),
               if (periodDays > 0)
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 6,
-                  ),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.surfaceContainerHighest,
+                    color:
+                        Theme.of(context).colorScheme.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
@@ -201,68 +193,49 @@ class PerformanceOverviewCard extends StatelessWidget {
                 spacing: 8,
                 runSpacing: 8,
                 children: stats
-                    .map(
-                      (widget) => SizedBox(
-                        width: itemWidth,
-                        height: 120,
-                        child: widget,
-                      ),
-                    )
+                    .map((widget) => SizedBox(
+                          width: itemWidth,
+                          height: 120,
+                          child: widget,
+                        ))
                     .toList(),
               );
             },
           ),
           const SizedBox(height: 24),
           _benchmarkComparison(
-            context,
-            portfolioReturn,
-            benchmarkReturn,
-            benchmarkSymbol,
-          ),
+              context, portfolioReturn, benchmarkReturn, benchmarkSymbol),
           if (data['excessReturnHistory'] != null) ...[
             const SizedBox(height: 24),
             Row(
               children: [
-                Icon(
-                  Icons.monitor_heart_outlined,
-                  size: 18,
-                  color: Theme.of(context).colorScheme.secondary,
-                ),
+                Icon(Icons.monitor_heart_outlined,
+                    size: 18, color: Theme.of(context).colorScheme.secondary),
                 const SizedBox(width: 8),
-                Text(
-                  'Alpha Drift (Cumulative Excess Return)',
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    color: Theme.of(context).colorScheme.secondary,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+                Text('Alpha Drift (Cumulative Excess Return)',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          color: Theme.of(context).colorScheme.secondary,
+                          fontWeight: FontWeight.bold,
+                        )),
               ],
             ),
             const SizedBox(height: 12),
             SizedBox(
               height: 120,
-              child: _excessReturnChart(
-                context,
-                data['excessReturnHistory'] as List<Map<String, dynamic>>,
-              ),
-            ),
-          ],
+              child: _excessReturnChart(context,
+                  data['excessReturnHistory'] as List<Map<String, dynamic>>),
+            )
+          ]
         ],
       ),
     );
   }
 
-  Widget _benchmarkComparison(
-    BuildContext context,
-    double portfolioReturn,
-    double benchmarkReturn,
-    String benchmarkName,
-  ) {
+  Widget _benchmarkComparison(BuildContext context, double portfolioReturn,
+      double benchmarkReturn, String benchmarkName) {
     final percentFormat = NumberFormat.decimalPercentPattern(decimalDigits: 1);
-    final maxVal = [
-      portfolioReturn.abs(),
-      benchmarkReturn.abs(),
-    ].reduce((curr, next) => curr > next ? curr : next);
+    final maxVal = [portfolioReturn.abs(), benchmarkReturn.abs()]
+        .reduce((curr, next) => curr > next ? curr : next);
     // Avoid division by zero
     final scale = maxVal > 0.001 ? 1.0 / maxVal : 0.0;
 
@@ -276,19 +249,13 @@ class PerformanceOverviewCard extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  Icon(
-                    isBenchmark ? Icons.show_chart : Icons.trending_up,
-                    size: 16,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
+                  Icon(isBenchmark ? Icons.show_chart : Icons.trending_up,
+                      size: 16,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant),
                   const SizedBox(width: 8),
-                  Text(
-                    label,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
+                  Text(label,
+                      style: const TextStyle(
+                          fontSize: 13, fontWeight: FontWeight.w500)),
                 ],
               ),
               Text(
@@ -304,9 +271,10 @@ class PerformanceOverviewCard extends StatelessWidget {
                 height: 8,
                 width: double.infinity,
                 decoration: BoxDecoration(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                  color: Theme.of(context)
+                      .colorScheme
+                      .surfaceContainerHighest
+                      .withValues(alpha: 0.5),
                   borderRadius: BorderRadius.circular(4),
                 ),
               ),
@@ -333,57 +301,43 @@ class PerformanceOverviewCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Theme.of(
-          context,
-        ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+        color: Theme.of(context)
+            .colorScheme
+            .surfaceContainerHighest
+            .withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Icon(
-                isOutperforming ? Icons.check_circle : Icons.info_outline,
+          Row(children: [
+            Icon(isOutperforming ? Icons.check_circle : Icons.info_outline,
                 size: 16,
-                color: isOutperforming ? Colors.green : Colors.orange,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                isOutperforming
-                    ? 'Outperforming $benchmarkName by ${percentFormat.format(excess)}'
-                    : 'Trailing $benchmarkName by ${percentFormat.format(excess.abs())}',
-                style: TextStyle(
+                color: isOutperforming ? Colors.green : Colors.orange),
+            const SizedBox(width: 8),
+            Text(
+              isOutperforming
+                  ? 'Outperforming $benchmarkName by ${percentFormat.format(excess)}'
+                  : 'Trailing $benchmarkName by ${percentFormat.format(excess.abs())}',
+              style: TextStyle(
                   fontWeight: FontWeight.bold,
                   color: isOutperforming ? Colors.green : Colors.orange,
-                  fontSize: 13,
-                ),
-              ),
-            ],
-          ),
+                  fontSize: 13),
+            )
+          ]),
           const SizedBox(height: 16),
-          buildBar(
-            'Your Portfolio',
-            portfolioReturn,
-            portfolioReturn >= 0 ? Colors.green : Colors.red,
-            false,
-          ),
+          buildBar('Your Portfolio', portfolioReturn,
+              portfolioReturn >= 0 ? Colors.green : Colors.red, false),
           const SizedBox(height: 12),
-          buildBar(
-            'Benchmark ($benchmarkName)',
-            benchmarkReturn,
-            benchmarkReturn >= 0 ? Colors.green : Colors.red,
-            true,
-          ),
+          buildBar('Benchmark ($benchmarkName)', benchmarkReturn,
+              benchmarkReturn >= 0 ? Colors.green : Colors.red, true),
         ],
       ),
     );
   }
 
   Widget _excessReturnChart(
-    BuildContext context,
-    List<Map<String, dynamic>> data,
-  ) {
+      BuildContext context, List<Map<String, dynamic>> data) {
     if (data.isEmpty) return const SizedBox.shrink();
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -406,27 +360,24 @@ class PerformanceOverviewCard extends StatelessWidget {
               : charts.MaterialPalette.red.shadeDefault.lighter;
         },
         data: data,
-      ),
+      )
     ];
 
     return charts.TimeSeriesChart(
       series,
       animate: true,
-      defaultRenderer: charts.LineRendererConfig(
-        includeArea: true,
-        stacked: false,
-      ),
+      defaultRenderer:
+          charts.LineRendererConfig(includeArea: true, stacked: false),
       domainAxis: const charts.DateTimeAxisSpec(
         renderSpec: charts.NoneRenderSpec(),
       ),
       primaryMeasureAxis: charts.NumericAxisSpec(
         renderSpec: charts.GridlineRendererSpec(
           labelStyle: charts.TextStyleSpec(
-            color: isDark
-                ? charts.MaterialPalette.gray.shade500
-                : charts.MaterialPalette.gray.shade700,
-            fontSize: 10,
-          ),
+              color: isDark
+                  ? charts.MaterialPalette.gray.shade500
+                  : charts.MaterialPalette.gray.shade700,
+              fontSize: 10),
           lineStyle: charts.LineStyleSpec(
             color: isDark
                 ? charts.MaterialPalette.gray.shade800
@@ -435,8 +386,8 @@ class PerformanceOverviewCard extends StatelessWidget {
         ),
         tickFormatterSpec:
             charts.BasicNumericTickFormatterSpec.fromNumberFormat(
-              NumberFormat.percentPattern(),
-            ),
+          NumberFormat.percentPattern(),
+        ),
       ),
     );
   }
@@ -461,7 +412,10 @@ class PerformanceOverviewCard extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: isDark
-              ? [Colors.grey[850]!, Colors.grey[900]!]
+              ? [
+                  Colors.grey[850]!,
+                  Colors.grey[900]!,
+                ]
               : [
                   Theme.of(context).colorScheme.surfaceContainer,
                   Theme.of(context).colorScheme.surface,
@@ -471,9 +425,10 @@ class PerformanceOverviewCard extends StatelessWidget {
         border: Border.all(
           color: isDark
               ? Colors.white.withValues(alpha: 0.1)
-              : Theme.of(
-                  context,
-                ).colorScheme.outlineVariant.withValues(alpha: 0.2),
+              : Theme.of(context)
+                  .colorScheme
+                  .outlineVariant
+                  .withValues(alpha: 0.2),
           width: 1,
         ),
         boxShadow: [
@@ -493,27 +448,25 @@ class PerformanceOverviewCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.primary.withValues(alpha: 0.1),
+                  color: Theme.of(context)
+                      .colorScheme
+                      .primary
+                      .withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(
-                  icon,
-                  size: 16,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
+                child: Icon(icon,
+                    size: 16, color: Theme.of(context).colorScheme.primary),
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   label,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: isDark
-                        ? Colors.grey[400]
-                        : Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
+                        fontWeight: FontWeight.w600,
+                        color: isDark
+                            ? Colors.grey[400]
+                            : Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -524,14 +477,13 @@ class PerformanceOverviewCard extends StatelessWidget {
           Text(
             value,
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-              color:
-                  valueColor ??
-                  (isDark
-                      ? Colors.white
-                      : Theme.of(context).colorScheme.onSurface),
-              fontSize: 22,
-            ),
+                  fontWeight: FontWeight.bold,
+                  color: valueColor ??
+                      (isDark
+                          ? Colors.white
+                          : Theme.of(context).colorScheme.onSurface),
+                  fontSize: 22,
+                ),
           ),
           if (footer != null) ...[
             const SizedBox(height: 4),
@@ -598,7 +550,10 @@ class PerformanceOverviewCard extends StatelessWidget {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Colors.grey[850]!, Colors.grey[900]!],
+            colors: [
+              Colors.grey[850]!,
+              Colors.grey[900]!,
+            ],
           ),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
@@ -618,15 +573,10 @@ class PerformanceOverviewCard extends StatelessWidget {
         child: InkWell(
           onTap: () {
             if (definition != null) {
-              final guidance =
-                  MetricPresentation.metricGuidance[keyToUse] ??
+              final guidance = MetricPresentation.metricGuidance[keyToUse] ??
                   {'tip': definition, 'noThreshold': true};
               MetricPresentation.showMetricDetails(
-                context,
-                label,
-                definition,
-                guidance,
-              );
+                  context, label, definition, guidance);
             }
           },
           borderRadius: BorderRadius.circular(12),
@@ -637,15 +587,10 @@ class PerformanceOverviewCard extends StatelessWidget {
     return InkWell(
       onTap: () {
         if (definition != null) {
-          final guidance =
-              MetricPresentation.metricGuidance[keyToUse] ??
+          final guidance = MetricPresentation.metricGuidance[keyToUse] ??
               {'tip': definition, 'noThreshold': true};
           MetricPresentation.showMetricDetails(
-            context,
-            label,
-            definition,
-            guidance,
-          );
+              context, label, definition, guidance);
         }
       },
       borderRadius: BorderRadius.circular(12),

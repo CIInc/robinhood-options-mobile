@@ -67,188 +67,180 @@ class InstrumentPosition {
   }
 
   InstrumentPosition(
-    this.url,
-    this.instrument,
-    this.account,
-    this.accountNumber,
-    this.averageBuyPrice,
-    this.pendingAverageBuyPrice,
-    this.quantity,
-    this.intradayAverageBuyPrice,
-    this.intradayQuantity,
-    this.sharesAvailableForExercise,
-    this.sharesHeldForBuys,
-    this.sharesHeldForSells,
-    this.sharesHeldForStockGrants,
-    this.sharesHeldForOptionsCollateral,
-    this.sharesHeldForOptionsEvents,
-    this.sharesPendingFromOptionsEvents,
-    this.sharesAvailableForClosingShortPosition,
-    this.averageCostAffected,
-    this.updatedAt,
-    this.createdAt,
-  );
+      this.url,
+      this.instrument,
+      this.account,
+      this.accountNumber,
+      this.averageBuyPrice,
+      this.pendingAverageBuyPrice,
+      this.quantity,
+      this.intradayAverageBuyPrice,
+      this.intradayQuantity,
+      this.sharesAvailableForExercise,
+      this.sharesHeldForBuys,
+      this.sharesHeldForSells,
+      this.sharesHeldForStockGrants,
+      this.sharesHeldForOptionsCollateral,
+      this.sharesHeldForOptionsEvents,
+      this.sharesPendingFromOptionsEvents,
+      this.sharesAvailableForClosingShortPosition,
+      this.averageCostAffected,
+      this.updatedAt,
+      this.createdAt);
 
   InstrumentPosition.fromJson(dynamic json)
-    : url = json['url'],
-      instrument = json['instrument'],
-      account = json['account'],
-      accountNumber = json['account_number'],
-      averageBuyPrice = parseDouble(json['average_buy_price']),
-      pendingAverageBuyPrice = parseDouble(json['pending_average_buy_price']),
-      quantity = parseDouble(json['quantity']),
-      intradayAverageBuyPrice = parseDouble(json['intraday_average_buy_price']),
-      intradayQuantity = parseDouble(json['intraday_quantity']),
-      sharesAvailableForExercise = parseDouble(
-        json['shares_available_for_exercise'],
-      ),
-      sharesHeldForBuys = parseDouble(json['shares_held_for_buys']),
-      sharesHeldForSells = parseDouble(json['shares_held_for_sells']),
-      sharesHeldForStockGrants = parseDouble(
-        json['shares_held_for_stock_grants'],
-      ),
-      sharesHeldForOptionsCollateral = parseDouble(
-        json['shares_held_for_options_collateral'],
-      ),
-      sharesHeldForOptionsEvents = parseDouble(
-        json['shares_held_for_options_events'],
-      ),
-      sharesPendingFromOptionsEvents = parseDouble(
-        json['shares_pending_from_options_events'],
-      ),
-      sharesAvailableForClosingShortPosition = parseDouble(
-        json['shares_available_for_closing_short_position'],
-      ),
-      averageCostAffected = json['avg_cost_affected'],
-      updatedAt =
-          //DateFormat('y-M-dTH:m:s.SZ').parse(json['updated_at'].toString()),
-          json['updated_at'] is Timestamp
-          ? (json['updated_at'] as Timestamp).toDate()
-          : DateTime.tryParse(json['updated_at']),
-      // 2021-02-09T18:01:28.135813Z
-      createdAt =
-          //DateFormat('y-M-dTH:m:s.SZ').parse(json['created_at'].toString()),
-          json['created_at'] is Timestamp
-          ? (json['created_at'] as Timestamp).toDate()
-          : DateTime.tryParse(json['created_at']),
-      instrumentObj = _parseInstrumentObj(json);
+      : url = json['url'],
+        instrument = json['instrument'],
+        account = json['account'],
+        accountNumber = json['account_number'],
+        averageBuyPrice = parseDouble(json['average_buy_price']),
+        pendingAverageBuyPrice = parseDouble(json['pending_average_buy_price']),
+        quantity = parseDouble(json['quantity']),
+        intradayAverageBuyPrice =
+            parseDouble(json['intraday_average_buy_price']),
+        intradayQuantity = parseDouble(json['intraday_quantity']),
+        sharesAvailableForExercise =
+            parseDouble(json['shares_available_for_exercise']),
+        sharesHeldForBuys = parseDouble(json['shares_held_for_buys']),
+        sharesHeldForSells = parseDouble(json['shares_held_for_sells']),
+        sharesHeldForStockGrants =
+            parseDouble(json['shares_held_for_stock_grants']),
+        sharesHeldForOptionsCollateral =
+            parseDouble(json['shares_held_for_options_collateral']),
+        sharesHeldForOptionsEvents =
+            parseDouble(json['shares_held_for_options_events']),
+        sharesPendingFromOptionsEvents =
+            parseDouble(json['shares_pending_from_options_events']),
+        sharesAvailableForClosingShortPosition =
+            parseDouble(json['shares_available_for_closing_short_position']),
+        averageCostAffected = json['avg_cost_affected'],
+        updatedAt =
+            //DateFormat('y-M-dTH:m:s.SZ').parse(json['updated_at'].toString()),
+            json['updated_at'] is Timestamp
+                ? (json['updated_at'] as Timestamp).toDate()
+                : DateTime.tryParse(json['updated_at']),
+        // 2021-02-09T18:01:28.135813Z
+        createdAt =
+            //DateFormat('y-M-dTH:m:s.SZ').parse(json['created_at'].toString()),
+            json['created_at'] is Timestamp
+                ? (json['created_at'] as Timestamp).toDate()
+                : DateTime.tryParse(json['created_at']),
+        instrumentObj = _parseInstrumentObj(json);
   // instrumentDocRef = json['instrumentDocRef'] != null
   //     ? json['instrumentDocRef'] as DocumentReference<Instrument>
   //     : null;
 
   InstrumentPosition.fromSchwabJson(dynamic json, {String accountNumber = ''})
-    : url = '', // json['url'],
-      instrument = '/${json['instrument']['cusip']}/', // json['instrument'],
-      account = accountNumber,
-      accountNumber = accountNumber,
-      averageBuyPrice = json['averagePrice'] as double,
-      pendingAverageBuyPrice = json['averagePrice'] as double,
-      quantity = json['longQuantity'] as double,
-      intradayAverageBuyPrice = json['averagePrice'] as double,
-      intradayQuantity = json['longQuantity'] as double,
-      sharesAvailableForExercise = 0,
-      sharesHeldForBuys = 0,
-      sharesHeldForSells = 0,
-      sharesHeldForStockGrants = 0,
-      sharesHeldForOptionsCollateral = 0,
-      sharesHeldForOptionsEvents = 0,
-      sharesPendingFromOptionsEvents = 0,
-      sharesAvailableForClosingShortPosition = 0,
-      averageCostAffected = false,
-      updatedAt = DateTime.now(),
-      createdAt = DateTime.now(),
-      instrumentObj = Instrument(
-        id: json['instrument']['cusip'],
-        url: '',
-        quote: '',
-        fundamentals: '',
-        splits: '',
-        state: '',
-        market: '',
-        name: json['instrument']['description'] ?? '',
-        tradeable: true,
-        tradability: '',
-        symbol: json['instrument']['symbol'],
-        bloombergUnique: '',
-        country: '',
-        type: json['instrument']['type'] ?? '',
-        rhsTradability: '',
-        fractionalTradability: '',
-        isSpac: false,
-        isTest: false,
-        ipoAccessSupportsDsp: false,
-        dateCreated: DateTime.now(),
-      );
+      : url = '', // json['url'],
+        instrument = '/${json['instrument']['cusip']}/', // json['instrument'],
+        account = accountNumber,
+        accountNumber = accountNumber,
+        averageBuyPrice = json['averagePrice'] as double,
+        pendingAverageBuyPrice = json['averagePrice'] as double,
+        quantity = json['longQuantity'] as double,
+        intradayAverageBuyPrice = json['averagePrice'] as double,
+        intradayQuantity = json['longQuantity'] as double,
+        sharesAvailableForExercise = 0,
+        sharesHeldForBuys = 0,
+        sharesHeldForSells = 0,
+        sharesHeldForStockGrants = 0,
+        sharesHeldForOptionsCollateral = 0,
+        sharesHeldForOptionsEvents = 0,
+        sharesPendingFromOptionsEvents = 0,
+        sharesAvailableForClosingShortPosition = 0,
+        averageCostAffected = false,
+        updatedAt = DateTime.now(),
+        createdAt = DateTime.now(),
+        instrumentObj = Instrument(
+            id: json['instrument']['cusip'],
+            url: '',
+            quote: '',
+            fundamentals: '',
+            splits: '',
+            state: '',
+            market: '',
+            name: json['instrument']['description'] ?? '',
+            tradeable: true,
+            tradability: '',
+            symbol: json['instrument']['symbol'],
+            bloombergUnique: '',
+            country: '',
+            type: json['instrument']['type'] ?? '',
+            rhsTradability: '',
+            fractionalTradability: '',
+            isSpac: false,
+            isTest: false,
+            ipoAccessSupportsDsp: false,
+            dateCreated: DateTime.now());
 
   InstrumentPosition.fromPlaidJson(dynamic json)
-    : url = '', // json['url'],
-      instrument = '/${json['instrument']['cusip']}/', // json['instrument'],
-      account = '', // json['account'],
-      accountNumber = '', // json['account_number'],
-      averageBuyPrice = json['averagePrice'] as double,
-      pendingAverageBuyPrice = json['averagePrice'] as double,
-      quantity = json['longQuantity'] as double,
-      intradayAverageBuyPrice = json['averagePrice'] as double,
-      intradayQuantity = json['longQuantity'] as double,
-      sharesAvailableForExercise = 0,
-      sharesHeldForBuys = 0,
-      sharesHeldForSells = 0,
-      sharesHeldForStockGrants = 0,
-      sharesHeldForOptionsCollateral = 0,
-      sharesHeldForOptionsEvents = 0,
-      sharesPendingFromOptionsEvents = 0,
-      sharesAvailableForClosingShortPosition = 0,
-      averageCostAffected = false,
-      updatedAt = DateTime.now(),
-      createdAt = DateTime.now(),
-      instrumentObj = Instrument(
-        id: json['instrument']['cusip'],
-        url: '',
-        quote: '',
-        fundamentals: '',
-        splits: '',
-        state: '',
-        market: '',
-        name: json['instrument']['description'],
-        tradeable: true,
-        tradability: '',
-        symbol: json['instrument']['symbol'],
-        bloombergUnique: '',
-        country: '',
-        type: json['instrument']['type'],
-        rhsTradability: '',
-        fractionalTradability: '',
-        isSpac: false,
-        isTest: false,
-        ipoAccessSupportsDsp: false,
-        dateCreated: DateTime.now(),
-      );
+      : url = '', // json['url'],
+        instrument = '/${json['instrument']['cusip']}/', // json['instrument'],
+        account = '', // json['account'],
+        accountNumber = '', // json['account_number'],
+        averageBuyPrice = json['averagePrice'] as double,
+        pendingAverageBuyPrice = json['averagePrice'] as double,
+        quantity = json['longQuantity'] as double,
+        intradayAverageBuyPrice = json['averagePrice'] as double,
+        intradayQuantity = json['longQuantity'] as double,
+        sharesAvailableForExercise = 0,
+        sharesHeldForBuys = 0,
+        sharesHeldForSells = 0,
+        sharesHeldForStockGrants = 0,
+        sharesHeldForOptionsCollateral = 0,
+        sharesHeldForOptionsEvents = 0,
+        sharesPendingFromOptionsEvents = 0,
+        sharesAvailableForClosingShortPosition = 0,
+        averageCostAffected = false,
+        updatedAt = DateTime.now(),
+        createdAt = DateTime.now(),
+        instrumentObj = Instrument(
+            id: json['instrument']['cusip'],
+            url: '',
+            quote: '',
+            fundamentals: '',
+            splits: '',
+            state: '',
+            market: '',
+            name: json['instrument']['description'],
+            tradeable: true,
+            tradability: '',
+            symbol: json['instrument']['symbol'],
+            bloombergUnique: '',
+            country: '',
+            type: json['instrument']['type'],
+            rhsTradability: '',
+            fractionalTradability: '',
+            isSpac: false,
+            isTest: false,
+            ipoAccessSupportsDsp: false,
+            dateCreated: DateTime.now());
 
   Map<String, dynamic> toJson() => {
-    'url': url,
-    'instrument': instrument,
-    'account': account,
-    'account_number': accountNumber,
-    'average_buy_price': averageBuyPrice,
-    'pending_average_buy_price': pendingAverageBuyPrice,
-    'quantity': quantity,
-    'intraday_average_buy_price': intradayAverageBuyPrice,
-    'intraday_quantity': intradayQuantity,
-    'shares_available_for_exercise': sharesAvailableForExercise,
-    'shares_held_for_buys': sharesHeldForBuys,
-    'shares_held_for_sells': sharesHeldForSells,
-    'shares_held_for_stock_grants': sharesHeldForStockGrants,
-    'shares_held_for_options_collateral': sharesHeldForOptionsCollateral,
-    'shares_held_for_options_events': sharesHeldForOptionsEvents,
-    'shares_pending_from_options_events': sharesPendingFromOptionsEvents,
-    'shares_available_for_closing_short_position':
-        sharesAvailableForClosingShortPosition,
-    'avg_cost_affected': averageCostAffected,
-    'updated_at': updatedAt,
-    'created_at': createdAt,
-    'instrument_obj': instrumentObj?.toJson(),
-    // 'instrumentDocRef': instrumentDocRef
-  };
+        'url': url,
+        'instrument': instrument,
+        'account': account,
+        'account_number': accountNumber,
+        'average_buy_price': averageBuyPrice,
+        'pending_average_buy_price': pendingAverageBuyPrice,
+        'quantity': quantity,
+        'intraday_average_buy_price': intradayAverageBuyPrice,
+        'intraday_quantity': intradayQuantity,
+        'shares_available_for_exercise': sharesAvailableForExercise,
+        'shares_held_for_buys': sharesHeldForBuys,
+        'shares_held_for_sells': sharesHeldForSells,
+        'shares_held_for_stock_grants': sharesHeldForStockGrants,
+        'shares_held_for_options_collateral': sharesHeldForOptionsCollateral,
+        'shares_held_for_options_events': sharesHeldForOptionsEvents,
+        'shares_pending_from_options_events': sharesPendingFromOptionsEvents,
+        'shares_available_for_closing_short_position':
+            sharesAvailableForClosingShortPosition,
+        'avg_cost_affected': averageCostAffected,
+        'updated_at': updatedAt,
+        'created_at': createdAt,
+        'instrument_obj': instrumentObj?.toJson(),
+        // 'instrumentDocRef': instrumentDocRef
+      };
 
   String get instrumentId {
     var splits = instrument.split("/").where((s) => s.isNotEmpty).toList();
@@ -294,19 +286,19 @@ class InstrumentPosition {
   double get gainLossToday {
     return instrumentObj != null && instrumentObj!.quoteObj != null
         ? ((instrumentObj!.quoteObj!.lastExtendedHoursTradePrice ??
-                      instrumentObj!.quoteObj!.lastTradePrice!) -
-                  instrumentObj!.quoteObj!.adjustedPreviousClose!) *
-              quantity!
+                    instrumentObj!.quoteObj!.lastTradePrice!) -
+                instrumentObj!.quoteObj!.adjustedPreviousClose!) *
+            quantity!
         : 0;
   }
 
   double get gainLossPercentToday {
     return instrumentObj != null && instrumentObj!.quoteObj != null
         ? gainLossToday /
-              (instrumentObj!.quoteObj!.adjustedPreviousClose! * quantity!)
+            (instrumentObj!.quoteObj!.adjustedPreviousClose! * quantity!)
         : 0;
   }
-  /*
+/*
   double get changeToday {    
     return optionInstrument!.optionMarketData!.gainLossToday * quantity! * 100;
   }
@@ -318,14 +310,13 @@ class InstrumentPosition {
 
   Icon get trendingIcon {
     return Icon(
-      gainLoss > 0
-          ? Icons.trending_up
-          : (gainLoss < 0 ? Icons.trending_down : Icons.trending_flat),
-      color: (gainLoss > 0
-          ? Colors.green
-          : (gainLoss < 0 ? Colors.red : Colors.grey)),
-    )
-    /*: Icon(
+            gainLoss > 0
+                ? Icons.trending_up
+                : (gainLoss < 0 ? Icons.trending_down : Icons.trending_flat),
+            color: (gainLoss > 0
+                ? Colors.green
+                : (gainLoss < 0 ? Colors.red : Colors.grey)))
+        /*: Icon(
             gainLoss < 0
                 ? Icons.trending_up
                 : (gainLoss > 0
@@ -335,19 +326,20 @@ class InstrumentPosition {
                 ? Colors.lightGreenAccent
                 : (gainLoss > 0 ? Colors.red : Colors.grey)),
             size: 14.0)*/
-    ;
+        ;
   }
 
   Icon get trendingIconToday {
     return Icon(
-      gainLossToday > 0
-          ? Icons.trending_up
-          : (gainLossToday < 0 ? Icons.trending_down : Icons.trending_flat),
-      color: (gainLossToday > 0
-          ? Colors.green
-          : (gainLossToday < 0 ? Colors.red : Colors.grey)),
-    )
-    /*: Icon(
+            gainLossToday > 0
+                ? Icons.trending_up
+                : (gainLossToday < 0
+                    ? Icons.trending_down
+                    : Icons.trending_flat),
+            color: (gainLossToday > 0
+                ? Colors.green
+                : (gainLossToday < 0 ? Colors.red : Colors.grey)))
+        /*: Icon(
             gainLossToday < 0
                 ? Icons.trending_up
                 : (gainLossToday > 0 ? Icons.trending_down : Icons.trending_flat),
@@ -355,6 +347,6 @@ class InstrumentPosition {
                 ? Colors.lightGreenAccent
                 : (gainLossToday > 0 ? Colors.red : Colors.grey)),
             size: 14.0)*/
-    ;
+        ;
   }
 }

@@ -72,12 +72,8 @@ class _BankingWidgetState extends State<BankingWidget>
         transfersFuture = rh.getAchTransfersModel(widget.brokerageUser);
         relationshipsFuture = rh.getAchRelationshipsModel(widget.brokerageUser);
       } else {
-        transfersFuture = widget.service.getAchTransfersModel(
-          widget.brokerageUser,
-        );
-        relationshipsFuture = widget.service.getAchRelationshipsModel(
-          widget.brokerageUser,
-        );
+        transfersFuture = widget.service.getAchTransfersModel(widget.brokerageUser);
+        relationshipsFuture = widget.service.getAchRelationshipsModel(widget.brokerageUser);
       }
 
       final results = await Future.wait([transfersFuture, relationshipsFuture]);
@@ -122,19 +118,15 @@ class _BankingWidgetState extends State<BankingWidget>
 
     if (confirmed != true || !mounted) return;
 
-    final success = await widget.service.cancelAchTransfer(
-      widget.brokerageUser,
-      transfer.cancelUrl!,
-    );
+    final success = await widget.service
+        .cancelAchTransfer(widget.brokerageUser, transfer.cancelUrl!);
 
     if (!mounted) return;
 
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            'Transfer of ${transfer.formattedAmountPlain} cancelled.',
-          ),
+          content: Text('Transfer of ${transfer.formattedAmountPlain} cancelled.'),
           backgroundColor: Colors.green,
         ),
       );
@@ -178,11 +170,7 @@ class _BankingWidgetState extends State<BankingWidget>
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(
-                      Icons.error_outline,
-                      size: 48,
-                      color: Colors.red,
-                    ),
+                    const Icon(Icons.error_outline, size: 48, color: Colors.red),
                     const SizedBox(height: 12),
                     Text(
                       'Failed to load banking data',
@@ -206,15 +194,10 @@ class _BankingWidgetState extends State<BankingWidget>
             );
           }
 
-          final data =
-              snapshot.data ??
-              (const <AchTransfer>[], const <AchRelationship>[]);
+          final data = snapshot.data ?? (const <AchTransfer>[], const <AchRelationship>[]);
           final transfers = data.$1;
           final relationships = data.$2;
-          final summary = AchSummary.fromTransfersAndRelationships(
-            transfers,
-            relationships,
-          );
+          final summary = AchSummary.fromTransfersAndRelationships(transfers, relationships);
 
           return RefreshIndicator(
             onRefresh: () async => _loadData(),
@@ -250,8 +233,7 @@ class _BankingWidgetState extends State<BankingWidget>
       if (_searchQuery.isNotEmpty) {
         final query = _searchQuery.toLowerCase();
         final bankName = t.achRelationship != null
-            ? relationshipMap[t.achRelationship]?.displayName.toLowerCase() ??
-                  ''
+            ? relationshipMap[t.achRelationship]?.displayName.toLowerCase() ?? ''
             : '';
         final desc = t.statusDescription?.toLowerCase() ?? '';
         final ref = t.refId?.toLowerCase() ?? '';
@@ -314,10 +296,7 @@ class _BankingWidgetState extends State<BankingWidget>
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 3,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
                     color: netColor.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(8),
@@ -354,7 +333,11 @@ class _BankingWidgetState extends State<BankingWidget>
                     iconColor: Colors.green,
                   ),
                 ),
-                Container(height: 36, width: 1, color: theme.dividerColor),
+                Container(
+                  height: 36,
+                  width: 1,
+                  color: theme.dividerColor,
+                ),
                 Expanded(
                   child: _buildMetricTile(
                     label: 'Total Withdrawn',
@@ -486,10 +469,7 @@ class _BankingWidgetState extends State<BankingWidget>
             isDense: true,
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
             filled: true,
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: 10,
-            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           ),
           onChanged: (val) {
             setState(() {
@@ -518,9 +498,7 @@ class _BankingWidgetState extends State<BankingWidget>
                 selected: _directionFilter == 'deposit',
                 onSelected: () {
                   setState(() {
-                    _directionFilter = _directionFilter == 'deposit'
-                        ? 'all'
-                        : 'deposit';
+                    _directionFilter = _directionFilter == 'deposit' ? 'all' : 'deposit';
                   });
                 },
               ),
@@ -530,9 +508,7 @@ class _BankingWidgetState extends State<BankingWidget>
                 selected: _directionFilter == 'withdraw',
                 onSelected: () {
                   setState(() {
-                    _directionFilter = _directionFilter == 'withdraw'
-                        ? 'all'
-                        : 'withdraw';
+                    _directionFilter = _directionFilter == 'withdraw' ? 'all' : 'withdraw';
                   });
                 },
               ),
@@ -542,9 +518,7 @@ class _BankingWidgetState extends State<BankingWidget>
                 selected: _statusFilter == 'pending',
                 onSelected: () {
                   setState(() {
-                    _statusFilter = _statusFilter == 'pending'
-                        ? 'all'
-                        : 'pending';
+                    _statusFilter = _statusFilter == 'pending' ? 'all' : 'pending';
                   });
                 },
               ),
@@ -554,9 +528,7 @@ class _BankingWidgetState extends State<BankingWidget>
                 selected: _statusFilter == 'completed',
                 onSelected: () {
                   setState(() {
-                    _statusFilter = _statusFilter == 'completed'
-                        ? 'all'
-                        : 'completed';
+                    _statusFilter = _statusFilter == 'completed' ? 'all' : 'completed';
                   });
                 },
               ),
@@ -585,13 +557,9 @@ class _BankingWidgetState extends State<BankingWidget>
     );
   }
 
-  Widget _buildTransferCard(
-    AchTransfer transfer,
-    AchRelationship? relationship,
-  ) {
+  Widget _buildTransferCard(AchTransfer transfer, AchRelationship? relationship) {
     final theme = Theme.of(context);
-    final bankTitle =
-        relationship?.displayName ??
+    final bankTitle = relationship?.displayName ??
         (transfer.isDeposit ? 'Bank Deposit' : 'Bank Withdrawal');
 
     return Card(
@@ -606,14 +574,8 @@ class _BankingWidgetState extends State<BankingWidget>
             children: [
               CircleAvatar(
                 radius: 20,
-                backgroundColor: transfer.directionColor.withValues(
-                  alpha: 0.15,
-                ),
-                child: Icon(
-                  transfer.directionIcon,
-                  color: transfer.directionColor,
-                  size: 20,
-                ),
+                backgroundColor: transfer.directionColor.withValues(alpha: 0.15),
+                child: Icon(transfer.directionIcon, color: transfer.directionColor, size: 20),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -653,10 +615,7 @@ class _BankingWidgetState extends State<BankingWidget>
                           ),
                         ),
                         Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
-                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
                             color: transfer.statusColor.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(6),
@@ -664,11 +623,7 @@ class _BankingWidgetState extends State<BankingWidget>
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(
-                                transfer.statusIcon,
-                                size: 10,
-                                color: transfer.statusColor,
-                              ),
+                              Icon(transfer.statusIcon, size: 10, color: transfer.statusColor),
                               const SizedBox(width: 3),
                               Text(
                                 transfer.statusTitle,
@@ -683,8 +638,7 @@ class _BankingWidgetState extends State<BankingWidget>
                         ),
                       ],
                     ),
-                    if (transfer.isPending &&
-                        transfer.formattedLandingDate != null) ...[
+                    if (transfer.isPending && transfer.formattedLandingDate != null) ...[
                       const SizedBox(height: 4),
                       Text(
                         'Expected arrival: ${transfer.formattedLandingDate}',
@@ -712,13 +666,12 @@ class _BankingWidgetState extends State<BankingWidget>
       child: Center(
         child: Column(
           children: [
-            Icon(
-              Icons.receipt_long_outlined,
-              size: 48,
-              color: theme.disabledColor,
-            ),
+            Icon(Icons.receipt_long_outlined, size: 48, color: theme.disabledColor),
             const SizedBox(height: 12),
-            Text('No transfers found', style: theme.textTheme.titleMedium),
+            Text(
+              'No transfers found',
+              style: theme.textTheme.titleMedium,
+            ),
             const SizedBox(height: 4),
             Text(
               _searchQuery.isNotEmpty
@@ -748,9 +701,7 @@ class _BankingWidgetState extends State<BankingWidget>
       children: [
         Card(
           elevation: 1,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           child: Padding(
             padding: const EdgeInsets.all(16.0),
             child: Row(
@@ -761,10 +712,7 @@ class _BankingWidgetState extends State<BankingWidget>
                     color: theme.colorScheme.primaryContainer,
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(
-                    Icons.account_balance,
-                    color: theme.colorScheme.primary,
-                  ),
+                  child: Icon(Icons.account_balance, color: theme.colorScheme.primary),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
@@ -809,10 +757,7 @@ class _BankingWidgetState extends State<BankingWidget>
                 children: [
                   Icon(Icons.link_off, size: 48, color: theme.disabledColor),
                   const SizedBox(height: 12),
-                  Text(
-                    'No linked accounts',
-                    style: theme.textTheme.titleMedium,
-                  ),
+                  Text('No linked accounts', style: theme.textTheme.titleMedium),
                   const SizedBox(height: 4),
                   Text(
                     'Link your bank account to initiate deposits and withdrawals',
@@ -846,11 +791,7 @@ class _BankingWidgetState extends State<BankingWidget>
                 CircleAvatar(
                   radius: 18,
                   backgroundColor: theme.colorScheme.surfaceContainerHighest,
-                  child: Icon(
-                    Icons.account_balance,
-                    size: 18,
-                    color: theme.colorScheme.primary,
-                  ),
+                  child: Icon(Icons.account_balance, size: 18, color: theme.colorScheme.primary),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -871,10 +812,7 @@ class _BankingWidgetState extends State<BankingWidget>
                           if (account.isDefault) ...[
                             const SizedBox(width: 6),
                             Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 2,
-                              ),
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
                                 color: Colors.blue.withValues(alpha: 0.12),
                                 borderRadius: BorderRadius.circular(6),
@@ -902,10 +840,7 @@ class _BankingWidgetState extends State<BankingWidget>
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: account.statusColor.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(8),
@@ -913,11 +848,7 @@ class _BankingWidgetState extends State<BankingWidget>
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(
-                        account.statusIcon,
-                        size: 12,
-                        color: account.statusColor,
-                      ),
+                      Icon(account.statusIcon, size: 12, color: account.statusColor),
                       const SizedBox(width: 4),
                       Text(
                         account.statusTitle,
@@ -932,8 +863,7 @@ class _BankingWidgetState extends State<BankingWidget>
                 ),
               ],
             ),
-            if (account.bankRoutingNumber != null &&
-                account.bankRoutingNumber!.isNotEmpty) ...[
+            if (account.bankRoutingNumber != null && account.bankRoutingNumber!.isNotEmpty) ...[
               const SizedBox(height: 12),
               const Divider(height: 1),
               const SizedBox(height: 10),
@@ -955,8 +885,7 @@ class _BankingWidgetState extends State<BankingWidget>
                 ],
               ),
             ],
-            if (account.bankAccountHolderName != null &&
-                account.bankAccountHolderName!.isNotEmpty) ...[
+            if (account.bankAccountHolderName != null && account.bankAccountHolderName!.isNotEmpty) ...[
               const SizedBox(height: 6),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1014,11 +943,7 @@ class _BankingWidgetState extends State<BankingWidget>
           children: [
             Row(
               children: [
-                Icon(
-                  Icons.info_outline,
-                  size: 18,
-                  color: theme.colorScheme.primary,
-                ),
+                Icon(Icons.info_outline, size: 18, color: theme.colorScheme.primary),
                 const SizedBox(width: 8),
                 Text(
                   'ACH Transfer Guidelines',
@@ -1044,10 +969,7 @@ class _BankingWidgetState extends State<BankingWidget>
     );
   }
 
-  void _showTransferDetailsSheet(
-    AchTransfer transfer,
-    AchRelationship? relationship,
-  ) {
+  void _showTransferDetailsSheet(AchTransfer transfer, AchRelationship? relationship) {
     final theme = Theme.of(context);
 
     showModalBottomSheet(
@@ -1082,18 +1004,11 @@ class _BankingWidgetState extends State<BankingWidget>
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      transfer.isDeposit
-                          ? 'Deposit Details'
-                          : 'Withdrawal Details',
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                      transfer.isDeposit ? 'Deposit Details' : 'Withdrawal Details',
+                      style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
                         color: transfer.statusColor.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(8),
@@ -1101,11 +1016,7 @@ class _BankingWidgetState extends State<BankingWidget>
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(
-                            transfer.statusIcon,
-                            size: 14,
-                            color: transfer.statusColor,
-                          ),
+                          Icon(transfer.statusIcon, size: 14, color: transfer.statusColor),
                           const SizedBox(width: 4),
                           Text(
                             transfer.statusTitle,
@@ -1149,19 +1060,10 @@ class _BankingWidgetState extends State<BankingWidget>
                   _buildDetailRow('Reference ID', transfer.refId!),
                 if (relationship != null)
                   _buildDetailRow('Bank Account', relationship.displayName),
-                _buildDetailRow(
-                  'Initiated Date',
-                  transfer.formattedCreatedDateTime,
-                ),
+                _buildDetailRow('Initiated Date', transfer.formattedCreatedDateTime),
                 if (transfer.formattedLandingDate != null)
-                  _buildDetailRow(
-                    'Clearing / Arrival',
-                    transfer.formattedLandingDate!,
-                  ),
-                _buildDetailRow(
-                  'Transfer Fees',
-                  _currencyFormat.format(transfer.fees),
-                ),
+                  _buildDetailRow('Clearing / Arrival', transfer.formattedLandingDate!),
+                _buildDetailRow('Transfer Fees', _currencyFormat.format(transfer.fees)),
                 _buildDetailRow('Scheduled', transfer.scheduled ? 'Yes' : 'No'),
                 if (transfer.rhsState != null)
                   _buildDetailRow('Clearing State', transfer.rhsState!),

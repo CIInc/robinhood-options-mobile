@@ -8,9 +8,8 @@ void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   group('Guest Paper Trading Flow Test', () {
-    testWidgets('Guest can add paper trading account and trigger session', (
-      WidgetTester tester,
-    ) async {
+    testWidgets('Guest can add paper trading account and trigger session',
+        (WidgetTester tester) async {
       // Clear storage
       SharedPreferences.setMockInitialValues({});
 
@@ -67,10 +66,8 @@ void main() {
 
       // 6. Verify Logged In State (Paper Trading)
       // Welcome Screen should be gone
-      expect(
-        find.text('Welcome to RealizeAlpha', skipOffstage: true),
-        findsNothing,
-      );
+      expect(find.text('Welcome to RealizeAlpha', skipOffstage: true),
+          findsNothing);
 
       // Verify that we are on the Home screen or Portfolio view
       // Usually after login, the Nav widget switches to the Home tab (Index 0)

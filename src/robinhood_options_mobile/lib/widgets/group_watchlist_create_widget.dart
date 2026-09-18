@@ -54,13 +54,12 @@ class _GroupWatchlistCreateWidgetState
 
     try {
       final functions = FirebaseFunctions.instance;
-      final result = await functions
-          .httpsCallable('createGroupWatchlist')
-          .call({
-            'groupId': widget.groupId,
-            'name': _nameController.text.trim(),
-            'description': _descriptionController.text.trim(),
-          });
+      final result =
+          await functions.httpsCallable('createGroupWatchlist').call({
+        'groupId': widget.groupId,
+        'name': _nameController.text.trim(),
+        'description': _descriptionController.text.trim(),
+      });
 
       if (result.data['success'] == true) {
         widget.onCreated();
@@ -113,7 +112,9 @@ class _GroupWatchlistCreateWidgetState
             ),
           ),
           const SizedBox(width: 12),
-          const Expanded(child: Text('Create Watchlist')),
+          const Expanded(
+            child: Text('Create Watchlist'),
+          ),
         ],
       ),
       content: SingleChildScrollView(
@@ -130,10 +131,8 @@ class _GroupWatchlistCreateWidgetState
                   borderRadius: BorderRadius.circular(8),
                 ),
                 errorMaxLines: 2,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               ),
               enabled: !_isLoading,
               validator: (value) {
@@ -157,10 +156,8 @@ class _GroupWatchlistCreateWidgetState
                   borderRadius: BorderRadius.circular(8),
                 ),
                 errorMaxLines: 2,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               ),
               maxLines: 3,
               enabled: !_isLoading,

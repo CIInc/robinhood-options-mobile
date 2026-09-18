@@ -108,7 +108,7 @@ class RobinhoodService implements IBrokerageService {
 
   // static final rhChallengeEndpoint = Uri.parse('$robinHoodEndpoint/challenge/');
 
-  /*
+/*
   // scopes: [acats, balances, document_upload, edocs, funding:all:read, funding:ach:read, funding:ach:write, funding:wire:read, funding:wire:write, internal, investments, margin, read, signup, trade, watchlist, web_limited])
   */
 
@@ -126,22 +126,19 @@ class RobinhoodService implements IBrokerageService {
   */
 
   Future<Response> login(
-    Uri authorizationEndpoint,
-    String username,
-    String password, {
-    String? clientId,
-    String? secret,
-    String? deviceToken,
-    String? requestId,
-    String? challengeType,
-    String? challengeId,
-    String? mfaCode,
-    String? expiresIn = '86400',
-    Iterable<String>? scopes = const ['internal'],
-    bool basicAuth = true,
-    Client? httpClient,
-    String? delimiter = ' ',
-  }) async {
+      Uri authorizationEndpoint, String username, String password,
+      {String? clientId,
+      String? secret,
+      String? deviceToken,
+      String? requestId,
+      String? challengeType,
+      String? challengeId,
+      String? mfaCode,
+      String? expiresIn = '86400',
+      Iterable<String>? scopes = const ['internal'],
+      bool basicAuth = true,
+      Client? httpClient,
+      String? delimiter = ' '}) async {
     var headers = <String, String>{};
     var body = {
       'grant_type': 'password',
@@ -194,11 +191,8 @@ class RobinhoodService implements IBrokerageService {
     // debugPrint(jsonEncode(headers));
     debugPrint(jsonEncode(body));
     httpClient ??= Client();
-    var response = await httpClient.post(
-      authorizationEndpoint,
-      headers: headers,
-      body: body,
-    );
+    var response = await httpClient.post(authorizationEndpoint,
+        headers: headers, body: body);
     return response;
   }
 
@@ -206,17 +200,14 @@ class RobinhoodService implements IBrokerageService {
     var body = {
       "device_id": deviceId,
       "flow": "suv",
-      "input": {"workflow_id": workflowId},
+      "input": {"workflow_id": workflowId}
     };
     var httpClient = Client();
     const url = 'https://api.robinhood.com/pathfinder/user_machine/';
     debugPrint('POST $url');
     debugPrint(jsonEncode(body));
-    var response = httpClient.post(
-      Uri.parse(url),
-      headers: {'Content-type': 'application/json'},
-      body: jsonEncode(body),
-    );
+    var response = httpClient.post(Uri.parse(url),
+        headers: {'Content-type': 'application/json'}, body: jsonEncode(body));
     return response;
   }
 
@@ -249,17 +240,14 @@ class RobinhoodService implements IBrokerageService {
   Future<Response> postUserView(String id) {
     var body = {
       "sequence": 0,
-      "user_input": {"status": "continue"},
+      "user_input": {"status": "continue"}
     };
     var httpClient = Client();
     var url = 'https://api.robinhood.com/pathfinder/inquiries/$id/user_view/';
     debugPrint('POST $url');
     debugPrint(jsonEncode(body));
-    var response = httpClient.post(
-      Uri.parse(url),
-      headers: {'Content-type': 'application/json'},
-      body: jsonEncode(body),
-    );
+    var response = httpClient.post(Uri.parse(url),
+        headers: {'Content-type': 'application/json'}, body: jsonEncode(body));
     return response;
   }
 
@@ -296,8 +284,7 @@ class RobinhoodService implements IBrokerageService {
               email: basicInfo['email'] as String?,
               firstName: basicInfo['first_name'] as String?,
               lastName: basicInfo['last_name'] as String?,
-              locality:
-                  (basicInfo['locality'] as String?) ??
+              locality: (basicInfo['locality'] as String?) ??
                   (basicInfo['city'] as String?),
               profileName: user.userName,
               createdAt: null,
@@ -313,8 +300,7 @@ class RobinhoodService implements IBrokerageService {
               email: usr.email ?? basicInfo['email'] as String?,
               firstName: usr.firstName ?? basicInfo['first_name'] as String?,
               lastName: usr.lastName ?? basicInfo['last_name'] as String?,
-              locality:
-                  usr.locality ??
+              locality: usr.locality ??
                   (basicInfo['locality'] as String?) ??
                   (basicInfo['city'] as String?),
               profileName: usr.profileName ?? user.userName,
@@ -332,41 +318,31 @@ class RobinhoodService implements IBrokerageService {
 
   @override
   Future<List<Account>> getAccounts(
-    BrokerageUser brokerageUser,
-    AccountStore store,
-    PortfolioStore? portfolioStore,
-    OptionPositionStore? optionPositionStore, {
-    InstrumentPositionStore? instrumentPositionStore,
-    DocumentReference? userDoc,
-  }) async {
+      BrokerageUser brokerageUser,
+      AccountStore store,
+      PortfolioStore? portfolioStore,
+      OptionPositionStore? optionPositionStore,
+      {InstrumentPositionStore? instrumentPositionStore,
+      DocumentReference? userDoc}) async {
     dynamic results;
     try {
-      results = await RobinhoodService.pagedGet(
-        brokerageUser,
-        "$endpoint/accounts/?default_to_all_accounts=true&include_managed=true&include_multiple_individual=true&include_pending_ownership_transition=true&is_default=false",
-      );
+      results = await RobinhoodService.pagedGet(brokerageUser,
+          "$endpoint/accounts/?default_to_all_accounts=true&include_managed=true&include_multiple_individual=true&include_pending_ownership_transition=true&is_default=false");
     } catch (e) {
       debugPrint(
-        "Failed to fetch with robust multi-accounts parameters, trying second-tier multi-accounts... Error: $e",
-      );
+          "Failed to fetch with robust multi-accounts parameters, trying second-tier multi-accounts... Error: $e");
       try {
-        results = await RobinhoodService.pagedGet(
-          brokerageUser,
-          "$endpoint/accounts/?include_managed=true&include_multiple_individual=true",
-        );
+        results = await RobinhoodService.pagedGet(brokerageUser,
+            "$endpoint/accounts/?include_managed=true&include_multiple_individual=true");
       } catch (e2) {
         debugPrint(
-          "Failed to fetch next-tier accounts, trying simple accounts endpoint... Error: $e2",
-        );
+            "Failed to fetch next-tier accounts, trying simple accounts endpoint... Error: $e2");
         try {
           results = await RobinhoodService.pagedGet(
-            brokerageUser,
-            "$endpoint/accounts/",
-          );
+              brokerageUser, "$endpoint/accounts/");
         } catch (e3) {
           debugPrint(
-            "Failed all attempts to fetch accounts. Letting error propagate. Error: $e3",
-          );
+              "Failed all attempts to fetch accounts. Letting error propagate. Error: $e3");
           rethrow;
         }
       }
@@ -387,26 +363,19 @@ class RobinhoodService implements IBrokerageService {
       var userSnapshot = await userDoc.get();
       var userModel = userSnapshot.data() as User;
       // Find the brokerage user and update its accounts
-      var bu = userModel.brokerageUsers.firstWhere(
-        (bu) =>
-            bu.userName == brokerageUser.userName &&
-            bu.source == brokerageUser.source,
-      );
+      var bu = userModel.brokerageUsers.firstWhere((bu) =>
+          bu.userName == brokerageUser.userName &&
+          bu.source == brokerageUser.source);
 
       // Only update if accounts have changed
-      final accountsChanged =
-          bu.accounts.length != accounts.length ||
-          bu.accounts.asMap().entries.any(
-            (entry) =>
-                entry.value.accountNumber != accounts[entry.key].accountNumber,
-          );
+      final accountsChanged = bu.accounts.length != accounts.length ||
+          bu.accounts.asMap().entries.any((entry) =>
+              entry.value.accountNumber != accounts[entry.key].accountNumber);
 
       if (accountsChanged) {
         bu.accounts = accounts;
         await _firestoreService.updateUser(
-          userDoc as DocumentReference<User>,
-          userModel,
-        );
+            userDoc as DocumentReference<User>, userModel);
       }
     }
     return accounts;
@@ -602,13 +571,9 @@ class RobinhoodService implements IBrokerageService {
   //https://bonfire.robinhood.com/phoenix/accounts/unified
   @override
   Future<List<Portfolio>> getPortfolios(
-    BrokerageUser user,
-    PortfolioStore store,
-  ) async {
-    var results = await RobinhoodService.pagedGet(
-      user,
-      "$endpoint/portfolios/",
-    );
+      BrokerageUser user, PortfolioStore store) async {
+    var results =
+        await RobinhoodService.pagedGet(user, "$endpoint/portfolios/");
     //debugPrint(results);
     List<Portfolio> portfolios = [];
     for (var i = 0; i < results.length; i++) {
@@ -624,12 +589,9 @@ class RobinhoodService implements IBrokerageService {
   // https://bonfire.robinhood.com/portfolio/performance/1234567?chart_style=PERFORMANCE&chart_type=historical_portfolio&display_span=ytd&include_all_hours=true
   @override
   Future<PortfolioHistoricals> getPortfolioPerformance(
-    BrokerageUser user,
-    PortfolioHistoricalsStore store,
-    String account, {
-    Bounds chartBoundsFilter = Bounds.t24_7,
-    ChartDateSpan chartDateSpanFilter = ChartDateSpan.day,
-  }) async {
+      BrokerageUser user, PortfolioHistoricalsStore store, String account,
+      {Bounds chartBoundsFilter = Bounds.t24_7,
+      ChartDateSpan chartDateSpanFilter = ChartDateSpan.day}) async {
     var rtn = convertChartSpanFilterWithInterval(chartDateSpanFilter);
     String? span = rtn[0];
 
@@ -652,8 +614,8 @@ class RobinhoodService implements IBrokerageService {
       var years = chartDateSpanFilter == ChartDateSpan.year_2
           ? 2
           : chartDateSpanFilter == ChartDateSpan.year_3
-          ? 3
-          : 5;
+              ? 3
+              : 5;
       var cutoff = DateTime.now().subtract(Duration(days: 365 * years));
       historicals.equityHistoricals = historicals.equityHistoricals
           .where((e) => e.beginsAt != null && e.beginsAt!.isAfter(cutoff))
@@ -687,22 +649,19 @@ class RobinhoodService implements IBrokerageService {
   */
   @override
   Future<PortfolioHistoricals> getPortfolioHistoricals(
-    BrokerageUser user,
-    PortfolioHistoricalsStore store,
-    String account,
-    Bounds chartBoundsFilter,
-    ChartDateSpan chartDateSpanFilter,
-  ) async {
+      BrokerageUser user,
+      PortfolioHistoricalsStore store,
+      String account,
+      Bounds chartBoundsFilter,
+      ChartDateSpan chartDateSpanFilter) async {
     await Future.delayed(Duration.zero);
     String? bounds = convertChartBoundsFilter(chartBoundsFilter);
     var rtn = convertChartSpanFilterWithInterval(chartDateSpanFilter);
     String? span = rtn[0];
     String? interval = rtn[1];
     // https://api.robinhood.com/portfolios/historicals/1AB23456/?account=1AB23456&bounds=24_7&interval=5minute&span=day
-    var result = await RobinhoodService.getJson(
-      user,
-      "$endpoint/portfolios/historicals/$account/?&bounds=$bounds&span=$span&interval=$interval",
-    ); //${account}/
+    var result = await RobinhoodService.getJson(user,
+        "$endpoint/portfolios/historicals/$account/?&bounds=$bounds&span=$span&interval=$interval"); //${account}/
     var historicals = PortfolioHistoricals.fromJson(result);
     store.set(historicals);
     return historicals;
@@ -712,7 +671,7 @@ class RobinhoodService implements IBrokerageService {
   FUTURES
   */
 
-  /*
+/*
 Futures Accounts
 https://api.robinhood.com/ceres/v1/accounts?rhsAccountNumber={accountNumber}
 {
@@ -777,13 +736,9 @@ https://api.robinhood.com/ceres/v1/accounts?rhsAccountNumber={accountNumber}
 }
 */
   Future<List<dynamic>> getFuturesAccounts(
-    BrokerageUser user,
-    Account account,
-  ) async {
-    var results = await RobinhoodService.pagedGet(
-      user,
-      "$endpoint/ceres/v1/accounts?rhsAccountNumber=${account.accountNumber}",
-    );
+      BrokerageUser user, Account account) async {
+    var results = await RobinhoodService.pagedGet(user,
+        "$endpoint/ceres/v1/accounts?rhsAccountNumber=${account.accountNumber}");
     //debugPrint(results);
     return results;
   }
@@ -832,8 +787,7 @@ https://api.robinhood.com/ceres/v1/accounts?rhsAccountNumber={accountNumber}
     final url =
         '$endpoint/arsenal/v1/futures/margin_requirement?contractId=${Uri.encodeQueryComponent(contractId)}&marginType=$marginType&accountType=ACCOUNT_TYPE_MARGIN_LIMITED';
     final result = await getJson(user, url);
-    final value =
-        result['marginRequirement'] ??
+    final value = result['marginRequirement'] ??
         (result['result'] is Map
             ? result['result']['marginRequirement']
             : null);
@@ -841,9 +795,7 @@ https://api.robinhood.com/ceres/v1/accounts?rhsAccountNumber={accountNumber}
   }
 
   Future<dynamic> getFuturesProduct(
-    BrokerageUser user,
-    String productId,
-  ) async {
+      BrokerageUser user, String productId) async {
     var url = "$endpoint/arsenal/v1/futures/products/$productId";
     var resultJson = await getJson(user, url);
     return resultJson;
@@ -851,9 +803,7 @@ https://api.robinhood.com/ceres/v1/accounts?rhsAccountNumber={accountNumber}
 
   // 1-Ounce Gold Futures product ID = f2e7cd0e-c09c-44d2-bf83-45fd8bfb7b15
   Future<List<dynamic>> getFuturesProductsByIds(
-    BrokerageUser user,
-    List<String> productIds,
-  ) async {
+      BrokerageUser user, List<String> productIds) async {
     if (productIds.isEmpty) {
       return Future.value([]);
     }
@@ -885,9 +835,7 @@ https://api.robinhood.com/ceres/v1/accounts?rhsAccountNumber={accountNumber}
   // }
 
   Future<dynamic> getFuturesContract(
-    BrokerageUser user,
-    String contractId,
-  ) async {
+      BrokerageUser user, String contractId) async {
     var url = "$endpoint/arsenal/v1/futures/contracts?contractIds=$contractId";
     var resultJson = await getJson(user, url);
     if (resultJson['result'] != null) {
@@ -898,9 +846,7 @@ https://api.robinhood.com/ceres/v1/accounts?rhsAccountNumber={accountNumber}
 
   @override
   Future<List<dynamic>> getFuturesContractsByIds(
-    BrokerageUser user,
-    List<String> contractIds,
-  ) async {
+      BrokerageUser user, List<String> contractIds) async {
     if (contractIds.isEmpty) {
       return Future.value([]);
     }
@@ -910,35 +856,30 @@ https://api.robinhood.com/ceres/v1/accounts?rhsAccountNumber={accountNumber}
     final contracts = resultJson['results'] is List
         ? List<dynamic>.from(resultJson['results'])
         : resultJson['result'] != null
-        ? <dynamic>[resultJson['result']]
-        : <dynamic>[];
-    await Future.wait(
-      contracts.whereType<Map>().map((contract) async {
-        final contractId = contract['id']?.toString();
-        if (contractId == null) {
-          return;
-        }
-        try {
-          contract['marginRequirement'] = await _getFuturesMarginRequirement(
-            user,
-            contractId,
-            'MARGIN_TYPE_OVERNIGHT',
-          );
-        } catch (e) {
-          debugPrint(
-            'getFuturesContractsByIds: margin fetch error for $contractId: $e',
-          );
-        }
-      }),
-    );
+            ? <dynamic>[resultJson['result']]
+            : <dynamic>[];
+    await Future.wait(contracts.whereType<Map>().map((contract) async {
+      final contractId = contract['id']?.toString();
+      if (contractId == null) {
+        return;
+      }
+      try {
+        contract['marginRequirement'] = await _getFuturesMarginRequirement(
+          user,
+          contractId,
+          'MARGIN_TYPE_OVERNIGHT',
+        );
+      } catch (e) {
+        debugPrint(
+            'getFuturesContractsByIds: margin fetch error for $contractId: $e');
+      }
+    }));
     return contracts;
   }
 
   @override
   Future<dynamic> getFuturesContractBySymbol(
-    BrokerageUser user,
-    String symbol,
-  ) async {
+      BrokerageUser user, String symbol) async {
     var url = "$endpoint/arsenal/v1/futures/contracts/symbol/$symbol";
     var resultJson = await getJson(user, url);
     return resultJson['result'];
@@ -946,9 +887,7 @@ https://api.robinhood.com/ceres/v1/accounts?rhsAccountNumber={accountNumber}
 
   @override
   Future<List<dynamic>> getFuturesContractsBySymbols(
-    BrokerageUser user,
-    List<String> symbols,
-  ) async {
+      BrokerageUser user, List<String> symbols) async {
     if (symbols.isEmpty) {
       return Future.value([]);
     }
@@ -968,9 +907,7 @@ https://api.robinhood.com/ceres/v1/accounts?rhsAccountNumber={accountNumber}
 
   @override
   Future<List<dynamic>> getFuturesClosesByIds(
-    BrokerageUser user,
-    List<String> contractIds,
-  ) async {
+      BrokerageUser user, List<String> contractIds) async {
     if (contractIds.isEmpty) {
       return Future.value([]);
     }
@@ -996,18 +933,16 @@ https://api.robinhood.com/ceres/v1/accounts?rhsAccountNumber={accountNumber}
       final realizedPnl = order['realizedPnl'];
       final amount = realizedPnl is Map && realizedPnl['realizedPnl'] is Map
           ? double.tryParse(
-                  realizedPnl['realizedPnl']['amount']?.toString() ?? '',
-                ) ??
-                0.0
+                  realizedPnl['realizedPnl']['amount']?.toString() ?? '') ??
+              0.0
           : 0.0;
       final orderLegs = order['orderLegs'];
       if (amount == 0 || orderLegs is! List || orderLegs.isEmpty) {
         continue;
       }
       final firstLeg = orderLegs.first;
-      final contractId = firstLeg is Map
-          ? firstLeg['contractId']?.toString()
-          : null;
+      final contractId =
+          firstLeg is Map ? firstLeg['contractId']?.toString() : null;
       if (contractId != null) {
         realizedPnlByContract[contractId] =
             (realizedPnlByContract[contractId] ?? 0.0) + amount;
@@ -1016,7 +951,7 @@ https://api.robinhood.com/ceres/v1/accounts?rhsAccountNumber={accountNumber}
     return realizedPnlByContract;
   }
 
-  /*
+/*
 https://api.robinhood.com/ceres/v1/accounts/{accountGuid}/aggregated_positions
 {
     "results": [
@@ -1034,9 +969,7 @@ https://api.robinhood.com/ceres/v1/accounts/{accountGuid}/aggregated_positions
     String account,
   ) async* {
     var pageStream = streamedGet(
-      user,
-      "$endpoint/ceres/v1/accounts/$account/aggregated_positions",
-    );
+        user, "$endpoint/ceres/v1/accounts/$account/aggregated_positions");
 
     await for (final results in pageStream) {
       /*
@@ -1050,10 +983,8 @@ https://api.robinhood.com/ceres/v1/accounts/{accountGuid}/aggregated_positions
       // Calculate Realized P&L from today's orders
       Map<String, double> realizedPnlByContract = {};
       try {
-        realizedPnlByContract = await _getTodayFuturesRealizedPnlByContract(
-          user,
-          account,
-        );
+        realizedPnlByContract =
+            await _getTodayFuturesRealizedPnlByContract(user, account);
       } catch (e) {
         debugPrint('streamFuturePositions: futures orders fetch error: $e');
       }
@@ -1133,8 +1064,8 @@ https://api.robinhood.com/ceres/v1/accounts/{accountGuid}/aggregated_positions
           if (closeWrapper is Map && closeWrapper['data'] != null) {
             var data = closeWrapper['data'];
             var instrumentId = data['instrument_id']?.toString();
-            var previousClosePriceStr = data['previous_close_price']
-                ?.toString();
+            var previousClosePriceStr =
+                data['previous_close_price']?.toString();
             if (instrumentId != null && previousClosePriceStr != null) {
               var previousClose = double.tryParse(previousClosePriceStr);
               if (previousClose != null) {
@@ -1194,18 +1125,15 @@ https://api.robinhood.com/ceres/v1/accounts/{accountGuid}/aggregated_positions
             double? avgTradePrice = avgTradePriceStr != null
                 ? double.tryParse(avgTradePriceStr)
                 : null;
-            double? quantity = quantityStr != null
-                ? double.tryParse(quantityStr)
-                : null;
-            double? multiplier = multiplierStr != null
-                ? double.tryParse(multiplierStr)
-                : null;
+            double? quantity =
+                quantityStr != null ? double.tryParse(quantityStr) : null;
+            double? multiplier =
+                multiplierStr != null ? double.tryParse(multiplierStr) : null;
             double openPnl = 0.0;
             if (quantity != null) {
               final contractCount = quantity.abs();
               final marginRequirement = double.tryParse(
-                contract['marginRequirement']?.toString() ?? '',
-              );
+                  contract['marginRequirement']?.toString() ?? '');
               if (marginRequirement != null) {
                 position['marginRequirement'] =
                     marginRequirement * contractCount;
@@ -1290,22 +1218,15 @@ https://api.robinhood.com/ceres/v1/accounts/{accountGuid}/aggregated_positions
   }
 
   Future<List<dynamic>> getFuturesPositions(
-    BrokerageUser user,
-    FuturesPositionStore store,
-    String account,
-  ) async {
+      BrokerageUser user, FuturesPositionStore store, String account) async {
     // Re-using logic from streamFuturePositions but for a single fetch
     var results = await pagedGet(
-      user,
-      "$endpoint/ceres/v1/accounts/$account/aggregated_positions",
-    );
+        user, "$endpoint/ceres/v1/accounts/$account/aggregated_positions");
 
     var realizedPnlByContract = <String, double>{};
     try {
-      realizedPnlByContract = await _getTodayFuturesRealizedPnlByContract(
-        user,
-        account,
-      );
+      realizedPnlByContract =
+          await _getTodayFuturesRealizedPnlByContract(user, account);
     } catch (e) {
       debugPrint('getFuturesPositions: futures orders fetch error: $e');
     }
@@ -1438,17 +1359,14 @@ https://api.robinhood.com/ceres/v1/accounts/{accountGuid}/aggregated_positions
           double? avgTradePrice = avgTradePriceStr != null
               ? double.tryParse(avgTradePriceStr)
               : null;
-          double? quantity = quantityStr != null
-              ? double.tryParse(quantityStr)
-              : null;
-          double? multiplier = multiplierStr != null
-              ? double.tryParse(multiplierStr)
-              : null;
+          double? quantity =
+              quantityStr != null ? double.tryParse(quantityStr) : null;
+          double? multiplier =
+              multiplierStr != null ? double.tryParse(multiplierStr) : null;
           if (quantity != null) {
             final contractCount = quantity.abs();
             final marginRequirement = double.tryParse(
-              contract['marginRequirement']?.toString() ?? '',
-            );
+                contract['marginRequirement']?.toString() ?? '');
             if (marginRequirement != null) {
               position['marginRequirement'] = marginRequirement * contractCount;
             }
@@ -1475,7 +1393,7 @@ https://api.robinhood.com/ceres/v1/accounts/{accountGuid}/aggregated_positions
             // Day P&L formula: (Last - PreviousClose) * Quantity * Multiplier
             position['dayPnlCalc'] =
                 (lastTradePrice - previousClosePrice) * quantity * multiplier +
-                realizedPnl;
+                    realizedPnl;
           } else {
             position['dayPnlCalc'] = realizedPnl;
           }
@@ -1515,9 +1433,7 @@ https://api.robinhood.com/ceres/v1/accounts/{accountGuid}/aggregated_positions
 
   @override
   Future<List<dynamic>> getFuturesOrders(
-    BrokerageUser user,
-    String account,
-  ) async {
+      BrokerageUser user, String account) async {
     final cacheKey = '${user.userName}:$account';
     final cached = _futuresOrdersCache[cacheKey];
     if (cached != null && cached.expiresAt.isAfter(DateTime.now())) {
@@ -1539,10 +1455,7 @@ https://api.robinhood.com/ceres/v1/accounts/{accountGuid}/aggregated_positions
   }
 
   Future<List<dynamic>> _loadFuturesOrders(
-    BrokerageUser user,
-    String account,
-    String cacheKey,
-  ) async {
+      BrokerageUser user, String account, String cacheKey) async {
     try {
       final orders = await _fetchFuturesOrders(user, account);
       _futuresOrdersCache[cacheKey] = _FuturesOrdersCacheEntry(
@@ -1557,9 +1470,7 @@ https://api.robinhood.com/ceres/v1/accounts/{accountGuid}/aggregated_positions
   }
 
   Future<List<dynamic>> _fetchFuturesOrders(
-    BrokerageUser user,
-    String account,
-  ) async {
+      BrokerageUser user, String account) async {
     // https://api.robinhood.com/ceres/v1/accounts/{params}/orders?orderState=QUEUED&orderState=CONFIRMED&orderState=UNCONFIRMED&orderState=PENDING_CANCELLED&orderState=PARTIALLY_FILLED&orderState=FILLED&orderState=CANCELLED&orderState=REJECTED
     var url =
         "$endpoint/ceres/v1/accounts/$account/orders?orderState=FILLED&orderState=PARTIALLY_FILLED";
@@ -1592,7 +1503,7 @@ https://api.robinhood.com/ceres/v1/accounts/{accountGuid}/aggregated_positions
           'contractId': contractId,
           'ratioQuantity': 1,
           'orderSide': side.toUpperCase(),
-        },
+        }
       ],
       'quantity': quantity.toString(),
       'orderType': orderType,
@@ -1624,7 +1535,7 @@ https://api.robinhood.com/ceres/v1/accounts/{accountGuid}/aggregated_positions
     return result;
   }
 
-  /*
+/*
 https://api.robinhood.com/ceres/v1/accounts/6720fb91-1664-4e00-ad41-9b4e91008879/pnl_cost_basis
 {
     "contractToInfo": {
@@ -1963,10 +1874,8 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
   }) async {
     store.setLoading(true);
     try {
-      var pageStream = streamedGet(
-        user,
-        "$endpoint/positions/?nonzero=$nonzero",
-      );
+      var pageStream =
+          streamedGet(user, "$endpoint/positions/?nonzero=$nonzero");
       //debugPrint(results);
       await for (final results in pageStream) {
         for (var i = 0; i < results.length; i++) {
@@ -1981,24 +1890,20 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
           }
         }
         var instrumentIds = store.items.map((e) => e.instrumentId).toList();
-        var instrumentObjs = await getInstrumentsByIds(
-          user,
-          instrumentStore,
-          instrumentIds,
-        );
+        var instrumentObjs =
+            await getInstrumentsByIds(user, instrumentStore, instrumentIds);
         for (var instrumentObj in instrumentObjs) {
           var position = store.items.firstWhereOrNull(
-            (element) => element.instrumentId == instrumentObj.id,
-          );
+              (element) => element.instrumentId == instrumentObj.id);
           if (position != null) {
             position.instrumentObj = instrumentObj;
             store.update(position);
           }
         }
         var symbols = store.items
-            .where(
-              (e) => e.instrumentObj != null,
-            ) // Figure out why in certain conditions, instrumentObj is null
+            .where((e) =>
+                e.instrumentObj !=
+                null) // Figure out why in certain conditions, instrumentObj is null
             .map((e) => e.instrumentObj!.symbol)
             .toList();
         // Remove old quotes (that would be returned from cache) to get current ones
@@ -2007,13 +1912,11 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
         for (var quoteObj in quoteObjs) {
           // Update Position
           var position = store.items.firstWhereOrNull(
-            (element) => element.instrumentObj?.symbol == quoteObj.symbol,
-          );
+              (element) => element.instrumentObj?.symbol == quoteObj.symbol);
           if (position == null) continue;
           if (position.instrumentObj!.quoteObj == null ||
-              position.instrumentObj!.quoteObj!.updatedAt!.isBefore(
-                quoteObj.updatedAt!,
-              )) {
+              position.instrumentObj!.quoteObj!.updatedAt!
+                  .isBefore(quoteObj.updatedAt!)) {
             position.instrumentObj!.quoteObj = quoteObj;
             store.update(position);
             // Update Instrument
@@ -2021,8 +1924,7 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
             if (userDoc != null) {
               _firestoreService.upsertInstrument(position.instrumentObj!);
               debugPrint(
-                'RobinhoodService.getStockPositionStore: Stored instrument into Firestore ${position.instrumentObj!.symbol}',
-              );
+                  'RobinhoodService.getStockPositionStore: Stored instrument into Firestore ${position.instrumentObj!.symbol}');
             }
           }
         }
@@ -2035,10 +1937,8 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
 
   /// Fetches closed positions with zero remaining quantity.
   /// https://api.robinhood.com/positions/?nonzero=false
-  Future<List<dynamic>> getClosedPositions(
-    BrokerageUser user, {
-    String? accountNumber,
-  }) async {
+  Future<List<dynamic>> getClosedPositions(BrokerageUser user,
+      {String? accountNumber}) async {
     final query = accountNumber != null
         ? '?nonzero=false&account_number=$accountNumber'
         : '?nonzero=false';
@@ -2082,11 +1982,8 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
   // }
 
   @override
-  Future<List<InstrumentPosition>> refreshPositionQuote(
-    BrokerageUser user,
-    InstrumentPositionStore store,
-    QuoteStore quoteStore,
-  ) async {
+  Future<List<InstrumentPosition>> refreshPositionQuote(BrokerageUser user,
+      InstrumentPositionStore store, QuoteStore quoteStore) async {
     if (store.items.isEmpty || store.items.first.instrumentObj == null) {
       return store.items;
     }
@@ -2101,34 +1998,27 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
     }
     for (var chunk in chunks) {
       var symbols = chunk
-          .where(
-            (e) => e.instrumentObj != null,
-          ) // Figure out why in certain conditions, instrumentObj is null
+          .where((e) =>
+              e.instrumentObj !=
+              null) // Figure out why in certain conditions, instrumentObj is null
           .map((e) => e.instrumentObj!.symbol)
           .toList();
 
-      var quoteObjs = await getQuoteByIds(
-        user,
-        quoteStore,
-        symbols,
-        fromCache: false,
-      );
+      var quoteObjs =
+          await getQuoteByIds(user, quoteStore, symbols, fromCache: false);
       for (var quoteObj in quoteObjs) {
         var position = store.items.firstWhereOrNull(
-          (element) => element.instrumentObj?.symbol == quoteObj.symbol,
-        );
+            (element) => element.instrumentObj?.symbol == quoteObj.symbol);
         if (position == null) continue;
         if (position.instrumentObj!.quoteObj == null ||
-            position.instrumentObj!.quoteObj!.updatedAt!.isBefore(
-              quoteObj.updatedAt!,
-            )) {
+            position.instrumentObj!.quoteObj!.updatedAt!
+                .isBefore(quoteObj.updatedAt!)) {
           position.instrumentObj!.quoteObj = quoteObj;
           // Update store
           store.update(position);
           _firestoreService.upsertInstrument(position.instrumentObj!);
           debugPrint(
-            'RobinhoodService.refreshPositionQuote: Stored instrument into Firestore ${position.instrumentObj!.symbol}',
-          );
+              'RobinhoodService.refreshPositionQuote: Stored instrument into Firestore ${position.instrumentObj!.symbol}');
         }
       }
     }
@@ -2291,9 +2181,7 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
   }) async* {
     List<InstrumentOrder> list = [];
     var pageStream = streamedGet(
-      user,
-      "$endpoint/orders/",
-    ); // ?chain_id=${instrument.tradeableChainId}
+        user, "$endpoint/orders/"); // ?chain_id=${instrument.tradeableChainId}
     //debugPrint(results);
     await for (final results in pageStream) {
       for (var i = 0; i < results.length; i++) {
@@ -2328,15 +2216,11 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
       }
 
       var instrumentIds = list.map((e) => e.instrumentId).toSet().toList();
-      var instrumentObjs = await getInstrumentsByIds(
-        user,
-        instrumentStore,
-        instrumentIds,
-      );
+      var instrumentObjs =
+          await getInstrumentsByIds(user, instrumentStore, instrumentIds);
       for (var instrumentObj in instrumentObjs) {
-        var pos = list.where(
-          (element) => element.instrumentId == instrumentObj.id,
-        );
+        var pos =
+            list.where((element) => element.instrumentId == instrumentObj.id);
         for (var po in pos) {
           po.instrumentObj = instrumentObj;
         }
@@ -2348,10 +2232,8 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
 
   @override
   Stream<List<dynamic>> streamDividends(
-    BrokerageUser user,
-    InstrumentStore instrumentStore, {
-    DocumentReference? userDoc,
-  }) async* {
+      BrokerageUser user, InstrumentStore instrumentStore,
+      {DocumentReference? userDoc}) async* {
     // https://api.robinhood.com/dividends/
     // https://api.robinhood.com/dividends/?account_numbers=5QR24141&page_size=10
 
@@ -2386,11 +2268,8 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
           // }
         }
       }
-      list.sort(
-        (a, b) => DateTime.parse(
-          b["record_date"]!,
-        ).compareTo(DateTime.parse(a["record_date"]!)),
-      );
+      list.sort((a, b) => DateTime.parse(b["record_date"]!)
+          .compareTo(DateTime.parse(a["record_date"]!)));
       yield list;
 
       if (userDoc != null) {
@@ -2404,16 +2283,11 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
           })
           .toSet()
           .toList();
-      var instrumentObjs = await getInstrumentsByIds(
-        user,
-        instrumentStore,
-        instrumentIds,
-      );
+      var instrumentObjs =
+          await getInstrumentsByIds(user, instrumentStore, instrumentIds);
       for (var instrumentObj in instrumentObjs) {
-        var pos = list.where(
-          (element) =>
-              element["instrument"].toString().contains(instrumentObj.id),
-        );
+        var pos = list.where((element) =>
+            element["instrument"].toString().contains(instrumentObj.id));
         for (var po in pos) {
           po["instrumentObj"] = instrumentObj;
         }
@@ -2424,18 +2298,13 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
 
   @override
   Future<List<dynamic>> getDividends(
-    BrokerageUser user,
-    DividendStore store,
-    InstrumentStore instrumentStore, {
-    String? instrumentId,
-  }) async {
+      BrokerageUser user, DividendStore store, InstrumentStore instrumentStore,
+      {String? instrumentId}) async {
     // https://api.robinhood.com/dividends/
     //https://api.robinhood.com/dividends/?instrument_id=943c5009-a0bb-4665-8cf4-a95dab5874e4
 
-    var results = await pagedGet(
-      user,
-      "$endpoint/dividends/${instrumentId != null ? '?instrument_id=$instrumentId' : ''}",
-    );
+    var results = await pagedGet(user,
+        "$endpoint/dividends/${instrumentId != null ? '?instrument_id=$instrumentId' : ''}");
     List<dynamic> list = [];
     // store.removeAll();
     for (var i = 0; i < results.length; i++) {
@@ -2443,11 +2312,8 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
       list.add(result);
       store.addOrUpdate(result);
     }
-    list.sort(
-      (a, b) => DateTime.parse(
-        b["record_date"]!,
-      ).compareTo(DateTime.parse(a["record_date"]!)),
-    );
+    list.sort((a, b) => DateTime.parse(b["record_date"]!)
+        .compareTo(DateTime.parse(a["record_date"]!)));
 
     var instrumentIds = list
         .map((e) {
@@ -2456,16 +2322,11 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
         })
         .toSet()
         .toList();
-    var instrumentObjs = await getInstrumentsByIds(
-      user,
-      instrumentStore,
-      instrumentIds,
-    );
+    var instrumentObjs =
+        await getInstrumentsByIds(user, instrumentStore, instrumentIds);
     for (var instrumentObj in instrumentObjs) {
-      var pos = list.where(
-        (element) =>
-            element["instrument"].toString().contains(instrumentObj.id),
-      );
+      var pos = list.where((element) =>
+          element["instrument"].toString().contains(instrumentObj.id));
       for (var po in pos) {
         po["instrumentObj"] = instrumentObj;
       }
@@ -2477,16 +2338,12 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
 
   @override
   Stream<List<dynamic>> streamInterests(
-    BrokerageUser user,
-    InstrumentStore instrumentStore, {
-    DocumentReference? userDoc,
-  }) async* {
+      BrokerageUser user, InstrumentStore instrumentStore,
+      {DocumentReference? userDoc}) async* {
     // https://api.robinhood.com/accounts/sweeps/?default_to_all_accounts=true&page_size=10
     List<dynamic> list = [];
-    var pageStream = streamedGet(
-      user,
-      "$endpoint/accounts/sweeps/?default_to_all_accounts=true&page_size=20",
-    );
+    var pageStream = streamedGet(user,
+        "$endpoint/accounts/sweeps/?default_to_all_accounts=true&page_size=20");
     await for (final results in pageStream) {
       for (var i = 0; i < results.length; i++) {
         var result = results[i];
@@ -2510,18 +2367,13 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
   }
 
   @override
-  Future<List<dynamic>> getInterests(
-    BrokerageUser user,
-    InterestStore store, {
-    String? instrumentId,
-  }) async {
+  Future<List<dynamic>> getInterests(BrokerageUser user, InterestStore store,
+      {String? instrumentId}) async {
     // https://api.robinhood.com/dividends/
     //https://api.robinhood.com/dividends/?instrument_id=943c5009-a0bb-4665-8cf4-a95dab5874e4
 
-    var results = await pagedGet(
-      user,
-      "$endpoint/accounts/sweeps/?default_to_all_accounts=true&page_size=20",
-    );
+    var results = await pagedGet(user,
+        "$endpoint/accounts/sweeps/?default_to_all_accounts=true&page_size=20");
     List<dynamic> list = [];
     store.removeAll();
     for (var i = 0; i < results.length; i++) {
@@ -2529,11 +2381,8 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
       list.add(result);
       store.add(result);
     }
-    list.sort(
-      (a, b) => DateTime.parse(
-        b["pay_date"]!,
-      ).compareTo(DateTime.parse(a["pay_date"]!)),
-    );
+    list.sort((a, b) => DateTime.parse(b["pay_date"]!)
+        .compareTo(DateTime.parse(a["pay_date"]!)));
     return list;
   }
 
@@ -2543,10 +2392,8 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
 
   @override
   Future<dynamic> search(BrokerageUser user, String query) async {
-    var resultJson = await getJson(
-      user,
-      "$robinHoodSearchEndpoint/search/?query=$query",
-    );
+    var resultJson =
+        await getJson(user, "$robinHoodSearchEndpoint/search/?query=$query");
     //https://bonfire.robinhood.com/deprecated_search/?query=Micro&user_origin=US
     return resultJson;
   }
@@ -2555,14 +2402,10 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
 
   // https://api.robinhood.com/midlands/movers/sp500/?direction=up
   @override
-  Future<List<MidlandMoversItem>> getMovers(
-    BrokerageUser user, {
-    String direction = "up",
-  }) async {
+  Future<List<MidlandMoversItem>> getMovers(BrokerageUser user,
+      {String direction = "up"}) async {
     var results = await pagedGet(
-      user,
-      "$endpoint/midlands/movers/sp500/?direction=$direction",
-    );
+        user, "$endpoint/midlands/movers/sp500/?direction=$direction");
     List<MidlandMoversItem> list = [];
     for (var i = 0; i < results.length; i++) {
       var result = results[i];
@@ -2587,13 +2430,9 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
   // {"canonical_examples":"","description":"","instruments":["https://api.robinhood.com/instruments/98bf9407-f2f2-4eb7-b2b7-07c811cc384a/","https://api.robinhood.com/instruments/94c5ec10-9f48-42bf-a396-3927ed0463b0/","https://api.robinhood.com/instruments/3d280b06-b393-4d07-94de-89c1f0617ce1/","https://api.robinhood.com/instruments/45650848-0d8d-4704-8656-a99e83eb4a6a/","https://api.robinhood.com/instruments/f604bdef-f96c-4ae8-a7b3-cd1c38c270db/","https://api.robinhood.com/instruments/7df1fd83-653c-4b92-a5ce-9e108aab7f9e/","https://api.robinhood.com/instruments/f917d25c-9191-42d5-ae3f-dc449123336e/","https://api.robinhood.com/instruments/54e96481-1912-4b9a-ac2c-3aee5e7e7709/","https://api.robinhood.com/instruments/214ad08e-eac2-41d4-96f8-42f101654fcf/","https://api.robinhood.com/instruments/847998ca-67ec-4054-934e-e54067f1e404/","https://api.robinhood.com/instruments/552aedf0-af4b-4693-8825-cbee56a685bc/","https://api.robinhood.com/instruments/964fef8b-7677-4b3f-84aa-6c1ab1ac90ec/","https://api.robinhood.com/instruments/39474cfd-82f3-432b-87db-e65b9603c946/","https://api.robinhood.com/instruments/035b0a57-3ec1-4c92-bc85-35bd1d39f891/","https://api.robinhood.com/instruments/feaa53b3-8033-4d72-93ec-4fed9e35a62d/","https://api.robinhood.com/instruments/75cb568b-9c30-48d6-9b67-aef53dae1249/","https://api.robinhood.com/instruments/18d7b0a9-5a13-4dad-8f77-54b85f01bd7f/","https://api.robinhood.com/instruments/3fb03605-fcb7-44ab-aebb-429ca7f1c474/","https://api.robinhood.com/instruments/89eec724-e25d-4852-860f-146b25995d65/","https://api.robinhood.com/instruments/3669946d-1833-4fe9-b6b4-0b74c90020e1/"],"name":"Top Movers","slug":"top-movers","membership_count":20}
   @override
   Future<List<Instrument>> getTopMovers(
-    BrokerageUser user,
-    InstrumentStore instrumentStore,
-  ) async {
-    var resultJson = await getJson(
-      user,
-      "$endpoint/midlands/tags/tag/top-movers/",
-    );
+      BrokerageUser user, InstrumentStore instrumentStore) async {
+    var resultJson =
+        await getJson(user, "$endpoint/midlands/tags/tag/top-movers/");
     // https://api.robinhood.com/midlands/tags/tag/top-movers/
     // var instrumentIds = resultJson["instruments"]
     //     .map((e) {
@@ -2614,13 +2453,9 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
   // https://api.robinhood.com/midlands/tags/tag/100-most-popular/
   @override
   Future<List<Instrument>> getListMostPopular(
-    BrokerageUser user,
-    InstrumentStore instrumentStore,
-  ) async {
-    var resultJson = await getJson(
-      user,
-      "$endpoint/midlands/tags/tag/100-most-popular/",
-    );
+      BrokerageUser user, InstrumentStore instrumentStore) async {
+    var resultJson =
+        await getJson(user, "$endpoint/midlands/tags/tag/100-most-popular/");
     // https://api.robinhood.com/midlands/tags/tag/top-movers/
     // List<String> instrumentIds = resultJson["instruments"]
     //     .map((e) {
@@ -2657,33 +2492,26 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
   // https://api.robinhood.com/instruments/1362827e-7c1a-475c-a46e-3cbb2263b081/
   @override
   Future<Instrument> getInstrument(
-    BrokerageUser user,
-    InstrumentStore store,
-    String instrumentUrl,
-  ) async {
+      BrokerageUser user, InstrumentStore store, String instrumentUrl) async {
     // var cached =
     //     await _firestoreService.searchInstruments(url: instrumentUrl).first;
-    var cached = store.items
-        .where((element) => element.url == instrumentUrl)
-        .toList();
+    var cached =
+        store.items.where((element) => element.url == instrumentUrl).toList();
     if (cached.isNotEmpty) {
       debugPrint(
-        'getInstrument: Returned instrument from local cache $instrumentUrl',
-      );
+          'getInstrument: Returned instrument from local cache $instrumentUrl');
       return Future.value(cached.first);
     }
 
-    var cachedFirestore = await _firestoreService.getInstrument(
-      url: instrumentUrl,
-    );
+    var cachedFirestore =
+        await _firestoreService.getInstrument(url: instrumentUrl);
     if (cachedFirestore != null) {
       cached.add(cachedFirestore);
       store.add(cachedFirestore);
     }
     if (cached.isNotEmpty) {
       debugPrint(
-        'getInstrumentBySymbol: Returned instrument from Firestore cache $instrumentUrl',
-      );
+          'getInstrumentBySymbol: Returned instrument from Firestore cache $instrumentUrl');
       return Future.value(cached.first);
     }
     var resultJson = await getJson(user, instrumentUrl);
@@ -2695,17 +2523,12 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
 
   @override
   Future<Instrument?> getInstrumentBySymbol(
-    BrokerageUser user,
-    InstrumentStore store,
-    String symbol,
-  ) async {
-    var cached = store.items
-        .where((element) => element.symbol == symbol)
-        .toList();
+      BrokerageUser user, InstrumentStore store, String symbol) async {
+    var cached =
+        store.items.where((element) => element.symbol == symbol).toList();
     if (cached.isNotEmpty) {
       debugPrint(
-        'getInstrumentBySymbol: Returned instrument from local cache $symbol',
-      );
+          'getInstrumentBySymbol: Returned instrument from local cache $symbol');
       return Future.value(cached.first);
     }
 
@@ -2717,16 +2540,13 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
 
     if (cached.isNotEmpty) {
       debugPrint(
-        'getInstrumentBySymbol: Returned instrument from Firestore cache $symbol',
-      );
+          'getInstrumentBySymbol: Returned instrument from Firestore cache $symbol');
       return Future.value(cached.first);
     }
 
     // https://api.robinhood.com/instruments/?active_instruments_only=false&symbol=GOOG
-    var resultJson = await getJson(
-      user,
-      "$endpoint/instruments/?active_instruments_only=false&symbol=$symbol",
-    );
+    var resultJson = await getJson(user,
+        "$endpoint/instruments/?active_instruments_only=false&symbol=$symbol");
     if (resultJson["results"].length > 0) {
       var i = Instrument.fromJson(resultJson["results"][0]);
       // Using addOrUpdate for concurrency reasons.
@@ -2739,39 +2559,31 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
 
   @override
   Future<List<Instrument>> getInstrumentsByIds(
-    BrokerageUser user,
-    InstrumentStore store,
-    List<String> ids,
-  ) async {
+      BrokerageUser user, InstrumentStore store, List<String> ids) async {
     if (ids.isEmpty) {
       return Future.value([]);
     }
-    var cached = store.items
-        .where((element) => ids.contains(element.id))
-        .toList();
+    var cached =
+        store.items.where((element) => ids.contains(element.id)).toList();
     var remainingIds = ids.where((i) => !cached.any((e) => e.id == i)).toList();
 
     if (remainingIds.isEmpty) {
       debugPrint(
-        'getInstrumentsByIds: Returned instruments from local cache ${ids.join(",")}',
-      );
+          'getInstrumentsByIds: Returned instruments from local cache ${ids.join(",")}');
       return Future.value(cached);
     }
-    var cachedFirestore = await _firestoreService
-        .searchInstruments(ids: remainingIds)
-        .first;
+    var cachedFirestore =
+        await _firestoreService.searchInstruments(ids: remainingIds).first;
     cached.addAll(cachedFirestore);
     for (var item in cachedFirestore) {
       store.add(item);
     }
-    remainingIds = remainingIds
-        .where((i) => !cached.any((e) => e.id == i))
-        .toList();
+    remainingIds =
+        remainingIds.where((i) => !cached.any((e) => e.id == i)).toList();
 
     if (remainingIds.isEmpty) {
       debugPrint(
-        'getInstrumentsByIds: Returned instruments from Firestore cache ${remainingIds.join(",")}',
-      );
+          'getInstrumentsByIds: Returned instruments from Firestore cache ${remainingIds.join(",")}');
       return Future.value(cached);
     }
 
@@ -2792,9 +2604,8 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
     var size = 15; //17;
     List<List<dynamic>> chunks = [];
     for (var i = 0; i < remainingIds.length; i += size) {
-      var end = (i + size < remainingIds.length)
-          ? i + size
-          : remainingIds.length;
+      var end =
+          (i + size < remainingIds.length) ? i + size : remainingIds.length;
       chunks.add(remainingIds.sublist(i, end));
     }
     for (var chunk in chunks) {
@@ -2807,13 +2618,12 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
           .whereType<Map<String, dynamic>>()
           .toList();
       final fundamentals = await getFundamentalsById(
-        user,
-        results
-            .map((result) => result['symbol'] as String?)
-            .whereType<String>()
-            .toList(),
-        store,
-      );
+          user,
+          results
+              .map((result) => result['symbol'] as String?)
+              .whereType<String>()
+              .toList(),
+          store);
 
       for (var result in results) {
         var instrument = Instrument.fromJson(result);
@@ -2823,8 +2633,7 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
         }
 
         Fundamentals? fundamental = fundamentals.firstWhereOrNull(
-          (f) => f.instrument.endsWith("${instrument.id}/"),
-        );
+            (f) => f.instrument.endsWith("${instrument.id}/"));
         if (fundamental != null) {
           instrument.fundamentalsObj = fundamental;
         }
@@ -2844,10 +2653,7 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
 
   @override
   Future<Quote> getQuote(
-    BrokerageUser user,
-    QuoteStore store,
-    String symbol,
-  ) async {
+      BrokerageUser user, QuoteStore store, String symbol) async {
     var cachedQuotes = store.items.where((element) => element.symbol == symbol);
     if (cachedQuotes.isNotEmpty) {
       debugPrint('Returned quote from cache $symbol');
@@ -2863,10 +2669,7 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
 
   @override
   Future<Quote> refreshQuote(
-    BrokerageUser user,
-    QuoteStore store,
-    String symbol,
-  ) async {
+      BrokerageUser user, QuoteStore store, String symbol) async {
     var url = "$endpoint/quotes/$symbol/";
     var resultJson = await getJson(user, url);
     var quote = Quote.fromJson(resultJson);
@@ -2926,20 +2729,15 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
 
   @override
   Future<List<Quote>> getQuoteByIds(
-    BrokerageUser user,
-    QuoteStore store,
-    List<String> symbols, {
-    bool fromCache = true,
-  }) async {
+      BrokerageUser user, QuoteStore store, List<String> symbols,
+      {bool fromCache = true}) async {
     Iterable<Quote> cached = [];
     if (fromCache) {
       cached = store.items.where((element) => symbols.contains(element.symbol));
     }
     var nonCached = symbols
-        .where(
-          (element) =>
-              !cached.any((cachedQuote) => cachedQuote.symbol == element),
-        )
+        .where((element) =>
+            !cached.any((cachedQuote) => cachedQuote.symbol == element))
         .toSet()
         .toList();
     if (nonCached.isEmpty) {
@@ -2987,15 +2785,12 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
   // Year: bounds: regular, interval: day, span: 5year
   */
   @override
-  Future<InstrumentHistoricals> getInstrumentHistoricals(
-    BrokerageUser user,
-    InstrumentHistoricalsStore store,
-    String symbolOrInstrumentId, {
-    bool includeInactive = true,
-    Bounds chartBoundsFilter = Bounds.trading,
-    ChartDateSpan chartDateSpanFilter = ChartDateSpan.day,
-    String? chartInterval,
-  }) async {
+  Future<InstrumentHistoricals> getInstrumentHistoricals(BrokerageUser user,
+      InstrumentHistoricalsStore store, String symbolOrInstrumentId,
+      {bool includeInactive = true,
+      Bounds chartBoundsFilter = Bounds.trading,
+      ChartDateSpan chartDateSpanFilter = ChartDateSpan.day,
+      String? chartInterval}) async {
     await Future.delayed(Duration.zero);
     String? bounds = convertChartBoundsFilter(chartBoundsFilter);
     var rtn = convertChartSpanFilterWithInterval(chartDateSpanFilter);
@@ -3005,37 +2800,31 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
       interval = chartInterval;
     }
     var result = await RobinhoodService.getJson(
-      user,
-      // TODO: To support "all" display_span
-      // https://bonfire.robinhood.com/instruments/cf1d849d-06f7-4374-9e84-13129713d0c7/historical-chart/?display_span=all&hide_extended_hours=false
+        user,
+        // TODO: To support "all" display_span
+        // https://bonfire.robinhood.com/instruments/cf1d849d-06f7-4374-9e84-13129713d0c7/historical-chart/?display_span=all&hide_extended_hours=false
 
-      //https://api.robinhood.com/marketdata/historicals/943c5009-a0bb-4665-8cf4-a95dab5874e4/?bounds=trading&include_inactive=true&interval=5minute&span=day
-      //https://api.robinhood.com/marketdata/historicals/GOOG/?bounds=regular&include_inactive=true&interval=10minute&span=week
-      //https://api.robinhood.com/marketdata/historicals/GOOG/?bounds=trading&include_inactive=true&interval=5minute&span=day
-      // For multiple instruments:
-      // https://api.robinhood.com/marketdata/historicals/?bounds=24_5&ids=8f92e76f-1e0e-4478-8580-16a6ffcfaef5%2C943c5009-a0bb-4665-8cf4-a95dab5874e4%2Cc0bb3aec-bd1e-471e-a4f0-ca011cbec711&interval=5minute&span=day
-      "$endpoint/marketdata/historicals/$symbolOrInstrumentId/?bounds=$bounds&include_inactive=$includeInactive&interval=$interval&span=$span",
-    ); //${account}/
+        //https://api.robinhood.com/marketdata/historicals/943c5009-a0bb-4665-8cf4-a95dab5874e4/?bounds=trading&include_inactive=true&interval=5minute&span=day
+        //https://api.robinhood.com/marketdata/historicals/GOOG/?bounds=regular&include_inactive=true&interval=10minute&span=week
+        //https://api.robinhood.com/marketdata/historicals/GOOG/?bounds=trading&include_inactive=true&interval=5minute&span=day
+        // For multiple instruments:
+        // https://api.robinhood.com/marketdata/historicals/?bounds=24_5&ids=8f92e76f-1e0e-4478-8580-16a6ffcfaef5%2C943c5009-a0bb-4665-8cf4-a95dab5874e4%2Cc0bb3aec-bd1e-471e-a4f0-ca011cbec711&interval=5minute&span=day
+        "$endpoint/marketdata/historicals/$symbolOrInstrumentId/?bounds=$bounds&include_inactive=$includeInactive&interval=$interval&span=$span"); //${account}/
     var instrumentHistorical = InstrumentHistoricals.fromJson(result);
     store.set(instrumentHistorical);
     return instrumentHistorical;
   }
 
   @override
-  Future<List<InstrumentOrder>> getInstrumentOrders(
-    BrokerageUser user,
-    InstrumentOrderStore store,
-    List<String> instrumentUrls,
-  ) async {
+  Future<List<InstrumentOrder>> getInstrumentOrders(BrokerageUser user,
+      InstrumentOrderStore store, List<String> instrumentUrls) async {
     // https://api.robinhood.com/orders/?instrument=https%3A%2F%2Fapi.robinhood.com%2Finstruments%2F943c5009-a0bb-4665-8cf4-a95dab5874e4%2F
 
     final instrumentFilter = instrumentUrls.isEmpty
         ? ''
         : '?instrument=${Uri.encodeComponent(instrumentUrls.join(","))}';
     var results = await RobinhoodService.pagedGet(
-      user,
-      "$endpoint/orders/$instrumentFilter",
-    );
+        user, "$endpoint/orders/$instrumentFilter");
     List<InstrumentOrder> list = [];
     for (var i = 0; i < results.length; i++) {
       var result = results[i];
@@ -3048,9 +2837,7 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
 
   @override
   Future<Fundamentals> getFundamentals(
-    BrokerageUser user,
-    Instrument instrumentObj,
-  ) async {
+      BrokerageUser user, Instrument instrumentObj) async {
     // https://api.robinhood.com/fundamentals/
     // https://api.robinhood.com/marketdata/fundamentals/943c5009-a0bb-4665-8cf4-a95dab5874e4/?include_inactive=true
     dynamic resultJson;
@@ -3060,9 +2847,7 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
       debugPrint('getFundamentals error: $e');
       try {
         var res = await getJson(
-          user,
-          "$endpoint/fundamentals/?symbols=${instrumentObj.symbol}",
-        );
+            user, "$endpoint/fundamentals/?symbols=${instrumentObj.symbol}");
         if (res['results'] != null && res['results'].length > 0) {
           resultJson = res['results'][0];
         }
@@ -3086,11 +2871,8 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
   }
 
   @override
-  Future<List<Fundamentals>> getFundamentalsById(
-    BrokerageUser user,
-    List<String> instruments,
-    InstrumentStore store,
-  ) async {
+  Future<List<Fundamentals>> getFundamentalsById(BrokerageUser user,
+      List<String> instruments, InstrumentStore store) async {
     // https://api.robinhood.com/fundamentals/
     // https://api.robinhood.com/marketdata/fundamentals/943c5009-a0bb-4665-8cf4-a95dab5874e4/?include_inactive=true
 
@@ -3139,7 +2921,7 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
     // return obj;
   }
 
-  /*
+/*
 {
     "instrument_id": "a41498ae-5e79-4305-8c55-35f0104114a9",
     "symbol": "YMAG",
@@ -3299,9 +3081,7 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
 */
   // @override
   Future<dynamic> getEtpDetails(
-    BrokerageUser user,
-    Instrument instrumentObj,
-  ) async {
+      BrokerageUser user, Instrument instrumentObj) async {
     var url =
         "$robinHoodSearchEndpoint/instruments/${instrumentObj.id}/etp-details/"; // ?ids=${Uri.encodeComponent(instruments.join(","))}
     dynamic resultJson;
@@ -3319,9 +3099,7 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
 
   @override
   Future<List<dynamic>> getSplits(
-    BrokerageUser user,
-    Instrument instrumentObj,
-  ) async {
+      BrokerageUser user, Instrument instrumentObj) async {
     //debugPrint(instrumentObj.splits);
     // Splits
     // https://api.robinhood.com/instruments/{0}/splits/'.format(id_for_stock(symbol))
@@ -3350,33 +3128,28 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
     // for this instrument/symbol if available.
     if (list.isEmpty) {
       try {
-        var payments = await getSplitPaymentsModel(
-          user,
-          instrumentId: instrumentObj.id.isNotEmpty ? instrumentObj.id : null,
-        );
+        var payments = await getSplitPaymentsModel(user,
+            instrumentId:
+                instrumentObj.id.isNotEmpty ? instrumentObj.id : null);
         if (payments.isEmpty) {
           final allPayments = await getSplitPaymentsModel(user);
           payments = allPayments
-              .where(
-                (p) =>
-                    (instrumentObj.id.isNotEmpty &&
-                        (p.instrumentId == instrumentObj.id ||
-                            p.oldInstrumentId == instrumentObj.id ||
-                            p.newInstrumentId == instrumentObj.id)) ||
-                    (p.symbol.isNotEmpty &&
-                        p.symbol.toUpperCase() ==
-                            instrumentObj.symbol.toUpperCase()),
-              )
+              .where((p) =>
+                  (instrumentObj.id.isNotEmpty &&
+                      (p.instrumentId == instrumentObj.id ||
+                          p.oldInstrumentId == instrumentObj.id ||
+                          p.newInstrumentId == instrumentObj.id)) ||
+                  (p.symbol.isNotEmpty &&
+                      p.symbol.toUpperCase() ==
+                          instrumentObj.symbol.toUpperCase()))
               .toList();
         }
         for (final payment in payments) {
-          final matchesId =
-              instrumentObj.id.isNotEmpty &&
+          final matchesId = instrumentObj.id.isNotEmpty &&
               (payment.instrumentId == instrumentObj.id ||
                   payment.oldInstrumentId == instrumentObj.id ||
                   payment.newInstrumentId == instrumentObj.id);
-          final matchesSym =
-              payment.symbol.isNotEmpty &&
+          final matchesSym = payment.symbol.isNotEmpty &&
               payment.symbol.toUpperCase() ==
                   instrumentObj.symbol.toUpperCase();
 
@@ -3388,8 +3161,7 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
             final div = (splitObj != null && splitObj.divisor > 0)
                 ? splitObj.divisor
                 : payment.divisor;
-            final execDate =
-                splitObj?.effectiveDate ??
+            final execDate = splitObj?.effectiveDate ??
                 payment.executionDate ??
                 payment.paymentDate;
 
@@ -3398,8 +3170,8 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
               'instrument': payment.instrumentId.isNotEmpty
                   ? payment.instrumentId
                   : (splitObj?.oldInstrumentId.isNotEmpty == true
-                        ? splitObj!.oldInstrumentId
-                        : instrumentObj.id),
+                      ? splitObj!.oldInstrumentId
+                      : instrumentObj.id),
               'multiplier': mult.toString(),
               'divisor': div.toString(),
               'execution_date': execDate?.toIso8601String(),
@@ -3420,9 +3192,7 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
     //https://api.robinhood.com/midlands/news/MSFT/
     //https://dora.robinhood.com/feed/instrument/50810c35-d215-4866-9758-0ada4ac79ffa/?
     var results = await RobinhoodService.pagedGet(
-      user,
-      "$endpoint/midlands/news/$symbol/",
-    );
+        user, "$endpoint/midlands/news/$symbol/");
 
     List<dynamic> list = [];
     for (var i = 0; i < results.length; i++) {
@@ -3433,15 +3203,11 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
   }
 
   Future<List<dynamic>> getRecurringTradeLogs(
-    BrokerageUser user,
-    String instrumentId,
-  ) async {
+      BrokerageUser user, String instrumentId) async {
     //https://bonfire.robinhood.com/recurring_trade_logs/?instrument_id=50810c35-d215-4866-9758-0ada4ac79ffa
     //https://bonfire.robinhood.com/recurring_schedules/?asset_types=equity&instrument_id=50810c35-d215-4866-9758-0ada4ac79ffa
     var results = await pagedGet(
-      user,
-      "$endpoint/recurring_trade_logs/?instrument_id=$instrumentId",
-    );
+        user, "$endpoint/recurring_trade_logs/?instrument_id=$instrumentId");
     List<dynamic> list = [];
     for (var i = 0; i < results.length; i++) {
       var result = results[i];
@@ -3456,10 +3222,8 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
     //https://api.robinhood.com/midlands/ratings/?ids=c0bb3aec-bd1e-471e-a4f0-ca011cbec711%2C50810c35-d215-4866-9758-0ada4ac79ffa%2Cebab2398-028d-4939-9f1d-13bf38f81c50%2C81733743-965a-4d93-b87a-6973cb9efd34
     dynamic resultJson;
     try {
-      resultJson = await getJson(
-        user,
-        "$endpoint/midlands/ratings/$instrumentId/",
-      );
+      resultJson =
+          await getJson(user, "$endpoint/midlands/ratings/$instrumentId/");
     } on Exception catch (e) {
       // Format
       debugPrint('No ratings found. Error: $e');
@@ -3470,16 +3234,12 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
 
   @override
   Future<dynamic> getRatingsOverview(
-    BrokerageUser user,
-    String instrumentId,
-  ) async {
+      BrokerageUser user, String instrumentId) async {
     //https://api.robinhood.com/midlands/ratings/50810c35-d215-4866-9758-0ada4ac79ffa/overview/
     dynamic resultJson;
     try {
       resultJson = await getJson(
-        user,
-        "$endpoint/midlands/ratings/$instrumentId/overview/",
-      );
+          user, "$endpoint/midlands/ratings/$instrumentId/overview/");
     } on Exception catch (e) {
       // Format
       debugPrint('No rating overview found. Error: $e');
@@ -3490,16 +3250,12 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
 
   @override
   Future<List<dynamic>> getEarnings(
-    BrokerageUser user,
-    String instrumentId,
-  ) async {
+      BrokerageUser user, String instrumentId) async {
     //https://api.robinhood.com/marketdata/earnings/?instrument=%2Finstruments%2F943c5009-a0bb-4665-8cf4-a95dab5874e4%2F
     dynamic resultJson;
     try {
-      resultJson = await getJson(
-        user,
-        "$endpoint/marketdata/earnings/?instrument=${Uri.encodeQueryComponent("$endpoint/instruments/$instrumentId/")}",
-      );
+      resultJson = await getJson(user,
+          "$endpoint/marketdata/earnings/?instrument=${Uri.encodeQueryComponent("$endpoint/instruments/$instrumentId/")}");
     } catch (e) {
       debugPrint('No earnings found or bad request. Error: $e');
       return [];
@@ -3509,28 +3265,21 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
       var result = resultJson["results"][i];
       list.add(result);
     }
-    list.sort(
-      (a, b) => a["report"] == null
-          ? 1
-          : b["report"] == null
-          ? -1
-          : DateTime.parse(
-              b["report"]["date"]!,
-            ).compareTo(DateTime.parse(a["report"]["date"]!)),
-    );
+    list.sort((a, b) => a["report"] == null
+        ? 1
+        : b["report"] == null
+            ? -1
+            : DateTime.parse(b["report"]["date"]!)
+                .compareTo(DateTime.parse(a["report"]["date"]!)));
     return list;
   }
 
   @override
   Future<List<dynamic>> getSimilar(
-    BrokerageUser user,
-    String instrumentId,
-  ) async {
+      BrokerageUser user, String instrumentId) async {
     //https://dora.robinhood.com/instruments/similar/50810c35-d215-4866-9758-0ada4ac79ffa/
     var resultJson = await getJson(
-      user,
-      "$robinHoodExploreEndpoint/instruments/similar/$instrumentId/",
-    );
+        user, "$robinHoodExploreEndpoint/instruments/similar/$instrumentId/");
     //return resultJson;
     List<dynamic> list = [];
     bool savePrefs = false;
@@ -3541,10 +3290,9 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
       if (result["logo_url"] != null) {
         if (!logoUrls.containsKey(result["symbol"])) {
           // result["instrument_id"]
-          var logoUrl = result["logo_url"].toString().replaceAll(
-            "https:////",
-            "https://",
-          );
+          var logoUrl = result["logo_url"]
+              .toString()
+              .replaceAll("https:////", "https://");
           logoUrls[result["symbol"]] = logoUrl; // result["instrument_id"]
           savePrefs = true;
         }
@@ -3586,16 +3334,13 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
   */
 
   Stream<OptionPositionStore> streamOptionPositionStore(
-    BrokerageUser user,
-    OptionPositionStore store,
-    OptionInstrumentStore optionInstrumentStore,
-    InstrumentStore instrumentStore, {
-    bool nonzero = true,
-  }) async* {
-    List<OptionAggregatePosition> ops = await getAggregateOptionPositions(
-      user,
-      nonzero: nonzero,
-    );
+      BrokerageUser user,
+      OptionPositionStore store,
+      OptionInstrumentStore optionInstrumentStore,
+      InstrumentStore instrumentStore,
+      {bool nonzero = true}) async* {
+    List<OptionAggregatePosition> ops =
+        await getAggregateOptionPositions(user, nonzero: nonzero);
     for (var op in ops) {
       store.addOrUpdate(op);
     }
@@ -3622,11 +3367,10 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
       chunks.add(ops.sublist(i, end));
     }
     for (var chunk in chunks) {
-      var optionIds = chunk
-          .map((e) {
-            var splits = e.legs.first.option.split("/");
-            return splits[splits.length - 2];
-          })
+      var optionIds = chunk.map((e) {
+        var splits = e.legs.first.option.split("/");
+        return splits[splits.length - 2];
+      })
           //.toSet()
           .toList();
 
@@ -3656,10 +3400,7 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
 
         // Link OptionPosition to Instrument and vice-versa.
         var instrument = await getInstrumentBySymbol(
-          user,
-          instrumentStore,
-          optionPosition.symbol,
-        );
+            user, instrumentStore, optionPosition.symbol);
         optionPosition.instrumentObj = instrument;
         /*
         if (instrument!.optionPositions == null) {
@@ -3698,10 +3439,8 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
   }) async {
     store.setLoading(true);
     try {
-      List<OptionAggregatePosition> ops = await getAggregateOptionPositions(
-        user,
-        nonzero: nonzero,
-      );
+      List<OptionAggregatePosition> ops =
+          await getAggregateOptionPositions(user, nonzero: nonzero);
       for (var op in ops) {
         store.addOrUpdate(op);
       }
@@ -3715,11 +3454,10 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
         chunks.add(ops.sublist(i, end));
       }
       for (var chunk in chunks) {
-        var optionIds = chunk
-            .map((e) {
-              var splits = e.legs.first.option.split("/");
-              return splits[splits.length - 2];
-            })
+        var optionIds = chunk.map((e) {
+          var splits = e.legs.first.option.split("/");
+          return splits[splits.length - 2];
+        })
             //.toSet()
             .toList();
 
@@ -3747,10 +3485,7 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
 
           // Link OptionPosition to Instrument and vice-versa.
           var instrument = await getInstrumentBySymbol(
-            user,
-            instrumentStore,
-            optionPosition.symbol,
-          );
+              user, instrumentStore, optionPosition.symbol);
           optionPosition.instrumentObj = instrument;
           /*
           if (instrument!.optionPositions == null) {
@@ -3790,15 +3525,12 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
 
   @override
   Future<List<OptionAggregatePosition>> getAggregateOptionPositions(
-    BrokerageUser user, {
-    bool nonzero = true,
-  }) async {
+      BrokerageUser user,
+      {bool nonzero = true}) async {
     List<OptionAggregatePosition> optionPositions = [];
     //https://api.robinhood.com/options/aggregate_positions/?chain_ids=9330028e-455f-4acf-9954-77f60b19151d&nonzero=True
-    var results = await RobinhoodService.pagedGet(
-      user,
-      "$endpoint/options/aggregate_positions/?nonzero=$nonzero",
-    ); // ?nonzero=true
+    var results = await RobinhoodService.pagedGet(user,
+        "$endpoint/options/aggregate_positions/?nonzero=$nonzero"); // ?nonzero=true
 
     for (var i = 0; i < results.length; i++) {
       var result = results[i];
@@ -3811,9 +3543,7 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
   }
 
   static Future<OptionInstrument> getOptionInstrument(
-    BrokerageUser user,
-    String option,
-  ) async {
+      BrokerageUser user, String option) async {
     var resultJson = await getJson(user, option);
     var oi = OptionInstrument.fromJson(resultJson);
     return oi;
@@ -3821,9 +3551,7 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
 
   @override
   Future<List<OptionInstrument>> getOptionInstrumentByIds(
-    BrokerageUser user,
-    List<String> ids,
-  ) async {
+      BrokerageUser user, List<String> ids) async {
     var url =
         "$endpoint/options/instruments/?ids=${Uri.encodeComponent(ids.join(","))}";
     var resultJson = await getJson(user, url);
@@ -3839,9 +3567,7 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
 
   @override
   Future<List<OptionChain>> getOptionChainsByIds(
-    BrokerageUser user,
-    List<String> ids,
-  ) async {
+      BrokerageUser user, List<String> ids) async {
     // https://api.robinhood.com/options/chains/9330028e-455f-4acf-9954-77f60b19151d/
     // https://api.robinhood.com/options/chains/?equity_instrument_ids=943c5009-a0bb-4665-8cf4-a95dab5874e4
     var url =
@@ -3868,22 +3594,20 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
       var op = OptionChain.fromJson(result);
       list.add(op);
     }
-    var canOpenOptionChain = list.firstWhereOrNull(
-      (element) => element.canOpenPosition,
-    );
+    var canOpenOptionChain =
+        list.firstWhereOrNull((element) => element.canOpenPosition);
     return canOpenOptionChain ?? list[0];
   }
 
   @override
   Stream<List<OptionInstrument>> streamOptionInstruments(
-    BrokerageUser user,
-    OptionInstrumentStore store,
-    Instrument instrument,
-    String? expirationDates, // 2021-03-05
-    String? type, { // call or put
-    String? state = "active",
-    bool includeMarketData = false,
-  }) async* {
+      BrokerageUser user,
+      OptionInstrumentStore store,
+      Instrument instrument,
+      String? expirationDates, // 2021-03-05
+      String? type, // call or put
+      {String? state = "active",
+      bool includeMarketData = false}) async* {
     // https://api.robinhood.com/options/chains/9330028e-455f-4acf-9954-77f60b19151d/collateral/?account_number=1AB23456
     // {"collateral":{"cash":{"amount":"0.0000","direction":"debit","infinite":false},"equities":[{"quantity":"0E-8","direction":"debit","instrument":"https:\/\/api.robinhood.com\/instruments\/943c5009-a0bb-4665-8cf4-a95dab5874e4\/","symbol":"GOOG"}]},"collateral_held_for_orders":{"cash":{"amount":"0.0000","direction":"debit","infinite":false},"equities":[{"quantity":"0E-8","direction":"debit","instrument":"https:\/\/api.robinhood.com\/instruments\/943c5009-a0bb-4665-8cf4-a95dab5874e4\/","symbol":"GOOG"}]}}
     var url =
@@ -3919,9 +3643,8 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
         try {
           var marketDataList = await getOptionMarketDataByIds(user, ids);
           for (var md in marketDataList) {
-            var oi = newInstruments.firstWhereOrNull(
-              (e) => e.url == md.instrument,
-            );
+            var oi =
+                newInstruments.firstWhereOrNull((e) => e.url == md.instrument);
             if (oi != null) {
               oi.optionMarketData = md;
             }
@@ -3931,9 +3654,8 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
         }
       }
 
-      optionInstruments.sort(
-        (a, b) => a.strikePrice!.compareTo(b.strikePrice!),
-      );
+      optionInstruments
+          .sort((a, b) => a.strikePrice!.compareTo(b.strikePrice!));
       yield optionInstruments;
     }
     /*
@@ -3955,16 +3677,14 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
   //https://api.robinhood.com/midlands/lists/items/?load_all_attributes=False&strategy_code=24234e97-250c-4b1a-be95-16dcb19a9679_L1
 
   //https://bonfire.robinhood.com/options/simulated/today_total_return/?direction=debit&mark_price=%7B%22amount%22%3A%222.60%22%2C%22currency_code%22%3A%22USD%22%2C%22currency_id%22%3A%221072fc76-1862-41ab-82c2-485837590762%22%7D&previous_close_price=%7B%22amount%22%3A%222.20%22%2C%22currency_code%22%3A%22USD%22%2C%22currency_id%22%3A%221072fc76-1862-41ab-82c2-485837590762%22%7D&simulated_open_price=%7B%22amount%22%3A%22228.00%22%2C%22currency_code%22%3A%22USD%22%2C%22currency_id%22%3A%221072fc76-1862-41ab-82c2-485837590762%22%7D&trade_multiplier=100&watched_at=2021-12-07T18%3A09%3A09.029757Z
-  /*
+/*
   // scopes: [acats, balances, document_upload, edocs, funding:all:read, funding:ach:read, funding:ach:write, funding:wire:read, funding:wire:write, internal, investments, margin, read, signup, trade, watchlist, web_limited])
   Request to https://api.robinhood.com/marketdata/options/?instruments=942d3704-7247-454f-9fb6-1f98f5d41702 failed with status 400: Bad Request.
   */
 
   @override
   Future<OptionMarketData?> getOptionMarketData(
-    BrokerageUser user,
-    OptionInstrument optionInstrument,
-  ) async {
+      BrokerageUser user, OptionInstrument optionInstrument) async {
     var url =
         "$endpoint/marketdata/options/?instruments=${Uri.encodeQueryComponent(optionInstrument.url)}";
     debugPrint(url);
@@ -3980,12 +3700,9 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
 
   @override
   Future<OptionHistoricals> getOptionHistoricals(
-    BrokerageUser user,
-    OptionHistoricalsStore store,
-    List<String> ids, {
-    Bounds chartBoundsFilter = Bounds.regular,
-    ChartDateSpan chartDateSpanFilter = ChartDateSpan.day,
-  }) async {
+      BrokerageUser user, OptionHistoricalsStore store, List<String> ids,
+      {Bounds chartBoundsFilter = Bounds.regular,
+      ChartDateSpan chartDateSpanFilter = ChartDateSpan.day}) async {
     await Future.delayed(Duration.zero);
     String? bounds = convertChartBoundsFilter(chartBoundsFilter);
     var rtn = convertChartSpanFilterWithInterval(chartDateSpanFilter);
@@ -4003,9 +3720,7 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
 
   @override
   Future<List<OptionMarketData>> getOptionMarketDataByIds(
-    BrokerageUser user,
-    List<String> ids,
-  ) async {
+      BrokerageUser user, List<String> ids) async {
     var url =
         "$endpoint/marketdata/options/?ids=${Uri.encodeComponent(ids.join(","))}";
     var resultJson = await getJson(user, url);
@@ -4023,10 +3738,9 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
 
   @override
   Future<List<OptionAggregatePosition>> refreshOptionMarketData(
-    BrokerageUser user,
-    OptionPositionStore optionPositionStore,
-    OptionInstrumentStore optionInstrumentStore,
-  ) async {
+      BrokerageUser user,
+      OptionPositionStore optionPositionStore,
+      OptionInstrumentStore optionInstrumentStore) async {
     if (optionPositionStore.items.isEmpty ||
         optionPositionStore.items.first.optionInstrument == null) {
       return optionPositionStore.items;
@@ -4041,11 +3755,10 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
       chunks.add(optionPositionStore.items.sublist(i, end));
     }
     for (var chunk in chunks) {
-      var optionIds = chunk
-          .map((e) {
-            var splits = e.legs.first.option.split("/");
-            return splits[splits.length - 2];
-          })
+      var optionIds = chunk.map((e) {
+        var splits = e.legs.first.option.split("/");
+        return splits[splits.length - 2];
+      })
           //.toSet()
           .toList();
 
@@ -4082,10 +3795,8 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
     DocumentReference? userDoc,
   }) async* {
     //https://api.robinhood.com/options/orders/?chain_ids=9330028e-455f-4acf-9954-77f60b19151d
-    var pageStream = streamedGet(
-      user,
-      "$endpoint/options/orders/",
-    ); // ?chain_id=${instrument.tradeableChainId}
+    var pageStream = streamedGet(user,
+        "$endpoint/options/orders/"); // ?chain_id=${instrument.tradeableChainId}
     //debugPrint(results);
     List<OptionOrder> list = [];
     await for (final results in pageStream) {
@@ -4122,14 +3833,9 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
 
   @override
   Future<List<OptionOrder>> getOptionOrders(
-    BrokerageUser user,
-    OptionOrderStore store,
-    String chainId,
-  ) async {
-    var results = await RobinhoodService.pagedGet(
-      user,
-      "$endpoint/options/orders/?chain_ids=${Uri.encodeComponent(chainId)}",
-    );
+      BrokerageUser user, OptionOrderStore store, String chainId) async {
+    var results = await RobinhoodService.pagedGet(user,
+        "$endpoint/options/orders/?chain_ids=${Uri.encodeComponent(chainId)}");
     List<OptionOrder> list = [];
     for (var i = 0; i < results.length; i++) {
       var result = results[i];
@@ -4159,17 +3865,12 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
 
   @override
   Stream<List<OptionEvent>> streamOptionEvents(
-    BrokerageUser user,
-    OptionEventStore store, {
-    int pageSize = 20,
-    DocumentReference? userDoc,
-  }) async* {
+      BrokerageUser user, OptionEventStore store,
+      {int pageSize = 20, DocumentReference? userDoc}) async* {
     List<OptionEvent> list = [];
     //https://api.robinhood.com/options/orders/?page_size=10
-    var pageStream = streamedGet(
-      user,
-      "$endpoint/options/events/?page_size=$pageSize",
-    ); // ?chain_id=${instrument.tradeableChainId}
+    var pageStream = streamedGet(user,
+        "$endpoint/options/events/?page_size=$pageSize"); // ?chain_id=${instrument.tradeableChainId}
     //debugPrint(results);
     await for (final results in pageStream) {
       for (var i = 0; i < results.length; i++) {
@@ -4197,10 +3898,8 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
     }
   }
 
-  Future<dynamic> getOptionEvents(
-    BrokerageUser user, {
-    int pageSize = 10,
-  }) async {
+  Future<dynamic> getOptionEvents(BrokerageUser user,
+      {int pageSize = 10}) async {
     //https://api.robinhood.com/options/events/?equity_instrument_id=943c5009-a0bb-4665-8cf4-a95dab5874e4&states=preparing
 
     var url = "$endpoint/options/events/?page_size=$pageSize}";
@@ -4209,9 +3908,7 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
 
   @override
   Future<List<OptionEvent>> getOptionEventsByInstrumentUrl(
-    BrokerageUser user,
-    String instrumentUrl,
-  ) async {
+      BrokerageUser user, String instrumentUrl) async {
     //https://api.robinhood.com/options/events/?chain_ids=9330028e-455f-4acf-9954-77f60b19151d&equity_instrument_id=https%3A%2F%2Fapi.robinhood.com%2Finstruments%2F943c5009-a0bb-4665-8cf4-a95dab5874e4%2F
 
     //var url =
@@ -4263,9 +3960,7 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
     store.setLoading(true);
     try {
       var results = await RobinhoodService.pagedGet(
-        user,
-        "$robinHoodNummusEndpoint/holdings/?nonzero=$nonzero",
-      );
+          user, "$robinHoodNummusEndpoint/holdings/?nonzero=$nonzero");
       var quotes = await getForexPairs(user);
       List<ForexHolding> list = [];
       for (var i = 0; i < results.length; i++) {
@@ -4297,9 +3992,7 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
 
   @override
   Future<List<ForexHolding>> refreshNummusHoldings(
-    BrokerageUser user,
-    ForexHoldingStore store,
-  ) async {
+      BrokerageUser user, ForexHoldingStore store) async {
     var forexHolding = store.items;
     var len = forexHolding.length;
     var size = 25; //20; //15; //17;
@@ -4312,9 +4005,8 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
       var symbols = chunk.map((e) => e.quoteObj!.id).toList();
       var quoteObjs = await getForexQuoteByIds(user, symbols);
       for (var quoteObj in quoteObjs) {
-        var forex = forexHolding.firstWhereOrNull(
-          (element) => element.quoteObj?.id == quoteObj.id,
-        );
+        var forex = forexHolding
+            .firstWhereOrNull((element) => element.quoteObj?.id == quoteObj.id);
         if (forex != null &&
             (forex.quoteObj == null ||
                 forex.quoteObj!.updatedAt!.isBefore(quoteObj.updatedAt!))) {
@@ -4329,9 +4021,8 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
   @override
   Future<ForexQuote> getForexQuote(BrokerageUser user, String id) async {
     final clean = id.toUpperCase().replaceAll('/', '').replaceAll('-', '');
-    if (ForexHolding.fiatCurrencies.any(
-      (c) => clean.startsWith(c) || clean.endsWith(c),
-    )) {
+    if (ForexHolding.fiatCurrencies
+        .any((c) => clean.startsWith(c) || clean.endsWith(c))) {
       try {
         final yahooService = YahooService();
         return await yahooService.getForexQuote(id);
@@ -4352,9 +4043,7 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
 
   @override
   Future<List<ForexQuote>> getForexQuoteByIds(
-    BrokerageUser user,
-    List<String> ids,
-  ) async {
+      BrokerageUser user, List<String> ids) async {
     //id = "3d961844-d360-45fc-989b-f6fca761d511"; // BTC-USD pair
     //id = "d674efea-e623-4396-9026-39574b92b093"; // BTC currency
     //id = "1072fc76-1862-41ab-82c2-485837590762"; // USD currency
@@ -4384,23 +4073,17 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
   // Year: bounds: regular, interval: day, span: 5year
   */
   @override
-  Future<ForexHistoricals> getForexHistoricals(
-    BrokerageUser user,
-    String id, {
-    Bounds chartBoundsFilter = Bounds.t24_7,
-    ChartDateSpan chartDateSpanFilter = ChartDateSpan.day,
-  }) async {
+  Future<ForexHistoricals> getForexHistoricals(BrokerageUser user, String id,
+      {Bounds chartBoundsFilter = Bounds.t24_7,
+      ChartDateSpan chartDateSpanFilter = ChartDateSpan.day}) async {
     final clean = id.toUpperCase().replaceAll('/', '').replaceAll('-', '');
-    if (ForexHolding.fiatCurrencies.any(
-      (c) => clean.startsWith(c) || clean.endsWith(c),
-    )) {
+    if (ForexHolding.fiatCurrencies
+        .any((c) => clean.startsWith(c) || clean.endsWith(c))) {
       try {
         final yahooService = YahooService();
-        return await yahooService.getForexHistoricals(
-          id,
-          chartBoundsFilter: chartBoundsFilter,
-          chartDateSpanFilter: chartDateSpanFilter,
-        );
+        return await yahooService.getForexHistoricals(id,
+            chartBoundsFilter: chartBoundsFilter,
+            chartDateSpanFilter: chartDateSpanFilter);
       } catch (e) {
         debugPrint('Yahoo forex historicals fallback failed for $id: $e');
       }
@@ -4418,25 +4101,21 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
       return item;
     } catch (_) {
       final yahooService = YahooService();
-      return await yahooService.getForexHistoricals(
-        id,
-        chartBoundsFilter: chartBoundsFilter,
-        chartDateSpanFilter: chartDateSpanFilter,
-      );
+      return await yahooService.getForexHistoricals(id,
+          chartBoundsFilter: chartBoundsFilter,
+          chartDateSpanFilter: chartDateSpanFilter);
     }
   }
 
-  /*
+/*
 interval: 5minute (1D), hour (1W, 1M), day (3M, 1Y)
 GET https://api.robinhood.com/marketdata/futures/historicals/contracts/v1/?ids=b4daeb2e-ab77-4f22-b49e-ad0db4b14d40&interval=5minute&start=2026-01-28T06%3A00%3A00.000Z
 */
   @override
   Future<FutureHistoricals?> getFuturesHistoricals(
-    BrokerageUser user,
-    String id, {
-    Bounds chartBoundsFilter = Bounds.regular,
-    ChartDateSpan chartDateSpanFilter = ChartDateSpan.day,
-  }) async {
+      BrokerageUser user, String id,
+      {Bounds chartBoundsFilter = Bounds.regular,
+      ChartDateSpan chartDateSpanFilter = ChartDateSpan.day}) async {
     // var rtn = convertChartSpanFilterWithInterval(chartDateSpanFilter);
     // String span = rtn[0];
     // String interval = rtn[1];
@@ -4532,20 +4211,19 @@ GET https://api.robinhood.com/marketdata/futures/historicals/contracts/v1/?ids=b
   */
   @override
   Future<dynamic> placeInstrumentOrder(
-    BrokerageUser user,
-    Account account,
-    Instrument instrument,
-    String symbol, // Ticker of the stock to trade.
-    String side, // Either 'buy' or 'sell'
-    double? price, // Limit price to trigger a buy of the option.
-    int quantity, { // Number of options to buy.
-    String type = 'limit', // market
-    String trigger = 'immediate', // stop
-    double? stopPrice,
-    String timeInForce =
-        'gtc', // How long order will be in effect. 'gtc' = good until cancelled. 'gfd' = good for the day. 'ioc' = immediate or cancel. 'opg' execute at opening.
-    Map<String, dynamic>? trailingPeg,
-  }) async {
+      BrokerageUser user,
+      Account account,
+      Instrument instrument,
+      String symbol, // Ticker of the stock to trade.
+      String side, // Either 'buy' or 'sell'
+      double? price, // Limit price to trigger a buy of the option.
+      int quantity, // Number of options to buy.
+      {String type = 'limit', // market
+      String trigger = 'immediate', // stop
+      double? stopPrice,
+      String timeInForce =
+          'gtc', // How long order will be in effect. 'gtc' = good until cancelled. 'gfd' = good for the day. 'ioc' = immediate or cancel. 'opg' execute at opening.
+      Map<String, dynamic>? trailingPeg}) async {
     // var uuid = const Uuid();
     var payload = {
       'account': account.url,
@@ -4569,14 +4247,12 @@ GET https://api.robinhood.com/marketdata/futures/historicals/contracts/v1/?ids=b
     }
     var url = "$endpoint/orders/";
     debugPrint(url);
-    var result = await user.oauth2Client!.post(
-      Uri.parse(url),
-      body: jsonEncode(payload),
-      headers: {
-        "content-type": "application/json",
-        "accept": "application/json",
-      },
-    );
+    var result = await user.oauth2Client!.post(Uri.parse(url),
+        body: jsonEncode(payload),
+        headers: {
+          "content-type": "application/json",
+          "accept": "application/json"
+        });
 
     return result;
   }
@@ -4594,15 +4270,14 @@ GET https://api.robinhood.com/marketdata/futures/historicals/contracts/v1/?ids=b
 
   @override
   Future<dynamic> placeForexOrder(
-    BrokerageUser user,
-    String pairId,
-    String side, // 'buy' or 'sell'
-    double? price,
-    double quantity, {
-    String type = 'market', // market, limit
-    String timeInForce = 'gtc',
-    double? stopPrice,
-  }) async {
+      BrokerageUser user,
+      String pairId,
+      String side, // 'buy' or 'sell'
+      double? price,
+      double quantity,
+      {String type = 'market', // market, limit
+      String timeInForce = 'gtc',
+      double? stopPrice}) async {
     var accounts = await getNummusAccounts(user);
     var accountId = accounts['results'][0]['id'];
 
@@ -4612,7 +4287,7 @@ GET https://api.robinhood.com/marketdata/futures/historicals/contracts/v1/?ids=b
       "ref_id": const Uuid().v4(),
       "side": side,
       "time_in_force": timeInForce,
-      "type": type,
+      "type": type
     };
 
     if (type == 'market') {
@@ -4627,40 +4302,37 @@ GET https://api.robinhood.com/marketdata/futures/historicals/contracts/v1/?ids=b
     }
 
     var url = '$robinHoodNummusEndpoint/orders/';
-    var result = await user.oauth2Client!.post(
-      Uri.parse(url),
-      body: jsonEncode(payload),
-      headers: {
-        "content-type": "application/json",
-        "accept": "application/json",
-      },
-    );
+    var result = await user.oauth2Client!.post(Uri.parse(url),
+        body: jsonEncode(payload),
+        headers: {
+          "content-type": "application/json",
+          "accept": "application/json"
+        });
     return result;
   }
 
   @override
   Future<dynamic> placeOptionsOrder(
-    BrokerageUser user,
-    Account account,
-    //Instrument instrument,
-    OptionInstrument optionInstrument,
-    String side, // Either 'buy' or 'sell'
-    String
-    positionEffect, // Either 'open' for a buy to open effect or 'close' for a buy to close effect.
-    String creditOrDebit, // Either 'debit' or 'credit'.
-    double price, // Limit price to trigger a buy of the option.
-    //String symbol, // Ticker of the stock to trade.
-    int quantity, { // Number of options to buy.
-    //String expirationDate, // Expiration date of the option in 'YYYY-MM-DD' format.
-    //double strike, // The strike price of the option.
-    //String optionType, // This should be 'call' or 'put'
-    String type = 'limit', // market
-    String trigger = 'immediate',
-    double? stopPrice,
-    String timeInForce =
-        'gtc', // How long order will be in effect. 'gtc' = good until cancelled. 'gfd' = good for the day. 'ioc' = immediate or cancel. 'opg' execute at opening.
-    Map<String, dynamic>? trailingPeg,
-  }) async {
+      BrokerageUser user,
+      Account account,
+      //Instrument instrument,
+      OptionInstrument optionInstrument,
+      String side, // Either 'buy' or 'sell'
+      String
+          positionEffect, // Either 'open' for a buy to open effect or 'close' for a buy to close effect.
+      String creditOrDebit, // Either 'debit' or 'credit'.
+      double price, // Limit price to trigger a buy of the option.
+      //String symbol, // Ticker of the stock to trade.
+      int quantity, // Number of options to buy.
+      //String expirationDate, // Expiration date of the option in 'YYYY-MM-DD' format.
+      //double strike, // The strike price of the option.
+      //String optionType, // This should be 'call' or 'put'
+      {String type = 'limit', // market
+      String trigger = 'immediate',
+      double? stopPrice,
+      String timeInForce =
+          'gtc', // How long order will be in effect. 'gtc' = good until cancelled. 'gfd' = good for the day. 'ioc' = immediate or cancel. 'opg' execute at opening.
+      Map<String, dynamic>? trailingPeg}) async {
     // instrument.tradeableChainId
     var uuid = const Uuid();
     var payload = {
@@ -4672,7 +4344,7 @@ GET https://api.robinhood.com/marketdata/futures/historicals/contracts/v1/?ids=b
           'position_effect': positionEffect,
           'side': side,
           'ratio_quantity': 1,
-          'option': optionInstrument.url, // option_instruments_url(optionID)
+          'option': optionInstrument.url // option_instruments_url(optionID)
         },
       ],
       'type': type,
@@ -4689,30 +4361,27 @@ GET https://api.robinhood.com/marketdata/futures/historicals/contracts/v1/?ids=b
     }
     var url = "$endpoint/options/orders/";
     debugPrint(url);
-    var result = await user.oauth2Client!.post(
-      Uri.parse(url),
-      body: jsonEncode(payload),
-      headers: {
-        "content-type": "application/json",
-        "accept": "application/json",
-      },
-    );
+    var result = await user.oauth2Client!.post(Uri.parse(url),
+        body: jsonEncode(payload),
+        headers: {
+          "content-type": "application/json",
+          "accept": "application/json"
+        });
 
     return result;
   }
 
   @override
   Future<dynamic> placeMultiLegOptionsOrder(
-    BrokerageUser user,
-    Account account,
-    List<Map<String, dynamic>> legs,
-    String creditOrDebit,
-    double price,
-    int quantity, {
-    String type = 'limit',
-    String trigger = 'immediate',
-    String timeInForce = 'gtc',
-  }) async {
+      BrokerageUser user,
+      Account account,
+      List<Map<String, dynamic>> legs,
+      String creditOrDebit,
+      double price,
+      int quantity,
+      {String type = 'limit',
+      String trigger = 'immediate',
+      String timeInForce = 'gtc'}) async {
     var uuid = const Uuid();
     var payload = {
       'account': account.url,
@@ -4729,14 +4398,12 @@ GET https://api.robinhood.com/marketdata/futures/historicals/contracts/v1/?ids=b
     };
     var url = "$endpoint/options/orders/";
     debugPrint(url);
-    var result = await user.oauth2Client!.post(
-      Uri.parse(url),
-      body: jsonEncode(payload),
-      headers: {
-        "content-type": "application/json",
-        "accept": "application/json",
-      },
-    );
+    var result = await user.oauth2Client!.post(Uri.parse(url),
+        body: jsonEncode(payload),
+        headers: {
+          "content-type": "application/json",
+          "accept": "application/json"
+        });
 
     return result;
   }
@@ -4754,15 +4421,12 @@ GET https://api.robinhood.com/marketdata/futures/historicals/contracts/v1/?ids=b
     return result;
   }
 
-  /*
+/*
 WATCHLIST
 */
   @override
-  Stream<List<Watchlist>> streamLists(
-    BrokerageUser user,
-    InstrumentStore instrumentStore,
-    QuoteStore quoteStore,
-  ) async* {
+  Stream<List<Watchlist>> streamLists(BrokerageUser user,
+      InstrumentStore instrumentStore, QuoteStore quoteStore) async* {
     // https://api.robinhood.com/midlands/lists/default/
     // https://api.robinhood.com/midlands/lists/items/ (not working)
     // TODO: https://api.robinhood.com/discovery/lists/user_items/
@@ -4779,107 +4443,74 @@ WATCHLIST
           .where((e) => e['object_type'] == "instrument")
           .map<String>((e) => e['object_id'].toString())
           .toList();
-      var instrumentObjs = await getInstrumentsByIds(
-        user,
-        instrumentStore,
-        instrumentIds,
-      );
+      var instrumentObjs =
+          await getInstrumentsByIds(user, instrumentStore, instrumentIds);
       for (var instrumentObj in instrumentObjs) {
-        var watchlistItem = WatchlistItem(
-          null,
-          'instrument',
-          instrumentObj.id,
-          instrumentObj.id,
-          DateTime.now(),
-          entry.key,
-          "",
-        );
+        var watchlistItem = WatchlistItem(null, 'instrument', instrumentObj.id,
+            instrumentObj.id, DateTime.now(), entry.key, "");
         watchlistItem.instrumentObj = instrumentObj;
         wl.items.add(watchlistItem);
         yield list;
       }
 
       var instrumentSymbols = wl.items
-          .where(
-            (e) => e.instrumentObj != null,
-          ) // Figure out why in certain conditions, instrumentObj is null
+          .where((e) =>
+              e.instrumentObj !=
+              null) // Figure out why in certain conditions, instrumentObj is null
           .map<String>((e) => e.instrumentObj!.symbol)
           .toList();
       var quoteObjs = await getQuoteByIds(user, quoteStore, instrumentSymbols);
       for (var quoteObj in quoteObjs) {
         var watchlistItem = wl.items.firstWhere(
-          (element) => element.instrumentObj!.symbol == quoteObj.symbol,
-        );
+            (element) => element.instrumentObj!.symbol == quoteObj.symbol);
         watchlistItem.instrumentObj!.quoteObj = quoteObj;
         yield list;
       }
 
-      List<String> forexIds = List<String>.from(
-        entry.value
-            .where((e) => e['object_type'] == "currency_pair")
-            .map((e) => e['object_id'].toString()),
-      );
+      List<String> forexIds = List<String>.from(entry.value
+          .where((e) => e['object_type'] == "currency_pair")
+          .map((e) => e['object_id'].toString()));
       if (forexIds.isNotEmpty) {
         var forexQuotes = await getForexQuoteByIds(user, forexIds);
         for (var forexQuote in forexQuotes) {
-          var watchlistItem = WatchlistItem(
-            null,
-            'currency_pair',
-            forexQuote.id,
-            forexQuote.id,
-            DateTime.now(),
-            entry.key,
-            "",
-          );
+          var watchlistItem = WatchlistItem(null, 'currency_pair',
+              forexQuote.id, forexQuote.id, DateTime.now(), entry.key, "");
           watchlistItem.forexObj = forexQuote;
           wl.items.add(watchlistItem);
           yield list;
         }
       }
 
-      var strategies = entry.value.where(
-        (e) => e['object_type'] == "option_strategy",
-      );
+      var strategies =
+          entry.value.where((e) => e['object_type'] == "option_strategy");
       if (strategies.isNotEmpty) {
         List<WatchlistItem> items = await getListItems(entry.key, user);
-        var strategyItems = items
-            .where((e) => e.objectType == 'option_strategy')
-            .toList();
+        var strategyItems =
+            items.where((e) => e.objectType == 'option_strategy').toList();
         wl.items.addAll(strategyItems);
         yield list;
 
         var strategyIds = strategyItems
-            .where(
-              (e) =>
-                  e.objectType == 'option_strategy' && e.strategyCode != null,
-            )
-            .map(
-              (e) => e.strategyCode!.substring(0, e.strategyCode!.indexOf('_')),
-            )
+            .where((e) =>
+                e.objectType == 'option_strategy' && e.strategyCode != null)
+            .map((e) =>
+                e.strategyCode!.substring(0, e.strategyCode!.indexOf('_')))
             .toList();
         if (strategyIds.isNotEmpty) {
-          var optionInstruments = await getOptionInstrumentByIds(
-            user,
-            strategyIds,
-          );
+          var optionInstruments =
+              await getOptionInstrumentByIds(user, strategyIds);
           for (var optionInstrument in optionInstruments) {
             var watchlistItem = strategyItems.firstWhere(
-              (e) => e.strategyCode!.contains(optionInstrument.id),
-            );
+                (e) => e.strategyCode!.contains(optionInstrument.id));
             watchlistItem.optionInstrumentObj = optionInstrument;
             yield list;
           }
 
-          var optionMarketData = await getOptionMarketDataByIds(
-            user,
-            strategyIds,
-          );
+          var optionMarketData =
+              await getOptionMarketDataByIds(user, strategyIds);
           for (var optionMarketDatum in optionMarketData) {
-            var watchlistItem = items.firstWhere(
-              (element) => element.strategyCode!.contains(
-                optionMarketDatum.instrumentId,
-              ),
-            );
+            var watchlistItem = items.firstWhere((element) =>
+                element.strategyCode!.contains(optionMarketDatum.instrumentId));
             watchlistItem.optionInstrumentObj!.optionMarketData =
                 optionMarketDatum;
           }
@@ -4889,13 +4520,9 @@ WATCHLIST
   }
 
   @override
-  Stream<Watchlist> streamList(
-    BrokerageUser user,
-    InstrumentStore instrumentStore,
-    QuoteStore quoteStore,
-    String key, {
-    String ownerType = "custom",
-  }) async* {
+  Stream<Watchlist> streamList(BrokerageUser user,
+      InstrumentStore instrumentStore, QuoteStore quoteStore, String key,
+      {String ownerType = "custom"}) async* {
     Watchlist wl = await getList(key, user, ownerType: ownerType);
 
     List<WatchlistItem> items = await getListItems(key, user);
@@ -4913,15 +4540,11 @@ WATCHLIST
           : instrumentIds.length;
       var chunkIds = instrumentIds.sublist(i, end);
 
-      var instrumentObjs = await getInstrumentsByIds(
-        user,
-        instrumentStore,
-        chunkIds,
-      );
+      var instrumentObjs =
+          await getInstrumentsByIds(user, instrumentStore, chunkIds);
       for (var instrumentObj in instrumentObjs) {
-        var watchlistItem = items.firstWhere(
-          (element) => element.objectId == instrumentObj.id,
-        );
+        var watchlistItem =
+            items.firstWhere((element) => element.objectId == instrumentObj.id);
         watchlistItem.instrumentObj = instrumentObj;
         wl.items.add(watchlistItem);
       }
@@ -4930,9 +4553,8 @@ WATCHLIST
       var chunkSymbols = instrumentObjs.map((e) => e.symbol).toList();
       var quoteObjs = await getQuoteByIds(user, quoteStore, chunkSymbols);
       for (var quoteObj in quoteObjs) {
-        var instrument = instrumentObjs.firstWhere(
-          (i) => i.symbol == quoteObj.symbol,
-        );
+        var instrument =
+            instrumentObjs.firstWhere((i) => i.symbol == quoteObj.symbol);
         instrument.quoteObj = quoteObj;
       }
       yield wl;
@@ -4943,8 +4565,7 @@ WATCHLIST
 
     var optionIds = items
         .where(
-          (e) => e.objectType == 'option_strategy' && e.strategyCode != null,
-        )
+            (e) => e.objectType == 'option_strategy' && e.strategyCode != null)
         .map((e) => e.strategyCode!.substring(0, e.strategyCode!.indexOf('_')))
         .toList();
 
@@ -4958,8 +4579,7 @@ WATCHLIST
       var optionInstruments = await getOptionInstrumentByIds(user, chunkIds);
       for (var optionInstrument in optionInstruments) {
         var watchlistItem = items.firstWhere(
-          (element) => element.strategyCode!.contains(optionInstrument.id),
-        );
+            (element) => element.strategyCode!.contains(optionInstrument.id));
         watchlistItem.optionInstrumentObj = optionInstrument;
         // if (watchlistItem.objectType == 'option_strategy') {
         wl.items.add(watchlistItem);
@@ -4969,10 +4589,8 @@ WATCHLIST
 
       var optionMarketData = await getOptionMarketDataByIds(user, optionIds);
       for (var optionMarketDatum in optionMarketData) {
-        var watchlistItem = items.firstWhere(
-          (element) =>
-              element.strategyCode!.contains(optionMarketDatum.instrumentId),
-        );
+        var watchlistItem = items.firstWhere((element) =>
+            element.strategyCode!.contains(optionMarketDatum.instrumentId));
         watchlistItem.optionInstrumentObj!.optionMarketData = optionMarketDatum;
       }
     }
@@ -4997,37 +4615,27 @@ WATCHLIST
   }
 
   @override
-  Future<List<dynamic>> getLists(
-    BrokerageUser user,
-    String instrumentId, {
-    String? ownerType,
-  }) async {
+  Future<List<dynamic>> getLists(BrokerageUser user, String instrumentId,
+      {String? ownerType}) async {
     //https://api.robinhood.com/midlands/lists/?object_id=943c5009-a0bb-4665-8cf4-a95dab5874e4&object_type=instrument&owner_type=robinhood
     //https://api.robinhood.com/midlands/lists/?object_id=943c5009-a0bb-4665-8cf4-a95dab5874e4&object_type=instrument&owner_type=custom
     List<dynamic> list = [];
     if (ownerType == null || ownerType == "robinhood") {
-      var results = await pagedGet(
-        user,
-        "$endpoint/midlands/lists/?object_id=$instrumentId&object_type=instrument&owner_type=robinhood",
-      );
+      var results = await pagedGet(user,
+          "$endpoint/midlands/lists/?object_id=$instrumentId&object_type=instrument&owner_type=robinhood");
       list.addAll(results);
     }
     if (ownerType == null || ownerType == "custom") {
-      var results = await pagedGet(
-        user,
-        "$endpoint/midlands/lists/?object_id=$instrumentId&object_type=instrument&owner_type=custom",
-      );
+      var results = await pagedGet(user,
+          "$endpoint/midlands/lists/?object_id=$instrumentId&object_type=instrument&owner_type=custom");
       list.addAll(results);
     }
     return list;
   }
 
   @override
-  Future<Watchlist> getList(
-    String key,
-    BrokerageUser user, {
-    String ownerType = "custom",
-  }) async {
+  Future<Watchlist> getList(String key, BrokerageUser user,
+      {String ownerType = "custom"}) async {
     var watchlistUrl = "$endpoint/midlands/lists/$key/?owner_type=$ownerType";
     var entryJson = await getJson(user, watchlistUrl);
 
@@ -5049,92 +4657,74 @@ WATCHLIST
 
   @override
   Future<void> addToList(
-    BrokerageUser user,
-    String listId,
-    String instrumentId,
-  ) async {
+      BrokerageUser user, String listId, String instrumentId) async {
     var url = "$endpoint/discovery/lists/items/";
     var payload = {
       listId: [
         {
           "object_id": instrumentId,
           "object_type": "instrument",
-          "operation": "create",
-        },
-      ],
+          "operation": "create"
+        }
+      ]
     };
-    var response = await user.oauth2Client!.post(
-      Uri.parse(url),
-      body: jsonEncode(payload),
-      headers: {
-        "content-type": "application/json",
-        "accept": "application/json",
-      },
-    );
+    var response = await user.oauth2Client!.post(Uri.parse(url),
+        body: jsonEncode(payload),
+        headers: {
+          "content-type": "application/json",
+          "accept": "application/json"
+        });
     debugPrint(response.body);
   }
 
   @override
   Future<void> removeFromList(
-    BrokerageUser user,
-    String listId,
-    String instrumentId,
-  ) async {
+      BrokerageUser user, String listId, String instrumentId) async {
     var url = "$endpoint/discovery/lists/items/";
     var payload = {
       listId: [
         {
           "object_id": instrumentId,
           "object_type": "instrument",
-          "operation": "delete",
-        },
-      ],
+          "operation": "delete"
+        }
+      ]
     };
-    var response = await user.oauth2Client!.post(
-      Uri.parse(url),
-      body: jsonEncode(payload),
-      headers: {
-        "content-type": "application/json",
-        "accept": "application/json",
-      },
-    );
+    var response = await user.oauth2Client!.post(Uri.parse(url),
+        body: jsonEncode(payload),
+        headers: {
+          "content-type": "application/json",
+          "accept": "application/json"
+        });
     debugPrint(response.body);
   }
 
   // TODO: Implement screener lists, separate from watchlists (currently being created)
   @override
-  Future<void> createList(
-    BrokerageUser user,
-    String name, {
-    String? emoji,
-  }) async {
+  Future<void> createList(BrokerageUser user, String name,
+      {String? emoji}) async {
     var url = "$endpoint/discovery/lists/";
     var payload = {
       "display_name": name,
       "icon_emoji": emoji ?? "💡",
-      "list_position": 0,
+      "list_position": 0
     };
-    var response = await user.oauth2Client!.post(
-      Uri.parse(url),
-      body: jsonEncode(payload),
-      headers: {
-        "content-type": "application/json",
-        "accept": "application/json",
-      },
-    );
+    var response = await user.oauth2Client!.post(Uri.parse(url),
+        body: jsonEncode(payload),
+        headers: {
+          "content-type": "application/json",
+          "accept": "application/json"
+        });
     debugPrint(response.body);
   }
 
   @override
   Future<void> deleteList(BrokerageUser user, String listId) async {
     var url = "$endpoint/discovery/lists/$listId/";
-    var response = await user.oauth2Client!.delete(
-      Uri.parse(url),
-      headers: {
-        "content-type": "application/json",
-        "accept": "application/json",
-      },
-    );
+    var response = await user.oauth2Client!.delete(Uri.parse(url), headers: {
+      "content-type": "application/json",
+      "accept": "application/json"
+    });
     debugPrint(response.body);
   }
 
@@ -5172,9 +4762,7 @@ WATCHLIST
 }
   */
   Future<List<WatchlistItem>> getListItems(
-    String key,
-    BrokerageUser user,
-  ) async {
+      String key, BrokerageUser user) async {
     //https://api.robinhood.com/midlands/lists/items/?list_id=8ce9f620-5bb0-4b6a-8c61-5a06763f7a8b&local_midnight=2021-12-30T06%3A00%3A00.000Z
     var watchlistUrl =
         "$endpoint/midlands/lists/items/?list_id=$key&load_all_attributes=False";
@@ -5187,10 +4775,8 @@ WATCHLIST
     return list;
   }
 
-  Future<dynamic> getMarketIndices({
-    String keys = "sp_500,nasdaq",
-    required BrokerageUser user,
-  }) async {
+  Future<dynamic> getMarketIndices(
+      {String keys = "sp_500,nasdaq", required BrokerageUser user}) async {
     // https://bonfire.robinhood.com/market_indices?keys=nasdaq
     // https://bonfire.robinhood.com/market_indices?keys=sp_500
     var url = "$robinHoodSearchEndpoint/market_indices?keys=$keys";
@@ -5214,9 +4800,7 @@ WATCHLIST
   /// {"instrument_id":"943c5009-a0bb-4665-8cf4-a95dab5874e4","sentiment_score":"Positive Sentiment","quarterly_aggregate_transactions":[{"date":"2024-09-30","total_shares_held":128638298,"shares_bought":2376549,"shares_sold":8783600},{"date":"2024-12-31","total_shares_held":110820132,"shares_bought":1419147,"shares_sold":19237313},{"date":"2025-03-31","total_shares_held":102979835,"shares_bought":2983190,"shares_sold":10823487},{"date":"2025-06-30","total_shares_held":95697312,"shares_bought":2939701,"shares_sold":10222224},{"date":"2025-09-30","total_shares_held":81767404,"shares_bought":2912588,"shares_sold":16842496},{"date":"2025-12-31","total_shares_held":80201291,"shares_bought":4590942,"shares_sold":6157055},{"date":"2026-03-31","total_shares_held":80277067,"shares_bought":10445510,"shares_sold":10369734},{"date":"2026-06-30","total_shares_held":100360520,"shares_bought":26740771,"shares_sold":6657318}]}
   @override
   Future<dynamic> getHedgeFundSummary(
-    BrokerageUser user,
-    String instrumentId,
-  ) async {
+      BrokerageUser user, String instrumentId) async {
     var url = "$endpoint/marketdata/hedgefunds/summary/$instrumentId/";
     return await getJson(user, url);
   }
@@ -5227,9 +4811,7 @@ WATCHLIST
   /// {"instrument_id":"943c5009-a0bb-4665-8cf4-a95dab5874e4","detailed_transactions":[{"manager_name":"Warren Buffett","institution_name":"Berkshire Hathaway Inc","portfolio_percentage":3.2,"change_percentage":658.35,"action":"Added","market_value":9606489031,"total_shares":27188433,"shares_traded":23603218},{"manager_name":"John A. Gunn","institution_name":"Dodge \u0026 Cox","portfolio_percentage":2.2,"change_percentage":-2.19,"action":"Reduced","market_value":4226214403,"total_shares":11961097,"shares_traded":-267421},{"manager_name":"Christopher Anthony Hohn","institution_name":"Tci Fund Management Ltd","portfolio_percentage":6.7,"change_percentage":12.25,"action":"Added","market_value":3511682917,"total_shares":9938819,"shares_traded":1084800},{"manager_name":"Jean Marie Eveillard","institution_name":"First Eagle Investment Management LLC","portfolio_percentage":4.3,"change_percentage":-1.19,"action":"Reduced","market_value":2585051319,"total_shares":7316252,"shares_traded":-88396},{"manager_name":"Theofanis Kolokotrones","institution_name":"PRIMECAP Management Co","portfolio_percentage":1.1,"change_percentage":-5.63,"action":"Reduced","market_value":1907649869,"total_shares":5399060,"shares_traded":-321850},{"manager_name":"Boykin Curry","institution_name":"Eagle Capital Management, L.L.C.","portfolio_percentage":4.4,"change_percentage":-12.25,"action":"Reduced","market_value":1425100022,"total_shares":4033340,"shares_traded":-563213},{"manager_name":"John Armitage","institution_name":"Egerton Capital (UK) LLP","portfolio_percentage":11.2,"change_percentage":-4.86,"action":"Reduced","market_value":1163018908,"total_shares":3291594,"shares_traded":-168055},{"manager_name":"Tom Russo","institution_name":"Gardner Russo \u0026 Gardner LLC","portfolio_percentage":12.1,"change_percentage":-9.02,"action":"Reduced","market_value":1076977046,"total_shares":3048077,"shares_traded":-302260},{"manager_name":"J Scott Harkness","institution_name":"Provident Trust Co","portfolio_percentage":16.3,"change_percentage":-21.29,"action":"Reduced","market_value":777887088,"total_shares":2201588,"shares_traded":-595464},{"manager_name":"Miltos Bossinis","institution_name":"H\u0026H International Investment, LLC","portfolio_percentage":3.6,"change_percentage":-46.88,"action":"Reduced","market_value":695565438,"total_shares":1968600,"shares_traded":-1737400},{"manager_name":"David Tepper","institution_name":"Appaloosa Management LP","portfolio_percentage":8.5,"change_percentage":6.77,"action":"Added","market_value":653660500,"total_shares":1850000,"shares_traded":117300},{"manager_name":"Ken Fisher","institution_name":"Fisher Asset Management LLC","portfolio_percentage":0.2,"change_percentage":-1.67,"action":"Reduced","market_value":598435021,"total_shares":1693700,"shares_traded":-28764},{"manager_name":"Bill Frels","institution_name":"Mairs \u0026 Power Inc","portfolio_percentage":5.5,"change_percentage":4.46,"action":"Added","market_value":594809501,"total_shares":1683439,"shares_traded":71829},{"manager_name":"Lee Ainslie","institution_name":"Maverick Capital ltd","portfolio_percentage":4.5,"change_percentage":65.25,"action":"Added","market_value":509543552,"total_shares":1442118,"shares_traded":569421},{"manager_name":"Seth Klarman","institution_name":"Baupost Group LLC","portfolio_percentage":9,"change_percentage":16.15,"action":"Added","market_value":484744380,"total_shares":1371931,"shares_traded":190800},{"manager_name":"Richard Atwood","institution_name":"First Pacific Advisors LLC","portfolio_percentage":5.8,"change_percentage":0,"action":"Added","market_value":471061322,"total_shares":1333205,"shares_traded":48},{"manager_name":"Donald Yacktman","institution_name":"Yacktman Asset Management LP","portfolio_percentage":4.9,"change_percentage":0.23,"action":"Added","market_value":398955149,"total_shares":1129129,"shares_traded":2595},{"manager_name":"Cathie Wood","institution_name":"ARK Investment Management LLC","portfolio_percentage":2.4,"change_percentage":44.82,"action":"Added","market_value":368641202,"total_shares":1043334,"shares_traded":322920},{"manager_name":"Michael Rockefeller","institution_name":"Woodline Partners LP","portfolio_percentage":1.1,"change_percentage":11.07,"action":"Added","market_value":362395034,"total_shares":1025656,"shares_traded":102223},{"manager_name":"Philippe Laffont","institution_name":"Coatue Management, LLC","portfolio_percentage":0.7,"change_percentage":-18.59,"action":"Reduced","market_value":320963205,"total_shares":908395,"shares_traded":-207490},{"manager_name":"Ulambayar (Ulam) Bayansan","institution_name":"Gobi Capital Llc","portfolio_percentage":14.3,"change_percentage":0,"action":"No Change","market_value":305367572,"total_shares":864256,"shares_traded":0},{"manager_name":"Richard Walker","institution_name":"Crake Asset Management LLP","portfolio_percentage":6.2,"change_percentage":125.88,"action":"Added","market_value":260580875,"total_shares":737500,"shares_traded":411000},{"manager_name":"Ferdinand Groos","institution_name":"Cryder Capital","portfolio_percentage":13.5,"change_percentage":-15.78,"action":"Reduced","market_value":214289345,"total_shares":606485,"shares_traded":-113640},{"manager_name":"William Duhamel","institution_name":"Route One Investment Company","portfolio_percentage":8.3,"change_percentage":-15.24,"action":"Reduced","market_value":206362386,"total_shares":584050,"shares_traded":-105030},{"manager_name":"Chris Davis","institution_name":"Davis Selected Advisers","portfolio_percentage":0.9,"change_percentage":-16.73,"action":"Reduced","market_value":199374932,"total_shares":564274,"shares_traded":-113333},{"manager_name":"C.T Fitzpatrick","institution_name":"Vulcan Value Partners, Llc","portfolio_percentage":5.8,"change_percentage":-20.26,"action":"Reduced","market_value":190611641,"total_shares":539472,"shares_traded":-137084},{"manager_name":"Barry Dargan","institution_name":"Intermede Investment Partners Ltd","portfolio_percentage":6.6,"change_percentage":-12.02,"action":"Reduced","market_value":156585962,"total_shares":443172,"shares_traded":-60545},{"manager_name":"Travis Knapp Anderson","institution_name":"Gilder Gagnon Howe \u0026 Co LLC.","portfolio_percentage":1.6,"change_percentage":2.64,"action":"Added","market_value":152219863,"total_shares":430815,"shares_traded":11067},{"manager_name":"R. Van Ogden","institution_name":"Penn Davis Mcfarland Inc","portfolio_percentage":13.5,"change_percentage":-0.66,"action":"Reduced","market_value":151363038,"total_shares":428390,"shares_traded":-2848},{"manager_name":"Sarah Ketterer","institution_name":"Causeway Capital Management LLC","portfolio_percentage":1.2,"change_percentage":-6.25,"action":"Reduced","market_value":111728952,"total_shares":316217,"shares_traded":-21081},{"manager_name":"Bill Ackman","institution_name":"Pershing Square Capital Management LP","portfolio_percentage":0.8,"change_percentage":0,"action":"No Change","market_value":110142147,"total_shares":311726,"shares_traded":0},{"manager_name":"Charles Brandes","institution_name":"Brandes Investment Partners LP","portfolio_percentage":0.7,"change_percentage":0.97,"action":"Added","market_value":104731958,"total_shares":296414,"shares_traded":2837},{"manager_name":"Gaurav Kapadia","institution_name":"XN LP","portfolio_percentage":2.7,"change_percentage":0,"action":"No Change","market_value":103456437,"total_shares":292804,"shares_traded":0},{"manager_name":"Charles F. Pollnow IV","institution_name":"Triple Frond Partners Llc","portfolio_percentage":9.2,"change_percentage":-17.52,"action":"Reduced","market_value":103011241,"total_shares":291544,"shares_traded":-61915},{"manager_name":"Wallace Weitz","institution_name":"Weitz Investment Management, Inc.","portfolio_percentage":6.6,"change_percentage":-17.95,"action":"Reduced","market_value":94727773,"total_shares":268100,"shares_traded":-58650},{"manager_name":"John Kim","institution_name":"Night Owl Capital Management LLC","portfolio_percentage":9.5,"change_percentage":-21.55,"action":"Reduced","market_value":90571552,"total_shares":256337,"shares_traded":-70413},{"manager_name":"Thomas E. Claugus","institution_name":"GMT Capital Corp","portfolio_percentage":4.5,"change_percentage":-15.45,"action":"Reduced","market_value":86848514,"total_shares":245800,"shares_traded":-44900},{"manager_name":"Mario Gabelli","institution_name":"Gamco Investors, Inc. ET AL","portfolio_percentage":0.6,"change_percentage":8.31,"action":"Added","market_value":71892408,"total_shares":203471,"shares_traded":15612},{"manager_name":"Kenneth Tropin","institution_name":"Graham Capital Management, L.P.","portfolio_percentage":1,"change_percentage":-0.88,"action":"Reduced","market_value":57517530,"total_shares":162787,"shares_traded":-1448},{"manager_name":"Luke M. Babcock\u0026 Scott R. Hirsch","institution_name":"Saybrook Capital /Nc","portfolio_percentage":14.2,"change_percentage":-5.82,"action":"Reduced","market_value":56532093,"total_shares":159998,"shares_traded":-9892},{"manager_name":"Charles Clough","institution_name":"Clough Capital Partners L P","portfolio_percentage":4.2,"change_percentage":-30.61,"action":"Reduced","market_value":51855770,"total_shares":146763,"shares_traded":-64728},{"manager_name":"Donald R. Jowdy","institution_name":"Suncoast Equity Management","portfolio_percentage":6.1,"change_percentage":-19.1,"action":"Reduced","market_value":49034077,"total_shares":138777,"shares_traded":-32760},{"manager_name":"Larry Pitkowsky","institution_name":"GoodHaven Capital Management, Llc","portfolio_percentage":14.2,"change_percentage":0,"action":"No Change","market_value":44993042,"total_shares":127340,"shares_traded":0},{"manager_name":"Irving Kahn","institution_name":"Kahn Brothers Group Inc","portfolio_percentage":6.8,"change_percentage":0,"action":"No Change","market_value":43116506,"total_shares":122029,"shares_traded":0},{"manager_name":"Stephen Farley","institution_name":"Farley Capital L.P.","portfolio_percentage":29.9,"change_percentage":-15.03,"action":"Reduced","market_value":38098513,"total_shares":107827,"shares_traded":-19070},{"manager_name":"Carsten Henningsen","institution_name":"Progressive Investment Management Corp","portfolio_percentage":8.3,"change_percentage":-1.02,"action":"Reduced","market_value":37860369,"total_shares":107153,"shares_traded":-1108},{"manager_name":"Richard Merage","institution_name":"MIG Capital, Llc","portfolio_percentage":6.2,"change_percentage":0,"action":"No Change","market_value":36695087,"total_shares":103855,"shares_traded":0},{"manager_name":"Qiu Guolu","institution_name":"Perseverance Asset Management International","portfolio_percentage":3.6,"change_percentage":0,"action":"No Change","market_value":35333000,"total_shares":100000,"shares_traded":0},{"manager_name":"Leighton Welch","institution_name":"Welch Capital Partners LLC","portfolio_percentage":6.3,"change_percentage":0,"action":"No Change","market_value":32189069,"total_shares":91102,"shares_traded":0},{"manager_name":"Richard Chilton","institution_name":"Chilton Investment Co LLC","portfolio_percentage":0.8,"change_percentage":10.47,"action":"Added","market_value":31532229,"total_shares":89243,"shares_traded":8456},{"manager_name":"Garry Claar","institution_name":"Claar Advisors Llc","portfolio_percentage":9.9,"change_percentage":-19.83,"action":"Reduced","market_value":30732643,"total_shares":86980,"shares_traded":-21521},{"manager_name":"Herbert Allen III","institution_name":"Allen Operations Llc","portfolio_percentage":4.2,"change_percentage":0,"action":"No Change","market_value":30188868,"total_shares":85441,"shares_traded":0},{"manager_name":"Daniel Sundheim","institution_name":"D1 Capital Partners LP","portfolio_percentage":0.1,"change_percentage":100,"action":"Opened Position","market_value":30033050,"total_shares":85000,"shares_traded":85000},{"manager_name":"Eric Walton","institution_name":"Spence Asset Management","portfolio_percentage":6.3,"change_percentage":-15.39,"action":"Reduced","market_value":26564762,"total_shares":75184,"shares_traded":-13677},{"manager_name":"Ray Dalio","institution_name":"Bridgewater Associates, LP","portfolio_percentage":0.1,"change_percentage":-80.83,"action":"Reduced","market_value":26219559,"total_shares":74207,"shares_traded":-312795},{"manager_name":"Francis Chou","institution_name":"Chou Associates Management Inc.","portfolio_percentage":11.8,"change_percentage":0,"action":"No Change","market_value":25577558,"total_shares":72390,"shares_traded":0},{"manager_name":"Robert L. Bender","institution_name":"Robert Bender\u0026Associates","portfolio_percentage":4.7,"change_percentage":-3.34,"action":"Reduced","market_value":22724065,"total_shares":64314,"shares_traded":-2222},{"manager_name":"David R. Hansen","institution_name":"DRH Investments, Inc.","portfolio_percentage":16,"change_percentage":-0.68,"action":"Reduced","market_value":20250048,"total_shares":57312,"shares_traded":-390},{"manager_name":"Joel Greenblatt","institution_name":"Gotham Asset Management LLC","portfolio_percentage":0.2,"change_percentage":0,"action":"No Change","market_value":19240585,"total_shares":54455,"shares_traded":0},{"manager_name":"Antony J. Abbiati","institution_name":"SCS Capital Management LLC","portfolio_percentage":0.2,"change_percentage":-7.07,"action":"Reduced","market_value":17674273,"total_shares":50022,"shares_traded":-3805},{"manager_name":"Ben Gordon","institution_name":"Blue Grotto Capital, Llc","portfolio_percentage":1.5,"change_percentage":100,"action":"Opened Position","market_value":17666500,"total_shares":50000,"shares_traded":50000},{"manager_name":"Michael Searcy","institution_name":"Searcy Financial Services Inc /Adv","portfolio_percentage":5.4,"change_percentage":-3.8,"action":"Reduced","market_value":16240813,"total_shares":45965,"shares_traded":-1817},{"manager_name":"Philip Hempleman","institution_name":"Ardsley Advisory Partners","portfolio_percentage":1.6,"change_percentage":45,"action":"Added","market_value":15369855,"total_shares":43500,"shares_traded":13500},{"manager_name":"Daniel E. Hutner","institution_name":"Hutner Capital Management Inc","portfolio_percentage":5.8,"change_percentage":2.94,"action":"Added","market_value":14502429,"total_shares":41045,"shares_traded":1173},{"manager_name":"David S. Gilreath","institution_name":"Sheaff Brock Investment Advisors LLC","portfolio_percentage":1.3,"change_percentage":0,"action":"No Change","market_value":14253685,"total_shares":40341,"shares_traded":0},{"manager_name":"Louis Moore Bacon","institution_name":"Moore Capital Management LP","portfolio_percentage":0.2,"change_percentage":130.35,"action":"Added","market_value":12374323,"total_shares":35022,"shares_traded":19818},{"manager_name":"Adam B. Landau","institution_name":"Permit Capital, Llc","portfolio_percentage":3.4,"change_percentage":0,"action":"No Change","market_value":12260551,"total_shares":34700,"shares_traded":0},{"manager_name":"Steven Feld","institution_name":"Steinberg Asset Management Llc","portfolio_percentage":7.4,"change_percentage":-0.12,"action":"Reduced","market_value":11933014,"total_shares":33773,"shares_traded":-40},{"manager_name":"Nancy Kukacka","institution_name":"Avalon Global Asset Management Llc","portfolio_percentage":1.1,"change_percentage":0,"action":"No Change","market_value":10069905,"total_shares":28500,"shares_traded":0},{"manager_name":"Elizabeth Foreman","institution_name":"Cunning Capital Partners, LP","portfolio_percentage":4,"change_percentage":0,"action":"No Change","market_value":9822574,"total_shares":27800,"shares_traded":0},{"manager_name":"Robert Henry Lynch","institution_name":"Aristeia Capital LLC","portfolio_percentage":0.1,"change_percentage":100,"action":"Opened Position","market_value":9716575,"total_shares":27500,"shares_traded":27500},{"manager_name":"Jay H. Freedman","institution_name":"Crystal Rock Capital Management","portfolio_percentage":4.8,"change_percentage":-4.21,"action":"Reduced","market_value":9451577,"total_shares":26750,"shares_traded":-1175},{"manager_name":"Ira Unschuld","institution_name":"Brant Point Investment Management LLC","portfolio_percentage":1.1,"change_percentage":0,"action":"No Change","market_value":9098954,"total_shares":25752,"shares_traded":0},{"manager_name":"Paul Reeder","institution_name":"Par Capital Management Inc","portfolio_percentage":0.2,"change_percentage":-29.21,"action":"Reduced","market_value":8903916,"total_shares":25200,"shares_traded":-10400},{"manager_name":"Marcia Venegas","institution_name":"Platinum Investment Management","portfolio_percentage":2.1,"change_percentage":0,"action":"No Change","market_value":8689091,"total_shares":24592,"shares_traded":0},{"manager_name":"Alan Parsow","institution_name":"Elkhorn Partners Limited Partnership","portfolio_percentage":4.4,"change_percentage":0,"action":"No Change","market_value":5123285,"total_shares":14500,"shares_traded":0},{"manager_name":"Scott Jarred","institution_name":"Invst, LLC","portfolio_percentage":0.5,"change_percentage":42.61,"action":"Added","market_value":4667489,"total_shares":13210,"shares_traded":3947},{"manager_name":"J. Barton Riley","institution_name":"Barton Investment Management","portfolio_percentage":0.5,"change_percentage":0,"action":"No Change","market_value":3757664,"total_shares":10635,"shares_traded":0},{"manager_name":"Walter Wemple Cruttenden III","institution_name":"Acorns Advisers, Llc","portfolio_percentage":0,"change_percentage":6.18,"action":"Added","market_value":3751304,"total_shares":10617,"shares_traded":618},{"manager_name":"Ranji H. Nagaswami","institution_name":"Hirtle Callaghan \u0026 Co Llc","portfolio_percentage":0.1,"change_percentage":-2.22,"action":"Reduced","market_value":3343915,"total_shares":9464,"shares_traded":-215},{"manager_name":"Christopher J. Sidoni","institution_name":"Gibson Capital, Llc","portfolio_percentage":0.5,"change_percentage":1038.17,"action":"Added","market_value":3297628,"total_shares":9333,"shares_traded":8513},{"manager_name":"Roger Wilson","institution_name":"WJ Wealth Management, LLC","portfolio_percentage":1.3,"change_percentage":2.31,"action":"Added","market_value":3173610,"total_shares":8982,"shares_traded":203},{"manager_name":"Leslie J. Lammers","institution_name":"Riverstone Advisors, LLC","portfolio_percentage":1.3,"change_percentage":3.42,"action":"Added","market_value":3081037,"total_shares":8720,"shares_traded":288},{"manager_name":"Drew Phillips","institution_name":"Fortitude Family Office, LLC","portfolio_percentage":1,"change_percentage":0,"action":"No Change","market_value":2757033,"total_shares":7803,"shares_traded":0},{"manager_name":"Peter J. Decker","institution_name":"HT Partners Llc","portfolio_percentage":0.7,"change_percentage":-3.69,"action":"Reduced","market_value":2574715,"total_shares":7287,"shares_traded":-279},{"manager_name":"Jeff Auxier","institution_name":"Auxier Asset Management","portfolio_percentage":0.3,"change_percentage":-0.88,"action":"Reduced","market_value":2384977,"total_shares":6750,"shares_traded":-60},{"manager_name":"Randy Swan","institution_name":"Swan Global Investments, Llc","portfolio_percentage":0.1,"change_percentage":100,"action":"Opened Position","market_value":2309364,"total_shares":6536,"shares_traded":6536},{"manager_name":"Marcus Sitrin","institution_name":"Sitrin Capital Management Llc","portfolio_percentage":0.9,"change_percentage":0,"action":"No Change","market_value":2062033,"total_shares":5836,"shares_traded":0},{"manager_name":"Gregg Powers","institution_name":"Private Capital Management, LLC","portfolio_percentage":0.1,"change_percentage":0,"action":"No Change","market_value":1694924,"total_shares":4797,"shares_traded":0},{"manager_name":"Bob Hapanowicz","institution_name":"Hapanowicz \u0026 Associates Financial Services, Inc","portfolio_percentage":0.5,"change_percentage":-1.09,"action":"Reduced","market_value":1604471,"total_shares":4541,"shares_traded":-50},{"manager_name":"John Hussman","institution_name":"Hussman Strategic Advisors Inc","portfolio_percentage":0.3,"change_percentage":100,"action":"Opened Position","market_value":1483986,"total_shares":4200,"shares_traded":4200},{"manager_name":"Stephen A. Schwarzman","institution_name":"Blackstone Inc.","portfolio_percentage":0,"change_percentage":8.27,"action":"Added","market_value":1355020,"total_shares":3835,"shares_traded":293},{"manager_name":"Glenn Greenberg","institution_name":"Brave Warrior Advisors LLC","portfolio_percentage":0,"change_percentage":0,"action":"No Change","market_value":1339120,"total_shares":3790,"shares_traded":0},{"manager_name":"Aly St Pierre","institution_name":"GoalVest Advisory LLC","portfolio_percentage":0,"change_percentage":51.19,"action":"Added","market_value":1306614,"total_shares":3698,"shares_traded":1252},{"manager_name":"David Lees, James Biles and Paul Bracaglia","institution_name":"Mycio Wealth Partners, Llc","portfolio_percentage":0.2,"change_percentage":-1.35,"action":"Reduced","market_value":1289301,"total_shares":3649,"shares_traded":-50},{"manager_name":"Rich Siegel","institution_name":"Arq Wealth Advisors, Llc","portfolio_percentage":0.1,"change_percentage":6.06,"action":"Added","market_value":1070589,"total_shares":3030,"shares_traded":173},{"manager_name":"Don G. Stamas","institution_name":"Defender Capital, LLC.","portfolio_percentage":0.3,"change_percentage":-24.87,"action":"Reduced","market_value":992857,"total_shares":2810,"shares_traded":-930},{"manager_name":"Christopher P. Bloomstran","institution_name":"Semper Augustus Investments Group Llc","portfolio_percentage":0.1,"change_percentage":0,"action":"No Change","market_value":859298,"total_shares":2432,"shares_traded":0},{"manager_name":"John Youngs","institution_name":"Youngs Advisory Group, Inc.","portfolio_percentage":0.2,"change_percentage":0,"action":"No Change","market_value":774146,"total_shares":2191,"shares_traded":0},{"manager_name":"Patrick A. Martin","institution_name":"Martin Investment Management, Llc","portfolio_percentage":0.2,"change_percentage":-41.65,"action":"Reduced","market_value":680513,"total_shares":1926,"shares_traded":-1375},{"manager_name":"Jeremy Lau","institution_name":"Prudent Investors Network","portfolio_percentage":0.1,"change_percentage":3.33,"action":"Added","market_value":679806,"total_shares":1924,"shares_traded":62},{"manager_name":"J. William Waltman, Jr.","institution_name":"PYA Waltman Capital, LLC","portfolio_percentage":0.1,"change_percentage":0.23,"action":"Added","market_value":619034,"total_shares":1752,"shares_traded":4},{"manager_name":"Andrew Rechtschaffen","institution_name":"AREX Capital Management, LP","portfolio_percentage":1,"change_percentage":0,"action":"No Change","market_value":600661,"total_shares":1700,"shares_traded":0},{"manager_name":"Raymond M Clark","institution_name":"Pachira Investments Inc.","portfolio_percentage":0.2,"change_percentage":21.86,"action":"Added","market_value":486535,"total_shares":1377,"shares_traded":247},{"manager_name":"Erik Strid","institution_name":"Strid Group, Llc","portfolio_percentage":0.1,"change_percentage":9.19,"action":"Added","market_value":461802,"total_shares":1307,"shares_traded":110},{"manager_name":"Mac Van Wielingen","institution_name":"Viewpoint Investment Partners Corp","portfolio_percentage":0.1,"change_percentage":-51.6,"action":"Reduced","market_value":401029,"total_shares":1135,"shares_traded":-1210},{"manager_name":"Ben Atwater\u0026Matt Malick","institution_name":"Atwater Malick LLC","portfolio_percentage":0.1,"change_percentage":-4.72,"action":"Reduced","market_value":356509,"total_shares":1009,"shares_traded":-50},{"manager_name":"W. Lee Shertzer","institution_name":"Stewardship Advisors, LLC","portfolio_percentage":0.1,"change_percentage":1.7,"action":"Added","market_value":338843,"total_shares":959,"shares_traded":16},{"manager_name":"Scott Kapnick","institution_name":"Highbridge Capital Management LLC","portfolio_percentage":0,"change_percentage":100,"action":"Opened Position","market_value":332483,"total_shares":941,"shares_traded":941},{"manager_name":"Bill Manning","institution_name":"Manning \u0026 Napier Advisors LLC","portfolio_percentage":0,"change_percentage":4.61,"action":"Added","market_value":320823,"total_shares":908,"shares_traded":40},{"manager_name":"Larry Waller","institution_name":"Waller Financial Planning Group, Inc","portfolio_percentage":0.1,"change_percentage":1.47,"action":"Added","market_value":316583,"total_shares":896,"shares_traded":13},{"manager_name":"Scott Roseman\u0026Aaron Wagner","institution_name":"RWWM, Inc.","portfolio_percentage":0,"change_percentage":100,"action":"Opened Position","market_value":287963,"total_shares":815,"shares_traded":815},{"manager_name":"Eldridge Fuller Gray","institution_name":"Seven Post Investment Office LP","portfolio_percentage":0.1,"change_percentage":0,"action":"No Change","market_value":254397,"total_shares":720,"shares_traded":0},{"manager_name":"J. Charles Mann","institution_name":"Trinity Wealth Management, LLC","portfolio_percentage":0.1,"change_percentage":1.41,"action":"Added","market_value":253337,"total_shares":717,"shares_traded":10},{"manager_name":"Paul B. Thompson","institution_name":"Ascension Capital Advisors, Inc.","portfolio_percentage":0.1,"change_percentage":100,"action":"Opened Position","market_value":245211,"total_shares":694,"shares_traded":694},{"manager_name":"Tom Roupe","institution_name":"Avalon Advisory Group","portfolio_percentage":0.1,"change_percentage":100,"action":"Opened Position","market_value":239911,"total_shares":679,"shares_traded":679},{"manager_name":"Alanna Marshall","institution_name":"Manitou Investment Management Ltd.","portfolio_percentage":0,"change_percentage":-24.14,"action":"Reduced","market_value":155465,"total_shares":440,"shares_traded":-140},{"manager_name":"Susan M. Herendeen","institution_name":"ESL Trust Services, LLC","portfolio_percentage":0,"change_percentage":0,"action":"No Change","market_value":137798,"total_shares":390,"shares_traded":0},{"manager_name":"Christy Horlacher","institution_name":"Carolina Wealth Advisors, LLC","portfolio_percentage":0,"change_percentage":0,"action":"No Change","market_value":131438,"total_shares":372,"shares_traded":0},{"manager_name":"Andrew J.M. Spokes","institution_name":"Farallon Capital Management, L.L.C.","portfolio_percentage":0,"change_percentage":-100,"action":"Closed Position","market_value":0,"total_shares":0,"shares_traded":-996231},{"manager_name":"Colin Cox","institution_name":"Gallacher Capital Management LLC","portfolio_percentage":0,"change_percentage":-100,"action":"Closed Position","market_value":0,"total_shares":0,"shares_traded":-1003},{"manager_name":"Rick Kohr","institution_name":"Evergreen Advisors, LLC","portfolio_percentage":0,"change_percentage":-100,"action":"Closed Position","market_value":0,"total_shares":0,"shares_traded":-305},{"manager_name":"Alex Captain","institution_name":"Cat Rock Capital Management Lp","portfolio_percentage":0,"change_percentage":-100,"action":"Closed Position","market_value":0,"total_shares":0,"shares_traded":-71690},{"manager_name":"Steven R. Goodman","institution_name":"Goodman Financial Corp","portfolio_percentage":0,"change_percentage":-100,"action":"Closed Position","market_value":0,"total_shares":0,"shares_traded":-760},{"manager_name":"David Costen Haley","institution_name":"HBK Investments LP","portfolio_percentage":0,"change_percentage":-100,"action":"Closed Position","market_value":0,"total_shares":0,"shares_traded":-8870},{"manager_name":"Robert Olstein","institution_name":"Olstein Capital Management, L.P.","portfolio_percentage":0,"change_percentage":-100,"action":"Closed Position","market_value":0,"total_shares":0,"shares_traded":-7500}]}
   @override
   Future<dynamic> getHedgeFundTransactions(
-    BrokerageUser user,
-    String instrumentId,
-  ) async {
+      BrokerageUser user, String instrumentId) async {
     var url = "$endpoint/marketdata/hedgefunds/transactions/$instrumentId/";
     return await getJson(user, url);
   }
@@ -5238,9 +4820,7 @@ WATCHLIST
   /// https://api.robinhood.com/marketdata/insiders/summary/{instrument_id}/
   @override
   Future<dynamic> getInsiderSummary(
-    BrokerageUser user,
-    String instrumentId,
-  ) async {
+      BrokerageUser user, String instrumentId) async {
     var url = "$endpoint/marketdata/insiders/summary/$instrumentId/";
     return await getJson(user, url);
   }
@@ -5249,9 +4829,7 @@ WATCHLIST
   /// https://api.robinhood.com/marketdata/insiders/transactions/{instrument_id}/
   @override
   Future<dynamic> getInsiderTransactions(
-    BrokerageUser user,
-    String instrumentId,
-  ) async {
+      BrokerageUser user, String instrumentId) async {
     var url = "$endpoint/marketdata/insiders/transactions/$instrumentId/";
     return await getJson(user, url);
   }
@@ -5266,9 +4844,7 @@ WATCHLIST
   /// {"instrument_id":"943c5009-a0bb-4665-8cf4-a95dab5874e4","daily_transactions":[{"date":"2026-08-12","net_buy_percentage":6.733010406913009,"net_sell_percentage":-6.733010406913009,"buy_volume_percentage_change":null,"sell_volume_percentage_change":null},{"date":"2026-08-13","net_buy_percentage":2.2814620083776327,"net_sell_percentage":-2.2814620083776327,"buy_volume_percentage_change":-34.70567348204625,"sell_volume_percentage_change":-28.611824946031497},{"date":"2026-08-14","net_buy_percentage":-5.055151777329453,"net_sell_percentage":5.055151777329453,"buy_volume_percentage_change":-13.866593391011422,"sell_volume_percentage_change":-0.24434133127768348},{"date":"2026-08-17","net_buy_percentage":19.189000228545446,"net_sell_percentage":-19.189000228545446,"buy_volume_percentage_change":29.120929708272094,"sell_volume_percentage_change":-20.880233413744534},{"date":"2026-08-18","net_buy_percentage":-13.64380720742417,"net_sell_percentage":13.64380720742417,"buy_volume_percentage_change":-48.234212572783306,"sell_volume_percentage_change":0.4756464704123885},{"date":"2026-08-19","net_buy_percentage":2.6729210588551267,"net_sell_percentage":-2.6729210588551267,"buy_volume_percentage_change":29.94070491011141,"sell_volume_percentage_change":-6.401109185556419},{"date":"2026-08-20","net_buy_percentage":17.332167618755932,"net_sell_percentage":-17.332167618755932,"buy_volume_percentage_change":6.748152152501229,"sell_volume_percentage_change":-20.658199630492284},{"date":"2026-08-21","net_buy_percentage":-17.751770360792417,"net_sell_percentage":17.751770360792417,"buy_volume_percentage_change":-55.201403825257046,"sell_volume_percentage_change":-8.96972905048077},{"date":"2026-08-24","net_buy_percentage":-16.157430144731705,"net_sell_percentage":16.157430144731705,"buy_volume_percentage_change":49.553465420120354,"sell_volume_percentage_change":44.72315044880562},{"date":"2026-08-25","net_buy_percentage":3.524596602619434,"net_sell_percentage":-3.524596602619434,"buy_volume_percentage_change":-7.69700773303201,"sell_volume_percentage_change":-37.91217838384366},{"date":"2026-08-26","net_buy_percentage":21.82593435433399,"net_sell_percentage":-21.82593435433399,"buy_volume_percentage_change":99.07161580199839,"sell_volume_percentage_change":37.07530896223433},{"date":"2026-08-27","net_buy_percentage":19.5197460193402,"net_sell_percentage":-19.5197460193402,"buy_volume_percentage_change":-9.401879375973339,"sell_volume_percentage_change":-4.929469531768822},{"date":"2026-08-28","net_buy_percentage":-30.571795821023912,"net_sell_percentage":30.571795821023912,"buy_volume_percentage_change":-44.409158183350215,"sell_volume_percentage_change":55.262658880011294},{"date":"2026-08-31","net_buy_percentage":31.135576986933515,"net_sell_percentage":-31.135576986933515,"buy_volume_percentage_change":214.04321682990073,"sell_volume_percentage_change":-12.309942736543244},{"date":"2026-09-01","net_buy_percentage":17.001659524271673,"net_sell_percentage":-17.001659524271673,"buy_volume_percentage_change":-41.428533364257646,"sell_volume_percentage_change":-20.879485171546627},{"date":"2026-09-02","net_buy_percentage":3.946030094525282,"net_sell_percentage":-3.946030094525282,"buy_volume_percentage_change":19.711022743641,"sell_volume_percentage_change":55.94238265078962},{"date":"2026-09-03","net_buy_percentage":-20.21615074682414,"net_sell_percentage":20.21615074682414,"buy_volume_percentage_change":-33.872681484601785,"sell_volume_percentage_change":7.825463400816969},{"date":"2026-09-04","net_buy_percentage":24.394663323296,"net_sell_percentage":-24.394663323296,"buy_volume_percentage_change":53.34416128439822,"sell_volume_percentage_change":-38.14566891785419},{"date":"2026-09-08","net_buy_percentage":16.631773895830328,"net_sell_percentage":-16.631773895830328,"buy_volume_percentage_change":-2.3809395349908087,"sell_volume_percentage_change":14.806796950636732},{"date":"2026-09-09","net_buy_percentage":31.58138057168694,"net_sell_percentage":-31.58138057168694,"buy_volume_percentage_change":112.82247169835675,"sell_volume_percentage_change":54.81522591529}]}
   @override
   Future<dynamic> getRetailSentiment(
-    BrokerageUser user,
-    String instrumentId,
-  ) async {
+      BrokerageUser user, String instrumentId) async {
     var url = "$endpoint/marketdata/equities/summary/robinhood/$instrumentId/";
     return await getJson(user, url);
   }
@@ -5282,11 +4858,8 @@ WATCHLIST
   /// Example response:
   /// {"status":"SUCCESS","data":[{"status":"SUCCESS","data":{"symbol":"PCG","instrument_id":"f87d7cd7-a842-47cc-9b32-c607d96e7dfb","exchange_symbol":"NYSE","daily_data":[{"shares_short":"37485031.0485","shares_upper_bound":"45062286.3985","shares_lower_bound":"28715885.2164","pc_freefloat":"1.8","pc_freefloat_upper_bound":"2.1639","pc_freefloat_lower_bound":"1.3789","date":"2026-09-07"},{"shares_short":"41010570.7579","shares_upper_bound":"59965035.1079","shares_lower_bound":"18356397.7737","pc_freefloat":"1.9693","pc_freefloat_upper_bound":"2.8795","pc_freefloat_lower_bound":"0.8815","date":"2026-09-08"},{"shares_short":"38745955.5719","shares_upper_bound":"50392318.9219","shares_lower_bound":"25010769.7326","pc_freefloat":"1.8606","pc_freefloat_upper_bound":"2.4199","pc_freefloat_lower_bound":"1.201","date":"2026-09-09"}]}}]}
   @override
-  Future<dynamic> getShortInterest(
-    BrokerageUser user,
-    String instrumentId, {
-    String? startDate,
-  }) async {
+  Future<dynamic> getShortInterest(BrokerageUser user, String instrumentId,
+      {String? startDate}) async {
     var query = "ids=$instrumentId";
     if (startDate != null) {
       query += "&start_date=$startDate";
@@ -5301,9 +4874,7 @@ WATCHLIST
   /// {"instrument":"https:\/\/api.robinhood.com\/instruments\/f87d7cd7-a842-47cc-9b32-c607d96e7dfb\/","instrument_id":"f87d7cd7-a842-47cc-9b32-c607d96e7dfb","fee":"0.0000","fee_timestamp":"2026-09-10T23:45:00Z","inventory_range":">1M","inventory_timestamp":"2026-09-10T22:01:00.050936Z","daily_fee":"0.0000","created_at":"2025-08-06T23:11:01.583130Z","updated_at":"2026-09-10T22:01:57.223877Z"}
   @override
   Future<dynamic> getShortingAvailability(
-    BrokerageUser user,
-    String instrumentId,
-  ) async {
+      BrokerageUser user, String instrumentId) async {
     var url = "$endpoint/instruments/$instrumentId/shorting/";
     return await getJson(user, url);
   }
@@ -5330,9 +4901,7 @@ WATCHLIST
   /// Fetches live deposit-adjusted market value and real-time equity breakdown for an account
   /// https://bonfire.robinhood.com/portfolio/account/{account}/live
   Future<dynamic> getLivePortfolio(
-    BrokerageUser user,
-    String accountNumber,
-  ) async {
+      BrokerageUser user, String accountNumber) async {
     var url = "$robinHoodBonfireEndpoint/portfolio/account/$accountNumber/live";
     return await getJson(user, url);
   }
@@ -5340,9 +4909,7 @@ WATCHLIST
   /// Fetches margin investing info and risk buffer for a margin account
   /// https://bonfire.robinhood.com/margin/{account}/investing_info/
   Future<dynamic> getMarginInvestingInfo(
-    BrokerageUser user,
-    String accountNumber,
-  ) async {
+      BrokerageUser user, String accountNumber) async {
     var url = "$robinHoodBonfireEndpoint/margin/$accountNumber/investing_info/";
     return await getJson(user, url);
   }
@@ -5350,9 +4917,7 @@ WATCHLIST
   /// Fetches margin call state and risk alert levels
   /// https://bonfire.robinhood.com/sms/margin/{account}/margin_call_state
   Future<dynamic> getMarginCallState(
-    BrokerageUser user,
-    String accountNumber,
-  ) async {
+      BrokerageUser user, String accountNumber) async {
     var url =
         "$robinHoodBonfireEndpoint/sms/margin/$accountNumber/margin_call_state";
     return await getJson(user, url);
@@ -5365,10 +4930,8 @@ WATCHLIST
   /// Fetches stock loan payments from the Stock Lending Program
   /// https://api.robinhood.com/accounts/stock_loan_payments/
   @override
-  Future<List<dynamic>> getStockLoanPayments(
-    BrokerageUser user, {
-    String? accountNumber,
-  }) async {
+  Future<List<dynamic>> getStockLoanPayments(BrokerageUser user,
+      {String? accountNumber}) async {
     var query = accountNumber != null ? "?account_number=$accountNumber" : "";
     var url = "$endpoint/accounts/stock_loan_payments/$query";
     try {
@@ -5377,22 +4940,16 @@ WATCHLIST
     } catch (e) {
       debugPrint("Falling back to stock_loan/payments/: $e");
       var results = await RobinhoodService.pagedGet(
-        user,
-        "$endpoint/stock_loan/payments/$query",
-      );
+          user, "$endpoint/stock_loan/payments/$query");
       return results;
     }
   }
 
   /// Fetches typed StockLoanPayment models
-  Future<List<StockLoanPayment>> getStockLoanPaymentsModel(
-    BrokerageUser user, {
-    String? accountNumber,
-  }) async {
-    final rawList = await getStockLoanPayments(
-      user,
-      accountNumber: accountNumber,
-    );
+  Future<List<StockLoanPayment>> getStockLoanPaymentsModel(BrokerageUser user,
+      {String? accountNumber}) async {
+    final rawList =
+        await getStockLoanPayments(user, accountNumber: accountNumber);
     return rawList.map((item) => StockLoanPayment.fromJson(item)).toList();
   }
 
@@ -5424,10 +4981,8 @@ WATCHLIST
   }
 
   /// Fetches typed SweepsInterest model
-  Future<SweepsInterest> getSweepsInterestModel(
-    BrokerageUser user, {
-    double uninvestedCash = 0.0,
-  }) async {
+  Future<SweepsInterest> getSweepsInterestModel(BrokerageUser user,
+      {double uninvestedCash = 0.0}) async {
     try {
       final json = await getSweepsInterest(user);
       return SweepsInterest.fromJson(json, uninvestedCash: uninvestedCash);
@@ -5444,11 +4999,8 @@ WATCHLIST
   /// Fetches multi-leg combo orders (e.g. stock + options packages, collars, straddles)
   /// https://api.robinhood.com/combo/orders/
   @override
-  Future<List<ComboOrder>> getComboOrders(
-    BrokerageUser user, {
-    String? accountNumber,
-    int? limit,
-  }) async {
+  Future<List<ComboOrder>> getComboOrders(BrokerageUser user,
+      {String? accountNumber, int? limit}) async {
     List<String> queryParams = [];
     if (accountNumber != null) {
       queryParams.add("account_numbers=$accountNumber");
@@ -5510,17 +5062,16 @@ WATCHLIST
 
   @override
   Future<dynamic> placeComboOrder(
-    BrokerageUser user,
-    Account account,
-    List<Map<String, dynamic>> legs,
-    String creditOrDebit,
-    double price,
-    int quantity, {
-    String type = 'limit',
-    String trigger = 'immediate',
-    String timeInForce = 'gtc',
-    String? openingStrategy,
-  }) async {
+      BrokerageUser user,
+      Account account,
+      List<Map<String, dynamic>> legs,
+      String creditOrDebit,
+      double price,
+      int quantity,
+      {String type = 'limit',
+      String trigger = 'immediate',
+      String timeInForce = 'gtc',
+      String? openingStrategy}) async {
     var uuid = const Uuid();
     var payload = {
       'account': account.url,
@@ -5540,14 +5091,12 @@ WATCHLIST
     }
     var url = "$endpoint/combo/orders/";
     debugPrint(url);
-    var result = await user.oauth2Client!.post(
-      Uri.parse(url),
-      body: jsonEncode(payload),
-      headers: {
-        "content-type": "application/json",
-        "accept": "application/json",
-      },
-    );
+    var result = await user.oauth2Client!.post(Uri.parse(url),
+        body: jsonEncode(payload),
+        headers: {
+          "content-type": "application/json",
+          "accept": "application/json"
+        });
     return result;
   }
 
@@ -5558,10 +5107,8 @@ WATCHLIST
 
   /// Fetches options strategy definitions and requirements by strategy codes
   /// https://api.robinhood.com/options/strategies/?strategy_codes={codes}
-  Future<dynamic> getOptionStrategies(
-    BrokerageUser user, {
-    List<String>? strategyCodes,
-  }) async {
+  Future<dynamic> getOptionStrategies(BrokerageUser user,
+      {List<String>? strategyCodes}) async {
     var codes = strategyCodes?.join(',') ?? '';
     var url = "$endpoint/options/strategies/?strategy_codes=$codes";
     return await getJson(user, url);
@@ -5634,10 +5181,8 @@ WATCHLIST
 
   /// Fetches typed AccountDocument models
   @override
-  Future<List<AccountDocument>> getAccountDocumentsModel(
-    BrokerageUser user, {
-    String? type,
-  }) async {
+  Future<List<AccountDocument>> getAccountDocumentsModel(BrokerageUser user,
+      {String? type}) async {
     if (type != null) {
       final raw = await getDocuments(user, type: type);
       return raw.map((item) => AccountDocument.fromJson(item)).toList();
@@ -5677,8 +5222,7 @@ WATCHLIST
               instJson['symbol'] != null) {
             list[i] = fee.copyWith(
               symbol: instJson['symbol'].toString().toUpperCase(),
-              description:
-                  instJson['simple_name']?.toString() ??
+              description: instJson['simple_name']?.toString() ??
                   instJson['name']?.toString() ??
                   fee.description,
             );
@@ -5694,10 +5238,8 @@ WATCHLIST
   /// Fetches typed TaxWithholdingStatus model
   @override
   Future<TaxWithholdingStatus?> getTaxWithholdingStatusModel(
-    BrokerageUser user,
-    String instrumentId, {
-    String? symbol,
-  }) async {
+      BrokerageUser user, String instrumentId,
+      {String? symbol}) async {
     final raw = await getTaxWithholdingStatus(user, instrumentId);
     if (raw == null) return null;
     return TaxWithholdingStatus.fromJson(raw, defaultSymbol: symbol);
@@ -5718,10 +5260,8 @@ WATCHLIST
 
   /// Fetches unread notification badge count
   /// https://api.robinhood.com/inbox/notifications/badge?userUuid={userUuid}
-  Future<dynamic> getNotificationBadge(
-    BrokerageUser user, {
-    String? userUuid,
-  }) async {
+  Future<dynamic> getNotificationBadge(BrokerageUser user,
+      {String? userUuid}) async {
     var query = userUuid != null ? "?userUuid=$userUuid" : "";
     var url = "$endpoint/inbox/notifications/badge$query";
     return await getJson(user, url);
@@ -5739,8 +5279,7 @@ WATCHLIST
   /// Fetches typed NotificationItem models from Midlands stack
   @override
   Future<List<NotificationItem>> getNotificationStackModel(
-    BrokerageUser user,
-  ) async {
+      BrokerageUser user) async {
     try {
       final raw = await getNotificationStack(user);
       return raw.map((item) => NotificationItem.fromJson(item)).toList();
@@ -5753,8 +5292,7 @@ WATCHLIST
   /// Fetches typed NotificationItem models from inbox threads
   @override
   Future<List<NotificationItem>> getInboxThreadsModel(
-    BrokerageUser user,
-  ) async {
+      BrokerageUser user) async {
     try {
       final raw = await getInboxThreads(user);
       final List<dynamic> list = raw is Map && raw['results'] is List
@@ -5784,10 +5322,8 @@ WATCHLIST
   /// Fetches available screeners and criteria
   /// https://bonfire.robinhood.com/screeners?include_filters={includeFilters}
   @override
-  Future<dynamic> getScreeners(
-    BrokerageUser user, {
-    bool includeFilters = false,
-  }) async {
+  Future<dynamic> getScreeners(BrokerageUser user,
+      {bool includeFilters = false}) async {
     var url =
         "$robinHoodBonfireEndpoint/screeners?include_filters=$includeFilters";
     return await getJson(user, url);
@@ -5819,13 +5355,9 @@ WATCHLIST
 
   /// Fetches market hours for a specific exchange and date (e.g. XNYS, XNAS)
   /// https://api.robinhood.com/markets/{market}/hours/{date}/
-  Future<dynamic> getMarketHours(
-    BrokerageUser user, {
-    String market = 'XNYS',
-    String? date,
-  }) async {
-    var dateStr =
-        date ??
+  Future<dynamic> getMarketHours(BrokerageUser user,
+      {String market = 'XNYS', String? date}) async {
+    var dateStr = date ??
         "${DateTime.now().year}-${DateTime.now().month.toString().padLeft(2, '0')}-${DateTime.now().day.toString().padLeft(2, '0')}";
     var url = "$endpoint/markets/$market/hours/$dateStr/";
     return await getJson(user, url);
@@ -5847,10 +5379,7 @@ WATCHLIST
   /// https://bonfire.robinhood.com/accounts/{account}/instrument_buying_power/{instrument_id}/
   @override
   Future<dynamic> getInstrumentBuyingPower(
-    BrokerageUser user,
-    String accountNumber,
-    String instrumentId,
-  ) async {
+      BrokerageUser user, String accountNumber, String instrumentId) async {
     var url =
         "$robinHoodBonfireEndpoint/accounts/$accountNumber/instrument_buying_power/$instrumentId/";
     return await getJson(user, url);
@@ -5858,22 +5387,13 @@ WATCHLIST
 
   /// Typed helper for InstrumentBuyingPower
   Future<InstrumentBuyingPower?> getInstrumentBuyingPowerModel(
-    BrokerageUser user,
-    String accountNumber,
-    String instrumentId,
-  ) async {
+      BrokerageUser user, String accountNumber, String instrumentId) async {
     try {
-      final json = await getInstrumentBuyingPower(
-        user,
-        accountNumber,
-        instrumentId,
-      );
+      final json =
+          await getInstrumentBuyingPower(user, accountNumber, instrumentId);
       if (json != null) {
-        return InstrumentBuyingPower.fromJson(
-          instrumentId,
-          json,
-          defaultAccount: accountNumber,
-        );
+        return InstrumentBuyingPower.fromJson(instrumentId, json,
+            defaultAccount: accountNumber);
       }
     } catch (e) {
       debugPrint('Error fetching instrument buying power: $e');
@@ -5885,9 +5405,7 @@ WATCHLIST
   /// https://bonfire.robinhood.com/instruments/{instrument_id}/v2/warnings/
   @override
   Future<dynamic> getInstrumentWarnings(
-    BrokerageUser user,
-    String instrumentId,
-  ) async {
+      BrokerageUser user, String instrumentId) async {
     var url =
         "$robinHoodBonfireEndpoint/instruments/$instrumentId/v2/warnings/";
     return await getJson(user, url);
@@ -5895,9 +5413,7 @@ WATCHLIST
 
   /// Typed helper for InstrumentTradeWarnings
   Future<InstrumentTradeWarnings?> getInstrumentWarningsModel(
-    BrokerageUser user,
-    String instrumentId,
-  ) async {
+      BrokerageUser user, String instrumentId) async {
     try {
       final json = await getInstrumentWarnings(user, instrumentId);
       if (json != null) {
@@ -5912,9 +5428,7 @@ WATCHLIST
   /// Checks if an equity instrument is eligible for recurring investments (DCA)
   /// https://bonfire.robinhood.com/recurring_tradability/equity/{instrument_id}/
   Future<dynamic> getInstrumentRecurringTradability(
-    BrokerageUser user,
-    String instrumentId,
-  ) async {
+      BrokerageUser user, String instrumentId) async {
     var url =
         "$robinHoodBonfireEndpoint/recurring_tradability/equity/$instrumentId/";
     return await getJson(user, url);
@@ -5928,10 +5442,7 @@ WATCHLIST
   /// https://api.robinhood.com/options/chains/{chainId}/collateral/?account_number={account}
   @override
   Future<dynamic> getOptionChainCollateral(
-    BrokerageUser user,
-    String chainId,
-    String accountNumber,
-  ) async {
+      BrokerageUser user, String chainId, String accountNumber) async {
     var url =
         "$endpoint/options/chains/$chainId/collateral/?account_number=$accountNumber";
     return await getJson(user, url);
@@ -5939,17 +5450,12 @@ WATCHLIST
 
   /// Alias for getOptionChainCollateral
   Future<dynamic> getOptionsChainCollateral(
-    BrokerageUser user,
-    String chainId,
-    String accountNumber,
-  ) => getOptionChainCollateral(user, chainId, accountNumber);
+          BrokerageUser user, String chainId, String accountNumber) =>
+      getOptionChainCollateral(user, chainId, accountNumber);
 
   /// Typed helper for OptionChainCollateral
   Future<OptionChainCollateral?> getOptionChainCollateralModel(
-    BrokerageUser user,
-    String chainId,
-    String accountNumber,
-  ) async {
+      BrokerageUser user, String chainId, String accountNumber) async {
     try {
       final json = await getOptionChainCollateral(user, chainId, accountNumber);
       if (json != null) {
@@ -5965,9 +5471,7 @@ WATCHLIST
   /// https://api.robinhood.com/options/should_show_options_upgrade_on_sdp/?account_number={account}
   @override
   Future<dynamic> getOptionsUpgradeStatus(
-    BrokerageUser user,
-    String accountNumber,
-  ) async {
+      BrokerageUser user, String accountNumber) async {
     var url =
         "$endpoint/options/should_show_options_upgrade_on_sdp/?account_number=$accountNumber";
     return await getJson(user, url);
@@ -5975,17 +5479,13 @@ WATCHLIST
 
   /// Typed helper for OptionUpgradeStatus
   Future<OptionUpgradeStatus?> getOptionsUpgradeStatusModel(
-    BrokerageUser user,
-    String accountNumber, {
-    String? defaultAccountLevel,
-  }) async {
+      BrokerageUser user, String accountNumber,
+      {String? defaultAccountLevel}) async {
     try {
       final json = await getOptionsUpgradeStatus(user, accountNumber);
       if (json != null) {
-        return OptionUpgradeStatus.fromJson(
-          json,
-          defaultAccountLevel: defaultAccountLevel,
-        );
+        return OptionUpgradeStatus.fromJson(json,
+            defaultAccountLevel: defaultAccountLevel);
       }
     } catch (e) {
       debugPrint('Error fetching options upgrade status: $e');
@@ -6000,9 +5500,7 @@ WATCHLIST
   /// Fetches crypto portfolio summary (equity, 24/7 market value) for a Nummus account
   /// https://nummus.robinhood.com/portfolios/{nummusAccountId}/
   Future<dynamic> getCryptoPortfolio(
-    BrokerageUser user,
-    String nummusAccountId,
-  ) async {
+      BrokerageUser user, String nummusAccountId) async {
     var url = "$robinHoodNummusEndpoint/portfolios/$nummusAccountId/";
     return await getJson(user, url);
   }
@@ -6044,8 +5542,7 @@ WATCHLIST
   /// Fetches typed RetirementHistory model
   @override
   Future<RetirementHistory> getRetirementHistoryModel(
-    BrokerageUser user,
-  ) async {
+      BrokerageUser user) async {
     try {
       final raw = await getRetirementHistory(user);
       return RetirementHistory.fromJson(raw);
@@ -6071,10 +5568,8 @@ WATCHLIST
   /// Fetches corporate action stock split cash/share adjustments
   /// https://api.robinhood.com/corp_actions/v2/split_payments/
   @override
-  Future<List<dynamic>> getSplitPayments(
-    BrokerageUser user, {
-    String? instrumentId,
-  }) async {
+  Future<List<dynamic>> getSplitPayments(BrokerageUser user,
+      {String? instrumentId}) async {
     var query = instrumentId != null ? "?instrument_ids=$instrumentId" : "";
     var url = "$endpoint/corp_actions/v2/split_payments/$query";
     var results = await RobinhoodService.pagedGet(user, url);
@@ -6083,17 +5578,14 @@ WATCHLIST
 
   /// Fetches typed SplitPayment models
   @override
-  Future<List<SplitPayment>> getSplitPaymentsModel(
-    BrokerageUser user, {
-    String? instrumentId,
-  }) async {
+  Future<List<SplitPayment>> getSplitPaymentsModel(BrokerageUser user,
+      {String? instrumentId}) async {
     var raw = await getSplitPayments(user, instrumentId: instrumentId);
     if (raw.isEmpty && instrumentId != null) {
       final allRaw = await getSplitPayments(user);
       raw = allRaw.where((item) {
         if (item is! Map) return false;
-        final topInst =
-            item['instrument_id']?.toString() ??
+        final topInst = item['instrument_id']?.toString() ??
             item['instrument']?.toString() ??
             item['equity_instrument_id']?.toString();
         if (topInst != null &&
@@ -6152,8 +5644,7 @@ WATCHLIST
             }
             DateTime? execDate =
                 payment.executionDate ?? fetchedSplit.effectiveDate;
-            final desc =
-                payment.description ??
+            final desc = payment.description ??
                 splitJson['description']?.toString() ??
                 splitJson['simple_name']?.toString();
             final sym = payment.symbol.isNotEmpty
@@ -6165,9 +5656,8 @@ WATCHLIST
 
             payment = payment.copyWith(
               symbol: sym.isNotEmpty ? sym : null,
-              instrumentId: targetInstrument.isNotEmpty
-                  ? targetInstrument
-                  : null,
+              instrumentId:
+                  targetInstrument.isNotEmpty ? targetInstrument : null,
               multiplier: mult,
               divisor: div,
               executionDate: execDate,
@@ -6199,16 +5689,14 @@ WATCHLIST
               payment = payment.copyWith(
                 instrumentId: targetInstrument,
                 symbol: instJson['symbol'].toString().toUpperCase(),
-                description:
-                    instJson['simple_name']?.toString() ??
+                description: instJson['simple_name']?.toString() ??
                     instJson['name']?.toString() ??
                     payment.description,
               );
             } else if (payment.description == null &&
                 (instJson['simple_name'] != null || instJson['name'] != null)) {
               payment = payment.copyWith(
-                description:
-                    instJson['simple_name']?.toString() ??
+                description: instJson['simple_name']?.toString() ??
                     instJson['name']?.toString(),
               );
             }
@@ -6230,8 +5718,7 @@ WATCHLIST
                   matchSplit = splitsRes.firstWhereOrNull((s) {
                     if (s is! Map) return false;
                     final d = DateTime.tryParse(
-                      (s['execution_date'] ?? s['date'] ?? '').toString(),
-                    );
+                        (s['execution_date'] ?? s['date'] ?? '').toString());
                     if (d == null) return false;
                     return d.year == payment.executionDate!.year &&
                         d.month == payment.executionDate!.month &&
@@ -6258,8 +5745,7 @@ WATCHLIST
           }
         } catch (e) {
           debugPrint(
-            'Error fetching instrument detail for $targetInstrument: $e',
-          );
+              'Error fetching instrument detail for $targetInstrument: $e');
         }
       }
 
@@ -6271,8 +5757,7 @@ WATCHLIST
   /// Aggregates corporate action stock split summary metrics
   @override
   Future<CorporateActionSplitsSummary> getCorporateActionSplitsSummary(
-    BrokerageUser user,
-  ) async {
+      BrokerageUser user) async {
     final payments = await getSplitPaymentsModel(user);
     return CorporateActionSplitsSummary.fromPayments(payments);
   }
@@ -6285,9 +5770,7 @@ WATCHLIST
   /// https://api.robinhood.com/accounts/{account}/recent_day_trades/
   @override
   Future<dynamic> getRecentDayTrades(
-    BrokerageUser user,
-    String accountNumber,
-  ) async {
+      BrokerageUser user, String accountNumber) async {
     var url = "$endpoint/accounts/$accountNumber/recent_day_trades/";
     return await getJson(user, url);
   }
@@ -6356,8 +5839,7 @@ WATCHLIST
   /// Fetches typed AchRelationship models
   @override
   Future<List<AchRelationship>> getAchRelationshipsModel(
-    BrokerageUser user,
-  ) async {
+      BrokerageUser user) async {
     final raw = await getAchRelationships(user);
     return raw.map((item) => AchRelationship.fromJson(item)).toList();
   }
@@ -6393,9 +5875,7 @@ WATCHLIST
   /// https://bonfire.robinhood.com/instruments/{instrument_id}/qa/events-section/
   @override
   Future<dynamic> getShareholderQaEvents(
-    BrokerageUser user,
-    String instrumentId,
-  ) async {
+      BrokerageUser user, String instrumentId) async {
     try {
       var url =
           "$robinHoodBonfireEndpoint/instruments/$instrumentId/qa/events-section/";
@@ -6408,26 +5888,17 @@ WATCHLIST
 
   @override
   Future<ShareholderQaSection?> getShareholderQaSectionModel(
-    BrokerageUser user,
-    String instrumentId, {
-    String? symbol,
-  }) async {
+      BrokerageUser user, String instrumentId,
+      {String? symbol}) async {
     final raw = await getShareholderQaEvents(user, instrumentId);
     if (raw == null) return null;
-    return ShareholderQaSection.fromJson(
-      raw,
-      instrumentId: instrumentId,
-      symbol: symbol,
-    );
+    return ShareholderQaSection.fromJson(raw,
+        instrumentId: instrumentId, symbol: symbol);
   }
 
   @override
-  Future<bool> upvoteQuestion(
-    BrokerageUser user,
-    String instrumentId,
-    String eventId,
-    String questionId,
-  ) async {
+  Future<bool> upvoteQuestion(BrokerageUser user, String instrumentId,
+      String eventId, String questionId) async {
     try {
       var url =
           "$robinHoodBonfireEndpoint/instruments/$instrumentId/qa/events/$eventId/questions/$questionId/upvote/";
@@ -6443,12 +5914,8 @@ WATCHLIST
   }
 
   @override
-  Future<ShareholderQuestion?> submitQuestion(
-    BrokerageUser user,
-    String instrumentId,
-    String eventId,
-    String questionText,
-  ) async {
+  Future<ShareholderQuestion?> submitQuestion(BrokerageUser user,
+      String instrumentId, String eventId, String questionText) async {
     try {
       var url =
           "$robinHoodBonfireEndpoint/instruments/$instrumentId/qa/events/$eventId/questions/";
@@ -6479,9 +5946,7 @@ WATCHLIST
   /// https://bonfire.robinhood.com/tax_info/instrument/{instrument_id}/withholding_status/
   @override
   Future<dynamic> getTaxWithholdingStatus(
-    BrokerageUser user,
-    String instrumentId,
-  ) async {
+      BrokerageUser user, String instrumentId) async {
     try {
       var url =
           "$robinHoodBonfireEndpoint/tax_info/instrument/$instrumentId/withholding_status/";
@@ -6533,8 +5998,7 @@ WATCHLIST
     user.ensureOAuth2Client();
     if (user.oauth2Client == null) {
       throw Exception(
-        'No active session or client credentials for user ${user.userName}',
-      );
+          'No active session or client credentials for user ${user.userName}');
     }
     if (user.oauth2Client!.credentials.isExpired) {
       try {
@@ -6548,17 +6012,13 @@ WATCHLIST
         .read(Uri.parse(url))
         .timeout(const Duration(seconds: 30));
     debugPrint(
-      "${(responseStr.length / 1000)}K in ${stopwatch.elapsed.inMilliseconds}ms $url",
-    );
+        "${(responseStr.length / 1000)}K in ${stopwatch.elapsed.inMilliseconds}ms $url");
     dynamic responseJson = jsonDecode(responseStr);
     return responseJson;
   }
 
-  Stream<List<dynamic>> streamedGet(
-    BrokerageUser user,
-    String url, {
-    int pages = 0,
-  }) async* {
+  Stream<List<dynamic>> streamedGet(BrokerageUser user, String url,
+      {int pages = 0}) async* {
     List<dynamic> results = [];
     dynamic responseJson = await getJson(user, url);
     results = responseJson['results'];
@@ -6577,11 +6037,8 @@ WATCHLIST
     }
   }
 
-  static Future pagedGet(
-    BrokerageUser user,
-    String url, {
-    bool Function(List<dynamic> items)? shouldStop,
-  }) async {
+  static Future pagedGet(BrokerageUser user, String url,
+      {bool Function(List<dynamic> items)? shouldStop}) async {
     dynamic responseJson = await getJson(user, url);
     var results = responseJson['results'];
     if (shouldStop != null && shouldStop(results)) {

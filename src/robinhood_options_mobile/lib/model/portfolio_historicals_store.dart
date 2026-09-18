@@ -18,12 +18,10 @@ class PortfolioHistoricalsStore extends ChangeNotifier {
   //int get totalPrice => _items.length * 42;
 
   void set(PortfolioHistoricals item) {
-    var index = _items.indexWhere(
-      (element) =>
-          element.span == item.span &&
-          element.bounds == item.bounds &&
-          element.interval == item.interval,
-    );
+    var index = _items.indexWhere((element) =>
+        element.span == item.span &&
+        element.bounds == item.bounds &&
+        element.interval == item.interval);
     if (index == -1) {
       _items.add(item);
       notifyListeners();
@@ -40,8 +38,7 @@ class PortfolioHistoricalsStore extends ChangeNotifier {
         final currentLast = current.equityHistoricals.last.beginsAt;
         final itemLast = item.equityHistoricals.last.beginsAt;
 
-        isDifferent =
-            (currentFirst == null ||
+        isDifferent = (currentFirst == null ||
                 itemFirst == null ||
                 currentFirst.compareTo(itemFirst) != 0) ||
             (currentLast == null ||
@@ -53,11 +50,9 @@ class PortfolioHistoricalsStore extends ChangeNotifier {
         if (current.equityHistoricals.isNotEmpty &&
             item.equityHistoricals.isNotEmpty) {
           debugPrint(
-            '${current.equityHistoricals.first.beginsAt} != ${item.equityHistoricals.first.beginsAt}',
-          );
+              '${current.equityHistoricals.first.beginsAt} != ${item.equityHistoricals.first.beginsAt}');
           debugPrint(
-            '${current.equityHistoricals.last.beginsAt} != ${item.equityHistoricals.last.beginsAt}',
-          );
+              '${current.equityHistoricals.last.beginsAt} != ${item.equityHistoricals.last.beginsAt}');
         }
         _items[index] = item;
         notifyListeners();
@@ -80,9 +75,8 @@ class PortfolioHistoricalsStore extends ChangeNotifier {
   }
 
   bool update(PortfolioHistoricals item) {
-    var index = _items.indexWhere(
-      (element) => element.span == item.span && element.bounds == item.bounds,
-    );
+    var index = _items.indexWhere((element) =>
+        element.span == item.span && element.bounds == item.bounds);
     if (index == -1) {
       return false;
     }

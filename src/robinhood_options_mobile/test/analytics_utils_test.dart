@@ -15,10 +15,8 @@ void main() {
       // Daily Sharpe: 0.03325 / 0.01527 ~= 2.177
       // Annualized Sharpe: 2.177 * sqrt(252) ~= 34.56
       final returns = [0.05, 0.02, 0.03];
-      final sharpe = AnalyticsUtils.calculateSharpeRatio(
-        returns,
-        riskFreeRate: 0.02,
-      );
+      final sharpe =
+          AnalyticsUtils.calculateSharpeRatio(returns, riskFreeRate: 0.02);
       expect(sharpe, closeTo(34.56, 0.1));
     });
 
@@ -34,11 +32,8 @@ void main() {
       // Daily Sortino: 0.03325 / 0.01732 ~= 1.919
       // Annualized Sortino: 1.919 * sqrt(252) ~= 30.47
       final returns = [0.05, -0.01, 0.06];
-      final sortino = AnalyticsUtils.calculateSortinoRatio(
-        returns,
-        riskFreeRate: 0.02,
-        targetReturn: 0.02,
-      );
+      final sortino = AnalyticsUtils.calculateSortinoRatio(returns,
+          riskFreeRate: 0.02, targetReturn: 0.02);
       expect(sortino, closeTo(30.40, 0.5));
     });
 
@@ -91,7 +86,7 @@ void main() {
         0.04,
         0.05,
         0.06,
-        0.07,
+        0.07
       ];
       final cvar = AnalyticsUtils.calculateCVaR(returns, confidenceLevel: 0.80);
       expect(cvar, closeTo(-0.03, 0.001));
@@ -127,7 +122,7 @@ void main() {
         0.08,
         0.10,
         0.12,
-        0.15,
+        0.15
       ];
       final tail = AnalyticsUtils.calculateTailRatio(returns);
       expect(tail, closeTo(3.0, 0.001));
@@ -153,64 +148,60 @@ void main() {
     });
 
     test('calculateTailRiskAndLiquidity scores tight quotes higher', () {
-      final position =
-          OptionAggregatePosition(
-              'id',
-              '',
-              '',
-              'SPY',
-              '',
-              null,
-              [],
-              2,
-              null,
-              null,
-              'debit',
-              '',
-              100,
-              null,
-              null,
-              '',
-            )
-            ..optionInstrument = OptionInstrument.fromJson({
-              'id': 'option-id',
-              'chain_id': 'chain-id',
-              'symbol': 'SPY',
-              'url': '',
-              'expiration_date': '2026-12-31',
-              'strike_price': '500',
-              'type': 'call',
-              'chain_symbol': 'SPY',
-              'min_ticks': <String, dynamic>{},
-              'rhs_tradability': 'tradable',
-              'state': 'active',
-              'tradability': 'tradable',
-              'long_strategy_code': 'buy',
-              'short_strategy_code': 'sell',
-              'option_market_data': {
-                'instrument': 'option-id',
-                'instrument_id': 'option-id',
-                'break_even_price': '2.50',
-                'high_price': '2.60',
-                'last_trade_price': '2.50',
-                'last_trade_size': 1,
-                'low_price': '2.40',
-                'mark_price': '2.50',
-                'bid_price': '2.49',
-                'ask_price': '2.51',
-                'bid_size': 100,
-                'ask_size': 100,
-                'open_interest': 1000,
-                'volume': 100,
-                'symbol': 'SPY',
-                'occ_symbol': 'SPY261231C00500000',
-              },
-            });
+      final position = OptionAggregatePosition(
+        'id',
+        '',
+        '',
+        'SPY',
+        '',
+        null,
+        [],
+        2,
+        null,
+        null,
+        'debit',
+        '',
+        100,
+        null,
+        null,
+        '',
+      )..optionInstrument = OptionInstrument.fromJson({
+          'id': 'option-id',
+          'chain_id': 'chain-id',
+          'symbol': 'SPY',
+          'url': '',
+          'expiration_date': '2026-12-31',
+          'strike_price': '500',
+          'type': 'call',
+          'chain_symbol': 'SPY',
+          'min_ticks': <String, dynamic>{},
+          'rhs_tradability': 'tradable',
+          'state': 'active',
+          'tradability': 'tradable',
+          'long_strategy_code': 'buy',
+          'short_strategy_code': 'sell',
+          'option_market_data': {
+            'instrument': 'option-id',
+            'instrument_id': 'option-id',
+            'break_even_price': '2.50',
+            'high_price': '2.60',
+            'last_trade_price': '2.50',
+            'last_trade_size': 1,
+            'low_price': '2.40',
+            'mark_price': '2.50',
+            'bid_price': '2.49',
+            'ask_price': '2.51',
+            'bid_size': 100,
+            'ask_size': 100,
+            'open_interest': 1000,
+            'volume': 100,
+            'symbol': 'SPY',
+            'occ_symbol': 'SPY261231C00500000',
+          },
+        });
 
       final result = AnalyticsUtils.calculateTailRiskAndLiquidity(
-        {'SPY': 10000},
-        [position],
-      );
+          {'SPY': 10000}, [position]);
 
       expect(result['downsideLoss'], closeTo(-2000, 0.001));
       expect(result['liquidityScore'], greaterThan(90));

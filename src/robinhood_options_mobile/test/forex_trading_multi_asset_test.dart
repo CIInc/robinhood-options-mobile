@@ -79,7 +79,12 @@ void main() {
   group('DemoService Forex Orders', () {
     test('places forex order and returns 201 filled response', () async {
       final demoService = DemoService();
-      final user = BrokerageUser(BrokerageSource.demo, 'demo', null, null);
+      final user = BrokerageUser(
+        BrokerageSource.demo,
+        'demo',
+        null,
+        null,
+      );
 
       final response = await demoService.placeForexOrder(
         user,
@@ -102,7 +107,12 @@ void main() {
 
     test('fetches currency pair quote for EURUSD, USDJPY, GBPUSD', () async {
       final demoService = DemoService();
-      final user = BrokerageUser(BrokerageSource.demo, 'demo', null, null);
+      final user = BrokerageUser(
+        BrokerageSource.demo,
+        'demo',
+        null,
+        null,
+      );
 
       final quote = await demoService.getForexQuote(user, 'EURUSD');
       expect(quote.symbol, 'EURUSD');

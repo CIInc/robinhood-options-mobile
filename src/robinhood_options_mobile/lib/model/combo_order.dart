@@ -21,23 +21,23 @@ class ComboLegExecution {
   });
 
   ComboLegExecution.fromJson(dynamic json)
-    : id = json['id']?.toString() ?? '',
-      price = parseDouble(json['price']),
-      quantity = parseDouble(json['quantity']),
-      settlementDate = json['settlement_date']?.toString(),
-      timestamp = json['timestamp'] is Timestamp
-          ? (json['timestamp'] as Timestamp).toDate()
-          : (json['timestamp'] is String
+      : id = json['id']?.toString() ?? '',
+        price = parseDouble(json['price']),
+        quantity = parseDouble(json['quantity']),
+        settlementDate = json['settlement_date']?.toString(),
+        timestamp = json['timestamp'] is Timestamp
+            ? (json['timestamp'] as Timestamp).toDate()
+            : (json['timestamp'] is String
                 ? DateTime.tryParse(json['timestamp'])
                 : null);
 
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'price': price,
-    'quantity': quantity,
-    'settlement_date': settlementDate,
-    'timestamp': timestamp?.toIso8601String(),
-  };
+        'id': id,
+        'price': price,
+        'quantity': quantity,
+        'settlement_date': settlementDate,
+        'timestamp': timestamp?.toIso8601String(),
+      };
 
   static List<ComboLegExecution> fromJsonArray(dynamic json) {
     if (json == null || json is! List) return [];
@@ -78,47 +78,46 @@ class ComboLeg {
   bool get isEquity => legType == ComboLegType.equity;
 
   ComboLeg.fromJson(dynamic json)
-    : id = json['id']?.toString() ?? '',
-      legType =
-          (json['leg_type'] == 'equity' ||
-              json['leg_type'] == 'stock' ||
-              json['execution_type'] == 'equity' ||
-              json['execution_type'] == 'stock' ||
-              json['instrument'] != null ||
-              json['instrument_id'] != null)
-          ? ComboLegType.equity
-          : ComboLegType.option,
-      instrument = (json['instrument'] ?? json['instrument_id'])?.toString(),
-      option = (json['option'] ?? json['option_id'])?.toString(),
-      symbol = json['symbol']?.toString(),
-      positionEffect = json['position_effect']?.toString(),
-      ratioQuantity = parseDouble(json['ratio_quantity']) ?? 1.0,
-      side = json['side']?.toString().toLowerCase() ?? 'buy',
-      expirationDate = json['expiration_date'] is Timestamp
-          ? (json['expiration_date'] as Timestamp).toDate()
-          : (json['expiration_date'] is String
+      : id = json['id']?.toString() ?? '',
+        legType = (json['leg_type'] == 'equity' ||
+                json['leg_type'] == 'stock' ||
+                json['execution_type'] == 'equity' ||
+                json['execution_type'] == 'stock' ||
+                json['instrument'] != null ||
+                json['instrument_id'] != null)
+            ? ComboLegType.equity
+            : ComboLegType.option,
+        instrument = (json['instrument'] ?? json['instrument_id'])?.toString(),
+        option = (json['option'] ?? json['option_id'])?.toString(),
+        symbol = json['symbol']?.toString(),
+        positionEffect = json['position_effect']?.toString(),
+        ratioQuantity = parseDouble(json['ratio_quantity']) ?? 1.0,
+        side = json['side']?.toString().toLowerCase() ?? 'buy',
+        expirationDate = json['expiration_date'] is Timestamp
+            ? (json['expiration_date'] as Timestamp).toDate()
+            : (json['expiration_date'] is String
                 ? DateTime.tryParse(json['expiration_date'])
                 : null),
-      strikePrice = parseDouble(json['strike_price']),
-      optionType = json['option_type']?.toString().toLowerCase(),
-      executions = json['executions'] != null
-          ? ComboLegExecution.fromJsonArray(json['executions'])
-          : [];
+        strikePrice = parseDouble(json['strike_price']),
+        optionType = json['option_type']?.toString().toLowerCase(),
+        executions = json['executions'] != null
+            ? ComboLegExecution.fromJsonArray(json['executions'])
+            : [];
 
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'leg_type': legType.name,
-    'instrument': instrument,
-    'option': option,
-    'symbol': symbol,
-    'position_effect': positionEffect,
-    'ratio_quantity': ratioQuantity,
-    'side': side,
-    'expiration_date': expirationDate?.toIso8601String(),
-    'strike_price': strikePrice,
-    'option_type': optionType,
-    'executions': executions.map((e) => e.toJson()).toList(),
-  };
+        'id': id,
+        'leg_type': legType.name,
+        'instrument': instrument,
+        'option': option,
+        'symbol': symbol,
+        'position_effect': positionEffect,
+        'ratio_quantity': ratioQuantity,
+        'side': side,
+        'expiration_date': expirationDate?.toIso8601String(),
+        'strike_price': strikePrice,
+        'option_type': optionType,
+        'executions': executions.map((e) => e.toJson()).toList(),
+      };
 
   String get actionDisplay {
     final s = side.isNotEmpty
@@ -144,9 +143,8 @@ class ComboLeg {
           ? ratioQuantity.toInt().toString()
           : ratioQuantity.toStringAsFixed(0);
       final optType = (optionType ?? '').toUpperCase();
-      final strike = strikePrice != null
-          ? '\$${strikePrice!.toStringAsFixed(2)}'
-          : '';
+      final strike =
+          strikePrice != null ? '\$${strikePrice!.toStringAsFixed(2)}' : '';
       final exp = expirationDate != null
           ? DateFormat('MM/dd/yy').format(expirationDate!)
           : '';
@@ -200,7 +198,7 @@ class ComboOrder {
   final double? processedPremium;
   final String refId;
   final String
-  state; // 'queued', 'confirmed', 'filled', 'cancelled', 'rejected'
+      state; // 'queued', 'confirmed', 'filled', 'cancelled', 'rejected'
   final String timeInForce; // 'gtc', 'gfd', 'ioc', 'opg'
   final String trigger; // 'immediate', 'stop'
   final String type; // 'limit', 'market'
@@ -241,70 +239,69 @@ class ComboOrder {
   });
 
   ComboOrder.fromJson(dynamic json)
-    : id = json['id']?.toString() ?? '',
-      account =
-          json['account']?.toString() ??
-          json['account_number']?.toString() ??
-          '',
-      cancelUrl = json['cancel_url']?.toString(),
-      direction = json['direction']?.toString().toLowerCase() ?? 'debit',
-      legs = json['legs'] != null ? ComboLeg.fromJsonArray(json['legs']) : [],
-      quantity = parseDouble(json['quantity']) ?? 1.0,
-      price = parseDouble(json['price']),
-      stopPrice = parseDouble(json['stop_price']),
-      processedQuantity = parseDouble(json['processed_quantity']),
-      pendingQuantity = parseDouble(json['pending_quantity']),
-      canceledQuantity = parseDouble(json['canceled_quantity']),
-      premium = parseDouble(json['premium']),
-      processedPremium = parseDouble(json['processed_premium']),
-      refId = json['ref_id']?.toString() ?? '',
-      state = json['state']?.toString().toLowerCase() ?? 'queued',
-      timeInForce = json['time_in_force']?.toString().toLowerCase() ?? 'gtc',
-      trigger = json['trigger']?.toString().toLowerCase() ?? 'immediate',
-      type = json['type']?.toString().toLowerCase() ?? 'limit',
-      responseCategory = json['response_category']?.toString(),
-      openingStrategy = json['opening_strategy']?.toString(),
-      closingStrategy = json['closing_strategy']?.toString(),
-      chainSymbol = json['chain_symbol']?.toString(),
-      chainId = json['chain_id']?.toString(),
-      createdAt = json['created_at'] is Timestamp
-          ? (json['created_at'] as Timestamp).toDate()
-          : (json['created_at'] is String
+      : id = json['id']?.toString() ?? '',
+        account = json['account']?.toString() ??
+            json['account_number']?.toString() ??
+            '',
+        cancelUrl = json['cancel_url']?.toString(),
+        direction = json['direction']?.toString().toLowerCase() ?? 'debit',
+        legs = json['legs'] != null ? ComboLeg.fromJsonArray(json['legs']) : [],
+        quantity = parseDouble(json['quantity']) ?? 1.0,
+        price = parseDouble(json['price']),
+        stopPrice = parseDouble(json['stop_price']),
+        processedQuantity = parseDouble(json['processed_quantity']),
+        pendingQuantity = parseDouble(json['pending_quantity']),
+        canceledQuantity = parseDouble(json['canceled_quantity']),
+        premium = parseDouble(json['premium']),
+        processedPremium = parseDouble(json['processed_premium']),
+        refId = json['ref_id']?.toString() ?? '',
+        state = json['state']?.toString().toLowerCase() ?? 'queued',
+        timeInForce = json['time_in_force']?.toString().toLowerCase() ?? 'gtc',
+        trigger = json['trigger']?.toString().toLowerCase() ?? 'immediate',
+        type = json['type']?.toString().toLowerCase() ?? 'limit',
+        responseCategory = json['response_category']?.toString(),
+        openingStrategy = json['opening_strategy']?.toString(),
+        closingStrategy = json['closing_strategy']?.toString(),
+        chainSymbol = json['chain_symbol']?.toString(),
+        chainId = json['chain_id']?.toString(),
+        createdAt = json['created_at'] is Timestamp
+            ? (json['created_at'] as Timestamp).toDate()
+            : (json['created_at'] is String
                 ? DateTime.tryParse(json['created_at'])
                 : null),
-      updatedAt = json['updated_at'] is Timestamp
-          ? (json['updated_at'] as Timestamp).toDate()
-          : (json['updated_at'] is String
+        updatedAt = json['updated_at'] is Timestamp
+            ? (json['updated_at'] as Timestamp).toDate()
+            : (json['updated_at'] is String
                 ? DateTime.tryParse(json['updated_at'])
                 : null);
 
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'account': account,
-    'cancel_url': cancelUrl,
-    'direction': direction,
-    'legs': legs.map((e) => e.toJson()).toList(),
-    'quantity': quantity,
-    'price': price,
-    'stop_price': stopPrice,
-    'processed_quantity': processedQuantity,
-    'pending_quantity': pendingQuantity,
-    'canceled_quantity': canceledQuantity,
-    'premium': premium,
-    'processed_premium': processedPremium,
-    'ref_id': refId,
-    'state': state,
-    'time_in_force': timeInForce,
-    'trigger': trigger,
-    'type': type,
-    'response_category': responseCategory,
-    'opening_strategy': openingStrategy,
-    'closing_strategy': closingStrategy,
-    'chain_symbol': chainSymbol,
-    'chain_id': chainId,
-    'created_at': createdAt?.toIso8601String(),
-    'updated_at': updatedAt?.toIso8601String(),
-  };
+        'id': id,
+        'account': account,
+        'cancel_url': cancelUrl,
+        'direction': direction,
+        'legs': legs.map((e) => e.toJson()).toList(),
+        'quantity': quantity,
+        'price': price,
+        'stop_price': stopPrice,
+        'processed_quantity': processedQuantity,
+        'pending_quantity': pendingQuantity,
+        'canceled_quantity': canceledQuantity,
+        'premium': premium,
+        'processed_premium': processedPremium,
+        'ref_id': refId,
+        'state': state,
+        'time_in_force': timeInForce,
+        'trigger': trigger,
+        'type': type,
+        'response_category': responseCategory,
+        'opening_strategy': openingStrategy,
+        'closing_strategy': closingStrategy,
+        'chain_symbol': chainSymbol,
+        'chain_id': chainId,
+        'created_at': createdAt?.toIso8601String(),
+        'updated_at': updatedAt?.toIso8601String(),
+      };
 
   bool get isFilled => state == 'filled';
   bool get isCancelled => state == 'cancelled' || state == 'canceled';
@@ -325,9 +322,8 @@ class ComboOrder {
     if (strat != null && strat.isNotEmpty) {
       return strat
           .split('_')
-          .map(
-            (w) => w.isNotEmpty ? '${w[0].toUpperCase()}${w.substring(1)}' : '',
-          )
+          .map((w) =>
+              w.isNotEmpty ? '${w[0].toUpperCase()}${w.substring(1)}' : '')
           .join(' ');
     }
     // Derive from legs
@@ -352,11 +348,9 @@ class ComboOrder {
         }
       } else if (legs.length == 3) {
         final hasCall = legs.any(
-          (l) => l.isOption && l.optionType == 'call' && l.side == 'sell',
-        );
-        final hasPut = legs.any(
-          (l) => l.isOption && l.optionType == 'put' && l.side == 'buy',
-        );
+            (l) => l.isOption && l.optionType == 'call' && l.side == 'sell');
+        final hasPut = legs
+            .any((l) => l.isOption && l.optionType == 'put' && l.side == 'buy');
         if (hasCall && hasPut) {
           return 'Collar';
         }
@@ -409,36 +403,36 @@ class ComboOrder {
       .fold(0, (total, l) => total + l.ratioQuantity.round());
 
   static List<String> get csvHeader => [
-    'Order ID',
-    'Symbol',
-    'Strategy',
-    'State',
-    'Direction',
-    'Quantity',
-    'Price',
-    'Net Premium',
-    'Time In Force',
-    'Created At',
-    'Updated At',
-    'Legs Count',
-  ];
+        'Order ID',
+        'Symbol',
+        'Strategy',
+        'State',
+        'Direction',
+        'Quantity',
+        'Price',
+        'Net Premium',
+        'Time In Force',
+        'Created At',
+        'Updated At',
+        'Legs Count',
+      ];
 
   List<dynamic> toCsvRow() => [
-    id,
-    primarySymbol,
-    strategyDisplay,
-    state,
-    directionDisplay,
-    quantity,
-    price ?? '',
-    netAmount,
-    timeInForce.toUpperCase(),
-    createdAt != null
-        ? DateFormat('yyyy-MM-dd HH:mm:ss').format(createdAt!)
-        : '',
-    updatedAt != null
-        ? DateFormat('yyyy-MM-dd HH:mm:ss').format(updatedAt!)
-        : '',
-    legs.length,
-  ];
+        id,
+        primarySymbol,
+        strategyDisplay,
+        state,
+        directionDisplay,
+        quantity,
+        price ?? '',
+        netAmount,
+        timeInForce.toUpperCase(),
+        createdAt != null
+            ? DateFormat('yyyy-MM-dd HH:mm:ss').format(createdAt!)
+            : '',
+        updatedAt != null
+            ? DateFormat('yyyy-MM-dd HH:mm:ss').format(updatedAt!)
+            : '',
+        legs.length,
+      ];
 }

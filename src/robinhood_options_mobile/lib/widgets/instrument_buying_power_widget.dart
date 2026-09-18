@@ -31,24 +31,23 @@ class InstrumentTradeWarningsBanner extends StatelessWidget {
     final bgColor = isCritical
         ? theme.colorScheme.errorContainer
         : (theme.brightness == Brightness.dark
-              ? Colors.amber.shade900.withAlpha(50)
-              : Colors.amber.shade50);
+            ? Colors.amber.shade900.withAlpha(50)
+            : Colors.amber.shade50);
 
     final borderColor = isCritical
         ? theme.colorScheme.error
         : (theme.brightness == Brightness.dark
-              ? Colors.amber.shade700
-              : Colors.amber.shade400);
+            ? Colors.amber.shade700
+            : Colors.amber.shade400);
 
     final textColor = isCritical
         ? theme.colorScheme.onErrorContainer
         : (theme.brightness == Brightness.dark
-              ? Colors.amber.shade200
-              : Colors.amber.shade900);
+            ? Colors.amber.shade200
+            : Colors.amber.shade900);
 
-    final iconColor = isCritical
-        ? theme.colorScheme.error
-        : Colors.amber.shade700;
+    final iconColor =
+        isCritical ? theme.colorScheme.error : Colors.amber.shade700;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
@@ -63,10 +62,8 @@ class InstrumentTradeWarningsBanner extends StatelessWidget {
           borderRadius: BorderRadius.circular(12.0),
           onTap: onTapDetails,
           child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 14.0,
-              vertical: 10.0,
-            ),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 14.0, vertical: 10.0),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -106,9 +103,7 @@ class InstrumentTradeWarningsBanner extends StatelessWidget {
                             Container(
                               margin: const EdgeInsets.only(left: 6.0),
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 6.0,
-                                vertical: 1.0,
-                              ),
+                                  horizontal: 6.0, vertical: 1.0),
                               decoration: BoxDecoration(
                                 color: borderColor.withAlpha(60),
                                 borderRadius: BorderRadius.circular(8.0),
@@ -257,7 +252,10 @@ class InstrumentBuyingPowerSummaryTile extends StatelessWidget {
                     ),
                   ],
                 ),
-                if (isCompact) ...[const SizedBox(height: 3.0), badgeWidget],
+                if (isCompact) ...[
+                  const SizedBox(height: 3.0),
+                  badgeWidget,
+                ],
               ],
             );
           },
@@ -351,9 +349,8 @@ class InstrumentBuyingPowerSheet extends StatelessWidget {
               if (buyingPower != null) ...[
                 Card(
                   elevation: 0,
-                  color: theme.colorScheme.surfaceContainerHighest.withAlpha(
-                    120,
-                  ),
+                  color:
+                      theme.colorScheme.surfaceContainerHighest.withAlpha(120),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12.0),
                     side: BorderSide(
@@ -529,9 +526,7 @@ class InstrumentBuyingPowerSheet extends StatelessWidget {
   }
 
   Widget _buildWarningItem(
-    BuildContext context,
-    InstrumentTradeWarning warning,
-  ) {
+      BuildContext context, InstrumentTradeWarning warning) {
     final theme = Theme.of(context);
 
     return Container(
@@ -573,9 +568,7 @@ class InstrumentBuyingPowerSheet extends StatelessWidget {
                       ),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 6.0,
-                          vertical: 1.0,
-                        ),
+                            horizontal: 6.0, vertical: 1.0),
                         decoration: BoxDecoration(
                           color: warning.severityColor.withAlpha(40),
                           borderRadius: BorderRadius.circular(4.0),

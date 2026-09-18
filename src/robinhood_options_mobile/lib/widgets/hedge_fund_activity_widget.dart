@@ -30,9 +30,8 @@ class _HedgeFundActivityWidgetState extends State<HedgeFundActivityWidget> {
   Future<HedgeFundSummary?>? _future;
 
   final NumberFormat _compactNumberFormat = NumberFormat.compact();
-  final NumberFormat _currencyFormat = NumberFormat.simpleCurrency(
-    decimalDigits: 0,
-  );
+  final NumberFormat _currencyFormat =
+      NumberFormat.simpleCurrency(decimalDigits: 0);
   final DateFormat _dateFormat = DateFormat('MMM d, yyyy');
 
   @override
@@ -74,18 +73,16 @@ class _HedgeFundActivityWidgetState extends State<HedgeFundActivityWidget> {
           widget.service!
               .getHedgeFundSummary(widget.brokerageUser!, widget.instrument!.id)
               .catchError((e) {
-                debugPrint('getHedgeFundSummary error: $e');
-                return null;
-              }),
+            debugPrint('getHedgeFundSummary error: $e');
+            return null;
+          }),
           widget.service!
               .getHedgeFundTransactions(
-                widget.brokerageUser!,
-                widget.instrument!.id,
-              )
+                  widget.brokerageUser!, widget.instrument!.id)
               .catchError((e) {
-                debugPrint('getHedgeFundTransactions error: $e');
-                return null;
-              }),
+            debugPrint('getHedgeFundTransactions error: $e');
+            return null;
+          }),
         ]);
 
         final summaryResp = responses[0];
@@ -128,16 +125,12 @@ class _HedgeFundActivityWidgetState extends State<HedgeFundActivityWidget> {
 
         if (snapshot.hasError) {
           return Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 16.0,
-              vertical: 8.0,
-            ),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
             child: Card(
               child: ListTile(
-                leading: Icon(
-                  Icons.error_outline,
-                  color: Theme.of(context).colorScheme.error,
-                ),
+                leading: Icon(Icons.error_outline,
+                    color: Theme.of(context).colorScheme.error),
                 title: const Text('Hedge fund data unavailable'),
                 subtitle: Text('${snapshot.error}'),
                 trailing: IconButton(
@@ -174,9 +167,10 @@ class _HedgeFundActivityWidgetState extends State<HedgeFundActivityWidget> {
                   Container(
                     padding: const EdgeInsets.all(6),
                     decoration: BoxDecoration(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.primary.withValues(alpha: 0.1),
+                      color: Theme.of(context)
+                          .colorScheme
+                          .primary
+                          .withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Icon(
@@ -190,9 +184,9 @@ class _HedgeFundActivityWidgetState extends State<HedgeFundActivityWidget> {
                     child: Text(
                       'Hedge Fund Sentiment',
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                      ),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                          ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -211,15 +205,17 @@ class _HedgeFundActivityWidgetState extends State<HedgeFundActivityWidget> {
             Card(
               margin: const EdgeInsets.fromLTRB(16, 4, 16, 8),
               elevation: 0,
-              color: Theme.of(
-                context,
-              ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.25),
+              color: Theme.of(context)
+                  .colorScheme
+                  .surfaceContainerHighest
+                  .withValues(alpha: 0.25),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
                 side: BorderSide(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.outlineVariant.withValues(alpha: 0.4),
+                  color: Theme.of(context)
+                      .colorScheme
+                      .outlineVariant
+                      .withValues(alpha: 0.4),
                 ),
               ),
               child: Padding(
@@ -234,18 +230,14 @@ class _HedgeFundActivityWidgetState extends State<HedgeFundActivityWidget> {
                       children: [
                         Container(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 3,
-                          ),
+                              horizontal: 6, vertical: 3),
                           decoration: BoxDecoration(
-                            color: summary.sentimentColor.withValues(
-                              alpha: 0.15,
-                            ),
+                            color:
+                                summary.sentimentColor.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(
-                              color: summary.sentimentColor.withValues(
-                                alpha: 0.4,
-                              ),
+                              color:
+                                  summary.sentimentColor.withValues(alpha: 0.4),
                             ),
                           ),
                           child: Row(
@@ -255,8 +247,8 @@ class _HedgeFundActivityWidgetState extends State<HedgeFundActivityWidget> {
                                 summary.isBullish
                                     ? Icons.trending_up
                                     : summary.isBearish
-                                    ? Icons.trending_down
-                                    : Icons.swap_horiz,
+                                        ? Icons.trending_down
+                                        : Icons.swap_horiz,
                                 size: 13,
                                 color: summary.sentimentColor,
                               ),
@@ -274,9 +266,7 @@ class _HedgeFundActivityWidgetState extends State<HedgeFundActivityWidget> {
                         ),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 3,
-                          ),
+                              horizontal: 6, vertical: 3),
                           decoration: BoxDecoration(
                             color: Theme.of(context)
                                 .colorScheme
@@ -284,9 +274,10 @@ class _HedgeFundActivityWidgetState extends State<HedgeFundActivityWidget> {
                                 .withValues(alpha: 0.5),
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.outline.withValues(alpha: 0.2),
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .outline
+                                  .withValues(alpha: 0.2),
                             ),
                           ),
                           child: Text(
@@ -297,10 +288,10 @@ class _HedgeFundActivityWidgetState extends State<HedgeFundActivityWidget> {
                               color: summary.netValueChanged > 0
                                   ? buyColor
                                   : (summary.netValueChanged < 0
-                                        ? sellColor
-                                        : Theme.of(
-                                            context,
-                                          ).colorScheme.onSurfaceVariant),
+                                      ? sellColor
+                                      : Theme.of(context)
+                                          .colorScheme
+                                          .onSurfaceVariant),
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -386,8 +377,8 @@ class _HedgeFundActivityWidgetState extends State<HedgeFundActivityWidget> {
                                       color: summary.netValueChanged > 0
                                           ? buyColor
                                           : (summary.netValueChanged < 0
-                                                ? sellColor
-                                                : null),
+                                              ? sellColor
+                                              : null),
                                     ),
                                   ),
                                   const SizedBox(width: 8),
@@ -415,8 +406,8 @@ class _HedgeFundActivityWidgetState extends State<HedgeFundActivityWidget> {
                                     child: _buildMetricTile(
                                       context,
                                       title: 'Ownership',
-                                      value:
-                                          summary.institutionalOwnershipPercentage !=
+                                      value: summary
+                                                  .institutionalOwnershipPercentage !=
                                               null
                                           ? '${summary.institutionalOwnershipPercentage!.toStringAsFixed(1)}%'
                                           : '-',
@@ -437,8 +428,8 @@ class _HedgeFundActivityWidgetState extends State<HedgeFundActivityWidget> {
                                 color: summary.netValueChanged > 0
                                     ? buyColor
                                     : (summary.netValueChanged < 0
-                                          ? sellColor
-                                          : null),
+                                        ? sellColor
+                                        : null),
                               ),
                             ),
                             const SizedBox(width: 8),
@@ -462,8 +453,8 @@ class _HedgeFundActivityWidgetState extends State<HedgeFundActivityWidget> {
                               child: _buildMetricTile(
                                 context,
                                 title: 'Ownership',
-                                value:
-                                    summary.institutionalOwnershipPercentage !=
+                                value: summary
+                                            .institutionalOwnershipPercentage !=
                                         null
                                     ? '${summary.institutionalOwnershipPercentage!.toStringAsFixed(1)}%'
                                     : '-',
@@ -480,9 +471,11 @@ class _HedgeFundActivityWidgetState extends State<HedgeFundActivityWidget> {
                       Text(
                         'Quarterly Manager Trends',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
+                            ),
                       ),
                       const SizedBox(height: 6),
                       SizedBox(
@@ -498,9 +491,7 @@ class _HedgeFundActivityWidgetState extends State<HedgeFundActivityWidget> {
                             final chipColor = isPos ? buyColor : sellColor;
                             return Container(
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 4,
-                              ),
+                                  horizontal: 10, vertical: 4),
                               decoration: BoxDecoration(
                                 color: chipColor.withValues(alpha: 0.08),
                                 borderRadius: BorderRadius.circular(8),
@@ -535,7 +526,9 @@ class _HedgeFundActivityWidgetState extends State<HedgeFundActivityWidget> {
                                   ),
                                   Text(
                                     '${q.buyingManagersCount}B / ${q.sellingManagersCount}S',
-                                    style: Theme.of(context).textTheme.bodySmall
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodySmall
                                         ?.copyWith(fontSize: 10),
                                   ),
                                 ],
@@ -557,8 +550,12 @@ class _HedgeFundActivityWidgetState extends State<HedgeFundActivityWidget> {
                           Flexible(
                             child: Text(
                               'Top Institutional Filings',
-                              style: Theme.of(context).textTheme.titleSmall
-                                  ?.copyWith(fontWeight: FontWeight.bold),
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleSmall
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -608,9 +605,10 @@ class _HedgeFundActivityWidgetState extends State<HedgeFundActivityWidget> {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
       decoration: BoxDecoration(
-        color: Theme.of(
-          context,
-        ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
+        color: Theme.of(context)
+            .colorScheme
+            .surfaceContainerHighest
+            .withValues(alpha: 0.35),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
           color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.1),
@@ -633,9 +631,9 @@ class _HedgeFundActivityWidgetState extends State<HedgeFundActivityWidget> {
           Text(
             title,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              fontSize: 10,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
+                  fontSize: 10,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -645,9 +643,7 @@ class _HedgeFundActivityWidgetState extends State<HedgeFundActivityWidget> {
   }
 
   Widget _buildTransactionTile(
-    BuildContext context,
-    HedgeFundTransactionRecord tx,
-  ) {
+      BuildContext context, HedgeFundTransactionRecord tx) {
     final sharesFmt = _compactNumberFormat.format(tx.sharesHeld);
     final valFmt = tx.value != null ? _currencyFormat.format(tx.value!) : null;
 
@@ -681,14 +677,14 @@ class _HedgeFundActivityWidgetState extends State<HedgeFundActivityWidget> {
                 Text(
                   tx.fundName != null
                       ? (tx.reportDate != null
-                            ? '${tx.fundName} • ${_dateFormat.format(tx.reportDate!)}'
-                            : tx.fundName!)
+                          ? '${tx.fundName} • ${_dateFormat.format(tx.reportDate!)}'
+                          : tx.fundName!)
                       : (tx.reportDate != null
-                            ? _dateFormat.format(tx.reportDate!)
-                            : (tx.quarter ?? 'Quarterly 13F Filing')),
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodySmall?.copyWith(fontSize: 11),
+                          ? _dateFormat.format(tx.reportDate!)
+                          : (tx.quarter ?? 'Quarterly 13F Filing')),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        fontSize: 11,
+                      ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -718,9 +714,7 @@ class _HedgeFundActivityWidgetState extends State<HedgeFundActivityWidget> {
                   children: [
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 4,
-                        vertical: 1,
-                      ),
+                          horizontal: 4, vertical: 1),
                       decoration: BoxDecoration(
                         color: tx.typeColor.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(4),
@@ -737,9 +731,10 @@ class _HedgeFundActivityWidgetState extends State<HedgeFundActivityWidget> {
                     if (valFmt != null)
                       Text(
                         valFmt,
-                        style: Theme.of(
-                          context,
-                        ).textTheme.bodySmall?.copyWith(fontSize: 9),
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodySmall
+                            ?.copyWith(fontSize: 9),
                       ),
                   ],
                 ),
@@ -752,9 +747,7 @@ class _HedgeFundActivityWidgetState extends State<HedgeFundActivityWidget> {
   }
 
   void _showAllTransactionsModal(
-    BuildContext context,
-    HedgeFundSummary summary,
-  ) {
+      BuildContext context, HedgeFundSummary summary) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -786,8 +779,10 @@ class _HedgeFundActivityWidgetState extends State<HedgeFundActivityWidget> {
                     children: [
                       Text(
                         'Hedge Fund Holdings (${summary.transactions.length})',
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.bold),
+                        style:
+                            Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
                       ),
                       Text(
                         summary.symbol ?? widget.symbol,

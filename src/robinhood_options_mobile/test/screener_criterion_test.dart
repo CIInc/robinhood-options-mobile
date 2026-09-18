@@ -57,9 +57,7 @@ void main() {
     ];
 
     expect(
-      criteria.every((criterion) => criterion.matches(instrument)),
-      isTrue,
-    );
+        criteria.every((criterion) => criterion.matches(instrument)), isTrue);
   });
 
   test('matches sector and normalized 52-week position', () {
@@ -91,9 +89,7 @@ void main() {
 
     expect(invalid.isValid, isFalse);
     expect(invalid.matches(instrument), isFalse);
-    expect(
-      ScreenerCriterion.fromJson(original.toJson()).toJson(),
-      original.toJson(),
-    );
+    expect(ScreenerCriterion.fromJson(original.toJson()).toJson(),
+        original.toJson());
   });
 }

@@ -6,11 +6,8 @@ class NewsIntelligenceService {
   final FirebaseFunctions _functions = FirebaseFunctions.instance;
   final Map<String, NewsIntelligence> _cache = {};
 
-  Future<NewsIntelligence> getNewsIntelligence(
-    String symbol, {
-    List<dynamic>? articles,
-    bool refresh = false,
-  }) async {
+  Future<NewsIntelligence> getNewsIntelligence(String symbol,
+      {List<dynamic>? articles, bool refresh = false}) async {
     final sym = symbol.toUpperCase();
     if (!refresh && _cache.containsKey(sym)) {
       final cached = _cache[sym]!;
@@ -44,8 +41,7 @@ class NewsIntelligenceService {
   }
 
   Future<Map<String, NewsIntelligence>> getWatchlistNewsIntelligence(
-    List<String> symbols,
-  ) async {
+      List<String> symbols) async {
     if (symbols.isEmpty) return {};
     try {
       final callable = _functions.httpsCallable('getWatchlistNewsIntelligence');
@@ -58,9 +54,8 @@ class NewsIntelligenceService {
 
       data.forEach((key, value) {
         if (value is Map) {
-          final item = NewsIntelligence.fromMap(
-            Map<String, dynamic>.from(value),
-          );
+          final item =
+              NewsIntelligence.fromMap(Map<String, dynamic>.from(value));
           result[key] = item;
           _cache[key] = item;
         }
@@ -74,9 +69,7 @@ class NewsIntelligenceService {
   }
 
   NewsIntelligence _buildLocalNewsIntelligence(
-    String symbol,
-    List<dynamic> rawArticles,
-  ) {
+      String symbol, List<dynamic> rawArticles) {
     final items = <NewsArticleItem>[];
     double totalScore = 0;
     final bullish = <String>[];
@@ -112,26 +105,22 @@ class NewsIntelligenceService {
       }
 
       totalScore += score;
-      items.add(
-        NewsArticleItem(
-          id: '$symbol-news-$i',
-          title: title,
-          summary: summary,
-          source: source,
-          url: url,
-          publishedAt: publishedAt,
-          sentimentScore: score,
-          sentimentLabel: score >= 60
-              ? NewsSentimentLabel.bullish
-              : (score <= 40
-                    ? NewsSentimentLabel.bearish
-                    : NewsSentimentLabel.neutral),
-          impact: (score - 50).abs() >= 20
-              ? NewsImpact.high
-              : NewsImpact.medium,
-          symbols: [symbol],
-        ),
-      );
+      items.add(NewsArticleItem(
+        id: '$symbol-news-$i',
+        title: title,
+        summary: summary,
+        source: source,
+        url: url,
+        publishedAt: publishedAt,
+        sentimentScore: score,
+        sentimentLabel: score >= 60
+            ? NewsSentimentLabel.bullish
+            : (score <= 40
+                ? NewsSentimentLabel.bearish
+                : NewsSentimentLabel.neutral),
+        impact: (score - 50).abs() >= 20 ? NewsImpact.high : NewsImpact.medium,
+        symbols: [symbol],
+      ));
     }
 
     final avg = items.isNotEmpty ? (totalScore / items.length) : 50.0;

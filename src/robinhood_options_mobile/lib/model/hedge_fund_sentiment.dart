@@ -44,7 +44,7 @@ class HedgeFundTransactionRecord {
   final String? quarter; // e.g. "Q2 2026" or "2026-06-30"
   final DateTime? reportDate;
   final String
-  transactionType; // "Buy", "Sell", "New Position", "Sold Out", "Hold"
+      transactionType; // "Buy", "Sell", "New Position", "Sold Out", "Hold"
   final num sharesHeld;
   final num? shareChange;
   final double? percentChange;
@@ -120,74 +120,59 @@ class HedgeFundTransactionRecord {
   }
 
   factory HedgeFundTransactionRecord.fromJson(Map<String, dynamic> json) {
-    final manager =
-        (json['manager_name'] ??
-                json['managerName'] ??
-                json['name'] ??
-                json['institution_name'] ??
-                json['institution'] ??
-                '')
-            .toString();
-    final fund =
-        (json['institution_name'] ??
-                json['fund_name'] ??
-                json['fundName'] ??
-                json['firm_name'] ??
-                json['firm'])
-            ?.toString();
+    final manager = (json['manager_name'] ??
+            json['managerName'] ??
+            json['name'] ??
+            json['institution_name'] ??
+            json['institution'] ??
+            '')
+        .toString();
+    final fund = (json['institution_name'] ??
+            json['fund_name'] ??
+            json['fundName'] ??
+            json['firm_name'] ??
+            json['firm'])
+        ?.toString();
     final qtr = (json['quarter'] ?? json['report_period'])?.toString();
-    final rDate = _parseDate(
-      json['report_date'] ??
-          json['date'] ??
-          json['filing_date'] ??
-          json['reportDate'],
-    );
+    final rDate = _parseDate(json['report_date'] ??
+        json['date'] ??
+        json['filing_date'] ??
+        json['reportDate']);
 
     final type =
         (json['action'] ?? json['transaction_type'] ?? json['type'] ?? '')
             .toString();
 
-    final shares =
-        _parseNum(
-          json['total_shares'] ??
-              json['shares_held'] ??
-              json['sharesHeld'] ??
-              json['shares'] ??
-              json['share_count'],
-        ) ??
+    final shares = _parseNum(json['total_shares'] ??
+            json['shares_held'] ??
+            json['sharesHeld'] ??
+            json['shares'] ??
+            json['share_count']) ??
         0;
 
-    final change = _parseNum(
-      json['shares_traded'] ??
-          json['share_change'] ??
-          json['shareChange'] ??
-          json['change_in_shares'] ??
-          json['change'],
-    );
+    final change = _parseNum(json['shares_traded'] ??
+        json['share_change'] ??
+        json['shareChange'] ??
+        json['change_in_shares'] ??
+        json['change']);
 
-    final pctChange = _parseDouble(
-      json['change_percentage'] ??
-          json['percent_change'] ??
-          json['percentChange'] ??
-          json['percentage_change'],
-    );
+    final pctChange = _parseDouble(json['change_percentage'] ??
+        json['percent_change'] ??
+        json['percentChange'] ??
+        json['percentage_change']);
 
-    final val = _parseDouble(
-      json['market_value'] ??
-          json['value'] ??
-          json['position_value'] ??
-          json['total_value'],
-    );
+    final val = _parseDouble(json['market_value'] ??
+        json['value'] ??
+        json['position_value'] ??
+        json['total_value']);
 
-    final portPct = _parseDouble(
-      json['portfolio_percentage'] ??
-          json['portfolio_percent'] ??
-          json['portfolioPercent'] ??
-          json['weight'],
-    );
+    final portPct = _parseDouble(json['portfolio_percentage'] ??
+        json['portfolio_percent'] ??
+        json['portfolioPercent'] ??
+        json['weight']);
 
-    final url = (json['source_url'] ?? json['sec_url'] ?? json['url'])
-        ?.toString();
+    final url =
+        (json['source_url'] ?? json['sec_url'] ?? json['url'])?.toString();
 
     return HedgeFundTransactionRecord(
       managerName: manager,
@@ -237,8 +222,8 @@ class QuarterlyHedgeFundActivity {
   });
 
   factory QuarterlyHedgeFundActivity.fromJson(Map<String, dynamic> json) {
-    final qStr = (json['quarter'] ?? json['date'] ?? json['period'] ?? '')
-        .toString();
+    final qStr =
+        (json['quarter'] ?? json['date'] ?? json['period'] ?? '').toString();
     DateTime? qDate;
     if (qStr.isNotEmpty) {
       try {
@@ -252,62 +237,42 @@ class QuarterlyHedgeFundActivity {
       quarterLabel = 'Q$quarterNum ${qDate.year}';
     }
 
-    final buyShares =
-        _parseNum(
-          json['shares_bought'] ?? json['buy_shares'] ?? json['buyShares'],
-        ) ??
+    final buyShares = _parseNum(
+            json['shares_bought'] ?? json['buy_shares'] ?? json['buyShares']) ??
         0;
-    final sellShares =
-        _parseNum(
-          json['shares_sold'] ?? json['sell_shares'] ?? json['sellShares'],
-        ) ??
+    final sellShares = _parseNum(
+            json['shares_sold'] ?? json['sell_shares'] ?? json['sellShares']) ??
         0;
     final buyVal = _parseDouble(json['buy_value'] ?? json['buyValue']) ?? 0.0;
     final sellVal =
         _parseDouble(json['sell_value'] ?? json['sellValue']) ?? 0.0;
-    final bManagers =
-        _parseInt(
-          json['buying_managers_count'] ??
-              json['buyingManagersCount'] ??
-              json['buyers_count'],
-        ) ??
+    final bManagers = _parseInt(json['buying_managers_count'] ??
+            json['buyingManagersCount'] ??
+            json['buyers_count']) ??
         0;
-    final sManagers =
-        _parseInt(
-          json['selling_managers_count'] ??
-              json['sellingManagersCount'] ??
-              json['sellers_count'],
-        ) ??
+    final sManagers = _parseInt(json['selling_managers_count'] ??
+            json['sellingManagersCount'] ??
+            json['sellers_count']) ??
         0;
-    final hManagers =
-        _parseInt(
-          json['holding_managers_count'] ??
-              json['holdingManagersCount'] ??
-              json['holders_count'],
-        ) ??
+    final hManagers = _parseInt(json['holding_managers_count'] ??
+            json['holdingManagersCount'] ??
+            json['holders_count']) ??
         0;
-    final newPos =
-        _parseInt(
-          json['new_positions_count'] ??
-              json['newPositionsCount'] ??
-              json['new_positions'],
-        ) ??
+    final newPos = _parseInt(json['new_positions_count'] ??
+            json['newPositionsCount'] ??
+            json['new_positions']) ??
         0;
-    final soldOut =
-        _parseInt(
-          json['sold_out_positions_count'] ??
-              json['soldOutPositionsCount'] ??
-              json['sold_out'],
-        ) ??
+    final soldOut = _parseInt(json['sold_out_positions_count'] ??
+            json['soldOutPositionsCount'] ??
+            json['sold_out']) ??
         0;
 
-    String sentiment =
-        (json['net_sentiment'] ??
-                json['sentiment'] ??
-                json['netSentiment'] ??
-                '')
-            .toString()
-            .toLowerCase();
+    String sentiment = (json['net_sentiment'] ??
+            json['sentiment'] ??
+            json['netSentiment'] ??
+            '')
+        .toString()
+        .toLowerCase();
     if (sentiment.isEmpty) {
       if (bManagers > sManagers || buyVal > sellVal || buyShares > sellShares) {
         sentiment = 'positive';
@@ -479,19 +444,17 @@ class HedgeFundSummary {
       }
     }
 
-    final instId =
-        (summaryMap['instrument_id'] ??
-                summaryMap['instrumentId'] ??
-                instrumentId ??
-                '')
-            .toString();
+    final instId = (summaryMap['instrument_id'] ??
+            summaryMap['instrumentId'] ??
+            instrumentId ??
+            '')
+        .toString();
     final sym = (summaryMap['symbol'] ?? symbol)?.toString();
 
     // Check sentiment_score if it's a string like "Positive Sentiment" or numeric
     String netSent = 'neutral';
     double? score;
-    final rawScore =
-        summaryMap['sentiment_score'] ??
+    final rawScore = summaryMap['sentiment_score'] ??
         summaryMap['sentimentScore'] ??
         summaryMap['score'];
     if (rawScore is num) {
@@ -512,41 +475,33 @@ class HedgeFundSummary {
       }
     }
 
-    final explicitSent =
-        (summaryMap['net_sentiment'] ??
-                summaryMap['sentiment'] ??
-                summaryMap['netSentiment'])
-            ?.toString()
-            .toLowerCase();
+    final explicitSent = (summaryMap['net_sentiment'] ??
+            summaryMap['sentiment'] ??
+            summaryMap['netSentiment'])
+        ?.toString()
+        .toLowerCase();
     if (explicitSent != null && explicitSent.isNotEmpty) {
       netSent = explicitSent;
     }
 
     // Parse quarterly summary if present
     List<QuarterlyHedgeFundActivity> quarters = [];
-    final rawQuarters =
-        summaryMap['quarterly_aggregate_transactions'] ??
+    final rawQuarters = summaryMap['quarterly_aggregate_transactions'] ??
         summaryMap['quarterly_summary'] ??
         summaryMap['quarterlySummary'] ??
         summaryMap['quarters'];
     if (rawQuarters is List) {
       quarters = rawQuarters
           .whereType<Map>()
-          .map(
-            (m) => QuarterlyHedgeFundActivity.fromJson(
-              Map<String, dynamic>.from(m),
-            ),
-          )
+          .map((m) =>
+              QuarterlyHedgeFundActivity.fromJson(Map<String, dynamic>.from(m)))
           .toList();
     }
 
     // Default total shares held / change from quarterly if available
-    num totalShares =
-        _parseNum(
-          summaryMap['total_shares_held'] ??
-              summaryMap['totalSharesHeld'] ??
-              summaryMap['shares_held'],
-        ) ??
+    num totalShares = _parseNum(summaryMap['total_shares_held'] ??
+            summaryMap['totalSharesHeld'] ??
+            summaryMap['shares_held']) ??
         0;
     if (totalShares == 0 && quarters.isNotEmpty) {
       totalShares = quarters.last.buyShares > 0 && quarters.last.sellShares == 0
@@ -555,88 +510,59 @@ class HedgeFundSummary {
     }
     final rawTotalSharesInQuarters =
         rawQuarters is List && rawQuarters.isNotEmpty && rawQuarters.last is Map
-        ? _parseNum((rawQuarters.last as Map)['total_shares_held'])
-        : null;
+            ? _parseNum((rawQuarters.last as Map)['total_shares_held'])
+            : null;
     if (rawTotalSharesInQuarters != null && rawTotalSharesInQuarters > 0) {
       totalShares = rawTotalSharesInQuarters;
     }
 
-    final totalVal = _parseDouble(
-      summaryMap['total_value_held'] ??
-          summaryMap['totalValueHeld'] ??
-          summaryMap['value_held'],
-    );
+    final totalVal = _parseDouble(summaryMap['total_value_held'] ??
+        summaryMap['totalValueHeld'] ??
+        summaryMap['value_held']);
     final ownPct = _parseDouble(
-      summaryMap['institutional_ownership_percentage'] ??
-          summaryMap['institutionalOwnershipPercentage'] ??
-          summaryMap['percentage_held'] ??
-          summaryMap['ownership_percent'],
-    );
+        summaryMap['institutional_ownership_percentage'] ??
+            summaryMap['institutionalOwnershipPercentage'] ??
+            summaryMap['percentage_held'] ??
+            summaryMap['ownership_percent']);
 
-    int totalMgrs =
-        _parseInt(
-          summaryMap['total_managers_count'] ??
-              summaryMap['totalManagersCount'] ??
-              summaryMap['total_managers'],
-        ) ??
+    int totalMgrs = _parseInt(summaryMap['total_managers_count'] ??
+            summaryMap['totalManagersCount'] ??
+            summaryMap['total_managers']) ??
         0;
-    int buyingMgrs =
-        _parseInt(
-          summaryMap['buying_managers_count'] ??
-              summaryMap['buyingManagersCount'] ??
-              summaryMap['buyers_count'],
-        ) ??
+    int buyingMgrs = _parseInt(summaryMap['buying_managers_count'] ??
+            summaryMap['buyingManagersCount'] ??
+            summaryMap['buyers_count']) ??
         0;
-    int sellingMgrs =
-        _parseInt(
-          summaryMap['selling_managers_count'] ??
-              summaryMap['sellingManagersCount'] ??
-              summaryMap['sellers_count'],
-        ) ??
+    int sellingMgrs = _parseInt(summaryMap['selling_managers_count'] ??
+            summaryMap['sellingManagersCount'] ??
+            summaryMap['sellers_count']) ??
         0;
-    int holdingMgrs =
-        _parseInt(
-          summaryMap['holding_managers_count'] ??
-              summaryMap['holdingManagersCount'] ??
-              summaryMap['holders_count'],
-        ) ??
+    int holdingMgrs = _parseInt(summaryMap['holding_managers_count'] ??
+            summaryMap['holdingManagersCount'] ??
+            summaryMap['holders_count']) ??
         0;
-    int newPos =
-        _parseInt(
-          summaryMap['new_positions_count'] ??
-              summaryMap['newPositionsCount'] ??
-              summaryMap['new_positions'],
-        ) ??
+    int newPos = _parseInt(summaryMap['new_positions_count'] ??
+            summaryMap['newPositionsCount'] ??
+            summaryMap['new_positions']) ??
         0;
-    int soldOut =
-        _parseInt(
-          summaryMap['sold_out_count'] ??
-              summaryMap['soldOutCount'] ??
-              summaryMap['sold_out'],
-        ) ??
+    int soldOut = _parseInt(summaryMap['sold_out_count'] ??
+            summaryMap['soldOutCount'] ??
+            summaryMap['sold_out']) ??
         0;
 
-    num netSh =
-        _parseNum(
-          summaryMap['net_shares_changed'] ??
-              summaryMap['netSharesChanged'] ??
-              summaryMap['net_shares'],
-        ) ??
+    num netSh = _parseNum(summaryMap['net_shares_changed'] ??
+            summaryMap['netSharesChanged'] ??
+            summaryMap['net_shares']) ??
         0;
-    double netVal =
-        _parseDouble(
-          summaryMap['net_value_changed'] ??
-              summaryMap['netValueChanged'] ??
-              summaryMap['net_value'],
-        ) ??
+    double netVal = _parseDouble(summaryMap['net_value_changed'] ??
+            summaryMap['netValueChanged'] ??
+            summaryMap['net_value']) ??
         0.0;
 
     final txs = rawTxList
         .whereType<Map>()
-        .map(
-          (m) =>
-              HedgeFundTransactionRecord.fromJson(Map<String, dynamic>.from(m)),
-        )
+        .map((m) =>
+            HedgeFundTransactionRecord.fromJson(Map<String, dynamic>.from(m)))
         .toList();
 
     // If counts are 0 but detailed_transactions are present, compute them from transactions!
@@ -676,9 +602,8 @@ class HedgeFundSummary {
       }
     }
 
-    DateTime? upAt = _parseDate(
-      summaryMap['updated_at'] ?? summaryMap['updatedAt'],
-    );
+    DateTime? upAt =
+        _parseDate(summaryMap['updated_at'] ?? summaryMap['updatedAt']);
 
     return HedgeFundSummary(
       instrumentId: instId,

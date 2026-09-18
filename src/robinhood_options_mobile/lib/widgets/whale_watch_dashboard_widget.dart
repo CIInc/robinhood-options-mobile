@@ -37,9 +37,8 @@ class WhaleWatchDashboardWidget extends StatefulWidget {
 
 class _WhaleWatchDashboardWidgetState extends State<WhaleWatchDashboardWidget> {
   final FirestoreService _firestoreService = FirestoreService();
-  final NumberFormat _currencyFormat = NumberFormat.compactCurrency(
-    symbol: '\$',
-  );
+  final NumberFormat _currencyFormat =
+      NumberFormat.compactCurrency(symbol: '\$');
   final DateFormat _dateFormat = DateFormat('MMM d, yyyy');
 
   @override
@@ -61,8 +60,12 @@ class _WhaleWatchDashboardWidgetState extends State<WhaleWatchDashboardWidget> {
         final aggregate = snapshot.data!;
         return CustomScrollView(
           slivers: [
-            SliverToBoxAdapter(child: _buildSentimentOverview(aggregate)),
-            const SliverToBoxAdapter(child: Divider()),
+            SliverToBoxAdapter(
+              child: _buildSentimentOverview(aggregate),
+            ),
+            const SliverToBoxAdapter(
+              child: Divider(),
+            ),
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
@@ -74,8 +77,12 @@ class _WhaleWatchDashboardWidgetState extends State<WhaleWatchDashboardWidget> {
                 ),
               ),
             ),
-            SliverToBoxAdapter(child: _buildTopAccumulated(aggregate)),
-            const SliverToBoxAdapter(child: Divider()),
+            SliverToBoxAdapter(
+              child: _buildTopAccumulated(aggregate),
+            ),
+            const SliverToBoxAdapter(
+              child: Divider(),
+            ),
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
@@ -86,10 +93,13 @@ class _WhaleWatchDashboardWidgetState extends State<WhaleWatchDashboardWidget> {
               ),
             ),
             SliverList(
-              delegate: SliverChildBuilderDelegate((context, index) {
-                final tx = aggregate.recentLargeTransactions[index];
-                return _buildTransactionTile(tx);
-              }, childCount: aggregate.recentLargeTransactions.length),
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  final tx = aggregate.recentLargeTransactions[index];
+                  return _buildTransactionTile(tx);
+                },
+                childCount: aggregate.recentLargeTransactions.length,
+              ),
             ),
           ],
         );
@@ -125,16 +135,12 @@ class _WhaleWatchDashboardWidgetState extends State<WhaleWatchDashboardWidget> {
               Text(
                 'Buys: ${_currencyFormat.format(aggregate.buyTotal)}',
                 style: const TextStyle(
-                  color: Colors.green,
-                  fontWeight: FontWeight.bold,
-                ),
+                    color: Colors.green, fontWeight: FontWeight.bold),
               ),
               Text(
                 'Sells: ${_currencyFormat.format(aggregate.sellTotal)}',
                 style: const TextStyle(
-                  color: Colors.red,
-                  fontWeight: FontWeight.bold,
-                ),
+                    color: Colors.red, fontWeight: FontWeight.bold),
               ),
             ],
           ),
@@ -168,9 +174,8 @@ class _WhaleWatchDashboardWidgetState extends State<WhaleWatchDashboardWidget> {
           return Card(
             child: InkWell(
               onTap: () async {
-                final instrument = await _firestoreService.getInstrument(
-                  symbol: item.symbol,
-                );
+                final instrument =
+                    await _firestoreService.getInstrument(symbol: item.symbol);
                 if (instrument != null && mounted) {
                   Navigator.push(
                     context,
@@ -190,19 +195,15 @@ class _WhaleWatchDashboardWidgetState extends State<WhaleWatchDashboardWidget> {
                 }
               },
               child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16.0,
-                  vertical: 8.0,
-                ),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
                       item.symbol,
                       style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                      ),
+                          fontWeight: FontWeight.bold, fontSize: 18),
                     ),
                     Text(
                       isHoldings ? 'Institutional holding' : 'Accumulating',
@@ -243,16 +244,13 @@ class _WhaleWatchDashboardWidgetState extends State<WhaleWatchDashboardWidget> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('${tx.filerName} (${tx.filerRelation})'),
-          Text(
-            '${_dateFormat.format(tx.date)} • ${tx.transactionText}',
-            style: const TextStyle(fontSize: 12),
-          ),
+          Text('${_dateFormat.format(tx.date)} • ${tx.transactionText}',
+              style: const TextStyle(fontSize: 12)),
         ],
       ),
       onTap: () async {
-        final instrument = await _firestoreService.getInstrument(
-          symbol: tx.symbol,
-        );
+        final instrument =
+            await _firestoreService.getInstrument(symbol: tx.symbol);
         if (instrument != null && mounted) {
           Navigator.push(
             context,

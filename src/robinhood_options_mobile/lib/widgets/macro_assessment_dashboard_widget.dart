@@ -26,35 +26,35 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final macroData = context
-        .select<
-          AgenticTradingProvider,
-          ({
-            MacroAssessment? assessment,
-            MacroAssessment? previousAssessment,
-            List<MacroAssessment> history,
-          })
-        >(
-          (provider) => (
-            assessment: provider.macroAssessment,
-            previousAssessment: provider.previousMacroAssessment,
-            history: provider.macroHistory,
-          ),
-        );
+    final macroData = context.select<
+        AgenticTradingProvider,
+        ({
+          MacroAssessment? assessment,
+          MacroAssessment? previousAssessment,
+          List<MacroAssessment> history
+        })>((provider) => (
+          assessment: provider.macroAssessment,
+          previousAssessment: provider.previousMacroAssessment,
+          history: provider.macroHistory,
+        ));
     final assessment = macroData.assessment;
     final indicatorDetailActions = <MacroIndicator, VoidCallback>{};
 
     if (assessment == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text("Macro Assessment")),
-        body: const Center(child: Text("No assessment data available.")),
+        appBar: AppBar(
+          title: const Text("Macro Assessment"),
+        ),
+        body: const Center(
+          child: Text("No assessment data available."),
+        ),
       );
     }
 
     return TooltipTheme(
-      data: TooltipTheme.of(
-        context,
-      ).copyWith(showDuration: const Duration(seconds: 5)),
+      data: TooltipTheme.of(context).copyWith(
+        showDuration: const Duration(seconds: 5),
+      ),
       child: Scaffold(
         appBar: AppBar(
           title: const Row(
@@ -72,13 +72,10 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
                 // Trigger a force refresh
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text('Refreshing macro data from sources...'),
-                  ),
+                      content: Text('Refreshing macro data from sources...')),
                 );
-                Provider.of<AgenticTradingProvider>(
-                  context,
-                  listen: false,
-                ).fetchMacroAssessment(forceRefresh: true);
+                Provider.of<AgenticTradingProvider>(context, listen: false)
+                    .fetchMacroAssessment(forceRefresh: true);
               },
             ),
             IconButton(
@@ -97,10 +94,7 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
             // Recent Changes (if any)
             if (macroData.previousAssessment != null) ...[
               _buildRecentChangesSection(
-                context,
-                assessment,
-                macroData.previousAssessment!,
-              ),
+                  context, assessment, macroData.previousAssessment!),
               const SizedBox(height: 24),
             ],
 
@@ -109,22 +103,22 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
               children: [
                 Text(
                   "Indicators Pulse",
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleLarge
+                      ?.copyWith(fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(width: 8),
                 Tooltip(
                   triggerMode: TooltipTriggerMode.tap,
                   message:
                       "Real-time snapshot of 20 critical indicators. Signals update daily to quantify market health. Tap individual pillars below for more details.",
-                  child: Icon(
-                    Icons.info_outline,
-                    size: 16,
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.onSurface.withValues(alpha: 0.4),
-                  ),
+                  child: Icon(Icons.info_outline,
+                      size: 16,
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withValues(alpha: 0.4)),
                 ),
               ],
             ),
@@ -138,9 +132,10 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
             if (macroData.history.isNotEmpty) ...[
               Text(
                 "Score Trend",
-                style: Theme.of(
-                  context,
-                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                style: Theme.of(context)
+                    .textTheme
+                    .titleLarge
+                    ?.copyWith(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 12),
               _buildMacroHistoryChart(context, macroData.history),
@@ -150,9 +145,10 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
             // Indicators Grid
             Text(
               "Pillar Indicators",
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+              style: Theme.of(context)
+                  .textTheme
+                  .titleLarge
+                  ?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
             _buildIndicatorGrid(context, assessment, indicatorDetailActions),
@@ -163,9 +159,10 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
                 assessment.assetAllocation != null) ...[
               Text(
                 "Regime Guidance",
-                style: Theme.of(
-                  context,
-                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                style: Theme.of(context)
+                    .textTheme
+                    .titleLarge
+                    ?.copyWith(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 12),
               if (assessment.sectorRotation != null) ...[
@@ -185,9 +182,10 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
             // Analysis
             Text(
               "AI Analysis",
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+              style: Theme.of(context)
+                  .textTheme
+                  .titleLarge
+                  ?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
             _buildAnalysisSection(context, assessment),
@@ -199,85 +197,79 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
   }
 
   Widget _buildStrategyGuidanceSection(
-    BuildContext context,
-    MacroAssessment assessment,
-  ) {
+      BuildContext context, MacroAssessment assessment) {
     final colorScheme = Theme.of(context).colorScheme;
 
     // Use dynamic strategies from backend if available, otherwise fallback
-    final strategies =
-        assessment.strategies ??
+    final strategies = assessment.strategies ??
         (assessment.status == 'RISK_ON'
             ? [
                 MacroStrategy(
-                  name: 'Bull Call Spread',
-                  icon: 'call_made',
-                  risk: 'Limited',
-                  description: 'Capitalize on upside while limiting cost.',
-                ),
+                    name: 'Bull Call Spread',
+                    icon: 'call_made',
+                    risk: 'Limited',
+                    description: 'Capitalize on upside while limiting cost.'),
                 MacroStrategy(
-                  name: 'Cash Secured Put',
-                  icon: 'shield',
-                  risk: 'Defined',
-                  description: 'Generate income and entry at lower prices.',
-                ),
+                    name: 'Cash Secured Put',
+                    icon: 'shield',
+                    risk: 'Defined',
+                    description: 'Generate income and entry at lower prices.'),
                 MacroStrategy(
-                  name: 'Long Call',
-                  icon: 'add_circle',
-                  risk: 'Premium',
-                  description: 'Max leverage for strong directional moves.',
-                ),
+                    name: 'Long Call',
+                    icon: 'add_circle',
+                    risk: 'Premium',
+                    description: 'Max leverage for strong directional moves.'),
               ]
             : assessment.status == 'RISK_OFF'
-            ? [
-                MacroStrategy(
-                  name: 'Bear Put Spread',
-                  icon: 'call_received',
-                  risk: 'Limited',
-                  description: 'Profit from downside with lower premium cost.',
-                ),
-                MacroStrategy(
-                  name: 'Covered Call',
-                  icon: 'security',
-                  risk: 'Stock Risk',
-                  description: 'Generate income to offset potential losses.',
-                ),
-                MacroStrategy(
-                  name: 'Long Put',
-                  icon: 'remove_circle',
-                  risk: 'Premium',
-                  description: 'Direct hedge against market further declines.',
-                ),
-              ]
-            : [
-                MacroStrategy(
-                  name: 'Iron Condor',
-                  icon: 'compare_arrows',
-                  risk: 'Limited',
-                  description: 'Profit from range-bound, sideways markets.',
-                ),
-                MacroStrategy(
-                  name: 'Calendar Spread',
-                  icon: 'calendar_today',
-                  risk: 'Volatility',
-                  description: 'Benefit from time decay and rising IV.',
-                ),
-                MacroStrategy(
-                  name: 'Butterfly',
-                  icon: 'filter_vintage',
-                  risk: 'Limited',
-                  description: 'Low cost way to play a specific price target.',
-                ),
-              ]);
+                ? [
+                    MacroStrategy(
+                        name: 'Bear Put Spread',
+                        icon: 'call_received',
+                        risk: 'Limited',
+                        description:
+                            'Profit from downside with lower premium cost.'),
+                    MacroStrategy(
+                        name: 'Covered Call',
+                        icon: 'security',
+                        risk: 'Stock Risk',
+                        description:
+                            'Generate income to offset potential losses.'),
+                    MacroStrategy(
+                        name: 'Long Put',
+                        icon: 'remove_circle',
+                        risk: 'Premium',
+                        description:
+                            'Direct hedge against market further declines.'),
+                  ]
+                : [
+                    MacroStrategy(
+                        name: 'Iron Condor',
+                        icon: 'compare_arrows',
+                        risk: 'Limited',
+                        description:
+                            'Profit from range-bound, sideways markets.'),
+                    MacroStrategy(
+                        name: 'Calendar Spread',
+                        icon: 'calendar_today',
+                        risk: 'Volatility',
+                        description: 'Benefit from time decay and rising IV.'),
+                    MacroStrategy(
+                        name: 'Butterfly',
+                        icon: 'filter_vintage',
+                        risk: 'Limited',
+                        description:
+                            'Low cost way to play a specific price target.'),
+                  ]);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           "Options Strategy Insights",
-          style: Theme.of(
-            context,
-          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+          style: Theme.of(context)
+              .textTheme
+              .titleLarge
+              ?.copyWith(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 12),
         GridView.builder(
@@ -295,22 +287,17 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
             return Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: colorScheme.surfaceContainerHighest.withValues(
-                  alpha: 0.2,
-                ),
+                color:
+                    colorScheme.surfaceContainerHighest.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: colorScheme.outline.withValues(alpha: 0.1),
-                ),
+                    color: colorScheme.outline.withValues(alpha: 0.1)),
               ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
-                    _getStrategyIcon(strategy.icon),
-                    color: colorScheme.primary,
-                    size: 28,
-                  ),
+                  Icon(_getStrategyIcon(strategy.icon),
+                      color: colorScheme.primary, size: 28),
                   const SizedBox(height: 8),
                   Text(
                     strategy.name,
@@ -318,16 +305,12 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                    ),
+                        fontSize: 10, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 4),
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 2,
-                    ),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
                       color: colorScheme.primary.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(4),
@@ -335,10 +318,9 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
                     child: Text(
                       strategy.risk,
                       style: TextStyle(
-                        fontSize: 8,
-                        color: colorScheme.primary,
-                        fontWeight: FontWeight.bold,
-                      ),
+                          fontSize: 8,
+                          color: colorScheme.primary,
+                          fontWeight: FontWeight.bold),
                     ),
                   ),
                 ],
@@ -376,9 +358,7 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
   }
 
   Widget _buildAnalysisSection(
-    BuildContext context,
-    MacroAssessment assessment,
-  ) {
+      BuildContext context, MacroAssessment assessment) {
     final colorScheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(20),
@@ -398,16 +378,14 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
                 Text(
                   "AI Insight Engine",
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    color: colorScheme.primary,
-                    fontWeight: FontWeight.bold,
-                  ),
+                        color: colorScheme.primary,
+                        fontWeight: FontWeight.bold,
+                      ),
                 ),
                 const Spacer(),
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 2,
-                  ),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
                     color: colorScheme.primary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(4),
@@ -429,9 +407,9 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
                 data: assessment.aiAnalysis!,
                 styleSheet: MarkdownStyleSheet(
                   p: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    height: 1.5,
-                    color: colorScheme.onSurface.withValues(alpha: 0.8),
-                  ),
+                        height: 1.5,
+                        color: colorScheme.onSurface.withValues(alpha: 0.8),
+                      ),
                   listBullet: Theme.of(context).textTheme.bodyLarge,
                 ),
               ),
@@ -440,9 +418,9 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
               const SizedBox(height: 16),
               Text(
                 "Indicator Logic",
-                style: Theme.of(
-                  context,
-                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
               ),
               const SizedBox(height: 8),
             ],
@@ -450,9 +428,9 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
               data: assessment.reason,
               styleSheet: MarkdownStyleSheet(
                 p: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  height: 1.5,
-                  color: colorScheme.onSurface.withValues(alpha: 0.6),
-                ),
+                      height: 1.5,
+                      color: colorScheme.onSurface.withValues(alpha: 0.6),
+                    ),
                 listBullet: Theme.of(context).textTheme.bodyMedium,
               ),
             ),
@@ -463,39 +441,32 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
   }
 
   Widget _buildRecentChangesSection(
-    BuildContext context,
-    MacroAssessment current,
-    MacroAssessment previous,
-  ) {
+      BuildContext context, MacroAssessment current, MacroAssessment previous) {
     final colorScheme = Theme.of(context).colorScheme;
 
     final List<Widget> changes = [];
 
     // Check regime change
     if (current.status != previous.status) {
-      changes.add(
-        _buildChangeItem(
-          context,
-          Icons.swap_horiz_rounded,
-          "Regime Shift",
-          "Regime changed from ${previous.status} to ${current.status}",
-          _getStatusColor(context, current.status),
-        ),
-      );
+      changes.add(_buildChangeItem(
+        context,
+        Icons.swap_horiz_rounded,
+        "Regime Shift",
+        "Regime changed from ${previous.status} to ${current.status}",
+        _getStatusColor(context, current.status),
+      ));
     }
 
     // Check score change
     final scoreDiff = current.score - previous.score;
     if (scoreDiff.abs() >= 10) {
-      changes.add(
-        _buildChangeItem(
-          context,
-          scoreDiff > 0 ? Icons.trending_up : Icons.trending_down,
-          "Significant Score Move",
-          "Macro score ${scoreDiff > 0 ? 'increased' : 'decreased'} by ${scoreDiff.abs()} points.",
-          scoreDiff > 0 ? Colors.green : Colors.red,
-        ),
-      );
+      changes.add(_buildChangeItem(
+        context,
+        scoreDiff > 0 ? Icons.trending_up : Icons.trending_down,
+        "Significant Score Move",
+        "Macro score ${scoreDiff > 0 ? 'increased' : 'decreased'} by ${scoreDiff.abs()} points.",
+        scoreDiff > 0 ? Colors.green : Colors.red,
+      ));
     }
 
     // Check indicator signals
@@ -507,7 +478,7 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
       'Put/Call',
       'Credit (HYG)',
       'Dollar (DXY)',
-      'Yield Curve',
+      'Yield Curve'
     ];
     final curMap = {
       'VIX': current.indicators.vix.signal,
@@ -534,15 +505,13 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
       final curVal = curMap[key];
       final prevVal = prevMap[key];
       if (curVal != null && prevVal != null && curVal != prevVal) {
-        changes.add(
-          _buildChangeItem(
-            context,
-            Icons.lens_blur_rounded,
-            "$key Signal Shift",
-            "Shifted from $prevVal to $curVal",
-            _getStatusColor(context, curVal),
-          ),
-        );
+        changes.add(_buildChangeItem(
+          context,
+          Icons.lens_blur_rounded,
+          "$key Signal Shift",
+          "Shifted from $prevVal to $curVal",
+          _getStatusColor(context, curVal),
+        ));
       }
     }
 
@@ -553,9 +522,10 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
       children: [
         Text(
           "Market Shifts",
-          style: Theme.of(
-            context,
-          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+          style: Theme.of(context)
+              .textTheme
+              .titleLarge
+              ?.copyWith(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 12),
         Container(
@@ -563,9 +533,8 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
           decoration: BoxDecoration(
             color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: colorScheme.outline.withValues(alpha: 0.1),
-            ),
+            border:
+                Border.all(color: colorScheme.outline.withValues(alpha: 0.1)),
           ),
           child: Column(
             children: changes.asMap().entries.map((entry) {
@@ -583,13 +552,8 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildChangeItem(
-    BuildContext context,
-    IconData icon,
-    String title,
-    String description,
-    Color color,
-  ) {
+  Widget _buildChangeItem(BuildContext context, IconData icon, String title,
+      String description, Color color) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -609,18 +573,19 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
               Text(
                 title,
                 style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 13,
-                ),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
               ),
               const SizedBox(height: 2),
               Text(
                 description,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.onSurface.withValues(alpha: 0.7),
-                ),
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withValues(alpha: 0.7),
+                    ),
               ),
             ],
           ),
@@ -656,29 +621,21 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildIndicatorGrid(
-    BuildContext context,
-    MacroAssessment assessment,
-    Map<MacroIndicator, VoidCallback> indicatorDetailActions,
-  ) {
-    Widget buildIndicatorCard(
-      BuildContext context,
-      String symbol,
-      String name,
-      MacroIndicator indicator,
-      String description,
-      IconData icon, {
-      String? unit,
-    }) => _buildDetailedIndicatorCard(
-      context,
-      symbol,
-      name,
-      indicator,
-      description,
-      icon,
-      unit: unit,
-      indicatorDetailActions: indicatorDetailActions,
-    );
+  Widget _buildIndicatorGrid(BuildContext context, MacroAssessment assessment,
+      Map<MacroIndicator, VoidCallback> indicatorDetailActions) {
+    Widget buildIndicatorCard(BuildContext context, String symbol, String name,
+            MacroIndicator indicator, String description, IconData icon,
+            {String? unit}) =>
+        _buildDetailedIndicatorCard(
+          context,
+          symbol,
+          name,
+          indicator,
+          description,
+          icon,
+          unit: unit,
+          indicatorDetailActions: indicatorDetailActions,
+        );
 
     return Column(
       children: [
@@ -914,9 +871,7 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
   }
 
   Widget _buildSummarySection(
-    BuildContext context,
-    MacroAssessment assessment,
-  ) {
+      BuildContext context, MacroAssessment assessment) {
     final statusColor = _getStatusColor(context, assessment.status);
     final colorScheme = Theme.of(context).colorScheme;
 
@@ -941,34 +896,28 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
                         assessment.status == 'RISK_ON'
                             ? Icons.trending_up
                             : assessment.status == 'RISK_OFF'
-                            ? Icons.trending_down
-                            : Icons.trending_flat,
+                                ? Icons.trending_down
+                                : Icons.trending_flat,
                         color: statusColor,
                         size: 16,
                       ),
                       const SizedBox(width: 4),
-                      Text(
-                        'Current Regime',
-                        style: Theme.of(context).textTheme.titleSmall,
-                      ),
+                      Text('Current Regime',
+                          style: Theme.of(context).textTheme.titleSmall),
                       const SizedBox(width: 4),
                       Tooltip(
                         triggerMode: TooltipTriggerMode.tap,
                         message: _getRegimeTooltip(assessment.status),
-                        child: Icon(
-                          Icons.info_outline,
-                          size: 14,
-                          color: statusColor.withValues(alpha: 0.6),
-                        ),
+                        child: Icon(Icons.info_outline,
+                            size: 14,
+                            color: statusColor.withValues(alpha: 0.6)),
                       ),
                     ],
                   ),
                   const SizedBox(height: 4),
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     decoration: BoxDecoration(
                       color: statusColor.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(12),
@@ -976,10 +925,9 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
                     child: Text(
                       assessment.status,
                       style: TextStyle(
-                        color: statusColor,
-                        fontWeight: FontWeight.w900,
-                        fontSize: 18,
-                      ),
+                          color: statusColor,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 18),
                     ),
                   ),
                 ],
@@ -994,33 +942,27 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
                         triggerMode: TooltipTriggerMode.tap,
                         message:
                             "Composite score (0-100) based on all 20 indicators. Higher values indicate a more favorable 'Risk-On' environment.",
-                        child: Icon(
-                          Icons.info_outline,
-                          size: 14,
-                          color: statusColor.withValues(alpha: 0.6),
-                        ),
+                        child: Icon(Icons.info_outline,
+                            size: 14,
+                            color: statusColor.withValues(alpha: 0.6)),
                       ),
                       const SizedBox(width: 4),
-                      Text(
-                        'Macro Score',
-                        style: Theme.of(context).textTheme.titleSmall,
-                      ),
+                      Text('Macro Score',
+                          style: Theme.of(context).textTheme.titleSmall),
                     ],
                   ),
                   TweenAnimationBuilder<double>(
                     tween: Tween<double>(
-                      begin: 0,
-                      end: assessment.score.toDouble(),
-                    ),
+                        begin: 0, end: assessment.score.toDouble()),
                     duration: const Duration(seconds: 1),
                     builder: (context, value, child) {
                       return Text(
                         '${value.toInt()}/100',
-                        style: Theme.of(context).textTheme.displaySmall
-                            ?.copyWith(
-                              color: statusColor,
-                              fontWeight: FontWeight.w900,
-                            ),
+                        style:
+                            Theme.of(context).textTheme.displaySmall?.copyWith(
+                                  color: statusColor,
+                                  fontWeight: FontWeight.w900,
+                                ),
                       );
                     },
                   ),
@@ -1050,41 +992,39 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
                     children: [
                       Text(
                         '${assessment.score}',
-                        style: Theme.of(context).textTheme.headlineLarge
-                            ?.copyWith(
-                              color: statusColor,
-                              fontWeight: FontWeight.w900,
-                              fontSize: 40,
-                            ),
+                        style:
+                            Theme.of(context).textTheme.headlineLarge?.copyWith(
+                                  color: statusColor,
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 40,
+                                ),
                       ),
                       const SizedBox(height: 2),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 2,
-                        ),
+                            horizontal: 8, vertical: 2),
                         decoration: BoxDecoration(
                           color: statusColor.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
                           '${assessment.confidence}% CONF',
-                          style: Theme.of(context).textTheme.labelSmall
-                              ?.copyWith(
-                                color: statusColor,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 9,
-                              ),
+                          style:
+                              Theme.of(context).textTheme.labelSmall?.copyWith(
+                                    color: statusColor,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 9,
+                                  ),
                         ),
                       ),
                       const SizedBox(height: 2),
                       Text(
                         'POINTS',
                         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: statusColor.withValues(alpha: 0.6),
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 2,
-                        ),
+                              color: statusColor.withValues(alpha: 0.6),
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 2,
+                            ),
                       ),
                     ],
                   ),
@@ -1117,45 +1057,38 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     _buildSummaryStat(
-                      context,
-                      "Confidence",
-                      "${assessment.confidence}%",
-                      _getConfidenceColor(assessment.confidence),
-                    ),
+                        context,
+                        "Confidence",
+                        "${assessment.confidence}%",
+                        _getConfidenceColor(assessment.confidence)),
                     Container(
-                      height: 30,
-                      width: 1,
-                      color: colorScheme.outline.withValues(alpha: 0.1),
-                    ),
+                        height: 30,
+                        width: 1,
+                        color: colorScheme.outline.withValues(alpha: 0.1)),
                     _buildSummaryStat(
-                      context,
-                      "Volatility",
-                      assessment.indicators.vix.value != null
-                          ? assessment.indicators.vix.value! < 20
+                        context,
+                        "Volatility",
+                        assessment.indicators.vix.value != null
+                            ? assessment.indicators.vix.value! < 20
                                 ? "LOW"
                                 : "HIGH"
-                          : "--",
-                      assessment.indicators.vix.signal == 'BULLISH'
-                          ? Colors.green
-                          : Colors.red,
-                    ),
+                            : "--",
+                        assessment.indicators.vix.signal == 'BULLISH'
+                            ? Colors.green
+                            : Colors.red),
                     Container(
-                      height: 30,
-                      width: 1,
-                      color: colorScheme.outline.withValues(alpha: 0.1),
-                    ),
+                        height: 30,
+                        width: 1,
+                        color: colorScheme.outline.withValues(alpha: 0.1)),
                     _buildSummaryStat(
-                      context,
-                      "Momentum",
-                      assessment.indicators.marketTrend.momentum
-                              ?.split(' ')
-                              .first ??
-                          "Neutral",
-                      _getStatusColor(
                         context,
-                        assessment.indicators.marketTrend.signal,
-                      ),
-                    ),
+                        "Momentum",
+                        assessment.indicators.marketTrend.momentum
+                                ?.split(' ')
+                                .first ??
+                            "Neutral",
+                        _getStatusColor(
+                            context, assessment.indicators.marketTrend.signal)),
                   ],
                 ),
                 const Divider(height: 24),
@@ -1195,9 +1128,7 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
   }
 
   Widget _buildSummaryGuidance(
-    BuildContext context,
-    MacroAssessment assessment,
-  ) {
+      BuildContext context, MacroAssessment assessment) {
     final colorScheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(16),
@@ -1210,7 +1141,7 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
             color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
-          ),
+          )
         ],
       ),
       child: Column(
@@ -1232,9 +1163,8 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             _getStrategyImplication(assessment.status),
-            style: Theme.of(
-              context,
-            ).textTheme.bodyMedium?.copyWith(height: 1.4),
+            style:
+                Theme.of(context).textTheme.bodyMedium?.copyWith(height: 1.4),
           ),
         ],
       ),
@@ -1249,11 +1179,7 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
   }
 
   Widget _buildSummaryStat(
-    BuildContext context,
-    String label,
-    String value,
-    Color color,
-  ) {
+      BuildContext context, String label, String value, Color color) {
     return Column(
       children: [
         Text(
@@ -1268,9 +1194,8 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
           label,
           style: TextStyle(
             fontSize: 10,
-            color: Theme.of(
-              context,
-            ).colorScheme.onSurface.withValues(alpha: 0.6),
+            color:
+                Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -1279,9 +1204,7 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
   }
 
   Widget _buildSignalDistribution(
-    BuildContext context,
-    MacroAssessment assessment,
-  ) {
+      BuildContext context, MacroAssessment assessment) {
     final colorScheme = Theme.of(context).colorScheme;
     int bullish = 0;
     int neutral = 0;
@@ -1354,11 +1277,9 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
                   triggerMode: TooltipTriggerMode.tap,
                   message:
                       "Shows the internal alignment of all 20 indicators. High 'Signal Breadth' (more Bullish than Bearish) confirms the strength of the current regime.",
-                  child: Icon(
-                    Icons.info_outline,
-                    size: 14,
-                    color: colorScheme.onSurface.withValues(alpha: 0.4),
-                  ),
+                  child: Icon(Icons.info_outline,
+                      size: 14,
+                      color: colorScheme.onSurface.withValues(alpha: 0.4)),
                 ),
               ],
             ),
@@ -1402,16 +1323,10 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildDetailedIndicatorCard(
-    BuildContext context,
-    String symbol,
-    String name,
-    MacroIndicator indicator,
-    String description,
-    IconData icon, {
-    String? unit,
-    required Map<MacroIndicator, VoidCallback> indicatorDetailActions,
-  }) {
+  Widget _buildDetailedIndicatorCard(BuildContext context, String symbol,
+      String name, MacroIndicator indicator, String description, IconData icon,
+      {String? unit,
+      required Map<MacroIndicator, VoidCallback> indicatorDetailActions}) {
     final color = _getStatusColor(context, indicator.signal);
     final colorScheme = Theme.of(context).colorScheme;
 
@@ -1460,7 +1375,9 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
                       children: [
                         Text(
                           name,
-                          style: Theme.of(context).textTheme.headlineSmall
+                          style: Theme.of(context)
+                              .textTheme
+                              .headlineSmall
                               ?.copyWith(fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(height: 4),
@@ -1468,13 +1385,10 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
                           children: [
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 4,
-                              ),
+                                  horizontal: 10, vertical: 4),
                               decoration: BoxDecoration(
-                                color: colorScheme.outline.withValues(
-                                  alpha: 0.1,
-                                ),
+                                color:
+                                    colorScheme.outline.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Text(
@@ -1482,9 +1396,8 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w900,
-                                  color: colorScheme.onSurface.withValues(
-                                    alpha: 0.8,
-                                  ),
+                                  color: colorScheme.onSurface
+                                      .withValues(alpha: 0.8),
                                 ),
                               ),
                             ),
@@ -1501,9 +1414,10 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
                 children: [
                   Text(
                     "Analysis & Impact",
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleMedium
+                        ?.copyWith(fontWeight: FontWeight.bold),
                   ),
                   _buildWeightBadge(context, symbol),
                 ],
@@ -1512,9 +1426,9 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
               Text(
                 description,
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: colorScheme.onSurface.withValues(alpha: 0.8),
-                  height: 1.5,
-                ),
+                      color: colorScheme.onSurface.withValues(alpha: 0.8),
+                      height: 1.5,
+                    ),
               ),
               const SizedBox(height: 24),
               Row(
@@ -1575,7 +1489,10 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [color.withValues(alpha: 0.05), colorScheme.surface],
+            colors: [
+              color.withValues(alpha: 0.05),
+              colorScheme.surface,
+            ],
           ),
         ),
         child: Column(
@@ -1617,13 +1534,10 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
                                 const SizedBox(width: 8),
                                 Container(
                                   padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 6,
-                                  ),
+                                      horizontal: 12, vertical: 6),
                                   decoration: BoxDecoration(
-                                    color: colorScheme.outline.withValues(
-                                      alpha: 0.1,
-                                    ),
+                                    color: colorScheme.outline
+                                        .withValues(alpha: 0.1),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: Text(
@@ -1631,9 +1545,8 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
                                     style: TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w900,
-                                      color: colorScheme.onSurface.withValues(
-                                        alpha: 0.9,
-                                      ),
+                                      color: colorScheme.onSurface
+                                          .withValues(alpha: 0.9),
                                     ),
                                   ),
                                 ),
@@ -1643,21 +1556,21 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
                               children: [
                                 if (indicator.trend != 'Unknown') ...[
                                   Icon(
-                                    indicator.trend.toUpperCase().contains(
-                                              'UP',
-                                            ) ||
+                                    indicator.trend
+                                                .toUpperCase()
+                                                .contains('UP') ||
                                             indicator.trend
                                                 .toUpperCase()
                                                 .contains('RISING')
                                         ? Icons.trending_up_rounded
                                         : indicator.trend
-                                                  .toUpperCase()
-                                                  .contains('DOWN') ||
-                                              indicator.trend
-                                                  .toUpperCase()
-                                                  .contains('FALLING')
-                                        ? Icons.trending_down_rounded
-                                        : Icons.trending_flat_rounded,
+                                                    .toUpperCase()
+                                                    .contains('DOWN') ||
+                                                indicator.trend
+                                                    .toUpperCase()
+                                                    .contains('FALLING')
+                                            ? Icons.trending_down_rounded
+                                            : Icons.trending_flat_rounded,
                                     size: 14,
                                     color: color.withValues(alpha: 0.7),
                                   ),
@@ -1665,11 +1578,12 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
                                 ],
                                 Text(
                                   indicator.trend,
-                                  style: Theme.of(context).textTheme.bodySmall
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
                                       ?.copyWith(
-                                        color: colorScheme.onSurface.withValues(
-                                          alpha: 0.6,
-                                        ),
+                                        color: colorScheme.onSurface
+                                            .withValues(alpha: 0.6),
                                         fontWeight: FontWeight.w500,
                                       ),
                                 ),
@@ -1704,14 +1618,12 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
                     const SizedBox(height: 4),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 2,
-                      ),
+                          horizontal: 8, vertical: 2),
                       decoration: BoxDecoration(
-                        color: color.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: color.withValues(alpha: 0.3)),
-                      ),
+                          color: color.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(6),
+                          border:
+                              Border.all(color: color.withValues(alpha: 0.3))),
                       child: Text(
                         indicator.signal,
                         style: TextStyle(
@@ -1721,7 +1633,7 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
                           letterSpacing: 0.5,
                         ),
                       ),
-                    ),
+                    )
                   ],
                 ),
               ],
@@ -1732,21 +1644,18 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: colorScheme.onSurface.withValues(alpha: 0.85),
-                height: 1.4,
-              ),
+                    color: colorScheme.onSurface.withValues(alpha: 0.85),
+                    height: 1.4,
+                  ),
             ),
             if (indicator.momentum != null) ...[
               const SizedBox(height: 12),
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 6,
-                ),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
-                  color: colorScheme.surfaceContainerHighest.withValues(
-                    alpha: 0.5,
-                  ),
+                  color: colorScheme.surfaceContainerHighest
+                      .withValues(alpha: 0.5),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
@@ -1781,11 +1690,7 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
   }
 
   Widget _buildStatTile(
-    BuildContext context,
-    String label,
-    String value,
-    Color valueColor,
-  ) {
+      BuildContext context, String label, String value, Color valueColor) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1793,9 +1698,8 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
           label,
           style: TextStyle(
             fontSize: 12,
-            color: Theme.of(
-              context,
-            ).colorScheme.onSurface.withValues(alpha: 0.5),
+            color:
+                Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -1813,12 +1717,9 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
   }
 
   Widget _buildAllocationCard(
-    BuildContext context,
-    AssetAllocation allocation,
-  ) {
+      BuildContext context, AssetAllocation allocation) {
     final colorScheme = Theme.of(context).colorScheme;
-    final canNavigateToRebalancing =
-        user != null &&
+    final canNavigateToRebalancing = user != null &&
         userDocRef != null &&
         brokerageUser != null &&
         brokerageUser!.accounts.isNotEmpty;
@@ -1848,7 +1749,7 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
             charts.ColorUtil.fromDartColor(d.color),
         data: data,
         labelAccessorFn: (_AllocationData d, _) => '${d.value.toInt()}%',
-      ),
+      )
     ];
 
     return Container(
@@ -1873,7 +1774,7 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
                     arcRendererDecorators: [
                       charts.ArcLabelDecorator<String>(
                         labelPosition: charts.ArcLabelPosition.inside,
-                      ),
+                      )
                     ],
                   ),
                 ),
@@ -1883,29 +1784,13 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
                 child: Column(
                   children: [
                     _buildAllocationRow(
-                      context,
-                      "Equity",
-                      allocation.equity,
-                      Colors.blue,
-                    ),
+                        context, "Equity", allocation.equity, Colors.blue),
+                    _buildAllocationRow(context, "Fixed Inc",
+                        allocation.fixedIncome, Colors.purple),
                     _buildAllocationRow(
-                      context,
-                      "Fixed Inc",
-                      allocation.fixedIncome,
-                      Colors.purple,
-                    ),
-                    _buildAllocationRow(
-                      context,
-                      "Cash",
-                      allocation.cash,
-                      Colors.green,
-                    ),
-                    _buildAllocationRow(
-                      context,
-                      "Commodities",
-                      allocation.commodities,
-                      Colors.orange,
-                    ),
+                        context, "Cash", allocation.cash, Colors.green),
+                    _buildAllocationRow(context, "Commodities",
+                        allocation.commodities, Colors.orange),
                   ],
                 ),
               ),
@@ -1922,10 +1807,8 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
                 icon: const Icon(Icons.balance, size: 18),
                 label: const Text('Apply to Rebalancing'),
                 style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 12,
-                    horizontal: 16,
-                  ),
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                 ),
               ),
             ),
@@ -1942,11 +1825,11 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
           (double.tryParse(allocation.equity.replaceAll('%', '')) ?? 0) / 100,
       'Fixed Income':
           (double.tryParse(allocation.fixedIncome.replaceAll('%', '')) ?? 0) /
-          100,
+              100,
       'Cash': (double.tryParse(allocation.cash.replaceAll('%', '')) ?? 0) / 100,
       'Crypto':
           (double.tryParse(allocation.commodities.replaceAll('%', '')) ?? 0) /
-          100,
+              100,
       'Options': 0.0,
     };
 
@@ -1966,11 +1849,7 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
   }
 
   Widget _buildAllocationRow(
-    BuildContext context,
-    String label,
-    String value,
-    Color color,
-  ) {
+      BuildContext context, String label, String value, Color color) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2.0),
       child: Row(
@@ -1982,10 +1861,8 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
                 Container(
                   width: 8,
                   height: 8,
-                  decoration: BoxDecoration(
-                    color: color,
-                    shape: BoxShape.circle,
-                  ),
+                  decoration:
+                      BoxDecoration(color: color, shape: BoxShape.circle),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
@@ -2000,21 +1877,18 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          Text(
-            value,
-            style: Theme.of(
-              context,
-            ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.bold),
-          ),
+          Text(value,
+              style: Theme.of(context)
+                  .textTheme
+                  .bodySmall
+                  ?.copyWith(fontWeight: FontWeight.bold)),
         ],
       ),
     );
   }
 
   Widget _buildDivergenceSection(
-    BuildContext context,
-    MacroAssessment assessment,
-  ) {
+      BuildContext context, MacroAssessment assessment) {
     final div = assessment.signalDivergence;
     final total = div.bullishCount + div.bearishCount + div.neutralCount;
     if (total == 0) return const SizedBox.shrink();
@@ -2029,20 +1903,18 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
             Text(
               "Signal Composition",
               style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: colorScheme.onSurface.withValues(alpha: 0.6),
-              ),
+                    fontWeight: FontWeight.bold,
+                    color: colorScheme.onSurface.withValues(alpha: 0.6),
+                  ),
             ),
             const SizedBox(width: 8),
             Tooltip(
               triggerMode: TooltipTriggerMode.tap,
               message:
                   "Aggregated view of all active signals. Conflict (Divergence) occurs when key indicators like VIX and SPY move in unexpected directions together, signaling potential instability.",
-              child: Icon(
-                Icons.info_outline,
-                size: 14,
-                color: colorScheme.onSurface.withValues(alpha: 0.4),
-              ),
+              child: Icon(Icons.info_outline,
+                  size: 14,
+                  color: colorScheme.onSurface.withValues(alpha: 0.4)),
             ),
             const Spacer(),
             if (div.isConflicted)
@@ -2059,10 +1931,9 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
                     Text(
                       "DIVERGENCE DETECTED",
                       style: TextStyle(
-                        color: Colors.orange,
-                        fontSize: 8,
-                        fontWeight: FontWeight.bold,
-                      ),
+                          color: Colors.orange,
+                          fontSize: 8,
+                          fontWeight: FontWeight.bold),
                     ),
                   ],
                 ),
@@ -2115,19 +1986,16 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
             ),
             child: Row(
               children: [
-                const Icon(
-                  Icons.warning_rounded,
-                  color: Colors.orange,
-                  size: 20,
-                ),
+                const Icon(Icons.warning_rounded,
+                    color: Colors.orange, size: 20),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     "Mixed signals detected. Traditional correlations are decoupling, which often happens at major market turning points or during 'volatility expansion' regimes.",
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Colors.orange,
-                      fontWeight: FontWeight.w500,
-                    ),
+                          color: Colors.orange,
+                          fontWeight: FontWeight.w500,
+                        ),
                   ),
                 ),
               ],
@@ -2139,11 +2007,7 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
   }
 
   Widget _buildDivLabel(
-    BuildContext context,
-    String label,
-    int count,
-    Color color,
-  ) {
+      BuildContext context, String label, int count, Color color) {
     return Row(
       children: [
         Container(
@@ -2155,11 +2019,12 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
         Text(
           "$label ($count)",
           style: Theme.of(context).textTheme.labelSmall?.copyWith(
-            color: Theme.of(
-              context,
-            ).colorScheme.onSurface.withValues(alpha: 0.7),
-            fontSize: 10,
-          ),
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSurface
+                    .withValues(alpha: 0.7),
+                fontSize: 10,
+              ),
         ),
       ],
     );
@@ -2238,11 +2103,8 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildIndicatorHeatmap(
-    BuildContext context,
-    MacroAssessment assessment,
-    Map<MacroIndicator, VoidCallback> actions,
-  ) {
+  Widget _buildIndicatorHeatmap(BuildContext context,
+      MacroAssessment assessment, Map<MacroIndicator, VoidCallback> actions) {
     final Map<String, MacroIndicator?> indicatorsMap = {
       'VIX': assessment.indicators.vix,
       'TNX': assessment.indicators.tnx,
@@ -2290,24 +2152,20 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
                       end: Alignment.bottomRight,
                       colors: [
                         color.withValues(
-                          alpha: isBullish || isBearish ? 0.25 : 0.1,
-                        ),
+                            alpha: isBullish || isBearish ? 0.25 : 0.1),
                         color.withValues(alpha: 0.05),
                       ],
                     ),
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
                       color: color.withValues(
-                        alpha: isBullish || isBearish ? 0.5 : 0.2,
-                      ),
+                          alpha: isBullish || isBearish ? 0.5 : 0.2),
                       width: isBullish || isBearish ? 1.2 : 0.8,
                     ),
                   ),
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 4,
-                      horizontal: 2,
-                    ),
+                    padding:
+                        const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -2330,10 +2188,9 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
                                     key == 'OIL' ||
                                     key == 'GOLD'
                                 ? (value.value! > 1000
-                                      ? '${(value.value! / 1000).toStringAsFixed(1)}k'
-                                      : value.value!.toStringAsFixed(
-                                          value.value! < 10 ? 1 : 0,
-                                        ))
+                                    ? '${(value.value! / 1000).toStringAsFixed(1)}k'
+                                    : value.value!.toStringAsFixed(
+                                        value.value! < 10 ? 1 : 0))
                                 : value.value!.toStringAsFixed(1),
                             style: TextStyle(
                               color: color,
@@ -2364,20 +2221,13 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
   }
 
   Widget _buildMacroHistoryChart(
-    BuildContext context,
-    List<MacroAssessment> history,
-  ) {
+      BuildContext context, List<MacroAssessment> history) {
     if (history.isEmpty) return const SizedBox.shrink();
     return _MacroScoreTimeline(history: history);
   }
 
-  Widget _buildSectorCard(
-    BuildContext context,
-    String title,
-    List<String> sectors,
-    Color color,
-    IconData icon,
-  ) {
+  Widget _buildSectorCard(BuildContext context, String title,
+      List<String> sectors, Color color, IconData icon) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -2404,18 +2254,16 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
-          ...sectors.map(
-            (s) => Padding(
-              padding: const EdgeInsets.only(bottom: 4),
-              child: Text(
-                "• $s",
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: Theme.of(context).colorScheme.onSurface,
+          ...sectors.map((s) => Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Text(
+                  "• $s",
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
                 ),
-              ),
-            ),
-          ),
+              )),
         ],
       ),
     );
@@ -2478,34 +2326,25 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
                               Container(
                                 padding: const EdgeInsets.all(12),
                                 decoration: BoxDecoration(
-                                  color: colorScheme.primary.withValues(
-                                    alpha: 0.1,
-                                  ),
+                                  color: colorScheme.primary
+                                      .withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(16),
                                 ),
-                                child: Icon(
-                                  Icons.psychology,
-                                  color: colorScheme.primary,
-                                  size: 32,
-                                ),
+                                child: Icon(Icons.psychology,
+                                    color: colorScheme.primary, size: 32),
                               ),
                               const SizedBox(width: 20),
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(
-                                      "Macro Analysis",
-                                      style: textTheme.headlineSmall?.copyWith(
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    Text(
-                                      "Methodology & Regime Insights",
-                                      style: textTheme.bodySmall?.copyWith(
-                                        color: colorScheme.secondary,
-                                      ),
-                                    ),
+                                    Text("Macro Analysis",
+                                        style: textTheme.headlineSmall
+                                            ?.copyWith(
+                                                fontWeight: FontWeight.bold)),
+                                    Text("Methodology & Regime Insights",
+                                        style: textTheme.bodySmall?.copyWith(
+                                            color: colorScheme.secondary)),
                                   ],
                                 ),
                               ),
@@ -2526,111 +2365,83 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
                               children: [
                                 Row(
                                   children: [
-                                    Icon(
-                                      Icons.auto_awesome,
-                                      size: 20,
-                                      color: colorScheme.primary,
-                                    ),
+                                    Icon(Icons.auto_awesome,
+                                        size: 20, color: colorScheme.primary),
                                     const SizedBox(width: 8),
-                                    Text(
-                                      "The Macro Engine",
-                                      style: textTheme.titleMedium?.copyWith(
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
+                                    Text("The Macro Engine",
+                                        style: textTheme.titleMedium?.copyWith(
+                                            fontWeight: FontWeight.bold)),
                                   ],
                                 ),
                                 const SizedBox(height: 12),
                                 Text(
                                   "RealizeAlpha's proprietary engine synthesizes 20 institutional-grade indicators into a single actionable signal. It continuously monitors the 'Market Regime'—the underlying DNA of price action—to distinguish between sustainable trends and trap-filled environments.",
-                                  style: textTheme.bodyMedium?.copyWith(
-                                    height: 1.5,
-                                  ),
+                                  style: textTheme.bodyMedium
+                                      ?.copyWith(height: 1.5),
                                 ),
                               ],
                             ),
                           ),
                           const SizedBox(height: 32),
 
-                          Text(
-                            "Regime Classifications",
-                            style: textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 18,
-                            ),
-                          ),
+                          Text("Regime Classifications",
+                              style: textTheme.titleLarge?.copyWith(
+                                  fontWeight: FontWeight.bold, fontSize: 18)),
                           const SizedBox(height: 8),
-                          Text(
-                            "How we quantify market risk and opportunity",
-                            style: textTheme.bodySmall,
-                          ),
+                          Text("How we quantify market risk and opportunity",
+                              style: textTheme.bodySmall),
                           const SizedBox(height: 20),
                           _buildRegimeItem(
-                            context,
-                            "RISK ON",
-                            "SCORE: 60 - 100",
-                            _getStatusColor(context, "RISK_ON"),
-                            "Constructive environment. High correlation between price and market internals. Volatility is compressed, and credit spreads are tightening. Focus on growth and aggressive accumulation.",
-                          ),
+                              context,
+                              "RISK ON",
+                              "SCORE: 60 - 100",
+                              _getStatusColor(context, "RISK_ON"),
+                              "Constructive environment. High correlation between price and market internals. Volatility is compressed, and credit spreads are tightening. Focus on growth and aggressive accumulation."),
                           _buildRegimeItem(
-                            context,
-                            "NEUTRAL",
-                            "SCORE: 41 - 59",
-                            _getStatusColor(context, "NEUTRAL"),
-                            "Transition phase. Indicators are Divergent (e.g., price is up but breadth is down). Expect high rotation, 'sawtooth' price action, and sector-specific performance. Capital preservation starts becoming priority.",
-                          ),
+                              context,
+                              "NEUTRAL",
+                              "SCORE: 41 - 59",
+                              _getStatusColor(context, "NEUTRAL"),
+                              "Transition phase. Indicators are Divergent (e.g., price is up but breadth is down). Expect high rotation, 'sawtooth' price action, and sector-specific performance. Capital preservation starts becoming priority."),
                           _buildRegimeItem(
-                            context,
-                            "RISK OFF",
-                            "SCORE: 0 - 40",
-                            _getStatusColor(context, "RISK_OFF"),
-                            "Defensive environment. Systemic stress detected in credit or volatility. Trend persistence is low. Focus on hedging, cash positions, and reducing beta exposure. Avoid 'dip-buying' until internals stabilize.",
-                          ),
+                              context,
+                              "RISK OFF",
+                              "SCORE: 0 - 40",
+                              _getStatusColor(context, "RISK_OFF"),
+                              "Defensive environment. Systemic stress detected in credit or volatility. Trend persistence is low. Focus on hedging, cash positions, and reducing beta exposure. Avoid 'dip-buying' until internals stabilize."),
 
                           const Divider(height: 48),
 
-                          Text(
-                            "Core Analysis Pillars",
-                            style: textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 18,
-                            ),
-                          ),
+                          Text("Core Analysis Pillars",
+                              style: textTheme.titleLarge?.copyWith(
+                                  fontWeight: FontWeight.bold, fontSize: 18)),
                           const SizedBox(height: 20),
                           _buildPillarItem(
-                            context,
-                            Icons.speed,
-                            "Volatility Multi-Asset",
-                            "Analyzes VIX (Equities), MOVE (Bonds), and GVZ (Gold) to detect cross-asset fear levels and regime shifts.",
-                          ),
+                              context,
+                              Icons.speed,
+                              "Volatility Multi-Asset",
+                              "Analyzes VIX (Equities), MOVE (Bonds), and GVZ (Gold) to detect cross-asset fear levels and regime shifts."),
                           _buildPillarItem(
-                            context,
-                            Icons.trending_up,
-                            "Credit & Liquidity Pulse",
-                            "Monitors Junk Bond spreads (HYG) and the Yield Curve (10Y-2Y) to track systemic liquidity and recession probability.",
-                          ),
+                              context,
+                              Icons.trending_up,
+                              "Credit & Liquidity Pulse",
+                              "Monitors Junk Bond spreads (HYG) and the Yield Curve (10Y-2Y) to track systemic liquidity and recession probability."),
                           _buildPillarItem(
-                            context,
-                            Icons.grid_view_rounded,
-                            "Trend Breadth internals",
-                            "Uses NYSE Advance-Decline, New Highs/Lows, and Volatility Skew to verify if the 'majority' of stocks are participating.",
-                          ),
+                              context,
+                              Icons.grid_view_rounded,
+                              "Trend Breadth internals",
+                              "Uses NYSE Advance-Decline, New Highs/Lows, and Volatility Skew to verify if the 'majority' of stocks are participating."),
                           _buildPillarItem(
-                            context,
-                            Icons.pie_chart_rounded,
-                            "Contrarian & Sentiment",
-                            "Tracks extreme Put/Call ratios and Dark Pool positioning to identify potential exhaustion and reversal points.",
-                          ),
+                              context,
+                              Icons.pie_chart_rounded,
+                              "Contrarian & Sentiment",
+                              "Tracks extreme Put/Call ratios and Dark Pool positioning to identify potential exhaustion and reversal points."),
 
                           const Divider(height: 48),
 
-                          Text(
-                            "Tactical Strategy Guide",
-                            style: textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 18,
-                            ),
-                          ),
+                          Text("Tactical Strategy Guide",
+                              style: textTheme.titleLarge?.copyWith(
+                                  fontWeight: FontWeight.bold, fontSize: 18)),
                           const SizedBox(height: 20),
                           _buildStrategyGuideItem(
                             context,
@@ -2661,16 +2472,14 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
                               onPressed: () => Navigator.pop(context),
                               style: FilledButton.styleFrom(
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
+                                    borderRadius: BorderRadius.circular(16)),
                                 padding: const EdgeInsets.all(20),
                                 backgroundColor: colorScheme.primaryContainer,
                                 foregroundColor: colorScheme.onPrimaryContainer,
                               ),
-                              child: const Text(
-                                "Understand Regime",
-                                style: TextStyle(fontWeight: FontWeight.bold),
-                              ),
+                              child: const Text("Understand Regime",
+                                  style:
+                                      TextStyle(fontWeight: FontWeight.bold)),
                             ),
                           ),
                           const SizedBox(height: 20),
@@ -2687,13 +2496,8 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildRegimeItem(
-    BuildContext context,
-    String title,
-    String range,
-    Color color,
-    String description,
-  ) {
+  Widget _buildRegimeItem(BuildContext context, String title, String range,
+      Color color, String description) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16.0),
       child: Row(
@@ -2709,10 +2513,7 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
             child: Text(
               range,
               style: TextStyle(
-                color: color,
-                fontWeight: FontWeight.bold,
-                fontSize: 10,
-              ),
+                  color: color, fontWeight: FontWeight.bold, fontSize: 10),
             ),
           ),
           const SizedBox(width: 12),
@@ -2720,14 +2521,11 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    color: color,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 12,
-                  ),
-                ),
+                Text(title,
+                    style: TextStyle(
+                        color: color,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 12)),
                 Text(description, style: Theme.of(context).textTheme.bodySmall),
               ],
             ),
@@ -2738,11 +2536,7 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
   }
 
   Widget _buildPillarItem(
-    BuildContext context,
-    IconData icon,
-    String title,
-    String description,
-  ) {
+      BuildContext context, IconData icon, String title, String description) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12.0),
       child: Row(
@@ -2783,11 +2577,7 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
   }
 
   Widget _buildStrategyGuideItem(
-    BuildContext context,
-    String title,
-    String strategy,
-    Color color,
-  ) {
+      BuildContext context, String title, String strategy, Color color) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12.0),
       child: Container(
@@ -2800,21 +2590,15 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              title,
-              style: TextStyle(
-                color: color,
-                fontWeight: FontWeight.bold,
-                fontSize: 13,
-              ),
-            ),
+            Text(title,
+                style: TextStyle(
+                    color: color, fontWeight: FontWeight.bold, fontSize: 13)),
             const SizedBox(height: 4),
-            Text(
-              strategy,
-              style: Theme.of(
-                context,
-              ).textTheme.bodySmall?.copyWith(height: 1.3),
-            ),
+            Text(strategy,
+                style: Theme.of(context)
+                    .textTheme
+                    .bodySmall
+                    ?.copyWith(height: 1.3)),
           ],
         ),
       ),
@@ -2839,9 +2623,9 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
             child: Text(
               "Macro signals are probabilistic. Market conditions can shift rapidly. External events (economic prints, geopolitics) may override regime status.",
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: colorScheme.error,
-                fontStyle: FontStyle.italic,
-              ),
+                    color: colorScheme.error,
+                    fontStyle: FontStyle.italic,
+                  ),
             ),
           ),
         ],
@@ -3056,50 +2840,48 @@ class _MacroScoreTimelineState extends State<_MacroScoreTimeline> {
         continue;
       }
 
-      events.add(
-        _MacroTimelineEvent(
-          previousAssessment: previous,
-          assessment: current,
-          title: statusChanged
-              ? '${previous.status.replaceAll('_', ' ')} to ${current.status.replaceAll('_', ' ')}'
-              : indicatorChanges.length == 1
-              ? '${indicatorChanges.first.split(':').first} signal changed'
-              : indicatorChanges.isNotEmpty
-              ? '${indicatorChanges.length} indicator signals changed'
-              : scoreChange > 0
-              ? 'Score increased sharply'
-              : 'Score decreased sharply',
-          summary:
-              'Score ${previous.score} to ${current.score} (${scoreChange >= 0 ? '+' : ''}$scoreChange)',
-          indicatorChanges: indicatorChanges,
-        ),
-      );
+      events.add(_MacroTimelineEvent(
+        previousAssessment: previous,
+        assessment: current,
+        title: statusChanged
+            ? '${previous.status.replaceAll('_', ' ')} to ${current.status.replaceAll('_', ' ')}'
+            : indicatorChanges.length == 1
+                ? '${indicatorChanges.first.split(':').first} signal changed'
+                : indicatorChanges.isNotEmpty
+                    ? '${indicatorChanges.length} indicator signals changed'
+                    : scoreChange > 0
+                        ? 'Score increased sharply'
+                        : 'Score decreased sharply',
+        summary:
+            'Score ${previous.score} to ${current.score} (${scoreChange >= 0 ? '+' : ''}$scoreChange)',
+        indicatorChanges: indicatorChanges,
+      ));
     }
     return events;
   }
 
   Map<String, MacroIndicator?> _indicatorMap(MacroIndicators indicators) => {
-    'VIX': indicators.vix,
-    'TNX': indicators.tnx,
-    'SPY': indicators.marketTrend,
-    'QQQ': indicators.technologyLeadership,
-    'CURV': indicators.yieldCurve,
-    'PCR': indicators.putCallRatio,
-    'BTC': indicators.btc,
-    'HYG': indicators.hyg,
-    'DXY': indicators.dxy,
-    'GOLD': indicators.gold,
-    'OIL': indicators.oil,
-    'NYA': indicators.advDecline,
-    'IWM': indicators.riskAppetite,
-    'LQD': indicators.creditSpreads,
-    'EEM': indicators.globalRisk,
-    'COP': indicators.copper,
-    'MOVE': indicators.interestRateVol,
-    'KRE': indicators.bankingHealth,
-    'RSP': indicators.breadthQuality,
-    'FXI': indicators.globalLeadership,
-  };
+        'VIX': indicators.vix,
+        'TNX': indicators.tnx,
+        'SPY': indicators.marketTrend,
+        'QQQ': indicators.technologyLeadership,
+        'CURV': indicators.yieldCurve,
+        'PCR': indicators.putCallRatio,
+        'BTC': indicators.btc,
+        'HYG': indicators.hyg,
+        'DXY': indicators.dxy,
+        'GOLD': indicators.gold,
+        'OIL': indicators.oil,
+        'NYA': indicators.advDecline,
+        'IWM': indicators.riskAppetite,
+        'LQD': indicators.creditSpreads,
+        'EEM': indicators.globalRisk,
+        'COP': indicators.copper,
+        'MOVE': indicators.interestRateVol,
+        'KRE': indicators.bankingHealth,
+        'RSP': indicators.breadthQuality,
+        'FXI': indicators.globalLeadership,
+      };
 
   String _formatIndicatorValue(double value) {
     final magnitude = value.abs();
@@ -3147,14 +2929,16 @@ class _MacroScoreTimelineState extends State<_MacroScoreTimeline> {
                       children: [
                         Text(
                           event.title,
-                          style: Theme.of(context).textTheme.titleLarge
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleLarge
                               ?.copyWith(fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          DateFormat.yMMMd().add_jm().format(
-                            assessment.timestamp,
-                          ),
+                          DateFormat.yMMMd()
+                              .add_jm()
+                              .format(assessment.timestamp),
                           style: Theme.of(context).textTheme.bodySmall,
                         ),
                       ],
@@ -3163,10 +2947,8 @@ class _MacroScoreTimelineState extends State<_MacroScoreTimeline> {
                 ],
               ),
               const SizedBox(height: 20),
-              Text(
-                event.summary,
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
+              Text(event.summary,
+                  style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 16),
               Wrap(
                 spacing: 8,
@@ -3178,15 +2960,9 @@ class _MacroScoreTimelineState extends State<_MacroScoreTimeline> {
                     assessment.status.replaceAll('_', ' '),
                   ),
                   _buildEventMetric(
-                    context,
-                    'Score',
-                    '${assessment.score}/100',
-                  ),
+                      context, 'Score', '${assessment.score}/100'),
                   _buildEventMetric(
-                    context,
-                    'Confidence',
-                    '${assessment.confidence}%',
-                  ),
+                      context, 'Confidence', '${assessment.confidence}%'),
                   _buildEventMetric(
                     context,
                     'Breadth',
@@ -3196,12 +2972,11 @@ class _MacroScoreTimelineState extends State<_MacroScoreTimeline> {
               ),
               if (event.previousAssessment.status != assessment.status) ...[
                 const SizedBox(height: 20),
-                Text(
-                  'Regime Transition',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+                Text('Regime Transition',
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleMedium
+                        ?.copyWith(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 8),
                 Text(
                   '${event.previousAssessment.status.replaceAll('_', ' ')}  →  ${assessment.status.replaceAll('_', ' ')}',
@@ -3213,12 +2988,11 @@ class _MacroScoreTimelineState extends State<_MacroScoreTimeline> {
               ],
               if (event.indicatorChanges.isNotEmpty) ...[
                 const SizedBox(height: 20),
-                Text(
-                  'Indicator Changes (${event.indicatorChanges.length})',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+                Text('Indicator Changes (${event.indicatorChanges.length})',
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleMedium
+                        ?.copyWith(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 8),
                 ...event.indicatorChanges.map(
                   (change) => Padding(
@@ -3226,11 +3000,8 @@ class _MacroScoreTimelineState extends State<_MacroScoreTimeline> {
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(
-                          Icons.change_circle_outlined,
-                          size: 18,
-                          color: colorScheme.primary,
-                        ),
+                        Icon(Icons.change_circle_outlined,
+                            size: 18, color: colorScheme.primary),
                         const SizedBox(width: 8),
                         Expanded(child: Text(change)),
                       ],
@@ -3240,23 +3011,21 @@ class _MacroScoreTimelineState extends State<_MacroScoreTimeline> {
               ],
               if (assessment.reason.isNotEmpty) ...[
                 const SizedBox(height: 20),
-                Text(
-                  'Assessment Reason',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+                Text('Assessment Reason',
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleMedium
+                        ?.copyWith(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 6),
                 MarkdownBody(data: assessment.reason),
               ],
               if (assessment.aiAnalysis?.isNotEmpty == true) ...[
                 const SizedBox(height: 20),
-                Text(
-                  'AI Analysis',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+                Text('AI Analysis',
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleMedium
+                        ?.copyWith(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 6),
                 MarkdownBody(data: assessment.aiAnalysis!),
               ],
@@ -3319,16 +3088,13 @@ class _MacroScoreTimelineState extends State<_MacroScoreTimeline> {
         : history.last;
     final selectedIndex = history.indexOf(selected);
     final previous = selectedIndex > 0 ? history[selectedIndex - 1] : null;
-    final scoreChange = previous == null
-        ? null
-        : selected.score - previous.score;
+    final scoreChange =
+        previous == null ? null : selected.score - previous.score;
     final selectedColor = _statusColor(context, selected.status);
     final axisColor = charts.ColorUtil.fromDartColor(
-      colorScheme.onSurface.withValues(alpha: 0.55),
-    );
+        colorScheme.onSurface.withValues(alpha: 0.55));
     final gridColor = charts.ColorUtil.fromDartColor(
-      colorScheme.outline.withValues(alpha: 0.12),
-    );
+        colorScheme.outline.withValues(alpha: 0.12));
 
     final series = <charts.Series<MacroAssessment, DateTime>>[
       charts.Series<MacroAssessment, DateTime>(
@@ -3378,25 +3144,20 @@ class _MacroScoreTimelineState extends State<_MacroScoreTimeline> {
               showSelectedIcon: false,
               segments: const [
                 ButtonSegment(
-                  value: _ScoreTimelineRange.sevenDays,
-                  label: Text('7D'),
-                ),
+                    value: _ScoreTimelineRange.sevenDays, label: Text('7D')),
                 ButtonSegment(
-                  value: _ScoreTimelineRange.fourteenDays,
-                  label: Text('14D'),
-                ),
+                    value: _ScoreTimelineRange.fourteenDays,
+                    label: Text('14D')),
                 ButtonSegment(
-                  value: _ScoreTimelineRange.thirtyDays,
-                  label: Text('30D'),
-                ),
+                    value: _ScoreTimelineRange.thirtyDays, label: Text('30D')),
                 ButtonSegment(
-                  value: _ScoreTimelineRange.all,
-                  label: Text('All'),
-                ),
+                    value: _ScoreTimelineRange.all, label: Text('All')),
               ],
               selected: {_range},
               onSelectionChanged: (selection) => _selectRange(selection.first),
-              style: const ButtonStyle(visualDensity: VisualDensity.compact),
+              style: const ButtonStyle(
+                visualDensity: VisualDensity.compact,
+              ),
             ),
           ),
           const SizedBox(height: 14),
@@ -3418,23 +3179,17 @@ class _MacroScoreTimelineState extends State<_MacroScoreTimeline> {
                   child: Column(
                     children: [
                       Expanded(
-                        flex: 40,
-                        child: ColoredBox(
-                          color: Colors.green.withValues(alpha: 0.04),
-                        ),
-                      ),
+                          flex: 40,
+                          child: ColoredBox(
+                              color: Colors.green.withValues(alpha: 0.04))),
                       Expanded(
-                        flex: 20,
-                        child: ColoredBox(
-                          color: Colors.amber.withValues(alpha: 0.04),
-                        ),
-                      ),
+                          flex: 20,
+                          child: ColoredBox(
+                              color: Colors.amber.withValues(alpha: 0.04))),
                       Expanded(
-                        flex: 40,
-                        child: ColoredBox(
-                          color: Colors.red.withValues(alpha: 0.04),
-                        ),
-                      ),
+                          flex: 40,
+                          child: ColoredBox(
+                              color: Colors.red.withValues(alpha: 0.04))),
                     ],
                   ),
                 ),
@@ -3459,8 +3214,7 @@ class _MacroScoreTimelineState extends State<_MacroScoreTimeline> {
                   primaryMeasureAxis: charts.NumericAxisSpec(
                     viewport: const charts.NumericExtents(0, 100),
                     tickProviderSpec: const charts.BasicNumericTickProviderSpec(
-                      desiredTickCount: 5,
-                    ),
+                        desiredTickCount: 5),
                     renderSpec: charts.GridlineRendererSpec(
                       labelStyle: charts.TextStyleSpec(color: axisColor),
                       lineStyle: charts.LineStyleSpec(color: gridColor),
@@ -3469,8 +3223,7 @@ class _MacroScoreTimelineState extends State<_MacroScoreTimeline> {
                   domainAxis: charts.DateTimeAxisSpec(
                     tickFormatterSpec:
                         charts.BasicDateTimeTickFormatterSpec.fromDateFormat(
-                          _axisDateFormat(history),
-                        ),
+                            _axisDateFormat(history)),
                     renderSpec: charts.SmallTickRendererSpec(
                       labelStyle: charts.TextStyleSpec(color: axisColor),
                       lineStyle: charts.LineStyleSpec(color: gridColor),
@@ -3540,9 +3293,10 @@ class _MacroScoreTimelineState extends State<_MacroScoreTimeline> {
                 const SizedBox(width: 6),
                 Text(
                   'Events',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.bold),
+                  style: Theme.of(context)
+                      .textTheme
+                      .labelLarge
+                      ?.copyWith(fontWeight: FontWeight.bold),
                 ),
               ],
             ),
@@ -3562,8 +3316,7 @@ class _MacroScoreTimelineState extends State<_MacroScoreTimeline> {
                     child: Tooltip(
                       message: event.title,
                       child: ChoiceChip(
-                        selected:
-                            event.assessment.timestamp ==
+                        selected: event.assessment.timestamp ==
                             _selectedEvent?.assessment.timestamp,
                         avatar: Container(
                           width: 10,
@@ -3642,8 +3395,8 @@ class _MacroScoreTimelineState extends State<_MacroScoreTimeline> {
                       color: scoreChange > 0
                           ? Colors.green
                           : scoreChange < 0
-                          ? Colors.red
-                          : colorScheme.onSurfaceVariant,
+                              ? Colors.red
+                              : colorScheme.onSurfaceVariant,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -3657,8 +3410,7 @@ class _MacroScoreTimelineState extends State<_MacroScoreTimeline> {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
                 side: BorderSide(
-                  color: colorScheme.primary.withValues(alpha: 0.25),
-                ),
+                    color: colorScheme.primary.withValues(alpha: 0.25)),
               ),
               clipBehavior: Clip.antiAlias,
               child: InkWell(
@@ -3676,36 +3428,36 @@ class _MacroScoreTimelineState extends State<_MacroScoreTimeline> {
                           children: [
                             Text(
                               _selectedEvent!.title,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                              ),
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.bold),
                             ),
                             Text(_selectedEvent!.summary),
                             if (_selectedEvent!
-                                .indicatorChanges
-                                .isNotEmpty) ...[
+                                .indicatorChanges.isNotEmpty) ...[
                               const SizedBox(height: 4),
                               ..._selectedEvent!.indicatorChanges
                                   .take(3)
-                                  .map(
-                                    (change) => Text(
-                                      change,
-                                      style: Theme.of(
-                                        context,
-                                      ).textTheme.bodySmall,
-                                    ),
-                                  ),
+                                  .map((change) => Text(
+                                        change,
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .bodySmall,
+                                      )),
                               if (_selectedEvent!.indicatorChanges.length > 3)
                                 Text(
                                   '+${_selectedEvent!.indicatorChanges.length - 3} more changes',
-                                  style: Theme.of(context).textTheme.bodySmall
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
                                       ?.copyWith(fontWeight: FontWeight.bold),
                                 ),
                             ],
                             const SizedBox(height: 4),
                             Text(
                               'Tap for full event details',
-                              style: Theme.of(context).textTheme.labelSmall
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .labelSmall
                                   ?.copyWith(color: colorScheme.primary),
                             ),
                           ],
@@ -3722,8 +3474,8 @@ class _MacroScoreTimelineState extends State<_MacroScoreTimeline> {
           Text(
             'Tap or drag across the timeline to inspect a score.',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: colorScheme.onSurfaceVariant,
-            ),
+                  color: colorScheme.onSurfaceVariant,
+                ),
           ),
         ],
       ),
@@ -3786,10 +3538,8 @@ class _MacroScoreGaugePainter extends CustomPainter {
       ..strokeCap = StrokeCap.round
       ..strokeWidth = strokeWidth;
 
-    final rect = Rect.fromCircle(
-      center: center,
-      radius: radius - strokeWidth / 2,
-    );
+    final rect =
+        Rect.fromCircle(center: center, radius: radius - strokeWidth / 2);
     const startAngle = 0.75 * math.pi;
     const totalSweep = 1.5 * math.pi;
 
@@ -3811,7 +3561,13 @@ class _MacroScoreGaugePainter extends CustomPainter {
     // Normalize score to 0..1 then to radians
     final sweepAngle = (score / 100).clamp(0.0, 1.0) * totalSweep;
 
-    canvas.drawArc(rect, startAngle, sweepAngle, false, progressPaint);
+    canvas.drawArc(
+      rect,
+      startAngle,
+      sweepAngle,
+      false,
+      progressPaint,
+    );
 
     // Mark the same Risk-Off/Neutral/Risk-On thresholds used by the backend.
     final labelPaint = Paint()

@@ -24,10 +24,8 @@ class AgenticTradingCardWidget extends StatelessWidget {
     this.brokerageUser,
     this.service,
     this.analytics,
-    this.outerPadding = const EdgeInsets.symmetric(
-      horizontal: 16.0,
-      vertical: 8.0,
-    ),
+    this.outerPadding =
+        const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
   });
 
   @override
@@ -84,16 +82,15 @@ class AgenticTradingCardWidget extends StatelessWidget {
                             MaterialPageRoute(
                               builder: (context) =>
                                   AgenticTradingSettingsWidget(
-                                    user: user!,
-                                    userDocRef: userDocRef!,
-                                    service: service!,
-                                  ),
+                                user: user!,
+                                userDocRef: userDocRef!,
+                                service: service!,
+                              ),
                             ),
                           );
                         },
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(20),
-                  ),
+                  borderRadius:
+                      const BorderRadius.vertical(top: Radius.circular(20)),
                   child: Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: Column(
@@ -121,20 +118,22 @@ class AgenticTradingCardWidget extends StatelessWidget {
                                 children: [
                                   Text(
                                     'Stocks Auto-Trading', //Agentic Trading
-                                    style: theme.textTheme.titleMedium
-                                        ?.copyWith(fontWeight: FontWeight.bold),
+                                    style:
+                                        theme.textTheme.titleMedium?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                                   Text(
                                     isEnabled
                                         ? (isPaper
-                                              ? 'Live Paper Trading'
-                                              : 'Live Real Trading')
+                                            ? 'Live Paper Trading'
+                                            : 'Live Real Trading')
                                         : 'Inactive',
                                     style: theme.textTheme.bodySmall?.copyWith(
                                       color: isEnabled
                                           ? (isPaper
-                                                ? Colors.blue
-                                                : Colors.green)
+                                              ? Colors.blue
+                                              : Colors.green)
                                           : colorScheme.onSurfaceVariant,
                                       fontWeight: FontWeight.w600,
                                     ),
@@ -155,10 +154,10 @@ class AgenticTradingCardWidget extends StatelessWidget {
                                           MaterialPageRoute(
                                             builder: (context) =>
                                                 AgenticTradingSettingsWidget(
-                                                  user: user!,
-                                                  userDocRef: userDocRef!,
-                                                  service: service!,
-                                                ),
+                                              user: user!,
+                                              userDocRef: userDocRef!,
+                                              service: service!,
+                                            ),
                                           ),
                                         );
                                       },
@@ -232,24 +231,18 @@ class AgenticTradingCardWidget extends StatelessWidget {
                             ),
                           );
                         },
-                  borderRadius: const BorderRadius.vertical(
-                    bottom: Radius.circular(20),
-                  ),
+                  borderRadius:
+                      const BorderRadius.vertical(bottom: Radius.circular(20)),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
+                        horizontal: 16, vertical: 12),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Row(
                           children: [
-                            Icon(
-                              Icons.history,
-                              size: 18,
-                              color: colorScheme.primary,
-                            ),
+                            Icon(Icons.history,
+                                size: 18, color: colorScheme.primary),
                             const SizedBox(width: 8),
                             Text(
                               'Strategy Backtesting',
@@ -260,11 +253,8 @@ class AgenticTradingCardWidget extends StatelessWidget {
                             ),
                           ],
                         ),
-                        Icon(
-                          Icons.chevron_right,
-                          size: 18,
-                          color: colorScheme.primary,
-                        ),
+                        Icon(Icons.chevron_right,
+                            size: 18, color: colorScheme.primary),
                       ],
                     ),
                   ),
@@ -278,12 +268,8 @@ class AgenticTradingCardWidget extends StatelessWidget {
   }
 
   Widget _buildStat(
-    BuildContext context,
-    String label,
-    String value,
-    IconData icon, {
-    Color? color,
-  }) {
+      BuildContext context, String label, String value, IconData icon,
+      {Color? color}) {
     final theme = Theme.of(context);
     return Column(
       children: [

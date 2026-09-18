@@ -134,7 +134,11 @@ void main() {
     });
 
     test('normalizes whole percentage rates (e.g. 7.5 -> 0.075)', () {
-      final json = {'id': 'mic_rate_norm', 'amount': 25.00, 'rate': 7.5};
+      final json = {
+        'id': 'mic_rate_norm',
+        'amount': 25.00,
+        'rate': 7.5,
+      };
 
       final charge = MarginInterestCharge.fromJson(json);
       expect(charge.interestRate, closeTo(0.075, 0.0001));
@@ -219,34 +223,32 @@ void main() {
       expect(summary.averageBorrowingRate, closeTo(0.065, 0.001));
     });
 
-    test(
-      'DemoService returns populated margin calls and financing charges',
-      () async {
-        final service = DemoService();
-        final mockUser = BrokerageUser(
-          BrokerageSource.demo,
-          'demo_user',
-          null,
-          null,
-        );
+    test('DemoService returns populated margin calls and financing charges',
+        () async {
+      final service = DemoService();
+      final mockUser = BrokerageUser(
+        BrokerageSource.demo,
+        'demo_user',
+        null,
+        null,
+      );
 
-        final calls = await service.getMarginCalls(mockUser);
-        final interest = await service.getMarginInterestCharges(mockUser);
+      final calls = await service.getMarginCalls(mockUser);
+      final interest = await service.getMarginInterestCharges(mockUser);
 
-        expect(calls, isNotEmpty);
-        expect(interest, isNotEmpty);
+      expect(calls, isNotEmpty);
+      expect(interest, isNotEmpty);
 
-        final summary = MarginFinancingSummary.fromMarginCallsAndInterest(
-          accountNumber: '5QR12345',
-          rawCalls: calls,
-          rawInterestCharges: interest,
-        );
+      final summary = MarginFinancingSummary.fromMarginCallsAndInterest(
+        accountNumber: '5QR12345',
+        rawCalls: calls,
+        rawInterestCharges: interest,
+      );
 
-        expect(summary.marginCalls, isNotEmpty);
-        expect(summary.interestCharges.length, greaterThanOrEqualTo(4));
-        expect(summary.totalInterestYtd, greaterThan(0));
-      },
-    );
+      expect(summary.marginCalls, isNotEmpty);
+      expect(summary.interestCharges.length, greaterThanOrEqualTo(4));
+      expect(summary.totalInterestYtd, greaterThan(0));
+    });
   });
 
   group('PortfolioAlertService Margin Call Alerts', () {
@@ -267,9 +269,8 @@ void main() {
         marginCalls: [call],
       );
 
-      final callAlerts = alerts
-          .where((a) => a.id.startsWith('margin-call-'))
-          .toList();
+      final callAlerts =
+          alerts.where((a) => a.id.startsWith('margin-call-')).toList();
       expect(callAlerts, hasLength(1));
       expect(callAlerts.first.severity, PortfolioAlertSeverity.critical);
       expect(callAlerts.first.title, contains('Maintenance Call active'));
@@ -291,9 +292,8 @@ void main() {
         marginCalls: [satisfied],
       );
 
-      final callAlerts = alerts
-          .where((a) => a.id.startsWith('margin-call-'))
-          .toList();
+      final callAlerts =
+          alerts.where((a) => a.id.startsWith('margin-call-')).toList();
       expect(callAlerts, isEmpty);
     });
   });

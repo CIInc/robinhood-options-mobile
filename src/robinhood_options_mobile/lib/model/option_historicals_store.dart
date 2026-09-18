@@ -30,14 +30,12 @@ class OptionHistoricalsStore extends ChangeNotifier {
     if (item.legs.isEmpty) {
       return false;
     }
-    var index = _items.indexWhere(
-      (element) =>
-          element.legs.isNotEmpty &&
-          element.legs.first.id == item.legs.first.id &&
-          element.span == item.span &&
-          element.bounds == item.bounds &&
-          element.interval == item.interval,
-    );
+    var index = _items.indexWhere((element) =>
+        element.legs.isNotEmpty &&
+        element.legs.first.id == item.legs.first.id &&
+        element.span == item.span &&
+        element.bounds == item.bounds &&
+        element.interval == item.interval);
     if (index == -1) {
       return false;
     }
@@ -51,8 +49,7 @@ class OptionHistoricalsStore extends ChangeNotifier {
       final currentLast = current.historicals.last.beginsAt;
       final itemLast = item.historicals.last.beginsAt;
 
-      isDifferent =
-          (currentFirst == null ||
+      isDifferent = (currentFirst == null ||
               itemFirst == null ||
               currentFirst.compareTo(itemFirst) != 0) ||
           (currentLast == null ||

@@ -22,18 +22,15 @@ import 'package:robinhood_options_mobile/widgets/instrument_buying_power_widget.
 import 'package:robinhood_options_mobile/widgets/slide_to_confirm_widget.dart';
 
 class TradeInstrumentWidget extends StatefulWidget {
-  const TradeInstrumentWidget(
-    this.brokerageUser,
-    this.service, {
-    //this.account,
-    super.key,
-    required this.analytics,
-    required this.observer,
-    this.stockPosition,
-    this.instrument,
-    this.positionType = "Buy",
-    this.initialIsPaperTrade = false,
-  });
+  const TradeInstrumentWidget(this.brokerageUser, this.service,
+      //this.account,
+      {super.key,
+      required this.analytics,
+      required this.observer,
+      this.stockPosition,
+      this.instrument,
+      this.positionType = "Buy",
+      this.initialIsPaperTrade = false});
 
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
@@ -72,13 +69,11 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
   void initState() {
     super.initState();
     positionType = widget.positionType;
-    _isPaperTrade =
-        widget.brokerageUser.source == BrokerageSource.paper ||
+    _isPaperTrade = widget.brokerageUser.source == BrokerageSource.paper ||
         widget.initialIsPaperTrade;
     widget.analytics.logScreenView(screenName: 'Trade Instrument');
 
-    double price =
-        widget.instrument?.quoteObj?.lastExtendedHoursTradePrice ??
+    double price = widget.instrument?.quoteObj?.lastExtendedHoursTradePrice ??
         widget.instrument?.quoteObj?.lastTradePrice ??
         0.0;
     priceCtl.text = price.toString();
@@ -111,29 +106,20 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
 
     try {
       final bpJson = await widget.service.getInstrumentBuyingPower(
-        widget.brokerageUser,
-        accountNumber,
-        instrumentId,
-      );
-      final warnJson = await widget.service.getInstrumentWarnings(
-        widget.brokerageUser,
-        instrumentId,
-      );
+          widget.brokerageUser, accountNumber, instrumentId);
+      final warnJson = await widget.service
+          .getInstrumentWarnings(widget.brokerageUser, instrumentId);
 
       if (mounted) {
         setState(() {
           if (bpJson != null) {
             _instrumentBuyingPower = InstrumentBuyingPower.fromJson(
-              instrumentId,
-              bpJson,
-              defaultAccount: accountNumber,
-            );
+                instrumentId, bpJson,
+                defaultAccount: accountNumber);
           }
           if (warnJson != null) {
-            _instrumentWarnings = InstrumentTradeWarnings.fromJson(
-              instrumentId,
-              warnJson,
-            );
+            _instrumentWarnings =
+                InstrumentTradeWarnings.fromJson(instrumentId, warnJson);
           }
         });
       }
@@ -191,30 +177,26 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
     final currentPrice = quote?.lastTradePrice ?? 0.0;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('${widget.instrument!.symbol} Stock'),
-            Text(
-              formatCurrency.format(currentPrice),
-              style: theme.textTheme.labelMedium?.copyWith(
-                color: Colors.white70,
-              ),
-            ),
+        appBar: AppBar(
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('${widget.instrument!.symbol} Stock'),
+              Text(formatCurrency.format(currentPrice),
+                  style: theme.textTheme.labelMedium
+                      ?.copyWith(color: Colors.white70)),
+            ],
+          ),
+          actions: [
+            if (!_isPreviewing)
+              IconButton(
+                icon: const Icon(Icons.save_as),
+                onPressed: _showTemplatesDialog,
+                tooltip: 'Order Templates',
+              )
           ],
         ),
-        actions: [
-          if (!_isPreviewing)
-            IconButton(
-              icon: const Icon(Icons.save_as),
-              onPressed: _showTemplatesDialog,
-              tooltip: 'Order Templates',
-            ),
-        ],
-      ),
-      body: _isPreviewing ? _buildPreview(context) : _buildForm(context),
-    );
+        body: _isPreviewing ? _buildPreview(context) : _buildForm(context));
   }
 
   Widget _buildForm(BuildContext context) {
@@ -255,34 +237,32 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
               });
             },
             style: ButtonStyle(
-              backgroundColor: WidgetStateProperty.resolveWith<Color?>((
-                Set<WidgetState> states,
-              ) {
-                if (states.contains(WidgetState.selected)) {
-                  return positionType == "Buy"
-                      ? Colors.green.withValues(alpha: 0.2)
-                      : Colors.red.withValues(alpha: 0.2);
-                }
-                return null;
-              }),
-              foregroundColor: WidgetStateProperty.resolveWith<Color?>((
-                Set<WidgetState> states,
-              ) {
-                if (states.contains(WidgetState.selected)) {
-                  return positionType == "Buy" ? Colors.green : Colors.red;
-                }
-                return null;
-              }),
+              backgroundColor: WidgetStateProperty.resolveWith<Color?>(
+                (Set<WidgetState> states) {
+                  if (states.contains(WidgetState.selected)) {
+                    return positionType == "Buy"
+                        ? Colors.green.withValues(alpha: 0.2)
+                        : Colors.red.withValues(alpha: 0.2);
+                  }
+                  return null;
+                },
+              ),
+              foregroundColor: WidgetStateProperty.resolveWith<Color?>(
+                (Set<WidgetState> states) {
+                  if (states.contains(WidgetState.selected)) {
+                    return positionType == "Buy" ? Colors.green : Colors.red;
+                  }
+                  return null;
+                },
+              ),
             ),
           ),
           // Paper Trading Toggle
           SwitchListTile(
             title: const Text("Paper Trade"),
-            subtitle: Text(
-              widget.brokerageUser.source == BrokerageSource.paper
-                  ? "Paper account — trades are always simulated"
-                  : "Simulate this trade with virtual money",
-            ),
+            subtitle: Text(widget.brokerageUser.source == BrokerageSource.paper
+                ? "Paper account — trades are always simulated"
+                : "Simulate this trade with virtual money"),
             value: _isPaperTrade,
             // Locked on for paper accounts: a no-op handler keeps the
             // enabled (amber) styling so it doesn't read as unavailable.
@@ -294,10 +274,8 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
                     });
                   },
             activeThumbColor: Colors.amber,
-            secondary: Icon(
-              Icons.school,
-              color: _isPaperTrade ? Colors.amber : null,
-            ),
+            secondary:
+                Icon(Icons.school, color: _isPaperTrade ? Colors.amber : null),
           ),
           const SizedBox(height: 16),
           const SizedBox(height: 8),
@@ -309,10 +287,8 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
               labelText: "Order Type",
               border: OutlineInputBorder(),
               filled: true,
-              contentPadding: EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 16,
-              ),
+              contentPadding:
+                  EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             ),
             onChanged: (String? newValue) {
               setState(() {
@@ -320,19 +296,18 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
                 _updateEstimates();
               });
             },
-            items:
-                <String>[
-                  'Market',
-                  'Limit',
-                  'Stop',
-                  'Stop Limit',
-                  'Trailing Stop',
-                ].map<DropdownMenuItem<String>>((String value) {
-                  return DropdownMenuItem<String>(
-                    value: value,
-                    child: Text(value),
-                  );
-                }).toList(),
+            items: <String>[
+              'Market',
+              'Limit',
+              'Stop',
+              'Stop Limit',
+              'Trailing Stop'
+            ].map<DropdownMenuItem<String>>((String value) {
+              return DropdownMenuItem<String>(
+                value: value,
+                child: Text(value),
+              );
+            }).toList(),
           ),
           const SizedBox(height: 16),
 
@@ -360,11 +335,10 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
           if (orderType == 'Limit' || orderType == 'Stop Limit') ...[
             TextFormField(
               controller: priceCtl,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
               inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+                FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}'))
               ],
               decoration: const InputDecoration(
                 labelText: "Limit Price",
@@ -381,11 +355,10 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
           if (orderType == 'Stop' || orderType == 'Stop Limit') ...[
             TextFormField(
               controller: stopPriceCtl,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
               inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+                FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}'))
               ],
               decoration: const InputDecoration(
                 labelText: "Stop Price",
@@ -406,10 +379,8 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
                 labelText: "Trail Type",
                 border: OutlineInputBorder(),
                 filled: true,
-                contentPadding: EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 16,
-                ),
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 16, vertical: 16),
               ),
               onChanged: (String? newValue) {
                 setState(() {
@@ -418,21 +389,19 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
               },
               items: <String>['Percentage', 'Amount']
                   .map<DropdownMenuItem<String>>((String value) {
-                    return DropdownMenuItem<String>(
-                      value: value,
-                      child: Text(value),
-                    );
-                  })
-                  .toList(),
+                return DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(value),
+                );
+              }).toList(),
             ),
             const SizedBox(height: 16),
             TextFormField(
               controller: trailingAmountCtl,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
               inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+                FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}'))
               ],
               decoration: InputDecoration(
                 labelText: trailingType == 'Percentage'
@@ -455,10 +424,8 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
               labelText: "Time in Force",
               border: OutlineInputBorder(),
               filled: true,
-              contentPadding: EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 16,
-              ),
+              contentPadding:
+                  EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             ),
             onChanged: (String? newValue) {
               setState(() {
@@ -467,24 +434,21 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
             },
             items: <String>['gtc', 'gfd', 'ioc', 'opg']
                 .map<DropdownMenuItem<String>>((String value) {
-                  return DropdownMenuItem<String>(
-                    value: value,
-                    child: Text(value.toUpperCase()),
-                  );
-                })
-                .toList(),
+              return DropdownMenuItem<String>(
+                value: value,
+                child: Text(value.toUpperCase()),
+              );
+            }).toList(),
           ),
           const SizedBox(height: 24),
 
           // Summary Section
           Card(
             elevation: 0,
-            color: theme.colorScheme.surfaceContainerHighest.withValues(
-              alpha: 0.5,
-            ),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
+            color: theme.colorScheme.surfaceContainerHighest
+                .withValues(alpha: 0.5),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             child: Padding(
               padding: const EdgeInsets.all(20.0),
               child: Column(
@@ -509,16 +473,11 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
                         return Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(
-                              "Paper Buying Power",
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                            Text(
-                              formatCurrency.format(paperStore.cashBalance),
-                              style: theme.textTheme.bodyMedium,
-                            ),
+                            Text("Paper Buying Power",
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                    color: theme.colorScheme.onSurfaceVariant)),
+                            Text(formatCurrency.format(paperStore.cashBalance),
+                                style: theme.textTheme.bodyMedium),
                           ],
                         );
                       },
@@ -526,8 +485,7 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
                   else if (_instrumentBuyingPower != null)
                     InstrumentBuyingPowerSummaryTile(
                       buyingPower: _instrumentBuyingPower!,
-                      showShort:
-                          positionType == "Sell" &&
+                      showShort: positionType == "Sell" &&
                           widget.stockPosition == null,
                       onTap: _showInstrumentBuyingPowerSheet,
                     )
@@ -540,16 +498,11 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
                         return Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(
-                              "Buying Power",
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                            Text(
-                              formatCurrency.format(buyingPower),
-                              style: theme.textTheme.bodyMedium,
-                            ),
+                            Text("Buying Power",
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                    color: theme.colorScheme.onSurfaceVariant)),
+                            Text(formatCurrency.format(buyingPower),
+                                style: theme.textTheme.bodyMedium),
                           ],
                         );
                       },
@@ -575,8 +528,7 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
                         color: Colors.white,
-                      ),
-                    )
+                      ))
                   : const Icon(Icons.visibility),
               onPressed: placingOrder || estimatedTotal <= 0
                   ? null
@@ -599,9 +551,8 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
         children: <Widget>[
           Text(
             "Review Order",
-            style: theme.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
+            style: theme.textTheme.headlineSmall
+                ?.copyWith(fontWeight: FontWeight.bold),
             textAlign: TextAlign.center,
           ),
           if (_instrumentWarnings != null &&
@@ -628,9 +579,8 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
                   Expanded(
                     child: Text(
                       "RiskGuard Warning: $_riskGuardWarning",
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: Colors.orange,
-                      ),
+                      style: theme.textTheme.bodyMedium
+                          ?.copyWith(color: Colors.orange),
                     ),
                   ),
                 ],
@@ -652,9 +602,8 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
                   Expanded(
                     child: Text(
                       "RiskGuard Check Passed",
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: Colors.green,
-                      ),
+                      style: theme.textTheme.bodyMedium
+                          ?.copyWith(color: Colors.green),
                     ),
                   ),
                 ],
@@ -664,53 +613,43 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
           const SizedBox(height: 24),
           Card(
             elevation: 0,
-            color: theme.colorScheme.surfaceContainerHighest.withValues(
-              alpha: 0.5,
-            ),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
+            color: theme.colorScheme.surfaceContainerHighest
+                .withValues(alpha: 0.5),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             child: Padding(
               padding: const EdgeInsets.all(20.0),
               child: Column(
                 children: [
                   Text(
                     "$positionType ${quantityCtl.text} shares",
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: theme.textTheme.titleLarge
+                        ?.copyWith(fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     widget.instrument!.symbol,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      color: theme.colorScheme.secondary,
-                    ),
+                    style: theme.textTheme.titleMedium
+                        ?.copyWith(color: theme.colorScheme.secondary),
                   ),
                   const SizedBox(height: 24),
                   _buildPreviewRow("Order Type", orderType),
                   if (orderType == 'Limit' || orderType == 'Stop Limit')
-                    _buildPreviewRow(
-                      "Limit Price",
-                      formatCurrency.format(double.parse(priceCtl.text)),
-                    ),
+                    _buildPreviewRow("Limit Price",
+                        formatCurrency.format(double.parse(priceCtl.text))),
                   if (orderType == 'Stop' || orderType == 'Stop Limit')
-                    _buildPreviewRow(
-                      "Stop Price",
-                      formatCurrency.format(double.parse(stopPriceCtl.text)),
-                    ),
+                    _buildPreviewRow("Stop Price",
+                        formatCurrency.format(double.parse(stopPriceCtl.text))),
                   if (orderType == 'Trailing Stop') ...[
                     _buildPreviewRow("Trail Type", trailingType),
                     _buildPreviewRow(
-                      trailingType == 'Percentage'
-                          ? "Trail Percent"
-                          : "Trail Amount",
-                      trailingType == 'Percentage'
-                          ? "${trailingAmountCtl.text}%"
-                          : formatCurrency.format(
-                              double.parse(trailingAmountCtl.text),
-                            ),
-                    ),
+                        trailingType == 'Percentage'
+                            ? "Trail Percent"
+                            : "Trail Amount",
+                        trailingType == 'Percentage'
+                            ? "${trailingAmountCtl.text}%"
+                            : formatCurrency
+                                .format(double.parse(trailingAmountCtl.text))),
                   ],
                   _buildPreviewRow("Time in Force", timeInForce.toUpperCase()),
                   const Padding(
@@ -737,16 +676,11 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
                         return Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(
-                              "Paper Buying Power",
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                            Text(
-                              formatCurrency.format(paperStore.cashBalance),
-                              style: theme.textTheme.bodyMedium,
-                            ),
+                            Text("Paper Buying Power",
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                    color: theme.colorScheme.onSurfaceVariant)),
+                            Text(formatCurrency.format(paperStore.cashBalance),
+                                style: theme.textTheme.bodyMedium),
                           ],
                         );
                       },
@@ -754,8 +688,7 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
                   else if (_instrumentBuyingPower != null)
                     InstrumentBuyingPowerSummaryTile(
                       buyingPower: _instrumentBuyingPower!,
-                      showShort:
-                          positionType == "Sell" &&
+                      showShort: positionType == "Sell" &&
                           widget.stockPosition == null,
                       onTap: _showInstrumentBuyingPowerSheet,
                     )
@@ -768,16 +701,11 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
                         return Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(
-                              "Buying Power",
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                            Text(
-                              formatCurrency.format(buyingPower),
-                              style: theme.textTheme.bodyMedium,
-                            ),
+                            Text("Buying Power",
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                    color: theme.colorScheme.onSurfaceVariant)),
+                            Text(formatCurrency.format(buyingPower),
+                                style: theme.textTheme.bodyMedium),
                           ],
                         );
                       },
@@ -818,19 +746,13 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            label,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-          Text(
-            value,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
-              color: theme.colorScheme.onSurface,
-            ),
-          ),
+          Text(label,
+              style: theme.textTheme.bodyMedium
+                  ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+          Text(value,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+                  color: theme.colorScheme.onSurface)),
         ],
       ),
     );
@@ -851,21 +773,18 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
       }
 
       var accountStore = Provider.of<AccountStore>(context, listen: false);
-      var agenticProvider = Provider.of<AgenticTradingProvider>(
-        context,
-        listen: false,
-      );
+      var agenticProvider =
+          Provider.of<AgenticTradingProvider>(context, listen: false);
 
       final portfolioState = <String, dynamic>{};
       if (accountStore.items.isNotEmpty) {
-        portfolioState['buyingPower'] =
-            accountStore.items[0].buyingPower ??
+        portfolioState['buyingPower'] = accountStore.items[0].buyingPower ??
             accountStore.items[0].portfolioCash;
         portfolioState['cashAvailable'] = accountStore.items[0].portfolioCash;
         if (widget.stockPosition != null) {
           portfolioState[widget.instrument!.symbol] = {
             'quantity': widget.stockPosition!.quantity,
-            'price': widget.stockPosition!.averageBuyPrice,
+            'price': widget.stockPosition!.averageBuyPrice
           };
         }
       }
@@ -890,13 +809,12 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
         'orderType': orderType,
       };
 
-      final result = await FirebaseFunctions.instance
-          .httpsCallable('riskguardTask')
-          .call({
-            'proposal': proposal,
-            'portfolioState': portfolioState,
-            'config': agenticProvider.config,
-          });
+      final result =
+          await FirebaseFunctions.instance.httpsCallable('riskguardTask').call({
+        'proposal': proposal,
+        'portfolioState': portfolioState,
+        'config': agenticProvider.config,
+      });
 
       final data = result.data;
       if (data['approved'] == true) {
@@ -934,9 +852,9 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('RiskGuard check failed: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('RiskGuard check failed: $e')),
+        );
       }
     } finally {
       if (mounted) {
@@ -954,10 +872,8 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
 
     try {
       var accountStore = Provider.of<AccountStore>(context, listen: false);
-      var agenticProvider = Provider.of<AgenticTradingProvider>(
-        context,
-        listen: false,
-      );
+      var agenticProvider =
+          Provider.of<AgenticTradingProvider>(context, listen: false);
       final portfolioState = <String, dynamic>{};
       if (accountStore.items.isNotEmpty) {
         portfolioState['cash'] =
@@ -965,7 +881,7 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
         if (widget.stockPosition != null) {
           portfolioState[widget.instrument!.symbol] = {
             'quantity': widget.stockPosition!.quantity,
-            'price': widget.stockPosition!.averageBuyPrice,
+            'price': widget.stockPosition!.averageBuyPrice
           };
         }
       }
@@ -973,10 +889,10 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
       final result = await FirebaseFunctions.instance
           .httpsCallable('calculatePositionSize')
           .call({
-            'symbol': widget.instrument?.symbol,
-            'portfolioState': portfolioState,
-            'config': agenticProvider.config,
-          });
+        'symbol': widget.instrument?.symbol,
+        'portfolioState': portfolioState,
+        'config': agenticProvider.config,
+      });
 
       final data = result.data;
       if (data['status'] == 'success') {
@@ -985,51 +901,41 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
 
         if (qty < 0) {
           if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                "Trade Disallowed: Calculated size is negative ($qty). ${details['reason'] ?? ''}",
-              ),
-              behavior: SnackBarBehavior.floating,
-              backgroundColor: Colors.red,
-            ),
-          );
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(
+                "Trade Disallowed: Calculated size is negative ($qty). ${details['reason'] ?? ''}"),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: Colors.red,
+          ));
         } else {
           setState(() {
             quantityCtl.text = qty.toString();
           });
 
           if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                "Dynamic Size: $qty (ATR: ${details['atr'].toStringAsFixed(2)})",
-              ),
-              behavior: SnackBarBehavior.floating,
-              backgroundColor: Colors.green,
-            ),
-          );
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(
+                "Dynamic Size: $qty (ATR: ${details['atr'].toStringAsFixed(2)})"),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: Colors.green,
+          ));
         }
       } else {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Error: ${data['message']}"),
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: Colors.red,
-          ),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text("Error: ${data['message']}"),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Colors.red,
+        ));
       }
     } catch (e) {
       debugPrint('Dynamic size calculation failed: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Error: $e"),
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: Colors.red,
-          ),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text("Error: $e"),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Colors.red,
+        ));
       }
 
       if (_isPaperTrade) {
@@ -1050,45 +956,36 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
   Future<void> _placePaperOrder() async {
     try {
       final result =
-          await Provider.of<PaperTradingStore>(
-            context,
-            listen: false,
-          ).submitStockOrder(
-            instrument: widget.instrument!,
-            quantity: double.parse(quantityCtl.text),
-            side: (positionType ?? "Buy").toLowerCase(),
-            orderType: orderType.toLowerCase().replaceAll(' ', '_'),
-            limitPrice: double.tryParse(priceCtl.text),
-            stopPrice: double.tryParse(stopPriceCtl.text),
-            marketPrice: widget.instrument?.quoteObj?.lastTradePrice,
-            timeInForce: timeInForce,
-            trailType: orderType == 'Trailing Stop'
-                ? trailingType.toLowerCase()
-                : null,
-            trailValue: orderType == 'Trailing Stop'
-                ? double.tryParse(trailingAmountCtl.text)
-                : null,
-          );
+          await Provider.of<PaperTradingStore>(context, listen: false)
+              .submitStockOrder(
+        instrument: widget.instrument!,
+        quantity: double.parse(quantityCtl.text),
+        side: (positionType ?? "Buy").toLowerCase(),
+        orderType: orderType.toLowerCase().replaceAll(' ', '_'),
+        limitPrice: double.tryParse(priceCtl.text),
+        stopPrice: double.tryParse(stopPriceCtl.text),
+        marketPrice: widget.instrument?.quoteObj?.lastTradePrice,
+        timeInForce: timeInForce,
+        trailType:
+            orderType == 'Trailing Stop' ? trailingType.toLowerCase() : null,
+        trailValue: orderType == 'Trailing Stop'
+            ? double.tryParse(trailingAmountCtl.text)
+            : null,
+      );
       if (!mounted) return;
       Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            result.state == 'filled'
-                ? "Paper order filled!"
-                : "Paper order placed — working until it triggers.",
-          ),
-          backgroundColor: Colors.green,
-        ),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(result.state == 'filled'
+            ? "Paper order filled!"
+            : "Paper order placed — working until it triggers."),
+        backgroundColor: Colors.green,
+      ));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Paper Trade Error: $e"),
-          backgroundColor: Colors.red,
-        ),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text("Paper Trade Error: $e"),
+        backgroundColor: Colors.red,
+      ));
     } finally {
       if (mounted) {
         setState(() {
@@ -1146,7 +1043,7 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
         trigger = 'stop';
         trailingPeg = {
           'type': trailingType.toLowerCase(),
-          'value': double.parse(trailingAmountCtl.text),
+          'value': double.parse(trailingAmountCtl.text)
         };
         price = null;
       } else {
@@ -1174,13 +1071,11 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
       if (!mounted) return;
 
       if (orderJson.statusCode != 200 && orderJson.statusCode != 201) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Error: ${jsonEncode(orderJson.body)}"),
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: Colors.red,
-          ),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text("Error: ${jsonEncode(orderJson.body)}"),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Colors.red,
+        ));
       } else {
         var newOrder = InstrumentOrder.fromJson(jsonDecode(orderJson.body));
 
@@ -1188,31 +1083,25 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
             newOrder.state == "queued" ||
             newOrder.state == "unconfirmed") {
           Navigator.pop(context);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text("Order placed successfully!"),
-              behavior: SnackBarBehavior.floating,
-              backgroundColor: Colors.green,
-            ),
-          );
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text("Order placed successfully!"),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: Colors.green,
+          ));
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text("Order state: ${newOrder.state}"),
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text("Order state: ${newOrder.state}"),
+            behavior: SnackBarBehavior.floating,
+          ));
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Error: $e"),
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: Colors.red,
-          ),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text("Error: $e"),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Colors.red,
+        ));
       }
     } finally {
       if (mounted) {
@@ -1248,8 +1137,7 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
                       return ListTile(
                         title: Text(template.name),
                         subtitle: Text(
-                          '${template.positionType} ${template.orderType} ${template.quantity != null ? "${template.quantity} shares" : ""}',
-                        ),
+                            '${template.positionType} ${template.orderType} ${template.quantity != null ? "${template.quantity} shares" : ""}'),
                         trailing: IconButton(
                           icon: const Icon(Icons.delete),
                           onPressed: () {
@@ -1317,8 +1205,7 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
         builder: (context) => AlertDialog(
           title: const Text('Overwrite Template?'),
           content: Text(
-            'A template named "$name" already exists. Do you want to overwrite it?',
-          ),
+              'A template named "$name" already exists. Do you want to overwrite it?'),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
@@ -1361,9 +1248,8 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
     );
 
     context.read<OrderTemplateStore>().addTemplate(template);
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Template saved')));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(const SnackBar(content: Text('Template saved')));
   }
 
   void _applyTemplate(OrderTemplate template) {

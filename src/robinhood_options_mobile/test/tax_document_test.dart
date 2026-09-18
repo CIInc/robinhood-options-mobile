@@ -289,7 +289,12 @@ void main() {
   });
 
   group('DemoService Tax Documents Integration Tests', () {
-    final user = BrokerageUser(BrokerageSource.demo, 'demo_user', null, null);
+    final user = BrokerageUser(
+      BrokerageSource.demo,
+      'demo_user',
+      null,
+      null,
+    );
     final demoService = DemoService();
 
     test('returns demo 1099s and account statements', () async {
@@ -299,10 +304,8 @@ void main() {
       expect(allDocs.any((d) => d.isAccountStatement), isTrue);
       expect(allDocs.any((d) => d.isTradeConfirmation), isTrue);
 
-      final only1099 = await demoService.getAccountDocumentsModel(
-        user,
-        type: '1099',
-      );
+      final only1099 =
+          await demoService.getAccountDocumentsModel(user, type: '1099');
       expect(only1099.every((d) => d.type == '1099'), isTrue);
       expect(only1099.length, 3);
     });

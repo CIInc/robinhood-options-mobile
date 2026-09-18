@@ -103,14 +103,12 @@ class _CopyTradeSettingsWidgetState extends State<CopyTradeSettingsWidget> {
             _maxDailyAmountController.text = settings.maxDailyAmount.toString();
           }
           if (settings.symbolWhitelist != null) {
-            _symbolWhitelistController.text = settings.symbolWhitelist!.join(
-              ', ',
-            );
+            _symbolWhitelistController.text =
+                settings.symbolWhitelist!.join(', ');
           }
           if (settings.symbolBlacklist != null) {
-            _symbolBlacklistController.text = settings.symbolBlacklist!.join(
-              ', ',
-            );
+            _symbolBlacklistController.text =
+                settings.symbolBlacklist!.join(', ');
           }
           if (settings.sectorWhitelist != null) {
             _selectedSectors = List.from(settings.sectorWhitelist!);
@@ -120,12 +118,12 @@ class _CopyTradeSettingsWidgetState extends State<CopyTradeSettingsWidget> {
             _selectedAssetClasses = List.from(settings.assetClassWhitelist!);
           }
           if (settings.minMarketCap != null) {
-            _minMarketCapController.text = (settings.minMarketCap! / 1000000)
-                .toStringAsFixed(2);
+            _minMarketCapController.text =
+                (settings.minMarketCap! / 1000000).toStringAsFixed(2);
           }
           if (settings.maxMarketCap != null) {
-            _maxMarketCapController.text = (settings.maxMarketCap! / 1000000)
-                .toStringAsFixed(2);
+            _maxMarketCapController.text =
+                (settings.maxMarketCap! / 1000000).toStringAsFixed(2);
           }
           if (settings.startTime != null) {
             _startTimeController.text = settings.startTime!;
@@ -134,12 +132,12 @@ class _CopyTradeSettingsWidgetState extends State<CopyTradeSettingsWidget> {
             _endTimeController.text = settings.endTime!;
           }
           if (settings.stopLossAdjustment != null) {
-            _stopLossAdjustmentController.text = settings.stopLossAdjustment
-                .toString();
+            _stopLossAdjustmentController.text =
+                settings.stopLossAdjustment.toString();
           }
           if (settings.takeProfitAdjustment != null) {
-            _takeProfitAdjustmentController.text = settings.takeProfitAdjustment
-                .toString();
+            _takeProfitAdjustmentController.text =
+                settings.takeProfitAdjustment.toString();
           }
         });
       } else {
@@ -176,22 +174,21 @@ class _CopyTradeSettingsWidgetState extends State<CopyTradeSettingsWidget> {
         overridePrice: _settings!.overridePrice,
         symbolWhitelist: _symbolWhitelistController.text.isNotEmpty
             ? _symbolWhitelistController.text
-                  .split(',')
-                  .map((e) => e.trim().toUpperCase())
-                  .where((e) => e.isNotEmpty)
-                  .toList()
+                .split(',')
+                .map((e) => e.trim().toUpperCase())
+                .where((e) => e.isNotEmpty)
+                .toList()
             : null,
         symbolBlacklist: _symbolBlacklistController.text.isNotEmpty
             ? _symbolBlacklistController.text
-                  .split(',')
-                  .map((e) => e.trim().toUpperCase())
-                  .where((e) => e.isNotEmpty)
-                  .toList()
+                .split(',')
+                .map((e) => e.trim().toUpperCase())
+                .where((e) => e.isNotEmpty)
+                .toList()
             : null,
         sectorWhitelist: _selectedSectors.isNotEmpty ? _selectedSectors : null,
-        assetClassWhitelist: _selectedAssetClasses.isNotEmpty
-            ? _selectedAssetClasses
-            : null,
+        assetClassWhitelist:
+            _selectedAssetClasses.isNotEmpty ? _selectedAssetClasses : null,
         minMarketCap: _minMarketCapController.text.isNotEmpty
             ? double.tryParse(_minMarketCapController.text)! * 1000000
             : null,
@@ -201,9 +198,8 @@ class _CopyTradeSettingsWidgetState extends State<CopyTradeSettingsWidget> {
         startTime: _startTimeController.text.isNotEmpty
             ? _startTimeController.text
             : null,
-        endTime: _endTimeController.text.isNotEmpty
-            ? _endTimeController.text
-            : null,
+        endTime:
+            _endTimeController.text.isNotEmpty ? _endTimeController.text : null,
         copyStopLoss: _settings!.copyStopLoss,
         copyTakeProfit: _settings!.copyTakeProfit,
         copyTrailingStop: _settings!.copyTrailingStop,
@@ -226,9 +222,9 @@ class _CopyTradeSettingsWidgetState extends State<CopyTradeSettingsWidget> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error saving settings: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error saving settings: $e')),
+        );
       }
     } finally {
       if (mounted) {
@@ -299,8 +295,8 @@ class _CopyTradeSettingsWidgetState extends State<CopyTradeSettingsWidget> {
                     Text(
                       'Copy Trading',
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                            fontWeight: FontWeight.bold,
+                          ),
                     ),
                     const SizedBox(height: 8),
                     Text(
@@ -336,8 +332,10 @@ class _CopyTradeSettingsWidgetState extends State<CopyTradeSettingsWidget> {
                     children: [
                       Text(
                         'Copy From',
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.bold),
+                        style:
+                            Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
                       ),
                       const SizedBox(height: 8),
                       if (eligibleMembers.isEmpty)
@@ -377,16 +375,14 @@ class _CopyTradeSettingsWidgetState extends State<CopyTradeSettingsWidget> {
 
                               if (snapshot.hasData && snapshot.data!.exists) {
                                 final user = snapshot.data!.data();
-                                displayName =
-                                    user?.name ??
+                                displayName = user?.name ??
                                     // user?.providerId?.capitalize() ??
                                     'Guest';
                                 if (user?.photoUrl != null) {
                                   avatar = CircleAvatar(
                                     radius: 20,
                                     backgroundImage: CachedNetworkImageProvider(
-                                      user!.photoUrl!,
-                                    ),
+                                        user!.photoUrl!),
                                   );
                                 }
                               }
@@ -397,8 +393,8 @@ class _CopyTradeSettingsWidgetState extends State<CopyTradeSettingsWidget> {
                                   style: TextStyle(
                                     fontWeight:
                                         _selectedTargetUserId == memberId
-                                        ? FontWeight.bold
-                                        : FontWeight.normal,
+                                            ? FontWeight.bold
+                                            : FontWeight.normal,
                                   ),
                                 ),
                                 value: memberId,
@@ -441,15 +437,16 @@ class _CopyTradeSettingsWidgetState extends State<CopyTradeSettingsWidget> {
                     children: [
                       Text(
                         'Trade Execution',
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.bold),
+                        style:
+                            Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
                       ),
                       const SizedBox(height: 8),
                       SwitchListTile(
                         title: const Text('Auto-Execute Trades'),
                         subtitle: const Text(
-                          'Automatically execute trades without confirmation',
-                        ),
+                            'Automatically execute trades without confirmation'),
                         value: _settings!.autoExecute,
                         onChanged: _selectedTargetUserId != null
                             ? (value) {
@@ -462,8 +459,7 @@ class _CopyTradeSettingsWidgetState extends State<CopyTradeSettingsWidget> {
                       SwitchListTile(
                         title: const Text('Inverse Copying'),
                         subtitle: const Text(
-                          'Take opposite positions (e.g. Buy -> Sell)',
-                        ),
+                            'Take opposite positions (e.g. Buy -> Sell)'),
                         value: _settings!.inverse ?? false,
                         onChanged: _selectedTargetUserId != null
                             ? (value) {
@@ -500,8 +496,8 @@ class _CopyTradeSettingsWidgetState extends State<CopyTradeSettingsWidget> {
                                     border: const OutlineInputBorder(),
                                     filled: true,
                                     prefixIcon: const Icon(Icons.access_time),
-                                    suffixIcon:
-                                        _startTimeController.text.isNotEmpty
+                                    suffixIcon: _startTimeController
+                                            .text.isNotEmpty
                                         ? IconButton(
                                             icon: const Icon(Icons.clear),
                                             onPressed: () {
@@ -539,20 +535,19 @@ class _CopyTradeSettingsWidgetState extends State<CopyTradeSettingsWidget> {
                                     helperText: 'End time for trading (HH:mm)',
                                     border: const OutlineInputBorder(),
                                     filled: true,
-                                    prefixIcon: const Icon(
-                                      Icons.access_time_filled,
-                                    ),
+                                    prefixIcon:
+                                        const Icon(Icons.access_time_filled),
                                     suffixIcon:
                                         _endTimeController.text.isNotEmpty
-                                        ? IconButton(
-                                            icon: const Icon(Icons.clear),
-                                            onPressed: () {
-                                              setState(() {
-                                                _endTimeController.clear();
-                                              });
-                                            },
-                                          )
-                                        : null,
+                                            ? IconButton(
+                                                icon: const Icon(Icons.clear),
+                                                onPressed: () {
+                                                  setState(() {
+                                                    _endTimeController.clear();
+                                                  });
+                                                },
+                                              )
+                                            : null,
                                   ),
                                 ),
                               ),
@@ -577,15 +572,16 @@ class _CopyTradeSettingsWidgetState extends State<CopyTradeSettingsWidget> {
                     children: [
                       Text(
                         'Exit Strategy',
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.bold),
+                        style:
+                            Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
                       ),
                       const SizedBox(height: 8),
                       SwitchListTile(
                         title: const Text('Copy Stop Loss'),
-                        subtitle: const Text(
-                          'Automatically copy stop loss orders',
-                        ),
+                        subtitle:
+                            const Text('Automatically copy stop loss orders'),
                         value: _settings!.copyStopLoss ?? false,
                         onChanged: (value) {
                           setState(() {
@@ -606,16 +602,13 @@ class _CopyTradeSettingsWidgetState extends State<CopyTradeSettingsWidget> {
                               suffixText: '%',
                             ),
                             keyboardType: const TextInputType.numberWithOptions(
-                              signed: true,
-                              decimal: true,
-                            ),
+                                signed: true, decimal: true),
                           ),
                         ),
                       SwitchListTile(
                         title: const Text('Copy Take Profit'),
-                        subtitle: const Text(
-                          'Automatically copy take profit orders',
-                        ),
+                        subtitle:
+                            const Text('Automatically copy take profit orders'),
                         value: _settings!.copyTakeProfit ?? false,
                         onChanged: (value) {
                           setState(() {
@@ -636,9 +629,7 @@ class _CopyTradeSettingsWidgetState extends State<CopyTradeSettingsWidget> {
                               suffixText: '%',
                             ),
                             keyboardType: const TextInputType.numberWithOptions(
-                              signed: true,
-                              decimal: true,
-                            ),
+                                signed: true, decimal: true),
                           ),
                         ),
                       SwitchListTile(
@@ -668,8 +659,10 @@ class _CopyTradeSettingsWidgetState extends State<CopyTradeSettingsWidget> {
                     children: [
                       Text(
                         'Trade Limits',
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.bold),
+                        style:
+                            Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
                       ),
                       const SizedBox(height: 16),
                       TextFormField(
@@ -686,8 +679,7 @@ class _CopyTradeSettingsWidgetState extends State<CopyTradeSettingsWidget> {
                         keyboardType: TextInputType.number,
                         inputFormatters: [
                           FilteringTextInputFormatter.allow(
-                            RegExp(r'^\d+\.?\d{0,2}'),
-                          ),
+                              RegExp(r'^\d+\.?\d{0,2}')),
                         ],
                         onChanged: (value) {
                           setState(() {});
@@ -707,10 +699,8 @@ class _CopyTradeSettingsWidgetState extends State<CopyTradeSettingsWidget> {
                           double.tryParse(_copyPercentageController.text) !=
                               null)
                         Slider(
-                          value:
-                              double.tryParse(
-                                _copyPercentageController.text,
-                              )?.clamp(0.0, 100.0) ??
+                          value: double.tryParse(_copyPercentageController.text)
+                                  ?.clamp(0.0, 100.0) ??
                               0,
                           min: 0,
                           max: 100,
@@ -718,9 +708,8 @@ class _CopyTradeSettingsWidgetState extends State<CopyTradeSettingsWidget> {
                           label: _copyPercentageController.text,
                           onChanged: (value) {
                             setState(() {
-                              _copyPercentageController.text = value
-                                  .toInt()
-                                  .toString();
+                              _copyPercentageController.text =
+                                  value.toInt().toString();
                             });
                           },
                         ),
@@ -738,8 +727,7 @@ class _CopyTradeSettingsWidgetState extends State<CopyTradeSettingsWidget> {
                         keyboardType: TextInputType.number,
                         inputFormatters: [
                           FilteringTextInputFormatter.allow(
-                            RegExp(r'^\d+\.?\d{0,2}'),
-                          ),
+                              RegExp(r'^\d+\.?\d{0,2}')),
                         ],
                       ),
                       const SizedBox(height: 16),
@@ -755,8 +743,7 @@ class _CopyTradeSettingsWidgetState extends State<CopyTradeSettingsWidget> {
                         keyboardType: TextInputType.number,
                         inputFormatters: [
                           FilteringTextInputFormatter.allow(
-                            RegExp(r'^\d+\.?\d{0,2}'),
-                          ),
+                              RegExp(r'^\d+\.?\d{0,2}')),
                         ],
                       ),
                       const SizedBox(height: 16),
@@ -772,8 +759,7 @@ class _CopyTradeSettingsWidgetState extends State<CopyTradeSettingsWidget> {
                         keyboardType: TextInputType.number,
                         inputFormatters: [
                           FilteringTextInputFormatter.allow(
-                            RegExp(r'^\d+\.?\d{0,2}'),
-                          ),
+                              RegExp(r'^\d+\.?\d{0,2}')),
                         ],
                       ),
                       const SizedBox(height: 16),
@@ -794,8 +780,7 @@ class _CopyTradeSettingsWidgetState extends State<CopyTradeSettingsWidget> {
                           ],
                         ),
                         subtitle: const Text(
-                          'Use current market price instead of copied price',
-                        ),
+                            'Use current market price instead of copied price'),
                         value: _settings!.overridePrice ?? false,
                         onChanged: (value) {
                           setState(() {
@@ -817,8 +802,8 @@ class _CopyTradeSettingsWidgetState extends State<CopyTradeSettingsWidget> {
                   title: Text(
                     'Advanced Filtering',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                          fontWeight: FontWeight.bold,
+                        ),
                   ),
                   children: [
                     Padding(
@@ -861,9 +846,8 @@ class _CopyTradeSettingsWidgetState extends State<CopyTradeSettingsWidget> {
                             children: _availableAssetClasses.map((assetClass) {
                               return FilterChip(
                                 label: Text(assetClass.capitalize()),
-                                selected: _selectedAssetClasses.contains(
-                                  assetClass,
-                                ),
+                                selected:
+                                    _selectedAssetClasses.contains(assetClass),
                                 onSelected: (bool selected) {
                                   setState(() {
                                     if (selected) {
@@ -918,8 +902,7 @@ class _CopyTradeSettingsWidgetState extends State<CopyTradeSettingsWidget> {
                                   keyboardType: TextInputType.number,
                                   inputFormatters: [
                                     FilteringTextInputFormatter.allow(
-                                      RegExp(r'^\d+\.?\d{0,2}'),
-                                    ),
+                                        RegExp(r'^\d+\.?\d{0,2}')),
                                   ],
                                 ),
                               ),
@@ -938,8 +921,7 @@ class _CopyTradeSettingsWidgetState extends State<CopyTradeSettingsWidget> {
                                   keyboardType: TextInputType.number,
                                   inputFormatters: [
                                     FilteringTextInputFormatter.allow(
-                                      RegExp(r'^\d+\.?\d{0,2}'),
-                                    ),
+                                        RegExp(r'^\d+\.?\d{0,2}')),
                                   ],
                                 ),
                               ),

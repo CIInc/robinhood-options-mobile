@@ -212,25 +212,16 @@ void main() {
     test('extracts instrument and split from nested URLs or maps', () {
       final json = {
         'id': 'sp-12345',
-        'instrument':
-            'https://api.robinhood.com/instruments/9423262b-de3b-47e1-b715-fced3a076039/',
-        'split':
-            'https://api.robinhood.com/corp_actions/v2/splits/split-uuid-999/',
+        'instrument': 'https://api.robinhood.com/instruments/9423262b-de3b-47e1-b715-fced3a076039/',
+        'split': 'https://api.robinhood.com/corp_actions/v2/splits/split-uuid-999/',
         'multiplier': '4.0',
         'divisor': '1.0',
       };
 
       final payment = SplitPayment.fromJson(json);
       expect(payment.instrumentId, '9423262b-de3b-47e1-b715-fced3a076039');
-      expect(
-        payment.splitUrl,
-        'https://api.robinhood.com/corp_actions/v2/splits/split-uuid-999/',
-      );
-      expect(
-        payment.split ==
-            'https://api.robinhood.com/corp_actions/v2/splits/split-uuid-999/',
-        isTrue,
-      );
+      expect(payment.splitUrl, 'https://api.robinhood.com/corp_actions/v2/splits/split-uuid-999/');
+      expect(payment.split == 'https://api.robinhood.com/corp_actions/v2/splits/split-uuid-999/', isTrue);
       expect(payment.symbol, '');
       expect(payment.displaySymbol, '9423262B');
       expect(payment.shortInstrumentId, '9423262b-de3b-47e1-b715-fced3a076039');
@@ -256,7 +247,11 @@ void main() {
     });
 
     test('parses alternative split ratio keys and string expressions', () {
-      final jsonColon = {'id': 'sp-colon', 'symbol': 'NVDA', 'ratio': '10:1'};
+      final jsonColon = {
+        'id': 'sp-colon',
+        'symbol': 'NVDA',
+        'ratio': '10:1',
+      };
       final payColon = SplitPayment.fromJson(jsonColon);
       expect(payColon.multiplier, 10.0);
       expect(payColon.divisor, 1.0);
@@ -288,40 +283,40 @@ void main() {
       expect(payFactors.formattedSplitRatio, '3:1');
     });
 
-    test(
-      'derives split ratio from pre/post split share counts when multiplier/divisor missing',
-      () {
-        final jsonForward = {
-          'id': 'sp-shares-forward',
-          'symbol': 'NVDA',
-          'pre_split_shares': '15.5',
-          'post_split_shares': '155.0',
-        };
-        final payForward = SplitPayment.fromJson(jsonForward);
-        expect(payForward.effectiveMultiplier, 10.0);
-        expect(payForward.shortRatioBadge, '10:1 Split');
-        expect(payForward.formattedSplitRatio, '10:1');
-        expect(payForward.isForwardSplit, isTrue);
+    test('derives split ratio from pre/post split share counts when multiplier/divisor missing', () {
+      final jsonForward = {
+        'id': 'sp-shares-forward',
+        'symbol': 'NVDA',
+        'pre_split_shares': '15.5',
+        'post_split_shares': '155.0',
+      };
+      final payForward = SplitPayment.fromJson(jsonForward);
+      expect(payForward.effectiveMultiplier, 10.0);
+      expect(payForward.shortRatioBadge, '10:1 Split');
+      expect(payForward.formattedSplitRatio, '10:1');
+      expect(payForward.isForwardSplit, isTrue);
 
-        final jsonReverse = {
-          'id': 'sp-shares-reverse',
-          'symbol': 'BIOR',
-          'shares_held': '50.0',
-          'resulting_shares': '2.0',
-        };
-        final payReverse = SplitPayment.fromJson(jsonReverse);
-        expect(payReverse.effectiveMultiplier, closeTo(0.04, 0.0001));
-        expect(payReverse.shortRatioBadge, '1:25 Rev Split');
-        expect(payReverse.formattedSplitRatio, '1:25');
-        expect(payReverse.isReverseSplit, isTrue);
-      },
-    );
+      final jsonReverse = {
+        'id': 'sp-shares-reverse',
+        'symbol': 'BIOR',
+        'shares_held': '50.0',
+        'resulting_shares': '2.0',
+      };
+      final payReverse = SplitPayment.fromJson(jsonReverse);
+      expect(payReverse.effectiveMultiplier, closeTo(0.04, 0.0001));
+      expect(payReverse.shortRatioBadge, '1:25 Rev Split');
+      expect(payReverse.formattedSplitRatio, '1:25');
+      expect(payReverse.isReverseSplit, isTrue);
+    });
 
     test('parses nested split object correctly', () {
       final jsonNested = {
         'id': 'sp-nested',
         'symbol': 'AAPL',
-        'split': {'multiplier': '4.0', 'divisor': '1.0'},
+        'split': {
+          'multiplier': '4.0',
+          'divisor': '1.0',
+        },
       };
       final payNested = SplitPayment.fromJson(jsonNested);
       expect(payNested.multiplier, 4.0);
@@ -330,54 +325,48 @@ void main() {
       expect(payNested.shortRatioBadge, '4:1 Split');
     });
 
-    test(
-      'parses Robinhood corporate action nested split object with old_instrument_id (AMZN 20:1)',
-      () {
-        final json = {
-          'id': 'sp-amzn-2022',
-          'account_number': '5Q12345678',
-          'split': {
-            'id': 'd592308d-2f8a-4066-854b-02cbb689db85',
-            'old_instrument_id': 'c0bb3aec-bd1e-471e-a4f0-ca011cbec711',
-            'new_instrument_id': 'c0bb3aec-bd1e-471e-a4f0-ca011cbec711',
-            'effective_date': '2022-06-06',
-            'multiplier': 20.00000000000000,
-            'divisor': 1.00000000000000,
-            'direction': 'forward',
-            'updated_at': '2022-06-08T13:52:03.811354Z',
-          },
-          'state': 'settled',
-          'execution_date': '2022-06-06T13:30:00Z',
-        };
+    test('parses Robinhood corporate action nested split object with old_instrument_id (AMZN 20:1)', () {
+      final json = {
+        'id': 'sp-amzn-2022',
+        'account_number': '5Q12345678',
+        'split': {
+          'id': 'd592308d-2f8a-4066-854b-02cbb689db85',
+          'old_instrument_id': 'c0bb3aec-bd1e-471e-a4f0-ca011cbec711',
+          'new_instrument_id': 'c0bb3aec-bd1e-471e-a4f0-ca011cbec711',
+          'effective_date': '2022-06-06',
+          'multiplier': 20.00000000000000,
+          'divisor': 1.00000000000000,
+          'direction': 'forward',
+          'updated_at': '2022-06-08T13:52:03.811354Z',
+        },
+        'state': 'settled',
+        'execution_date': '2022-06-06T13:30:00Z',
+      };
 
-        final payment = SplitPayment.fromJson(json);
+      final payment = SplitPayment.fromJson(json);
 
-        expect(payment.id, 'sp-amzn-2022');
-        expect(payment.oldInstrumentId, 'c0bb3aec-bd1e-471e-a4f0-ca011cbec711');
-        expect(payment.newInstrumentId, 'c0bb3aec-bd1e-471e-a4f0-ca011cbec711');
-        expect(payment.instrumentId, 'c0bb3aec-bd1e-471e-a4f0-ca011cbec711');
-        expect(payment.multiplier, 20.0);
-        expect(payment.divisor, 1.0);
-        expect(payment.effectiveMultiplier, 20.0);
-        expect(payment.isForwardSplit, isTrue);
-        expect(payment.formattedRatio, '20 for 1 Split');
-        expect(payment.shortRatioBadge, '20:1 Split');
-        expect(payment.split, isNotNull);
-        expect(payment.split!.id, 'd592308d-2f8a-4066-854b-02cbb689db85');
-        expect(payment.split!.direction, 'forward');
-        expect(payment.split!.effectiveDate, DateTime.parse('2022-06-06'));
-        // Backwards compatible equality with string ID
-        expect(payment.split == 'd592308d-2f8a-4066-854b-02cbb689db85', isTrue);
+      expect(payment.id, 'sp-amzn-2022');
+      expect(payment.oldInstrumentId, 'c0bb3aec-bd1e-471e-a4f0-ca011cbec711');
+      expect(payment.newInstrumentId, 'c0bb3aec-bd1e-471e-a4f0-ca011cbec711');
+      expect(payment.instrumentId, 'c0bb3aec-bd1e-471e-a4f0-ca011cbec711');
+      expect(payment.multiplier, 20.0);
+      expect(payment.divisor, 1.0);
+      expect(payment.effectiveMultiplier, 20.0);
+      expect(payment.isForwardSplit, isTrue);
+      expect(payment.formattedRatio, '20 for 1 Split');
+      expect(payment.shortRatioBadge, '20:1 Split');
+      expect(payment.split, isNotNull);
+      expect(payment.split!.id, 'd592308d-2f8a-4066-854b-02cbb689db85');
+      expect(payment.split!.direction, 'forward');
+      expect(payment.split!.effectiveDate, DateTime.parse('2022-06-06'));
+      // Backwards compatible equality with string ID
+      expect(payment.split == 'd592308d-2f8a-4066-854b-02cbb689db85', isTrue);
 
-        final roundtrip = SplitPayment.fromJson(payment.toJson());
-        expect(
-          roundtrip.oldInstrumentId,
-          'c0bb3aec-bd1e-471e-a4f0-ca011cbec711',
-        );
-        expect(roundtrip.multiplier, 20.0);
-        expect(roundtrip.divisor, 1.0);
-      },
-    );
+      final roundtrip = SplitPayment.fromJson(payment.toJson());
+      expect(roundtrip.oldInstrumentId, 'c0bb3aec-bd1e-471e-a4f0-ca011cbec711');
+      expect(roundtrip.multiplier, 20.0);
+      expect(roundtrip.divisor, 1.0);
+    });
   });
 
   group('CorporateActionSplitsSummary Tests', () {
@@ -490,18 +479,13 @@ void main() {
     });
 
     test('aggregates summary metrics from DemoService', () async {
-      final summary = await demoService.getCorporateActionSplitsSummary(
-        testUser,
-      );
+      final summary = await demoService.getCorporateActionSplitsSummary(testUser);
 
       expect(summary.totalSplitsCount, 5);
       expect(summary.forwardSplitsCount, 4);
       expect(summary.reverseSplitsCount, 1);
       expect(summary.totalCashInLieu, closeTo(32.65, 0.001));
-      expect(
-        summary.symbolsAffected,
-        containsAll(['AAPL', 'AMZN', 'BIOR', 'NVDA', 'TSLA']),
-      );
+      expect(summary.symbolsAffected, containsAll(['AAPL', 'AMZN', 'BIOR', 'NVDA', 'TSLA']));
     });
   });
 
@@ -514,72 +498,58 @@ void main() {
       null,
     );
 
-    test(
-      'DemoService.getSplits returns splits for NVDA matching symbol/id',
-      () async {
-        final instrument = Instrument.forSymbol(
-          'NVDA',
-          instrumentUrl: 'https://api.robinhood.com/instruments/inst_nvda_01/',
-        );
+    test('DemoService.getSplits returns splits for NVDA matching symbol/id', () async {
+      final instrument = Instrument.forSymbol(
+        'NVDA',
+        instrumentUrl: 'https://api.robinhood.com/instruments/inst_nvda_01/',
+      );
 
-        final splits = await demoService.getSplits(testUser, instrument);
-        expect(splits, isNotEmpty);
-        expect(splits.length, 1);
-        final split = Split.fromJson(splits.first);
-        expect(split.multiplier, 10.0);
-        expect(split.divisor, 1.0);
-        expect(split.formattedRatio, '10 for 1 Split');
-      },
-    );
+      final splits = await demoService.getSplits(testUser, instrument);
+      expect(splits, isNotEmpty);
+      expect(splits.length, 1);
+      final split = Split.fromJson(splits.first);
+      expect(split.multiplier, 10.0);
+      expect(split.divisor, 1.0);
+      expect(split.formattedRatio, '10 for 1 Split');
+    });
 
-    test(
-      'DemoService.getSplits returns reverse split for BIOR matching symbol',
-      () async {
-        final instrument = Instrument.forSymbol(
-          'BIOR',
-          instrumentUrl:
-              'https://api.robinhood.com/instruments/different_id_bior/',
-        );
+    test('DemoService.getSplits returns reverse split for BIOR matching symbol', () async {
+      final instrument = Instrument.forSymbol(
+        'BIOR',
+        instrumentUrl: 'https://api.robinhood.com/instruments/different_id_bior/',
+      );
 
-        final splits = await demoService.getSplits(testUser, instrument);
-        expect(splits, isNotEmpty);
-        expect(splits.length, 1);
-        final split = Split.fromJson(splits.first);
-        expect(split.multiplier, 1.0);
-        expect(split.divisor, 25.0);
-        expect(split.isReverseSplit, isTrue);
-        expect(split.formattedRatio, '1 for 25 Reverse Split');
-      },
-    );
+      final splits = await demoService.getSplits(testUser, instrument);
+      expect(splits, isNotEmpty);
+      expect(splits.length, 1);
+      final split = Split.fromJson(splits.first);
+      expect(split.multiplier, 1.0);
+      expect(split.divisor, 25.0);
+      expect(split.isReverseSplit, isTrue);
+      expect(split.formattedRatio, '1 for 25 Reverse Split');
+    });
 
-    test(
-      'DemoService.getSplits returns 20:1 forward split for AMZN matching old instrument id',
-      () async {
-        final instrument = Instrument.forSymbol(
-          'AMZN',
-          instrumentUrl:
-              'https://api.robinhood.com/instruments/c0bb3aec-bd1e-471e-a4f0-ca011cbec711/',
-        );
+    test('DemoService.getSplits returns 20:1 forward split for AMZN matching old instrument id', () async {
+      final instrument = Instrument.forSymbol(
+        'AMZN',
+        instrumentUrl: 'https://api.robinhood.com/instruments/c0bb3aec-bd1e-471e-a4f0-ca011cbec711/',
+      );
 
-        final splits = await demoService.getSplits(testUser, instrument);
-        expect(splits, isNotEmpty);
-        expect(splits.length, 1);
-        final split = Split.fromJson(splits.first);
-        expect(split.multiplier, 20.0);
-        expect(split.divisor, 1.0);
-        expect(split.isForwardSplit, isTrue);
-        expect(split.formattedRatio, '20 for 1 Split');
-      },
-    );
+      final splits = await demoService.getSplits(testUser, instrument);
+      expect(splits, isNotEmpty);
+      expect(splits.length, 1);
+      final split = Split.fromJson(splits.first);
+      expect(split.multiplier, 20.0);
+      expect(split.divisor, 1.0);
+      expect(split.isForwardSplit, isTrue);
+      expect(split.formattedRatio, '20 for 1 Split');
+    });
 
-    test(
-      'DemoService.getSplits returns empty list for ticker with no splits',
-      () async {
-        final instrument = Instrument.forSymbol('XYZUNKNOWN');
+    test('DemoService.getSplits returns empty list for ticker with no splits', () async {
+      final instrument = Instrument.forSymbol('XYZUNKNOWN');
 
-        final splits = await demoService.getSplits(testUser, instrument);
-        expect(splits, isEmpty);
-      },
-    );
+      final splits = await demoService.getSplits(testUser, instrument);
+      expect(splits, isEmpty);
+    });
   });
 }
