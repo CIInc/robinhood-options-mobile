@@ -1675,13 +1675,13 @@ class TaxOptimizationService {
     double shortTermTaxRate = 0.24,
     double longTermTaxRate = 0.15,
   }) {
-    final eligibleLots = lots
-        .where((l) => l.isSelectable && l.quantityAvailable > 0)
-        .toList();
+    final eligibleLots =
+        lots.where((l) => l.isSelectable && l.quantityAvailable > 0).toList();
 
     // 1. Calculate baseline FIFO allocation to determine baseline tax liability
     final fifoAllocatedLots = _allocateGreedy(
-      lots: List<TaxLot>.from(eligibleLots)..sort((a, b) => a.openDate.compareTo(b.openDate)),
+      lots: List<TaxLot>.from(eligibleLots)
+        ..sort((a, b) => a.openDate.compareTo(b.openDate)),
       orderQuantity: orderQuantity,
     );
     final fifoLiability = _calculateTaxLiability(
@@ -1700,7 +1700,8 @@ class TaxOptimizationService {
         final assigned = manualAllocations[lot.openLotId] ?? 0.0;
         if (assigned > 0) {
           final alloc = min(assigned, lot.quantityAvailable);
-          targetAllocatedLots.add(AllocatedLot(lot: lot, allocatedQuantity: alloc));
+          targetAllocatedLots
+              .add(AllocatedLot(lot: lot, allocatedQuantity: alloc));
         }
       }
     } else {
@@ -1754,7 +1755,8 @@ class TaxOptimizationService {
           sorted.sort((a, b) => a.openDate.compareTo(b.openDate));
           break;
       }
-      targetAllocatedLots = _allocateGreedy(lots: sorted, orderQuantity: orderQuantity);
+      targetAllocatedLots =
+          _allocateGreedy(lots: sorted, orderQuantity: orderQuantity);
     }
 
     // 3. Compute allocation metrics
@@ -1929,4 +1931,3 @@ class TaxOptimizationService {
     return lots;
   }
 }
-

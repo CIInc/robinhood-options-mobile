@@ -88,7 +88,8 @@ void main() {
       expect(find.text('Form 8949'), findsOneWidget);
     });
 
-    testWidgets('renders Form 8949 tab directly with summary card and export button',
+    testWidgets(
+        'renders Form 8949 tab directly with summary card and export button',
         (tester) async {
       tester.view.physicalSize = const Size(800, 1800);
       tester.view.devicePixelRatio = 1.0;
@@ -161,7 +162,8 @@ void main() {
       expect(find.text('Part II (Long-Term)'), findsOneWidget);
     });
 
-    testWidgets('filters dispositions by chip selection (Short-Term, Long-Term, Wash Sales)',
+    testWidgets(
+        'filters dispositions by chip selection (Short-Term, Long-Term, Wash Sales)',
         (tester) async {
       tester.view.physicalSize = const Size(800, 1800);
       tester.view.devicePixelRatio = 1.0;
@@ -241,7 +243,8 @@ void main() {
       expect(find.text('50 sh. MSFT'), findsNothing);
     });
 
-    testWidgets('renders empty state when no dispositions exist for filtered year',
+    testWidgets(
+        'renders empty state when no dispositions exist for filtered year',
         (tester) async {
       // Empty entries
       await tester.pumpWidget(createWidgetUnderTest(

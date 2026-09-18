@@ -6200,7 +6200,9 @@ class DemoService implements IBrokerageService {
         quantitySold: 20.0,
         realizedLoss: -450.0,
         windowStartDate: now.subtract(const Duration(days: 42)),
-        windowEndDate: now.subtract(const Duration(days: 12)).add(const Duration(days: 30)),
+        windowEndDate: now
+            .subtract(const Duration(days: 12))
+            .add(const Duration(days: 30)),
         status: WashSaleStatus.activeWindow,
       ),
       WashSaleRecord(
@@ -6213,7 +6215,9 @@ class DemoService implements IBrokerageService {
         quantitySold: 25.0,
         realizedLoss: -320.0,
         windowStartDate: now.subtract(const Duration(days: 50)),
-        windowEndDate: now.subtract(const Duration(days: 20)).add(const Duration(days: 30)),
+        windowEndDate: now
+            .subtract(const Duration(days: 20))
+            .add(const Duration(days: 30)),
         status: WashSaleStatus.disallowed,
         replacementDate: now.subtract(const Duration(days: 15)),
         replacementPrice: 122.50,

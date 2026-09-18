@@ -663,7 +663,8 @@ class FirestoreService {
       return value.map(sanitizeForCallable).toList();
     }
     if (value is Map) {
-      return value.map((k, v) => MapEntry(k.toString(), sanitizeForCallable(v)));
+      return value
+          .map((k, v) => MapEntry(k.toString(), sanitizeForCallable(v)));
     }
     return value.toString();
   }

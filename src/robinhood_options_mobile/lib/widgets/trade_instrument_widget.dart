@@ -859,9 +859,10 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
                               : "Tax Impact vs FIFO: -${formatCurrency.format(_currentTaxLotAllocation!.taxSavingsVsFifo.abs())}",
                           style: theme.textTheme.labelMedium?.copyWith(
                             fontWeight: FontWeight.bold,
-                            color: _currentTaxLotAllocation!.taxSavingsVsFifo > 0
-                                ? Colors.green
-                                : Colors.orange,
+                            color:
+                                _currentTaxLotAllocation!.taxSavingsVsFifo > 0
+                                    ? Colors.green
+                                    : Colors.orange,
                           ),
                         ),
                       ),
