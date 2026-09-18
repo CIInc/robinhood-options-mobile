@@ -420,6 +420,7 @@ class _SearchWidgetState extends State<SearchWidget>
                       prefixIcon: const Icon(Icons.search),
                       suffixIcon: searchCtl!.text.isNotEmpty
                           ? IconButton(
+                              tooltip: 'Clear search',
                               icon: const Icon(Icons.clear),
                               onPressed: () {
                                 searchCtl!.clear();

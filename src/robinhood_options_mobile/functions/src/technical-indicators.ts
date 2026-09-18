@@ -246,12 +246,7 @@ export function computeMACD(
   fastPeriod = 12,
   slowPeriod = 26,
   signalPeriod = 9
-): {
-  macd: number;
-  signal: number;
-  histogram: number;
-  prevHistogram?: number;
-} | null {
+): { macd: number; signal: number; histogram: number } | null {
   if (!prices || prices.length < slowPeriod + signalPeriod) return null;
 
   // Optimized computation using arrays O(N) instead of recurring O(N^2)
@@ -286,23 +281,10 @@ export function computeMACD(
 
   const histogram = macdLine - signalLine;
 
-  // Extract previous histogram directly from already-calculated series
-  // to avoid redundant re-computation via prices.slice(0, -1)
-  let prevHistogram: number | undefined = undefined;
-  if (
-    signalLineSeries.length >= 2 &&
-    signalLineSeries[signalLineSeries.length - 2] !== null
-  ) {
-    const prevMacdLine = macdSeries[macdSeries.length - 2];
-    const prevSignalLine = signalLineSeries[signalLineSeries.length - 2]!;
-    prevHistogram = prevMacdLine - prevSignalLine;
-  }
-
   return {
     macd: macdLine,
     signal: signalLine,
     histogram,
-    prevHistogram,
   };
 }
 
@@ -737,7 +719,7 @@ export function computeADX(
   lows: number[],
   closes: number[],
   period = 14
-): { adx: number; plusDI: number; minusDI: number; prevAdx?: number } | null {
+): { adx: number; plusDI: number; minusDI: number } | null {
   if (!highs || !lows || !closes ||
     highs.length < period * 2 ||
     lows.length < period * 2 ||
@@ -831,11 +813,9 @@ export function computeADX(
 
   if (dx.length < period) return null;
 
-  // Calculate ADX (smoothed average of DX) and track prevAdx
-  let prevAdx: number | undefined = undefined;
+  // Calculate ADX (smoothed average of DX)
   let adx = dx.slice(0, period).reduce((a, b) => a + b, 0) / period;
   for (let i = period; i < dx.length; i++) {
-    prevAdx = adx;
     adx = ((adx * (period - 1)) + dx[i]) / period;
   }
 
@@ -846,7 +826,6 @@ export function computeADX(
     adx,
     plusDI: lastPlusDI,
     minusDI: lastMinusDI,
-    prevAdx,
   };
 }
 
@@ -856,29 +835,24 @@ export function computeADX(
  * @param {number[]} lows - Array of low prices.
  * @param {number[]} closes - Array of close prices.
  * @param {number} period - Period for calculation (default 14).
- * @param {number} [endIndex] - End index for calculation.
  * @return {number|null} The computed Williams %R or null if insufficient data.
  */
 export function computeWilliamsR(
   highs: number[],
   lows: number[],
   closes: number[],
-  period = 14,
-  endIndex = closes.length - 1
+  period = 14
 ): number | null {
   if (!highs || !lows || !closes ||
     highs.length < period ||
     lows.length < period ||
-    closes.length < period ||
-    endIndex < period - 1 ||
-    endIndex >= closes.length) {
+    closes.length < period) {
     return null;
   }
 
-  const start = endIndex - period + 1;
-  const recentHighs = highs.slice(start, endIndex + 1);
-  const recentLows = lows.slice(start, endIndex + 1);
-  const currentClose = closes[endIndex];
+  const recentHighs = highs.slice(-period);
+  const recentLows = lows.slice(-period);
+  const currentClose = closes[closes.length - 1];
 
   const highestHigh = Math.max(...recentHighs);
   const lowestLow = Math.min(...recentLows);
@@ -1943,9 +1917,17 @@ export function evaluateMACD(
 
   const { histogram } = macd;
 
-  // Use pre-extracted previous histogram from computeMACD to avoid array
-  // slicing and re-computation
-  const prevHistogram: number | null = macd.prevHistogram ?? null;
+  // Compute previous MACD for crossover detection
+  let prevHistogram: number | null = null;
+  if (prices.length > minPeriods + 1) {
+    const prevMACD = computeMACD(
+      prices.slice(0, -1),
+      fastPeriod,
+      slowPeriod,
+      signalPeriod
+    );
+    if (prevMACD) prevHistogram = prevMACD.histogram;
+  }
 
   // Bullish crossover: histogram crosses above zero
   if (prevHistogram !== null && histogram > 0 && prevHistogram <= 0) {
@@ -2875,9 +2857,17 @@ export function evaluateADX(
 
   const { adx, plusDI, minusDI } = adxResult;
 
-  // Use pre-extracted previous ADX from computeADX to avoid array
-  // slicing and re-computation
-  const prevAdx: number | null = adxResult.prevAdx ?? null;
+  // Previous ADX for trend change detection
+  let prevAdx: number | null = null;
+  if (closes.length > period * 2 + 1) {
+    const prevRes = computeADX(
+      highs.slice(0, -1),
+      lows.slice(0, -1),
+      closes.slice(0, -1),
+      period
+    );
+    if (prevRes) prevAdx = prevRes.adx;
+  }
 
   const adxSlope = prevAdx !== null ? adx - prevAdx : 0;
 
@@ -3001,16 +2991,14 @@ export function evaluateWilliamsR(
     };
   }
 
-  // Calculate previous Williams %R for momentum detection using
-  // endIndex to avoid slicing
+  // Calculate previous Williams %R for momentum detection
   let prevWilliamsR: number | null = null;
   if (closes.length > period) {
     prevWilliamsR = computeWilliamsR(
-      highs,
-      lows,
-      closes,
-      period,
-      closes.length - 2
+      highs.slice(0, -1),
+      lows.slice(0, -1),
+      closes.slice(0, -1),
+      period
     );
   }
 
