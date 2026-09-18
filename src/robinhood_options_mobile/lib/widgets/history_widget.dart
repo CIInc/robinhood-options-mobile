@@ -622,10 +622,8 @@ class _HistoryPageState extends State<HistoryPage>
               optionOrders = optionOrdersSnapshot.data as List<OptionOrder>;
             } else {
               debugPrint("${optionOrdersSnapshot.error}");
-              var store =
-                  Provider.of<OptionOrderStore>(context, listen: false);
-              optionOrders =
-                  store.items.isNotEmpty ? store.items.toList() : [];
+              var store = Provider.of<OptionOrderStore>(context, listen: false);
+              optionOrders = store.items.isNotEmpty ? store.items.toList() : [];
             }
 
             if (isAggregateMode) {
@@ -650,9 +648,8 @@ class _HistoryPageState extends State<HistoryPage>
                       debugPrint("${positionOrdersSnapshot.error}");
                       var store = Provider.of<InstrumentOrderStore>(context,
                           listen: false);
-                      positionOrders = store.items.isNotEmpty
-                          ? store.items.toList()
-                          : [];
+                      positionOrders =
+                          store.items.isNotEmpty ? store.items.toList() : [];
                     }
 
                     if (isAggregateMode) {

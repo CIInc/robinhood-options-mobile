@@ -76,7 +76,8 @@ class _TaxOptimizationWidgetState extends State<TaxOptimizationWidget> {
   double _longTermTaxRate = 0.15; // 15% default
 
   int? _form8949Year = DateTime.now().year;
-  String _form8949Filter = 'all'; // 'all', 'short_term', 'long_term', 'wash_sales'
+  String _form8949Filter =
+      'all'; // 'all', 'short_term', 'long_term', 'wash_sales'
 
   @override
   void initState() {
@@ -2190,7 +2191,8 @@ class _TaxOptimizationWidgetState extends State<TaxOptimizationWidget> {
                       var instrument = suggestion.position?.instrumentObj;
                       if (instrument == null) {
                         try {
-                          instrument = await widget.service.getInstrumentBySymbol(
+                          instrument =
+                              await widget.service.getInstrumentBySymbol(
                             widget.user,
                             instrumentStore,
                             suggestion.symbol,
@@ -2205,7 +2207,8 @@ class _TaxOptimizationWidgetState extends State<TaxOptimizationWidget> {
                               widget.user,
                               widget.service,
                               instrument: instrument,
-                              stockPosition: suggestion.position is InstrumentPosition
+                              stockPosition: suggestion.position
+                                      is InstrumentPosition
                                   ? suggestion.position as InstrumentPosition
                                   : null,
                               positionType: "Sell",
@@ -2270,7 +2273,12 @@ class _TaxOptimizationWidgetState extends State<TaxOptimizationWidget> {
     }
 
     final currentYear = DateTime.now().year;
-    final availableYears = [currentYear, currentYear - 1, currentYear - 2, null];
+    final availableYears = [
+      currentYear,
+      currentYear - 1,
+      currentYear - 2,
+      null
+    ];
 
     return CustomScrollView(
       slivers: [
@@ -2691,7 +2699,8 @@ class _TaxOptimizationWidgetState extends State<TaxOptimizationWidget> {
           ),
           const SizedBox(width: 8),
           FilterChip(
-            label: Text('Short-Term (${reconciliation.shortTermEntries.length})'),
+            label:
+                Text('Short-Term (${reconciliation.shortTermEntries.length})'),
             selected: _form8949Filter == 'short_term',
             onSelected: (sel) {
               if (sel) setState(() => _form8949Filter = 'short_term');
@@ -2804,8 +2813,8 @@ class _TaxOptimizationWidgetState extends State<TaxOptimizationWidget> {
                   ),
                   if (entry.hasWashSale)
                     Container(
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
                         color: Colors.orange.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(4),
@@ -2856,9 +2865,7 @@ class _TaxOptimizationWidgetState extends State<TaxOptimizationWidget> {
                         'Gain/Loss (h)',
                         style: TextStyle(
                           fontSize: 11,
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurfaceVariant,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                       ),
                       const SizedBox(height: 2),
@@ -2893,9 +2900,8 @@ class _TaxOptimizationWidgetState extends State<TaxOptimizationWidget> {
     try {
       final csvString = reconciliation.toCsv();
       final bytes = utf8.encode(csvString);
-      final yearStr = reconciliation.taxYear != null
-          ? '${reconciliation.taxYear}'
-          : 'All';
+      final yearStr =
+          reconciliation.taxYear != null ? '${reconciliation.taxYear}' : 'All';
       final file = XFile.fromData(
         bytes,
         mimeType: 'text/csv',

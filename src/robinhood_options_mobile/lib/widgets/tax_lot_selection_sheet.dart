@@ -73,7 +73,8 @@ class _TaxLotSelectionSheetState extends State<TaxLotSelectionSheet> {
   void _applyQuickSort(TaxLotStrategy strategy) {
     setState(() {
       _allocations.clear();
-      final sorted = List<TaxLot>.from(widget.taxLots.where((l) => l.isSelectable && l.quantityAvailable > 0));
+      final sorted = List<TaxLot>.from(widget.taxLots
+          .where((l) => l.isSelectable && l.quantityAvailable > 0));
       if (strategy == TaxLotStrategy.hifo) {
         sorted.sort((a, b) => b.costPerShare.compareTo(a.costPerShare));
       } else if (strategy == TaxLotStrategy.fifo) {
@@ -181,7 +182,8 @@ class _TaxLotSelectionSheetState extends State<TaxLotSelectionSheet> {
               elevation: 0,
               color: _isAllocationComplete
                   ? Colors.green.withValues(alpha: 0.12)
-                  : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                  : theme.colorScheme.surfaceContainerHighest
+                      .withValues(alpha: 0.5),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
                 side: BorderSide(
@@ -233,7 +235,8 @@ class _TaxLotSelectionSheetState extends State<TaxLotSelectionSheet> {
                     const SizedBox(height: 8),
                     LinearProgressIndicator(
                       value: progress,
-                      backgroundColor: theme.dividerColor.withValues(alpha: 0.3),
+                      backgroundColor:
+                          theme.dividerColor.withValues(alpha: 0.3),
                       valueColor: AlwaysStoppedAnimation<Color>(
                         _isAllocationComplete
                             ? Colors.green
@@ -278,7 +281,8 @@ class _TaxLotSelectionSheetState extends State<TaxLotSelectionSheet> {
                 const SizedBox(width: 8),
                 ActionChip(
                   avatar: const Icon(Icons.trending_down, size: 14),
-                  label: const Text('Max Loss (HIFO)', style: TextStyle(fontSize: 12)),
+                  label: const Text('Max Loss (HIFO)',
+                      style: TextStyle(fontSize: 12)),
                   padding: EdgeInsets.zero,
                   visualDensity: VisualDensity.compact,
                   onPressed: () => _applyQuickSort(TaxLotStrategy.hifo),
@@ -317,13 +321,15 @@ class _TaxLotSelectionSheetState extends State<TaxLotSelectionSheet> {
                     ),
                   )
                 : ListView.separated(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
                     itemCount: widget.taxLots.length,
                     separatorBuilder: (_, __) => const SizedBox(height: 8),
                     itemBuilder: (context, index) {
                       final lot = widget.taxLots[index];
                       final allocated = _allocations[lot.openLotId] ?? 0.0;
-                      final gainLossPerShare = widget.currentPrice - lot.costPerShare;
+                      final gainLossPerShare =
+                          widget.currentPrice - lot.costPerShare;
                       final isLoss = gainLossPerShare < 0;
 
                       return Card(
@@ -338,7 +344,8 @@ class _TaxLotSelectionSheetState extends State<TaxLotSelectionSheet> {
                           ),
                         ),
                         color: allocated > 0
-                            ? theme.colorScheme.primaryContainer.withValues(alpha: 0.15)
+                            ? theme.colorScheme.primaryContainer
+                                .withValues(alpha: 0.15)
                             : theme.colorScheme.surface,
                         child: Padding(
                           padding: const EdgeInsets.all(12),
@@ -356,19 +363,25 @@ class _TaxLotSelectionSheetState extends State<TaxLotSelectionSheet> {
                                   ),
                                   const SizedBox(width: 8),
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 6, vertical: 2),
                                     decoration: BoxDecoration(
                                       color: lot.isLongTerm
                                           ? Colors.blue.withValues(alpha: 0.15)
-                                          : Colors.orange.withValues(alpha: 0.15),
+                                          : Colors.orange
+                                              .withValues(alpha: 0.15),
                                       borderRadius: BorderRadius.circular(4),
                                     ),
                                     child: Text(
-                                      lot.isLongTerm ? 'Long-Term' : 'Short-Term',
+                                      lot.isLongTerm
+                                          ? 'Long-Term'
+                                          : 'Short-Term',
                                       style: TextStyle(
                                         fontSize: 11,
                                         fontWeight: FontWeight.w600,
-                                        color: lot.isLongTerm ? Colors.blue : Colors.orange,
+                                        color: lot.isLongTerm
+                                            ? Colors.blue
+                                            : Colors.orange,
                                       ),
                                     ),
                                   ),
@@ -388,18 +401,23 @@ class _TaxLotSelectionSheetState extends State<TaxLotSelectionSheet> {
                                   // Cost Basis
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Text(
                                           'Cost / Share',
-                                          style: theme.textTheme.bodySmall?.copyWith(
-                                            color: theme.colorScheme.onSurfaceVariant,
+                                          style: theme.textTheme.bodySmall
+                                              ?.copyWith(
+                                            color: theme
+                                                .colorScheme.onSurfaceVariant,
                                             fontSize: 11,
                                           ),
                                         ),
                                         Text(
-                                          formatCurrency.format(lot.costPerShare),
-                                          style: theme.textTheme.bodyMedium?.copyWith(
+                                          formatCurrency
+                                              .format(lot.costPerShare),
+                                          style: theme.textTheme.bodyMedium
+                                              ?.copyWith(
                                             fontWeight: FontWeight.w600,
                                           ),
                                         ),
@@ -409,20 +427,26 @@ class _TaxLotSelectionSheetState extends State<TaxLotSelectionSheet> {
                                   // Unrealized Gain/Loss
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Text(
                                           'Gain / Loss',
-                                          style: theme.textTheme.bodySmall?.copyWith(
-                                            color: theme.colorScheme.onSurfaceVariant,
+                                          style: theme.textTheme.bodySmall
+                                              ?.copyWith(
+                                            color: theme
+                                                .colorScheme.onSurfaceVariant,
                                             fontSize: 11,
                                           ),
                                         ),
                                         Text(
                                           '${isLoss ? '' : '+'}${formatCurrency.format(gainLossPerShare)}/sh',
-                                          style: theme.textTheme.bodyMedium?.copyWith(
+                                          style: theme.textTheme.bodyMedium
+                                              ?.copyWith(
                                             fontWeight: FontWeight.w600,
-                                            color: isLoss ? Colors.red : Colors.green,
+                                            color: isLoss
+                                                ? Colors.red
+                                                : Colors.green,
                                           ),
                                         ),
                                       ],
@@ -433,23 +457,30 @@ class _TaxLotSelectionSheetState extends State<TaxLotSelectionSheet> {
                                     children: [
                                       if (allocated > 0)
                                         IconButton(
-                                          icon: const Icon(Icons.remove_circle_outline, size: 20),
+                                          icon: const Icon(
+                                              Icons.remove_circle_outline,
+                                              size: 20),
                                           visualDensity: VisualDensity.compact,
                                           onPressed: () {
                                             setState(() {
                                               if (allocated <= 1) {
-                                                _allocations.remove(lot.openLotId);
+                                                _allocations
+                                                    .remove(lot.openLotId);
                                               } else {
-                                                _allocations[lot.openLotId] = allocated - 1;
+                                                _allocations[lot.openLotId] =
+                                                    allocated - 1;
                                               }
                                             });
                                           },
                                         ),
                                       Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 10, vertical: 4),
                                         decoration: BoxDecoration(
-                                          color: theme.colorScheme.surfaceContainerHighest,
-                                          borderRadius: BorderRadius.circular(6),
+                                          color: theme.colorScheme
+                                              .surfaceContainerHighest,
+                                          borderRadius:
+                                              BorderRadius.circular(6),
                                         ),
                                         child: Text(
                                           allocated % 1 == 0
@@ -464,23 +495,30 @@ class _TaxLotSelectionSheetState extends State<TaxLotSelectionSheet> {
                                         ),
                                       ),
                                       IconButton(
-                                        icon: const Icon(Icons.add_circle_outline, size: 20),
+                                        icon: const Icon(
+                                            Icons.add_circle_outline,
+                                            size: 20),
                                         visualDensity: VisualDensity.compact,
                                         onPressed: () {
                                           setState(() {
-                                            final next = min(lot.quantityAvailable, allocated + 1);
+                                            final next = min(
+                                                lot.quantityAvailable,
+                                                allocated + 1);
                                             _allocations[lot.openLotId] = next;
                                           });
                                         },
                                       ),
                                       TextButton(
                                         style: TextButton.styleFrom(
-                                          padding: const EdgeInsets.symmetric(horizontal: 6),
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 6),
                                           minimumSize: const Size(36, 28),
-                                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                          tapTargetSize:
+                                              MaterialTapTargetSize.shrinkWrap,
                                         ),
                                         onPressed: () => _setMaxForLot(lot),
-                                        child: const Text('Max', style: TextStyle(fontSize: 12)),
+                                        child: const Text('Max',
+                                            style: TextStyle(fontSize: 12)),
                                       ),
                                     ],
                                   ),
@@ -496,7 +534,8 @@ class _TaxLotSelectionSheetState extends State<TaxLotSelectionSheet> {
 
           // Confirm Button
           Padding(
-            padding: EdgeInsets.fromLTRB(16, 12, 16, 16 + mediaQuery.padding.bottom),
+            padding:
+                EdgeInsets.fromLTRB(16, 12, 16, 16 + mediaQuery.padding.bottom),
             child: FilledButton(
               onPressed: _isAllocationComplete
                   ? () {

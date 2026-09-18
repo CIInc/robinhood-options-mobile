@@ -14,12 +14,14 @@ class Form8949Entry {
   final DateTime soldDate; // Column (c): Date sold or disposed
   final double proceeds; // Column (d): Proceeds (sales price)
   final double costBasis; // Column (e): Cost or other basis
-  final String? adjustmentCode; // Column (f): Code(s) from instructions ('W', etc.)
+  final String?
+      adjustmentCode; // Column (f): Code(s) from instructions ('W', etc.)
   final double adjustmentAmount; // Column (g): Amount of adjustment
   final double gainOrLoss; // Column (h): Gain or loss ((d) - (e) + (g))
   final bool isLongTerm; // Part I (<= 365 days) vs Part II (> 365 days)
   final int holdingDays;
-  final String boxCategory; // 'A' (Short-term covered) or 'D' (Long-term covered)
+  final String
+      boxCategory; // 'A' (Short-term covered) or 'D' (Long-term covered)
   final String? washSaleRecordId;
 
   const Form8949Entry({
@@ -165,8 +167,7 @@ class Form8949Reconciliation {
         ...longTermEntries,
       ];
 
-  int get totalTransactions =>
-      shortTermEntries.length + longTermEntries.length;
+  int get totalTransactions => shortTermEntries.length + longTermEntries.length;
 
   /// Generates a standardized RFC 4180 CSV string formatted according to
   /// IRS Form 8949 and Schedule D specifications.
@@ -178,7 +179,10 @@ class Form8949Reconciliation {
     final yearStr = taxYear != null ? '$taxYear' : 'All Years';
     rows.add(['IRS Form 8949 & Schedule D Reconciliation']);
     rows.add(['Tax Year', yearStr]);
-    rows.add(['Generated At', DateFormat('yyyy-MM-dd HH:mm:ss').format(generatedAt)]);
+    rows.add([
+      'Generated At',
+      DateFormat('yyyy-MM-dd HH:mm:ss').format(generatedAt)
+    ]);
     rows.add(['Source', 'RealizeAlpha Portfolio & Tax Suite']);
     rows.add([]);
 

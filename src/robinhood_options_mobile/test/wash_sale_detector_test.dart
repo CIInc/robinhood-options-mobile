@@ -175,7 +175,9 @@ void main() {
       );
     }
 
-    test('detects active 30-day wash sale window when sold at a loss without repurchase', () {
+    test(
+        'detects active 30-day wash sale window when sold at a loss without repurchase',
+        () {
       final buyOrder = createStockOrder(
         id: 'buy_1',
         symbol: 'TSLA',
@@ -191,7 +193,8 @@ void main() {
         side: 'sell',
         price: 200.0,
         quantity: 10.0,
-        date: DateTime(2026, 10, 10), // Sold at loss of $500 10 days before asOfDate
+        date: DateTime(
+            2026, 10, 10), // Sold at loss of $500 10 days before asOfDate
       );
 
       final washSales = TaxOptimizationService.detectWashSales(
@@ -207,7 +210,9 @@ void main() {
       expect(record.getDaysRemaining(asOfDate), 21); // Window ends Nov 9
     });
 
-    test('detects triggered wash sale when replacement stock is bought within 30 days', () {
+    test(
+        'detects triggered wash sale when replacement stock is bought within 30 days',
+        () {
       final buy1 = createStockOrder(
         id: 'buy_initial',
         symbol: 'AMD',
@@ -248,7 +253,9 @@ void main() {
       expect(record.adjustedCostBasis, (135.0 * 20.0) + 400.0);
     });
 
-    test('detects cross-instrument wash sale when call option is purchased on loss stock', () {
+    test(
+        'detects cross-instrument wash sale when call option is purchased on loss stock',
+        () {
       final stockBuy = createStockOrder(
         id: 'stock_buy',
         symbol: 'NVDA',
@@ -328,9 +335,14 @@ void main() {
         asOf: asOfDate,
       );
 
-      expect(washSales.any((w) => w.symbol == 'TSLA' && w.isWindowActive(asOfDate)), isTrue);
-      expect(washSales.any((w) => w.symbol == 'NVDA' && w.isDisallowed), isTrue);
-      expect(washSales.any((w) => w.symbol == 'AAPL' && w.isCleared(asOfDate)), isTrue);
+      expect(
+          washSales
+              .any((w) => w.symbol == 'TSLA' && w.isWindowActive(asOfDate)),
+          isTrue);
+      expect(
+          washSales.any((w) => w.symbol == 'NVDA' && w.isDisallowed), isTrue);
+      expect(washSales.any((w) => w.symbol == 'AAPL' && w.isCleared(asOfDate)),
+          isTrue);
     });
   });
 
@@ -348,7 +360,9 @@ void main() {
         quantitySold: 10.0,
         realizedLoss: -300.0,
         windowStartDate: now.subtract(const Duration(days: 40)),
-        windowEndDate: now.subtract(const Duration(days: 10)).add(const Duration(days: 30)),
+        windowEndDate: now
+            .subtract(const Duration(days: 10))
+            .add(const Duration(days: 30)),
         status: WashSaleStatus.disallowed,
         disallowedLoss: 300.0,
       );
@@ -367,7 +381,8 @@ void main() {
       expect(alert.target, PortfolioAlertTarget.taxes);
     });
 
-    test('generates warning alert for active wash sale restriction windows', () {
+    test('generates warning alert for active wash sale restriction windows',
+        () {
       final activeRecord = WashSaleRecord(
         id: 'w2',
         symbol: 'TSLA',
@@ -378,7 +393,9 @@ void main() {
         quantitySold: 20.0,
         realizedLoss: -450.0,
         windowStartDate: now.subtract(const Duration(days: 42)),
-        windowEndDate: now.subtract(const Duration(days: 12)).add(const Duration(days: 30)),
+        windowEndDate: now
+            .subtract(const Duration(days: 12))
+            .add(const Duration(days: 30)),
         status: WashSaleStatus.activeWindow,
       );
 

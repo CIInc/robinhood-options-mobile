@@ -155,8 +155,8 @@ class WashSaleRecord {
       windowStartDate: windowStartDt,
       windowEndDate: windowEndDt,
       status: WashSaleStatus.fromString(json['status']?.toString()),
-      replacementDate:
-          parseNullableDate(json['replacement_date'] ?? json['replacementDate']),
+      replacementDate: parseNullableDate(
+          json['replacement_date'] ?? json['replacementDate']),
       replacementPrice:
           parseDouble(json['replacement_price'] ?? json['replacementPrice']),
       replacementQuantity: parseDouble(
@@ -165,8 +165,8 @@ class WashSaleRecord {
           json['replacementAssetType']?.toString(),
       disallowedLoss:
           parseDouble(json['disallowed_loss'] ?? json['disallowedLoss']),
-      adjustedCostBasis: parseDouble(
-          json['adjusted_cost_basis'] ?? json['adjustedCostBasis']),
+      adjustedCostBasis:
+          parseDouble(json['adjusted_cost_basis'] ?? json['adjustedCostBasis']),
     );
   }
 }

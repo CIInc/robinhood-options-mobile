@@ -76,10 +76,12 @@ void main() {
 
     expect(find.text('30-Day Wash Sale Tracker'), findsOneWidget);
     expect(find.text('IRS Section 1091 Real-Time Monitoring'), findsOneWidget);
-    expect(find.textContaining('No active wash sale restrictions'), findsOneWidget);
+    expect(find.textContaining('No active wash sale restrictions'),
+        findsOneWidget);
   });
 
-  testWidgets('renders active window countdown and disallowed wash sale records',
+  testWidgets(
+      'renders active window countdown and disallowed wash sale records',
       (WidgetTester tester) async {
     tester.view.physicalSize = const Size(800, 2400);
     tester.view.devicePixelRatio = 1.0;
@@ -97,7 +99,9 @@ void main() {
         quantitySold: 10.0,
         realizedLoss: -450.0,
         windowStartDate: now.subtract(const Duration(days: 40)),
-        windowEndDate: now.subtract(const Duration(days: 10)).add(const Duration(days: 30)),
+        windowEndDate: now
+            .subtract(const Duration(days: 10))
+            .add(const Duration(days: 30)),
         status: WashSaleStatus.activeWindow,
       ),
       WashSaleRecord(
@@ -110,7 +114,9 @@ void main() {
         quantitySold: 20.0,
         realizedLoss: -320.0,
         windowStartDate: now.subtract(const Duration(days: 50)),
-        windowEndDate: now.subtract(const Duration(days: 20)).add(const Duration(days: 30)),
+        windowEndDate: now
+            .subtract(const Duration(days: 20))
+            .add(const Duration(days: 30)),
         status: WashSaleStatus.disallowed,
         replacementDate: now.subtract(const Duration(days: 15)),
         replacementPrice: 120.0,
@@ -121,7 +127,8 @@ void main() {
       ),
     ];
 
-    await tester.pumpWidget(createWidgetUnderTest(initialWashSales: testRecords));
+    await tester
+        .pumpWidget(createWidgetUnderTest(initialWashSales: testRecords));
     await tester.pumpAndSettle();
 
     // Verify filter chips
@@ -138,7 +145,8 @@ void main() {
     expect(find.text('Deferred Basis Adjustment:'), findsOneWidget);
   });
 
-  testWidgets('opens IRS Section 1091 Wash Sale Rule bottom sheet on info icon click',
+  testWidgets(
+      'opens IRS Section 1091 Wash Sale Rule bottom sheet on info icon click',
       (WidgetTester tester) async {
     tester.view.physicalSize = const Size(800, 2000);
     tester.view.devicePixelRatio = 1.0;
@@ -165,7 +173,8 @@ void main() {
     expect(find.text('IRS Section 1091 Wash Sale Rule'), findsNothing);
   });
 
-  testWidgets('renders Loss Harvesting tab on initialTabIndex 0 and switches to Wash Sales tab',
+  testWidgets(
+      'renders Loss Harvesting tab on initialTabIndex 0 and switches to Wash Sales tab',
       (WidgetTester tester) async {
     tester.view.physicalSize = const Size(800, 2000);
     tester.view.devicePixelRatio = 1.0;
