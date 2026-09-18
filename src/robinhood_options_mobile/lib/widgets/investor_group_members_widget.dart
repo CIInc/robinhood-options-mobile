@@ -13,7 +13,6 @@ import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/investor_group_manage_members_widget.dart';
 import 'package:robinhood_options_mobile/widgets/investor_groups_member_detail_widget.dart';
 import 'package:robinhood_options_mobile/widgets/trader_profile_widget.dart';
-import 'package:robinhood_options_mobile/widgets/user_widget.dart';
 
 enum MemberFilterOption {
   all,

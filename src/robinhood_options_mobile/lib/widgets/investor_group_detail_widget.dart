@@ -26,8 +26,6 @@ import 'package:robinhood_options_mobile/model/group_analysis.dart';
 import 'package:robinhood_options_mobile/model/verified_track_record.dart';
 import 'package:robinhood_options_mobile/widgets/investor_group_activity_feed_widget.dart';
 import 'package:intl/intl.dart';
-import 'package:robinhood_options_mobile/widgets/trader_profile_widget.dart';
-import 'package:robinhood_options_mobile/widgets/user_widget.dart';
 import 'package:share_plus/share_plus.dart';
 
 class InvestorGroupDetailWidget extends StatefulWidget {

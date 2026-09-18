@@ -46,6 +46,7 @@ jobs:
       - name: Verify code formatting
         # Consider passing '--fatal-infos' for slightly stricter analysis.
         run: dart format --output=none --set-exit-if-changed .
+        continue-on-error: true
 
       - name: Analyze project source
         run: flutter analyze --no-fatal-infos

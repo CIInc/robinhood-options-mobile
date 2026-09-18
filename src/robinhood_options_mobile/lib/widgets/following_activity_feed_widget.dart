@@ -502,8 +502,8 @@ class _FollowingActivityFeedWidgetState
                   final idea = item.idea!;
                   return idea.symbol.toLowerCase().contains(q) ||
                       idea.title.toLowerCase().contains(q) ||
-                      (idea.thesis?.toLowerCase().contains(q) ?? false) ||
-                      (idea.authorName?.toLowerCase().contains(q) ?? false);
+                      (idea.thesis.toLowerCase().contains(q)) ||
+                      (idea.authorName.toLowerCase().contains(q));
                 } else if (item.activity != null) {
                   final act = item.activity!;
                   return (act.symbol?.toLowerCase().contains(q) ?? false) ||
@@ -661,8 +661,8 @@ class _FollowingActivityFeedWidgetState
           filtered = filtered.where((idea) {
             return idea.symbol.toLowerCase().contains(q) ||
                 idea.title.toLowerCase().contains(q) ||
-                (idea.thesis?.toLowerCase().contains(q) ?? false) ||
-                (idea.authorName?.toLowerCase().contains(q) ?? false);
+                (idea.thesis.toLowerCase().contains(q)) ||
+                (idea.authorName.toLowerCase().contains(q));
           }).toList();
         }
 

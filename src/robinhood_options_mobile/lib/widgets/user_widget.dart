@@ -46,8 +46,6 @@ import 'package:robinhood_options_mobile/widgets/connected_agents_widget.dart';
 import 'package:robinhood_options_mobile/widgets/notification_center_widget.dart';
 import 'package:robinhood_options_mobile/model/portfolio_privacy_settings.dart';
 import 'package:robinhood_options_mobile/model/user_follow.dart';
-import 'package:robinhood_options_mobile/model/instrument.dart';
-import 'package:robinhood_options_mobile/model/instrument_position.dart';
 import 'package:robinhood_options_mobile/model/instrument_order.dart';
 import 'package:robinhood_options_mobile/model/verified_track_record.dart';
 import 'package:robinhood_options_mobile/widgets/copy_trade_button_widget.dart';
