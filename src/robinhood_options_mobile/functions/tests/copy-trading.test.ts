@@ -2,7 +2,6 @@ import { describe, expect, test, jest, beforeEach } from "@jest/globals";
 
 type DocumentCreatedHandler = (event: unknown) => unknown;
 
-// Define mock state
 let sourceUserGetCount = 0;
 
 const mockUserDoc = jest.fn((docId: string) => {
@@ -14,12 +13,12 @@ const mockUserDoc = jest.fn((docId: string) => {
           exists: true,
           data: () => ({ name: "Trader Joe", devices: [] }),
         };
-      } else {
-        return {
-          exists: true,
-          data: () => ({ name: "Follower", devices: [] }),
-        };
       }
+
+      return {
+        exists: true,
+        data: () => ({ name: "Follower", devices: [] }),
+      };
     }),
   };
 });
@@ -137,7 +136,6 @@ jest.mock("firebase-admin/messaging", () => ({
   }),
 }));
 
-// Import after mocking
 import {
   onInstrumentOrderCreated,
   onOptionOrderCreated,
@@ -148,6 +146,7 @@ describe("Copy Trading N+1 query benchmark/test", () => {
     sourceUserGetCount = 0;
     mockUserDoc.mockClear();
     mockInstrumentGet.mockClear();
+    mockInstrumentQueryGet.mockClear();
     mockGroupsQueryGet.mockClear();
     mockCopyTradesAdd.mockClear();
   });
@@ -162,6 +161,7 @@ describe("Copy Trading N+1 query benchmark/test", () => {
           price: 150,
           side: "buy",
           instrument_id: "inst1",
+          type: "market",
           instrumentObj: { symbol: "AAPL" },
         }),
       },
@@ -169,9 +169,8 @@ describe("Copy Trading N+1 query benchmark/test", () => {
 
     await (onInstrumentOrderCreated as any)(event);
 
-    expect(mockCopyTradesAdd).toHaveBeenCalledTimes(4); // 4 copying members
-    // Source user lookups should be at most 1 (optimized from N=4)
-    expect(sourceUserGetCount).toBeLessThanOrEqual(1);
+    expect(mockCopyTradesAdd).toHaveBeenCalledTimes(4);
+    expect(sourceUserGetCount).toBe(1);
   });
 
   test("onOptionOrderCreated source user lookup count", async () => {
@@ -192,8 +191,7 @@ describe("Copy Trading N+1 query benchmark/test", () => {
 
     await (onOptionOrderCreated as any)(event);
 
-    expect(mockCopyTradesAdd).toHaveBeenCalledTimes(4); // 4 copying members
-    // Source user lookups should be at most 1 (optimized from N=4)
-    expect(sourceUserGetCount).toBeLessThanOrEqual(1);
+    expect(mockCopyTradesAdd).toHaveBeenCalledTimes(4);
+    expect(sourceUserGetCount).toBe(1);
   });
 });
