@@ -517,7 +517,8 @@ abstract class IBrokerageService {
   }
 
   /// Fetches typed AchRelationship models
-  Future<List<AchRelationship>> getAchRelationshipsModel(BrokerageUser user) async {
+  Future<List<AchRelationship>> getAchRelationshipsModel(
+      BrokerageUser user) async {
     final raw = await getAchRelationships(user);
     return raw.map((item) => AchRelationship.fromJson(item)).toList();
   }
@@ -620,21 +621,30 @@ abstract class IBrokerageService {
 
   /// Fetches connected external OAuth applications and AI trading agents
   Future<List<dynamic>> getExternalTokens(BrokerageUser user) async => [];
-  Future<List<ExternalToken>> getExternalTokensModel(BrokerageUser user) async => [];
-  Future<bool> revokeExternalToken(BrokerageUser user, String tokenId) async => false;
+  Future<List<ExternalToken>> getExternalTokensModel(
+          BrokerageUser user) async =>
+      [];
+  Future<bool> revokeExternalToken(BrokerageUser user, String tokenId) async =>
+      false;
 
   /// In-app notification center and Midlands stack
   Future<List<dynamic>> getNotificationStack(BrokerageUser user) async => [];
-  Future<List<NotificationItem>> getNotificationStackModel(BrokerageUser user) async => [];
+  Future<List<NotificationItem>> getNotificationStackModel(
+          BrokerageUser user) async =>
+      [];
   Future<dynamic> getInboxThreads(BrokerageUser user) async => null;
-  Future<List<NotificationItem>> getInboxThreadsModel(BrokerageUser user) async => [];
+  Future<List<NotificationItem>> getInboxThreadsModel(
+          BrokerageUser user) async =>
+      [];
 
   /// Robinhood Spending / Cash Management account
   Future<dynamic> getSpendingAccount(BrokerageUser user) async => null;
-  Future<SpendingAccount?> getSpendingAccountModel(BrokerageUser user) async => null;
+  Future<SpendingAccount?> getSpendingAccountModel(BrokerageUser user) async =>
+      null;
 
   /// Annual IRA contribution history, matches, and limits
   Future<dynamic> getRetirementHistory(BrokerageUser user) async => null;
-  Future<RetirementHistory> getRetirementHistoryModel(BrokerageUser user) async =>
+  Future<RetirementHistory> getRetirementHistoryModel(
+          BrokerageUser user) async =>
       const RetirementHistory();
 }

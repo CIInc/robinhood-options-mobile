@@ -934,8 +934,7 @@ class _UserInfoWidgetState extends State<UserInfoWidget> {
     final Color badgeBorder = isL3
         ? Colors.green.withValues(alpha: 0.3)
         : colorScheme.secondary.withValues(alpha: 0.3);
-    final String label =
-        isL3 ? 'Options L3 Active' : 'Options & Collateral';
+    final String label = isL3 ? 'Options L3 Active' : 'Options & Collateral';
     final IconData icon = isL3 ? Icons.verified : Icons.upgrade_rounded;
 
     return Material(

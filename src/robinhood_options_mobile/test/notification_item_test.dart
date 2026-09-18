@@ -102,7 +102,8 @@ void main() {
         'is_read': false,
         'avatar_color': '#ECC841',
         'preview_text': {
-          'text': 'Your market order to sell 1,018.67 DOGE was filled for \$166.69.',
+          'text':
+              'Your market order to sell 1,018.67 DOGE was filled for \$166.69.',
         },
         'most_recent_message': {
           'action': {
@@ -141,7 +142,10 @@ void main() {
                 'robinhood://orders?id=6769bb73-e1ba-4287-ae6a-1f5391db2a9f&type=option',
           },
           'responses': [
-            {"display_text": "I'd like to place a new order. 😎", 'answer': '239170'},
+            {
+              "display_text": "I'd like to place a new order. 😎",
+              'answer': '239170'
+            },
             {'display_text': 'Hooray! 🙌', 'answer': '238725'},
           ],
         },
@@ -152,7 +156,8 @@ void main() {
       expect(item.category, 'options');
       expect(item.shortDisplayName, 'PARA');
       expect(item.responses.length, 2);
-      expect(item.responses.first.displayText, "I'd like to place a new order. 😎");
+      expect(item.responses.first.displayText,
+          "I'd like to place a new order. 😎");
       expect(item.responses.first.answer, '239170');
     });
 
@@ -190,7 +195,8 @@ void main() {
         'most_recent_message': {
           'action': {
             'display_text': 'View order',
-            'url': 'robinhood://orders/?id=6a3f2ba4-8afd-4da6-a86c-d527261a8455',
+            'url':
+                'robinhood://orders/?id=6a3f2ba4-8afd-4da6-a86c-d527261a8455',
           },
         },
       };

@@ -1891,11 +1891,10 @@ class DemoService implements IBrokerageService {
     for (var payment in payments) {
       final matchesId = instrumentObj.id.isNotEmpty &&
           (payment.instrumentId == instrumentObj.id ||
-           payment.oldInstrumentId == instrumentObj.id ||
-           payment.newInstrumentId == instrumentObj.id);
+              payment.oldInstrumentId == instrumentObj.id ||
+              payment.newInstrumentId == instrumentObj.id);
       final matchesSym = payment.symbol.isNotEmpty &&
-          payment.symbol.toUpperCase() ==
-              instrumentObj.symbol.toUpperCase();
+          payment.symbol.toUpperCase() == instrumentObj.symbol.toUpperCase();
 
       if (matchesId || matchesSym) {
         final splitObj = payment.split;
@@ -4294,7 +4293,8 @@ class DemoService implements IBrokerageService {
       {
         'id': 'slp_demo_001',
         'account_number': accountNumber ?? 'DEMO12345',
-        'payment_date': now.subtract(const Duration(days: 12)).toIso8601String(),
+        'payment_date':
+            now.subtract(const Duration(days: 12)).toIso8601String(),
         'amount': '18.45',
         'net_amount': '18.45',
         'currency_code': 'USD',
@@ -4329,7 +4329,8 @@ class DemoService implements IBrokerageService {
       {
         'id': 'slp_demo_002',
         'account_number': accountNumber ?? 'DEMO12345',
-        'payment_date': now.subtract(const Duration(days: 42)).toIso8601String(),
+        'payment_date':
+            now.subtract(const Duration(days: 42)).toIso8601String(),
         'amount': '24.12',
         'net_amount': '24.12',
         'currency_code': 'USD',
@@ -4364,7 +4365,8 @@ class DemoService implements IBrokerageService {
       {
         'id': 'slp_demo_003',
         'account_number': accountNumber ?? 'DEMO12345',
-        'payment_date': now.subtract(const Duration(days: 72)).toIso8601String(),
+        'payment_date':
+            now.subtract(const Duration(days: 72)).toIso8601String(),
         'amount': '16.80',
         'net_amount': '16.80',
         'currency_code': 'USD',
@@ -4447,18 +4449,18 @@ class DemoService implements IBrokerageService {
         'id': 'ach_demo_102',
         'account': accountNumber,
         'account_number': accountNumber,
-        'cancel': 'https://api.robinhood.com/ach/transfers/ach_demo_102/cancel/',
-        'cancel_url': 'https://api.robinhood.com/ach/transfers/ach_demo_102/cancel/',
+        'cancel':
+            'https://api.robinhood.com/ach/transfers/ach_demo_102/cancel/',
+        'cancel_url':
+            'https://api.robinhood.com/ach/transfers/ach_demo_102/cancel/',
         'direction': 'deposit',
         'amount': '1000.00',
         'state': 'pending',
         'status_description':
             'Deposit initiated from Chase Checking - Estimated arrival tomorrow',
         'scheduled': false,
-        'expected_landing_date': now
-            .add(const Duration(days: 1))
-            .toIso8601String()
-            .substring(0, 10),
+        'expected_landing_date':
+            now.add(const Duration(days: 1)).toIso8601String().substring(0, 10),
         'expected_landing_datetime':
             now.add(const Duration(days: 1, hours: 9)).toIso8601String(),
         'created_at': now.subtract(const Duration(hours: 4)).toIso8601String(),
@@ -4648,7 +4650,8 @@ class DemoService implements IBrokerageService {
         'title': '2025 Consolidated Form 1099',
         'date': '2026-02-15',
         'year': 2025,
-        'download_url': 'https://api.robinhood.com/documents/doc_1099_2025/download/',
+        'download_url':
+            'https://api.robinhood.com/documents/doc_1099_2025/download/',
         'file_size': 458752,
         'state': 'ready',
         'created_at': '2026-02-15T08:00:00Z',
@@ -4661,7 +4664,8 @@ class DemoService implements IBrokerageService {
         'title': '2024 Consolidated Form 1099',
         'date': '2025-02-12',
         'year': 2024,
-        'download_url': 'https://api.robinhood.com/documents/doc_1099_2024/download/',
+        'download_url':
+            'https://api.robinhood.com/documents/doc_1099_2024/download/',
         'file_size': 419430,
         'state': 'ready',
         'created_at': '2025-02-12T08:00:00Z',
@@ -4674,7 +4678,8 @@ class DemoService implements IBrokerageService {
         'title': '2023 Consolidated Form 1099',
         'date': '2024-02-14',
         'year': 2023,
-        'download_url': 'https://api.robinhood.com/documents/doc_1099_2023/download/',
+        'download_url':
+            'https://api.robinhood.com/documents/doc_1099_2023/download/',
         'file_size': 387072,
         'state': 'ready',
         'created_at': '2024-02-14T08:00:00Z',
@@ -4687,7 +4692,8 @@ class DemoService implements IBrokerageService {
         'title': 'August 2026 Account Statement',
         'date': '2026-08-31',
         'year': 2026,
-        'download_url': 'https://api.robinhood.com/documents/doc_stmt_2026_08/download/',
+        'download_url':
+            'https://api.robinhood.com/documents/doc_stmt_2026_08/download/',
         'file_size': 184320,
         'state': 'ready',
         'created_at': '2026-09-02T10:00:00Z',
@@ -4700,7 +4706,8 @@ class DemoService implements IBrokerageService {
         'title': 'July 2026 Account Statement',
         'date': '2026-07-31',
         'year': 2026,
-        'download_url': 'https://api.robinhood.com/documents/doc_stmt_2026_07/download/',
+        'download_url':
+            'https://api.robinhood.com/documents/doc_stmt_2026_07/download/',
         'file_size': 192512,
         'state': 'ready',
         'created_at': '2026-08-02T10:00:00Z',
@@ -4713,7 +4720,8 @@ class DemoService implements IBrokerageService {
         'title': 'June 2026 Account Statement',
         'date': '2026-06-30',
         'year': 2026,
-        'download_url': 'https://api.robinhood.com/documents/doc_stmt_2026_06/download/',
+        'download_url':
+            'https://api.robinhood.com/documents/doc_stmt_2026_06/download/',
         'file_size': 176128,
         'state': 'ready',
         'created_at': '2026-07-02T10:00:00Z',
@@ -4726,7 +4734,8 @@ class DemoService implements IBrokerageService {
         'title': 'May 2026 Account Statement',
         'date': '2026-05-31',
         'year': 2026,
-        'download_url': 'https://api.robinhood.com/documents/doc_stmt_2026_05/download/',
+        'download_url':
+            'https://api.robinhood.com/documents/doc_stmt_2026_05/download/',
         'file_size': 168960,
         'state': 'ready',
         'created_at': '2026-06-02T10:00:00Z',
@@ -4739,7 +4748,8 @@ class DemoService implements IBrokerageService {
         'title': 'Trade Confirmation - NVDA Equity Buy',
         'date': '2026-09-08',
         'year': 2026,
-        'download_url': 'https://api.robinhood.com/documents/doc_conf_2026_09_08/download/',
+        'download_url':
+            'https://api.robinhood.com/documents/doc_conf_2026_09_08/download/',
         'file_size': 65536,
         'state': 'ready',
         'created_at': '2026-09-08T16:30:00Z',
@@ -4752,7 +4762,8 @@ class DemoService implements IBrokerageService {
         'title': 'Trade Confirmation - SPY \$550 Call Buy',
         'date': '2026-09-02',
         'year': 2026,
-        'download_url': 'https://api.robinhood.com/documents/doc_conf_2026_09_02/download/',
+        'download_url':
+            'https://api.robinhood.com/documents/doc_conf_2026_09_02/download/',
         'file_size': 61440,
         'state': 'ready',
         'created_at': '2026-09-02T15:45:00Z',
@@ -4765,7 +4776,8 @@ class DemoService implements IBrokerageService {
         'title': 'Trade Confirmation - AAPL \$220 Put Sell',
         'date': '2026-08-28',
         'year': 2026,
-        'download_url': 'https://api.robinhood.com/documents/doc_conf_2026_08_28/download/',
+        'download_url':
+            'https://api.robinhood.com/documents/doc_conf_2026_08_28/download/',
         'file_size': 62464,
         'state': 'ready',
         'created_at': '2026-08-28T14:10:00Z',
@@ -4909,7 +4921,8 @@ class DemoService implements IBrokerageService {
           'withholding_rate': 0.0,
           'treaty_rate': 0.0,
           'status': 'exempt',
-          'description': 'Domestic US equity; domestic dividend reporting applies.',
+          'description':
+              'Domestic US equity; domestic dividend reporting applies.',
         };
   }
 
@@ -5317,14 +5330,19 @@ class DemoService implements IBrokerageService {
       if (data['instrument_id'] == instrumentId ||
           data['symbol'] == upperId ||
           upperId.contains(entry.key)) {
-        return {'events': [data]};
+        return {
+          'events': [data]
+        };
       }
     }
 
     // Default plausible Q&A event for any other stock symbol
-    String cleanSym = instrumentId.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '').toUpperCase();
+    String cleanSym =
+        instrumentId.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '').toUpperCase();
     cleanSym = cleanSym.replaceAll('INST', '');
-    final symbol = cleanSym.isNotEmpty ? (cleanSym.length <= 5 ? cleanSym : cleanSym.substring(0, 4)) : 'STOCK';
+    final symbol = cleanSym.isNotEmpty
+        ? (cleanSym.length <= 5 ? cleanSym : cleanSym.substring(0, 4))
+        : 'STOCK';
     return {
       'events': [
         {
@@ -5416,14 +5434,19 @@ class DemoService implements IBrokerageService {
           for (final q in questions) {
             if (q is Map<String, dynamic> && q['id'] == questionId) {
               final currentVoted = q['is_user_voted'] == true;
-              final userShares = (event['user_shares_represented'] as num?)?.toDouble() ?? 10.0;
+              final userShares =
+                  (event['user_shares_represented'] as num?)?.toDouble() ??
+                      10.0;
               final currentVotes = (q['votes_count'] as num?)?.toInt() ?? 0;
-              final currentShares = (q['shares_represented'] as num?)?.toDouble() ?? 0.0;
+              final currentShares =
+                  (q['shares_represented'] as num?)?.toDouble() ?? 0.0;
 
               if (currentVoted) {
                 q['is_user_voted'] = false;
                 q['votes_count'] = currentVotes > 0 ? currentVotes - 1 : 0;
-                q['shares_represented'] = currentShares >= userShares ? currentShares - userShares : 0.0;
+                q['shares_represented'] = currentShares >= userShares
+                    ? currentShares - userShares
+                    : 0.0;
               } else {
                 q['is_user_voted'] = true;
                 q['votes_count'] = currentVotes + 1;
@@ -5465,7 +5488,9 @@ class DemoService implements IBrokerageService {
         if (questions != null) {
           questions.insert(0, newQuestion);
           event['total_questions_count'] =
-              ((event['total_questions_count'] as num?)?.toInt() ?? questions.length - 1) + 1;
+              ((event['total_questions_count'] as num?)?.toInt() ??
+                      questions.length - 1) +
+                  1;
           return ShareholderQuestion.fromJson(newQuestion);
         }
       }
@@ -5498,7 +5523,8 @@ class DemoService implements IBrokerageService {
       },
       'fourth_party_application': {
         'display_name': 'Charles Schwab',
-        'logo_url': 'https://cdn.yodlee.com/COBLOGO/OBAggregator_generic_icon.svg',
+        'logo_url':
+            'https://cdn.yodlee.com/COBLOGO/OBAggregator_generic_icon.svg',
       },
       'created': '2026-09-14T16:01:00.953562-04:00',
       'updated': '2026-09-14T16:01:00.953575-04:00',
@@ -5565,7 +5591,8 @@ class DemoService implements IBrokerageService {
       },
       'fourth_party_application': {
         'display_name': 'Snowball Analytics',
-        'logo_url': 'https://snaptrade-partner-logos.s3.ca-central-1.amazonaws.com/Snowball-logo-square.png',
+        'logo_url':
+            'https://snaptrade-partner-logos.s3.ca-central-1.amazonaws.com/Snowball-logo-square.png',
       },
       'created': '2025-10-14T01:48:37.906694-04:00',
       'updated': '2025-10-14T01:48:37.906707-04:00',
@@ -5607,9 +5634,8 @@ class DemoService implements IBrokerageService {
         'call_to_action': 'View Market Hours',
         'action': 'robinhood://web?url=https%3A%2F%2Frobinhood.com%2Fsupport',
         'icon': 'alert',
-        'time': DateTime.now()
-            .subtract(const Duration(hours: 4))
-            .toIso8601String(),
+        'time':
+            DateTime.now().subtract(const Duration(hours: 4)).toIso8601String(),
         'fixed': true,
         'is_read': false,
       },
@@ -5623,9 +5649,8 @@ class DemoService implements IBrokerageService {
         'call_to_action': 'Explore Retirement',
         'action': 'robinhood://retirement',
         'icon': 'star',
-        'time': DateTime.now()
-            .subtract(const Duration(days: 2))
-            .toIso8601String(),
+        'time':
+            DateTime.now().subtract(const Duration(days: 2)).toIso8601String(),
         'fixed': false,
         'is_read': false,
       },
@@ -5639,9 +5664,8 @@ class DemoService implements IBrokerageService {
         'call_to_action': 'Open Screeners',
         'action': 'robinhood://screeners',
         'icon': 'lightbulb',
-        'time': DateTime.now()
-            .subtract(const Duration(days: 4))
-            .toIso8601String(),
+        'time':
+            DateTime.now().subtract(const Duration(days: 4)).toIso8601String(),
         'fixed': false,
         'is_read': true,
       },
@@ -5684,7 +5708,8 @@ class DemoService implements IBrokerageService {
                 'robinhood://lists?owner_type=robinhood&id=9f3c8a6e-4a7e-4b0d-9f4a-6b8e2d1c7f3a',
           },
           'responses': [],
-          'created_at': now.subtract(const Duration(hours: 2)).toIso8601String(),
+          'created_at':
+              now.subtract(const Duration(hours: 2)).toIso8601String(),
         },
         'last_message_sent_at':
             now.subtract(const Duration(hours: 2)).toIso8601String(),
@@ -5774,11 +5799,16 @@ class DemoService implements IBrokerageService {
           },
           'responses': [
             {'display_text': 'Can I see more details? 🤓', 'answer': '238700'},
-            {"display_text": "Why wasn't this order filled? 🤔", 'answer': '239159'},
-            {"display_text": "I'd like to place a new order. 😎", 'answer': '239177'},
+            {
+              "display_text": "Why wasn't this order filled? 🤔",
+              'answer': '239159'
+            },
+            {
+              "display_text": "I'd like to place a new order. 😎",
+              'answer': '239177'
+            },
           ],
-          'created_at':
-              now.subtract(const Duration(days: 1)).toIso8601String(),
+          'created_at': now.subtract(const Duration(days: 1)).toIso8601String(),
         },
         'last_message_sent_at':
             now.subtract(const Duration(days: 1)).toIso8601String(),
@@ -5807,11 +5837,13 @@ class DemoService implements IBrokerageService {
                 'robinhood://orders?id=6769bb73-e1ba-4287-ae6a-1f5391db2a9f&type=option',
           },
           'responses': [
-            {"display_text": "I'd like to place a new order. 😎", 'answer': '239170'},
+            {
+              "display_text": "I'd like to place a new order. 😎",
+              'answer': '239170'
+            },
             {'display_text': 'Hooray! 🙌', 'answer': '238725'},
           ],
-          'created_at':
-              now.subtract(const Duration(days: 2)).toIso8601String(),
+          'created_at': now.subtract(const Duration(days: 2)).toIso8601String(),
         },
         'last_message_sent_at':
             now.subtract(const Duration(days: 2)).toIso8601String(),
@@ -5835,8 +5867,7 @@ class DemoService implements IBrokerageService {
                 'Your order to sell 1 /M2KU26 has been filled at an average price of 3,015.1.',
           },
           'responses': [],
-          'created_at':
-              now.subtract(const Duration(days: 3)).toIso8601String(),
+          'created_at': now.subtract(const Duration(days: 3)).toIso8601String(),
         },
         'last_message_sent_at':
             now.subtract(const Duration(days: 3)).toIso8601String(),
@@ -5865,8 +5896,7 @@ class DemoService implements IBrokerageService {
                 'robinhood://orders/?id=6a3f2ba4-8afd-4da6-a86c-d527261a8455',
           },
           'responses': [],
-          'created_at':
-              now.subtract(const Duration(days: 4)).toIso8601String(),
+          'created_at': now.subtract(const Duration(days: 4)).toIso8601String(),
         },
         'last_message_sent_at':
             now.subtract(const Duration(days: 4)).toIso8601String(),
@@ -5895,8 +5925,7 @@ class DemoService implements IBrokerageService {
                 'robinhood://lists?id=8ce9f620-5bb0-4b6a-8c61-5a06763f7a8b&owner_type=robinhood',
           },
           'responses': [],
-          'created_at':
-              now.subtract(const Duration(days: 5)).toIso8601String(),
+          'created_at': now.subtract(const Duration(days: 5)).toIso8601String(),
         },
         'last_message_sent_at':
             now.subtract(const Duration(days: 5)).toIso8601String(),
@@ -5924,8 +5953,7 @@ class DemoService implements IBrokerageService {
             'url': 'robinhood://trusted_devices',
           },
           'responses': [],
-          'created_at':
-              now.subtract(const Duration(days: 6)).toIso8601String(),
+          'created_at': now.subtract(const Duration(days: 6)).toIso8601String(),
         },
         'last_message_sent_at':
             now.subtract(const Duration(days: 6)).toIso8601String(),
@@ -5957,8 +5985,7 @@ class DemoService implements IBrokerageService {
             {'display_text': 'Hooray! 🙌', 'answer': '238725'},
             {'display_text': 'What is a dividend? 🤔', 'answer': '238726'},
           ],
-          'created_at':
-              now.subtract(const Duration(days: 7)).toIso8601String(),
+          'created_at': now.subtract(const Duration(days: 7)).toIso8601String(),
         },
         'last_message_sent_at':
             now.subtract(const Duration(days: 7)).toIso8601String(),
@@ -6056,7 +6083,8 @@ class DemoService implements IBrokerageService {
   }
 
   @override
-  Future<RetirementHistory> getRetirementHistoryModel(BrokerageUser user) async {
+  Future<RetirementHistory> getRetirementHistoryModel(
+      BrokerageUser user) async {
     final raw = await getRetirementHistory(user);
     return RetirementHistory.fromJson(raw);
   }

@@ -17,6 +17,7 @@ Provide the next version number to base the updates on recent commits since the 
    - Commit message and description
    - File changes and patches
    - Commit date and author
+   - GitHub issue references and PR numbers (e.g., `#123`, `fixes #123`, `closes #123`)
 
 2. **Identify Documentation Files**: Locate all markdown files in the repository:
    - `CHANGELOG.md`
@@ -38,6 +39,7 @@ Provide the next version number to base the updates on recent commits since the 
    - Add a new version section with the current date (using the version defined in `pubspec.yaml`).
    - Create a title for the new version.
    - Document all features added, changed, fixed, removed, and performance improvements.
+   - Reference associated GitHub issues `([#<num>](https://github.com/CIInc/robinhood-options-mobile/issues/<num>))` where applicable.
    - Use clear, descriptive bullet points.
    - Group related changes together.
 
@@ -53,11 +55,13 @@ Provide the next version number to base the updates on recent commits since the 
    - Add mentions of new major features to the features list.
    - Ensure feature descriptions are concise but complete.
 
-7. **Update ROADMAP.md**:
-   - Mark completed features as done (check off items).
-   - Add new planned features based on PR discussions or future enhancements mentioned.
+7. **Update ROADMAP.md & Synchronize GitHub Issues**:
+   - Mark completed features as done (`[x]`) and ensure GitHub issue links are present (`[#<num>](https://github.com/CIInc/robinhood-options-mobile/issues/<num>)`).
+   - Query GitHub issues (`gh issue list --state all`) to reconcile open vs closed issues against the roadmap.
+   - Add newly created GitHub issues into appropriate roadmap categories.
+   - Update the **Quick Stats** section in `ROADMAP.md` (active open issues, completed features count, planned items).
    - Add entry in "Release Versions & Timeline" for the new version.
-   - Reorder priorities if necessary.
+   - Reorder priorities or milestones if necessary.
 
 8. **Update Developer Instructions**:
    - Update `.github/copilot-instructions.md` with new patterns, file references, or architecture notes.
@@ -70,7 +74,8 @@ Provide the next version number to base the updates on recent commits since the 
    - Verify version numbers are consistent across all files.
    - Ensure feature descriptions match across all files.
    - Confirm code references are accurate.
-   - Validate internal links between documentation files.
+   - Validate internal links and GitHub issue links between documentation files.
+   - Verify that all open GitHub issues are reflected in `ROADMAP.md`.
    - Check that configuration files match documentation.
 
 10. **Verify Technical Accuracy**:
@@ -80,4 +85,4 @@ Provide the next version number to base the updates on recent commits since the 
 
 ## Completion Report
 
-Provide a summary of all documentation updates made, version bump details, and any consistency issues found.
+Provide a summary of all documentation updates made, version bump details, GitHub issues synchronized/closed, and any consistency issues found.

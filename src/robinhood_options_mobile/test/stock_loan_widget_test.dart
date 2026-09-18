@@ -26,7 +26,8 @@ void main() {
     0.0,
   );
 
-  testWidgets('StockLoanWidget renders SLIP tab with hero metrics and positions',
+  testWidgets(
+      'StockLoanWidget renders SLIP tab with hero metrics and positions',
       (WidgetTester tester) async {
     tester.view.physicalSize = const Size(800, 2400);
     tester.view.devicePixelRatio = 1.0;
@@ -80,7 +81,8 @@ void main() {
     expect(find.text('Payment Ledger'), findsOneWidget);
   });
 
-  testWidgets('StockLoanWidget switches to Cash Sweeps & APY tab with rates and calculator',
+  testWidgets(
+      'StockLoanWidget switches to Cash Sweeps & APY tab with rates and calculator',
       (WidgetTester tester) async {
     tester.view.physicalSize = const Size(800, 2400);
     tester.view.devicePixelRatio = 1.0;

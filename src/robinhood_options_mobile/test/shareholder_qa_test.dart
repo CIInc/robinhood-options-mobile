@@ -19,7 +19,8 @@ void main() {
 
       final answer = ShareholderAnswer.fromJson(json);
       expect(answer.id, 'ans_1');
-      expect(answer.answerText, 'We are heavily investing in next-generation silicon.');
+      expect(answer.answerText,
+          'We are heavily investing in next-generation silicon.');
       expect(answer.answeredBy, 'Tim Cook');
       expect(answer.answeredByTitle, 'CEO');
       expect(answer.answeredAt, isNotNull);
@@ -60,7 +61,8 @@ void main() {
         'created_at': '2026-09-08T09:00:00Z',
         'answer': {
           'id': 'ans_1',
-          'answer_text': 'AI features are built into every new chip architecture.',
+          'answer_text':
+              'AI features are built into every new chip architecture.',
           'answered_by': 'Tim Cook',
           'answered_by_title': 'CEO',
         },
@@ -127,7 +129,8 @@ void main() {
         'symbol': 'AAPL',
         'company_name': 'Apple Inc.',
         'title': 'Q3 2026 Earnings Call Q&A',
-        'description': 'Say Technologies shareholder questions for Apple Q3 earnings call.',
+        'description':
+            'Say Technologies shareholder questions for Apple Q3 earnings call.',
         'status': 'open',
         'event_date': '2026-10-22T21:00:00Z',
         'submission_deadline': '2026-10-21T18:00:00Z',
@@ -140,7 +143,8 @@ void main() {
           {
             'id': 'q_10',
             'event_id': 'evt_q3_2026',
-            'text': 'Any guidance on capital expenditures for next fiscal year?',
+            'text':
+                'Any guidance on capital expenditures for next fiscal year?',
             'votes_count': 820,
             'shares_represented': 900000.0,
           }
@@ -217,8 +221,8 @@ void main() {
     });
 
     test('handles empty / null section safely', () {
-      final emptySection = ShareholderQaSection.fromJson(null,
-          instrumentId: 'inst_none');
+      final emptySection =
+          ShareholderQaSection.fromJson(null, instrumentId: 'inst_none');
       expect(emptySection.symbol, isNull);
       expect(emptySection.hasEvents, isFalse);
       expect(emptySection.events, isEmpty);
@@ -234,7 +238,8 @@ void main() {
       null,
     );
 
-    test('returns AAPL shareholder QA section with mock events and questions', () async {
+    test('returns AAPL shareholder QA section with mock events and questions',
+        () async {
       final service = DemoService();
       final section = await service.getShareholderQaSectionModel(
         user,
@@ -248,7 +253,8 @@ void main() {
       expect(section.activeEvent!.isOpen, isTrue);
       expect(section.activeEvent!.questions, isNotEmpty);
 
-      final answered = section.activeEvent!.questions.firstWhere((q) => q.isAnswered);
+      final answered =
+          section.activeEvent!.questions.firstWhere((q) => q.isAnswered);
       expect(answered.answer, isNotNull);
       expect(answered.answer?.answeredBy, 'Tim Cook');
     });
@@ -319,7 +325,8 @@ void main() {
       expect(sectionAfter.activeEvent!.questions.first.id, newQuestion.id);
     });
 
-    test('generates dynamic fallback QA event for unfamiliar symbols', () async {
+    test('generates dynamic fallback QA event for unfamiliar symbols',
+        () async {
       final service = DemoService();
       final section = await service.getShareholderQaSectionModel(
         user,

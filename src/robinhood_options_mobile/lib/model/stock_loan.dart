@@ -33,8 +33,8 @@ class StockLoanPosition {
     final symbol = json['symbol']?.toString().toUpperCase() ??
         json['ticker']?.toString().toUpperCase() ??
         '';
-    final instrumentId = json['instrument_id']?.toString() ??
-        json['instrument']?.toString();
+    final instrumentId =
+        json['instrument_id']?.toString() ?? json['instrument']?.toString();
     final quantity = parseDouble(json['quantity']) ??
         parseDouble(json['shares']) ??
         parseDouble(json['shares_loaned']) ??
@@ -74,10 +74,12 @@ class StockLoanPosition {
     };
   }
 
-  String get formattedQuantity =>
-      quantity % 1 == 0 ? quantity.toInt().toString() : quantity.toStringAsFixed(2);
+  String get formattedQuantity => quantity % 1 == 0
+      ? quantity.toInt().toString()
+      : quantity.toStringAsFixed(2);
   String get formattedBorrowRate => _percentFormat.format(borrowRate);
-  String get formattedCollateralAmount => _currencyFormat.format(collateralAmount);
+  String get formattedCollateralAmount =>
+      _currencyFormat.format(collateralAmount);
   String get formattedInterestEarned => _currencyFormat.format(interestEarned);
 }
 
@@ -119,9 +121,8 @@ class StockLoanPayment {
     final id = json['id']?.toString() ??
         json['payment_id']?.toString() ??
         'slp_${DateTime.now().millisecondsSinceEpoch}';
-    final accountNumber = json['account_number']?.toString() ??
-        json['account']?.toString() ??
-        '';
+    final accountNumber =
+        json['account_number']?.toString() ?? json['account']?.toString() ?? '';
     final dateStr = json['payment_date']?.toString() ??
         json['date']?.toString() ??
         json['settlement_date']?.toString() ??
@@ -137,7 +138,8 @@ class StockLoanPayment {
         0.0;
     final currencyCode = json['currency_code']?.toString() ?? 'USD';
     final status = json['status']?.toString().toLowerCase() ?? 'paid';
-    final description = json['description']?.toString() ?? json['memo']?.toString();
+    final description =
+        json['description']?.toString() ?? json['memo']?.toString();
     final grossRate = parseDouble(json['gross_rate']);
     final netRate = parseDouble(json['net_rate']) ?? parseDouble(json['rate']);
 
@@ -189,8 +191,9 @@ class StockLoanPayment {
   String get formattedAmount => _currencyFormat.format(amount);
   String get formattedPaymentDate =>
       paymentDate != null ? _shortDateFormat.format(paymentDate!) : 'Pending';
-  String get formattedStatus =>
-      status.isNotEmpty ? status[0].toUpperCase() + status.substring(1) : 'Unknown';
+  String get formattedStatus => status.isNotEmpty
+      ? status[0].toUpperCase() + status.substring(1)
+      : 'Unknown';
 
   Color get statusColor {
     switch (status) {
@@ -281,8 +284,8 @@ class SlipEligibility {
       signedDate = DateTime.tryParse(signedDateStr);
     }
 
-    final enabledAtStr = json['enabled_at']?.toString() ??
-        json['enrolled_at']?.toString();
+    final enabledAtStr =
+        json['enabled_at']?.toString() ?? json['enrolled_at']?.toString();
     DateTime? enabledAt;
     if (enabledAtStr != null) {
       enabledAt = DateTime.tryParse(enabledAtStr);
@@ -307,9 +310,10 @@ class SlipEligibility {
     final yieldEstimate = parseDouble(json['estimated_annualized_yield']) ??
         parseDouble(json['estimated_yield']) ??
         parseDouble(json['average_rebate_rate']);
-    final securitiesCount = (json['loaned_securities_count'] as num?)?.toInt() ??
-        (json['active_loans_count'] as num?)?.toInt() ??
-        0;
+    final securitiesCount =
+        (json['loaned_securities_count'] as num?)?.toInt() ??
+            (json['active_loans_count'] as num?)?.toInt() ??
+            0;
     final loanedValue = parseDouble(json['total_loaned_value']) ??
         parseDouble(json['loaned_value']) ??
         parseDouble(json['market_value_loaned']);
@@ -434,8 +438,8 @@ class SweepsInterest {
       return SweepsInterest(sweepBalance: uninvestedCash);
     }
 
-    final accountNumber = json['account_number']?.toString() ??
-        json['account']?.toString();
+    final accountNumber =
+        json['account_number']?.toString() ?? json['account']?.toString();
     final isEnrolled = json['is_enrolled'] == true ||
         json['enrolled'] == true ||
         json['status']?.toString().toLowerCase() == 'enrolled';
@@ -464,14 +468,16 @@ class SweepsInterest {
         uninvestedCash;
 
     final banks = <String>[];
-    final banksRaw = json['partner_banks'] ?? json['program_banks'] ?? json['banks'];
+    final banksRaw =
+        json['partner_banks'] ?? json['program_banks'] ?? json['banks'];
     if (banksRaw is List) {
       for (final b in banksRaw) {
         if (b != null) banks.add(b.toString());
       }
     }
 
-    final updatedStr = json['updated_at']?.toString() ?? json['date']?.toString();
+    final updatedStr =
+        json['updated_at']?.toString() ?? json['date']?.toString();
     DateTime? updatedAt;
     if (updatedStr != null) {
       updatedAt = DateTime.tryParse(updatedStr);
@@ -521,7 +527,8 @@ class SweepsInterest {
 
   String get formattedGoldApy => _percentFormat.format(goldApy);
   String get formattedStandardApy => _percentFormat.format(standardApy);
-  String get formattedEffectiveApy => _percentFormat.format(currentEffectiveApy);
+  String get formattedEffectiveApy =>
+      _percentFormat.format(currentEffectiveApy);
   String get formattedBoostedApy =>
       boostedApy != null ? _percentFormat.format(boostedApy) : '';
   String get formattedSweepBalance => _currencyFormat.format(sweepBalance);

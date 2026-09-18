@@ -264,7 +264,8 @@ class _StockLoanWidgetState extends State<StockLoanWidget>
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: eligibility.statusColor.withValues(alpha: 0.15),
+                          color:
+                              eligibility.statusColor.withValues(alpha: 0.15),
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
@@ -402,8 +403,8 @@ class _StockLoanWidgetState extends State<StockLoanWidget>
       activePositions.addAll(payments.first.positions);
     }
 
-    final totalCollateral = activePositions.fold<double>(
-        0.0, (sum, p) => sum + p.collateralAmount);
+    final totalCollateral =
+        activePositions.fold<double>(0.0, (sum, p) => sum + p.collateralAmount);
 
     return Card(
       elevation: 0,
@@ -1255,7 +1256,8 @@ class _StockLoanWidgetState extends State<StockLoanWidget>
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                color:
+                    colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Row(
@@ -1338,7 +1340,8 @@ class _StockLoanWidgetState extends State<StockLoanWidget>
                               .withValues(alpha: 0.4),
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
-                              color: colorScheme.outlineVariant.withValues(alpha: 0.5)),
+                              color: colorScheme.outlineVariant
+                                  .withValues(alpha: 0.5)),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,

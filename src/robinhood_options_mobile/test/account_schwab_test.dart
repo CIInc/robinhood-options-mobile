@@ -156,4 +156,55 @@ void main() {
     expect(account.accountNumber, 'legacy-account');
     expect(account.toJson()['account_number'], 'legacy-account');
   });
+
+  test('populates synthetic quote and computes market value and today return',
+      () {
+    final position = InstrumentPosition.fromSchwabJson({
+      'averagePrice': 140.0,
+      'longQuantity': 10.0,
+      'marketValue': 1500.0,
+      'currentDayProfitLoss': 50.0,
+      'currentDayProfitLossPercentage': 3.45,
+      'instrument': {
+        'assetType': 'EQUITY',
+        'cusip': '037833100',
+        'symbol': 'AAPL',
+        'description': 'Apple Inc',
+        'netChange': 5.0,
+        'type': 'COMMON_STOCK',
+      },
+    }, accountNumber: '12345678');
+
+    expect(position.instrumentObj, isNotNull);
+    expect(position.instrumentObj?.quoteObj, isNotNull);
+    expect(position.instrumentObj!.quoteObj!.lastTradePrice, 150.0);
+    expect(position.instrumentObj!.quoteObj!.adjustedPreviousClose, 145.0);
+    expect(position.marketValue, 1500.0);
+    expect(position.gainLossToday, 50.0);
+    expect(position.gainLoss, 100.0); // 1500 - 1400
+  });
+
+  test(
+      'derives netChange from currentDayProfitLoss if instrument.netChange is missing',
+      () {
+    final position = InstrumentPosition.fromSchwabJson({
+      'averagePrice': 100.0,
+      'longQuantity': 5.0,
+      'marketValue': 600.0,
+      'currentDayProfitLoss': 25.0,
+      'instrument': {
+        'assetType': 'EQUITY',
+        'cusip': 'CUSIP1',
+        'symbol': 'MSFT',
+        'description': 'Microsoft Corp',
+      },
+    }, accountNumber: '12345678');
+
+    expect(position.instrumentObj?.quoteObj, isNotNull);
+    expect(position.instrumentObj!.quoteObj!.lastTradePrice, 120.0); // 600 / 5
+    expect(position.instrumentObj!.quoteObj!.adjustedPreviousClose,
+        115.0); // 120 - (25 / 5)
+    expect(position.marketValue, 600.0);
+    expect(position.gainLossToday, 25.0);
+  });
 }

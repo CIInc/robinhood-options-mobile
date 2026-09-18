@@ -79,7 +79,8 @@ void main() {
     expect(find.text('20:1 Split'), findsOneWidget);
   });
 
-  testWidgets('CorporateActionsWidget filters by Reverse Splits and Cash-in-Lieu',
+  testWidgets(
+      'CorporateActionsWidget filters by Reverse Splits and Cash-in-Lieu',
       (WidgetTester tester) async {
     tester.view.physicalSize = const Size(800, 2400);
     tester.view.devicePixelRatio = 1.0;
