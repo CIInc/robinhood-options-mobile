@@ -1,0 +1,3 @@
+## 2026-09-18 - Causal Time-Series Indicators Re-computation Anti-Pattern
+**Learning:** Evaluators like `evaluateMACD`, `evaluateADX`, and `evaluateWilliamsR` previously re-ran full indicator calculations on `prices.slice(0, -1)` to detect crossovers and trend reversals. Because causal time-series indicators (EMAs, Wilder's smoothing, rolling windows) compute values sequentially, the previous bar's value is already computed during the main pass.
+**Action:** Extract prior values (`prevHistogram`, `prevAdx`) directly during the primary calculation pass, or pass an `endIndex` offset to avoid array slicing and duplicate $O(N)$ computation passes.
