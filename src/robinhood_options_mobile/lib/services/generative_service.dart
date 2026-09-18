@@ -159,24 +159,7 @@ class GenerativeService {
       key: 'chart-trend',
       title: 'Chart Trend',
       prompt:
-          '''Analyze stock symbol {{symbol}} and provide a summary of the trend.
-Use the following chart patterns to identify the trend:
-- Head and Shoulders - A reversal pattern that can signal a change in trend direction.
-- Double Top and Bottom - A reversal pattern that can signal a change in trend direction.
-- Flags and Pennants - Continuation patterns that can signal a continuation of the current trend.
-- Cup and Handle - A continuation pattern that can signal a continuation of the current trend.
-- Ascending and Descending Triangles - Continuation patterns that can signal a continuation of the current trend.
-- Rounding Bottom - A reversal pattern that can signal a change in trend direction.
-- Gaps - A price movement that can signal a change in trend direction.
-- Support and Resistance - Price levels that can signal a change in trend direction.
-- Trend Lines - A line that can signal a change in trend direction.
-- Fibonacci Retracement - A tool that can signal a change in trend direction.
-- Moving Averages - A tool that can signal a change in trend direction.
-- Bollinger Bands - A tool that can signal a change in trend direction.
-- Volume - A tool that can signal a change in trend direction.
-- Candlestick Patterns - A tool that can signal a change in trend direction.
-- Chart Patterns - A tool that can signal a change in trend direction.
-- Price Movement - Use chart patterns to predict price movement - https://www.babypips.com/learn/forex/chart-patterns-cheat-sheet''',
+          'Analyze stock symbol {{symbol}} and provide a concise summary of the trend based on key chart patterns, support/resistance levels, trend lines, volume, and moving averages.',
     ),
     /*
 Momentum - ex: Relative Strength Index (RSI) and other momentum technical indicators
@@ -382,11 +365,14 @@ Follow the table with a strategic breakdown:
       : // Initialize the Vertex AI service and the generative model
         // Specify a model that supports your use case
         model = FirebaseAI.vertexAI().generativeModel(
-            // model: 'gemini-2.5-flash'
             model: RemoteConfigService.instance.aiModelName.isNotEmpty
                 ? RemoteConfigService.instance.aiModelName
-                : 'gemini-2.5-flash-lite',
+                : 'gemini-3.1-flash-lite',
             systemInstruction: systemInstruction,
+            generationConfig: GenerationConfig(
+              maxOutputTokens: 1024,
+              temperature: 0.5,
+            ),
             tools: [Tool.googleSearch()]);
 
   Future<String> generateContentFromServer(
@@ -417,25 +403,46 @@ Follow the table with a strategic breakdown:
     ${prompt.prompt}
     $context""";
     HttpsCallable callable = FirebaseFunctions.instance.httpsCallable(
-      'generateContent25',
+      'generateContent31',
     );
-    final resp = await callable.call(<String, dynamic>{'prompt': promptString});
+    HttpsCallableResult resp;
+    try {
+      resp = await callable.call(<String, dynamic>{'prompt': promptString});
+    } catch (e) {
+      try {
+        callable =
+            FirebaseFunctions.instance.httpsCallable('generateContent35');
+        resp = await callable.call(<String, dynamic>{'prompt': promptString});
+      } catch (_) {
+        try {
+          callable =
+              FirebaseFunctions.instance.httpsCallable('generateContent38');
+          resp = await callable.call(<String, dynamic>{'prompt': promptString});
+        } catch (_) {
+          callable =
+              FirebaseFunctions.instance.httpsCallable('generateContent25');
+          resp = await callable.call(<String, dynamic>{'prompt': promptString});
+        }
+      }
+    }
     debugPrint("result: ${resp.data}");
     String? response;
-    if (resp.data["modelVersion"].toString().startsWith("gemini-2")) {
-      //  == "gemini-2.5-flash-lite"
-      response = resp.data["candidates"][0]["content"]["parts"]
-          .map((e) => e["text"])
-          .join('  \n');
-    } else {
-      response = resp.data["response"]["candidates"][0]["content"]["parts"]
-          .map((e) => e["text"])
-          .join('  \n');
+    if (resp.data != null) {
+      try {
+        if (resp.data is Map && resp.data["candidates"] != null) {
+          response = (resp.data["candidates"][0]["content"]["parts"] as List)
+              .map((e) => e["text"])
+              .join('  \n');
+        } else if (resp.data is Map && resp.data["response"] != null) {
+          response = (resp.data["response"]["candidates"][0]["content"]["parts"]
+                  as List)
+              .map((e) => e["text"])
+              .join('  \n');
+        }
+      } catch (e) {
+        debugPrint("Error parsing server response: $e");
+      }
     }
-    // } catch (e) {
-    //   debugPrint(jsonEncode(e));
-    // }
-    // response = resp.data["response"]["text"];
     return response ?? '';
   }
 
@@ -570,8 +577,12 @@ Follow the table with a strategic breakdown:
       final activeModel = FirebaseAI.vertexAI().generativeModel(
         model: RemoteConfigService.instance.aiModelName.isNotEmpty
             ? RemoteConfigService.instance.aiModelName
-            : 'gemini-2.5-flash-lite',
+            : 'gemini-3.1-flash-lite',
         systemInstruction: buildSystemInstruction(mcpToolNames: mcpToolNames),
+        generationConfig: GenerationConfig(
+          maxOutputTokens: 1024,
+          temperature: 0.5,
+        ),
         tools: modelTools,
       );
 
@@ -688,9 +699,28 @@ Follow the table with a strategic breakdown:
 
     // Fallback to server-side generation if no MCP/AccessToken is available
     HttpsCallable callable = FirebaseFunctions.instance.httpsCallable(
-      'generateContent25',
+      'generateContent31',
     );
-    final resp = await callable.call(<String, dynamic>{'prompt': promptString});
+    HttpsCallableResult resp;
+    try {
+      resp = await callable.call(<String, dynamic>{'prompt': promptString});
+    } catch (e) {
+      try {
+        callable =
+            FirebaseFunctions.instance.httpsCallable('generateContent35');
+        resp = await callable.call(<String, dynamic>{'prompt': promptString});
+      } catch (_) {
+        try {
+          callable =
+              FirebaseFunctions.instance.httpsCallable('generateContent38');
+          resp = await callable.call(<String, dynamic>{'prompt': promptString});
+        } catch (_) {
+          callable =
+              FirebaseFunctions.instance.httpsCallable('generateContent25');
+          resp = await callable.call(<String, dynamic>{'prompt': promptString});
+        }
+      }
+    }
 
     // Parse response similar to generateContentFromServer
     String? response;
@@ -849,9 +879,13 @@ Follow the table with a strategic breakdown:
         ? FirebaseAI.vertexAI().generativeModel(
             model: RemoteConfigService.instance.aiModelName.isNotEmpty
                 ? RemoteConfigService.instance.aiModelName
-                : 'gemini-2.5-flash-lite',
+                : 'gemini-3.1-flash-lite',
             systemInstruction:
                 buildSystemInstruction(mcpToolNames: mcpToolNames),
+            generationConfig: GenerationConfig(
+              maxOutputTokens: 1024,
+              temperature: 0.5,
+            ),
             tools: modelTools,
           )
         : model;

@@ -12,6 +12,22 @@ class CustomAlertsWidget extends StatefulWidget {
 
   const CustomAlertsWidget({super.key, this.initialSymbol});
 
+  static Icon buildIcon(AlertType type) =>
+      _CustomAlertsWidgetState.buildIcon(type);
+
+  static Future<CustomAlert?> showAlertEditor(
+    BuildContext context, {
+    CustomAlert? alert,
+    String? initialSymbol,
+    String? userId,
+  }) =>
+      _CustomAlertsWidgetState.showAlertEditor(
+        context,
+        alert: alert,
+        initialSymbol: initialSymbol,
+        userId: userId,
+      );
+
   @override
   State<CustomAlertsWidget> createState() => _CustomAlertsWidgetState();
 }
@@ -40,7 +56,11 @@ class _CustomAlertsWidgetState extends State<CustomAlertsWidget> {
 
           final alerts = snapshot.data!;
           final filteredAlerts = widget.initialSymbol != null
-              ? alerts.where((a) => a.symbol == widget.initialSymbol).toList()
+              ? alerts
+                  .where((a) =>
+                      a.symbol.toUpperCase() ==
+                      widget.initialSymbol!.toUpperCase())
+                  .toList()
               : alerts;
 
           if (filteredAlerts.isEmpty) {
@@ -140,7 +160,7 @@ class _CustomAlertsWidgetState extends State<CustomAlertsWidget> {
                   leading: CircleAvatar(
                     backgroundColor:
                         Theme.of(context).colorScheme.surfaceContainerHighest,
-                    child: _buildIcon(alert.type),
+                    child: CustomAlertsWidget.buildIcon(alert.type),
                   ),
                   title: RichText(
                     text: TextSpan(
@@ -221,7 +241,7 @@ class _CustomAlertsWidgetState extends State<CustomAlertsWidget> {
     );
   }
 
-  Icon _buildIcon(AlertType type) {
+  static Icon buildIcon(AlertType type) {
     switch (type) {
       case AlertType.price:
         return const Icon(Icons.attach_money);
@@ -242,14 +262,28 @@ class _CustomAlertsWidgetState extends State<CustomAlertsWidget> {
     }
   }
 
-  void _showAlertEditor(BuildContext context, CustomAlert? alert) async {
-    final result = await showDialog<CustomAlert>(
+  static Future<CustomAlert?> showAlertEditor(
+    BuildContext context, {
+    CustomAlert? alert,
+    String? initialSymbol,
+    String? userId,
+  }) async {
+    return showDialog<CustomAlert>(
       context: context,
-      builder: (context) => _AlertEditorDialog(
+      builder: (context) => AlertEditorDialog(
         alert: alert,
-        initialSymbol: widget.initialSymbol,
-        userId: _auth.currentUser?.uid,
+        initialSymbol: initialSymbol,
+        userId: userId ?? FirebaseAuth.instance.currentUser?.uid,
       ),
+    );
+  }
+
+  void _showAlertEditor(BuildContext context, CustomAlert? alert) async {
+    final result = await showAlertEditor(
+      context,
+      alert: alert,
+      initialSymbol: widget.initialSymbol,
+      userId: _auth.currentUser?.uid,
     );
 
     if (result != null && mounted) {
@@ -266,19 +300,20 @@ class _CustomAlertsWidgetState extends State<CustomAlertsWidget> {
   }
 }
 
-class _AlertEditorDialog extends StatefulWidget {
+class AlertEditorDialog extends StatefulWidget {
   final CustomAlert? alert;
   final String? initialSymbol;
   final String? userId;
 
-  const _AlertEditorDialog({
+  const AlertEditorDialog({
+    super.key,
     this.alert,
     this.initialSymbol,
     this.userId,
   });
 
   @override
-  State<_AlertEditorDialog> createState() => _AlertEditorDialogState();
+  State<AlertEditorDialog> createState() => _AlertEditorDialogState();
 }
 
 class _RuleEditState {
@@ -324,7 +359,7 @@ class _RuleEditState {
   }
 }
 
-class _AlertEditorDialogState extends State<_AlertEditorDialog> {
+class _AlertEditorDialogState extends State<AlertEditorDialog> {
   final _formKey = GlobalKey<FormState>();
   late String _symbol;
   late AlertLogic _logic;

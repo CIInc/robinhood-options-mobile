@@ -1,3 +1,5 @@
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -5,6 +7,7 @@ import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/main.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/investor_group.dart';
+import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/model/group_performance_analytics_provider.dart';
 import 'package:robinhood_options_mobile/model/group_performance_analytics.dart';
 import 'package:robinhood_options_mobile/model/group_watchlist_models.dart';
@@ -14,11 +17,17 @@ import 'package:robinhood_options_mobile/services/group_watchlist_service.dart';
 import 'package:robinhood_options_mobile/widgets/copy_trade_settings_widget.dart';
 import 'package:robinhood_options_mobile/widgets/investor_group_chat_widget.dart';
 import 'package:robinhood_options_mobile/widgets/investor_group_manage_members_widget.dart';
+import 'package:robinhood_options_mobile/widgets/investor_group_members_widget.dart';
 import 'package:robinhood_options_mobile/widgets/investor_group_performance_analytics_widget.dart';
 import 'package:robinhood_options_mobile/widgets/group_watchlists_widget.dart';
+import 'package:robinhood_options_mobile/widgets/investor_group_analysis_board_widget.dart';
 import 'package:robinhood_options_mobile/model/group_activity.dart';
+import 'package:robinhood_options_mobile/model/group_analysis.dart';
+import 'package:robinhood_options_mobile/model/verified_track_record.dart';
 import 'package:robinhood_options_mobile/widgets/investor_group_activity_feed_widget.dart';
 import 'package:intl/intl.dart';
+import 'package:robinhood_options_mobile/widgets/trader_profile_widget.dart';
+import 'package:robinhood_options_mobile/widgets/user_widget.dart';
 import 'package:share_plus/share_plus.dart';
 
 class InvestorGroupDetailWidget extends StatefulWidget {
@@ -223,12 +232,18 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
             children: [
               // Group Header
               _buildGroupHeader(group, isMember),
-              const SizedBox(height: 28),
+              const SizedBox(height: 16),
+
+              // Quick Action Bar
+              _buildQuickActionBar(group, isMember),
+              const SizedBox(height: 20),
 
               // Cards Grid
               _buildOverviewCard(group, isMember),
               const SizedBox(height: 16),
               _buildPerformanceCard(group),
+              const SizedBox(height: 16),
+              _buildAnalysisBoardCard(group, isMember),
               const SizedBox(height: 16),
               _buildActivityFeedCard(group, isMember),
               const SizedBox(height: 16),
@@ -316,7 +331,9 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
                               ),
                     ),
                     const SizedBox(height: 8),
-                    Row(
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 6,
                       children: [
                         Container(
                           padding: const EdgeInsets.symmetric(
@@ -349,31 +366,117 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
                             ],
                           ),
                         ),
-                        const SizedBox(width: 12),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: _getBadgeBackground(Colors.blue),
-                            borderRadius: BorderRadius.circular(20),
+                        InkWell(
+                          onTap: () {
+                            HapticFeedback.lightImpact();
+                            _navigateToMembers(group);
+                          },
+                          borderRadius: BorderRadius.circular(20),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: _getBadgeBackground(Colors.blue),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.people,
+                                    size: 14,
+                                    color:
+                                        Colors.blue[_isDarkTheme ? 400 : 700]),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '${group.members.length} member${group.members.length != 1 ? 's' : ''}',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color:
+                                        Colors.blue[_isDarkTheme ? 400 : 700],
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.people,
-                                  size: 14,
-                                  color: Colors.blue[_isDarkTheme ? 400 : 700]),
-                              const SizedBox(width: 4),
-                              Text(
-                                '${group.members.length} member${group.members.length != 1 ? 's' : ''}',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.blue[_isDarkTheme ? 400 : 700],
+                        ),
+                        StreamBuilder<VerifiedTrackRecord?>(
+                          stream: widget.firestoreService
+                              .streamVerifiedTrackRecord(group.createdBy),
+                          builder: (context, snapshot) {
+                            final record = snapshot.data;
+                            if (record == null || !record.isVerified) {
+                              if (auth.currentUser?.uid == group.createdBy) {
+                                return InkWell(
+                                  onTap: () => _showLeaderTrackRecordSheet(
+                                      context, group, null),
+                                  borderRadius: BorderRadius.circular(20),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: _getBadgeBackground(Colors.teal),
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(Icons.verified_outlined,
+                                            size: 14,
+                                            color: Colors.teal[
+                                                _isDarkTheme ? 300 : 700]),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          'Verify Leader',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                            color: Colors
+                                                .teal[_isDarkTheme ? 300 : 700],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              }
+                              return const SizedBox.shrink();
+                            }
+                            return InkWell(
+                              onTap: () => _showLeaderTrackRecordSheet(
+                                  context, group, record),
+                              borderRadius: BorderRadius.circular(20),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: record.tier.color.withValues(
+                                      alpha: _isDarkTheme ? 0.25 : 0.15),
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                      color: record.tier.color
+                                          .withValues(alpha: 0.5),
+                                      width: 1),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(record.tier.icon,
+                                        size: 14, color: record.tier.color),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      '${record.tier.label} (${record.verifiedReturnPercent >= 0 ? '+' : ''}${record.verifiedReturnPercent.toStringAsFixed(1)}%)',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                        color: record.tier.color,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
-                            ],
-                          ),
+                            );
+                          },
                         ),
                       ],
                     ),
@@ -398,7 +501,241 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
                   color: _getTertiaryTextColor(),
                 ),
           ),
+          if (group.members.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            _buildMemberAvatarStack(group),
+          ],
         ],
+      ),
+    );
+  }
+
+  Widget _buildMemberAvatarStack(InvestorGroup group) {
+    final displayMembers = group.members.take(5).toList();
+    final remainingCount = group.members.length - displayMembers.length;
+
+    return InkWell(
+      onTap: () {
+        HapticFeedback.lightImpact();
+        _navigateToMembers(group);
+      },
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: Theme.of(context)
+              .colorScheme
+              .surface
+              .withValues(alpha: _isDarkTheme ? 0.4 : 0.6),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: Theme.of(context).primaryColor.withValues(alpha: 0.15),
+          ),
+        ),
+        child: Row(
+          children: [
+            SizedBox(
+              height: 32,
+              width: (displayMembers.length * 20.0) +
+                  (remainingCount > 0 ? 32 : 14),
+              child: Stack(
+                children: [
+                  for (int i = 0; i < displayMembers.length; i++)
+                    Positioned(
+                      left: i * 18.0,
+                      child: FutureBuilder<DocumentSnapshot<User>>(
+                        future: widget.firestoreService.userCollection
+                            .doc(displayMembers[i])
+                            .get(),
+                        builder: (context, snapshot) {
+                          final user = snapshot.data?.data();
+                          final photoUrl = user?.photoUrl;
+                          final name = user?.name ?? 'U';
+
+                          return Container(
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: Theme.of(context).colorScheme.surface,
+                                width: 2,
+                              ),
+                            ),
+                            child: CircleAvatar(
+                              radius: 14,
+                              backgroundColor: Theme.of(context)
+                                  .colorScheme
+                                  .primaryContainer,
+                              backgroundImage: photoUrl != null
+                                  ? CachedNetworkImageProvider(photoUrl)
+                                  : null,
+                              child: photoUrl == null
+                                  ? Text(
+                                      name.isNotEmpty
+                                          ? name[0].toUpperCase()
+                                          : 'U',
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onPrimaryContainer,
+                                      ),
+                                    )
+                                  : null,
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  if (remainingCount > 0)
+                    Positioned(
+                      left: displayMembers.length * 18.0,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: Theme.of(context).colorScheme.surface,
+                            width: 2,
+                          ),
+                        ),
+                        child: CircleAvatar(
+                          radius: 14,
+                          backgroundColor:
+                              Theme.of(context).colorScheme.secondaryContainer,
+                          child: Text(
+                            '+$remainingCount',
+                            style: TextStyle(
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSecondaryContainer,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'View all members',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: Theme.of(context).primaryColor,
+                ),
+              ),
+            ),
+            Icon(Icons.arrow_forward_ios,
+                size: 12, color: Theme.of(context).primaryColor),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuickActionBar(InvestorGroup group, bool isMember) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          _buildQuickActionChip(
+            icon: Icons.people_outline,
+            label: 'Members (${group.members.length})',
+            color: Colors.blue,
+            onTap: () {
+              HapticFeedback.lightImpact();
+              _navigateToMembers(group);
+            },
+          ),
+          const SizedBox(width: 8),
+          _buildQuickActionChip(
+            icon: Icons.chat_bubble_outline,
+            label: _unreadMessagesCount > 0
+                ? 'Chat ($_unreadMessagesCount)'
+                : 'Chat',
+            color: Colors.teal,
+            onTap: () {
+              HapticFeedback.lightImpact();
+              if (isMember) {
+                _navigateToChat(group);
+              } else {
+                _joinGroup(context, group);
+              }
+            },
+          ),
+          const SizedBox(width: 8),
+          _buildQuickActionChip(
+            icon: Icons.analytics_outlined,
+            label: 'Analysis',
+            color: Colors.purple,
+            onTap: () {
+              HapticFeedback.lightImpact();
+              _navigateToAnalysisBoard(group);
+            },
+          ),
+          const SizedBox(width: 8),
+          _buildQuickActionChip(
+            icon: Icons.trending_up,
+            label: 'Performance',
+            color: Colors.green,
+            onTap: () {
+              HapticFeedback.lightImpact();
+              _navigateToPerformance(group);
+            },
+          ),
+          const SizedBox(width: 8),
+          _buildQuickActionChip(
+            icon: Icons.bookmark_outline,
+            label: 'Watchlists',
+            color: Colors.amber,
+            onTap: () {
+              HapticFeedback.lightImpact();
+              _navigateToWatchlists(group);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuickActionChip({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: _isDarkTheme ? 0.2 : 0.1),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: color.withValues(alpha: _isDarkTheme ? 0.4 : 0.25),
+            width: 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 16, color: color),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: _isDarkTheme ? color.withValues(alpha: 0.9) : color,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -438,62 +775,72 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
                   ),
                   const SizedBox(width: 12),
                   Text(
-                    'Overview',
+                    'Overview & Members',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
                   ),
                   const Spacer(),
-                  Badge(
-                    label: Text('${group.members.length}',
-                        style: const TextStyle(color: Colors.white)),
-                    backgroundColor: Theme.of(context).primaryColor,
-                    child: const Icon(Icons.people, color: Colors.transparent),
-                  ),
-                  const SizedBox(width: 8),
                   Icon(Icons.arrow_forward_ios,
                       size: 16, color: _getTertiaryTextColor()),
                 ],
               ),
               const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: _getBadgeBackground(
-                    group.isPrivate ? Colors.orange : Colors.green,
+              // Group Stats Grid
+              Row(
+                children: [
+                  _buildOverviewStatTile(
+                    icon: Icons.people_alt_outlined,
+                    label: 'Members',
+                    value: '${group.members.length}',
+                    color: Colors.blue,
                   ),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      group.isPrivate ? Icons.lock : Icons.public,
-                      size: 18,
-                      color: group.isPrivate
-                          ? Colors.orange[_isDarkTheme ? 400 : 700]
-                          : Colors.green[_isDarkTheme ? 400 : 700],
+                  const SizedBox(width: 8),
+                  _buildOverviewStatTile(
+                    icon: Icons.admin_panel_settings_outlined,
+                    label: 'Admins',
+                    value: '${group.admins?.length ?? 0}',
+                    color: Colors.purple,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  _buildOverviewStatTile(
+                    icon: group.isPrivate ? Icons.lock_outline : Icons.public,
+                    label: 'Access',
+                    value: group.isPrivate ? 'Private' : 'Public',
+                    color: group.isPrivate ? Colors.orange : Colors.green,
+                  ),
+                  const SizedBox(width: 8),
+                  _buildOverviewStatTile(
+                    icon: Icons.calendar_today_outlined,
+                    label: 'Created',
+                    value: DateFormat.yMMMd().format(group.dateCreated),
+                    color: Colors.teal,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    HapticFeedback.lightImpact();
+                    _navigateToMembers(group);
+                  },
+                  icon: const Icon(Icons.people_outline, size: 18),
+                  label: Text('View All Members (${group.members.length})'),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
                     ),
-                    const SizedBox(width: 8),
-                    Text(
-                      group.isPrivate ? 'Private Group' : 'Public Group',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: group.isPrivate
-                                ? Colors.orange[_isDarkTheme ? 400 : 900]
-                                : Colors.green[_isDarkTheme ? 400 : 900],
-                            fontWeight: FontWeight.w500,
-                          ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
               const SizedBox(height: 12),
-              Text(
-                'Created ${_formatRelativeDate(group.dateCreated)}',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: _getTertiaryTextColor(),
-                    ),
-              ),
-              const SizedBox(height: 16),
               if (auth.currentUser != null) ...[
                 if (isMember) ...[
                   SizedBox(
@@ -563,6 +910,61 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
               ],
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOverviewStatTile({
+    required IconData icon,
+    required String label,
+    required String value,
+    required Color color,
+  }) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: _getBackgroundColor(),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: _getCardBorderColor()),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: _isDarkTheme ? 0.25 : 0.12),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(icon, size: 16, color: color),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: _getSecondaryTextColor(),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  Text(
+                    value,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -707,6 +1109,410 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
     );
   }
 
+  Widget _buildAnalysisBoardCard(InvestorGroup group, bool isMember) {
+    return Card(
+      elevation: 0,
+      shadowColor: Colors.black.withOpacity(0.1),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: _getCardBorderColor(), width: 1),
+      ),
+      child: InkWell(
+        onTap: () {
+          HapticFeedback.lightImpact();
+          _trackEvent('analysis_board_card_tapped');
+          _navigateToAnalysisBoard(group);
+        },
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: StreamBuilder<List<GroupAnalysisPost>>(
+            stream:
+                widget.firestoreService.getGroupAnalysesStream(widget.groupId),
+            builder: (context, snapshot) {
+              final analyses = snapshot.data ?? [];
+              final count = analyses.length;
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Flexible(
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.purple.withValues(
+                                    alpha: _isDarkTheme ? 0.15 : 0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(Icons.analytics_rounded,
+                                  color: Colors.purple, size: 24),
+                            ),
+                            const SizedBox(width: 16),
+                            Flexible(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Analysis Board',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleMedium
+                                        ?.copyWith(fontWeight: FontWeight.bold),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Collaborative theses & price targets',
+                                    style: TextStyle(
+                                      color: _getSecondaryTextColor(),
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (count > 0)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.purple.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                '$count',
+                                style: const TextStyle(
+                                  color: Colors.purple,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
+                          const SizedBox(width: 4),
+                          Icon(Icons.arrow_forward_ios,
+                              size: 16, color: _getTertiaryTextColor()),
+                        ],
+                      ),
+                    ],
+                  ),
+                  if (analyses.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    Divider(color: _getCardBorderColor()),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color:
+                                Theme.of(context).colorScheme.primaryContainer,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            analyses.first.symbol,
+                            style: const TextStyle(
+                                fontSize: 11, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Icon(analyses.first.sentiment.icon,
+                            size: 14, color: analyses.first.sentiment.color),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            analyses.first.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                                fontSize: 13, fontWeight: FontWeight.w500),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _navigateToAnalysisBoard(InvestorGroup group) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => InvestorGroupAnalysisBoardWidget(
+          group: group,
+          firestoreService: widget.firestoreService,
+          brokerageUser: widget.brokerageUser,
+          analytics: widget.analytics,
+          observer: widget.observer,
+        ),
+      ),
+    );
+  }
+
+  void _showLeaderTrackRecordSheet(
+    BuildContext context,
+    InvestorGroup group,
+    VerifiedTrackRecord? currentRecord,
+  ) {
+    final theme = Theme.of(context);
+    final isLeader = auth.currentUser?.uid == group.createdBy;
+    bool isVerifying = false;
+    VerifiedTrackRecord? record = currentRecord;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) {
+          return Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: (record?.tier.color ?? Colors.green)
+                            .withValues(alpha: 0.15),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        record?.tier.icon ?? Icons.verified_rounded,
+                        color: record?.tier.color ?? Colors.green,
+                        size: 28,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            record?.tier.label ?? 'Verified Leader Program',
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            'Group Creator: ${record?.userName ?? "Admin"}',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(ctx),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                if (record != null) ...[
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surfaceContainerHighest
+                          .withValues(alpha: 0.4),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children: [
+                            _buildTrackRecordStat(
+                              'Verified 1Y Return',
+                              '${record!.verifiedReturnPercent >= 0 ? '+' : ''}${record!.verifiedReturnPercent.toStringAsFixed(1)}%',
+                              record!.verifiedReturnPercent >= 0
+                                  ? Colors.green
+                                  : Colors.red,
+                            ),
+                            _buildTrackRecordStat(
+                              'Win Rate',
+                              '${record!.verifiedWinRate.toStringAsFixed(1)}%',
+                              Colors.blue,
+                            ),
+                            _buildTrackRecordStat(
+                              'Audited Trades',
+                              record!.totalTradesAudited.toString(),
+                              null,
+                            ),
+                          ],
+                        ),
+                        const Divider(height: 24),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children: [
+                            _buildTrackRecordStat(
+                              'Sharpe Ratio',
+                              record!.sharpeRatio.toStringAsFixed(2),
+                              null,
+                            ),
+                            _buildTrackRecordStat(
+                              'Max Drawdown',
+                              '-${record!.maxDrawdownPercent.toStringAsFixed(1)}%',
+                              Colors.orange,
+                            ),
+                            _buildTrackRecordStat(
+                              'Profit Factor',
+                              '${record!.profitFactor.toStringAsFixed(1)}x',
+                              null,
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primaryContainer
+                          .withValues(alpha: 0.4),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.shield_outlined,
+                            size: 16, color: theme.colorScheme.primary),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Audited via ${record!.verificationSource} • ${DateFormat.yMMMd().format(record!.verificationDate)}',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: theme.colorScheme.onPrimaryContainer,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ] else ...[
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surfaceContainerHighest
+                          .withValues(alpha: 0.4),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: const Text(
+                      'This group leader has not yet completed broker verification. Leaders can verify their track records to establish community trust.',
+                      style: TextStyle(fontSize: 13, height: 1.4),
+                    ),
+                  ),
+                ],
+                if (isLeader) ...[
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton.icon(
+                      onPressed: isVerifying
+                          ? null
+                          : () async {
+                              setSheetState(() => isVerifying = true);
+                              try {
+                                final user = auth.currentUser;
+                                final newRecord = await widget.firestoreService
+                                    .calculateAndVerifyLeaderTrackRecord(
+                                  group.createdBy,
+                                  groupId: group.id,
+                                  userName: user?.displayName ??
+                                      widget.brokerageUser?.userName ??
+                                      'Leader',
+                                  userPhotoUrl: user?.photoURL,
+                                );
+                                setSheetState(() {
+                                  isVerifying = false;
+                                  record = newRecord;
+                                });
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                          'Leader track record successfully verified!'),
+                                    ),
+                                  );
+                                }
+                              } catch (e) {
+                                setSheetState(() => isVerifying = false);
+                                if (ctx.mounted) {
+                                  ScaffoldMessenger.of(ctx).showSnackBar(
+                                    SnackBar(
+                                        content:
+                                            Text('Verification failed: $e')),
+                                  );
+                                }
+                              }
+                            },
+                      icon: isVerifying
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: Colors.white),
+                            )
+                          : const Icon(Icons.verified_rounded),
+                      label: Text(isVerifying
+                          ? 'Auditing Trades...'
+                          : record == null
+                              ? 'Verify My Track Record'
+                              : 'Re-audit & Update Track Record'),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 12),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildTrackRecordStat(String label, String value, Color? color) {
+    return Column(
+      children: [
+        Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildActivityFeedCard(InvestorGroup group, bool isMember) {
     return Card(
       elevation: 0,
@@ -796,8 +1602,9 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
                       children: [
                         CircleAvatar(
                           radius: 12,
-                          backgroundColor:
-                              Theme.of(context).primaryColor.withOpacity(0.15),
+                          backgroundColor: Theme.of(context)
+                              .primaryColor
+                              .withValues(alpha: 0.15),
                           child: Text(
                             activities.first.userName.isNotEmpty
                                 ? activities.first.userName[0].toUpperCase()
@@ -813,14 +1620,9 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
                         Expanded(
                           child: Text(
                             activities.first.title,
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w500,
-                              color: activities.first.isBuy
-                                  ? Colors.green
-                                  : activities.first.isSell
-                                      ? Colors.red
-                                      : null,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -1118,18 +1920,11 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: isMember
-                          ? Theme.of(context)
-                              .primaryColor
-                              .withOpacity(_isDarkTheme ? 0.15 : 0.1)
-                          : Colors.grey.withOpacity(_isDarkTheme ? 0.15 : 0.1),
+                      color: Colors.grey.withOpacity(_isDarkTheme ? 0.15 : 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(Icons.chat_bubble_outline,
-                        color: isMember
-                            ? Theme.of(context).primaryColor
-                            : _getTertiaryTextColor(),
-                        size: 24),
+                        color: Theme.of(context).colorScheme.primary, size: 24),
                   ),
                   const SizedBox(width: 12),
                   Text(
@@ -1222,14 +2017,14 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
                                       fontSize: 11,
                                     ),
                           ),
-                          const SizedBox(height: 12),
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: TextButton(
-                              onPressed: () => _navigateToChat(group),
-                              child: const Text('Open Chat →'),
-                            ),
-                          ),
+                          // const SizedBox(height: 12),
+                          // Align(
+                          //   alignment: Alignment.centerRight,
+                          //   child: TextButton(
+                          //     onPressed: () => _navigateToChat(group),
+                          //     child: const Text('Open Chat →'),
+                          //   ),
+                          // ),
                         ],
                       );
                     }
@@ -1342,144 +2137,36 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => Scaffold(
-          appBar: AppBar(
-            title: const Text('Members'),
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.search),
-                onPressed: () {
-                  showSearch(
-                    context: context,
-                    delegate: _MemberSearchDelegate(
-                      group: group,
-                      firestoreService: widget.firestoreService,
-                    ),
-                  );
-                },
-              ),
-            ],
-          ),
-          body: _buildMembersListView(group),
+        builder: (context) => InvestorGroupMembersWidget(
+          group: group,
+          firestoreService: widget.firestoreService,
+          service: widget.service,
+          brokerageUser: widget.brokerageUser,
+          analytics: widget.analytics,
+          observer: widget.observer,
         ),
       ),
     );
   }
 
-  Widget _buildMembersListView(InvestorGroup group) {
-    if (group.members.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: _getBackgroundColor(),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(Icons.people_outline,
-                  size: 56, color: _getTertiaryTextColor()),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              'No members yet',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Invite people to join this group',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: _getSecondaryTextColor(),
-                  ),
-            ),
-          ],
+  void _navigateToWatchlists(InvestorGroup group) {
+    if (widget.brokerageUser != null) {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => GroupWatchlistsWidget(
+            brokerageUser: widget.brokerageUser!,
+            groupId: group.id,
+          ),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content:
+              Text('Please connect a brokerage account to access watchlists.'),
         ),
       );
     }
-
-    return ListView.builder(
-      itemCount: group.members.length,
-      itemBuilder: (context, index) {
-        final userId = group.members[index];
-        final isCreator = userId == group.createdBy;
-        final isAdmin = group.isAdmin(userId);
-
-        return FutureBuilder(
-          future: widget.firestoreService.userCollection.doc(userId).get(),
-          builder: (context, snapshot) {
-            String displayName = 'User';
-            Widget avatar = CircleAvatar(
-              radius: 24,
-              backgroundColor: Theme.of(context).primaryColor.withOpacity(0.2),
-              child: Icon(Icons.account_circle,
-                  color: Theme.of(context).primaryColor),
-            );
-
-            if (snapshot.hasData && snapshot.data!.exists) {
-              final user = snapshot.data!.data();
-              displayName = user?.name ?? 'Guest';
-              avatar = CircleAvatar(
-                radius: 24,
-                backgroundColor: Theme.of(context).primaryColor,
-                child: Text(
-                  displayName.isNotEmpty ? displayName[0].toUpperCase() : 'U',
-                  style: const TextStyle(
-                      color: Colors.white, fontWeight: FontWeight.bold),
-                ),
-              );
-            }
-
-            return Container(
-              margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              child: ListTile(
-                leading: avatar,
-                title: Text(
-                  displayName,
-                  style: const TextStyle(fontWeight: FontWeight.w600),
-                ),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (isCreator)
-                      Chip(
-                        label: const Text('Creator',
-                            style: TextStyle(
-                                fontSize: 11, fontWeight: FontWeight.w600)),
-                        backgroundColor: Colors.amber[_isDarkTheme ? 700 : 100],
-                        labelStyle: TextStyle(
-                            color: Colors.amber[_isDarkTheme ? 100 : 900]),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 4),
-                      )
-                    else if (isAdmin)
-                      Chip(
-                        label: const Text('Admin',
-                            style: TextStyle(
-                                fontSize: 11, fontWeight: FontWeight.w600)),
-                        backgroundColor: Colors.blue[_isDarkTheme ? 700 : 100],
-                        labelStyle: TextStyle(
-                            color: Colors.blue[_isDarkTheme ? 100 : 900]),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 4),
-                      ),
-                    // if (group.isPrivate) const SizedBox(width: 8),
-                    // if (group.isPrivate)
-                    //   const Icon(Icons.chevron_right, size: 20),
-                  ],
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  side: BorderSide(color: _getCardBorderColor(), width: 1),
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
   }
 
   void _navigateToPerformance(InvestorGroup group) {
@@ -1622,6 +2309,8 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
           firestoreService: widget.firestoreService,
           analytics: widget.analytics,
           observer: widget.observer,
+          service: widget.service,
+          brokerageUser: widget.brokerageUser,
         ),
       ),
     );
@@ -1998,116 +2687,5 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
       final years = (difference.inDays / 365).floor();
       return '$years year${years > 1 ? "s" : ""} ago';
     }
-  }
-}
-
-// Member search delegate
-class _MemberSearchDelegate extends SearchDelegate<String> {
-  final InvestorGroup group;
-  final FirestoreService firestoreService;
-
-  _MemberSearchDelegate({
-    required this.group,
-    required this.firestoreService,
-  });
-
-  @override
-  List<Widget> buildActions(BuildContext context) {
-    return [
-      IconButton(
-        icon: const Icon(Icons.clear),
-        onPressed: () {
-          query = '';
-        },
-      ),
-    ];
-  }
-
-  @override
-  Widget buildLeading(BuildContext context) {
-    return IconButton(
-      icon: const Icon(Icons.arrow_back),
-      onPressed: () {
-        close(context, '');
-      },
-    );
-  }
-
-  @override
-  Widget buildResults(BuildContext context) {
-    return _buildSearchResults();
-  }
-
-  @override
-  Widget buildSuggestions(BuildContext context) {
-    return _buildSearchResults();
-  }
-
-  Widget _buildSearchResults() {
-    final filteredMembers = group.members.where((userId) {
-      // This is a simple filter, in a real app you'd fetch user data
-      return true;
-    }).toList();
-
-    if (filteredMembers.isEmpty) {
-      return const Center(
-        child: Text('No members found'),
-      );
-    }
-
-    return ListView.builder(
-      itemCount: filteredMembers.length,
-      itemBuilder: (context, index) {
-        final userId = filteredMembers[index];
-        final isCreator = userId == group.createdBy;
-        final isAdmin = group.isAdmin(userId);
-
-        return FutureBuilder(
-          future: firestoreService.userCollection.doc(userId).get(),
-          builder: (context, snapshot) {
-            if (!snapshot.hasData) {
-              return const ListTile(
-                leading: CircularProgressIndicator(),
-                title: Text('Loading...'),
-              );
-            }
-
-            String displayName = 'User';
-            if (snapshot.data!.exists) {
-              final user = snapshot.data!.data();
-              displayName = user?.name ?? 'Guest';
-            }
-
-            // Filter by name
-            if (query.isNotEmpty &&
-                !displayName.toLowerCase().contains(query.toLowerCase())) {
-              return const SizedBox.shrink();
-            }
-
-            return ListTile(
-              leading: CircleAvatar(
-                child: Text(displayName.isNotEmpty
-                    ? displayName[0].toUpperCase()
-                    : 'U'),
-              ),
-              title: Text(displayName),
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (isCreator)
-                    const Chip(
-                      label: Text('Creator', style: TextStyle(fontSize: 11)),
-                    )
-                  else if (isAdmin)
-                    const Chip(
-                      label: Text('Admin', style: TextStyle(fontSize: 11)),
-                    ),
-                ],
-              ),
-            );
-          },
-        );
-      },
-    );
   }
 }

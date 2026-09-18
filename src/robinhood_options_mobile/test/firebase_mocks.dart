@@ -73,7 +73,7 @@ class MockRemoteConfig extends Fake implements FirebaseRemoteConfig {
 
   @override
   String getString(String key) {
-    if (key == 'ai_model_name') return 'gemini-2.0-flash-exp';
+    if (key == 'ai_model_name') return 'gemini-3.1-flash-lite';
     return '';
   }
 

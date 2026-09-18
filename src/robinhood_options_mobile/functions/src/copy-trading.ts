@@ -297,6 +297,8 @@ export const onInstrumentOrderCreated = onDocumentCreated(
         return;
       }
 
+      let sourceUserName: string | undefined;
+
       // Process each group
       for (const groupDoc of groupsSnapshot.docs) {
         const group = groupDoc.data() as InvestorGroup;
@@ -461,13 +463,16 @@ export const onInstrumentOrderCreated = onDocumentCreated(
             }
 
             // Get source user name for notification
-            const sourceUserDoc = await db.collection("user").doc(userId).get();
-            const sourceUserName = sourceUserDoc.data()?.name || "A trader";
+            if (sourceUserName === undefined) {
+              const sourceUserDoc =
+                await db.collection("user").doc(userId).get();
+              sourceUserName = sourceUserDoc.data()?.name || "A trader";
+            }
 
             // Send notification to target user
             await sendCopyTradeNotification(
               memberId,
-              sourceUserName,
+              sourceUserName || "A trader",
               symbol,
               orderData.side,
               quantity,
@@ -585,6 +590,8 @@ export const onOptionOrderCreated = onDocumentCreated(
         logger.info("User not in any investor groups", { userId });
         return;
       }
+
+      let sourceUserName: string | undefined;
 
       // Process each group
       for (const groupDoc of groupsSnapshot.docs) {
@@ -775,13 +782,16 @@ export const onOptionOrderCreated = onDocumentCreated(
             }
 
             // Get source user name for notification
-            const sourceUserDoc = await db.collection("user").doc(userId).get();
-            const sourceUserName = sourceUserDoc.data()?.name || "A trader";
+            if (sourceUserName === undefined) {
+              const sourceUserDoc =
+                await db.collection("user").doc(userId).get();
+              sourceUserName = sourceUserDoc.data()?.name || "A trader";
+            }
 
             // Send notification to target user
             await sendCopyTradeNotification(
               memberId,
-              sourceUserName,
+              sourceUserName || "A trader",
               symbol,
               orderData.direction,
               quantity,

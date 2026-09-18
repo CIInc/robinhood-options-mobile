@@ -3,7 +3,11 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     match /user/{uid} {
-      allow read: if request.auth != null && request.auth.uid == uid;
+      allow read: if request.auth != null && (
+        request.auth.uid == uid ||
+        resource.data.get('portfolioPrivacy', {}).get('isPublic', false) == true ||
+        request.auth.token.role == 'admin'
+      );
       allow create: if request.auth != null && request.auth.uid == uid;
       allow update: if request.auth.uid == uid || request.auth.token.role == 'admin';
       allow delete: if request.auth.token.role == 'admin';
@@ -11,7 +15,12 @@ service cloud.firestore {
       // DEFAULT SUB-COLLECTION RULE
       // Covers common sub-collections (instrumentPosition, optionOrder, auto_trade_history, etc.)
       match /{collectionId}/{id} {
-        allow read: if request.auth != null && request.auth.uid == uid;
+        allow read: if request.auth != null && (
+          request.auth.uid == uid ||
+          (collectionId in ['instrumentPosition', 'instrumentOrder', 'optionPosition'] &&
+           get(/databases/$(database)/documents/user/$(uid)).data.get('portfolioPrivacy', {}).get('isPublic', false) == true) ||
+          request.auth.token.role == 'admin'
+        );
         allow create, update: if request.auth.uid == uid || request.auth.token.role == 'admin';
         allow delete: if request.auth.token.role == 'admin';
       }
@@ -21,7 +30,12 @@ service cloud.firestore {
         allow read, create, update, delete: if request.auth.uid == uid;
       }
       match /instrumentOrder/{id} {
-        allow read, create, update: if request.auth != null &&
+        allow read: if request.auth != null && (
+          request.auth.uid == uid ||
+          get(/databases/$(database)/documents/user/$(uid)).data.get('portfolioPrivacy', {}).get('isPublic', false) == true ||
+          request.auth.token.role == 'admin'
+        );
+        allow create, update: if request.auth != null &&
           request.auth.uid == uid;
         allow delete: if request.auth != null &&
           (request.auth.uid == uid || request.auth.token.role == 'admin');
@@ -214,10 +228,68 @@ service cloud.firestore {
         );
       }
 
+      match /analyses/{analysisId} {
+        // Members or public group viewers can read analyses
+        allow read: if !exists(/databases/$(database)/documents/investor_groups/$(groupId)) ||
+          get(/databases/$(database)/documents/investor_groups/$(groupId)).data.get('isPrivate', false) == false || 
+          (request.auth.uid != null && 
+          request.auth.uid in get(/databases/$(database)/documents/investor_groups/$(groupId)).data.get('members', []));
+        // Group members can create analyses
+        allow create: if request.auth.uid != null && 
+          request.auth.uid in get(/databases/$(database)/documents/investor_groups/$(groupId)).data.get('members', []) &&
+          request.resource.data.authorId == request.auth.uid;
+        // Author, group creator, group admin, or app admin can update, or members can update likes or commentsCount
+        allow update: if request.auth.uid != null && (
+          resource.data.authorId == request.auth.uid ||
+          request.auth.uid == get(/databases/$(database)/documents/investor_groups/$(groupId)).data.createdBy ||
+          request.auth.uid in get(/databases/$(database)/documents/investor_groups/$(groupId)).data.get('admins', []) ||
+          request.auth.token.role == 'admin' ||
+          (request.auth.uid in get(/databases/$(database)/documents/investor_groups/$(groupId)).data.get('members', []) &&
+           request.resource.data.diff(resource.data).affectedKeys().hasAny(['likes', 'commentsCount']))
+        );
+        // Analysis author, group creator, group admin, or app admin can delete
+        allow delete: if request.auth.uid != null && (
+          resource.data.authorId == request.auth.uid ||
+          request.auth.uid == get(/databases/$(database)/documents/investor_groups/$(groupId)).data.createdBy ||
+          request.auth.uid in get(/databases/$(database)/documents/investor_groups/$(groupId)).data.get('admins', []) ||
+          request.auth.token.role == 'admin'
+        );
+
+        match /comments/{commentId} {
+          // Members or public group viewers can read comments
+          allow read: if !exists(/databases/$(database)/documents/investor_groups/$(groupId)) ||
+            get(/databases/$(database)/documents/investor_groups/$(groupId)).data.get('isPrivate', false) == false || 
+            (request.auth.uid != null && 
+            request.auth.uid in get(/databases/$(database)/documents/investor_groups/$(groupId)).data.get('members', []));
+          // Group members can create comments
+          allow create: if request.auth.uid != null && 
+            request.auth.uid in get(/databases/$(database)/documents/investor_groups/$(groupId)).data.get('members', []) &&
+            request.resource.data.authorId == request.auth.uid;
+          // Comment author, group creator, group admin, or app admin can update/delete
+          allow update, delete: if request.auth.uid != null && (
+            resource.data.authorId == request.auth.uid ||
+            request.auth.uid == get(/databases/$(database)/documents/investor_groups/$(groupId)).data.createdBy ||
+            request.auth.uid in get(/databases/$(database)/documents/investor_groups/$(groupId)).data.get('admins', []) ||
+            request.auth.token.role == 'admin'
+          );
+        }
+      }
+
       match /member_privacy/{userId} {
         // Only the user themselves can read or write their group privacy settings
         allow read, write: if request.auth.uid != null && request.auth.uid == userId;
       }
+    }
+
+    match /verified_track_records/{userId} {
+      // Anyone can read verified track records for leaders and public profiles
+      allow read: if true;
+      // Authenticated users can write their own verified track record or admins can write
+      allow create, update: if request.auth.uid != null && (
+        request.auth.uid == userId ||
+        request.auth.token.role == 'admin'
+      );
+      allow delete: if request.auth.token.role == 'admin';
     }
 
     match /copy_trades/{tradeId} {
@@ -252,6 +324,64 @@ service cloud.firestore {
       allow read: if true;
       allow create, update: if false;
       allow delete: if request.auth.token.role == 'admin';
+    }
+
+    match /user_follows/{followId} {
+      allow read: if request.auth != null && (
+        resource.data.followerId == request.auth.uid ||
+        resource.data.followingId == request.auth.uid ||
+        get(/databases/$(database)/documents/user/$(resource.data.followingId)).data.get('portfolioPrivacy', {}).get('isPublic', false) == true ||
+        request.auth.token.role == 'admin'
+      );
+      allow create: if request.auth != null && request.resource.data.followerId == request.auth.uid;
+      allow update, delete: if request.auth != null && (
+        resource.data.followerId == request.auth.uid ||
+        request.auth.token.role == 'admin'
+      );
+    }
+
+    match /social_activities/{activityId} {
+      allow read: if request.auth != null && (
+        resource.data.userId == request.auth.uid ||
+        get(/databases/$(database)/documents/user/$(resource.data.userId)).data.get('portfolioPrivacy', {}).get('isPublic', false) == true ||
+        request.auth.token.role == 'admin'
+      );
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if request.auth != null && (
+        resource.data.userId == request.auth.uid ||
+        request.auth.token.role == 'admin'
+      );
+    }
+
+    match /social_trade_ideas/{ideaId} {
+      // Authenticated users can read public trade ideas
+      allow read: if request.auth != null;
+      // Authenticated users can post their own trade ideas
+      allow create: if request.auth != null && request.resource.data.authorId == request.auth.uid;
+      // Authors or admins can update/delete their trade ideas, or authenticated users can update likes
+      allow update: if request.auth != null && (
+        resource.data.authorId == request.auth.uid ||
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes']) ||
+        request.auth.token.role == 'admin'
+      );
+      allow delete: if request.auth != null && (
+        resource.data.authorId == request.auth.uid ||
+        request.auth.token.role == 'admin'
+      );
+    }
+
+    match /top_portfolios/{portfolioId} {
+      // Authenticated users can read leaderboard entries
+      allow read: if request.auth != null;
+      // Users can publish/update their own portfolio ranking entry, or admin
+      allow create, update: if request.auth != null && (
+        request.resource.data.userId == request.auth.uid ||
+        request.auth.token.role == 'admin'
+      );
+      allow delete: if request.auth != null && (
+        resource.data.userId == request.auth.uid ||
+        request.auth.token.role == 'admin'
+      );
     }
 
     //match /{document=**} {

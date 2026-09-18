@@ -31,13 +31,13 @@ RealizeAlpha has integrated with Charles Schwab to provide users with a broader 
 
 The Charles Schwab Developer Portal ([developer.schwab.com](https://developer.schwab.com/)) provides two primary REST products and a high-throughput WebSocket streaming engine:
 
-### 1. Market Data Production API (`/marketdata/v1`) — [Issue #93](https://github.com/CIInc/robinhood-options-mobile/issues/93)
-- **Quotes (`GET /marketdata/v1/quotes`):** Real-time bid, ask, size, last trade, 52-week ranges, PE ratio, and dividend yields for individual or batch symbols. Replaces stubbed quotes in `SchwabService.getQuote()` and `refreshQuote()`.
-- **Price History (`GET /marketdata/v1/pricehistory`):** Historical OHLCV candlestick bars across multiple intervals (`minute`, `daily`, `weekly`) and spans (`day`, `month`, `year`, `ytd`) with extended-hours support. Backs interactive charts and backtesting.
-- **Fundamentals (`GET /marketdata/v1/instruments?projection=fundamental`):** Fundamental statistics including market cap, EPS, shares outstanding, and dividend metrics for `SchwabService.getFundamentals()`.
-- **Index Movers (`GET /marketdata/v1/movers/{index}`):** Real-time top gainers/losers by percentage change or volume for `$DJI`, `$COMPX`, `$SPX`.
-- **Market Hours (`GET /marketdata/v1/markets`):** Operating schedules, pre-market/after-hours states, and market holiday calendars.
-- **Options Expiration Chains (`GET /marketdata/v1/expirationchain`):** Fast retrieval of available expiration dates for optimized options contract selectors.
+### 1. Market Data Production API (`/marketdata/v1`) — [Issue #93](https://github.com/CIInc/robinhood-options-mobile/issues/93) (Implemented)
+- **Quotes (`GET /marketdata/v1/quotes`):** Real-time bid, ask, size, last trade, 52-week ranges, PE ratio, and dividend yields for individual or batch symbols via `SchwabService.getQuote()` and `refreshQuote()`.
+- **Price History (`GET /marketdata/v1/pricehistory`):** Historical OHLCV candlestick bars across multiple intervals (`minute`, `daily`, `weekly`) and spans (`day`, `month`, `year`, `ytd`) with extended-hours support via `SchwabService.getInstrumentHistoricals()`. Backs interactive charts and backtesting.
+- **Fundamentals (`GET /marketdata/v1/instruments?projection=fundamental`):** Fundamental statistics including market cap, EPS, shares outstanding, and dividend metrics via `SchwabService.getFundamentals()` and `getFundamentalsById()`.
+- **Index Movers & Top Movers (`GET /marketdata/v1/movers/{index}`):** Real-time top gainers/losers by percentage change or volume for `$DJI`, `$COMPX`, `$SPX` via `SchwabService.getMovers()` and screener feed for `SearchWidget` via `SchwabService.getTopMovers()`.
+- **Market Hours (`GET /marketdata/v1/markets`):** Operating schedules, pre-market/after-hours states, and market holiday calendars via `SchwabService.getMarketHours()`.
+- **Options Expiration Chains & Market Data (`GET /marketdata/v1/chains`):** Fast retrieval of available expiration dates via `SchwabService.getOptionExpirationChain()`, option market quotes and Greeks via `SchwabService.getOptionMarketData()`, and periodic refresh via `SchwabService.refreshOptionMarketData()`.
 
 ### 2. Accounts & Trading Production API (`/trader/v1`) — [Issue #91](https://github.com/CIInc/robinhood-options-mobile/issues/91), [Issue #122](https://github.com/CIInc/robinhood-options-mobile/issues/122)
 - **Accounts & Balances (`GET /trader/v1/accounts`):** Balances, positions, cash, and margin buying power (Implemented).
