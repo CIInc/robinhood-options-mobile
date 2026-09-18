@@ -10,7 +10,7 @@
  */
 
 import * as logger from "firebase-functions/logger";
-import { onCall } from "firebase-functions/v2/https";
+import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import { getMessaging } from "firebase-admin/messaging";
 
@@ -48,12 +48,33 @@ interface NotificationRequest {
  */
 export const sendAgenticTradeNotification = onCall(async (request) => {
   try {
+    // SECURITY: Ensure caller is authenticated
+    if (!request.auth || !request.auth.uid) {
+      throw new HttpsError(
+        "unauthenticated",
+        "Authentication is required to send notifications."
+      );
+    }
+
     const data = request.data as NotificationRequest;
     const userId = data.userId;
 
     // Validate required fields
     if (!userId || !data.type) {
-      throw new Error("Missing required fields: userId and type");
+      throw new HttpsError(
+        "invalid-argument",
+        "Missing required fields: userId and type"
+      );
+    }
+
+    // SECURITY: Ensure caller can only trigger for own account unless admin
+    const callerUid = request.auth.uid;
+    const isAdmin = request.auth.token?.role === "admin";
+    if (callerUid !== userId && !isAdmin) {
+      throw new HttpsError(
+        "permission-denied",
+        "Unauthorized user context for notification request."
+      );
     }
 
     logger.info("Sending agentic trade notification", {
