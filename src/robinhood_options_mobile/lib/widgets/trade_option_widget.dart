@@ -1023,6 +1023,10 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
   }
 
   Future<void> _placeOrder() async {
+    setState(() {
+      placingOrder = true;
+    });
+
     if (_isPaperTrade) {
       await _placePaperOrder();
       return;
@@ -1032,6 +1036,9 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
         widget.riskCircuitBreakerService ?? RiskCircuitBreakerService();
     await riskService.loadConfig();
     if (riskService.config.isExecutionBlocked) {
+      setState(() {
+        placingOrder = false;
+      });
       if (mounted) {
         await showDialog(
           context: context,
@@ -1055,10 +1062,6 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
       }
       return;
     }
-
-    setState(() {
-      placingOrder = true;
-    });
 
     if (!mounted) return;
     var accountStore = Provider.of<AccountStore>(context, listen: false);

@@ -555,13 +555,18 @@ void main() {
                         MaterialPageRoute(
                           builder: (context) => Scaffold(
                             body: TradeOptionWidget(
-                              BrokerageUser.fromJson({'username': 'test', 'source': 'BrokerageSource.paper'}),
+                              BrokerageUser.fromJson({
+                                'username': 'test',
+                                'source': 'BrokerageSource.paper'
+                              }),
                               mockService,
                               optionInstrument: optionInstrument,
                               analytics: mockAnalytics,
                               observer: mockObserver,
-                              riskCircuitBreakerService: RiskCircuitBreakerService(
-                                initialConfig: RiskCircuitBreakerConfig(enabled: false),
+                              riskCircuitBreakerService:
+                                  RiskCircuitBreakerService(
+                                initialConfig:
+                                    RiskCircuitBreakerConfig(enabled: false),
                               ),
                             ),
                           ),
