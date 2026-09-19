@@ -10,6 +10,7 @@ import 'package:robinhood_options_mobile/model/agentic_trading_config.dart';
 import 'package:robinhood_options_mobile/model/futures_strategy_config.dart';
 import 'package:robinhood_options_mobile/model/portfolio_privacy_settings.dart';
 import 'package:robinhood_options_mobile/model/rebalancing_config.dart';
+import 'package:robinhood_options_mobile/model/risk_circuit_breaker_config.dart';
 
 class User {
   String? name;
@@ -58,6 +59,9 @@ class User {
   int followersCount;
   int followingCount;
 
+  // Autonomous Risk Circuit Breakers & Tilt Guardrails
+  RiskCircuitBreakerConfig? riskCircuitBreakerConfig;
+
   // Subscription fields
   String? subscriptionStatus; // 'active', 'trial', 'none', 'expired'
   DateTime? trialStartDate;
@@ -91,6 +95,7 @@ class User {
       this.portfolioPrivacy,
       this.followersCount = 0,
       this.followingCount = 0,
+      this.riskCircuitBreakerConfig,
       this.subscriptionStatus,
       this.trialStartDate,
       this.subscriptionExpiryDate,
@@ -156,6 +161,10 @@ class User {
             portfolioPrivacy: json['portfolioPrivacy'] != null ? PortfolioPrivacySettings.fromJson(json['portfolioPrivacy'] as Map<String, dynamic>) : null,
             followersCount: (json['followersCount'] as num?)?.toInt() ?? 0,
             followingCount: (json['followingCount'] as num?)?.toInt() ?? 0,
+            riskCircuitBreakerConfig: json['riskCircuitBreakerConfig'] != null
+                ? RiskCircuitBreakerConfig.fromJson(
+                    json['riskCircuitBreakerConfig'] as Map<String, dynamic>)
+                : null,
             subscriptionStatus: json['subscriptionStatus'] as String?,
             trialStartDate: json['trialStartDate'] != null ? (json['trialStartDate'] as Timestamp).toDate() : null,
             subscriptionExpiryDate: json['subscriptionExpiryDate'] != null ? (json['subscriptionExpiryDate'] as Timestamp).toDate() : null,
@@ -194,6 +203,7 @@ class User {
       'portfolioPrivacy': portfolioPrivacy?.toJson(),
       'followersCount': followersCount,
       'followingCount': followingCount,
+      'riskCircuitBreakerConfig': riskCircuitBreakerConfig?.toJson(),
     };
   }
 

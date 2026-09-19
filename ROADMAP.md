@@ -50,13 +50,13 @@ This document outlines the planned features and enhancements for RealizeAlpha.
 - **Focus Areas**: Advanced trading strategies, brokerage integrations, security, social features, AI coaching, quantitative research, behavioral finance, frontier tech
 
 ### Key Highlights
-- ✅ **Recently Completed**: Tax Optimization, Wash Sale Detection & Capital Gains Suite ([Tracking: #114](https://github.com/CIInc/robinhood-options-mobile/issues/114), v0.48.0), In-App Instrument Custom Alerts (v0.47.1), Follow Portfolios ([#27](https://github.com/CIInc/robinhood-options-mobile/issues/27), v0.47.0), Social Feed for Shared Trade Ideas & Strategy Cloning ([#24](https://github.com/CIInc/robinhood-options-mobile/issues/24)), and Top Portfolios Leaderboard & User Reputation ([#26](https://github.com/CIInc/robinhood-options-mobile/issues/26)).
-- 🔥 **In Progress**: Schwab Real-Time WebSocket Streamer ([#145](https://github.com/CIInc/robinhood-options-mobile/issues/145)) and Security Hardening & Two-Factor Authentication ([#89](https://github.com/CIInc/robinhood-options-mobile/issues/89)).
-- 🚀 **Next Milestone**: **Security Hardening, Risk Guardrails & Brokerage Streaming** (v0.48.5 - Q4 2026).
-- **Focus Areas**: Institutional-grade options analytics (GEX), real-time streaming market data, 2FA security, and multi-brokerage expansion.
+- ✅ **Recently Completed**: Autonomous Account Risk Circuit Breakers & Tilt Guardrails ([Tracking: #142](https://github.com/CIInc/robinhood-options-mobile/issues/142), v0.48.5), Tax Optimization, Wash Sale Detection & Capital Gains Suite ([Tracking: #114](https://github.com/CIInc/robinhood-options-mobile/issues/114), v0.48.0), In-App Instrument Custom Alerts (v0.47.1), Follow Portfolios ([#27](https://github.com/CIInc/robinhood-options-mobile/issues/27), v0.47.0), Social Feed for Shared Trade Ideas & Strategy Cloning ([#24](https://github.com/CIInc/robinhood-options-mobile/issues/24)), and Top Portfolios Leaderboard & User Reputation ([#26](https://github.com/CIInc/robinhood-options-mobile/issues/26)).
+- 🔥 **In Progress**: Schwab Real-Time WebSocket Streamer ([#145](https://github.com/CIInc/robinhood-options-mobile/issues/145)).
+- 🚀 **Next Milestone**: **Risk Guardrails, Account Protection & Brokerage Streaming** (v0.48.5 - Q4 2026).
+- **Focus Areas**: Institutional-grade options analytics (GEX), real-time streaming market data, autonomous risk circuit breakers, and multi-brokerage expansion.
 - 🎯 **2026 Priorities**: 
   - **Q3**: AI Portfolio Architect, Smart Alerts & Market Intelligence, News & Sentiment Intelligence, Social Platform Evolution, Instrument Custom Alerts
-  - **Q4**: Tax Optimization Suite (Wash Sale & Form 8949), Security Hardening (2FA), Schwab WebSocket Streamer, Options Analytics Pro
+  - **Q4**: Tax Optimization Suite (Wash Sale & Form 8949), Risk Circuit Breakers & Tilt Guardrails, Schwab WebSocket Streamer, Options Analytics Pro
 - 🚀 **2027+ Vision**: Algorithmic Strategy Marketplace, Retirement Planning, Real Estate & Alternative Assets, DeFi Integration, AR/VR Trading, Quantum Computing
 
 ## Release Versions & Timeline
@@ -382,9 +382,8 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ **IRS Form 8949 Preview & CSV Export:** Export structured realized transactions formatted for Schedule D / Form 8949 with wash sale adjustment codes (`W`).
 
 ### v0.48.5 (Target: Q4 2026 - Late December)
-**Security Hardening, Risk Guardrails & Brokerage Streaming**
-- **Two-Factor Authentication (2FA / TOTP):** Authenticator app integration (TOTP), SMS recovery, backup codes, and trusted devices ([#89](https://github.com/CIInc/robinhood-options-mobile/issues/89)).
-- **Autonomous Account Risk Circuit Breakers:** User-configurable account safety thresholds (daily max loss limit, margin buffer lock, mandatory cooling-off period to prevent tilt and revenge trading).
+**Risk Guardrails, Account Protection & Brokerage Streaming**
+- ✅ **Autonomous Account Risk Circuit Breakers & Tilt Guardrails:** User-configurable account safety thresholds (daily max loss limit, portfolio drawdown limit, margin buffer lock, consecutive loss limit, and mandatory cooling-off trading suspension to prevent tilt and revenge trading) ([Tracking: #142](https://github.com/CIInc/robinhood-options-mobile/issues/142)).
 - **Schwab Real-Time WebSocket Streamer Phase 1:** Secure handshake, token refresh, and sub-second streaming quotes (`LEVELONE_EQUITIES`) and account activity notifications ([#145](https://github.com/CIInc/robinhood-options-mobile/issues/145)).
 
 ### v0.49.0 (2027 Q1 - January)
@@ -861,7 +860,7 @@ Q3 2026 shifts focus from basic execution to **Advanced Intelligence** and **Reg
 - [ ] **AI-Powered Research Reports**: Auto-generate comprehensive research reports for holdings - **Large** (5-6 weeks)
 - [ ] **Multi-Model AI Consensus Engine** (v0.52.0, [Tracking: #118](https://github.com/CIInc/robinhood-options-mobile/issues/118)): Synthesize multiple AI models (Gemini 3.1 Flash-Lite, local factor engines, deep reasoning agents) to generate high-conviction trade consensus ratings - **Medium** (3-4 weeks)
 - [ ] **AI Trade Post-Mortem & Behavioral Journal Auto-Tagger** (v0.52.0, [Tracking: #118](https://github.com/CIInc/robinhood-options-mobile/issues/118)): Automated diagnostic review upon position exit analyzing cognitive biases, execution flaws, and tactical lessons - **Medium** (2-3 weeks)
-- [ ] **Autonomous Risk Circuit Breakers** (v0.48.5, [Tracking: #142](https://github.com/CIInc/robinhood-options-mobile/issues/142)): Hard user-defined limits (max daily loss, drawdown limit, cooling-off trading suspension) that proactively lock execution to protect capital - **Medium** (2-3 weeks)
+- [x] **Autonomous Risk Circuit Breakers** (v0.48.5, [Tracking: #142](https://github.com/CIInc/robinhood-options-mobile/issues/142)): Hard user-defined limits (max daily loss, drawdown limit, cooling-off trading suspension) that proactively lock execution to protect capital - **Medium** (2-3 weeks)
 
 #### Notifications & Alerts ([Tracking: #115](https://github.com/CIInc/robinhood-options-mobile/issues/115))
 - [x] **Custom Alerts**: Price, volume, and volatility alerts ([#81](https://github.com/CIInc/robinhood-options-mobile/issues/81))
@@ -976,7 +975,6 @@ Technical debt accumulation slows velocity. Investing in testing, CI/CD, and sec
 
 #### Infrastructure & Security
 - [x] **Biometric Authentication**: Face/fingerprint login ([#69](https://github.com/CIInc/robinhood-options-mobile/issues/69))
-- [ ] **Two-Factor Authentication (2FA)** ([#89](https://github.com/CIInc/robinhood-options-mobile/issues/89)): TOTP, SMS backup codes, recovery codes, and trusted devices
 - [ ] **End-to-End Encryption**: Sensitive data encryption
 - [x] **CI/CD Pipeline**: Automated testing and deployment ([#70](https://github.com/CIInc/robinhood-options-mobile/issues/70))
 - [ ] **Performance & Technical Debt Optimization** ([#124](https://github.com/CIInc/robinhood-options-mobile/issues/124)): App size, market data batching, viewport fixes, and list scrolling performance
@@ -1056,6 +1054,9 @@ Staying ahead of the curve requires exploring frontier technologies. Decentraliz
 - [ ] **Multi-Agent Systems**: Autonomous DAO trading and strategy negotiation
 - [ ] **Zero-Knowledge Proofs**: Privacy-preserving portfolio verification
 - [ ] **Immersive Interfaces**: AR/VR visualization for multidimensional market data
+
+#### Deferred Infrastructure
+- [ ] **Two-Factor Authentication (2FA / MFA)** ([#89](https://github.com/CIInc/robinhood-options-mobile/issues/89)): Deferred pending Google Cloud Identity Platform infrastructure evaluation and pricing tier review.
 
 
 ## Feedback & Contribution

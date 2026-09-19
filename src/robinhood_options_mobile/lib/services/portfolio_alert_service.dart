@@ -9,6 +9,7 @@ import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/portfolio_alert.dart';
 import 'package:robinhood_options_mobile/model/unified_account.dart';
 import 'package:robinhood_options_mobile/model/wash_sale_record.dart';
+import 'package:robinhood_options_mobile/model/risk_circuit_breaker_config.dart';
 import 'package:robinhood_options_mobile/services/tax_optimization_service.dart';
 
 /// Builds the Action Center feed: the ranked list of things worth acting on
@@ -43,9 +44,14 @@ class PortfolioAlertService {
     UnifiedAccount? unifiedAccount,
     List<MarginCall>? marginCalls,
     List<WashSaleRecord>? washSales,
+    RiskCircuitBreakerConfig? riskCircuitBreakerConfig,
+    double? dayPnL,
+    double? dayPnLPercent,
   }) {
     final alerts = <PortfolioAlert>[];
 
+    alerts.addAll(_circuitBreakerAlerts(
+        riskCircuitBreakerConfig, dayPnL, dayPnLPercent));
     alerts.addAll(
         _marginHealthAlerts(account, unifiedAccount, totalEquity, marginCalls));
     alerts.addAll(_pdtAlerts(account, totalEquity, dayTradeSummary));
@@ -58,6 +64,65 @@ class PortfolioAlertService {
     }
 
     alerts.sort((a, b) => a.severity.index.compareTo(b.severity.index));
+    return alerts;
+  }
+
+  static List<PortfolioAlert> _circuitBreakerAlerts(
+    RiskCircuitBreakerConfig? config,
+    double? dayPnL,
+    double? dayPnLPercent,
+  ) {
+    final alerts = <PortfolioAlert>[];
+    if (config == null || !config.enabled) return alerts;
+
+    if (config.isInCoolingOff) {
+      final rem = config.remainingCoolingOff;
+      final remStr = rem != null ? '${rem.inMinutes}m remaining' : 'active';
+      alerts.add(
+        PortfolioAlert(
+          id: 'risk-circuit-breaker-cooling-off',
+          severity: PortfolioAlertSeverity.critical,
+          icon: Icons.shield_outlined,
+          title: 'Trading Suspended ($remStr)',
+          detail: config.tripReason ??
+              'Risk circuit breaker cooling-off period active. Orders are temporarily blocked to protect capital.',
+          target: PortfolioAlertTarget.risk,
+        ),
+      );
+    } else if (config.isTripped) {
+      alerts.add(
+        PortfolioAlert(
+          id: 'risk-circuit-breaker-tripped',
+          severity: PortfolioAlertSeverity.critical,
+          icon: Icons.shield_outlined,
+          title: 'Circuit Breaker Tripped',
+          detail: config.tripReason ??
+              'Trading execution locked by autonomous risk guardrails.',
+          target: PortfolioAlertTarget.risk,
+        ),
+      );
+    } else if (dayPnL != null &&
+        dayPnL < 0 &&
+        config.maxDailyLossAmount != null &&
+        config.maxDailyLossAmount! > 0) {
+      final loss = dayPnL.abs();
+      final ratio = loss / config.maxDailyLossAmount!;
+      if (ratio >= 0.8) {
+        alerts.add(
+          PortfolioAlert(
+            id: 'risk-circuit-breaker-near-daily-loss',
+            severity: PortfolioAlertSeverity.warning,
+            icon: Icons.warning_amber_rounded,
+            title: 'Approaching Daily Loss Limit (${(ratio * 100).toStringAsFixed(0)}%)',
+            detail:
+                'Current day loss of -\$${loss.toStringAsFixed(2)} is near your \$${config.maxDailyLossAmount!.toStringAsFixed(2)} circuit breaker threshold.',
+            metric: '-\$${loss.toStringAsFixed(0)}',
+            target: PortfolioAlertTarget.risk,
+          ),
+        );
+      }
+    }
+
     return alerts;
   }
 

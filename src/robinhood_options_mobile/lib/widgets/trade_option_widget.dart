@@ -17,6 +17,7 @@ import 'package:robinhood_options_mobile/model/paper_trading_store.dart';
 import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
+import 'package:robinhood_options_mobile/services/risk_circuit_breaker_service.dart';
 import 'package:robinhood_options_mobile/widgets/slide_to_confirm_widget.dart';
 
 class TradeOptionWidget extends StatefulWidget {
@@ -31,6 +32,7 @@ class TradeOptionWidget extends StatefulWidget {
     this.optionInstrument,
     this.positionType = "Buy",
     this.initialIsPaperTrade = false,
+    this.riskCircuitBreakerService,
   });
 
   final FirebaseAnalytics analytics;
@@ -42,6 +44,7 @@ class TradeOptionWidget extends StatefulWidget {
   final OptionInstrument? optionInstrument;
   final String? positionType;
   final bool initialIsPaperTrade;
+  final RiskCircuitBreakerService? riskCircuitBreakerService;
 
   @override
   State<TradeOptionWidget> createState() => _TradeOptionWidgetState();
@@ -1020,6 +1023,34 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
   }
 
   Future<void> _placeOrder() async {
+    final riskService =
+        widget.riskCircuitBreakerService ?? RiskCircuitBreakerService();
+    await riskService.loadConfig();
+    if (riskService.config.isExecutionBlocked) {
+      if (mounted) {
+        await showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            icon:
+                const Icon(Icons.shield_outlined, color: Colors.red, size: 36),
+            title: const Text('Circuit Breaker Active'),
+            content: Text(
+              riskService.config.isInCoolingOff
+                  ? 'Trading execution is currently suspended by your Risk Circuit Breaker.\n\n${riskService.config.tripReason ?? "Mandatory cooling-off period active."}\n\nPlease take a break and reset your mindset before placing new orders.'
+                  : 'Trading execution is locked.\n\n${riskService.config.tripReason ?? "Autonomous risk circuit breaker tripped."}',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+      }
+      return;
+    }
+
     setState(() {
       placingOrder = true;
     });
@@ -1029,6 +1060,7 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
       return;
     }
 
+    if (!mounted) return;
     var accountStore = Provider.of<AccountStore>(context, listen: false);
 
     if (_riskGuardWarning != null) {

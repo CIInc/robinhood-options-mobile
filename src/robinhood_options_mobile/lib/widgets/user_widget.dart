@@ -38,6 +38,7 @@ import 'package:robinhood_options_mobile/widgets/day_trade_monitor_widget.dart';
 import 'package:robinhood_options_mobile/widgets/margin_health_widget.dart';
 import 'package:robinhood_options_mobile/widgets/stock_loan_widget.dart';
 import 'package:robinhood_options_mobile/widgets/banking_widget.dart';
+import 'package:robinhood_options_mobile/widgets/risk_circuit_breaker_settings_widget.dart';
 import 'package:robinhood_options_mobile/widgets/tax_documents_widget.dart';
 import 'package:robinhood_options_mobile/widgets/corporate_actions_widget.dart';
 import 'package:robinhood_options_mobile/widgets/shareholder_qa_widget.dart';
@@ -72,6 +73,8 @@ class UserWidget extends StatefulWidget {
   final UserInfo? userInfo;
   final ScrollController? scrollController;
   final IBrokerageService? service;
+  final FirestoreService? firestoreService;
+  final BiometricService? biometricService;
 
   const UserWidget(this.auth,
       {super.key,
@@ -83,6 +86,8 @@ class UserWidget extends StatefulWidget {
       required this.brokerageUser,
       this.userInfo,
       this.scrollController,
+      this.firestoreService,
+      this.biometricService,
       required this.service});
 
   @override
@@ -90,8 +95,8 @@ class UserWidget extends StatefulWidget {
 }
 
 class _UserWidgetState extends State<UserWidget> {
-  final FirestoreService _firestoreService = FirestoreService();
-  final BiometricService _biometricService = BiometricService();
+  late final FirestoreService _firestoreService;
+  late final BiometricService _biometricService;
   late CollectionReference<User> usersCollection;
   late DocumentReference<User>? userDocumentReference;
   late Stream<DocumentSnapshot<User>>? userStream;
@@ -112,6 +117,8 @@ class _UserWidgetState extends State<UserWidget> {
   @override
   void initState() {
     super.initState();
+    _firestoreService = widget.firestoreService ?? FirestoreService();
+    _biometricService = widget.biometricService ?? BiometricService();
     _checkBiometrics();
 
     PackageInfo.fromPlatform().then((value) {
@@ -828,116 +835,6 @@ class _UserWidgetState extends State<UserWidget> {
                                                         : null),
                                                 if (isCurrentUserProfileView) ...[
                                                   ListTile(
-                                                    leading: const Icon(Icons
-                                                        .privacy_tip_outlined),
-                                                    title: const Text(
-                                                        'Portfolio & Social Privacy'),
-                                                    subtitle: Text(user
-                                                                .portfolioPrivacy
-                                                                ?.isPublic ==
-                                                            false
-                                                        ? 'Private Portfolio'
-                                                        : 'Public Portfolio'),
-                                                    trailing: const Icon(
-                                                        Icons.chevron_right),
-                                                    onTap: () async {
-                                                      final currentPrivacy = user
-                                                              ?.portfolioPrivacy ??
-                                                          const PortfolioPrivacySettings();
-                                                      final updated =
-                                                          await PortfolioPrivacyBottomSheet
-                                                              .show(
-                                                        context,
-                                                        userId:
-                                                            widget.userId ?? '',
-                                                        currentSettings:
-                                                            currentPrivacy,
-                                                        firestoreService:
-                                                            _firestoreService,
-                                                      );
-                                                      if (updated != null &&
-                                                          mounted) {
-                                                        setState(() {
-                                                          user!.portfolioPrivacy =
-                                                              updated;
-                                                        });
-                                                      }
-                                                    },
-                                                  ),
-                                                  ListTile(
-                                                    leading: const Icon(Icons
-                                                        .dynamic_feed_outlined),
-                                                    title: const Text(
-                                                        'Following Activity Feed'),
-                                                    subtitle: const Text(
-                                                        'Real-time trades from traders you follow'),
-                                                    trailing: const Icon(
-                                                        Icons.chevron_right),
-                                                    onTap: () {
-                                                      Navigator.push(
-                                                        context,
-                                                        MaterialPageRoute(
-                                                          builder: (context) =>
-                                                              FollowingActivityFeedWidget(
-                                                            auth: widget.auth,
-                                                            firestoreService:
-                                                                _firestoreService,
-                                                            brokerageUser: widget
-                                                                .brokerageUser,
-                                                            service:
-                                                                widget.service,
-                                                            analytics: widget
-                                                                .analytics,
-                                                            observer:
-                                                                widget.observer,
-                                                            userRole:
-                                                                user?.role,
-                                                          ),
-                                                        ),
-                                                      );
-                                                    },
-                                                  ),
-                                                ],
-                                                if (isCurrentUserProfileView &&
-                                                    _biometricAvailable) ...[
-                                                  ListTile(
-                                                    leading: const Icon(
-                                                        Icons.fingerprint),
-                                                    title: const Text(
-                                                        'Biometric Authentication'),
-                                                    // subtitle: const Text(
-                                                    //     'Use FaceID/TouchID to access app'),
-                                                    trailing: Switch(
-                                                      value: _biometricEnabled,
-                                                      onChanged: (value) async {
-                                                        if (value) {
-                                                          final authenticated =
-                                                              await _biometricService
-                                                                  .authenticate();
-                                                          if (authenticated) {
-                                                            await _biometricService
-                                                                .setBiometricEnabled(
-                                                                    true);
-                                                            setState(() {
-                                                              _biometricEnabled =
-                                                                  true;
-                                                            });
-                                                          }
-                                                        } else {
-                                                          await _biometricService
-                                                              .setBiometricEnabled(
-                                                                  false);
-                                                          setState(() {
-                                                            _biometricEnabled =
-                                                                false;
-                                                          });
-                                                        }
-                                                      },
-                                                    ),
-                                                  ),
-                                                ],
-                                                if (isCurrentUserProfileView) ...[
-                                                  ListTile(
                                                     leading: Icon(
                                                         Icons.logout_outlined,
                                                         color: Theme.of(context)
@@ -1325,6 +1222,46 @@ class _UserWidgetState extends State<UserWidget> {
                                                     fontWeight:
                                                         FontWeight.bold),
                                           )),
+                                      if (isCurrentUserProfileView &&
+                                          _biometricAvailable) ...[
+                                        SwitchListTile(
+                                          secondary: CircleAvatar(
+                                            backgroundColor: Theme.of(context)
+                                                .colorScheme
+                                                .surfaceContainerHighest,
+                                            foregroundColor: Theme.of(context)
+                                                .colorScheme
+                                                .onSurfaceVariant,
+                                            child:
+                                                const Icon(Icons.fingerprint),
+                                          ),
+                                          title: const Text(
+                                              'Biometric Authentication'),
+                                          subtitle: const Text(
+                                              'Use FaceID/TouchID to access app'),
+                                          value: _biometricEnabled,
+                                          onChanged: (value) async {
+                                            if (value) {
+                                              final authenticated =
+                                                  await _biometricService
+                                                      .authenticate();
+                                              if (authenticated) {
+                                                await _biometricService
+                                                    .setBiometricEnabled(true);
+                                                setState(() {
+                                                  _biometricEnabled = true;
+                                                });
+                                              }
+                                            } else {
+                                              await _biometricService
+                                                  .setBiometricEnabled(false);
+                                              setState(() {
+                                                _biometricEnabled = false;
+                                              });
+                                            }
+                                          },
+                                        ),
+                                      ],
                                       if (user != null &&
                                           widget.brokerageUser != null) ...[
                                         SwitchListTile(
@@ -1710,6 +1647,51 @@ class _UserWidgetState extends State<UserWidget> {
                                         },
                                       ),
 
+                                      // Risk Circuit Breakers
+                                      if (isCurrentUserProfileView) ...[
+                                        ListTile(
+                                          leading: CircleAvatar(
+                                            backgroundColor: Theme.of(context)
+                                                .colorScheme
+                                                .secondaryContainer,
+                                            foregroundColor: Theme.of(context)
+                                                .colorScheme
+                                                .onSecondaryContainer,
+                                            child: const Icon(
+                                                Icons.shield_outlined),
+                                          ),
+                                          title: const Text(
+                                              'Risk Circuit Breakers'),
+                                          subtitle: Text(
+                                            user?.riskCircuitBreakerConfig
+                                                        ?.isExecutionBlocked ==
+                                                    true
+                                                ? 'Active (Trading Suspended)'
+                                                : user?.riskCircuitBreakerConfig
+                                                            ?.enabled ==
+                                                        true
+                                                    ? 'Guarded & Active'
+                                                    : 'Configure account safety thresholds',
+                                          ),
+                                          trailing:
+                                              const Icon(Icons.chevron_right),
+                                          onTap: () async {
+                                            await Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (context) =>
+                                                    RiskCircuitBreakerSettingsWidget(
+                                                  user: user,
+                                                  firestoreService:
+                                                      _firestoreService,
+                                                ),
+                                              ),
+                                            );
+                                            setState(() {});
+                                          },
+                                        ),
+                                      ],
+
                                       const Divider(
                                           height: 1, indent: 16, endIndent: 16),
 
@@ -2056,6 +2038,92 @@ class _UserWidgetState extends State<UserWidget> {
                                           }
                                         },
                                       ),
+                                      // Portfolio & Social Privacy
+                                      if (isCurrentUserProfileView &&
+                                          user != null) ...[
+                                        ListTile(
+                                          leading: CircleAvatar(
+                                            backgroundColor: Theme.of(context)
+                                                .colorScheme
+                                                .secondaryContainer,
+                                            foregroundColor: Theme.of(context)
+                                                .colorScheme
+                                                .onSecondaryContainer,
+                                            child: const Icon(
+                                                Icons.privacy_tip_outlined),
+                                          ),
+                                          title: const Text(
+                                              'Portfolio & Social Privacy'),
+                                          subtitle: Text(user
+                                                      .portfolioPrivacy
+                                                      ?.isPublic ==
+                                                  false
+                                              ? 'Private Portfolio'
+                                              : 'Public Portfolio'),
+                                          trailing:
+                                              const Icon(Icons.chevron_right),
+                                          onTap: () async {
+                                            final currentPrivacy = user
+                                                    ?.portfolioPrivacy ??
+                                                const PortfolioPrivacySettings();
+                                            final updated =
+                                                await PortfolioPrivacyBottomSheet
+                                                    .show(
+                                              context,
+                                              userId: widget.userId ?? '',
+                                              currentSettings:
+                                                  currentPrivacy,
+                                              firestoreService:
+                                                  _firestoreService,
+                                            );
+                                            if (updated != null &&
+                                                mounted) {
+                                              setState(() {
+                                                user?.portfolioPrivacy =
+                                                    updated;
+                                              });
+                                            }
+                                          },
+                                        ),
+                                        // Following Activity Feed
+                                        ListTile(
+                                          leading: CircleAvatar(
+                                            backgroundColor: Theme.of(context)
+                                                .colorScheme
+                                                .secondaryContainer,
+                                            foregroundColor: Theme.of(context)
+                                                .colorScheme
+                                                .onSecondaryContainer,
+                                            child: const Icon(
+                                                Icons.dynamic_feed_outlined),
+                                          ),
+                                          title: const Text(
+                                              'Following Activity Feed'),
+                                          subtitle: const Text(
+                                              'Real-time trades from traders you follow'),
+                                          trailing:
+                                              const Icon(Icons.chevron_right),
+                                          onTap: () {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (context) =>
+                                                    FollowingActivityFeedWidget(
+                                                  auth: widget.auth,
+                                                  firestoreService:
+                                                      _firestoreService,
+                                                  brokerageUser:
+                                                      widget.brokerageUser,
+                                                  service: widget.service,
+                                                  analytics: widget.analytics,
+                                                  observer: widget.observer,
+                                                  userRole: user?.role,
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                      ],
                                       // Shareholder Q&A (Say Technologies)
                                       ListTile(
                                         leading: CircleAvatar(

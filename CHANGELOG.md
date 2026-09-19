@@ -2,6 +2,36 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.48.5] - 2026-09-18
+**Autonomous Account Risk Circuit Breakers & Tilt Guardrails ([Tracking: #142](https://github.com/CIInc/robinhood-options-mobile/issues/142))**
+
+### Added
+- **Autonomous Risk Circuit Breakers & Tilt Guardrail Engine (`RiskCircuitBreakerService`):**
+  - Added domain model `RiskCircuitBreakerConfig` and `RiskEvaluationResult` (`lib/model/risk_circuit_breaker_config.dart`) providing user-customizable risk controls:
+    - Daily max dollar loss (\$250, \$500, \$1,000, \$2,500) and percentage loss limit (1%–20%).
+    - Peak-to-trough portfolio drawdown tracking against dynamic high-water mark equity.
+    - Consecutive losing trade counter and anti-revenge-trading lockout.
+    - Minimum margin cushion buffer protection (10%–50%).
+    - Mandatory cooling-off duration (15m, 30m, 1h, 2h, 4h, 24h) with active countdown timers.
+  - Implemented `RiskCircuitBreakerService` (`lib/services/risk_circuit_breaker_service.dart`) with local cache syncing via `SharedPreferences`, automated portfolio risk checks, manual trip simulation, and emergency reset.
+  - Integrated into `User` model (`lib/model/user.dart`) with Firestore serialization and deserialization.
+- **Circuit Breaker Settings & Management Interface (`RiskCircuitBreakerSettingsWidget`):**
+  - Built dedicated management view (`lib/widgets/risk_circuit_breaker_settings_widget.dart`) with live status cards, toggle controls, loss preset chips, continuous sliders, test trip simulator, and reset confirmation dialog.
+- **Execution Guardrails in Order Entry (`TradeOptionWidget`):**
+  - Added pre-execution circuit breaker gate in `_placeOrder()` (`lib/widgets/trade_option_widget.dart`) blocking new order placement when a circuit breaker is active or cooling off.
+- **Action Center Proactive Risk Alerts (`PortfolioAlertService`):**
+  - Added `circuit-breaker-tripped` critical alert and `circuit-breaker-near-limit` warning alert in `PortfolioAlertService` (`lib/services/portfolio_alert_service.dart`).
+- **User Settings Organization & Feature Hub Harmonization (`UserWidget`):**
+  - Reorganized user settings from the top user profile card into designated sections:
+    - Relocated `Biometric Authentication` into the **App Settings** card alongside `Refresh Market Data` and `Display Settings`.
+    - Relocated `Risk Circuit Breakers` into the **Features** card under `3. Risk & Margin Safeguards` (adjacent to `Day Trade & PDT Monitor`).
+    - Relocated `Portfolio & Social Privacy` and `Following Activity Feed` into the **Features** card under `5. Profile & Community` (adjacent to `Investment Profile`).
+  - Standardized leading icon styling with `CircleAvatar` container badges across all settings entries.
+
+### Documentation & Tests
+- Added `docs/risk-circuit-breakers.md`.
+- Added test suites: `test/risk_circuit_breaker_test.dart` (16 unit tests) and `test/risk_circuit_breaker_widget_test.dart` (6 widget tests).
+
 ## [0.48.0] - 2026-09-18
 **Tax Optimization, Wash Sale Detection & Capital Gains Suite ([Tracking: #114](https://github.com/CIInc/robinhood-options-mobile/issues/114))**
 
