@@ -3,7 +3,29 @@
 All notable changes to this project will be documented in this file.
 
 ## [0.50.0] - 2026-09-19
-**Multi-Leg Options Defense & Roll Playbook ([#158](https://github.com/CIInc/robinhood-options-mobile/issues/158))**
+**Offline Mode & Resilient Caching ([#87](https://github.com/CIInc/robinhood-options-mobile/issues/87)) & Multi-Leg Options Defense & Roll Playbook ([#158](https://github.com/CIInc/robinhood-options-mobile/issues/158))**
+
+- **Offline Mode & Resilient Caching (`OfflineCacheService`, `OfflineSyncService`, `OfflineStatusBanner`, [#87](https://github.com/CIInc/robinhood-options-mobile/issues/87)):**
+  - Built persistent local caching architecture for offline viewing and resilient network degradation handling:
+    - **Portfolio Snapshot Persistence (`OfflineCacheService` & `PortfolioSnapshot`)**:
+      - Saves point-in-time snapshots of accounts, portfolios, equity values, buying power, stock positions (`InstrumentPosition`), and option aggregate positions (`OptionAggregatePosition`) in local storage.
+      - Serializes and deserializes AI trade signals, real-time quotes, and custom watchlist symbols.
+      - Tracks sync timestamps and evaluates freshness thresholds (15-minute staleness boundary) with relative time formatting ("Just now", "5m ago", "2h ago").
+    - **Reactive Sync & Connectivity Lifecycle (`OfflineSyncService`)**:
+      - Listens for connectivity state transitions (`isOffline`, `isSyncing`, `isShowingCachedData`) with simulated offline testing capabilities.
+      - Automatic background reconnect handler: registers screen-level callbacks (`registerReconnectCallback`) that intelligently refresh data as soon as internet connectivity is restored.
+      - Provides programmatic and user-initiated manual synchronization via `triggerSync()` with loading states and error tracking.
+    - **Contextual Status Banner Widget (`OfflineStatusBanner`)**:
+      - Sliver banner positioned dynamically atop Home, Trade Signals, and Search views.
+      - Renders color-coded status badges for "Offline Mode" and "Viewing Cached Data" with last-synced timestamps and "Stale Data" / "Cached Snapshot" chips.
+      - Interactive "Retry" action button with inline circular progress indicator during active synchronizations.
+    - **Screen-Level Fallback Integrations**:
+      - `HomeWidget`: Persists fresh portfolio snapshots on successful data fetch; gracefully falls back to local snapshot on network failure or offline startup.
+      - `TradeSignalsProvider`: Caches streaming signals; loads cached signals upon stream or network error to avoid empty states.
+      - `SearchWidget`: Added network error fallbacks to keep cached watchlists and discovery items responsive offline.
+    - **Test Coverage & Documentation**:
+      - Added 18 unit and widget tests across `test/offline_cache_service_test.dart`, `test/offline_sync_service_test.dart`, and `test/offline_status_banner_widget_test.dart`.
+      - Comprehensive architectural documentation in [`docs/offline-mode-and-resilient-caching.md`](docs/offline-mode-and-resilient-caching.md).
 
 - **Multi-Leg Options Defense & Roll Playbook (`OptionDefensePlaybookWidget`, [#158](https://github.com/CIInc/robinhood-options-mobile/issues/158)):**
   - Built automated threat detection and tactical playbook engine for short options and credit spreads:

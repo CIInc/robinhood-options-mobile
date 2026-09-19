@@ -187,4 +187,33 @@ class Portfolio {
         unwithdrawableDeposits = null,
         unwithdrawableGrants = null,
         updatedAt = DateTime.now();
+
+  Map<String, dynamic> toJson() => {
+        'url': url,
+        'account': account,
+        'start_date': startDate?.toIso8601String(),
+        'market_value': marketValue,
+        'equity': equity,
+        'extended_hours_market_value': extendedHoursMarketValue,
+        'extended_hours_equity': extendedHoursEquity,
+        'extended_hours_portfolio_equity': extendedHoursPortfolioEquity,
+        'last_core_market_value': lastCoreMarketValue,
+        'last_core_equity': lastCoreEquity,
+        'last_core_portfolio_equity': lastCorePortfolioEquity,
+        'excess_margin': excessMargin,
+        'excess_maintenance': excessMaintenance,
+        'excess_margin_with_uncleared_deposits':
+            excessMarginWithUnclearedDeposits,
+        'excess_maintenance_with_uncleared_deposits':
+            excessMaintenanceWithUnclearedDeposits,
+        'equity_previous_close': equityPreviousClose,
+        'portfolio_equity_previous_close': portfolioEquityPreviousClose,
+        'adjusted_equity_previous_close': adjustedEquityPreviousClose,
+        'adjusted_portfolio_equity_previous_close':
+            adjustedPortfolioEquityPreviousClose,
+        'withdrawable_amount': withdrawableAmount,
+        'unwithdrawable_deposits': unwithdrawableDeposits,
+        'unwithdrawable_grants': unwithdrawableGrants,
+        'updated_at': updatedAt?.toIso8601String(),
+      };
 }

@@ -6,6 +6,7 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_config.dart';
 import 'package:robinhood_options_mobile/utils/market_hours.dart';
 import 'package:robinhood_options_mobile/services/home_widget_service.dart';
+import 'package:robinhood_options_mobile/services/offline_cache_service.dart';
 
 class TradeSignalsProvider with ChangeNotifier {
   /// Returns documentation for a given indicator key.
@@ -833,19 +834,35 @@ class TradeSignalsProvider with ChangeNotifier {
         debugPrint('📥 Stream update received: ${snapshot.docs.length} docs');
         _updateTradeSignalsFromSnapshot(
             snapshot, _currentSymbols, effectiveInterval);
-      }, onError: (e) {
-        _tradeSignals = [];
+      }, onError: (e) async {
         _error = 'Failed to stream trade signals: ${e.toString()}';
         debugPrint('❌ Error streaming trade signals: ${e.toString()}');
+        await loadCachedTradeSignals();
         _isLoading = false;
         notifyListeners();
       });
     } catch (e) {
-      _tradeSignals = [];
       _error = 'Failed to setup trade signals stream: ${e.toString()}';
       debugPrint('❌ Error setting up trade signals stream: ${e.toString()}');
+      loadCachedTradeSignals();
       _isLoading = false;
       notifyListeners();
+    }
+  }
+
+  /// Load cached trade signals from local storage when offline.
+  Future<void> loadCachedTradeSignals() async {
+    if (_tradeSignals.isEmpty) {
+      try {
+        final cached = await OfflineCacheService.loadTradeSignals();
+        if (cached.isNotEmpty) {
+          _tradeSignals = cached;
+          debugPrint('TradeSignalsProvider: Loaded ${cached.length} cached trade signals for offline viewing');
+          notifyListeners();
+        }
+      } catch (e) {
+        debugPrint('TradeSignalsProvider: Error loading cached signals: $e');
+      }
     }
   }
 
@@ -959,6 +976,7 @@ class TradeSignalsProvider with ChangeNotifier {
     debugPrint(
         'TradeSignalsProvider: Updating widget with ${_tradeSignals.length} signals');
     HomeWidgetService.updateTradeSignals(_tradeSignals);
+    OfflineCacheService.saveTradeSignals(_tradeSignals);
   }
 
   void setSelectedInterval(String interval) {

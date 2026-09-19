@@ -74,6 +74,9 @@ import 'package:robinhood_options_mobile/services/portfolio_alert_service.dart';
 import 'package:robinhood_options_mobile/services/tax_optimization_service.dart';
 import 'package:robinhood_options_mobile/widgets/portfolio/portfolio_section_grid_widget.dart';
 import 'package:robinhood_options_mobile/services/portfolio_benchmark_service.dart';
+import 'package:robinhood_options_mobile/services/offline_cache_service.dart';
+import 'package:robinhood_options_mobile/services/offline_sync_service.dart';
+import 'package:robinhood_options_mobile/widgets/offline_status_banner.dart';
 import 'package:robinhood_options_mobile/widgets/portfolio/action_center_widget.dart';
 import 'package:robinhood_options_mobile/widgets/portfolio/portfolio_hero_stats_widget.dart';
 import 'package:robinhood_options_mobile/widgets/portfolio/portfolio_movers_widget.dart';
@@ -1111,6 +1114,12 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
   void _loadData() {
     if (widget.brokerageUser == null || widget.service == null) return;
 
+    final existingAccountStore =
+        Provider.of<AccountStore>(context, listen: false);
+    if (existingAccountStore.items.isEmpty) {
+      _restoreFromOfflineCache();
+    }
+
     if (_isAggregateMode()) {
       futureAccounts = _loadAggregatedData();
       futurePortfolios = null;
@@ -1129,9 +1138,17 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                 : accounts[0];
             _loadPortfolioHistoricals();
           });
+          _persistCurrentPortfolioSnapshot();
         }
-      }).catchError((error) {
+      }).catchError((error) async {
         debugPrint('Error loading aggregated accounts: $error');
+        if (mounted) {
+          try {
+            Provider.of<OfflineSyncService>(context, listen: false)
+                .setOffline(true, reason: error.toString());
+          } catch (_) {}
+          await _restoreFromOfflineCache();
+        }
       });
       return;
     }
@@ -1177,9 +1194,17 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
           accountStore.setSelectedAccountNumber(account!.accountNumber);
         }
         await accountStore.saveSelectedAccountNumber(_selectionStorageKey());
+        _persistCurrentPortfolioSnapshot();
       }
-    }).catchError((error) {
+    }).catchError((error) async {
       debugPrint('Error loading accounts: $error');
+      if (mounted) {
+        try {
+          Provider.of<OfflineSyncService>(context, listen: false)
+              .setOffline(true, reason: error.toString());
+        } catch (_) {}
+        await _restoreFromOfflineCache();
+      }
     });
 
     if (widget.brokerageUser!.source == BrokerageSource.robinhood ||
@@ -1199,6 +1224,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
           Provider.of<InstrumentStore>(context, listen: false),
           nonzero: !hasQuantityFilters[1],
           userDoc: widget.userDoc);
+      futureOptionPositions?.then((_) => _persistCurrentPortfolioSnapshot());
 
       futureStockPositions = widget.service!.getStockPositionStore(
           widget.brokerageUser!,
@@ -1207,6 +1233,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
           Provider.of<QuoteStore>(context, listen: false),
           nonzero: !hasQuantityFilters[1],
           userDoc: widget.userDoc);
+      futureStockPositions?.then((_) => _persistCurrentPortfolioSnapshot());
     } else if (widget.brokerageUser!.source == BrokerageSource.schwab) {
       final instrumentPositionStore =
           Provider.of<InstrumentPositionStore>(context, listen: false);
@@ -1225,12 +1252,14 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
               quoteStore,
               nonzero: !hasQuantityFilters[1],
               userDoc: widget.userDoc));
+      futureStockPositions?.then((_) => _persistCurrentPortfolioSnapshot());
 
       futureOptionPositions = (futureAccounts ?? Future.value(<Account>[]))
           .catchError((_) => <Account>[])
           .then((_) => widget.service!.getOptionPositionStore(
               widget.brokerageUser!, optionPositionStore, instrumentStore,
               nonzero: !hasQuantityFilters[1], userDoc: widget.userDoc));
+      futureOptionPositions?.then((_) => _persistCurrentPortfolioSnapshot());
     } else if (widget.brokerageUser!.source == BrokerageSource.fidelity) {
       futureStockPositions = widget.service!.getStockPositionStore(
           widget.brokerageUser!,
@@ -1239,6 +1268,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
           Provider.of<QuoteStore>(context, listen: false),
           nonzero: !hasQuantityFilters[1],
           userDoc: widget.userDoc);
+      futureStockPositions?.then((_) => _persistCurrentPortfolioSnapshot());
 
       futureOptionPositions = widget.service!.getOptionPositionStore(
           widget.brokerageUser!,
@@ -1246,6 +1276,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
           Provider.of<InstrumentStore>(context, listen: false),
           nonzero: !hasQuantityFilters[1],
           userDoc: widget.userDoc);
+      futureOptionPositions?.then((_) => _persistCurrentPortfolioSnapshot());
     }
   }
 
@@ -1516,6 +1547,123 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
     });
   }
 
+  Future<void> _persistCurrentPortfolioSnapshot() async {
+    if (!mounted) return;
+    try {
+      final accountStore = Provider.of<AccountStore>(context, listen: false);
+      final portfolioStore =
+          Provider.of<PortfolioStore>(context, listen: false);
+      final stockStore =
+          Provider.of<InstrumentPositionStore>(context, listen: false);
+      final optionStore =
+          Provider.of<OptionPositionStore>(context, listen: false);
+      final forexStore = Provider.of<ForexHoldingStore>(context, listen: false);
+      final futuresStore =
+          Provider.of<FuturesPositionStore>(context, listen: false);
+
+      if (accountStore.items.isNotEmpty ||
+          stockStore.items.isNotEmpty ||
+          optionStore.items.isNotEmpty) {
+        await OfflineCacheService.savePortfolioSnapshot(
+          accounts: accountStore.items.toList(),
+          portfolios: portfolioStore.items.toList(),
+          stockPositions: stockStore.items.toList(),
+          optionPositions: optionStore.items.toList(),
+          forexHoldings: forexStore.items.toList(),
+          futuresPositions: futuresStore.items.toList(),
+        );
+        if (mounted) {
+          try {
+            Provider.of<OfflineSyncService>(context, listen: false)
+                .recordSuccessfulSync();
+          } catch (_) {}
+        }
+      }
+    } catch (e) {
+      debugPrint('Error persisting offline snapshot: $e');
+    }
+  }
+
+  Future<bool> _restoreFromOfflineCache() async {
+    if (!mounted) return false;
+    try {
+      final snapshot = await OfflineCacheService.loadPortfolioSnapshot();
+      if (snapshot == null) return false;
+
+      final accountStore = Provider.of<AccountStore>(context, listen: false);
+      final portfolioStore =
+          Provider.of<PortfolioStore>(context, listen: false);
+      final stockStore =
+          Provider.of<InstrumentPositionStore>(context, listen: false);
+      final optionStore =
+          Provider.of<OptionPositionStore>(context, listen: false);
+      final forexStore = Provider.of<ForexHoldingStore>(context, listen: false);
+      final futuresStore =
+          Provider.of<FuturesPositionStore>(context, listen: false);
+
+      if (accountStore.items.isEmpty && snapshot.accounts.isNotEmpty) {
+        accountStore.removeAll();
+        for (final a in snapshot.accounts) {
+          accountStore.add(a);
+        }
+      }
+      if (portfolioStore.items.isEmpty && snapshot.portfolios.isNotEmpty) {
+        portfolioStore.removeAll();
+        for (final p in snapshot.portfolios) {
+          portfolioStore.add(p);
+        }
+      }
+      if (stockStore.items.isEmpty && snapshot.stockPositions.isNotEmpty) {
+        stockStore.removeAll();
+        for (final s in snapshot.stockPositions) {
+          stockStore.add(s);
+        }
+      }
+      if (optionStore.items.isEmpty && snapshot.optionPositions.isNotEmpty) {
+        optionStore.removeAll();
+        for (final o in snapshot.optionPositions) {
+          optionStore.add(o);
+        }
+      }
+      if (forexStore.items.isEmpty && snapshot.forexHoldings.isNotEmpty) {
+        forexStore.removeAll();
+        for (final f in snapshot.forexHoldings) {
+          forexStore.add(f);
+        }
+      }
+      if (futuresStore.items.isEmpty && snapshot.futuresPositions.isNotEmpty) {
+        futuresStore.removeAll();
+        for (final fut in snapshot.futuresPositions) {
+          futuresStore.add(fut);
+        }
+      }
+
+      if (mounted) {
+        try {
+          final offlineSync =
+              Provider.of<OfflineSyncService>(context, listen: false);
+          offlineSync.setShowingCachedData(true);
+        } catch (_) {}
+
+        if (account == null && accountStore.items.isNotEmpty) {
+          setState(() {
+            account = accountStore.selectedAccount ?? accountStore.items.first;
+          });
+        }
+      }
+      return true;
+    } catch (e) {
+      debugPrint('Error restoring from offline cache: $e');
+      return false;
+    }
+  }
+
+  Future<void> _handleReconnectSync() async {
+    if (mounted) {
+      _pullRefresh();
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -1525,6 +1673,16 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
     _startRefreshTimer();
     WidgetsBinding.instance.addObserver(this);
 
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        try {
+          final offlineSync =
+              Provider.of<OfflineSyncService>(context, listen: false);
+          offlineSync.registerReconnectCallback(_handleReconnectSync);
+        } catch (_) {}
+      }
+    });
+
     widget.analytics.logScreenView(
       screenName: 'Home',
     );
@@ -1532,6 +1690,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
 
   @override
   void dispose() {
+    try {
+      final offlineSync =
+          Provider.of<OfflineSyncService>(context, listen: false);
+      offlineSync.unregisterReconnectCallback(_handleReconnectSync);
+    } catch (_) {}
     _accountStore?.removeListener(_handleAccountStoreChanged);
     _paperStore?.removeListener(_syncPaperPositions);
     _analyticsController?.dispose();
@@ -1711,6 +1874,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
             service: widget.service,
             scrollController: _scrollController,
           ),
+          const SliverToBoxAdapter(child: OfflineStatusBanner()),
           if (isAggregateMode)
             SliverToBoxAdapter(child: _buildAggregateBanner(context)),
           if (widget.brokerageUser?.source == BrokerageSource.fidelity) ...[

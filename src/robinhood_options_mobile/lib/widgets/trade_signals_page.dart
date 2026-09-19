@@ -19,6 +19,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
+import 'package:robinhood_options_mobile/widgets/offline_status_banner.dart';
 
 class TradeSignalsPage extends StatefulWidget {
   final User? user;
@@ -208,6 +209,7 @@ class _TradeSignalsPageState extends State<TradeSignalsPage> {
                   },
                   actions: _buildActions(context),
                 ),
+                const SliverToBoxAdapter(child: OfflineStatusBanner()),
                 TradeSignalsWidget(
                   key: _tradeSignalsKey,
                   user: currentUser,

@@ -31,6 +31,7 @@ import 'package:robinhood_options_mobile/widgets/trade_signals_widget.dart';
 import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
+import 'package:robinhood_options_mobile/widgets/offline_status_banner.dart';
 // Reserved for a future Alpha Feed with distinct news and social signals.
 // import 'package:robinhood_options_mobile/widgets/market_sentiment_card_widget.dart';
 import 'package:robinhood_options_mobile/widgets/macro_assessment_widget.dart';
@@ -261,12 +262,24 @@ class _SearchWidgetState extends State<SearchWidget>
     instrumentStore = Provider.of<InstrumentStore>(context, listen: false);
 
     if (widget.brokerageUser != null && widget.service != null) {
-      futureMovers ??=
-          widget.service!.getMovers(widget.brokerageUser!, direction: "up");
-      futureLosers ??=
-          widget.service!.getMovers(widget.brokerageUser!, direction: "down");
-      futureListMovers ??=
-          widget.service!.getTopMovers(widget.brokerageUser!, instrumentStore!);
+      futureMovers ??= widget.service!
+          .getMovers(widget.brokerageUser!, direction: "up")
+          .catchError((e) {
+        debugPrint("SearchWidget: Error getting movers: $e");
+        return <MidlandMoversItem>[];
+      });
+      futureLosers ??= widget.service!
+          .getMovers(widget.brokerageUser!, direction: "down")
+          .catchError((e) {
+        debugPrint("SearchWidget: Error getting losers: $e");
+        return <MidlandMoversItem>[];
+      });
+      futureListMovers ??= widget.service!
+          .getTopMovers(widget.brokerageUser!, instrumentStore!)
+          .catchError((e) {
+        debugPrint("SearchWidget: Error getting top movers: $e");
+        return <Instrument>[];
+      });
       if (widget.brokerageUser!.source == BrokerageSource.robinhood ||
           widget.brokerageUser!.source == BrokerageSource.demo) {
         watchlistStream ??= widget.service!
@@ -392,22 +405,7 @@ class _SearchWidgetState extends State<SearchWidget>
                   setState(() {});
                 },
               ),
-            /*
-                  if (done == false) ...[
-                    const SliverToBoxAdapter(
-                        child: SizedBox(
-                      height: 3, //150.0,
-                      child: Align(
-                          alignment: Alignment.center,
-                          child: Center(
-                              child: LinearProgressIndicator(
-                                  //value: controller.value,
-                                  //semanticsLabel: 'Linear progress indicator',
-                                  ) //CircularProgressIndicator(),
-                              )),
-                    ))
-                  ],
-                  */
+            const SliverToBoxAdapter(child: OfflineStatusBanner()),
             SliverStickyHeader(
               header: Material(
                 elevation: 1,
