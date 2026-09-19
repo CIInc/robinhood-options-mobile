@@ -3,7 +3,26 @@
 All notable changes to this project will be documented in this file.
 
 ## [0.49.0] - 2026-09-19
-**Dual-Value Bar Charts, Multi-Axis Zero Tick Alignment & Interactive Position Tooltips ([#19](https://github.com/CIInc/robinhood-options-mobile/issues/19))**
+**Options Strategy Roll Assistant & Dual-Value Bar Charts ([#157](https://github.com/CIInc/robinhood-options-mobile/issues/157), [#19](https://github.com/CIInc/robinhood-options-mobile/issues/19))**
+
+- **Options Strategy Roll Assistant (`OptionRollAssistantWidget`, [#157](https://github.com/CIInc/robinhood-options-mobile/issues/157)):**
+  - Built full-screen interactive strategy rolling wizard for single-leg and multi-leg option positions (Covered Calls, Cash-Secured Puts, Long Calls, Long Puts, Credit Spreads).
+  - Implemented domain calculation engine `OptionRollCalculation` and `RollPreset` in `lib/model/option_roll_models.dart`:
+    - Computes net debit / credit, total cash impact, updated breakeven points taking into account cost basis and cumulative net credits.
+    - Calculates Greeks shifts (Delta, Gamma, Theta, Vega, IV) and DTE extension between expiring and replacement contracts.
+    - Generates 2-leg atomic order structure (`position_effect: 'close'`, `position_effect: 'open'`) compatible with Robinhood and Schwab multi-leg endpoints.
+  - One-tap rolling presets:
+    - `Roll Out (Same Strike)`: Extends duration keeping the same strike price.
+    - `Roll Up & Out (+Strike)`: Rolls to a higher strike on a later expiration date (ideal for tested covered calls).
+    - `Roll Down & Out (-Strike)`: Rolls to a lower strike on a later expiration date (ideal for tested cash-secured puts).
+    - `Custom Roll`: Dynamic strike selector with mark, bid/ask, and delta tags across any future expiration date.
+  - Order execution integration:
+    - Paper trading integration in `PaperTradingStore.executeRollOptionStrategy()` with cash adjustment, closing position removal, and new position creation.
+    - Live multi-leg order execution via `IBrokerageService.placeMultiLegOptionsOrder()` with `SlideToConfirm` guardrail.
+  - Intuitive navigation entry points:
+    - "Roll" action button on `OptionInstrumentWidget` when an open position exists.
+    - Long-press shortcut directly from the option positions list in `OptionPositionsWidget`.
+  - Comprehensive unit test suite in `test/option_roll_models_test.dart` and widget test in `test/option_roll_assistant_widget_test.dart`.
 
 - **Dual-Axis & Combined Metric Bar Charts (`InstrumentPositionsWidget` & `OptionPositionsWidget`, [#19](https://github.com/CIInc/robinhood-options-mobile/issues/19)):**
   - Added dual-measure rendering overlaying primary bars with a secondary measure target line (`BarTargetLineRendererConfig`):
@@ -19,9 +38,15 @@ All notable changes to this project will be documented in this file.
   - Implemented responsive chart height calculations dynamic to data length (`math.max(140.0, length * 28.0 + 80.0)`).
 - **Interactive Bar Tooltips:**
   - Added interactive tooltip cards displayed upon tapping any equity or option bar in the chart.
-  - Features symbol badges, primary/secondary metrics with positive/negative color styling, share/contract counts, dismiss controls, and direct "View Details" navigation.
-- **Unit Testing:**
-  - Added `test/position_bar_chart_dual_values_test.dart` verifying dual display mappings, label formatting, single vs. dual axis classification, 0-baseline x-axis, and multi-axis `$0` / `0%` tick alignment.
+- **Android Adaptive Splash Screen Alignment:**
+  - Aligned Android launch screen and Android 12+ splash screens to match iOS design.
+  - Implemented dark theme background (`#1C1B1F`) with centered branding logo and stylized title ("Robinhood Options") and subtitle ("Institutional Analytics & Agentic Trading") typography.
+- **Paper Trading Safeguards & Test Hardening:**
+  - Bypassed account-level risk circuit breaker checks for simulated paper trades (`PaperTradingStore.executeTrade`) so users can test strategies freely.
+  - Added mock `SharedPreferences` in unit test environments.
+- **Backend & Cloud Functions Hardening:**
+  - **Backtest Aggregation Performance ([#155](https://github.com/CIInc/robinhood-options-mobile/pull/155)):** Optimized multi-symbol equity curve aggregation algorithms in historical backtests.
+  - **Security & Authorization ([#156](https://github.com/CIInc/robinhood-options-mobile/pull/156)):** Strengthened `changeUserRole` callable function with strict group admin verification and input validation.
 
 ## [0.48.5] - 2026-09-18
 **Autonomous Risk Circuit Breakers, Schwab WebSocket Streamer & Synchronized Position Scrolling ([#142](https://github.com/CIInc/robinhood-options-mobile/issues/142), [#145](https://github.com/CIInc/robinhood-options-mobile/issues/145), [#7](https://github.com/CIInc/robinhood-options-mobile/issues/7))**

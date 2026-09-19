@@ -26,6 +26,7 @@ import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
 import 'package:robinhood_options_mobile/widgets/more_menu_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_instrument_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_positions_page_widget.dart';
+import 'package:robinhood_options_mobile/widgets/option_roll_assistant_widget.dart';
 import 'package:robinhood_options_mobile/widgets/pnl_badge.dart';
 import 'package:robinhood_options_mobile/widgets/animated_price_text.dart';
 import 'package:robinhood_options_mobile/widgets/synchronized_scroll_controller.dart';
@@ -890,6 +891,32 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
                               )));
                 });
               },
+              onLongPress: op.optionInstrument != null && op.instrumentObj != null
+                  ? () {
+                      _handleNavigation(context, () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => OptionRollAssistantWidget(
+                              user: widget.brokerageUser,
+                              service: widget.service,
+                              instrument: op.instrumentObj!,
+                              optionPosition: op,
+                              optionInstrument: op.optionInstrument!,
+                              analytics: widget.analytics,
+                              observer: widget.observer,
+                              generativeService: widget.generativeService,
+                              appUser: widget.user,
+                              userDocRef: widget.userDocRef,
+                              initialIsPaperTrade:
+                                  widget.brokerageUser.source ==
+                                      BrokerageSource.paper,
+                            ),
+                          ),
+                        );
+                      });
+                    }
+                  : null,
             ),
             if (widget.brokerageUser.showPositionDetails) ...[
               _buildDetailScrollRow(

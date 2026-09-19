@@ -1688,6 +1688,118 @@ class PaperTradingStore extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Executes an options roll in paper trading: closes or reduces the old position,
+  /// opens the replacement position, and adjusts cash balance for net credit or debit.
+  Future<void> executeRollOptionStrategy({
+    required OptionAggregatePosition oldPosition,
+    required OptionInstrument newInstrument,
+    required double price,
+    required double quantity,
+    required String direction, // 'credit' or 'debit'
+  }) async {
+    double multiplier = 100.0;
+    double executionPrice = price;
+    double amount = 0;
+
+    if (direction == 'debit') {
+      executionPrice += _slippage;
+      amount = (quantity * executionPrice * multiplier) + _commission;
+      if (_cashBalance < amount) {
+        throw Exception("Insufficient buying power.");
+      }
+      _cashBalance -= amount;
+    } else {
+      executionPrice -= _slippage;
+      amount = (quantity * executionPrice * multiplier) - _commission;
+      _cashBalance += amount;
+    }
+
+    // 1. Close or reduce old position
+    final oldIdx = _optionPositions.indexWhere((p) => p.id == oldPosition.id);
+    if (oldIdx != -1) {
+      final cur = _optionPositions[oldIdx];
+      final curQty = cur.quantity ?? 0;
+      final newQty = curQty - quantity;
+      if (newQty <= 0.000001) {
+        _optionPositions.removeAt(oldIdx);
+      } else {
+        _optionPositions[oldIdx] = OptionAggregatePosition(
+          cur.id,
+          cur.chain,
+          cur.account,
+          cur.symbol,
+          cur.strategy,
+          cur.averageOpenPrice,
+          cur.legs,
+          newQty,
+          cur.intradayAverageOpenPrice,
+          cur.intradayQuantity,
+          cur.direction,
+          cur.intradayDirection,
+          cur.tradeValueMultiplier,
+          cur.createdAt,
+          DateTime.now(),
+          cur.strategyCode,
+        )..optionInstrument = cur.optionInstrument;
+      }
+    }
+
+    // 2. Open new replacement position
+    final isShort = oldPosition.direction == 'credit' ||
+        (oldPosition.legs.isNotEmpty &&
+            oldPosition.legs.first.positionType == 'short');
+
+    final newLeg = OptionLeg(
+      "leg_${DateTime.now().microsecondsSinceEpoch}_${newInstrument.id}",
+      null,
+      isShort ? 'short' : 'long',
+      newInstrument.url,
+      'open',
+      1,
+      isShort ? 'sell' : 'buy',
+      newInstrument.expirationDate,
+      newInstrument.strikePrice,
+      newInstrument.type,
+      [],
+    );
+
+    final newPos = OptionAggregatePosition(
+      "paper_pos_${DateTime.now().millisecondsSinceEpoch}",
+      newInstrument.chainId,
+      "paper_account",
+      newInstrument.chainSymbol,
+      oldPosition.strategy,
+      newInstrument.optionMarketData?.markPrice != null
+          ? (newInstrument.optionMarketData!.markPrice! * 100)
+          : executionPrice * 100,
+      [newLeg],
+      quantity,
+      executionPrice * 100,
+      quantity,
+      oldPosition.direction,
+      oldPosition.direction,
+      100.0,
+      DateTime.now(),
+      DateTime.now(),
+      oldPosition.strategyCode,
+    )..optionInstrument = newInstrument;
+
+    _optionPositions.add(newPos);
+
+    _addToHistory(
+      "option",
+      "roll",
+      "${oldPosition.symbol} Roll",
+      quantity,
+      executionPrice,
+      detail:
+          "Rolled to ${newInstrument.strikePrice} exp ${newInstrument.expirationDate != null ? newInstrument.expirationDate!.toIso8601String().split('T').first : ''}",
+    );
+
+    await _save();
+    notifyListeners();
+  }
+
   /// Applies a fill to the option position book. Quantity stays positive;
   /// [direction] distinguishes long ('debit') from written ('credit')
   /// positions, and [sign] is +1 to increase exposure, -1 to reduce it.
