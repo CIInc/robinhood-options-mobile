@@ -1849,8 +1849,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                         padding: const EdgeInsets.symmetric(horizontal: 8)),
                     icon: const Icon(Icons.sync_alt, size: 20),
                     label: const FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Text("Roll")),
+                        fit: BoxFit.scaleDown, child: Text("Roll")),
                     onPressed: () => Navigator.push(
                         context,
                         MaterialPageRoute(
