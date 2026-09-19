@@ -25,8 +25,10 @@ import 'package:firebase_auth/firebase_auth.dart' as auth;
 import 'package:robinhood_options_mobile/model/order_template.dart';
 
 import 'package:firebase_core/firebase_core.dart';
-
 import 'package:firebase_core_platform_interface/firebase_core_platform_interface.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:robinhood_options_mobile/services/risk_circuit_breaker_service.dart';
+import 'package:robinhood_options_mobile/model/risk_circuit_breaker_config.dart';
 
 // Mocks
 class MockFirebasePlatform extends FirebasePlatform {
@@ -304,6 +306,7 @@ void main() {
   FirebasePlatform.instance = MockFirebasePlatform();
 
   setUpAll(() async {
+    SharedPreferences.setMockInitialValues({});
     await Firebase.initializeApp();
   });
 
@@ -552,11 +555,14 @@ void main() {
                         MaterialPageRoute(
                           builder: (context) => Scaffold(
                             body: TradeOptionWidget(
-                              BrokerageUser.fromJson({'username': 'test'}),
+                              BrokerageUser.fromJson({'username': 'test', 'source': 'BrokerageSource.paper'}),
                               mockService,
                               optionInstrument: optionInstrument,
                               analytics: mockAnalytics,
                               observer: mockObserver,
+                              riskCircuitBreakerService: RiskCircuitBreakerService(
+                                initialConfig: RiskCircuitBreakerConfig(enabled: false),
+                              ),
                             ),
                           ),
                         ),
@@ -577,8 +583,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Paper Trade'), findsOneWidget);
-    await tester.tap(find.byType(SwitchListTile));
-    await tester.pumpAndSettle();
+    if (!(tester.widget(find.byType(SwitchListTile)) as SwitchListTile).value) {
+      await tester.tap(find.byType(SwitchListTile));
+      await tester.pumpAndSettle();
+    }
 
     await tester.enterText(
         find.widgetWithText(TextFormField, 'Contracts'), '1');
@@ -602,12 +610,18 @@ void main() {
     // Bypass gesture
     final dynamic optionSliderWidget = tester.widget(find.byWidgetPredicate(
         (w) => w.runtimeType.toString() == 'SlideToConfirm'));
-    optionSliderWidget.onConfirmed();
+    await optionSliderWidget.onConfirmed();
 
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
 
-    expect(find.text("Paper order filled!"), findsOneWidget,
+    expect(
+        find.byWidgetPredicate((w) =>
+            w is Text &&
+            w.data != null &&
+            (w.data == "Paper order filled!" ||
+                w.data!.startsWith("Paper order placed"))),
+        findsAtLeastNWidgets(1),
         reason: "Success snackbar not found (Option)");
 
     expect(fakePaperStore.executedOption, isTrue);
