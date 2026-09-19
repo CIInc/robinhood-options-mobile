@@ -182,7 +182,17 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
           bbLow != null &&
           kcUp != null &&
           kcLow != null &&
-          mid != null) {
+          mid != null &&
+          bbUp.isFinite &&
+          !bbUp.isNaN &&
+          bbLow.isFinite &&
+          !bbLow.isNaN &&
+          kcUp.isFinite &&
+          !kcUp.isNaN &&
+          kcLow.isFinite &&
+          !kcLow.isNaN &&
+          mid.isFinite &&
+          !mid.isNaN) {
         if (bbUp < kcUp && bbLow > kcLow) {
           final time = historicals[i].beginsAt;
           if (time != null) {
@@ -246,6 +256,11 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
         } else if (_lastValidHistoricals != null &&
             _lastValidHistoricals!.symbol != widget.instrument.symbol) {
           _lastValidHistoricals = null;
+        } else if (_lastValidHistoricals == null &&
+            widget.instrument.instrumentHistoricalsObj != null &&
+            widget.instrument.instrumentHistoricalsObj!.symbol ==
+                widget.instrument.symbol) {
+          _lastValidHistoricals = widget.instrument.instrumentHistoricalsObj;
         }
 
         if (_lastValidHistoricals != null &&
@@ -260,10 +275,11 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
           firstHistorical = _lastValidHistoricals!.historicals[0];
           lastHistorical = _lastValidHistoricals!
               .historicals[_lastValidHistoricals!.historicals.length - 1];
-          open = firstHistorical.openPrice!;
-          close = lastHistorical.closePrice!;
+          open = firstHistorical.openPrice ?? firstHistorical.closePrice ?? 1.0;
+          close = lastHistorical.closePrice ?? lastHistorical.openPrice ?? open;
           changeInPeriod = close - open;
-          changePercentInPeriod = close / open - 1;
+          changePercentInPeriod =
+              (open != 0 && open.isFinite) ? (close / open - 1) : 0.0;
 
           var brightness = MediaQuery.of(context).platformBrightness;
           var textColor = Theme.of(context).colorScheme.surface;
@@ -277,8 +293,13 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
           // Calculate indicators if needed
           _calculateIndicators(historicals);
 
-          final maxVolume =
-              historicals.map((e) => e.volume).reduce(math.max).toDouble();
+          final double maxVolume = historicals.isNotEmpty
+              ? historicals
+                  .map((e) => e.volume)
+                  .reduce(math.max)
+                  .toDouble()
+              : 0.0;
+          final bool hasVolume = maxVolume > 0 && maxVolume.isFinite;
 
           final List<charts.Series<dynamic, DateTime>> seriesList = [
             charts.Series<InstrumentHistorical, DateTime>(
@@ -292,7 +313,7 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
             )..setAttribute(charts.rendererIdKey, 'area'),
           ];
 
-          if (_showVolume) {
+          if (_showVolume && hasVolume) {
             seriesList.add(charts.Series<InstrumentHistorical, DateTime>(
               id: 'Volume',
               domainFn: (InstrumentHistorical history, _) => history.beginsAt!,
@@ -309,11 +330,15 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
           final List<double> extentValues = historicals
               .map((e) => e.closePrice ?? e.openPrice)
               .whereType<double>()
+              .where((v) => v.isFinite && !v.isNaN)
               .toList();
 
           void addIndicatorValues(List<_IndicatorPoint> points) {
-            extentValues.addAll(
-                points.map((p) => p.value).whereType<double>().toList());
+            extentValues.addAll(points
+                .map((p) => p.value)
+                .whereType<double>()
+                .where((v) => v.isFinite && !v.isNaN)
+                .toList());
           }
 
           List<charts.Series<dynamic, DateTime>> indicatorSeries = [];
@@ -450,6 +475,7 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
                       groupingType: charts.BarGroupingType.grouped)
               ],
               primaryMeasureAxis: charts.NumericAxisSpec(
+                viewport: extents,
                 tickFormatterSpec:
                     charts.BasicNumericTickFormatterSpec.fromNumberFormat(
                         formatCompactCurrency),
@@ -462,13 +488,14 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
                         color: charts.ColorUtil.fromDartColor(
                             Theme.of(context).colorScheme.onSurface))),
               ),
-              secondaryMeasureAxis: _showVolume
+              secondaryMeasureAxis: (_showVolume && hasVolume)
                   ? charts.NumericAxisSpec(
                       tickProviderSpec:
                           const charts.BasicNumericTickProviderSpec(
                               zeroBound: true),
                       renderSpec: charts.NoneRenderSpec(),
-                      viewport: charts.NumericExtents(0, maxVolume * 5))
+                      viewport: charts.NumericExtents(
+                          0, math.max(10.0, maxVolume * 5.0)))
                   : null,
               seriesLegend: null,
               onSelected: (charts.SelectionModel<DateTime>? historical) {
@@ -486,6 +513,11 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
               dataIsInWholeNumbers: false,
               viewport: extents);
 
+          final mediaQuery = MediaQuery.of(context);
+          final isCompactLandscape = widget.isFullScreen &&
+              (mediaQuery.orientation == Orientation.landscape ||
+                  mediaQuery.size.height < 550);
+
           return Column(
             children: [
               Consumer<InstrumentHistoricalsSelectionStore>(
@@ -502,11 +534,16 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
                 }
 
                 if (selection != null) {
-                  changeInPeriod = selection!.closePrice! - open;
-                  changePercentInPeriod = selection!.closePrice! / open - 1;
+                  final selPrice =
+                      selection!.closePrice ?? selection!.openPrice ?? open;
+                  changeInPeriod = selPrice - open;
+                  changePercentInPeriod = (open != 0 && open.isFinite)
+                      ? (selPrice / open - 1)
+                      : 0.0;
                 } else {
                   changeInPeriod = close - open;
-                  changePercentInPeriod = close / open - 1;
+                  changePercentInPeriod =
+                      (open != 0 && open.isFinite) ? (close / open - 1) : 0.0;
                 }
 
                 // Get indicator values at selected point
@@ -550,24 +587,38 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
                           const SizedBox(height: 4),
                           Row(
                             children: [
-                              Text(
-                                "${changeInPeriod > 0 ? "+" : changeInPeriod < 0 ? "-" : ""}${formatCurrency.format(changeInPeriod.abs())} (${formatPercentage.format(changePercentInPeriod.abs())})",
-                                style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                    color: changeInPeriod > 0
-                                        ? Colors.green
-                                        : (changeInPeriod < 0
-                                            ? Colors.red
-                                            : textColor),
-                                    fontFeatures: [
-                                      ui.FontFeature.tabularFigures()
-                                    ]),
+                              Flexible(
+                                child: Text(
+                                  "${changeInPeriod > 0 ? "+" : changeInPeriod < 0 ? "-" : ""}${formatCurrency.format(changeInPeriod.abs())} (${formatPercentage.format(changePercentInPeriod.abs())})",
+                                  style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: changeInPeriod > 0
+                                          ? Colors.green
+                                          : (changeInPeriod < 0
+                                              ? Colors.red
+                                              : textColor),
+                                      fontFeatures: [
+                                        ui.FontFeature.tabularFigures()
+                                      ]),
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
+                                ),
                               ),
                               const SizedBox(width: 8),
                               Expanded(
                                 child: AnimatedSwitcher(
                                   duration: const Duration(milliseconds: 200),
+                                  layoutBuilder: (currentChild, previousChildren) {
+                                    return Stack(
+                                      alignment: Alignment.centerLeft,
+                                      fit: StackFit.passthrough,
+                                      children: <Widget>[
+                                        ...previousChildren,
+                                        if (currentChild != null) currentChild,
+                                      ],
+                                    );
+                                  },
                                   child: Row(
                                     key: ValueKey(selection?.beginsAt ??
                                         widget.chartDateSpanFilter),
@@ -596,7 +647,7 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
                                               fontFeatures: [
                                                 ui.FontFeature.tabularFigures()
                                               ]),
-                                          overflow: TextOverflow.fade,
+                                          overflow: TextOverflow.ellipsis,
                                           maxLines: 1,
                                           softWrap: false,
                                         ),
@@ -663,7 +714,9 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
               widget.isFullScreen
                   ? Expanded(
                       child: Padding(
-                      padding: const EdgeInsets.all(10.0),
+                      padding: EdgeInsets.symmetric(
+                          horizontal: 10.0,
+                          vertical: isCompactLandscape ? 4.0 : 10.0),
                       child: Stack(
                         children: [
                           _showCandles
@@ -690,86 +743,108 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
                             )),
                       ],
                     ),
-              _buildChartControls(),
-              _buildDateFilters(),
-              // Add inline technical analysis summary
-              _buildInlineTechnicalAnalysis(context),
-              if (widget.isFullScreen) const SizedBox(height: 25),
+              if (isCompactLandscape) ...[
+                // Compact landscape mode: date filters and controls side by side
+                Row(
+                  children: [
+                    Expanded(child: _buildDateFilters()),
+                    _buildChartControls(compact: true),
+                  ],
+                ),
+              ] else ...[
+                _buildChartControls(),
+                _buildDateFilters(),
+                // Add inline technical analysis summary
+                _buildInlineTechnicalAnalysis(context),
+                if (widget.isFullScreen) const SizedBox(height: 25),
+              ],
             ],
           );
         }
         if (currentHistoricals != null &&
             currentHistoricals.historicals.isEmpty) {
+          final isCompact = widget.isFullScreen &&
+              (MediaQuery.of(context).orientation == Orientation.landscape ||
+                  MediaQuery.of(context).size.height < 550);
+          final noDataWidget = Center(
+              child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.bar_chart,
+                size: 40,
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSurface
+                    .withValues(alpha: 0.4),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                "No chart data available",
+                style: TextStyle(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withValues(alpha: 0.6),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              )
+            ],
+          ));
+
           return Column(
             children: [
-              SizedBox(
-                  height: 340,
-                  child: Center(
-                      child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.bar_chart,
-                        size: 40,
-                        color: Theme.of(context)
-                            .colorScheme
-                            .onSurface
-                            .withValues(alpha: 0.4),
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        "No chart data available",
-                        style: TextStyle(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurface
-                              .withValues(alpha: 0.6),
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      )
-                    ],
-                  ))),
+              widget.isFullScreen
+                  ? Expanded(child: noDataWidget)
+                  : SizedBox(height: 340, child: noDataWidget),
               _buildDateFilters(),
-              if (widget.isFullScreen) const SizedBox(height: 25),
+              if (widget.isFullScreen && !isCompact)
+                const SizedBox(height: 25),
             ],
           );
         }
-        return Column(
+        final isCompactLoading = widget.isFullScreen &&
+            (MediaQuery.of(context).orientation == Orientation.landscape ||
+                MediaQuery.of(context).size.height < 550);
+        final loadingWidget = Center(
+            child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             SizedBox(
-                height: 340,
-                child: Center(
-                    child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    SizedBox(
-                        width: 40,
-                        height: 40,
-                        child: CircularProgressIndicator.adaptive(
-                          strokeWidth: 3,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                              Theme.of(context)
-                                  .colorScheme
-                                  .primary
-                                  .withValues(alpha: 0.7)),
-                        )),
-                    const SizedBox(height: 20),
-                    Text(
-                      "Loading chart data...",
-                      style: TextStyle(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .onSurface
-                            .withValues(alpha: 0.6),
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    )
-                  ],
-                ))),
+                width: 40,
+                height: 40,
+                child: CircularProgressIndicator.adaptive(
+                  strokeWidth: 3,
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                      Theme.of(context)
+                          .colorScheme
+                          .primary
+                          .withValues(alpha: 0.7)),
+                )),
+            const SizedBox(height: 20),
+            Text(
+              "Loading chart data...",
+              style: TextStyle(
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSurface
+                    .withValues(alpha: 0.6),
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            )
+          ],
+        ));
+
+        return Column(
+          children: [
+            widget.isFullScreen
+                ? Expanded(child: loadingWidget)
+                : SizedBox(height: 340, child: loadingWidget),
             _buildDateFilters(),
-            if (widget.isFullScreen) const SizedBox(height: 25),
+            if (widget.isFullScreen && !isCompactLoading)
+              const SizedBox(height: 25),
           ],
         );
       },
@@ -957,8 +1032,9 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
 
     for (int i = 0; i < length; i++) {
       final time = historicals[i].beginsAt;
-      if (time == null) continue;
-      points.add(_IndicatorPoint(time: time, value: values[i]));
+      final val = values[i];
+      if (time == null || val == null || !val.isFinite || val.isNaN) continue;
+      points.add(_IndicatorPoint(time: time, value: val));
     }
 
     return points;
@@ -981,19 +1057,283 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
   }
 
   charts.NumericExtents _calculateChartExtents(List<double> values) {
-    if (values.isEmpty) {
-      return const charts.NumericExtents(0, 1);
+    final cleanValues =
+        values.where((v) => v.isFinite && !v.isNaN).toList();
+    if (cleanValues.isEmpty) {
+      return const charts.NumericExtents(0.0, 1.0);
     }
 
-    final extents = charts.NumericExtents.fromValues(values);
-    final padding = extents.width == 0
-        ? (extents.min.abs() * 0.05) + 1
-        : extents.width * 0.1;
+    final extents = charts.NumericExtents.fromValues(cleanValues);
+    if (!extents.min.isFinite ||
+        !extents.max.isFinite ||
+        extents.min.isNaN ||
+        extents.max.isNaN) {
+      return const charts.NumericExtents(0.0, 1.0);
+    }
 
-    return charts.NumericExtents(extents.min - padding, extents.max + padding);
+    final width = (extents.max - extents.min).abs();
+    final padding = width <= 0.000001
+        ? (extents.min.abs() * 0.05) + 1.0
+        : width * 0.1;
+
+    final minVal = extents.min - padding;
+    final maxVal = extents.max + padding;
+
+    if (!minVal.isFinite ||
+        !maxVal.isFinite ||
+        minVal.isNaN ||
+        maxVal.isNaN ||
+        maxVal <= minVal) {
+      return charts.NumericExtents(extents.min - 1.0, extents.max + 1.0);
+    }
+
+    return charts.NumericExtents(minVal, maxVal);
   }
 
-  Widget _buildChartControls() {
+  Widget _buildTuneButton() {
+    return PopupMenuButton<String>(
+      icon: const Icon(Icons.tune, size: 20),
+      tooltip: 'Chart Settings',
+      constraints: const BoxConstraints(minWidth: 240),
+      position: PopupMenuPosition.over,
+      itemBuilder: (context) => [
+        // CHART VIEW
+        const PopupMenuItem(
+          enabled: false,
+          height: 32,
+          child: Text('VIEW',
+              style:
+                  TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+        ),
+        PopupMenuItem(
+          value: 'type',
+          child: Row(
+            children: [
+              Icon(
+                  _showCandles
+                      ? Icons.candlestick_chart
+                      : Icons.show_chart,
+                  size: 18,
+                  color: Theme.of(context).colorScheme.primary),
+              const SizedBox(width: 12),
+              Text(_showCandles ? 'Line Chart' : 'Candlestick'),
+            ],
+          ),
+        ),
+        if (!_showCandles) ...[
+          PopupMenuItem(
+            value: 'volume',
+            child: Row(
+              children: [
+                Icon(
+                    _showVolume
+                        ? Icons.bar_chart
+                        : Icons.bar_chart_outlined,
+                    size: 18,
+                    color: _showVolume
+                        ? Theme.of(context).colorScheme.primary
+                        : null),
+                const SizedBox(width: 12),
+                Text('Volume'),
+                const Spacer(),
+                if (_showVolume)
+                  const Icon(Icons.check, size: 16, color: Colors.green),
+              ],
+            ),
+          ),
+          PopupMenuItem(
+            value: 'legend',
+            child: Row(
+              children: [
+                Icon(
+                    _showIndicatorLegend
+                        ? Icons.legend_toggle
+                        : Icons.legend_toggle_outlined,
+                    size: 18,
+                    color: _showIndicatorLegend
+                        ? Theme.of(context).colorScheme.primary
+                        : null),
+                const SizedBox(width: 12),
+                Text('Legend'),
+                const Spacer(),
+                if (_showIndicatorLegend)
+                  const Icon(Icons.check, size: 16, color: Colors.green),
+              ],
+            ),
+          ),
+          PopupMenuItem(
+            value: 'analysis',
+            child: Row(
+              children: [
+                Icon(
+                    _showTechnicalSummary
+                        ? Icons.analytics
+                        : Icons.analytics_outlined,
+                    size: 18,
+                    color: _showTechnicalSummary
+                        ? Theme.of(context).colorScheme.primary
+                        : null),
+                const SizedBox(width: 12),
+                Text('Analysis'),
+                const Spacer(),
+                if (_showTechnicalSummary)
+                  const Icon(Icons.check, size: 16, color: Colors.green),
+              ],
+            ),
+          ),
+        ],
+        const PopupMenuDivider(),
+        // PRESETS
+        const PopupMenuItem(
+          enabled: false,
+          height: 32,
+          child: Text('INDICATOR PRESETS',
+              style:
+                  TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+        ),
+        if (_showCandles)
+          const PopupMenuItem(
+            enabled: false,
+            height: 32,
+            child: Text('Not available in Candlestick mode',
+                style: TextStyle(
+                    fontSize: 11,
+                    fontStyle: FontStyle.italic,
+                    color: Colors.grey)),
+          ),
+        if (!_showCandles) ...[
+          const PopupMenuItem(
+            value: 'trend',
+            child: Row(children: [
+              Icon(Icons.trending_up, size: 18),
+              SizedBox(width: 12),
+              Text('Trend Following')
+            ]),
+          ),
+          const PopupMenuItem(
+            value: 'momentum',
+            child: Row(children: [
+              Icon(Icons.speed, size: 18),
+              SizedBox(width: 12),
+              Text('Momentum')
+            ]),
+          ),
+          const PopupMenuItem(
+            value: 'volatility',
+            child: Row(children: [
+              Icon(Icons.import_export, size: 18),
+              SizedBox(width: 12),
+              Text('Volatility')
+            ]),
+          ),
+          const PopupMenuItem(
+            value: 'all',
+            child: Row(children: [
+              Icon(Icons.done_all, size: 18),
+              SizedBox(width: 12),
+              Text('Add All')
+            ]),
+          ),
+          const PopupMenuItem(
+            value: 'clear',
+            child: Row(children: [
+              Icon(Icons.clear_all, size: 18, color: Colors.red),
+              SizedBox(width: 12),
+              Text('Clear All', style: TextStyle(color: Colors.red))
+            ]),
+          ),
+        ],
+        const PopupMenuDivider(),
+        const PopupMenuItem(
+          value: 'help',
+          child: Row(
+            children: [
+              Icon(Icons.help_outline, size: 18),
+              SizedBox(width: 12),
+              Text('Indicator Help'),
+            ],
+          ),
+        ),
+      ],
+      onSelected: (value) {
+        switch (value) {
+          case 'type':
+            setState(() {
+              _showCandles = !_showCandles;
+              _saveIndicatorPreferences();
+            });
+            break;
+          case 'volume':
+            setState(() {
+              _showVolume = !_showVolume;
+              _saveIndicatorPreferences();
+            });
+            break;
+          case 'legend':
+            setState(() {
+              _showIndicatorLegend = !_showIndicatorLegend;
+              _saveIndicatorPreferences();
+            });
+            break;
+          case 'analysis':
+            setState(() {
+              _showTechnicalSummary = !_showTechnicalSummary;
+              _saveIndicatorPreferences();
+            });
+            break;
+          case 'help':
+            Future.delayed(
+                const Duration(milliseconds: 100), _showIndicatorHelp);
+            break;
+          case 'clear':
+            setState(() {
+              _activeIndicators.clear();
+              _saveIndicatorPreferences();
+            });
+            break;
+          case 'trend':
+          case 'momentum':
+          case 'volatility':
+          case 'all':
+            setState(() {
+              _activeIndicators.clear();
+              switch (value) {
+                case 'trend':
+                  _activeIndicators.addAll([
+                    _OverlayIndicator.sma20,
+                    _OverlayIndicator.sma50,
+                    _OverlayIndicator.sma200,
+                  ]);
+                  break;
+                case 'momentum':
+                  _activeIndicators.addAll([
+                    _OverlayIndicator.ema12,
+                    _OverlayIndicator.ema26,
+                    _OverlayIndicator.vwap,
+                  ]);
+                  break;
+                case 'volatility':
+                  _activeIndicators.add(_OverlayIndicator.bollinger);
+                  break;
+                case 'all':
+                  _activeIndicators.addAll(_OverlayIndicator.values);
+                  break;
+              }
+              _saveIndicatorPreferences();
+            });
+            break;
+        }
+      },
+    );
+  }
+
+  Widget _buildChartControls({bool compact = false}) {
+    if (compact) {
+      return Padding(
+        padding: const EdgeInsets.only(right: 12.0),
+        child: _buildTuneButton(),
+      );
+    }
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
       child: Row(
@@ -1015,240 +1355,7 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
           ),
           const SizedBox(width: 8),
           // Condensed Tools
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.tune, size: 20),
-            tooltip: 'Chart Settings',
-            constraints: const BoxConstraints(minWidth: 240),
-            position: PopupMenuPosition.over,
-            itemBuilder: (context) => [
-              // CHART VIEW
-              const PopupMenuItem(
-                enabled: false,
-                height: 32,
-                child: Text('VIEW',
-                    style:
-                        TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-              ),
-              PopupMenuItem(
-                value: 'type',
-                child: Row(
-                  children: [
-                    Icon(
-                        _showCandles
-                            ? Icons.candlestick_chart
-                            : Icons.show_chart,
-                        size: 18,
-                        color: Theme.of(context).colorScheme.primary),
-                    const SizedBox(width: 12),
-                    Text(_showCandles ? 'Line Chart' : 'Candlestick'),
-                  ],
-                ),
-              ),
-              if (!_showCandles) ...[
-                PopupMenuItem(
-                  value: 'volume',
-                  child: Row(
-                    children: [
-                      Icon(
-                          _showVolume
-                              ? Icons.bar_chart
-                              : Icons.bar_chart_outlined,
-                          size: 18,
-                          color: _showVolume
-                              ? Theme.of(context).colorScheme.primary
-                              : null),
-                      const SizedBox(width: 12),
-                      Text('Volume'),
-                      const Spacer(),
-                      if (_showVolume)
-                        const Icon(Icons.check, size: 16, color: Colors.green),
-                    ],
-                  ),
-                ),
-                PopupMenuItem(
-                  value: 'legend',
-                  child: Row(
-                    children: [
-                      Icon(
-                          _showIndicatorLegend
-                              ? Icons.legend_toggle
-                              : Icons.legend_toggle_outlined,
-                          size: 18,
-                          color: _showIndicatorLegend
-                              ? Theme.of(context).colorScheme.primary
-                              : null),
-                      const SizedBox(width: 12),
-                      Text('Legend'),
-                      const Spacer(),
-                      if (_showIndicatorLegend)
-                        const Icon(Icons.check, size: 16, color: Colors.green),
-                    ],
-                  ),
-                ),
-                PopupMenuItem(
-                  value: 'analysis',
-                  child: Row(
-                    children: [
-                      Icon(
-                          _showTechnicalSummary
-                              ? Icons.analytics
-                              : Icons.analytics_outlined,
-                          size: 18,
-                          color: _showTechnicalSummary
-                              ? Theme.of(context).colorScheme.primary
-                              : null),
-                      const SizedBox(width: 12),
-                      Text('Analysis'),
-                      const Spacer(),
-                      if (_showTechnicalSummary)
-                        const Icon(Icons.check, size: 16, color: Colors.green),
-                    ],
-                  ),
-                ),
-              ],
-              const PopupMenuDivider(),
-              // PRESETS
-              const PopupMenuItem(
-                enabled: false,
-                height: 32,
-                child: Text('INDICATOR PRESETS',
-                    style:
-                        TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-              ),
-              if (_showCandles)
-                const PopupMenuItem(
-                  enabled: false,
-                  height: 32,
-                  child: Text('Not available in Candlestick mode',
-                      style: TextStyle(
-                          fontSize: 11,
-                          fontStyle: FontStyle.italic,
-                          color: Colors.grey)),
-                ),
-              if (!_showCandles) ...[
-                const PopupMenuItem(
-                  value: 'trend',
-                  child: Row(children: [
-                    Icon(Icons.trending_up, size: 18),
-                    SizedBox(width: 12),
-                    Text('Trend Following')
-                  ]),
-                ),
-                const PopupMenuItem(
-                  value: 'momentum',
-                  child: Row(children: [
-                    Icon(Icons.speed, size: 18),
-                    SizedBox(width: 12),
-                    Text('Momentum')
-                  ]),
-                ),
-                const PopupMenuItem(
-                  value: 'volatility',
-                  child: Row(children: [
-                    Icon(Icons.import_export, size: 18),
-                    SizedBox(width: 12),
-                    Text('Volatility')
-                  ]),
-                ),
-                const PopupMenuItem(
-                  value: 'all',
-                  child: Row(children: [
-                    Icon(Icons.done_all, size: 18),
-                    SizedBox(width: 12),
-                    Text('Add All')
-                  ]),
-                ),
-                const PopupMenuItem(
-                  value: 'clear',
-                  child: Row(children: [
-                    Icon(Icons.clear_all, size: 18, color: Colors.red),
-                    SizedBox(width: 12),
-                    Text('Clear All', style: TextStyle(color: Colors.red))
-                  ]),
-                ),
-              ],
-              const PopupMenuDivider(),
-              const PopupMenuItem(
-                value: 'help',
-                child: Row(
-                  children: [
-                    Icon(Icons.help_outline, size: 18),
-                    SizedBox(width: 12),
-                    Text('Indicator Help'),
-                  ],
-                ),
-              ),
-            ],
-            onSelected: (value) {
-              switch (value) {
-                case 'type':
-                  setState(() {
-                    _showCandles = !_showCandles;
-                    _saveIndicatorPreferences();
-                  });
-                  break;
-                case 'volume':
-                  setState(() {
-                    _showVolume = !_showVolume;
-                    _saveIndicatorPreferences();
-                  });
-                  break;
-                case 'legend':
-                  setState(() {
-                    _showIndicatorLegend = !_showIndicatorLegend;
-                    _saveIndicatorPreferences();
-                  });
-                  break;
-                case 'analysis':
-                  setState(() {
-                    _showTechnicalSummary = !_showTechnicalSummary;
-                    _saveIndicatorPreferences();
-                  });
-                  break;
-                case 'help':
-                  Future.delayed(
-                      const Duration(milliseconds: 100), _showIndicatorHelp);
-                  break;
-                case 'clear':
-                  setState(() {
-                    _activeIndicators.clear();
-                    _saveIndicatorPreferences();
-                  });
-                  break;
-                case 'trend':
-                case 'momentum':
-                case 'volatility':
-                case 'all':
-                  setState(() {
-                    _activeIndicators.clear();
-                    switch (value) {
-                      case 'trend':
-                        _activeIndicators.addAll([
-                          _OverlayIndicator.sma20,
-                          _OverlayIndicator.sma50,
-                          _OverlayIndicator.sma200,
-                        ]);
-                        break;
-                      case 'momentum':
-                        _activeIndicators.addAll([
-                          _OverlayIndicator.ema12,
-                          _OverlayIndicator.ema26,
-                          _OverlayIndicator.vwap,
-                        ]);
-                        break;
-                      case 'volatility':
-                        _activeIndicators.add(_OverlayIndicator.bollinger);
-                        break;
-                      case 'all':
-                        _activeIndicators.addAll(_OverlayIndicator.values);
-                        break;
-                    }
-                    _saveIndicatorPreferences();
-                  });
-                  break;
-              }
-            },
-          ),
+          _buildTuneButton(),
         ],
       ),
     );
@@ -1717,6 +1824,8 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
                                     fontWeight: FontWeight.bold,
                                     color: summaryColor,
                                   ),
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
                                 ),
                                 Text(
                                   'Based on ${sortedCandles.length} periods',
@@ -1726,6 +1835,8 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
                                         .colorScheme
                                         .onSurfaceVariant,
                                   ),
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
                                 ),
                                 if (isSqueeze)
                                   Padding(
@@ -1748,12 +1859,16 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
                                           Icon(Icons.compress,
                                               size: 10, color: Colors.red),
                                           SizedBox(width: 4),
-                                          Text(
-                                            "TTM Squeeze",
-                                            style: TextStyle(
-                                              fontSize: 10,
-                                              fontWeight: FontWeight.bold,
-                                              color: Colors.red,
+                                          Flexible(
+                                            child: Text(
+                                              "TTM Squeeze",
+                                              style: TextStyle(
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.red,
+                                              ),
+                                              overflow: TextOverflow.ellipsis,
+                                              maxLines: 1,
                                             ),
                                           ),
                                         ],

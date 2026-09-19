@@ -69,6 +69,11 @@ class Constants {
     if (object is DateTime) {
       return object.toIso8601String();
     }
+    if (object is Iterable) {
+      return object
+          .map((e) => e is DateTime ? e.toIso8601String() : e)
+          .toList();
+    }
     return object;
   }
 }

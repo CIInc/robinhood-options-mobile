@@ -188,17 +188,16 @@ class InstrumentPosition {
         sharesAvailableForClosingShortPosition =
             parseDouble(json['shares_available_for_closing_short_position']),
         averageCostAffected = json['avg_cost_affected'],
-        updatedAt =
-            //DateFormat('y-M-dTH:m:s.SZ').parse(json['updated_at'].toString()),
-            json['updated_at'] is Timestamp
-                ? (json['updated_at'] as Timestamp).toDate()
-                : DateTime.tryParse(json['updated_at']),
-        // 2021-02-09T18:01:28.135813Z
-        createdAt =
-            //DateFormat('y-M-dTH:m:s.SZ').parse(json['created_at'].toString()),
-            json['created_at'] is Timestamp
-                ? (json['created_at'] as Timestamp).toDate()
-                : DateTime.tryParse(json['created_at']),
+        updatedAt = json['updated_at'] is Timestamp
+            ? (json['updated_at'] as Timestamp).toDate()
+            : (json['updated_at'] != null
+                ? DateTime.tryParse(json['updated_at'].toString())
+                : null),
+        createdAt = json['created_at'] is Timestamp
+            ? (json['created_at'] as Timestamp).toDate()
+            : (json['created_at'] != null
+                ? DateTime.tryParse(json['created_at'].toString())
+                : null),
         instrumentObj = _parseInstrumentObj(json);
   // instrumentDocRef = json['instrumentDocRef'] != null
   //     ? json['instrumentDocRef'] as DocumentReference<Instrument>
@@ -292,8 +291,8 @@ class InstrumentPosition {
         'shares_available_for_closing_short_position':
             sharesAvailableForClosingShortPosition,
         'avg_cost_affected': averageCostAffected,
-        'updated_at': updatedAt,
-        'created_at': createdAt,
+        'updated_at': updatedAt?.toIso8601String(),
+        'created_at': createdAt?.toIso8601String(),
         'instrument_obj': instrumentObj?.toJson(),
         // 'instrumentDocRef': instrumentDocRef
       };

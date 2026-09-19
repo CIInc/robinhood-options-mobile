@@ -84,6 +84,22 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
         ? charts.ColorUtil.fromDartColor(Colors.transparent)
         : axisLabelColor;
 
+    final safeViewport = (widget.viewport != null &&
+            widget.viewport!.min.isFinite &&
+            widget.viewport!.max.isFinite &&
+            !widget.viewport!.min.isNaN &&
+            !widget.viewport!.max.isNaN &&
+            (widget.viewport!.max - widget.viewport!.min).abs() > 0.0001)
+        ? widget.viewport
+        : (widget.viewport != null &&
+                widget.viewport!.min.isFinite &&
+                widget.viewport!.max.isFinite &&
+                !widget.viewport!.min.isNaN &&
+                !widget.viewport!.max.isNaN
+            ? charts.NumericExtents(
+                widget.viewport!.min - 1.0, widget.viewport!.max + 1.0)
+            : null);
+
     return charts.TimeSeriesChart(
       widget.seriesList,
       defaultRenderer: widget.seriesRendererConfig ??
@@ -100,7 +116,7 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
       animate: widget.animate,
       primaryMeasureAxis: widget.primaryMeasureAxis ??
           charts.NumericAxisSpec(
-            viewport: widget.viewport,
+            viewport: safeViewport,
             //showAxisLine: true,
             //renderSpec: charts.GridlineRendererSpec(),
             renderSpec: charts.SmallTickRendererSpec(

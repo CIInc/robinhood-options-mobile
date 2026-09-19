@@ -416,7 +416,7 @@ class BrokerageUser {
     double value = 0;
     switch (displayValue ?? this.displayValue) {
       case DisplayValue.lastPrice:
-        value = op.quoteObj!.markPrice!;
+        value = op.quoteObj?.markPrice ?? 0.0;
         break;
       case DisplayValue.marketValue:
         value = op.marketValue;

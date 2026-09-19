@@ -83,7 +83,8 @@ class OptionChain {
         'symbol': symbol,
         'can_open_position': canOpenPosition,
         'cash_component': cashComponent,
-        'expiration_dates': expirationDates.map((e) => e), // .toIso8601String()
+        'expiration_dates':
+            expirationDates.map((e) => e.toIso8601String()).toList(),
         'trade_value_multiplier': tradeValueMultiplier,
         'min_ticks': minTicks.toJson()
       };

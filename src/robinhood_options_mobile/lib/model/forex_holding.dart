@@ -33,6 +33,7 @@
 import 'package:flutter/material.dart';
 import 'package:robinhood_options_mobile/model/forex_historicals.dart';
 import 'package:robinhood_options_mobile/model/forex_quote.dart';
+import 'package:robinhood_options_mobile/utils/json.dart';
 
 class ForexHolding {
   final String id;
@@ -60,18 +61,24 @@ class ForexHolding {
 
   ForexHolding.fromJson(dynamic json)
       : id = json['id'],
-        currencyId = json['currency']['id'],
-        currencyCode = json['currency']['code'],
-        currencyName = json['currency']['name'],
-        quantity = double.tryParse(json['quantity']),
-        directCostBasis =
-            double.tryParse(json['cost_bases'][0]['direct_cost_basis']),
-        createdAt =
-            //DateFormat('y-M-dTH:m:s.SZ').parse(json['created_at'].toString()),
-            DateTime.tryParse(json['created_at']),
-        updatedAt =
-            //DateFormat('y-M-dTH:m:s.SZ').parse(json['updated_at'].toString()),
-            DateTime.tryParse(json['updated_at']);
+        currencyId = json['currency']?['id'] ?? json['currencyId'] ?? '',
+        currencyCode = json['currency']?['code'] ?? json['currencyCode'] ?? '',
+        currencyName = json['currency']?['name'] ?? json['currencyName'] ?? '',
+        quantity = parseDouble(json['quantity']),
+        directCostBasis = json['cost_bases'] != null &&
+                (json['cost_bases'] as List).isNotEmpty
+            ? parseDouble(json['cost_bases'][0]['direct_cost_basis'])
+            : parseDouble(json['directCostBasis'] ?? json['direct_cost_basis']),
+        createdAt = json['created_at'] != null
+            ? DateTime.tryParse(json['created_at'].toString())
+            : (json['createdAt'] != null
+                ? DateTime.tryParse(json['createdAt'].toString())
+                : null),
+        updatedAt = json['updated_at'] != null
+            ? DateTime.tryParse(json['updated_at'].toString())
+            : (json['updatedAt'] != null
+                ? DateTime.tryParse(json['updatedAt'].toString())
+                : null);
 
   Map<String, dynamic> toJson() => {
         'id': id,
@@ -82,20 +89,33 @@ class ForexHolding {
         },
         'quantity': quantity,
         'directCostBasis': directCostBasis,
-        'createdAt': createdAt,
-        'updatedAt': updatedAt
+        'cost_bases': directCostBasis != null
+            ? [
+                {'direct_cost_basis': directCostBasis.toString()}
+              ]
+            : [],
+        'createdAt': createdAt?.toIso8601String(),
+        'updatedAt': updatedAt?.toIso8601String(),
+        'created_at': createdAt?.toIso8601String(),
+        'updated_at': updatedAt?.toIso8601String(),
       };
 
   double get marketValue {
+    if (quoteObj == null || quoteObj!.markPrice == null || quantity == null) {
+      return 0.0;
+    }
     return quoteObj!.markPrice! * quantity!;
   }
 
   double get averageCost {
+    if (directCostBasis == null || quantity == null || quantity == 0) {
+      return 0.0;
+    }
     return directCostBasis! / quantity!;
   }
 
   double get totalCost {
-    return directCostBasis!;
+    return directCostBasis ?? 0.0;
   }
 
   double get gainLoss {
@@ -103,19 +123,28 @@ class ForexHolding {
   }
 
   double get gainLossPerShare {
+    if (quantity == null || quantity == 0) {
+      return 0.0;
+    }
     return gainLoss / quantity!;
   }
 
   double get gainLossPercent {
+    if (totalCost == 0) {
+      return 0.0;
+    }
     return gainLoss / totalCost;
   }
 
   double get gainLossToday {
+    if (quoteObj == null || quantity == null) {
+      return 0.0;
+    }
     return quoteObj!.changeToday * quantity!;
   }
 
   double get gainLossPercentToday {
-    return quoteObj!.changePercentToday;
+    return quoteObj?.changePercentToday ?? 0.0;
   }
 
   static const Set<String> fiatCurrencies = {

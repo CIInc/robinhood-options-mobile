@@ -3,6 +3,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/forex_holding.dart';
 import 'package:robinhood_options_mobile/model/instrument_position.dart';
+import 'package:robinhood_options_mobile/model/instrument.dart';
+import 'package:robinhood_options_mobile/model/option_chain.dart';
 import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/portfolio.dart';
 import 'package:robinhood_options_mobile/model/quote.dart';
@@ -104,6 +106,125 @@ void main() {
 
       final lastSync = await OfflineCacheService.getLastSyncTime();
       expect(lastSync, equals(now));
+    });
+
+    test('save and load portfolio snapshot with instrument and option chain', () async {
+      final optionChain = OptionChain(
+        'chain_AAPL',
+        'AAPL',
+        true,
+        null,
+        [DateTime(2026, 10, 16), DateTime(2026, 11, 20)],
+        100.0,
+        const MinTicks(0.01, 0.05, 3.0),
+      );
+
+      final instrument = Instrument.fromSchwabJson({
+        'symbol': 'AAPL',
+        'cusip': '037833100',
+        'description': 'Apple Inc.',
+        'exchange': 'NASDAQ',
+        'assetType': 'stock',
+      });
+      instrument.optionChainObj = optionChain;
+
+      final stock = InstrumentPosition.fromJson({
+        'url': 'https://api.robinhood.com/positions/ACC123/inst-1/',
+        'instrument': 'https://api.robinhood.com/instruments/inst-1/',
+        'account': 'https://api.robinhood.com/accounts/ACC123/',
+        'account_number': 'ACC123',
+        'average_buy_price': 150.25,
+        'quantity': 10.0,
+        'intraday_average_buy_price': 150.25,
+        'intraday_quantity': 0.0,
+        'shares_available_for_exercise': 10.0,
+        'shares_held_for_buys': 0.0,
+        'shares_held_for_sells': 0.0,
+        'shares_held_for_stock_grants': 0.0,
+        'shares_held_for_options_collateral': 0.0,
+        'shares_held_for_options_events': 0.0,
+        'shares_pending_from_options_events': 0.0,
+        'shares_available_for_closing_short_position': 0.0,
+        'ipo_allocated_quantity': 0.0,
+        'avg_cost_affected': false,
+        'updated_at': '2026-09-19T12:00:00Z',
+        'created_at': '2026-09-19T10:00:00Z',
+      });
+      stock.instrumentObj = instrument;
+
+      final now = DateTime(2026, 9, 19, 15, 00);
+      await OfflineCacheService.savePortfolioSnapshot(
+        accounts: [],
+        portfolios: [],
+        stockPositions: [stock],
+        optionPositions: [],
+        customTimestamp: now,
+      );
+
+      final snapshot = await OfflineCacheService.loadPortfolioSnapshot();
+      expect(snapshot, isNotNull);
+      expect(snapshot!.stockPositions.length, equals(1));
+      final loadedStock = snapshot.stockPositions.first;
+      expect(loadedStock.instrumentObj, isNotNull);
+      expect(loadedStock.instrumentObj!.optionChainObj, isNotNull);
+      expect(loadedStock.instrumentObj!.optionChainObj!.expirationDates.length, equals(2));
+      expect(loadedStock.instrumentObj!.optionChainObj!.expirationDates.first, equals(DateTime(2026, 10, 16)));
+    });
+
+    test('save and load portfolio snapshot with forex holdings', () async {
+      final forex = ForexHolding.fromJson({
+        'id': 'holding_btc_1',
+        'account_id': 'ACC123',
+        'cost_bases': [
+          {
+            'direct_cost_basis': '499.95',
+            'direct_quantity': '0.0156',
+            'id': 'cb_1',
+          }
+        ],
+        'created_at': '2026-09-19T10:00:00Z',
+        'updated_at': '2026-09-19T12:00:00Z',
+        'currency': {
+          'id': 'curr_btc',
+          'code': 'BTC',
+          'name': 'Bitcoin',
+        },
+        'quantity': '0.0156',
+      });
+
+      final now = DateTime(2026, 9, 19, 16, 00);
+      await OfflineCacheService.savePortfolioSnapshot(
+        accounts: [],
+        portfolios: [],
+        stockPositions: [],
+        optionPositions: [],
+        forexHoldings: [forex],
+        customTimestamp: now,
+      );
+
+      final snapshot = await OfflineCacheService.loadPortfolioSnapshot();
+      expect(snapshot, isNotNull);
+      expect(snapshot!.forexHoldings.length, equals(1));
+      final loadedForex = snapshot.forexHoldings.first;
+      expect(loadedForex.id, equals('holding_btc_1'));
+      expect(loadedForex.currencyCode, equals('BTC'));
+      expect(loadedForex.quantity, equals(0.0156));
+      expect(loadedForex.directCostBasis, equals(499.95));
+
+      // Test re-saving the loaded snapshot to ensure round-trip stability when quantity is double
+      await OfflineCacheService.savePortfolioSnapshot(
+        accounts: [],
+        portfolios: [],
+        stockPositions: [],
+        optionPositions: [],
+        forexHoldings: [loadedForex],
+        customTimestamp: now,
+      );
+      final reloadedSnapshot = await OfflineCacheService.loadPortfolioSnapshot();
+      expect(reloadedSnapshot, isNotNull);
+      expect(reloadedSnapshot!.forexHoldings.length, equals(1));
+      expect(reloadedSnapshot.forexHoldings.first.quantity, equals(0.0156));
+      expect(reloadedSnapshot.forexHoldings.first.directCostBasis, equals(499.95));
     });
 
     test('save and load trade signals', () async {
