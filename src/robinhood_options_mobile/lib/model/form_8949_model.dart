@@ -59,7 +59,12 @@ class Form8949Entry {
     String? boxCategory,
     String? washSaleRecordId,
   }) {
-    final diff = soldDate.difference(acquiredDate);
+    // Normalize to UTC calendar dates to prevent Daylight Saving Time (DST)
+    // hour shifts from affecting inDays calculations across different timezones.
+    final acqUtc =
+        DateTime.utc(acquiredDate.year, acquiredDate.month, acquiredDate.day);
+    final soldUtc = DateTime.utc(soldDate.year, soldDate.month, soldDate.day);
+    final diff = soldUtc.difference(acqUtc);
     final days = max(0, diff.inDays);
     // Under IRS rules, holding > 1 year (> 365 days) qualifies as long-term (Part II)
     final isLong = days > 365;
