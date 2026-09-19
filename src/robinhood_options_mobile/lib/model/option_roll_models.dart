@@ -124,7 +124,8 @@ class OptionRollCalculation {
     final bool isCredit = rawNet >= 0;
     final String creditOrDebit = isCredit ? 'credit' : 'debit';
     final double netPrice = rawNet.abs();
-    final double netCashFlow = rawNet; // positive for credit, negative for debit
+    final double netCashFlow =
+        rawNet; // positive for credit, negative for debit
     final double totalNetCashFlow = netCashFlow * qty * 100;
 
     // DTE calculations
@@ -200,8 +201,7 @@ class OptionRollCalculation {
 
     final ivOld = oldInstrument.optionMarketData?.impliedVolatility;
     final ivNew = newInstrument.optionMarketData?.impliedVolatility;
-    final ivChange =
-        (ivOld != null && ivNew != null) ? (ivNew - ivOld) : null;
+    final ivChange = (ivOld != null && ivNew != null) ? (ivNew - ivOld) : null;
 
     return OptionRollCalculation._(
       position: position,

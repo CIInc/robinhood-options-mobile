@@ -8,6 +8,7 @@ class PnlBadge extends StatelessWidget {
   final double fontSize;
   final bool neutral;
   final EdgeInsetsGeometry? padding;
+  final String? semanticLabel;
 
   const PnlBadge({
     super.key,
@@ -17,7 +18,22 @@ class PnlBadge extends StatelessWidget {
     this.fontSize = badgeValueFontSize,
     this.neutral = false,
     this.padding,
+    this.semanticLabel,
   });
+
+  String _getSemanticLabel() {
+    if (semanticLabel != null) return semanticLabel!;
+    final displayText = text ?? '';
+    if (neutral || value == null) {
+      return displayText;
+    }
+    if (value! > 0) {
+      return 'Profit: $displayText';
+    } else if (value! < 0) {
+      return 'Loss: $displayText';
+    }
+    return displayText;
+  }
 
   Color _pnlColor(BuildContext context, double? value) {
     if (value == null) {
@@ -42,7 +58,7 @@ class PnlBadge extends StatelessWidget {
         ? Theme.of(context).colorScheme.outline.withValues(alpha: 0.15)
         : color.withValues(alpha: 0.3);
 
-    return Container(
+    final badgeContent = Container(
       padding:
           padding ?? const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
@@ -61,6 +77,18 @@ class PnlBadge extends StatelessWidget {
             overflow: TextOverflow.fade,
             softWrap: false,
           ),
+    );
+
+    final label = _getSemanticLabel();
+    if (label.isEmpty) {
+      return badgeContent;
+    }
+
+    return Semantics(
+      label: label,
+      container: true,
+      excludeSemantics: true,
+      child: badgeContent,
     );
   }
 }
