@@ -83,6 +83,80 @@ interface EquityPoint {
 }
 
 /**
+ * Efficiently aggregates equity curves across multiple symbol backtest
+ * results. Optimization: Replaces O(N^2 * M) quadratic searching
+ * (`Array.find()` + `reverse().find()`) with O(N * M) Map lookups
+ * and forward-state tracking.
+ *
+ * @param {Array<object>} results Backtest results per symbol
+ * @param {number} symbolCapital Initial capital allocated per symbol
+ * @return {EquityPoint[]} Combined equity points sorted chronologically
+ */
+export function aggregateEquityCurves(
+  results: {
+    equityCurve: EquityPoint[];
+    buyAndHoldEquityCurve: EquityPoint[];
+  }[],
+  symbolCapital: number
+): EquityPoint[] {
+  // Map timestamp -> array index for O(1) lookup per result
+  const resultMaps = results.map((r) => {
+    const eqMap = new Map<string, number>();
+    for (const p of r.equityCurve) {
+      eqMap.set(p.timestamp, p.equity);
+    }
+    const bhMap = new Map<string, number>();
+    for (const p of r.buyAndHoldEquityCurve) {
+      bhMap.set(p.timestamp, p.equity);
+    }
+    return { eqMap, bhMap };
+  });
+
+  // Collect and sort all distinct timestamps
+  const timeSet = new Set<string>();
+  for (const r of results) {
+    for (const p of r.equityCurve) {
+      timeSet.add(p.timestamp);
+    }
+  }
+  const sortedTimes = Array.from(timeSet).sort(
+    (a, b) => new Date(a).getTime() - new Date(b).getTime()
+  );
+
+  // Track current/last known equity state per symbol to avoid searching
+  // backward
+  const lastEquity = new Array<number>(results.length).fill(symbolCapital);
+  const lastBuyAndHold = new Array<number>(results.length).fill(symbolCapital);
+
+  const combinedEquityCurve = sortedTimes.map((t) => {
+    let sumEquity = 0;
+    let sumBuyAndHold = 0;
+
+    for (let i = 0; i < results.length; i++) {
+      const eqVal = resultMaps[i].eqMap.get(t);
+      if (eqVal !== undefined) {
+        lastEquity[i] = eqVal;
+      }
+      sumEquity += lastEquity[i];
+
+      const bhVal = resultMaps[i].bhMap.get(t);
+      if (bhVal !== undefined) {
+        lastBuyAndHold[i] = bhVal;
+      }
+      sumBuyAndHold += lastBuyAndHold[i];
+    }
+
+    return {
+      timestamp: t,
+      equity: sumEquity,
+      buyAndHoldEquity: sumBuyAndHold,
+    };
+  });
+
+  return combinedEquityCurve;
+}
+
+/**
  * Cloud Function for running backtests
  *
  * Takes a backtest configuration and simulates trades over historical data
@@ -298,56 +372,7 @@ export const runBacktest = onCall({
       new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
     );
 
-    // Aggregate Equity Curve
-    // Collect all timestamps
-    const timeSet = new Set<string>();
-    results.forEach((r) =>
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      r.equityCurve.forEach((p: any) => timeSet.add(p.timestamp))
-    );
-    const sortedTimes = Array.from(timeSet).sort((a, b) =>
-      new Date(a).getTime() - new Date(b).getTime()
-    );
-
-    const combinedEquityCurve: EquityPoint[] = sortedTimes.map((t) => {
-      let sumEquity = 0;
-      let sumBuyAndHold = 0;
-      results.forEach((r) => {
-        // Find equity at t or last known
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const pt = r.equityCurve.find((ep: any) => ep.timestamp === t);
-        const bhPt = r.buyAndHoldEquityCurve.find(
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (ep: any) => ep.timestamp === t
-        );
-
-        if (pt) {
-          sumEquity += pt.equity;
-        } else {
-          // Find last point before T
-          const prev = [...r.equityCurve]
-            .reverse()
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            .find((ep: any) => new Date(ep.timestamp) < new Date(t));
-          sumEquity += prev ? prev.equity : symbolCapital;
-        }
-
-        if (bhPt) {
-          sumBuyAndHold += bhPt.equity;
-        } else {
-          const prevBh = [...r.buyAndHoldEquityCurve]
-            .reverse()
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            .find((ep: any) => new Date(ep.timestamp) < new Date(t));
-          sumBuyAndHold += prevBh ? prevBh.equity : symbolCapital;
-        }
-      });
-      return {
-        timestamp: t,
-        equity: sumEquity,
-        buyAndHoldEquity: sumBuyAndHold,
-      };
-    });
+    const combinedEquityCurve = aggregateEquityCurves(results, symbolCapital);
 
     const buyAndHoldEquityCurve = combinedEquityCurve.map((p) => ({
       timestamp: p.timestamp,
