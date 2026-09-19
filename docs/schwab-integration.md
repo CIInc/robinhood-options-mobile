@@ -48,10 +48,11 @@ The Charles Schwab Developer Portal ([developer.schwab.com](https://developer.sc
 - **Transaction History & Dividends (`GET /trader/v1/accounts/{accountNumber}/transactions`):** Historical executions, dividends, interest credits, and cash transfers for realized P&L calculations.
 - **User Preferences (`GET /trader/v1/userPreference`):** Account defaults and Streamer connection credentials.
 
-### 3. Schwab Real-Time WebSocket Streamer (`wss://streamer-api.schwab.com/ws`) — [Issue #145](https://github.com/CIInc/robinhood-options-mobile/issues/145)
-- **Session Handshake:** Authenticate using OAuth token and parameters from `GET /trader/v1/userPreference` (`schwabClientCustomerId`, `schwabClientCorrelId`).
-- **Level 1 Quotes (`LEVELONE_EQUITIES`):** Sub-second streaming quote updates.
-- **Level 1 Options & Greeks (`LEVELONE_OPTIONS`):** Streaming options quotes, Implied Volatility (IV), and real-time Greeks (Delta, Gamma, Theta, Vega, Rho).
-- **Account & Order Activity (`ACCT_ACTIVITY`):** Push-based order fill notifications, cancellations, and execution confirmations.
-- **Live Candle Streaming (`CHART_EQUITY`):** 1-minute OHLCV bar push feeds for active chart views.
-- **Futures & Forex (`LEVELONE_FUTURES`, `LEVELONE_FOREX`):** Real-time streaming for Schwab futures and currency pairs.
+### 3. Schwab Real-Time WebSocket Streamer (`wss://streamer-api.schwab.com/ws`) — [Issue #145](https://github.com/CIInc/robinhood-options-mobile/issues/145) (Implemented)
+- **Session Handshake:** Connects to `wss://streamer-api.schwab.com/ws` and issues `ADMIN` `LOGIN` handshake with OAuth access token and correlation metadata from `GET /trader/v1/userPreference` (`schwabClientCustomerId`, `schwabClientCorrelId`, `schwabClientChannel`, `schwabClientFunctionId`).
+- **Level 1 Equity Quotes (`LEVELONE_EQUITIES`):** Sub-second streaming quote updates (`SchwabEquityQuoteUpdate`, `Quote.fromSchwabStreamer`) tracking bid, ask, size, last price, volume, day high/low, and 52-week ranges.
+- **Level 1 Options & Greeks (`LEVELONE_OPTIONS`):** Streaming option market data and real-time Greeks (`SchwabOptionQuoteUpdate`, `OptionMarketData.fromSchwabStreamer`) tracking Delta, Gamma, Theta, Vega, Rho, and Implied Volatility (IV).
+- **Account & Order Activity (`ACCT_ACTIVITY`):** Push-based order fill notifications, cancellations, and execution confirmations via `SchwabAccountActivity`.
+- **Live Candle Streaming (`CHART_EQUITY`):** 1-minute OHLCV candlestick bar push feeds for active chart views via `SchwabChartBarUpdate`.
+- **Futures & Forex (`LEVELONE_FUTURES`, `LEVELONE_FOREX`):** Real-time streaming for Schwab futures contracts (`/ES`, `/NQ`) and currency pairs (`EUR/USD`).
+- **Connection Watchdog & Reconnection:** Built-in heartbeat tracking (`{"notify": [{"heartbeat": "..."}]}`) and exponential backoff auto-reconnect with state preservation (automatically re-subscribes all active tickers upon reconnect).

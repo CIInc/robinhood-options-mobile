@@ -127,6 +127,48 @@ class Quote {
         instrumentId =
             json['reference']?['cusip'] ?? json['instrument_id'] ?? '';
 
+  Quote.fromSchwabStreamer(dynamic json,
+      {Quote? existing, String? defaultSymbol})
+      : askPrice = parseDouble(json['2'] ?? json['askPrice']) ?? existing?.askPrice,
+        askSize = (json['5'] ?? json['askSize'] as num?)?.toInt() ??
+            existing?.askSize ??
+            0,
+        bidPrice = parseDouble(json['1'] ?? json['bidPrice']) ?? existing?.bidPrice,
+        bidSize = (json['4'] ?? json['bidSize'] as num?)?.toInt() ??
+            existing?.bidSize ??
+            0,
+        lastTradePrice = parseDouble(json['3'] ??
+                json['lastPrice'] ??
+                json['regularMarketLastPrice']) ??
+            existing?.lastTradePrice,
+        lastExtendedHoursTradePrice = parseDouble(json['postMarketPrice'] ??
+                json['preMarketPrice']) ??
+            existing?.lastExtendedHoursTradePrice,
+        previousClose = parseDouble(json['12'] ?? json['closePrice']) ??
+            existing?.previousClose,
+        adjustedPreviousClose = parseDouble(json['12'] ?? json['closePrice']) ??
+            existing?.adjustedPreviousClose,
+        previousCloseDate = existing?.previousCloseDate,
+        symbol = (json['key'] ?? json['0'] ?? json['symbol'] ?? defaultSymbol ?? existing?.symbol ?? '')
+            .toString(),
+        tradingHalted = json['tradingHalted'] == true ||
+            (existing?.tradingHalted ?? false),
+        hasTraded = (json['8'] ?? json['totalVolume'] as num?) != null
+            ? (json['8'] ?? json['totalVolume'] as num) > 0
+            : (existing?.hasTraded ?? true),
+        lastTradePriceSource = 'schwab_streamer',
+        updatedAt = json['50'] != null
+            ? DateTime.fromMillisecondsSinceEpoch(
+                (json['50'] as num).toInt(),
+                isUtc: true)
+            : (json['quoteTime'] != null
+                ? DateTime.fromMillisecondsSinceEpoch(
+                    (json['quoteTime'] as num).toInt(),
+                    isUtc: true)
+                : DateTime.now().toUtc()),
+        instrument = existing?.instrument ?? '',
+        instrumentId = existing?.instrumentId ?? '';
+
   Map<String, dynamic> toJson() => {
         'ask_price': askPrice,
         'ask_size': askSize,

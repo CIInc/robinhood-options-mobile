@@ -50,9 +50,8 @@ This document outlines the planned features and enhancements for RealizeAlpha.
 - **Focus Areas**: Advanced trading strategies, brokerage integrations, security, social features, AI coaching, quantitative research, behavioral finance, frontier tech
 
 ### Key Highlights
-- ✅ **Recently Completed**: Autonomous Account Risk Circuit Breakers & Tilt Guardrails ([Tracking: #142](https://github.com/CIInc/robinhood-options-mobile/issues/142), v0.48.5), Tax Optimization, Wash Sale Detection & Capital Gains Suite ([Tracking: #114](https://github.com/CIInc/robinhood-options-mobile/issues/114), v0.48.0), In-App Instrument Custom Alerts (v0.47.1), Follow Portfolios ([#27](https://github.com/CIInc/robinhood-options-mobile/issues/27), v0.47.0), Social Feed for Shared Trade Ideas & Strategy Cloning ([#24](https://github.com/CIInc/robinhood-options-mobile/issues/24)), and Top Portfolios Leaderboard & User Reputation ([#26](https://github.com/CIInc/robinhood-options-mobile/issues/26)).
-- 🔥 **In Progress**: Schwab Real-Time WebSocket Streamer ([#145](https://github.com/CIInc/robinhood-options-mobile/issues/145)).
-- 🚀 **Next Milestone**: **Risk Guardrails, Account Protection & Brokerage Streaming** (v0.48.5 - Q4 2026).
+- ✅ **Recently Completed**: Schwab Real-Time WebSocket Streamer ([#145](https://github.com/CIInc/robinhood-options-mobile/issues/145), v0.48.5), Autonomous Account Risk Circuit Breakers & Tilt Guardrails ([Tracking: #142](https://github.com/CIInc/robinhood-options-mobile/issues/142), v0.48.5), Tax Optimization, Wash Sale Detection & Capital Gains Suite ([Tracking: #114](https://github.com/CIInc/robinhood-options-mobile/issues/114), v0.48.0), In-App Instrument Custom Alerts (v0.47.1), Follow Portfolios ([#27](https://github.com/CIInc/robinhood-options-mobile/issues/27), v0.47.0), Social Feed for Shared Trade Ideas & Strategy Cloning ([#24](https://github.com/CIInc/robinhood-options-mobile/issues/24)), and Top Portfolios Leaderboard & User Reputation ([#26](https://github.com/CIInc/robinhood-options-mobile/issues/26)).
+- 🚀 **Next Milestone**: **Mobile Excellence, Live Activities & Strategy Execution** (v0.49.0 - Q1 2027).
 - **Focus Areas**: Institutional-grade options analytics (GEX), real-time streaming market data, autonomous risk circuit breakers, and multi-brokerage expansion.
 - 🎯 **2026 Priorities**: 
   - **Q3**: AI Portfolio Architect, Smart Alerts & Market Intelligence, News & Sentiment Intelligence, Social Platform Evolution, Instrument Custom Alerts
@@ -384,7 +383,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 ### v0.48.5 (Target: Q4 2026 - Late December)
 **Risk Guardrails, Account Protection & Brokerage Streaming**
 - ✅ **Autonomous Account Risk Circuit Breakers & Tilt Guardrails:** User-configurable account safety thresholds (daily max loss limit, portfolio drawdown limit, margin buffer lock, consecutive loss limit, and mandatory cooling-off trading suspension to prevent tilt and revenge trading) ([Tracking: #142](https://github.com/CIInc/robinhood-options-mobile/issues/142)).
-- **Schwab Real-Time WebSocket Streamer Phase 1:** Secure handshake, token refresh, and sub-second streaming quotes (`LEVELONE_EQUITIES`) and account activity notifications ([#145](https://github.com/CIInc/robinhood-options-mobile/issues/145)).
+- ✅ **Schwab Real-Time WebSocket Streamer:** Secure handshake, token refresh, sub-second streaming quotes (`LEVELONE_EQUITIES`), real-time options & Greeks (`LEVELONE_OPTIONS`), account activity notifications (`ACCT_ACTIVITY`), chart candle updates (`CHART_EQUITY`), futures, forex, and connection watchdog with exponential backoff ([#145](https://github.com/CIInc/robinhood-options-mobile/issues/145)).
 
 ### v0.49.0 (2027 Q1 - January)
 **Mobile Excellence, Live Activities & Strategy Execution**
@@ -999,12 +998,12 @@ Technical debt accumulation slows velocity. Investing in testing, CI/CD, and sec
     - [ ] **Schwab Account Activity & Transactions** ([#91](https://github.com/CIInc/robinhood-options-mobile/issues/91)):
         - [ ] Historical trade transactions, dividends, and cash movements (`GET /trader/v1/accounts/{accountNumber}/transactions`) for realized P&L and dividend tracking
         - [ ] User preferences synchronization (`GET /trader/v1/userPreference`)
-    - [ ] **Schwab Real-Time WebSocket Streamer** ([#145](https://github.com/CIInc/robinhood-options-mobile/issues/145)):
-        - [ ] Streamer authentication and session handshake via `GET /trader/v1/userPreference` (`wss://streamer-api.schwab.com/ws`)
-        - [ ] Sub-second streaming quotes (`LEVELONE_EQUITIES`) and options Greeks (`LEVELONE_OPTIONS`)
-        - [ ] Real-time account and order activity notifications (`ACCT_ACTIVITY`)
-        - [ ] Streaming chart candle updates (`CHART_EQUITY`)
-        - [ ] Streaming futures (`LEVELONE_FUTURES`) and forex (`LEVELONE_FOREX`) feeds
+    - [x] **Schwab Real-Time WebSocket Streamer** ([#145](https://github.com/CIInc/robinhood-options-mobile/issues/145)):
+        - [x] Streamer authentication and session handshake via `GET /trader/v1/userPreference` (`wss://streamer-api.schwab.com/ws`)
+        - [x] Sub-second streaming quotes (`LEVELONE_EQUITIES`) and options Greeks (`LEVELONE_OPTIONS`)
+        - [x] Real-time account and order activity notifications (`ACCT_ACTIVITY`)
+        - [x] Streaming chart candle updates (`CHART_EQUITY`)
+        - [x] Streaming futures (`LEVELONE_FUTURES`) and forex (`LEVELONE_FOREX`) feeds
 - [x] **Robinhood Native Multi-Account & Retirement Support**:
     - [x] IRA Traditional & Roth Account support (`ira_traditional`, `ira_roth`) with contribution tracking
     - [x] Connected Agents & External Tokens management (`/oauth2/list_external_tokens/`)

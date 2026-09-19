@@ -68,6 +68,8 @@ import 'package:robinhood_options_mobile/model/retirement.dart';
 import 'package:robinhood_options_mobile/model/spending_account.dart';
 import 'package:robinhood_options_mobile/model/external_token.dart';
 import 'package:robinhood_options_mobile/model/notification_item.dart';
+import 'package:robinhood_options_mobile/model/schwab_streamer_info.dart';
+import 'package:robinhood_options_mobile/services/schwab_streamer_service.dart';
 
 class SchwabService implements IBrokerageService {
   @override
@@ -258,6 +260,27 @@ class SchwabService implements IBrokerageService {
     var usr = UserInfo.fromSchwab(resultJson);
     //user.userName = usr.username;
     return usr;
+  }
+
+  Future<SchwabStreamerInfo?> getStreamerInfo(BrokerageUser user) async {
+    var url = '$endpoint/trader/v1/userPreference';
+    dynamic resultJson = await getJson(user, url);
+    if (resultJson == null) {
+      return null;
+    }
+    return SchwabStreamerInfo.fromUserPreference(resultJson);
+  }
+
+  SchwabStreamerService createStreamer(
+    BrokerageUser user,
+    SchwabStreamerInfo streamerInfo, {
+    StreamerChannelFactory? channelFactory,
+  }) {
+    return SchwabStreamerService(
+      streamerInfo: streamerInfo,
+      getAccessToken: () => user.oauth2Client?.credentials.accessToken ?? '',
+      channelFactory: channelFactory,
+    );
   }
 
   static final String sc = "YOGs9tmQPy8tLj8p";
