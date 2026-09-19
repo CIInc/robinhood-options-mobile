@@ -2,6 +2,38 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.50.0] - 2026-09-19
+**Multi-Leg Options Defense & Roll Playbook ([#158](https://github.com/CIInc/robinhood-options-mobile/issues/158))**
+
+- **Multi-Leg Options Defense & Roll Playbook (`OptionDefensePlaybookWidget`, [#158](https://github.com/CIInc/robinhood-options-mobile/issues/158)):**
+  - Built automated threat detection and tactical playbook engine for short options and credit spreads:
+    - **Threat Level Engine (`OptionDefenseThreatLevel` & `OptionDefenseThreat` in `lib/model/option_defense_models.dart`)**:
+      - `SAFE`: Unthreatened, far OTM with low delta and comfortable DTE (> 14 DTE).
+      - `CAUTION`: Spot approaching short strike (within 2.5%), delta escalating ($\ge 0.35$), or high gamma risk inside 14 DTE.
+      - `BREACHED`: Spot crosses short strike (ITM), or delta $\ge 0.50$.
+      - `CRITICAL`: Spot breached by > 3% or short DTE ($\le 3$ DTE) with strike breached.
+    - **Tactical Defense Playbook Actions (`DefensePlaybookAction` in `lib/model/option_defense_models.dart`)**:
+      - `Roll Out in Time (Same Strike)`: Duration defense rolling 30-45 DTE out at the identical strike to harvest extrinsic credit.
+      - `Roll Strike Away & Out`: Strike defense (Roll Up & Out for Calls, Roll Down & Out for Puts) to lower directional delta and widen safety margin.
+      - `Convert to Iron Condor`: Opposing spread defense for tested credit spreads, collecting instant net credit with zero additional margin requirements.
+      - `Close Position (Risk Control)`: Prescriptive exit guidance to halt capital destruction when net-credit rolling is unviable.
+      - `Hold / 50% Profit Target`: Disciplined management when the position is functioning according to plan.
+  - **Full-Screen Interactive Playbook UI (`OptionDefensePlaybookWidget`)**:
+    - Visual threat status banner with color-coded alerts (Red, Orange, Amber, Green), strike distance %, delta meter, DTE countdown, and spot vs. strike comparison.
+    - Diagnostic findings card detailing specific triggers (moneyness breach %, delta risk, gamma acceleration).
+    - Ranked tactical playbook cards with "⭐ RECOMMENDED DEFENSE", "ZERO MARGIN CREDIT", and "STRIKE DEFENSE" badges.
+    - 1-tap "Execute with Roll Assistant" button transferring directly into `OptionRollAssistantWidget` with the target `RollPreset` pre-selected.
+    - Embedded institutional defense rules accordion explaining professional principles (always rolling for credit, 21 DTE benchmark, zero-margin opposing spreads, loss-cutting thresholds).
+  - **Seamless Navigation Integration**:
+    - Added prominent "Defense" button to `OptionInstrumentWidget` alongside "Trade Option" and "Roll".
+    - Added "Defense Playbook" action to `OptionPositionsWidget` long-press bottom sheet.
+    - Added "Defense Playbook" action button to `OptionRollAssistantWidget` AppBar.
+    - Updated `OptionRollAssistantWidget` to accept optional `initialPreset` constructor parameter.
+  - **Comprehensive Test Suite & Documentation**:
+    - Unit test suite (`test/option_defense_models_test.dart`) covering threat levels, Greeks heuristics, Covered Calls, Cash-Secured Puts, and Vertical Credit Spreads.
+    - Widget test suite (`test/option_defense_playbook_widget_test.dart`) validating UI layout, diagnostics, playbook recommendations, and action flows.
+    - Dedicated documentation guide in [`docs/options-defense-and-roll-playbook.md`](docs/options-defense-and-roll-playbook.md).
+
 ## [0.49.0] - 2026-09-19
 **Options Strategy Roll Assistant & Dual-Value Bar Charts ([#157](https://github.com/CIInc/robinhood-options-mobile/issues/157), [#19](https://github.com/CIInc/robinhood-options-mobile/issues/19))**
 

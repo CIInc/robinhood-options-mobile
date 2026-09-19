@@ -21,6 +21,7 @@ import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/services/risk_circuit_breaker_service.dart';
+import 'package:robinhood_options_mobile/widgets/option_defense_playbook_widget.dart';
 import 'package:robinhood_options_mobile/widgets/slide_to_confirm_widget.dart';
 
 class OptionRollAssistantWidget extends StatefulWidget {
@@ -37,6 +38,7 @@ class OptionRollAssistantWidget extends StatefulWidget {
   final bool initialIsPaperTrade;
   final double? underlyingCostBasis;
   final RiskCircuitBreakerService? riskCircuitBreakerService;
+  final RollPreset? initialPreset;
 
   const OptionRollAssistantWidget({
     super.key,
@@ -53,6 +55,7 @@ class OptionRollAssistantWidget extends StatefulWidget {
     this.initialIsPaperTrade = false,
     this.underlyingCostBasis,
     this.riskCircuitBreakerService,
+    this.initialPreset,
   });
 
   @override
@@ -82,6 +85,9 @@ class _OptionRollAssistantWidgetState extends State<OptionRollAssistantWidget> {
   @override
   void initState() {
     super.initState();
+    if (widget.initialPreset != null) {
+      _selectedPreset = widget.initialPreset!;
+    }
     _isPaperTrade = widget.user.source == BrokerageSource.paper ||
         widget.initialIsPaperTrade;
     widget.analytics.logScreenView(screenName: 'Options Roll Assistant');
@@ -233,6 +239,32 @@ class _OptionRollAssistantWidgetState extends State<OptionRollAssistantWidget> {
       appBar: AppBar(
         title: const Text('Options Roll Assistant'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.shield_outlined),
+            tooltip: 'Defense Playbook',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => OptionDefensePlaybookWidget(
+                    user: widget.user,
+                    service: widget.service,
+                    instrument: widget.instrument,
+                    optionPosition: widget.optionPosition,
+                    optionInstrument: widget.optionInstrument,
+                    analytics: widget.analytics,
+                    observer: widget.observer,
+                    generativeService: widget.generativeService,
+                    appUser: widget.appUser,
+                    userDocRef: widget.userDocRef,
+                    initialIsPaperTrade: widget.initialIsPaperTrade,
+                    underlyingCostBasis: widget.underlyingCostBasis,
+                    riskCircuitBreakerService: widget.riskCircuitBreakerService,
+                  ),
+                ),
+              );
+            },
+          ),
           if (_isPaperTrade)
             Padding(
               padding: const EdgeInsets.only(right: 12),

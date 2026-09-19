@@ -26,6 +26,7 @@ import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
 import 'package:robinhood_options_mobile/widgets/more_menu_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_instrument_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_positions_page_widget.dart';
+import 'package:robinhood_options_mobile/widgets/option_defense_playbook_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_roll_assistant_widget.dart';
 import 'package:robinhood_options_mobile/widgets/pnl_badge.dart';
 import 'package:robinhood_options_mobile/widgets/animated_price_text.dart';
@@ -893,28 +894,81 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
               },
               onLongPress: op.optionInstrument != null && op.instrumentObj != null
                   ? () {
-                      _handleNavigation(context, () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => OptionRollAssistantWidget(
-                              user: widget.brokerageUser,
-                              service: widget.service,
-                              instrument: op.instrumentObj!,
-                              optionPosition: op,
-                              optionInstrument: op.optionInstrument!,
-                              analytics: widget.analytics,
-                              observer: widget.observer,
-                              generativeService: widget.generativeService,
-                              appUser: widget.user,
-                              userDocRef: widget.userDocRef,
-                              initialIsPaperTrade:
-                                  widget.brokerageUser.source ==
-                                      BrokerageSource.paper,
-                            ),
+                      showModalBottomSheet(
+                        context: context,
+                        builder: (sheetContext) => SafeArea(
+                          child: Wrap(
+                            children: [
+                              ListTile(
+                                leading: const Icon(Icons.shield_outlined),
+                                title: const Text('Defense Playbook'),
+                                subtitle: const Text(
+                                    'Threat analysis and tactical defense maneuvers'),
+                                onTap: () {
+                                  Navigator.pop(sheetContext);
+                                  _handleNavigation(context, () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            OptionDefensePlaybookWidget(
+                                          user: widget.brokerageUser,
+                                          service: widget.service,
+                                          instrument: op.instrumentObj!,
+                                          optionPosition: op,
+                                          optionInstrument: op.optionInstrument!,
+                                          analytics: widget.analytics,
+                                          observer: widget.observer,
+                                          generativeService:
+                                              widget.generativeService,
+                                          appUser: widget.user,
+                                          userDocRef: widget.userDocRef,
+                                          initialIsPaperTrade:
+                                              widget.brokerageUser.source ==
+                                                  BrokerageSource.paper,
+                                        ),
+                                      ),
+                                    );
+                                  });
+                                },
+                              ),
+                              ListTile(
+                                leading: const Icon(Icons.sync_alt),
+                                title: const Text('Roll Assistant'),
+                                subtitle: const Text(
+                                    '1-tap roll wizard for credit, strikes, and DTE extension'),
+                                onTap: () {
+                                  Navigator.pop(sheetContext);
+                                  _handleNavigation(context, () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            OptionRollAssistantWidget(
+                                          user: widget.brokerageUser,
+                                          service: widget.service,
+                                          instrument: op.instrumentObj!,
+                                          optionPosition: op,
+                                          optionInstrument: op.optionInstrument!,
+                                          analytics: widget.analytics,
+                                          observer: widget.observer,
+                                          generativeService:
+                                              widget.generativeService,
+                                          appUser: widget.user,
+                                          userDocRef: widget.userDocRef,
+                                          initialIsPaperTrade:
+                                              widget.brokerageUser.source ==
+                                                  BrokerageSource.paper,
+                                        ),
+                                      ),
+                                    );
+                                  });
+                                },
+                              ),
+                            ],
                           ),
-                        );
-                      });
+                        ),
+                      );
                     }
                   : null,
             ),

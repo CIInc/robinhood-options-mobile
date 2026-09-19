@@ -50,7 +50,7 @@ This document outlines the planned features and enhancements for RealizeAlpha.
 - **Focus Areas**: Institutional options analytics (GEX, 0DTE, IV surfaces), AI devil's advocate, autonomous risk guardrails, multi-broker smart routing, and differentiated retail trading features
 
 ### Key Highlights
-- ✅ **Recently Completed**: Options Strategy Roll Assistant ([#157](https://github.com/CIInc/robinhood-options-mobile/issues/157), v0.49.0), Dual-Value Position Bar Charts with Zero-Tick Synchronization ([#19](https://github.com/CIInc/robinhood-options-mobile/issues/19), v0.49.0), Android Adaptive Splash Screen Brand Parity (v0.49.0), Schwab Real-Time WebSocket Streamer ([#145](https://github.com/CIInc/robinhood-options-mobile/issues/145), v0.48.5), Synchronized Position Detail Scrolling ([#7](https://github.com/CIInc/robinhood-options-mobile/issues/7), v0.48.5), Autonomous Risk Circuit Breakers ([Tracking: #142](https://github.com/CIInc/robinhood-options-mobile/issues/142), v0.48.5), and Tax Optimization Suite & Wash Sale Detector ([Tracking: #114](https://github.com/CIInc/robinhood-options-mobile/issues/114), v0.48.0).
+- ✅ **Recently Completed**: Multi-Leg Options Defense & Roll Playbook ([#158](https://github.com/CIInc/robinhood-options-mobile/issues/158), v0.50.0), Options Strategy Roll Assistant ([#157](https://github.com/CIInc/robinhood-options-mobile/issues/157), v0.49.0), Dual-Value Position Bar Charts with Zero-Tick Synchronization ([#19](https://github.com/CIInc/robinhood-options-mobile/issues/19), v0.49.0), Android Adaptive Splash Screen Brand Parity (v0.49.0), Schwab Real-Time WebSocket Streamer ([#145](https://github.com/CIInc/robinhood-options-mobile/issues/145), v0.48.5), Synchronized Position Detail Scrolling ([#7](https://github.com/CIInc/robinhood-options-mobile/issues/7), v0.48.5), Autonomous Risk Circuit Breakers ([Tracking: #142](https://github.com/CIInc/robinhood-options-mobile/issues/142), v0.48.5), and Tax Optimization Suite & Wash Sale Detector ([Tracking: #114](https://github.com/CIInc/robinhood-options-mobile/issues/114), v0.48.0).
 - 🚀 **Next Milestone**: **Mobile Excellence, Live Activities & Strategy Defense** (v0.50.0 - Q4 October 2026).
 - **Key Differentiators**: On-device Gamma Exposure (GEX), 0DTE Intraday Pinning Radar, AI Devil's Advocate Stress Testing, Biometric Tilt Guardian, Beta-Weighted Portfolio Greeks, and Zero-Knowledge Proof (ZKP) Social Trading.
 - 🎯 **2026 Priorities**: 
@@ -405,7 +405,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - **Offline Mode & Resilient Caching:** Encrypted local cache for portfolio holdings, watchlists, and recent charts with background sync ([#87](https://github.com/CIInc/robinhood-options-mobile/issues/87)).
 - **Apple Watch & Wear OS Companion App Foundation:** Glanceable portfolio P&L, price alerts, and watchlists on wearables.
 - **Landscape Charting & Multi-Column Matrix View:** Full-width widescreen charting mode with collapsible multi-leg order entry for tablet and mobile devices ([#117](https://github.com/CIInc/robinhood-options-mobile/issues/117)).
-- **Multi-Leg Options Defense & Roll Playbook:** Automated defensive action recommendations when short legs are tested (e.g. rolling out in time, widening spreads, inverted strangles, converting to iron condors).
+- ✅ **Multi-Leg Options Defense & Roll Playbook:** Automated defensive action recommendations and tactical playbook when short legs are tested (e.g. rolling out in time, widening spreads, inverted strangles, converting to iron condors) ([#158](https://github.com/CIInc/robinhood-options-mobile/issues/158)).
 
 ### v0.51.0 (2026 Q4 - November)
 **Options Analytics Pro, 0DTE Squeeze Radar & Volatility Surfaces**
@@ -943,7 +943,7 @@ Execution speed and automation differentiate professional tools from retail apps
 
 #### Strategy Automation
 - [x] **Options Strategy Roll Assistant** (v0.49.0, [#157](https://github.com/CIInc/robinhood-options-mobile/issues/157)): 1-tap rolling wizard for covered calls, cash-secured puts, and credit spreads with automated net credit/debit calculation and new breakeven projections - **Small** (1-2 weeks)
-- [ ] **Multi-Leg Options Defense & Roll Playbook** (v0.50.0): Automated defensive action recommendations when short legs are tested (e.g. rolling out in time, widening spreads, inverted strangles, converting to iron condors) - **Small** (1-2 weeks)
+- [x] **Multi-Leg Options Defense & Roll Playbook** (v0.50.0, [#158](https://github.com/CIInc/robinhood-options-mobile/issues/158)): Automated defensive action recommendations when short legs are tested (e.g. rolling out in time, widening spreads, inverted strangles, converting to iron condors) - **Small** (1-2 weeks)
 - [ ] **Strategy Marketplace**: Platform for users to share, rate, and clone successful Agentic Trading configurations - **Large** (6-8 weeks)
 - [ ] **Multi-Leg Order Templates**: Quick-entry templates for complex spreads - **Small** (1-2 weeks)
 - [x] **Combo Orders Support**: Stock + Option atomic order execution and history (`/combo/orders/`) - **Medium** (2-3 weeks)

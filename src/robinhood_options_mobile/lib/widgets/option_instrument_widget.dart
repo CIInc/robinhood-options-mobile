@@ -43,6 +43,7 @@ import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/chart_time_series_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_chain_widget.dart';
+import 'package:robinhood_options_mobile/widgets/option_defense_playbook_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_roll_assistant_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_flow_list_item.dart';
@@ -1855,6 +1856,33 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                         context,
                         MaterialPageRoute(
                             builder: (context) => OptionRollAssistantWidget(
+                                  user: user,
+                                  service: widget.service,
+                                  instrument: instrument,
+                                  optionPosition: optionPosition,
+                                  optionInstrument: optionInstrument,
+                                  analytics: widget.analytics,
+                                  observer: widget.observer,
+                                  generativeService: widget.generativeService,
+                                  appUser: widget.user,
+                                  userDocRef: widget.userDocRef,
+                                  initialIsPaperTrade:
+                                      widget.initialIsPaperTrade,
+                                )))),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: FilledButton.tonalIcon(
+                    style: FilledButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 4)),
+                    icon: const Icon(Icons.shield_outlined, size: 20),
+                    label: const FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text("Defense")),
+                    onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => OptionDefensePlaybookWidget(
                                   user: user,
                                   service: widget.service,
                                   instrument: instrument,
