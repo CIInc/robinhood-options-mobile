@@ -47,6 +47,8 @@ import 'package:robinhood_options_mobile/widgets/option_defense_playbook_widget.
 import 'package:robinhood_options_mobile/widgets/option_roll_assistant_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_flow_list_item.dart';
+import 'package:robinhood_options_mobile/services/live_activity_service.dart';
+import 'package:robinhood_options_mobile/widgets/option_live_activity_sheet.dart';
 import 'package:robinhood_options_mobile/widgets/trade_option_widget.dart';
 
 class OptionInstrumentWidget extends StatefulWidget {
@@ -1526,6 +1528,30 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
           ],
         ),
         actions: [
+          if (optionPosition != null)
+            IconButton(
+              icon: Icon(
+                Icons.sensors,
+                color: LiveActivityService.instance
+                        .isPositionTracked(optionPosition.id)
+                    ? Theme.of(context).colorScheme.primary
+                    : null,
+              ),
+              tooltip: 'Live Activity & Dynamic Island',
+              onPressed: () {
+                showModalBottomSheet(
+                  context: context,
+                  showDragHandle: true,
+                  isScrollControlled: true,
+                  builder: (context) => OptionLiveActivitySheet(
+                    position: optionPosition,
+                    onSessionChanged: () {
+                      setState(() {});
+                    },
+                  ),
+                );
+              },
+            ),
           IconButton(
               icon: auth.currentUser != null
                   ? (auth.currentUser!.photoURL == null

@@ -478,14 +478,15 @@ class _AuthGateState extends State<AuthGate> {
                                       )
                                     : null),
                             const SizedBox(height: 20),
-                            SizedBox(
-                              width: double.infinity,
-                              height: 50,
-                              child: FilledButton.tonal(
-                                onPressed: _anonymousAuth,
-                                child: const Text('Continue as guest'),
-                              ),
-                            ),
+                            // Removing Guest login option to force users to register
+                            // SizedBox(
+                            //   width: double.infinity,
+                            //   height: 50,
+                            //   child: FilledButton.tonal(
+                            //     onPressed: _anonymousAuth,
+                            //     child: const Text('Continue as guest'),
+                            //   ),
+                            // ),
                           ],
                         ),
                       ),

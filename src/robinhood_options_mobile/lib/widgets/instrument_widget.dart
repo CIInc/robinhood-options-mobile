@@ -456,6 +456,15 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         selectedIcon: Icons.dashboard,
       ),
       InstrumentCategory(
+        key: 'Activity',
+        label: 'Activity',
+        icon: Icons.receipt_long_outlined,
+        selectedIcon: Icons.receipt_long,
+        badge: activityBadge,
+        badgeColor: activityBadgeColor,
+        badgeTextColor: activityBadgeTextColor,
+      ),
+      InstrumentCategory(
         key: 'Signals',
         label: 'Signals & Tech',
         icon: Icons.bolt_outlined,
@@ -475,15 +484,6 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         label: 'Research',
         icon: Icons.psychology_outlined,
         selectedIcon: Icons.psychology,
-      ),
-      InstrumentCategory(
-        key: 'Activity',
-        label: 'Activity',
-        icon: Icons.receipt_long_outlined,
-        selectedIcon: Icons.receipt_long,
-        badge: activityBadge,
-        badgeColor: activityBadgeColor,
-        badgeTextColor: activityBadgeTextColor,
       ),
       InstrumentCategory(
         key: 'News',

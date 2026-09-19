@@ -30,6 +30,8 @@ import 'package:robinhood_options_mobile/widgets/option_defense_playbook_widget.
 import 'package:robinhood_options_mobile/widgets/option_roll_assistant_widget.dart';
 import 'package:robinhood_options_mobile/widgets/pnl_badge.dart';
 import 'package:robinhood_options_mobile/widgets/animated_price_text.dart';
+import 'package:robinhood_options_mobile/services/live_activity_service.dart';
+import 'package:robinhood_options_mobile/widgets/option_live_activity_sheet.dart';
 import 'package:robinhood_options_mobile/widgets/synchronized_scroll_controller.dart';
 //import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
@@ -852,11 +854,23 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
                   ],
                 ),
               ),
-              subtitle: Text(
-                '${op.legs.isNotEmpty ? op.legs.first.expirationDate!.compareTo(DateTime.now()) < 0 ? "Expired" : "Expires" : ''} ${op.legs.isNotEmpty ? formatDate.format(op.legs.first.expirationDate!) : ''}',
-                style: TextStyle(
-                    fontSize: 13,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant),
+              subtitle: Row(
+                children: [
+                  Text(
+                    '${op.legs.isNotEmpty ? op.legs.first.expirationDate!.compareTo(DateTime.now()) < 0 ? "Expired" : "Expires" : ''} ${op.legs.isNotEmpty ? formatDate.format(op.legs.first.expirationDate!) : ''}',
+                    style: TextStyle(
+                        fontSize: 13,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant),
+                  ),
+                  if (LiveActivityService.instance.isPositionTracked(op.id)) ...[
+                    const SizedBox(width: 6),
+                    Icon(
+                      Icons.sensors,
+                      size: 14,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ],
+                ],
               ),
               trailing: Wrap(
                   spacing: 8,
@@ -963,6 +977,27 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
                                       ),
                                     );
                                   });
+                                },
+                              ),
+                              ListTile(
+                                leading: const Icon(Icons.sensors),
+                                title: const Text('Live Activity & Dynamic Island'),
+                                subtitle: const Text(
+                                    'Real-time lock screen position tracking & 0DTE trailing stop'),
+                                onTap: () {
+                                  Navigator.pop(sheetContext);
+                                  showModalBottomSheet(
+                                    context: context,
+                                    showDragHandle: true,
+                                    isScrollControlled: true,
+                                    builder: (context) =>
+                                        OptionLiveActivitySheet(
+                                      position: op,
+                                      onSessionChanged: () {
+                                        setState(() {});
+                                      },
+                                    ),
+                                  );
                                 },
                               ),
                             ],
