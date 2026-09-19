@@ -72,7 +72,15 @@ class InstrumentPositionsWidget extends StatefulWidget {
 class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
   final SynchronizedScrollControllerGroup _scrollGroup =
       SynchronizedScrollControllerGroup();
+  final ValueNotifier<dynamic> _selectedPositionDatumNotifier =
+      ValueNotifier<dynamic>(null);
   // final FirestoreService _firestoreService = FirestoreService();
+
+  @override
+  void dispose() {
+    _selectedPositionDatumNotifier.dispose();
+    super.dispose();
+  }
 
   void _showAggregateTradeDisabled(BuildContext context) {
     ScaffoldMessenger.of(context)
@@ -108,6 +116,24 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
 
     List<charts.Series<dynamic, String>> barChartSeriesList = [];
     var data = [];
+
+    DisplayValue? secondaryDisplayValue;
+    if (widget.brokerageUser.displayValue == DisplayValue.marketValue) {
+      secondaryDisplayValue = DisplayValue.totalCost;
+    } else if (widget.brokerageUser.displayValue == DisplayValue.totalCost) {
+      secondaryDisplayValue = DisplayValue.marketValue;
+    } else if (widget.brokerageUser.displayValue == DisplayValue.totalReturn) {
+      secondaryDisplayValue = DisplayValue.totalReturnPercent;
+    } else if (widget.brokerageUser.displayValue ==
+        DisplayValue.totalReturnPercent) {
+      secondaryDisplayValue = DisplayValue.totalReturn;
+    } else if (widget.brokerageUser.displayValue == DisplayValue.todayReturn) {
+      secondaryDisplayValue = DisplayValue.todayReturnPercent;
+    } else if (widget.brokerageUser.displayValue ==
+        DisplayValue.todayReturnPercent) {
+      secondaryDisplayValue = DisplayValue.todayReturn;
+    }
+
     for (var position in chartPositions) {
       if (position.instrumentObj != null) {
         double? value =
@@ -115,32 +141,30 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
         String? valueLabel = widget.brokerageUser.getDisplayText(value);
         double? secondaryValue;
         String? secondaryLabel;
-        if (widget.brokerageUser.displayValue == DisplayValue.marketValue) {
+        if (secondaryDisplayValue != null) {
           secondaryValue = widget.brokerageUser
               .getDisplayValueInstrumentPosition(position,
-                  displayValue: DisplayValue.totalCost);
+                  displayValue: secondaryDisplayValue);
           secondaryLabel = widget.brokerageUser.getDisplayText(secondaryValue,
-              displayValue: DisplayValue.totalCost);
-          // // Uncomment to enable secondary values for today and total return measures.
-          // } else if (widget.user.displayValue == DisplayValue.totalReturn) {
-          //   secondaryValue = widget.user.getDisplayValueInstrumentPosition(
-          //       position,
-          //       displayValue: DisplayValue.totalReturnPercent);
-          //   secondaryLabel = widget.user.getDisplayText(secondaryValue,
-          //       displayValue: DisplayValue.totalReturnPercent);
-          // } else if (widget.user.displayValue == DisplayValue.todayReturn) {
-          //   secondaryValue = widget.user.getDisplayValueInstrumentPosition(
-          //       position,
-          //       displayValue: DisplayValue.todayReturnPercent);
-          //   secondaryLabel = widget.user.getDisplayText(secondaryValue,
-          //       displayValue: DisplayValue.todayReturnPercent);
+              displayValue: secondaryDisplayValue);
         }
+
+        String combinedLabel = valueLabel;
+        if (secondaryLabel != null && secondaryLabel.isNotEmpty) {
+          if (secondaryDisplayValue != DisplayValue.totalCost &&
+              secondaryDisplayValue != DisplayValue.marketValue) {
+            combinedLabel = '$valueLabel ($secondaryLabel)';
+          }
+        }
+
         data.add({
           'domain': position.instrumentObj!.symbol,
           'measure': value,
-          'label': valueLabel,
+          'label': combinedLabel,
+          'primaryLabel': valueLabel,
           'secondaryMeasure': secondaryValue,
-          'secondaryLabel': secondaryLabel
+          'secondaryLabel': secondaryLabel,
+          'position': position,
         });
       }
     }
@@ -148,167 +172,168 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
         charts.ColorUtil.fromDartColor(
             Theme.of(context).brightness == Brightness.light
                 ? Theme.of(context).colorScheme.primary
-                : Theme.of(context)
-                    .colorScheme
-                    .primaryContainer), // .withValues(alpha: 0.75)
+                : Theme.of(context).colorScheme.primaryContainer),
         2);
     barChartSeriesList.add(charts.Series<dynamic, String>(
         id: BrokerageUser.displayValueText(widget.brokerageUser.displayValue!),
         data: data,
-        // colorFn: (_, __) => shades[
-        //     0], //charts.ColorUtil.fromDartColor(of(context).colorScheme.primary),
         seriesColor: shades[0],
         domainFn: (var d, _) => d['domain'],
         measureFn: (var d, _) => d['measure'],
         labelAccessorFn: (d, _) => d['label'],
         insideLabelStyleAccessorFn: (datum, index) => charts.TextStyleSpec(
-            fontSize: 14,
+            fontSize: 13,
             color: charts.ColorUtil.fromDartColor(
               Theme.of(context).brightness == Brightness.light
                   ? Theme.of(context).colorScheme.surface
                   : Theme.of(context).colorScheme.inverseSurface,
             )),
         outsideLabelStyleAccessorFn: (datum, index) => charts.TextStyleSpec(
-            fontSize: 14,
+            fontSize: 13,
             color: charts.ColorUtil.fromDartColor(
                 Theme.of(context).textTheme.labelSmall!.color!))));
-    var seriesData = charts.Series<dynamic, String>(
-      id: (widget.brokerageUser.displayValue == DisplayValue.marketValue)
-          ? BrokerageUser.displayValueText(DisplayValue.totalCost)
-          : '',
-      //charts.MaterialPalette.blue.shadeDefault,
-      colorFn: (_, __) => shades[1],
-      // charts.ColorUtil.fromDartColor(
-      //     Theme.of(context).brightness == Brightness.light
-      //         ? Theme.of(context).colorScheme.primaryContainer
-      //         : Theme.of(context).colorScheme.primary),
-      // Not working as replacement to colorFn, setting the 2nd measure as gray
-      // seriesColor: shades[1],
-      //charts.ColorUtil.fromDartColor(Theme.of(context).colorScheme.primary),
-      domainFn: (var d, _) => d['domain'],
-      measureFn: (var d, _) => d['secondaryMeasure'],
-      labelAccessorFn: (d, _) => d['secondaryLabel'],
-      data: data,
-    );
-    // ..setAttribute(charts.rendererIdKey, 'customLine');
-    // if (widget.user.displayValue != DisplayValue.totalReturn &&
-    //     widget.user.displayValue != DisplayValue.todayReturn) {
-    seriesData.setAttribute(charts.rendererIdKey, 'customLine');
-    // }
-    if (widget.brokerageUser.displayValue == DisplayValue.totalReturn ||
-        widget.brokerageUser.displayValue == DisplayValue.todayReturn) {
-      seriesData.setAttribute(
-          charts.measureAxisIdKey, 'secondaryMeasureAxisId');
+
+    final bool isDualAxis = secondaryDisplayValue != null &&
+        ((widget.brokerageUser.displayValue == DisplayValue.totalReturn &&
+                secondaryDisplayValue == DisplayValue.totalReturnPercent) ||
+            (widget.brokerageUser.displayValue ==
+                    DisplayValue.totalReturnPercent &&
+                secondaryDisplayValue == DisplayValue.totalReturn) ||
+            (widget.brokerageUser.displayValue == DisplayValue.todayReturn &&
+                secondaryDisplayValue == DisplayValue.todayReturnPercent) ||
+            (widget.brokerageUser.displayValue ==
+                    DisplayValue.todayReturnPercent &&
+                secondaryDisplayValue == DisplayValue.todayReturn));
+
+    if (secondaryDisplayValue != null) {
+      var seriesData = charts.Series<dynamic, String>(
+        id: BrokerageUser.displayValueText(secondaryDisplayValue),
+        colorFn: (_, __) => shades[1],
+        domainFn: (var d, _) => d['domain'],
+        measureFn: (var d, _) => d['secondaryMeasure'],
+        labelAccessorFn: (d, _) => d['secondaryLabel'],
+        data: data,
+      )..setAttribute(charts.rendererIdKey, 'customLine');
+
+      if (isDualAxis) {
+        seriesData.setAttribute(
+            charts.measureAxisIdKey, charts.Axis.secondaryMeasureAxisId);
+      }
+
+      if (seriesData.data.isNotEmpty &&
+          seriesData.data[0]['secondaryMeasure'] != null) {
+        barChartSeriesList.add(seriesData);
+      }
     }
-    if (seriesData.data.isNotEmpty &&
-        seriesData.data[0]['secondaryMeasure'] != null) {
-      barChartSeriesList.add(seriesData);
-    }
+
     var brightness = MediaQuery.of(context).platformBrightness;
     var axisLabelColor = charts.MaterialPalette.gray.shade500;
     if (brightness == Brightness.light) {
       axisLabelColor = charts.MaterialPalette.gray.shade700;
     }
-    var minimum = 0.0;
-    var maximum = 0.0;
-    // if (widget.user.displayValue == DisplayValue.todayReturnPercent ||
-    //     widget.user.displayValue == DisplayValue.totalReturnPercent) {
-    //   var positionDisplayValues = sortedFilteredPositions
-    //       .map((e) => widget.user.getDisplayValueInstrumentPosition(e));
-    //   if (positionDisplayValues.isNotEmpty) {
-    //     minimum = positionDisplayValues.reduce(math.min);
-    //     if (minimum < 0) {
-    //       minimum -= 0.05;
-    //     } else if (minimum > 0) {
-    //       minimum = 0;
-    //     }
-    //     maximum = positionDisplayValues.reduce(math.max);
-    //     if (maximum > 0) {
-    //       maximum += 0.05;
-    //     } else if (maximum < 0) {
-    //       maximum = 0;
-    //     }
-    //   }
-    // }
-    var extents = charts.NumericExtents.fromValues(chartPositions
-        .map((e) => widget.brokerageUser.getDisplayValueInstrumentPosition(e)));
-    extents = charts.NumericExtents(extents.min - (extents.width * 0.1),
-        extents.max + (extents.width * 0.1));
+
+    var primaryValues = chartPositions
+        .map((e) => widget.brokerageUser.getDisplayValueInstrumentPosition(e))
+        .toList();
+    charts.NumericExtents extents;
+    charts.NumericExtents? secondaryExtents;
+    List<charts.TickSpec<num>>? secondaryTicks;
+
+    if (isDualAxis) {
+      final secondaryValues = chartPositions
+          .map((e) => widget.brokerageUser.getDisplayValueInstrumentPosition(
+              e,
+              displayValue: secondaryDisplayValue))
+          .toList();
+      final aligned = AlignedAxisExtents.compute(
+        primaryValues: primaryValues,
+        secondaryValues: secondaryValues,
+      );
+      extents = aligned.primaryExtents;
+      secondaryExtents = aligned.secondaryExtents;
+
+      final isSecondaryPercent =
+          secondaryDisplayValue == DisplayValue.totalReturnPercent ||
+          secondaryDisplayValue == DisplayValue.todayReturnPercent;
+
+      secondaryTicks = <charts.TickSpec<num>>[];
+      if (secondaryExtents.min < 0 && secondaryExtents.max > 0) {
+        secondaryTicks.add(charts.TickSpec<num>(secondaryExtents.min));
+        secondaryTicks.add(charts.TickSpec<num>(0.0,
+            label: isSecondaryPercent ? '0%' : '\$0'));
+        secondaryTicks.add(charts.TickSpec<num>(secondaryExtents.max));
+      } else if (secondaryExtents.min >= 0) {
+        secondaryTicks.add(charts.TickSpec<num>(0.0,
+            label: isSecondaryPercent ? '0%' : '\$0'));
+        secondaryTicks.add(charts.TickSpec<num>(secondaryExtents.max));
+      } else {
+        secondaryTicks.add(charts.TickSpec<num>(secondaryExtents.min));
+        secondaryTicks.add(charts.TickSpec<num>(0.0,
+            label: isSecondaryPercent ? '0%' : '\$0'));
+      }
+    } else {
+      if (secondaryDisplayValue != null) {
+        final secondaryValues = chartPositions
+            .map((e) => widget.brokerageUser.getDisplayValueInstrumentPosition(
+                e,
+                displayValue: secondaryDisplayValue))
+            .toList();
+        primaryValues.addAll(secondaryValues);
+      }
+      final primaryNumericValues = primaryValues.whereType<double>().toList();
+      extents = primaryNumericValues.isNotEmpty
+          ? charts.NumericExtents.fromValues(primaryNumericValues)
+          : const charts.NumericExtents(0, 1);
+      double primaryPad = extents.width > 0 ? extents.width * 0.1 : 0.05;
+      final bool startsAtZero =
+          widget.brokerageUser.displayValue == DisplayValue.marketValue ||
+          widget.brokerageUser.displayValue == DisplayValue.totalCost;
+      final double minVal = startsAtZero ? 0.0 : extents.min - primaryPad;
+      extents = charts.NumericExtents(minVal, extents.max + primaryPad);
+    }
 
     var primaryMeasureAxis = widget.brokerageUser.displayValue ==
                 DisplayValue.todayReturnPercent ||
             widget.brokerageUser.displayValue == DisplayValue.totalReturnPercent
         ? charts.PercentAxisSpec(
-            viewport: extents, // charts.NumericExtents(minimum, maximum),
+            viewport: extents,
+            tickProviderSpec:
+                const charts.BasicNumericTickProviderSpec(zeroBound: true),
             renderSpec: charts.GridlineRendererSpec(
                 labelStyle: charts.TextStyleSpec(color: axisLabelColor)))
         : charts.NumericAxisSpec(
-            //showAxisLine: true,
-            //renderSpec: charts.GridlineRendererSpec(),
+            viewport: extents,
+            tickProviderSpec:
+                const charts.BasicNumericTickProviderSpec(zeroBound: true),
             renderSpec: charts.GridlineRendererSpec(
                 labelStyle: charts.TextStyleSpec(color: axisLabelColor)),
-            //renderSpec: charts.NoneRenderSpec(),
             tickFormatterSpec:
                 charts.BasicNumericTickFormatterSpec.fromNumberFormat(
                     NumberFormat.compactSimpleCurrency()),
-            //tickProviderSpec:
-            //    charts.StaticNumericTickProviderSpec(staticNumericTicks!),
-            //viewport: charts.NumericExtents(0, staticNumericTicks![staticNumericTicks!.length - 1].value + 1)
           );
-    if (widget.brokerageUser.displayValue == DisplayValue.todayReturn ||
-        widget.brokerageUser.displayValue == DisplayValue.totalReturn) {
-      var positionDisplayValues = chartPositions.map((e) => widget.brokerageUser
-          .getDisplayValueInstrumentPosition(e,
-              displayValue:
-                  widget.brokerageUser.displayValue == DisplayValue.todayReturn
-                      ? DisplayValue.todayReturnPercent
-                      : (widget.brokerageUser.displayValue ==
-                              DisplayValue.totalReturn
-                          ? DisplayValue.totalReturnPercent
-                          : null)));
-      if (positionDisplayValues.isNotEmpty) {
-        minimum = positionDisplayValues.reduce(math.min);
-        if (minimum < 0) {
-          minimum -= 0.05;
-        } else if (minimum > 0) {
-          minimum = 0;
-        }
-        maximum = positionDisplayValues.reduce(math.max);
-        if (maximum > 0) {
-          maximum += 0.05;
-        } else if (maximum < 0) {
-          maximum = 0;
-        }
+
+    charts.NumericAxisSpec? secondaryMeasureAxis;
+    if (isDualAxis && secondaryExtents != null && secondaryTicks != null) {
+      if (secondaryDisplayValue == DisplayValue.totalReturnPercent ||
+          secondaryDisplayValue == DisplayValue.todayReturnPercent) {
+        secondaryMeasureAxis = charts.PercentAxisSpec(
+          viewport: secondaryExtents,
+          renderSpec: charts.SmallTickRendererSpec(
+              labelStyle: charts.TextStyleSpec(color: axisLabelColor)),
+          tickProviderSpec: charts.StaticNumericTickProviderSpec(secondaryTicks),
+        );
+      } else {
+        secondaryMeasureAxis = charts.NumericAxisSpec(
+          viewport: secondaryExtents,
+          renderSpec: charts.SmallTickRendererSpec(
+              labelStyle: charts.TextStyleSpec(color: axisLabelColor)),
+          tickFormatterSpec:
+              charts.BasicNumericTickFormatterSpec.fromNumberFormat(
+                  NumberFormat.compactSimpleCurrency()),
+          tickProviderSpec: charts.StaticNumericTickProviderSpec(secondaryTicks),
+        );
       }
     }
-    var secondaryExtents = charts.NumericExtents.fromValues(chartPositions.map(
-        (e) => widget.brokerageUser.getDisplayValueInstrumentPosition(e,
-            displayValue: widget.brokerageUser.displayValue ==
-                    DisplayValue.todayReturn
-                ? DisplayValue.todayReturnPercent
-                : (widget.brokerageUser.displayValue == DisplayValue.totalReturn
-                    ? DisplayValue.totalReturnPercent
-                    : null))));
-    secondaryExtents = charts.NumericExtents(
-        secondaryExtents.min - (secondaryExtents.width * 0.1),
-        secondaryExtents.max + (secondaryExtents.width * 0.1));
-
-    var secondaryMeasureAxis = widget.brokerageUser.displayValue ==
-                DisplayValue.totalReturn ||
-            widget.brokerageUser.displayValue == DisplayValue.todayReturn
-        ? charts.PercentAxisSpec(
-            viewport: (widget.brokerageUser.displayValue ==
-                        DisplayValue.todayReturn ||
-                    widget.brokerageUser.displayValue ==
-                        DisplayValue.totalReturn)
-                ? secondaryExtents // charts.NumericExtents(minimum, maximum)
-                : null,
-            renderSpec: charts.SmallTickRendererSpec(
-                labelStyle: charts.TextStyleSpec(color: axisLabelColor)),
-            tickProviderSpec: charts
-                // .BasicNumericTickProviderSpec())
-                .NumericEndPointsTickProviderSpec())
-        : null; // zeroBound: true, desiredTickCount: 6
 
     var positionChart = BarChart(barChartSeriesList,
         renderer: charts.BarRendererConfig(
@@ -317,29 +342,13 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
             cornerStrategy: const charts.ConstCornerStrategy(10)),
         primaryMeasureAxis: primaryMeasureAxis,
         secondaryMeasureAxis:
-            barChartSeriesList.length > 1 ? secondaryMeasureAxis : null,
+            (barChartSeriesList.length > 1 && isDualAxis)
+                ? secondaryMeasureAxis
+                : null,
         customSeriesRenderers: [
-          // charts.ArcRendererConfig(customRendererId: 'customLine'),
-          // charts.BarLaneRendererConfig(
-          //   customRendererId: 'customLine',
-          // ),
-          // charts.BarRendererConfig(
-          //     customRendererId: 'customLine',
-          //     groupingType: charts.BarGroupingType.grouped)
-
-          /// Always keep possible customSeriesRenderers to prevent exception
-          /// when switching between a chart with and without a secondary axis.
-          // if (barChartSeriesList.length > 1) ...[
           charts.BarTargetLineRendererConfig<String>(
-              //overDrawOuterPx: 10,
-              //overDrawPx: 10,
-              // strokeWidthPx: 4,
               customRendererId: 'customLine',
               groupingType: charts.BarGroupingType.grouped)
-          // ]
-          // charts.LineRendererConfig(customRendererId: 'customLine'),
-          // charts.PointRendererConfig(customRendererId: 'customLine')
-          // charts.SymbolAnnotationRendererConfig(customRendererId: 'customLine')
         ],
         barGroupingType: null,
         domainAxis: charts.OrdinalAxisSpec(
@@ -347,30 +356,8 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
                 labelStyle: charts.TextStyleSpec(color: axisLabelColor))),
         behaviors: [
           charts.SeriesLegend(),
-        ], onSelected: (dynamic historical) {
-      debugPrint(historical
-          .toString()); // {domain: QS, measure: -74.00000000000003, label: -$74.00}
-      var position = sortedFilteredPositions.firstWhere(
-          (element) => element.instrumentObj!.symbol == historical['domain']);
-      // TODO: This setState is not desirable but is needed to reset the selection
-      // or the bar will not be clickable until deselected or another selection is made.
-      // Find a better way to do this
-      setState(() {});
-      Navigator.push(
-          context,
-          MaterialPageRoute(
-              builder: (context) => InstrumentWidget(
-                    widget.brokerageUser,
-                    widget.service,
-                    position.instrumentObj!,
-                    heroTag:
-                        'logo_${position.instrumentObj!.symbol}${position.instrumentObj!.id}',
-                    analytics: widget.analytics,
-                    observer: widget.observer,
-                    generativeService: widget.generativeService,
-                    user: widget.user,
-                    userDocRef: widget.userDocRef,
-                  )));
+        ], onSelected: (dynamic datum) {
+      _selectedPositionDatumNotifier.value = datum;
     });
 
     double? marketValue = widget.brokerageUser
@@ -536,19 +523,23 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
           barChartSeriesList.first.data.isNotEmpty) ...[
         SliverToBoxAdapter(
             child: Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             SizedBox(
-                height:
-                    // barChartSeriesList.first.data.length == 1
-                    //     ? 75
-                    //     :
-                    barChartSeriesList.first.data.length * 26 + 80,
+                height: math.max(
+                    140.0, barChartSeriesList.first.data.length * 28.0 + 80.0),
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(
                       10.0, 0, 10, 0), //EdgeInsets.zero
                   child: positionChart,
                 )),
+            ValueListenableBuilder<dynamic>(
+              valueListenable: _selectedPositionDatumNotifier,
+              builder: (context, selectedDatum, child) {
+                if (selectedDatum == null) return const SizedBox.shrink();
+                return _buildInteractiveTooltip(context, selectedDatum);
+              },
+            ),
             _buildChartControls(context),
           ],
         ))
@@ -1087,79 +1078,305 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
     );
   }
 
+  Widget _buildInteractiveTooltip(
+      BuildContext context, dynamic selectedDatum) {
+    if (selectedDatum == null) return const SizedBox.shrink();
+    final datum = selectedDatum;
+    final symbol = datum['domain'] as String? ?? '';
+    final InstrumentPosition? position =
+        datum['position'] as InstrumentPosition?;
+    final String name = position?.instrumentObj?.simpleName ??
+        position?.instrumentObj?.name ??
+        '';
+    final primaryLabel = datum['primaryLabel'] as String? ??
+        datum['label'] as String? ??
+        '';
+    final secondaryLabel = datum['secondaryLabel'] as String?;
+    final primaryName =
+        BrokerageUser.displayValueText(widget.brokerageUser.displayValue!);
+
+    DisplayValue? secondaryDisplayValue;
+    if (widget.brokerageUser.displayValue == DisplayValue.marketValue) {
+      secondaryDisplayValue = DisplayValue.totalCost;
+    } else if (widget.brokerageUser.displayValue == DisplayValue.totalCost) {
+      secondaryDisplayValue = DisplayValue.marketValue;
+    } else if (widget.brokerageUser.displayValue == DisplayValue.totalReturn) {
+      secondaryDisplayValue = DisplayValue.totalReturnPercent;
+    } else if (widget.brokerageUser.displayValue ==
+        DisplayValue.totalReturnPercent) {
+      secondaryDisplayValue = DisplayValue.totalReturn;
+    } else if (widget.brokerageUser.displayValue == DisplayValue.todayReturn) {
+      secondaryDisplayValue = DisplayValue.todayReturnPercent;
+    } else if (widget.brokerageUser.displayValue ==
+        DisplayValue.todayReturnPercent) {
+      secondaryDisplayValue = DisplayValue.todayReturn;
+    }
+    final secondaryName = secondaryDisplayValue != null
+        ? BrokerageUser.displayValueText(secondaryDisplayValue)
+        : '';
+
+    final num? measureVal = datum['measure'] as num?;
+    final isPositive = (measureVal ?? 0) >= 0;
+    final theme = Theme.of(context);
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: theme.colorScheme.primary.withValues(alpha: 0.3),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primary.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  symbol,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.primary,
+                  ),
+                ),
+              ),
+              if (name.isNotEmpty) ...[
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    name,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ] else
+                const Spacer(),
+              IconButton(
+                icon: const Icon(Icons.close, size: 18),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                tooltip: 'Dismiss',
+                onPressed: () {
+                  _selectedPositionDatumNotifier.value = null;
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 16,
+            runSpacing: 6,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    primaryName,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.outline,
+                      fontSize: 10,
+                    ),
+                  ),
+                  Text(
+                    primaryLabel,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: (widget.brokerageUser.displayValue ==
+                                  DisplayValue.totalReturn ||
+                              widget.brokerageUser.displayValue ==
+                                  DisplayValue.totalReturnPercent ||
+                              widget.brokerageUser.displayValue ==
+                                  DisplayValue.todayReturn ||
+                              widget.brokerageUser.displayValue ==
+                                  DisplayValue.todayReturnPercent)
+                          ? (isPositive ? Colors.green : Colors.red)
+                          : theme.colorScheme.onSurface,
+                    ),
+                  ),
+                ],
+              ),
+              if (secondaryLabel != null && secondaryLabel.isNotEmpty)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      secondaryName,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.outline,
+                        fontSize: 10,
+                      ),
+                    ),
+                    Text(
+                      secondaryLabel,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: (secondaryDisplayValue ==
+                                    DisplayValue.totalReturn ||
+                                secondaryDisplayValue ==
+                                    DisplayValue.totalReturnPercent ||
+                                secondaryDisplayValue ==
+                                    DisplayValue.todayReturn ||
+                                secondaryDisplayValue ==
+                                    DisplayValue.todayReturnPercent)
+                            ? (isPositive ? Colors.green : Colors.red)
+                            : theme.colorScheme.onSurface,
+                      ),
+                    ),
+                  ],
+                ),
+              if (position != null && position.quantity != null)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Shares',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.outline,
+                        fontSize: 10,
+                      ),
+                    ),
+                    Text(
+                      formatCompactNumber.format(position.quantity),
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              TextButton.icon(
+                style: TextButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                ),
+                icon: const Icon(Icons.arrow_forward, size: 16),
+                label: const Text('View Details'),
+                onPressed: () {
+                  if (position != null && position.instrumentObj != null) {
+                    _handleNavigation(context, () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => InstrumentWidget(
+                            widget.brokerageUser,
+                            widget.service,
+                            position.instrumentObj!,
+                            heroTag:
+                                'logo_${position.instrumentObj!.symbol}${position.instrumentObj!.id}',
+                            analytics: widget.analytics,
+                            observer: widget.observer,
+                            generativeService: widget.generativeService,
+                            user: widget.user,
+                            userDocRef: widget.userDocRef,
+                          ),
+                        ),
+                      );
+                    });
+                  }
+                },
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildChartControls(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 6.0),
       child: Align(
         alignment: Alignment.centerRight,
-        child: Container(
-          padding: const EdgeInsets.all(2),
-          decoration: BoxDecoration(
-            color: Theme.of(context)
-                .colorScheme
-                .surfaceContainerHighest
-                .withOpacity(0.3),
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(
-              color:
-                  Theme.of(context).colorScheme.outlineVariant.withOpacity(0.5),
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Container(
+            padding: const EdgeInsets.all(2),
+            decoration: BoxDecoration(
+              color: Theme.of(context)
+                  .colorScheme
+                  .surfaceContainerHighest
+                  .withValues(alpha: 0.3),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(
+                color: Theme.of(context)
+                  .colorScheme
+                  .outlineVariant
+                  .withValues(alpha: 0.5),
+              ),
             ),
-          ),
-          child: IntrinsicHeight(
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _buildToolbarButton(
-                  context,
-                  label: BrokerageUser.displayValueText(
-                      widget.brokerageUser.displayValue!),
-                  icon: Icons.bar_chart_rounded,
-                  onTap: () {
-                    showModalBottomSheet<void>(
-                        context: context,
-                        showDragHandle: true,
-                        builder: (_) => MoreMenuBottomSheet(
-                                widget.brokerageUser,
-                                analytics: widget.analytics,
-                                observer: widget.observer,
-                                showOnlyPrimaryMeasure: true,
-                                onSettingsChanged: (value) {
-                              setState(() {});
-                            }));
-                  },
-                ),
-                VerticalDivider(
-                  width: 1,
-                  thickness: 1,
-                  indent: 8,
-                  endIndent: 8,
-                  color: Theme.of(context)
-                      .colorScheme
-                      .outlineVariant
-                      .withOpacity(0.5),
-                ),
-                _buildToolbarButton(
-                  context,
-                  label: BrokerageUser.displayValueText(
-                      widget.brokerageUser.sortOptions!),
-                  icon: widget.brokerageUser.sortDirection == SortDirection.desc
-                      ? Icons.arrow_downward
-                      : Icons.arrow_upward,
-                  onTap: () {
-                    showModalBottomSheet<void>(
-                        context: context,
-                        showDragHandle: true,
-                        builder: (_) => MoreMenuBottomSheet(
-                                widget.brokerageUser,
-                                analytics: widget.analytics,
-                                observer: widget.observer,
-                                showOnlySort: true, onSettingsChanged: (value) {
-                              setState(() {});
-                            }));
-                  },
-                  iconColor: Theme.of(context).colorScheme.secondary,
-                ),
-              ],
+            child: IntrinsicHeight(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildToolbarButton(
+                    context,
+                    label: BrokerageUser.displayValueText(
+                        widget.brokerageUser.displayValue!),
+                    icon: Icons.bar_chart_rounded,
+                    onTap: () {
+                      showModalBottomSheet<void>(
+                          context: context,
+                          showDragHandle: true,
+                          builder: (_) => MoreMenuBottomSheet(
+                                  widget.brokerageUser,
+                                  analytics: widget.analytics,
+                                  observer: widget.observer,
+                                  showOnlyPrimaryMeasure: true,
+                                  onSettingsChanged: (value) {
+                                setState(() {});
+                              }));
+                    },
+                  ),
+                  VerticalDivider(
+                    width: 1,
+                    thickness: 1,
+                    indent: 8,
+                    endIndent: 8,
+                    color: Theme.of(context)
+                        .colorScheme
+                        .outlineVariant
+                        .withValues(alpha: 0.5),
+                  ),
+                  _buildToolbarButton(
+                    context,
+                    label: BrokerageUser.displayValueText(
+                        widget.brokerageUser.sortOptions!),
+                    icon: widget.brokerageUser.sortDirection ==
+                            SortDirection.desc
+                        ? Icons.arrow_downward
+                        : Icons.arrow_upward,
+                    onTap: () {
+                      showModalBottomSheet<void>(
+                          context: context,
+                          showDragHandle: true,
+                          builder: (_) => MoreMenuBottomSheet(
+                                  widget.brokerageUser,
+                                  analytics: widget.analytics,
+                                  observer: widget.observer,
+                                  showOnlySort: true,
+                                  onSettingsChanged: (value) {
+                                setState(() {});
+                              }));
+                    },
+                    iconColor: Theme.of(context).colorScheme.secondary,
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -1198,7 +1415,7 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
                 color: Theme.of(context)
                     .colorScheme
                     .onSurfaceVariant
-                    .withOpacity(0.7)),
+                    .withValues(alpha: 0.7)),
           ],
         ),
       ),

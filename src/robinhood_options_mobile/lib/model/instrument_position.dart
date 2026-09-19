@@ -2,6 +2,7 @@
 
 // import 'package:robinhood_options_mobile/model/option_instrument.dart';
 
+import 'package:csv/csv.dart';
 import 'package:robinhood_options_mobile/utils/json.dart';
 
 //@immutable
@@ -393,15 +394,50 @@ class InstrumentPosition {
                     : Icons.trending_flat),
             color: (gainLossToday > 0
                 ? Colors.green
-                : (gainLossToday < 0 ? Colors.red : Colors.grey)))
-        /*: Icon(
-            gainLossToday < 0
-                ? Icons.trending_up
-                : (gainLossToday > 0 ? Icons.trending_down : Icons.trending_flat),
-            color: (gainLossToday < 0
-                ? Colors.lightGreenAccent
-                : (gainLossToday > 0 ? Colors.red : Colors.grey)),
-            size: 14.0)*/
-        ;
+                : (gainLossToday < 0 ? Colors.red : Colors.grey)));
+  }
+
+  static List<dynamic> csvHeaders = [
+    'Symbol',
+    'Name',
+    'Quantity',
+    'Average Buy Price',
+    'Current Price',
+    'Market Value',
+    'Total Cost',
+    'Total Return (\$)',
+    'Total Return (%)',
+    'Today Return (\$)',
+    'Today Return (%)',
+    'Account',
+  ];
+
+  List<dynamic> toCsvRow() {
+    final symbol = instrumentObj?.symbol ?? '';
+    final name = instrumentObj?.simpleName ?? instrumentObj?.name ?? '';
+    final currentPrice = instrumentObj?.quoteObj?.lastTradePrice ??
+        (quantity != null && quantity! > 0 ? marketValue / quantity! : 0.0);
+    return [
+      symbol,
+      name,
+      quantity ?? 0,
+      averageBuyPrice ?? 0,
+      currentPrice,
+      marketValue,
+      totalCost,
+      gainLoss,
+      gainLossPercent,
+      gainLossToday,
+      gainLossPercentToday,
+      account,
+    ];
+  }
+
+  static String generateCsvString(List<InstrumentPosition> positions) {
+    List<List<dynamic>> rows = [
+      csvHeaders,
+      ...positions.map((p) => p.toCsvRow()),
+    ];
+    return Csv().encode(rows);
   }
 }

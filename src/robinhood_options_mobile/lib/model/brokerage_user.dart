@@ -168,6 +168,15 @@ class BrokerageUser {
     }
   }
 
+  static String shortDisplayValueText(DisplayValue displayValue) {
+    switch (displayValue) {
+      case DisplayValue.totalCost:
+        return 'Cost';
+      default:
+        return displayValueText(displayValue);
+    }
+  }
+
   static DisplayValue parseDisplayValue(String? optionsView) {
     if (optionsView == null) {
       return DisplayValue.marketValue;

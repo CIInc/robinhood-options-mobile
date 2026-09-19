@@ -2355,10 +2355,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
       double sumToday = 0.0;
       bool hasToday = false;
       for (final s in stocks) {
-        if (s.gainLossToday != null) {
-          sumToday += s.gainLossToday!;
-          hasToday = true;
-        }
+        sumToday += s.gainLossToday;
+        hasToday = true;
       }
       for (final o in options) {
         if (o.changeToday != 0) {

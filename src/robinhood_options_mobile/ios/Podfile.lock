@@ -1367,6 +1367,8 @@ PODS:
   - Flutter (1.0.0)
   - flutter_local_notifications (0.0.1):
     - Flutter
+  - flutter_native_splash (2.4.3):
+    - Flutter
   - flutter_web_auth_2 (5.0.0):
     - Flutter
   - Google-Mobile-Ads-SDK (13.10.0):
@@ -1597,6 +1599,7 @@ DEPENDENCIES:
   - firebase_remote_config (from `.symlinks/plugins/firebase_remote_config/ios`)
   - Flutter (from `Flutter`)
   - flutter_local_notifications (from `.symlinks/plugins/flutter_local_notifications/ios`)
+  - flutter_native_splash (from `.symlinks/plugins/flutter_native_splash/ios`)
   - flutter_web_auth_2 (from `.symlinks/plugins/flutter_web_auth_2/ios`)
   - google_mobile_ads (from `.symlinks/plugins/google_mobile_ads/ios`)
   - google_sign_in_ios (from `.symlinks/plugins/google_sign_in_ios/darwin`)
@@ -1685,6 +1688,8 @@ EXTERNAL SOURCES:
     :path: Flutter
   flutter_local_notifications:
     :path: ".symlinks/plugins/flutter_local_notifications/ios"
+  flutter_native_splash:
+    :path: ".symlinks/plugins/flutter_native_splash/ios"
   flutter_web_auth_2:
     :path: ".symlinks/plugins/flutter_web_auth_2/ios"
   google_mobile_ads:
@@ -1753,6 +1758,7 @@ SPEC CHECKSUMS:
   FirebaseSharedSwift: 9d9404eea60b650d3e549898bfebbb8f665fe601
   Flutter: 71a624a5bc0c04062bf19101d501e466baf2fb47
   flutter_local_notifications: eda81afddbf18f8589f6ec069ce593c4c6378769
+  flutter_native_splash: df59bb2e1421aa0282cb2e95618af4dcb0c56c29
   flutter_web_auth_2: 4091f1645696258ddc57849f62bef2a848fc313c
   Google-Mobile-Ads-SDK: 8e764c4990ef82c2727fd32e0c4143817b443603
   google_mobile_ads: 8c61669fb8e2ba987b0b7116b5265ba647cdca0c

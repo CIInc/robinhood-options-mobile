@@ -560,4 +560,59 @@ class OptionAggregatePosition {
     await file2.writeAsString(csv);
     return file2;
   }
+
+  static List<dynamic> positionsCsvHeaders = [
+    'Symbol',
+    'Strategy',
+    'Option Type',
+    'Strike Price',
+    'Expiration Date',
+    'Quantity',
+    'Average Open Price',
+    'Current Price',
+    'Market Value',
+    'Total Cost',
+    'Total Return (\$)',
+    'Total Return (%)',
+    'Today Return (\$)',
+    'Today Return (%)',
+    'Account',
+  ];
+
+  List<dynamic> toPositionCsvRow() {
+    final firstLeg = legs.isNotEmpty ? legs.first : null;
+    final expirationStr = firstLeg?.expirationDate != null
+        ? DateFormat('yyyy-MM-dd').format(firstLeg!.expirationDate!)
+        : '';
+    final strikeStr = firstLeg?.strikePrice?.toString() ?? '';
+    final optionType = firstLeg?.optionType ?? '';
+    final currentPrice =
+        optionInstrument?.optionMarketData?.adjustedMarkPrice ?? 0.0;
+    return [
+      symbol,
+      strategy,
+      optionType,
+      strikeStr,
+      expirationStr,
+      quantity ?? 0,
+      averageOpenPrice ?? 0,
+      currentPrice,
+      marketValue,
+      totalCost,
+      gainLoss,
+      gainLossPercent,
+      changeToday,
+      changePercentToday,
+      account,
+    ];
+  }
+
+  static String generatePositionsCsvString(
+      List<OptionAggregatePosition> positions) {
+    List<List<dynamic>> rows = [
+      positionsCsvHeaders,
+      ...positions.map((p) => p.toPositionCsvRow()),
+    ];
+    return Csv().encode(rows);
+  }
 }

@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.49.0] - 2026-09-19
+**Dual-Value Bar Charts, Multi-Axis Zero Tick Alignment & Interactive Position Tooltips ([#19](https://github.com/CIInc/robinhood-options-mobile/issues/19))**
+
+- **Dual-Axis & Combined Metric Bar Charts (`InstrumentPositionsWidget` & `OptionPositionsWidget`, [#19](https://github.com/CIInc/robinhood-options-mobile/issues/19)):**
+  - Added dual-measure rendering overlaying primary bars with a secondary measure target line (`BarTargetLineRendererConfig`):
+    - `totalReturn` (\$) paired with `totalReturnPercent` (%) using independent dual axes (`secondaryMeasureAxisId`) for disparate units.
+    - `todayReturn` (\$) paired with `todayReturnPercent` (%) using independent dual axes (`secondaryMeasureAxisId`).
+    - `marketValue` paired with `totalCost` on a single unified currency axis since both share identical dollar units.
+  - **Zero Tick Alignment (`AlignedAxisExtents`):**
+    - Dynamically synchronized primary and secondary axis viewports so the `$0` tick and `0%` tick align at the exact same horizontal position.
+    - Configured `StaticNumericTickProviderSpec` with `0.0` tick on the secondary axis, aligning precisely with the primary `$0` gridline.
+  - Enforced 0-baseline for the Market Value bar chart horizontal axis viewport.
+  - Streamlined bar labels: percentage metrics display combined labels (e.g. `+$120.00 (+15.20%)`), renamed "Total Cost" to "Cost", while Market Value displays clean values with secondary cost basis inspected via the interactive detail pane.
+  - Removed redundant export action from position bar chart toolbars.
+  - Implemented responsive chart height calculations dynamic to data length (`math.max(140.0, length * 28.0 + 80.0)`).
+- **Interactive Bar Tooltips:**
+  - Added interactive tooltip cards displayed upon tapping any equity or option bar in the chart.
+  - Features symbol badges, primary/secondary metrics with positive/negative color styling, share/contract counts, dismiss controls, and direct "View Details" navigation.
+- **Unit Testing:**
+  - Added `test/position_bar_chart_dual_values_test.dart` verifying dual display mappings, label formatting, single vs. dual axis classification, 0-baseline x-axis, and multi-axis `$0` / `0%` tick alignment.
+
 ## [0.48.5] - 2026-09-18
 **Autonomous Risk Circuit Breakers, Schwab WebSocket Streamer & Synchronized Position Scrolling ([#142](https://github.com/CIInc/robinhood-options-mobile/issues/142), [#145](https://github.com/CIInc/robinhood-options-mobile/issues/145), [#7](https://github.com/CIInc/robinhood-options-mobile/issues/7))**
 
