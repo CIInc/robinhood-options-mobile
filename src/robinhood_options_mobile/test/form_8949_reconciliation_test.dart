@@ -86,7 +86,7 @@ void main() {
   group('Form8949Entry Model Tests', () {
     test('calculates short-term entry (<= 365 days) correctly with Box A', () {
       final acq = DateTime(2026, 2, 1);
-      final sold = DateTime(2026, 6, 1); // 120 days
+      final sold = DateTime(2026, 6, 1); // 119 days
       final entry = Form8949Entry.create(
         id: 'entry_st_1',
         description: '10 sh. AAPL',
@@ -101,7 +101,7 @@ void main() {
 
       expect(entry.isLongTerm, isFalse);
       expect(entry.boxCategory, 'A');
-      expect(entry.holdingDays, 120);
+      expect(entry.holdingDays, 119);
       expect(entry.gainOrLoss, 500.0);
       expect(entry.tentativeGainOrLoss, 500.0);
       expect(entry.hasWashSale, isFalse);

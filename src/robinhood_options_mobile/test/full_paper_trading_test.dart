@@ -181,6 +181,19 @@ class FakePaperTradingStore extends ChangeNotifier
   }
 
   @override
+  Future<void> executeRollOptionStrategy({
+    required OptionAggregatePosition oldPosition,
+    required OptionInstrument newInstrument,
+    required double price,
+    required double quantity,
+    required String direction,
+  }) async {
+    print("EXECUTED ROLL OPTION STRATEGY IN FAKE STORE");
+    executedOption = true;
+    notifyListeners();
+  }
+
+  @override
   double get shortStockCollateral => 0.0;
 
   @override
