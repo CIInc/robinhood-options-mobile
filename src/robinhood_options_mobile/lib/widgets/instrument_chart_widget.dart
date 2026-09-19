@@ -698,6 +698,43 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
             ],
           );
         }
+        if (currentHistoricals != null &&
+            currentHistoricals.historicals.isEmpty) {
+          return Column(
+            children: [
+              SizedBox(
+                  height: 340,
+                  child: Center(
+                      child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.bar_chart,
+                        size: 40,
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withValues(alpha: 0.4),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        "No chart data available",
+                        style: TextStyle(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withValues(alpha: 0.6),
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      )
+                    ],
+                  ))),
+              _buildDateFilters(),
+              if (widget.isFullScreen) const SizedBox(height: 25),
+            ],
+          );
+        }
         return Column(
           children: [
             SizedBox(

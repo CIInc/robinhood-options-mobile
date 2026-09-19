@@ -24,7 +24,8 @@ class WebSocketStreamerChannel implements IStreamerChannel {
   void sinkAdd(String data) => _ws.add(data);
 
   @override
-  Future<void> sinkClose([int? status, String? reason]) => _ws.close(status, reason);
+  Future<void> sinkClose([int? status, String? reason]) =>
+      _ws.close(status, reason);
 
   static Future<IStreamerChannel> defaultConnect(Uri uri) async {
     final ws = await WebSocket.connect(uri.toString());
@@ -51,15 +52,18 @@ class SchwabStreamerService {
 
   final StreamController<SchwabEquityQuoteUpdate> _equityQuoteController =
       StreamController<SchwabEquityQuoteUpdate>.broadcast();
-  Stream<SchwabEquityQuoteUpdate> get equityQuotes => _equityQuoteController.stream;
+  Stream<SchwabEquityQuoteUpdate> get equityQuotes =>
+      _equityQuoteController.stream;
 
   final StreamController<SchwabOptionQuoteUpdate> _optionQuoteController =
       StreamController<SchwabOptionQuoteUpdate>.broadcast();
-  Stream<SchwabOptionQuoteUpdate> get optionQuotes => _optionQuoteController.stream;
+  Stream<SchwabOptionQuoteUpdate> get optionQuotes =>
+      _optionQuoteController.stream;
 
   final StreamController<SchwabAccountActivity> _accountActivityController =
       StreamController<SchwabAccountActivity>.broadcast();
-  Stream<SchwabAccountActivity> get accountActivity => _accountActivityController.stream;
+  Stream<SchwabAccountActivity> get accountActivity =>
+      _accountActivityController.stream;
 
   final StreamController<SchwabChartBarUpdate> _chartBarController =
       StreamController<SchwabChartBarUpdate>.broadcast();
@@ -67,11 +71,13 @@ class SchwabStreamerService {
 
   final StreamController<SchwabFuturesQuoteUpdate> _futuresQuoteController =
       StreamController<SchwabFuturesQuoteUpdate>.broadcast();
-  Stream<SchwabFuturesQuoteUpdate> get futuresQuotes => _futuresQuoteController.stream;
+  Stream<SchwabFuturesQuoteUpdate> get futuresQuotes =>
+      _futuresQuoteController.stream;
 
   final StreamController<SchwabForexQuoteUpdate> _forexQuoteController =
       StreamController<SchwabForexQuoteUpdate>.broadcast();
-  Stream<SchwabForexQuoteUpdate> get forexQuotes => _forexQuoteController.stream;
+  Stream<SchwabForexQuoteUpdate> get forexQuotes =>
+      _forexQuoteController.stream;
 
   final StreamController<Map<String, dynamic>> _rawMessageController =
       StreamController<Map<String, dynamic>>.broadcast();
@@ -108,7 +114,8 @@ class SchwabStreamerService {
     required this.streamerInfo,
     required this.getAccessToken,
     StreamerChannelFactory? channelFactory,
-  }) : channelFactory = channelFactory ?? WebSocketStreamerChannel.defaultConnect;
+  }) : channelFactory =
+            channelFactory ?? WebSocketStreamerChannel.defaultConnect;
 
   void _setState(SchwabStreamerState newState) {
     if (_state != newState) {
@@ -177,7 +184,8 @@ class SchwabStreamerService {
     _lastHeartbeat = DateTime.now();
 
     try {
-      final String text = message is String ? message : utf8.decode(message as List<int>);
+      final String text =
+          message is String ? message : utf8.decode(message as List<int>);
       final dynamic decoded = jsonDecode(text);
 
       if (decoded is Map<String, dynamic>) {
@@ -224,7 +232,8 @@ class SchwabStreamerService {
 
     if (service == 'ADMIN' && command == 'LOGIN') {
       final code = content is Map<String, dynamic> ? content['code'] : null;
-      if (code == 0 || (content is Map<String, dynamic> && content['msg'] == 'SUCCESS')) {
+      if (code == 0 ||
+          (content is Map<String, dynamic> && content['msg'] == 'SUCCESS')) {
         _reconnectAttempts = 0;
         _setState(SchwabStreamerState.connected);
         _resubscribeAll();
@@ -248,32 +257,38 @@ class SchwabStreamerService {
       switch (service) {
         case 'LEVELONE_EQUITIES':
           if (!_equityQuoteController.isClosed) {
-            _equityQuoteController.add(SchwabEquityQuoteUpdate.fromStreamContent(item));
+            _equityQuoteController
+                .add(SchwabEquityQuoteUpdate.fromStreamContent(item));
           }
           break;
         case 'LEVELONE_OPTIONS':
           if (!_optionQuoteController.isClosed) {
-            _optionQuoteController.add(SchwabOptionQuoteUpdate.fromStreamContent(item));
+            _optionQuoteController
+                .add(SchwabOptionQuoteUpdate.fromStreamContent(item));
           }
           break;
         case 'ACCT_ACTIVITY':
           if (!_accountActivityController.isClosed) {
-            _accountActivityController.add(SchwabAccountActivity.fromStreamContent(item));
+            _accountActivityController
+                .add(SchwabAccountActivity.fromStreamContent(item));
           }
           break;
         case 'CHART_EQUITY':
           if (!_chartBarController.isClosed) {
-            _chartBarController.add(SchwabChartBarUpdate.fromStreamContent(item));
+            _chartBarController
+                .add(SchwabChartBarUpdate.fromStreamContent(item));
           }
           break;
         case 'LEVELONE_FUTURES':
           if (!_futuresQuoteController.isClosed) {
-            _futuresQuoteController.add(SchwabFuturesQuoteUpdate.fromStreamContent(item));
+            _futuresQuoteController
+                .add(SchwabFuturesQuoteUpdate.fromStreamContent(item));
           }
           break;
         case 'LEVELONE_FOREX':
           if (!_forexQuoteController.isClosed) {
-            _forexQuoteController.add(SchwabForexQuoteUpdate.fromStreamContent(item));
+            _forexQuoteController
+                .add(SchwabForexQuoteUpdate.fromStreamContent(item));
           }
           break;
       }
@@ -293,7 +308,10 @@ class SchwabStreamerService {
   // --- Subscription Management ---
 
   void subscribeEquities(List<String> symbols, {bool replace = false}) {
-    final filtered = symbols.map((s) => s.trim().toUpperCase()).where((s) => s.isNotEmpty).toList();
+    final filtered = symbols
+        .map((s) => s.trim().toUpperCase())
+        .where((s) => s.isNotEmpty)
+        .toList();
     if (filtered.isEmpty) return;
 
     if (replace) {
@@ -312,7 +330,10 @@ class SchwabStreamerService {
   }
 
   void unsubscribeEquities(List<String> symbols) {
-    final filtered = symbols.map((s) => s.trim().toUpperCase()).where((s) => s.isNotEmpty).toList();
+    final filtered = symbols
+        .map((s) => s.trim().toUpperCase())
+        .where((s) => s.isNotEmpty)
+        .toList();
     if (filtered.isEmpty) return;
 
     _subscribedEquities.removeAll(filtered);
@@ -328,7 +349,8 @@ class SchwabStreamerService {
   }
 
   void subscribeOptions(List<String> occSymbols, {bool replace = false}) {
-    final filtered = occSymbols.map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
+    final filtered =
+        occSymbols.map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
     if (filtered.isEmpty) return;
 
     if (replace) {
@@ -347,7 +369,8 @@ class SchwabStreamerService {
   }
 
   void unsubscribeOptions(List<String> occSymbols) {
-    final filtered = occSymbols.map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
+    final filtered =
+        occSymbols.map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
     if (filtered.isEmpty) return;
 
     _subscribedOptions.removeAll(filtered);
@@ -427,7 +450,10 @@ class SchwabStreamerService {
   }
 
   void subscribeFutures(List<String> symbols, {bool replace = false}) {
-    final filtered = symbols.map((s) => s.trim().toUpperCase()).where((s) => s.isNotEmpty).toList();
+    final filtered = symbols
+        .map((s) => s.trim().toUpperCase())
+        .where((s) => s.isNotEmpty)
+        .toList();
     if (filtered.isEmpty) return;
 
     if (replace) {
@@ -446,7 +472,10 @@ class SchwabStreamerService {
   }
 
   void subscribeForex(List<String> pairs, {bool replace = false}) {
-    final filtered = pairs.map((s) => s.trim().toUpperCase()).where((s) => s.isNotEmpty).toList();
+    final filtered = pairs
+        .map((s) => s.trim().toUpperCase())
+        .where((s) => s.isNotEmpty)
+        .toList();
     if (filtered.isEmpty) return;
 
     if (replace) {
@@ -546,8 +575,10 @@ class SchwabStreamerService {
     _watchdogTimer = Timer.periodic(const Duration(seconds: 15), (timer) {
       if (_state == SchwabStreamerState.connected) {
         if (_lastHeartbeat != null &&
-            DateTime.now().difference(_lastHeartbeat!) > const Duration(seconds: 60)) {
-          debugPrint('SchwabStreamer watchdog: missing heartbeat, reconnecting...');
+            DateTime.now().difference(_lastHeartbeat!) >
+                const Duration(seconds: 60)) {
+          debugPrint(
+              'SchwabStreamer watchdog: missing heartbeat, reconnecting...');
           _handleConnectionFailure();
         }
       }
@@ -572,7 +603,8 @@ class SchwabStreamerService {
     _reconnectTimer?.cancel();
     _reconnectAttempts++;
     final delaySec = min(30, pow(2, min(_reconnectAttempts, 5)).toInt());
-    debugPrint('SchwabStreamer reconnecting in $delaySec seconds (attempt $_reconnectAttempts)');
+    debugPrint(
+        'SchwabStreamer reconnecting in $delaySec seconds (attempt $_reconnectAttempts)');
 
     _reconnectTimer = Timer(Duration(seconds: delaySec), () {
       if (!_disposed && _shouldReconnect) {

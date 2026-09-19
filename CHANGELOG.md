@@ -3,10 +3,25 @@
 All notable changes to this project will be documented in this file.
 
 ## [0.48.5] - 2026-09-18
-**Autonomous Account Risk Circuit Breakers & Tilt Guardrails ([Tracking: #142](https://github.com/CIInc/robinhood-options-mobile/issues/142))**
+**Autonomous Risk Circuit Breakers, Schwab WebSocket Streamer & Synchronized Position Scrolling ([#142](https://github.com/CIInc/robinhood-options-mobile/issues/142), [#145](https://github.com/CIInc/robinhood-options-mobile/issues/145), [#7](https://github.com/CIInc/robinhood-options-mobile/issues/7))**
 
 ### Added
-- **Autonomous Risk Circuit Breakers & Tilt Guardrail Engine (`RiskCircuitBreakerService`):**
+- **Schwab Real-Time WebSocket Streamer (`SchwabStreamerService`, [#145](https://github.com/CIInc/robinhood-options-mobile/issues/145)):**
+  - Implemented high-throughput real-time streaming for Schwab via official WebSocket protocol (`wss://streamer-api.schwab.com/ws`) in `lib/services/schwab_streamer_service.dart`.
+  - Added session handshake and authentication handling via `GET /trader/v1/userPreference` with `SchwabStreamerInfo` domain model.
+  - Added real-time Level 1 equity quote streaming (`LEVELONE_EQUITIES`) with mapping to `Quote` model.
+  - Added real-time Level 1 options streaming (`LEVELONE_OPTIONS`) including Greeks (Delta, Gamma, Theta, Vega, Rho) and Implied Volatility (IV) with mapping to `OptionMarketData`.
+  - Added push notifications for account and order activity (`ACCT_ACTIVITY`) covering order executions, fills, cancellations, and margin calls.
+  - Added live 1-minute OHLCV candlestick bar streaming (`CHART_EQUITY`) for active chart widgets.
+  - Added real-time feeds for Futures (`LEVELONE_FUTURES`) and Forex currency pairs (`LEVELONE_FOREX`).
+  - Integrated connection heartbeat watchdog with ping/pong frames, request queue throttling, and automatic reconnect with exponential backoff and jitter.
+  - Added comprehensive unit test suite `test/schwab_streamer_test.dart` (14 unit tests) and documentation in `docs/schwab-integration.md`.
+- **Synchronized Horizontal Scroll Across Position Rows ([#7](https://github.com/CIInc/robinhood-options-mobile/issues/7)):**
+  - Added `SynchronizedScrollControllerGroup` and `SynchronizedDetailScrollRow` (`lib/widgets/synchronized_scroll_controller.dart`) to coordinate horizontal scrolling across all detail rows and header metrics without recursive layout loops.
+  - Synchronized position detail columns across `InstrumentPositionsWidget` (Equities), `OptionPositionsWidget` (Options), `ForexPositionsWidget` (Forex), and `FuturesPositionsWidget` (Futures).
+  - Implemented automatic scroll offset alignment for late-mounted and recycled `SliverList` items.
+  - Added unit and widget tests in `test/synchronized_scroll_controller_test.dart` (10 tests).
+- **Autonomous Risk Circuit Breakers & Tilt Guardrail Engine (`RiskCircuitBreakerService`, [#142](https://github.com/CIInc/robinhood-options-mobile/issues/142)):**
   - Added domain model `RiskCircuitBreakerConfig` and `RiskEvaluationResult` (`lib/model/risk_circuit_breaker_config.dart`) providing user-customizable risk controls:
     - Daily max dollar loss (\$250, \$500, \$1,000, \$2,500) and percentage loss limit (1%–20%).
     - Peak-to-trough portfolio drawdown tracking against dynamic high-water mark equity.
@@ -28,9 +43,26 @@ All notable changes to this project will be documented in this file.
     - Relocated `Portfolio & Social Privacy` and `Following Activity Feed` into the **Features** card under `5. Profile & Community` (adjacent to `Investment Profile`).
   - Standardized leading icon styling with `CircleAvatar` container badges across all settings entries.
 
+### Security
+- **Trade Notification Authorization Guard (`sendAgenticTradeNotification`, [#152](https://github.com/CIInc/robinhood-options-mobile/pull/152)):**
+  - Enforced caller authentication and cross-user authorization checks in `sendAgenticTradeNotification` Cloud Function to prevent unauthorized push notification triggers and cross-user notification injection.
+  - Added unit test coverage in `functions/tests/agentic-trading-notifications.test.ts`.
+
+### Performance & Optimization
+- **Technical Indicators Computational Efficiency ([#153](https://github.com/CIInc/robinhood-options-mobile/pull/153)):**
+  - Optimized `evaluateMACD`, `evaluateADX`, and `evaluateWilliamsR` in `functions/src/technical-indicators.ts` by eliminating redundant passes and array slicing when calculating previous bar values.
+
+### Accessibility
+- **Search Clear Action Tooltip ([#154](https://github.com/CIInc/robinhood-options-mobile/pull/154)):**
+  - Added accessibility tooltip to the search clear `IconButton` in `SearchWidget` for screen reader navigation and visual tooltip feedback.
+
+### Fixed
+- **Holding Period UTC Normalization:**
+  - Normalized date calculations to UTC in holding period computations (`lib/model/form_8949_model.dart`) to prevent daylight saving time shifts from distorting short-term vs. long-term holding period classifications.
+
 ### Documentation & Tests
-- Added `docs/risk-circuit-breakers.md`.
-- Added test suites: `test/risk_circuit_breaker_test.dart` (16 unit tests) and `test/risk_circuit_breaker_widget_test.dart` (6 widget tests).
+- Added `docs/risk-circuit-breakers.md` and updated `docs/schwab-integration.md`.
+- Added test suites: `test/risk_circuit_breaker_test.dart` (16 unit tests), `test/risk_circuit_breaker_widget_test.dart` (6 widget tests), `test/user_widget_settings_move_test.dart`, `test/synchronized_scroll_controller_test.dart` (10 tests), and `test/schwab_streamer_test.dart` (14 tests).
 
 ## [0.48.0] - 2026-09-18
 **Tax Optimization, Wash Sale Detection & Capital Gains Suite ([Tracking: #114](https://github.com/CIInc/robinhood-options-mobile/issues/114))**

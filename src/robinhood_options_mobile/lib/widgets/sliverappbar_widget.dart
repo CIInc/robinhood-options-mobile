@@ -257,7 +257,7 @@ class ExpandedSliverAppBar extends StatelessWidget {
                                               : FontWeight.normal),
                                     ),
                                     subtitle: Text(
-                                      "${account.displayType}${account.portfolioCash != null ? " • ${showBalances ? formatCurrency.format(account.portfolioCash) : '\$••••••'}" : ""}",
+                                      "${account.displayType}${(account.totalValue ?? account.portfolioCash) != null ? " • ${showBalances ? formatCurrency.format(account.totalValue ?? account.portfolioCash) : '\$••••••'}" : ""}",
                                       style: const TextStyle(fontSize: 11),
                                     ),
                                     trailing: isSelectedAccount

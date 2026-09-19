@@ -13,7 +13,8 @@ import 'package:robinhood_options_mobile/services/schwab_service.dart';
 import 'package:robinhood_options_mobile/services/schwab_streamer_service.dart';
 
 class MockStreamerChannel implements IStreamerChannel {
-  final StreamController<dynamic> _controller = StreamController<dynamic>.broadcast();
+  final StreamController<dynamic> _controller =
+      StreamController<dynamic>.broadcast();
   final List<String> sentMessages = [];
   bool isClosed = false;
 
@@ -93,23 +94,25 @@ void main() {
       expect(info.schwabClientFunctionId, 'MOBILE');
     });
 
-    test('SchwabEquityQuoteUpdate parses Level 1 equities packet and Quote merges delta', () {
+    test(
+        'SchwabEquityQuoteUpdate parses Level 1 equities packet and Quote merges delta',
+        () {
       final equityPacket = {
         'key': 'NVDA',
         '1': 118.50, // bid
         '2': 118.55, // ask
         '3': 118.52, // last
-        '4': 200,    // bidSize
-        '5': 300,    // askSize
+        '4': 200, // bidSize
+        '5': 300, // askSize
         '8': 45000000, // volume
-        '9': 100,    // lastSize
+        '9': 100, // lastSize
         '10': 120.00, // high
         '11': 116.50, // low
         '12': 117.00, // close
-        '14': 1.52,  // netChange
-        '15': 1.30,  // percentChange
+        '14': 1.52, // netChange
+        '15': 1.30, // percentChange
         '24': 140.76, // 52wHigh
-        '25': 40.50,  // 52wLow
+        '25': 40.50, // 52wLow
         '28': 117.20, // open
         '50': 1726000000000, // quoteTime
       };
@@ -135,7 +138,8 @@ void main() {
         instrumentId: 'NVDA_CUSIP',
       );
 
-      final mergedQuote = Quote.fromSchwabStreamer(equityPacket, existing: initialQuote);
+      final mergedQuote =
+          Quote.fromSchwabStreamer(equityPacket, existing: initialQuote);
       expect(mergedQuote.symbol, 'NVDA');
       expect(mergedQuote.bidPrice, 118.50);
       expect(mergedQuote.askPrice, 118.55);
@@ -145,15 +149,17 @@ void main() {
       expect(mergedQuote.changeToday, closeTo(1.52, 0.01));
     });
 
-    test('SchwabOptionQuoteUpdate parses Level 1 options with Greeks and merges into OptionMarketData', () {
+    test(
+        'SchwabOptionQuoteUpdate parses Level 1 options with Greeks and merges into OptionMarketData',
+        () {
       final optionPacket = {
         'key': 'AAPL  241018C00230000',
         '1': 'AAPL Oct 18 2024 230 Call',
-        '2': 3.45,  // bid
-        '3': 3.55,  // ask
-        '4': 3.50,  // last
-        '7': 1250,  // volume
-        '8': 8900,  // openInterest
+        '2': 3.45, // bid
+        '3': 3.55, // ask
+        '4': 3.50, // last
+        '7': 1250, // volume
+        '8': 8900, // openInterest
         '9': 0.285, // IV
         '16': 0.42, // delta
         '17': 0.035, // gamma
@@ -189,7 +195,9 @@ void main() {
       expect(merged.volume, 1250);
     });
 
-    test('SchwabAccountActivity parses order fill and cancellation notifications', () {
+    test(
+        'SchwabAccountActivity parses order fill and cancellation notifications',
+        () {
       final fillPacket = {
         'subscriptionKey': 'SUB-12345',
         'accountNumber': '987654321',
@@ -243,7 +251,8 @@ void main() {
         '9': 5630.00,
         '10': 5645.00,
       };
-      final futuresUpdate = SchwabFuturesQuoteUpdate.fromStreamContent(futuresPacket);
+      final futuresUpdate =
+          SchwabFuturesQuoteUpdate.fromStreamContent(futuresPacket);
       expect(futuresUpdate.symbol, '/ES');
       expect(futuresUpdate.lastPrice, 5650.50);
       expect(futuresUpdate.highPrice, 5670.00);
@@ -305,9 +314,11 @@ void main() {
       expect(loginReq['requests'][0]['command'], 'LOGIN');
       expect(loginReq['requests'][0]['SchwabClientCustomerId'], 'CUST-001');
       expect(loginReq['requests'][0]['SchwabClientCorrelId'], 'CORREL-002');
-      expect(loginReq['requests'][0]['parameters']['Authorization'], 'mock_access_token_xyz');
+      expect(loginReq['requests'][0]['parameters']['Authorization'],
+          'mock_access_token_xyz');
       expect(loginReq['requests'][0]['parameters']['SchwabClientChannel'], '1');
-      expect(loginReq['requests'][0]['parameters']['SchwabClientFunctionId'], 'MOBILE_APP');
+      expect(loginReq['requests'][0]['parameters']['SchwabClientFunctionId'],
+          'MOBILE_APP');
 
       // Simulate successful LOGIN response
       mockChannel.simulateMessage({
@@ -331,7 +342,8 @@ void main() {
       expect(states, contains(SchwabStreamerState.connected));
     });
 
-    test('Subscribing and receiving LEVELONE_EQUITIES streaming quotes', () async {
+    test('Subscribing and receiving LEVELONE_EQUITIES streaming quotes',
+        () async {
       await streamerService.connect();
 
       // Complete login
@@ -414,7 +426,8 @@ void main() {
       streamerService.optionQuotes.listen(optionUpdates.add);
 
       streamerService.subscribeOptions(['AAPL  241018C00220000']);
-      expect(streamerService.subscribedOptions, contains('AAPL  241018C00220000'));
+      expect(
+          streamerService.subscribedOptions, contains('AAPL  241018C00220000'));
 
       mockChannel.simulateMessage({
         'data': [
@@ -472,7 +485,11 @@ void main() {
                 'subscriptionKey': 'SUB-999',
                 'accountNumber': 'ACCT-123456',
                 'messageType': 'OrderFill',
-                'messageData': {'symbol': 'NVDA', 'filled': 10, 'price': 118.50},
+                'messageData': {
+                  'symbol': 'NVDA',
+                  'filled': 10,
+                  'price': 118.50
+                },
               }
             ]
           }
@@ -539,15 +556,19 @@ void main() {
           .map((m) => jsonDecode(m)['requests'][0]['service'] as String)
           .toSet();
 
-      expect(sentServices, containsAll([
-        'LEVELONE_EQUITIES',
-        'LEVELONE_OPTIONS',
-        'ACCT_ACTIVITY',
-        'CHART_EQUITY',
-      ]));
+      expect(
+          sentServices,
+          containsAll([
+            'LEVELONE_EQUITIES',
+            'LEVELONE_OPTIONS',
+            'ACCT_ACTIVITY',
+            'CHART_EQUITY',
+          ]));
     });
 
-    test('SchwabService createStreamer integration helper initializes correctly', () {
+    test(
+        'SchwabService createStreamer integration helper initializes correctly',
+        () {
       final schwabService = SchwabService();
       final creds = oauth2.Credentials('token-abc-123');
       final client = oauth2.Client(creds);

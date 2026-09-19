@@ -19,6 +19,7 @@ class Account {
   final DateTime? markedPatternDayTraderDate;
   final DateTime? patternDayTraderExpiryDate;
   final bool isPdtForever;
+  final double? totalValue;
 
   Account(
       // this.userId,
@@ -38,7 +39,8 @@ class Account {
       this.dayTradeRatio,
       this.markedPatternDayTraderDate,
       this.patternDayTraderExpiryDate,
-      this.isPdtForever = false});
+      this.isPdtForever = false,
+      this.totalValue});
 
   bool get isTraditionalIra =>
       (brokerageAccountType?.toLowerCase().contains('ira_traditional') ??
@@ -121,7 +123,10 @@ class Account {
         isPdtForever = json['margin_balances'] != null &&
                 json['margin_balances']['is_pdt_forever'] != null
             ? json['margin_balances']['is_pdt_forever'] == true
-            : (json['is_pdt_forever'] ?? false);
+            : (json['is_pdt_forever'] ?? false),
+        totalValue = parseDouble(json['total_value'] ??
+            json['account_value'] ??
+            json['liquidation_value']);
 
   Account.fromSchwabJson(dynamic json) //, BrokerageUser user
       : // userId = user.id,
@@ -143,6 +148,19 @@ class Account {
             ? parseDouble(
                 json['securitiesAccount']['currentBalances']['buyingPower'])
             : null,
+        totalValue = json['securitiesAccount']?['currentBalances'] != null
+            ? parseDouble(json['securitiesAccount']['currentBalances']
+                ['liquidationValue'])
+            : (json['aggregatedBalance'] != null
+                ? parseDouble(json['aggregatedBalance']
+                        ['currentLiquidationValue'] ??
+                    json['aggregatedBalance']['liquidationValue'])
+                : (json['securitiesAccount']?['initialBalances'] != null
+                    ? parseDouble(json['securitiesAccount']['initialBalances']
+                            ['liquidationValue'] ??
+                        json['securitiesAccount']['initialBalances']
+                            ['accountValue'])
+                    : null)),
         optionLevel =
             '', // TODO: From getUser() /userprincipals/. Use .authorizations.optionTradingLevel
         cashHeldForOptionsCollateral = 0.0,
@@ -150,11 +168,15 @@ class Account {
         settledAmountBorrowed = 0.0,
         isAgentic = false,
         dayTradesProtection = true,
-        dayTradeBuyingPower = null,
+        dayTradeBuyingPower =
+            json['securitiesAccount']?['currentBalances'] != null
+                ? parseDouble(json['securitiesAccount']['currentBalances']
+                    ['dayTradingBuyingPower'])
+                : null,
         dayTradeRatio = null,
         markedPatternDayTraderDate = null,
         patternDayTraderExpiryDate = null,
-        isPdtForever = false; // TODO
+        isPdtForever = false;
 
   Account.fromPlaidJson(dynamic json) //, BrokerageUser user
       : // userId = user.id,
@@ -165,6 +187,7 @@ class Account {
         brokerageAccountType =
             json['accounts'][0]['subtype']?.toString() ?? 'individual',
         buyingPower = parseDouble(json['accounts'][0]['balances']['current']),
+        totalValue = parseDouble(json['accounts'][0]['balances']['current']),
         optionLevel =
             '', // TODO: From getUser() /userprincipals/. Use .authorizations.optionTradingLevel
         cashHeldForOptionsCollateral = 0.0,
@@ -187,6 +210,7 @@ class Account {
       'type': type,
       'brokerage_account_type': brokerageAccountType,
       'buying_power': buyingPower,
+      'total_value': totalValue,
       'option_level': optionLevel,
       'cash_held_for_options_collateral': cashHeldForOptionsCollateral,
       'unsettled_debit': unsettledDebit,

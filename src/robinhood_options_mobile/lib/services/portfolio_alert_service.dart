@@ -50,8 +50,8 @@ class PortfolioAlertService {
   }) {
     final alerts = <PortfolioAlert>[];
 
-    alerts.addAll(_circuitBreakerAlerts(
-        riskCircuitBreakerConfig, dayPnL, dayPnLPercent));
+    alerts.addAll(
+        _circuitBreakerAlerts(riskCircuitBreakerConfig, dayPnL, dayPnLPercent));
     alerts.addAll(
         _marginHealthAlerts(account, unifiedAccount, totalEquity, marginCalls));
     alerts.addAll(_pdtAlerts(account, totalEquity, dayTradeSummary));
@@ -113,7 +113,8 @@ class PortfolioAlertService {
             id: 'risk-circuit-breaker-near-daily-loss',
             severity: PortfolioAlertSeverity.warning,
             icon: Icons.warning_amber_rounded,
-            title: 'Approaching Daily Loss Limit (${(ratio * 100).toStringAsFixed(0)}%)',
+            title:
+                'Approaching Daily Loss Limit (${(ratio * 100).toStringAsFixed(0)}%)',
             detail:
                 'Current day loss of -\$${loss.toStringAsFixed(2)} is near your \$${config.maxDailyLossAmount!.toStringAsFixed(2)} circuit breaker threshold.',
             metric: '-\$${loss.toStringAsFixed(0)}',

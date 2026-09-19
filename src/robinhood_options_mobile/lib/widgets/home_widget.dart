@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math';
+import 'package:collection/collection.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/foundation.dart';
@@ -501,6 +502,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
       sumOrZero(accounts.map((e) => e.cashHeldForOptionsCollateral)),
       sumOrZero(accounts.map((e) => e.unsettledDebit)),
       sumOrZero(accounts.map((e) => e.settledAmountBorrowed)),
+      totalValue: sumOrZero(accounts.map((e) => e.totalValue)),
     );
   }
 
@@ -1008,8 +1010,18 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
     double? portfolioValue;
     if (data.portfolios.isNotEmpty) {
       portfolioValue = data.portfolios
-          .map((p) => (p.marketValue ?? p.equity ?? 0.0))
+          .map((p) => (p.equity ?? p.marketValue ?? 0.0))
           .fold<double>(0.0, (sum, value) => sum + value);
+    }
+
+    if ((portfolioValue == null || portfolioValue == 0) &&
+        data.accounts.isNotEmpty) {
+      final accountTotal = data.accounts
+          .map((a) => (a.totalValue ?? 0.0))
+          .fold<double>(0.0, (sum, value) => sum + value);
+      if (accountTotal > 0) {
+        portfolioValue = accountTotal;
+      }
     }
 
     final stockValue = data.stockPositions
@@ -1417,6 +1429,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
     final selectedNo = _accountStore?.selectedAccountNumber;
     if (_lastSelectedAccountNumber == selectedNo) return;
     _lastSelectedAccountNumber = selectedNo;
+    setState(() {
+      account = _isAggregateMode() ? null : _accountStore?.selectedAccount;
+    });
     _scheduleDependencyReload();
   }
 
@@ -1547,7 +1562,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
   }
 
   Widget _buildScaffold() {
-    final accountStore = Provider.of<AccountStore>(context, listen: false);
+    final accountStore = Provider.of<AccountStore>(context);
     bool isSessionExpired = false;
     if (widget.brokerageUser?.source == BrokerageSource.robinhood) {
       isSessionExpired =
@@ -1634,13 +1649,24 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
             return PrimaryScrollController(
               controller: _scrollController,
               child: _buildPage(context,
-                  //ru: snapshotUser,
+                  userInfo: widget.userInfo,
+                  account: account ??
+                      (_isAggregateMode()
+                          ? null
+                          : accountStore.selectedAccount),
                   welcomeWidget: Text("${dataSnapshot.error}"),
                   done: dataSnapshot.connectionState == ConnectionState.done),
             );
           } else {
             return PrimaryScrollController(
-                controller: _scrollController, child: _buildPage(context));
+                controller: _scrollController,
+                child: _buildPage(context,
+                    userInfo: widget.userInfo,
+                    account: account ??
+                        (_isAggregateMode()
+                            ? null
+                            : accountStore.selectedAccount),
+                    done: false));
           }
         },
       ),
@@ -1750,6 +1776,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                 ),
               ),
             ),
+          ] else if (!isAggregateMode) ...[
+            SliverToBoxAdapter(
+              child: _buildAccountBanner(context, account),
+            ),
           ],
           // "What happened?" — benchmark delta, dry powder, and cash weight
           // sit directly under the value and chart so the first screen answers
@@ -1759,7 +1789,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
               future: futureBenchmarkComparison,
               builder: (context, snapshot) => PortfolioHeroStatsWidget(
                 account: account,
-                totalEquity: _totalEquity(context),
+                totalEquity: _totalEquity(context, account: account),
                 benchmark: snapshot.data,
                 onBenchmarkTap: () => PortfolioNavigator.openSection(
                   context,
@@ -2022,21 +2052,29 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
   /// Total account equity, used to express cash and position weights.
   double? _totalEquity(BuildContext context, {Account? account}) {
     final portfolioStore = Provider.of<PortfolioStore>(context, listen: false);
-    if (portfolioStore.items.isEmpty) return null;
 
-    // In single-account mode, scope to the selected account's portfolio.
-    if (!_isAggregateMode() && account != null) {
-      final match = portfolioStore.items.cast<Portfolio?>().firstWhere(
+    // In single-account mode, scope strictly to the selected account.
+    if (!_isAggregateMode()) {
+      final accountStore = Provider.of<AccountStore>(context, listen: false);
+      final target = account ?? accountStore.selectedAccount;
+      if (target != null) {
+        if (portfolioStore.items.isNotEmpty) {
+          final match = portfolioStore.items.firstWhereOrNull(
             (p) =>
-                p!.account == account.accountNumber ||
-                p.account == account.url ||
-                (account.accountNumber.isNotEmpty &&
-                    p.account.contains(account.accountNumber)),
-            orElse: () => null,
+                p.account == target.accountNumber ||
+                p.account == target.url ||
+                (target.accountNumber.isNotEmpty &&
+                    p.account.contains(target.accountNumber)),
           );
-      if (match != null && (match.equity ?? 0) > 0) return match.equity;
+          if (match != null && (match.equity ?? 0) > 0) return match.equity;
+        }
+        if ((target.totalValue ?? 0) > 0) return target.totalValue;
+        if ((target.portfolioCash ?? 0) > 0) return target.portfolioCash;
+      }
+      return null;
     }
 
+    if (portfolioStore.items.isEmpty) return null;
     final equity = portfolioStore.items
         .fold<double>(0, (sum, portfolio) => sum + (portfolio.equity ?? 0));
     return equity > 0 ? equity : null;
@@ -2260,6 +2298,214 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                       fontWeight: FontWeight.w600,
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAccountBanner(BuildContext context, Account? account) {
+    final accountStore = Provider.of<AccountStore>(context);
+    final portfolioStore = Provider.of<PortfolioStore>(context);
+    final showBalances = accountStore.showBalances;
+
+    final targetAccount =
+        account ?? (_isAggregateMode() ? null : accountStore.selectedAccount);
+
+    final portfolio = portfolioStore.items.firstWhereOrNull(
+      (p) =>
+          targetAccount != null &&
+          (p.account == targetAccount.accountNumber ||
+              p.account == targetAccount.url ||
+              (targetAccount.accountNumber.isNotEmpty &&
+                  p.account.contains(targetAccount.accountNumber))),
+    );
+
+    final totalValue = portfolio?.equity ??
+        targetAccount?.totalValue ??
+        _totalEquity(context, account: targetAccount) ??
+        targetAccount?.portfolioCash ??
+        0.0;
+
+    double? changeToday;
+    double? changePercentToday;
+
+    if (portfolio != null &&
+        portfolio.equityPreviousClose != null &&
+        portfolio.equityPreviousClose! > 0 &&
+        portfolio.equity != null) {
+      final prevClose = portfolio.equityPreviousClose!;
+      final diff = portfolio.equity! - prevClose;
+      changeToday = diff;
+      changePercentToday = diff / prevClose;
+    } else {
+      // Fall back to sum of positions' today returns if available
+      final stockStore =
+          Provider.of<InstrumentPositionStore>(context, listen: false);
+      final optionStore =
+          Provider.of<OptionPositionStore>(context, listen: false);
+      final stocks = stockStore.items
+          .where((p) => _matchesAccount(p.account, targetAccount));
+      final options = optionStore.items
+          .where((p) => _matchesAccount(p.account, targetAccount));
+      double sumToday = 0.0;
+      bool hasToday = false;
+      for (final s in stocks) {
+        if (s.gainLossToday != null) {
+          sumToday += s.gainLossToday!;
+          hasToday = true;
+        }
+      }
+      for (final o in options) {
+        if (o.changeToday != 0) {
+          sumToday += o.changeToday;
+          hasToday = true;
+        }
+      }
+      if (hasToday && totalValue > 0) {
+        changeToday = sumToday;
+        final base = totalValue - sumToday;
+        if (base > 0) {
+          changePercentToday = sumToday / base;
+        }
+      }
+    }
+
+    final theme = Theme.of(context);
+    final primary = theme.colorScheme.primary;
+    final onSurface = theme.colorScheme.onSurface;
+    final onSurfaceVariant = theme.colorScheme.onSurfaceVariant;
+
+    final isPositive = (changeToday ?? 0) >= 0;
+    final changeColor = changeToday == null
+        ? onSurfaceVariant
+        : (isPositive ? Colors.green : Colors.red);
+
+    final sourceName = widget.brokerageUser?.source != null
+        ? _brokerLabel(widget.brokerageUser!.source)
+        : 'Brokerage';
+    final accountType = targetAccount?.displayType ?? 'Individual';
+    final accountNum = targetAccount?.accountNumber.isNotEmpty == true
+        ? ' • Acct ${targetAccount!.accountNumber}'
+        : '';
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              primary.withValues(alpha: 0.15),
+              theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: primary.withValues(alpha: 0.2),
+            width: 1.5,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'PORTFOLIO VALUE',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1.1,
+                        color: onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      showBalances
+                          ? formatCurrency.format(totalValue)
+                          : '\$••••••',
+                      style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.w900,
+                        color: onSurface,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                  ],
+                ),
+                IconButton(
+                  icon: Icon(
+                    showBalances
+                        ? Icons.visibility_outlined
+                        : Icons.visibility_off_outlined,
+                    color: primary,
+                    size: 22,
+                  ),
+                  onPressed: () => accountStore.toggleShowBalances(),
+                ),
+              ],
+            ),
+            if (changeToday != null && showBalances) ...[
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  Icon(
+                    isPositive ? Icons.arrow_drop_up : Icons.arrow_drop_down,
+                    color: changeColor,
+                    size: 20,
+                  ),
+                  Text(
+                    '${isPositive ? '+' : ''}${formatCurrency.format(changeToday)}${changePercentToday != null ? ' (${isPositive ? '+' : ''}${formatPercentage.format(changePercentToday)})' : ''} Today',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: changeColor,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: primary.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    sourceName,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: primary,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    '$accountType$accountNum',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: onSurfaceVariant,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],

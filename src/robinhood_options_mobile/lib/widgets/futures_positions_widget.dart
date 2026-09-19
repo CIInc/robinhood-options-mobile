@@ -716,186 +716,185 @@ class _FuturesPositionsWidgetState extends State<FuturesPositionsWidget> {
                                 padding:
                                     const EdgeInsets.symmetric(horizontal: 5),
                                 child: Row(
-                                    children: [
-                                      if (avg > 0)
-                                        Padding(
-                                          padding: const EdgeInsets.all(
-                                              summaryEgdeInset),
-                                          child: Column(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              PnlBadge(
-                                                  text: formatCurrency
-                                                      .format(avg),
-                                                  neutral: true),
-                                              const SizedBox(height: 4),
-                                              const Text("Cost",
-                                                  style: TextStyle(
-                                                      fontSize:
-                                                          summaryLabelFontSize)),
-                                            ],
-                                          ),
+                                  children: [
+                                    if (avg > 0)
+                                      Padding(
+                                        padding: const EdgeInsets.all(
+                                            summaryEgdeInset),
+                                        child: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            PnlBadge(
+                                                text:
+                                                    formatCurrency.format(avg),
+                                                neutral: true),
+                                            const SizedBox(height: 4),
+                                            const Text("Cost",
+                                                style: TextStyle(
+                                                    fontSize:
+                                                        summaryLabelFontSize)),
+                                          ],
                                         ),
-                                      if (dayPnl != null)
-                                        Padding(
-                                          padding: const EdgeInsets.all(
-                                              summaryEgdeInset),
-                                          child: Column(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              PnlBadge(
-                                                  text: formatCurrency
-                                                      .format(dayPnl),
-                                                  value: dayPnl),
-                                              const SizedBox(height: 4),
-                                              const Text("Day P&L",
-                                                  style: TextStyle(
-                                                      fontSize:
-                                                          summaryLabelFontSize)),
-                                            ],
-                                          ),
-                                        ),
-                                      if (realizedPnl != null &&
-                                          realizedPnl != 0)
-                                        Padding(
-                                          padding: const EdgeInsets.all(
-                                              summaryEgdeInset),
-                                          child: Column(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              PnlBadge(
-                                                  text: formatCurrency
-                                                      .format(realizedPnl),
-                                                  value: realizedPnl),
-                                              const SizedBox(height: 4),
-                                              const Text("Realized",
-                                                  style: TextStyle(
-                                                      fontSize:
-                                                          summaryLabelFontSize)),
-                                            ],
-                                          ),
-                                        ),
-                                      if (openPnl != null)
-                                        Padding(
-                                          padding: const EdgeInsets.all(
-                                              summaryEgdeInset),
-                                          child: Column(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              PnlBadge(
-                                                  text: formatCurrency
-                                                      .format(openPnl),
-                                                  value: openPnl),
-                                              const SizedBox(height: 4),
-                                              const Text("Open P&L",
-                                                  style: TextStyle(
-                                                      fontSize:
-                                                          summaryLabelFontSize)),
-                                            ],
-                                          ),
-                                        ),
-                                      if (totalCost != null)
-                                        Padding(
-                                          padding: const EdgeInsets.all(
-                                              summaryEgdeInset),
-                                          child: Column(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              PnlBadge(
-                                                  text: formatCurrency
-                                                      .format(totalCost),
-                                                  neutral: true),
-                                              const SizedBox(height: 4),
-                                              const Text("Total Cost",
-                                                  style: TextStyle(
-                                                      fontSize:
-                                                          summaryLabelFontSize)),
-                                            ],
-                                          ),
-                                        ),
-                                      if (notionalValue != null)
-                                        Padding(
-                                          padding: const EdgeInsets.all(
-                                              summaryEgdeInset),
-                                          child: Column(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              PnlBadge(
-                                                  text: formatCurrency
-                                                      .format(notionalValue),
-                                                  neutral: true),
-                                              const SizedBox(height: 4),
-                                              const Text("Notional",
-                                                  style: TextStyle(
-                                                      fontSize:
-                                                          summaryLabelFontSize)),
-                                            ],
-                                          ),
-                                        ),
-                                      if (marginRequirement != null)
-                                        Padding(
-                                          padding: const EdgeInsets.all(
-                                              summaryEgdeInset),
-                                          child: Column(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              PnlBadge(
+                                      ),
+                                    if (dayPnl != null)
+                                      Padding(
+                                        padding: const EdgeInsets.all(
+                                            summaryEgdeInset),
+                                        child: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            PnlBadge(
                                                 text: formatCurrency
-                                                    .format(marginRequirement),
-                                                neutral: true,
-                                              ),
-                                              const SizedBox(height: 4),
-                                              const Text("Margin Requirement",
-                                                  style: TextStyle(
-                                                      fontSize:
-                                                          summaryLabelFontSize)),
-                                            ],
-                                          ),
+                                                    .format(dayPnl),
+                                                value: dayPnl),
+                                            const SizedBox(height: 4),
+                                            const Text("Day P&L",
+                                                style: TextStyle(
+                                                    fontSize:
+                                                        summaryLabelFontSize)),
+                                          ],
                                         ),
-                                      if (multiplier != null)
-                                        Padding(
-                                          padding: const EdgeInsets.all(
-                                              summaryEgdeInset),
-                                          child: Column(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              PnlBadge(
-                                                  text:
-                                                      '${multiplier.toStringAsFixed(0)}x',
-                                                  neutral: true),
-                                              const SizedBox(height: 4),
-                                              const Text("Multiplier",
-                                                  style: TextStyle(
-                                                      fontSize:
-                                                          summaryLabelFontSize)),
-                                            ],
-                                          ),
+                                      ),
+                                    if (realizedPnl != null && realizedPnl != 0)
+                                      Padding(
+                                        padding: const EdgeInsets.all(
+                                            summaryEgdeInset),
+                                        child: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            PnlBadge(
+                                                text: formatCurrency
+                                                    .format(realizedPnl),
+                                                value: realizedPnl),
+                                            const SizedBox(height: 4),
+                                            const Text("Realized",
+                                                style: TextStyle(
+                                                    fontSize:
+                                                        summaryLabelFontSize)),
+                                          ],
                                         ),
-                                      if (previousClosePrice != null)
-                                        Padding(
-                                          padding: const EdgeInsets.all(
-                                              summaryEgdeInset),
-                                          child: Column(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              PnlBadge(
-                                                  text: formatCurrency.format(
-                                                      previousClosePrice),
-                                                  neutral: true),
-                                              const SizedBox(height: 4),
-                                               const Text("Prev Close",
-                                                   style: TextStyle(
-                                                       fontSize:
-                                                           summaryLabelFontSize)),
-                                             ],
-                                           ),
-                                         ),
-                                     ],
-                                   ),
-                                 ),
-                           ],
-                         ),
-                       );
+                                      ),
+                                    if (openPnl != null)
+                                      Padding(
+                                        padding: const EdgeInsets.all(
+                                            summaryEgdeInset),
+                                        child: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            PnlBadge(
+                                                text: formatCurrency
+                                                    .format(openPnl),
+                                                value: openPnl),
+                                            const SizedBox(height: 4),
+                                            const Text("Open P&L",
+                                                style: TextStyle(
+                                                    fontSize:
+                                                        summaryLabelFontSize)),
+                                          ],
+                                        ),
+                                      ),
+                                    if (totalCost != null)
+                                      Padding(
+                                        padding: const EdgeInsets.all(
+                                            summaryEgdeInset),
+                                        child: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            PnlBadge(
+                                                text: formatCurrency
+                                                    .format(totalCost),
+                                                neutral: true),
+                                            const SizedBox(height: 4),
+                                            const Text("Total Cost",
+                                                style: TextStyle(
+                                                    fontSize:
+                                                        summaryLabelFontSize)),
+                                          ],
+                                        ),
+                                      ),
+                                    if (notionalValue != null)
+                                      Padding(
+                                        padding: const EdgeInsets.all(
+                                            summaryEgdeInset),
+                                        child: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            PnlBadge(
+                                                text: formatCurrency
+                                                    .format(notionalValue),
+                                                neutral: true),
+                                            const SizedBox(height: 4),
+                                            const Text("Notional",
+                                                style: TextStyle(
+                                                    fontSize:
+                                                        summaryLabelFontSize)),
+                                          ],
+                                        ),
+                                      ),
+                                    if (marginRequirement != null)
+                                      Padding(
+                                        padding: const EdgeInsets.all(
+                                            summaryEgdeInset),
+                                        child: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            PnlBadge(
+                                              text: formatCurrency
+                                                  .format(marginRequirement),
+                                              neutral: true,
+                                            ),
+                                            const SizedBox(height: 4),
+                                            const Text("Margin Requirement",
+                                                style: TextStyle(
+                                                    fontSize:
+                                                        summaryLabelFontSize)),
+                                          ],
+                                        ),
+                                      ),
+                                    if (multiplier != null)
+                                      Padding(
+                                        padding: const EdgeInsets.all(
+                                            summaryEgdeInset),
+                                        child: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            PnlBadge(
+                                                text:
+                                                    '${multiplier.toStringAsFixed(0)}x',
+                                                neutral: true),
+                                            const SizedBox(height: 4),
+                                            const Text("Multiplier",
+                                                style: TextStyle(
+                                                    fontSize:
+                                                        summaryLabelFontSize)),
+                                          ],
+                                        ),
+                                      ),
+                                    if (previousClosePrice != null)
+                                      Padding(
+                                        padding: const EdgeInsets.all(
+                                            summaryEgdeInset),
+                                        child: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            PnlBadge(
+                                                text: formatCurrency
+                                                    .format(previousClosePrice),
+                                                neutral: true),
+                                            const SizedBox(height: 4),
+                                            const Text("Prev Close",
+                                                style: TextStyle(
+                                                    fontSize:
+                                                        summaryLabelFontSize)),
+                                          ],
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                          ],
+                        ),
+                      );
                     }).toList(),
                   ),
               ],

@@ -86,8 +86,8 @@ class SynchronizedScrollControllerGroup {
           position.minScrollExtent,
           position.maxScrollExtent,
         );
-        futures.add(
-            position.animateTo(clamped, duration: duration, curve: curve));
+        futures
+            .add(position.animateTo(clamped, duration: duration, curve: curve));
       }
     }
     await Future.wait(futures);

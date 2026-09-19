@@ -145,7 +145,8 @@ class _RiskCircuitBreakerSettingsWidgetState
 
   void _simulateTrip() {
     _service.tripManually(
-      reason: 'Simulation: Daily loss threshold exceeded. Mandatory 2-minute cooling off.',
+      reason:
+          'Simulation: Daily loss threshold exceeded. Mandatory 2-minute cooling off.',
       durationMinutes: 2,
     );
     setState(() {
@@ -219,28 +220,33 @@ class _RiskCircuitBreakerSettingsWidgetState
       textColor = colorScheme.onSurfaceVariant;
       icon = Icons.shield_outlined;
       statusTitle = 'Guardrails Inactive';
-      statusSubtitle = 'Enable circuit breakers below to guard capital against tilt and catastrophic drawdown.';
+      statusSubtitle =
+          'Enable circuit breakers below to guard capital against tilt and catastrophic drawdown.';
     } else if (isCoolingOff) {
       cardColor = colorScheme.errorContainer;
       textColor = colorScheme.onErrorContainer;
       icon = Icons.lock_clock;
       final minutes = remaining?.inMinutes ?? 0;
       final seconds = (remaining?.inSeconds ?? 0) % 60;
-      final timeStr = '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+      final timeStr =
+          '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
       statusTitle = 'Cooling Off Active ($timeStr)';
-      statusSubtitle = _config.tripReason ?? 'Trading orders temporarily suspended to prevent emotional trading.';
+      statusSubtitle = _config.tripReason ??
+          'Trading orders temporarily suspended to prevent emotional trading.';
     } else if (isBlocked) {
       cardColor = colorScheme.errorContainer;
       textColor = colorScheme.onErrorContainer;
       icon = Icons.block;
       statusTitle = 'Circuit Breaker Tripped';
-      statusSubtitle = _config.tripReason ?? 'Trading execution suspended by risk guardrail.';
+      statusSubtitle = _config.tripReason ??
+          'Trading execution suspended by risk guardrail.';
     } else {
       cardColor = colorScheme.primaryContainer;
       textColor = colorScheme.onPrimaryContainer;
       icon = Icons.shield;
       statusTitle = 'Guarded & Active';
-      statusSubtitle = 'Autonomous circuit breakers are monitoring daily loss, drawdown, and margin health.';
+      statusSubtitle =
+          'Autonomous circuit breakers are monitoring daily loss, drawdown, and margin health.';
     }
 
     return Card(
@@ -364,7 +370,8 @@ class _RiskCircuitBreakerSettingsWidgetState
             const SizedBox(height: 16),
             TextField(
               controller: _dollarLossController,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
               decoration: InputDecoration(
                 labelText: 'Max Dollar Loss (\$)',
                 hintText: 'e.g. 500',
@@ -393,7 +400,8 @@ class _RiskCircuitBreakerSettingsWidgetState
                   selected: isSelected,
                   onSelected: (selected) {
                     final newAmt = selected ? amt : null;
-                    _dollarLossController.text = newAmt != null ? newAmt.toStringAsFixed(0) : '';
+                    _dollarLossController.text =
+                        newAmt != null ? newAmt.toStringAsFixed(0) : '';
                     _saveConfig(_config.copyWith(maxDailyLossAmount: newAmt));
                   },
                 );
@@ -488,7 +496,8 @@ class _RiskCircuitBreakerSettingsWidgetState
               const SizedBox(height: 4),
               Text(
                 'Recorded Peak High-Water Mark: \$${_config.peakPortfolioEquity!.toStringAsFixed(2)}',
-                style: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant),
+                style: TextStyle(
+                    fontSize: 12, color: colorScheme.onSurfaceVariant),
               ),
             ],
           ],
@@ -511,7 +520,8 @@ class _RiskCircuitBreakerSettingsWidgetState
           children: [
             Row(
               children: [
-                Icon(Icons.sentiment_very_dissatisfied, color: colorScheme.primary),
+                Icon(Icons.sentiment_very_dissatisfied,
+                    color: colorScheme.primary),
                 const SizedBox(width: 8),
                 const Text(
                   'Consecutive Loss Lockout',
@@ -532,11 +542,13 @@ class _RiskCircuitBreakerSettingsWidgetState
                     ? _config.maxConsecutiveLosses == null
                     : _config.maxConsecutiveLosses == lossCount;
                 return ChoiceChip(
-                  label: Text(lossCount == 0 ? 'Disabled' : '$lossCount Trades'),
+                  label:
+                      Text(lossCount == 0 ? 'Disabled' : '$lossCount Trades'),
                   selected: isSelected,
                   onSelected: (selected) {
                     final newCount = lossCount == 0 ? null : lossCount;
-                    _saveConfig(_config.copyWith(maxConsecutiveLosses: newCount));
+                    _saveConfig(
+                        _config.copyWith(maxConsecutiveLosses: newCount));
                   },
                 );
               }).toList(),
@@ -652,7 +664,8 @@ class _RiskCircuitBreakerSettingsWidgetState
                   selected: isSelected,
                   onSelected: (selected) {
                     if (selected) {
-                      _saveConfig(_config.copyWith(coolingOffDurationMinutes: val));
+                      _saveConfig(
+                          _config.copyWith(coolingOffDurationMinutes: val));
                     }
                   },
                 );

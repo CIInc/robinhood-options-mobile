@@ -62,7 +62,8 @@ class SchwabEquityQuoteUpdate {
       symbol: symbol,
       bidPrice: parseDouble(json['1'] ?? json['bidPrice']),
       askPrice: parseDouble(json['2'] ?? json['askPrice']),
-      lastPrice: parseDouble(json['3'] ?? json['lastPrice'] ?? json['regularMarketLastPrice']),
+      lastPrice: parseDouble(
+          json['3'] ?? json['lastPrice'] ?? json['regularMarketLastPrice']),
       bidSize: (json['4'] ?? json['bidSize'] as num?)?.toInt(),
       askSize: (json['5'] ?? json['askSize'] as num?)?.toInt(),
       totalVolume: (json['8'] ?? json['totalVolume'] as num?)?.toInt(),
@@ -71,7 +72,8 @@ class SchwabEquityQuoteUpdate {
       lowPrice: parseDouble(json['11'] ?? json['lowPrice']),
       closePrice: parseDouble(json['12'] ?? json['closePrice']),
       netChange: parseDouble(json['14'] ?? json['netChange']),
-      percentChange: parseDouble(json['15'] ?? json['percentChange'] ?? json['netPercentChange']),
+      percentChange: parseDouble(
+          json['15'] ?? json['percentChange'] ?? json['netPercentChange']),
       week52High: parseDouble(json['24'] ?? json['52WeekHigh']),
       week52Low: parseDouble(json['25'] ?? json['52WeekLow']),
       openPrice: parseDouble(json['28'] ?? json['openPrice']),
@@ -132,7 +134,8 @@ class SchwabOptionQuoteUpdate {
       lastPrice: parseDouble(json['4'] ?? json['lastPrice']),
       totalVolume: (json['7'] ?? json['totalVolume'] as num?)?.toInt(),
       openInterest: (json['8'] ?? json['openInterest'] as num?)?.toInt(),
-      volatility: parseDouble(json['9'] ?? json['volatility'] ?? json['impliedVolatility']),
+      volatility: parseDouble(
+          json['9'] ?? json['volatility'] ?? json['impliedVolatility']),
       delta: parseDouble(json['16'] ?? json['delta']),
       gamma: parseDouble(json['17'] ?? json['gamma']),
       theta: parseDouble(json['18'] ?? json['theta']),
@@ -163,9 +166,11 @@ class SchwabAccountActivity {
   });
 
   factory SchwabAccountActivity.fromStreamContent(Map<String, dynamic> json) {
-    final subKey = (json['0'] ?? json['subscriptionKey'] ?? json['key'] ?? '').toString();
+    final subKey =
+        (json['0'] ?? json['subscriptionKey'] ?? json['key'] ?? '').toString();
     final acctNum = (json['1'] ?? json['accountNumber'] ?? '').toString();
-    final msgType = (json['2'] ?? json['messageType'] ?? 'AccountActivity').toString();
+    final msgType =
+        (json['2'] ?? json['messageType'] ?? 'AccountActivity').toString();
     final msgData = json['3'] ?? json['messageData'] ?? json['content'] ?? json;
     final timeMs = json['timestamp'] ?? json['time'];
     final parsedTime = timeMs is num
@@ -256,7 +261,8 @@ class SchwabFuturesQuoteUpdate {
     this.quoteTime,
   });
 
-  factory SchwabFuturesQuoteUpdate.fromStreamContent(Map<String, dynamic> json) {
+  factory SchwabFuturesQuoteUpdate.fromStreamContent(
+      Map<String, dynamic> json) {
     final symbol = (json['key'] ?? json['0'] ?? '').toString();
     final timeMs = json['quoteTime'] ?? json['tradeTime'];
     final parsedTime = timeMs is num

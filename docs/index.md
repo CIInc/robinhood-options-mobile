@@ -16,6 +16,7 @@
 - Enhanced security and privacy for user data.
   - **Balance Visibility Toggle:** Global privacy mask for sensitive P&L and equity data, including portfolio-chart axes, annotations, tooltips, and summary values.
 - **Watchlist Management:** Comprehensive tools to create, edit, and manage custom watchlists with real-time data tracking.
+- **Synchronized Position Scroll:** Synchronized multi-column scrolling across position detail rows for equities, options, forex, and futures positions.
 - Advanced charting tools for technical analysis.
 - **Generative Actions:** AI-driven actions and insights directly within the UI for enhanced decision making.
 - **Agentic Reasoning Mode:** Deep multi-step analysis workflow with institutional-grade GEX orchestration for signal generation.
@@ -71,7 +72,8 @@
 - **[Institutional & Hedge Fund Tracking](hedge-fund-tracking.md):** Real-time hedge fund sentiment, quarterly manager holdings, and transaction history directly from Robinhood marketdata endpoints.
 - **Robinhood Market Intelligence:** The instrument view combines [short float and borrow availability](short-interest.md), [retail order flow](retail-order-flow.md), [insider activity](insider-activity.md), and [institutional ownership](hedge-fund-tracking.md) data as separate research cards so each signal retains its source and context.
 - **[RiskGuard](risk-guard.md):** Advanced risk validation for manual and automated trading, including **Dynamic Position Sizing**.
-- **[Schwab Integration](schwab-integration.md):** Schwab account linking, portfolio and order history, single-leg option orders, and multi-leg option order placement.
+- **[Autonomous Account Risk Circuit Breakers & Tilt Guardrails](risk-circuit-breakers.md):** User-configurable automated account protection against emotional and revenge trading with daily loss limits, portfolio drawdown tracking, margin buffer cushion, and mandatory cooling-off order lockouts.
+- **[Schwab Integration](schwab-integration.md):** Schwab account linking, portfolio and order history, single-leg and multi-leg option order placement, and **Real-Time WebSocket Streamer (`wss://streamer-api.schwab.com/ws`)** for sub-second Level 1 equity/option quotes, Greeks, order/account activity notifications, live chart streaming, and futures/forex feeds.
 - **[Fidelity Integration](fidelity-integration.md):** Manual import of positions and history via CSV files.
 - **[Options Flow Analysis](options-flow-analysis.md):** Real-time monitoring of institutional option orders with 30+ smart flags, alerts, a notifications feed, and structured definition, detection-reason, and recommendation guidance.
 - **[Gamma Exposure (GEX) Analysis Pro](gamma-exposure-analysis.md):** Real-time monitoring of portfolio and symbol-level GEX, Call/Put Walls, Gamma Flip and transition levels, dealer-regime breadth and concentration, interactive strike scrubbing, Spot-Shift sensitivity, and an on-device Black-Scholes fallback engine.

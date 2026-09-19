@@ -113,48 +113,78 @@ class Portfolio {
   // 2021-02-09T18:01:28.135813Z
 
   Portfolio.fromSchwabJson(dynamic json)
-      : url = '',
-        account = json['securitiesAccount']['accountNumber'],
-        startDate = null, //DateTime.tryParse(json['start_date']),
-        marketValue = (parseDouble(json['securitiesAccount']['currentBalances']
-                    ['longOptionMarketValue']) ??
+      : url = json['securitiesAccount']?['accountNumber'] ?? '',
+        account = json['securitiesAccount']?['accountNumber'] ?? '',
+        startDate = null,
+        marketValue = (parseDouble(json['securitiesAccount']?['currentBalances']
+                    ?['longOptionMarketValue']) ??
                 0) +
-            (parseDouble(json['securitiesAccount']['currentBalances']
-                    ['longMarketValue']) ??
+            (parseDouble(json['securitiesAccount']?['currentBalances']
+                        ?['longMarketValue'] ??
+                    json['securitiesAccount']?['currentBalances']
+                        ?['marketValue']) ??
+                0) +
+            (parseDouble(json['securitiesAccount']?['currentBalances']
+                    ?['mutualFundValue']) ??
+                0) +
+            (parseDouble(json['securitiesAccount']?['currentBalances']
+                    ?['bondValue']) ??
                 0),
-        equity = parseDouble(json['securitiesAccount']['currentBalances']
-            ['liquidationValue']), //double.tryParse(json['equity']),
-        extendedHoursMarketValue =
-            null, // json['extended_hours_market_value'] != null ? double.tryParse(json['extended_hours_market_value']) : null,
-        extendedHoursEquity =
-            null, // json['extended_hours_equity'] != null ? double.tryParse(json['extended_hours_equity']) : null,
-        extendedHoursPortfolioEquity =
-            null, // json['extended_hours_portfolio_equity'] != null ? double.tryParse(json['extended_hours_portfolio_equity']) : null,
-        lastCoreMarketValue =
-            null, // double.tryParse(json['last_core_market_value']),
-        lastCoreEquity = null, // double.tryParse(json['last_core_equity']),
-        lastCorePortfolioEquity =
-            null, // double.tryParse(json['last_core_portfolio_equity']),
-        excessMargin = null, // double.tryParse(json['excess_margin']),
-        excessMaintenance =
-            null, // double.tryParse(json['excess_maintenance']),
-        excessMarginWithUnclearedDeposits =
-            null, // double.tryParse(json['excess_margin_with_uncleared_deposits']),
-        excessMaintenanceWithUnclearedDeposits =
-            null, // double.tryParse(json['excess_maintenance_with_uncleared_deposits']),
-        equityPreviousClose =
-            null, // double.tryParse(json['securitiesAccount']['initialBalances']['longOptionMarketValue'].toString())! + double.tryParse(json['securitiesAccount']['initialBalances']['longStockValue'].toString())!,
-        portfolioEquityPreviousClose =
-            null, // double.tryParse(json['portfolio_equity_previous_close']),
-        adjustedEquityPreviousClose =
-            null, // double.tryParse(json['adjusted_equity_previous_close']),
-        adjustedPortfolioEquityPreviousClose =
-            null, // double.tryParse(json['adjusted_portfolio_equity_previous_close']),
-        withdrawableAmount =
-            null, // double.tryParse(json['withdrawable_amount']),
-        unwithdrawableDeposits =
-            null, // double.tryParse(json['unwithdrawable_deposits']),
-        unwithdrawableGrants =
-            null, // double.tryParse(json['unwithdrawable_grants']),
+        equity = parseDouble(json['securitiesAccount']?['currentBalances']
+                ?['liquidationValue']) ??
+            parseDouble(
+                json['aggregatedBalance']?['currentLiquidationValue']) ??
+            parseDouble(json['aggregatedBalance']?['liquidationValue']) ??
+            parseDouble(json['securitiesAccount']?['initialBalances']
+                ?['liquidationValue']) ??
+            parseDouble(
+                json['securitiesAccount']?['initialBalances']?['accountValue']),
+        extendedHoursMarketValue = null,
+        extendedHoursEquity = null,
+        extendedHoursPortfolioEquity = null,
+        lastCoreMarketValue = null,
+        lastCoreEquity = null,
+        lastCorePortfolioEquity = null,
+        excessMargin = parseDouble(json['securitiesAccount']?['currentBalances']
+                ?['excessMargin']) ??
+            parseDouble(json['securitiesAccount']?['currentBalances']
+                ?['availableFunds']) ??
+            parseDouble(
+                json['securitiesAccount']?['currentBalances']?['buyingPower']),
+        excessMaintenance = parseDouble(json['securitiesAccount']
+            ?['currentBalances']?['availableFundsNonMarginableTrade']),
+        excessMarginWithUnclearedDeposits = null,
+        excessMaintenanceWithUnclearedDeposits = null,
+        equityPreviousClose = parseDouble(json['securitiesAccount']
+                ?['initialBalances']?['liquidationValue']) ??
+            parseDouble(json['securitiesAccount']?['initialBalances']
+                ?['accountValue']) ??
+            parseDouble(
+                json['securitiesAccount']?['initialBalances']?['equity']),
+        portfolioEquityPreviousClose = parseDouble(json['securitiesAccount']
+                ?['initialBalances']?['liquidationValue']) ??
+            parseDouble(json['securitiesAccount']?['initialBalances']
+                ?['accountValue']) ??
+            parseDouble(
+                json['securitiesAccount']?['initialBalances']?['equity']),
+        adjustedEquityPreviousClose = parseDouble(json['securitiesAccount']
+                ?['initialBalances']?['liquidationValue']) ??
+            parseDouble(json['securitiesAccount']?['initialBalances']
+                ?['accountValue']) ??
+            parseDouble(
+                json['securitiesAccount']?['initialBalances']?['equity']),
+        adjustedPortfolioEquityPreviousClose = parseDouble(
+                json['securitiesAccount']?['initialBalances']
+                    ?['liquidationValue']) ??
+            parseDouble(json['securitiesAccount']?['initialBalances']
+                ?['accountValue']) ??
+            parseDouble(
+                json['securitiesAccount']?['initialBalances']?['equity']),
+        withdrawableAmount = parseDouble(json['securitiesAccount']
+                ?['currentBalances']?['availableFunds']) ??
+            parseDouble(
+                json['securitiesAccount']?['currentBalances']?['cashBalance']),
+        unwithdrawableDeposits = null,
+        unwithdrawableGrants = null,
         updatedAt = DateTime.now();
 }

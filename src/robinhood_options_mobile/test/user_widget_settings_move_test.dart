@@ -175,8 +175,7 @@ void main() {
 
       // Verify the main Features header is present
       expect(find.text('Features'), findsOneWidget);
-      expect(
-          find.text('Trading tools, account operations & risk safeguards'),
+      expect(find.text('Trading tools, account operations & risk safeguards'),
           findsOneWidget);
 
       // Verify Risk Circuit Breakers is rendered under Features

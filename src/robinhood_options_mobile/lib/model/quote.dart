@@ -129,11 +129,13 @@ class Quote {
 
   Quote.fromSchwabStreamer(dynamic json,
       {Quote? existing, String? defaultSymbol})
-      : askPrice = parseDouble(json['2'] ?? json['askPrice']) ?? existing?.askPrice,
+      : askPrice =
+            parseDouble(json['2'] ?? json['askPrice']) ?? existing?.askPrice,
         askSize = (json['5'] ?? json['askSize'] as num?)?.toInt() ??
             existing?.askSize ??
             0,
-        bidPrice = parseDouble(json['1'] ?? json['bidPrice']) ?? existing?.bidPrice,
+        bidPrice =
+            parseDouble(json['1'] ?? json['bidPrice']) ?? existing?.bidPrice,
         bidSize = (json['4'] ?? json['bidSize'] as num?)?.toInt() ??
             existing?.bidSize ??
             0,
@@ -141,25 +143,29 @@ class Quote {
                 json['lastPrice'] ??
                 json['regularMarketLastPrice']) ??
             existing?.lastTradePrice,
-        lastExtendedHoursTradePrice = parseDouble(json['postMarketPrice'] ??
-                json['preMarketPrice']) ??
-            existing?.lastExtendedHoursTradePrice,
+        lastExtendedHoursTradePrice =
+            parseDouble(json['postMarketPrice'] ?? json['preMarketPrice']) ??
+                existing?.lastExtendedHoursTradePrice,
         previousClose = parseDouble(json['12'] ?? json['closePrice']) ??
             existing?.previousClose,
         adjustedPreviousClose = parseDouble(json['12'] ?? json['closePrice']) ??
             existing?.adjustedPreviousClose,
         previousCloseDate = existing?.previousCloseDate,
-        symbol = (json['key'] ?? json['0'] ?? json['symbol'] ?? defaultSymbol ?? existing?.symbol ?? '')
+        symbol = (json['key'] ??
+                json['0'] ??
+                json['symbol'] ??
+                defaultSymbol ??
+                existing?.symbol ??
+                '')
             .toString(),
-        tradingHalted = json['tradingHalted'] == true ||
-            (existing?.tradingHalted ?? false),
+        tradingHalted =
+            json['tradingHalted'] == true || (existing?.tradingHalted ?? false),
         hasTraded = (json['8'] ?? json['totalVolume'] as num?) != null
             ? (json['8'] ?? json['totalVolume'] as num) > 0
             : (existing?.hasTraded ?? true),
         lastTradePriceSource = 'schwab_streamer',
         updatedAt = json['50'] != null
-            ? DateTime.fromMillisecondsSinceEpoch(
-                (json['50'] as num).toInt(),
+            ? DateTime.fromMillisecondsSinceEpoch((json['50'] as num).toInt(),
                 isUtc: true)
             : (json['quoteTime'] != null
                 ? DateTime.fromMillisecondsSinceEpoch(

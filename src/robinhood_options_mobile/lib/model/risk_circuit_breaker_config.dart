@@ -83,11 +83,16 @@ class RiskCircuitBreakerConfig {
   RiskCircuitBreakerConfig.fromJson(Map<String, dynamic> json)
       : enabled = (json['enabled'] as bool?) ?? false,
         maxDailyLossAmount = (json['maxDailyLossAmount'] as num?)?.toDouble(),
-        maxDailyLossPercent = (json['maxDailyLossPercent'] as num?)?.toDouble() ?? 3.0,
-        maxDrawdownPercent = (json['maxDrawdownPercent'] as num?)?.toDouble() ?? 10.0,
-        maxConsecutiveLosses = (json['maxConsecutiveLosses'] as num?)?.toInt() ?? 3,
-        minMarginBufferPercent = (json['minMarginBufferPercent'] as num?)?.toDouble() ?? 15.0,
-        coolingOffDurationMinutes = (json['coolingOffDurationMinutes'] as num?)?.toInt() ?? 60,
+        maxDailyLossPercent =
+            (json['maxDailyLossPercent'] as num?)?.toDouble() ?? 3.0,
+        maxDrawdownPercent =
+            (json['maxDrawdownPercent'] as num?)?.toDouble() ?? 10.0,
+        maxConsecutiveLosses =
+            (json['maxConsecutiveLosses'] as num?)?.toInt() ?? 3,
+        minMarginBufferPercent =
+            (json['minMarginBufferPercent'] as num?)?.toDouble() ?? 15.0,
+        coolingOffDurationMinutes =
+            (json['coolingOffDurationMinutes'] as num?)?.toInt() ?? 60,
         coolingOffUntil = json['coolingOffUntil'] != null
             ? (json['coolingOffUntil'] is Timestamp
                 ? (json['coolingOffUntil'] as Timestamp).toDate()
@@ -101,7 +106,8 @@ class RiskCircuitBreakerConfig {
                 : DateTime.tryParse(json['trippedAt'].toString()))
             : null,
         peakPortfolioEquity = (json['peakPortfolioEquity'] as num?)?.toDouble(),
-        currentConsecutiveLosses = (json['currentConsecutiveLosses'] as num?)?.toInt() ?? 0,
+        currentConsecutiveLosses =
+            (json['currentConsecutiveLosses'] as num?)?.toInt() ?? 0,
         lastTradeDate = json['lastTradeDate'] != null
             ? (json['lastTradeDate'] is Timestamp
                 ? (json['lastTradeDate'] as Timestamp).toDate()
@@ -149,14 +155,17 @@ class RiskCircuitBreakerConfig {
       maxDailyLossPercent: maxDailyLossPercent ?? this.maxDailyLossPercent,
       maxDrawdownPercent: maxDrawdownPercent ?? this.maxDrawdownPercent,
       maxConsecutiveLosses: maxConsecutiveLosses ?? this.maxConsecutiveLosses,
-      minMarginBufferPercent: minMarginBufferPercent ?? this.minMarginBufferPercent,
-      coolingOffDurationMinutes: coolingOffDurationMinutes ?? this.coolingOffDurationMinutes,
+      minMarginBufferPercent:
+          minMarginBufferPercent ?? this.minMarginBufferPercent,
+      coolingOffDurationMinutes:
+          coolingOffDurationMinutes ?? this.coolingOffDurationMinutes,
       coolingOffUntil: coolingOffUntil ?? this.coolingOffUntil,
       isTripped: isTripped ?? this.isTripped,
       tripReason: tripReason ?? this.tripReason,
       trippedAt: trippedAt ?? this.trippedAt,
       peakPortfolioEquity: peakPortfolioEquity ?? this.peakPortfolioEquity,
-      currentConsecutiveLosses: currentConsecutiveLosses ?? this.currentConsecutiveLosses,
+      currentConsecutiveLosses:
+          currentConsecutiveLosses ?? this.currentConsecutiveLosses,
       lastTradeDate: lastTradeDate ?? this.lastTradeDate,
     );
   }

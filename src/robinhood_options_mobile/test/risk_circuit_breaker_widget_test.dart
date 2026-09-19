@@ -80,7 +80,8 @@ void main() {
       expect(find.text('Guarded & Active'), findsOneWidget);
     });
 
-    testWidgets('Displays active cooling-off status and trips correctly', (tester) async {
+    testWidgets('Displays active cooling-off status and trips correctly',
+        (tester) async {
       final service = RiskCircuitBreakerService(
         initialConfig: RiskCircuitBreakerConfig(
           enabled: true,
@@ -98,7 +99,8 @@ void main() {
       expect(find.text('Reset'), findsOneWidget);
     });
 
-    testWidgets('Simulate trip button activates 2-min cooling off', (tester) async {
+    testWidgets('Simulate trip button activates 2-min cooling off',
+        (tester) async {
       setLargeTestWindow(tester);
       final service = RiskCircuitBreakerService(
         initialConfig: RiskCircuitBreakerConfig(enabled: true),
@@ -117,7 +119,9 @@ void main() {
       expect(find.textContaining('Cooling Off Active'), findsOneWidget);
     });
 
-    testWidgets('Reset button opens confirmation dialog and clears tripped state', (tester) async {
+    testWidgets(
+        'Reset button opens confirmation dialog and clears tripped state',
+        (tester) async {
       final service = RiskCircuitBreakerService(
         initialConfig: RiskCircuitBreakerConfig(
           enabled: true,
@@ -144,7 +148,8 @@ void main() {
       expect(find.text('Guarded & Active'), findsOneWidget);
     });
 
-    testWidgets('Selecting daily loss chip updates dollar amount', (tester) async {
+    testWidgets('Selecting daily loss chip updates dollar amount',
+        (tester) async {
       setLargeTestWindow(tester);
       final service = RiskCircuitBreakerService(
         initialConfig: RiskCircuitBreakerConfig(enabled: true),

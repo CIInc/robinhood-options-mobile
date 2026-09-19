@@ -2054,12 +2054,11 @@ class _UserWidgetState extends State<UserWidget> {
                                           ),
                                           title: const Text(
                                               'Portfolio & Social Privacy'),
-                                          subtitle: Text(user
-                                                      .portfolioPrivacy
-                                                      ?.isPublic ==
-                                                  false
-                                              ? 'Private Portfolio'
-                                              : 'Public Portfolio'),
+                                          subtitle: Text(
+                                              user.portfolioPrivacy?.isPublic ==
+                                                      false
+                                                  ? 'Private Portfolio'
+                                                  : 'Public Portfolio'),
                                           trailing:
                                               const Icon(Icons.chevron_right),
                                           onTap: () async {
@@ -2071,13 +2070,11 @@ class _UserWidgetState extends State<UserWidget> {
                                                     .show(
                                               context,
                                               userId: widget.userId ?? '',
-                                              currentSettings:
-                                                  currentPrivacy,
+                                              currentSettings: currentPrivacy,
                                               firestoreService:
                                                   _firestoreService,
                                             );
-                                            if (updated != null &&
-                                                mounted) {
+                                            if (updated != null && mounted) {
                                               setState(() {
                                                 user?.portfolioPrivacy =
                                                     updated;

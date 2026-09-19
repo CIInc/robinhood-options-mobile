@@ -39,7 +39,9 @@ class PortfolioStore extends ChangeNotifier {
   }
 
   bool update(Portfolio item) {
-    var index = _items.indexWhere((element) => element.url == item.url);
+    var index = _items.indexWhere((element) =>
+        (item.url.isNotEmpty && element.url == item.url) ||
+        (item.account.isNotEmpty && element.account == item.account));
     if (index == -1) {
       return false;
     }
@@ -56,7 +58,9 @@ class PortfolioStore extends ChangeNotifier {
   }
 
   void remove(Portfolio item) {
-    var index = _items.indexWhere((element) => element.url == item.url);
+    var index = _items.indexWhere((element) =>
+        (item.url.isNotEmpty && element.url == item.url) ||
+        (item.account.isNotEmpty && element.account == item.account));
     if (index != -1) {
       _items.removeAt(index);
       notifyListeners();

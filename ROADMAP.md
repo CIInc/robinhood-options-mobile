@@ -44,13 +44,13 @@ This document outlines the planned features and enhancements for RealizeAlpha.
 **RealizeAlpha** is a comprehensive mobile trading platform with advanced AI-powered features. This roadmap tracks both completed achievements and planned enhancements across 25+ major categories.
 
 ### Quick Stats
-- **Completed Features**: 14 major categories (315+ items)
-- **Planned Enhancements**: 24+ categories (95+ items)
-- **Open GitHub Issues**: 42 active issues (28 feature & tracking epics + 14 enhancement/maintenance issues)
+- **Completed Features**: 14 major categories (318+ items)
+- **Planned Enhancements**: 24+ categories (94+ items)
+- **Open GitHub Issues**: 40 active issues (28 feature & tracking epics + 12 enhancement/maintenance issues)
 - **Focus Areas**: Advanced trading strategies, brokerage integrations, security, social features, AI coaching, quantitative research, behavioral finance, frontier tech
 
 ### Key Highlights
-- ✅ **Recently Completed**: Schwab Real-Time WebSocket Streamer ([#145](https://github.com/CIInc/robinhood-options-mobile/issues/145), v0.48.5), Autonomous Account Risk Circuit Breakers & Tilt Guardrails ([Tracking: #142](https://github.com/CIInc/robinhood-options-mobile/issues/142), v0.48.5), Tax Optimization, Wash Sale Detection & Capital Gains Suite ([Tracking: #114](https://github.com/CIInc/robinhood-options-mobile/issues/114), v0.48.0), In-App Instrument Custom Alerts (v0.47.1), Follow Portfolios ([#27](https://github.com/CIInc/robinhood-options-mobile/issues/27), v0.47.0), Social Feed for Shared Trade Ideas & Strategy Cloning ([#24](https://github.com/CIInc/robinhood-options-mobile/issues/24)), and Top Portfolios Leaderboard & User Reputation ([#26](https://github.com/CIInc/robinhood-options-mobile/issues/26)).
+- ✅ **Recently Completed**: Schwab Real-Time WebSocket Streamer ([#145](https://github.com/CIInc/robinhood-options-mobile/issues/145), v0.48.5), Synchronized Position Detail Scrolling ([#7](https://github.com/CIInc/robinhood-options-mobile/issues/7), v0.48.5), Autonomous Account Risk Circuit Breakers & Tilt Guardrails ([Tracking: #142](https://github.com/CIInc/robinhood-options-mobile/issues/142), v0.48.5), Tax Optimization, Wash Sale Detection & Capital Gains Suite ([Tracking: #114](https://github.com/CIInc/robinhood-options-mobile/issues/114), v0.48.0), In-App Instrument Custom Alerts (v0.47.1), Follow Portfolios ([#27](https://github.com/CIInc/robinhood-options-mobile/issues/27), v0.47.0), Social Feed for Shared Trade Ideas & Strategy Cloning ([#24](https://github.com/CIInc/robinhood-options-mobile/issues/24)), and Top Portfolios Leaderboard & User Reputation ([#26](https://github.com/CIInc/robinhood-options-mobile/issues/26)).
 - 🚀 **Next Milestone**: **Mobile Excellence, Live Activities & Strategy Execution** (v0.49.0 - Q1 2027).
 - **Focus Areas**: Institutional-grade options analytics (GEX), real-time streaming market data, autonomous risk circuit breakers, and multi-brokerage expansion.
 - 🎯 **2026 Priorities**: 
@@ -380,17 +380,20 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ **Specific Tax Lot Matching (HIFO/LIFO):** Select specific tax lots or tax-loss optimization rules during order entry to systematically minimize capital gains impact.
 - ✅ **IRS Form 8949 Preview & CSV Export:** Export structured realized transactions formatted for Schedule D / Form 8949 with wash sale adjustment codes (`W`).
 
-### v0.48.5 (Target: Q4 2026 - Late December)
-**Risk Guardrails, Account Protection & Brokerage Streaming**
+### v0.48.5 ✅ (Completed Sep 18, 2026)
+**Risk Guardrails, Brokerage Streaming & Synchronized Position Scrolling**
 - ✅ **Autonomous Account Risk Circuit Breakers & Tilt Guardrails:** User-configurable account safety thresholds (daily max loss limit, portfolio drawdown limit, margin buffer lock, consecutive loss limit, and mandatory cooling-off trading suspension to prevent tilt and revenge trading) ([Tracking: #142](https://github.com/CIInc/robinhood-options-mobile/issues/142)).
 - ✅ **Schwab Real-Time WebSocket Streamer:** Secure handshake, token refresh, sub-second streaming quotes (`LEVELONE_EQUITIES`), real-time options & Greeks (`LEVELONE_OPTIONS`), account activity notifications (`ACCT_ACTIVITY`), chart candle updates (`CHART_EQUITY`), futures, forex, and connection watchdog with exponential backoff ([#145](https://github.com/CIInc/robinhood-options-mobile/issues/145)).
+- ✅ **Synchronized Position Scroll:** Synchronized multi-column scrolling for position detail rows across Equities, Options, Forex, and Futures positions with late-mount auto-alignment ([#7](https://github.com/CIInc/robinhood-options-mobile/issues/7)).
+- ✅ **Trade Notification Authorization Guard:** Authentication and cross-user authorization enforcement for agentic notifications ([#152](https://github.com/CIInc/robinhood-options-mobile/pull/152)).
+- ✅ **Technical Indicator Optimization:** Algorithmic pass and slicing optimization for MACD, ADX, and Williams %R ([#153](https://github.com/CIInc/robinhood-options-mobile/pull/153)).
+- ✅ **Search Clear Accessibility:** Tooltip and screen-reader accessibility for search clear action ([#154](https://github.com/CIInc/robinhood-options-mobile/pull/154)).
 
 ### v0.49.0 (2027 Q1 - January)
 **Mobile Excellence, Live Activities & Strategy Execution**
 - **Options Strategy Roll Assistant:** 1-tap rolling wizard for covered calls, cash-secured puts, and spreads with automated net credit/debit calculation and updated breakeven points.
 - **iOS Live Activities & Dynamic Island:** Real-time lock screen widget for active option positions and 0DTE trailing stops during market hours.
 - **Offline Mode & Resilient Caching:** Encrypted local cache for portfolio holdings, watchlists, and recent charts with background sync ([#87](https://github.com/CIInc/robinhood-options-mobile/issues/87)).
-- ✅ **Synchronized Position Scroll:** Synchronized multi-column scrolling for position detail rows ([#7](https://github.com/CIInc/robinhood-options-mobile/issues/7)).
 - **Position Bar Chart Values:** Combined $/% bar charts ([#19](https://github.com/CIInc/robinhood-options-mobile/issues/19)).
 - **Apple Watch & Wear OS Companion App Foundation:** Glanceable portfolio P&L and watchlists on wearables.
 

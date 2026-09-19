@@ -57,6 +57,7 @@ import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/services/resource_owner_password_grant.dart';
 import 'package:robinhood_options_mobile/services/yahoo_service.dart';
+import 'package:robinhood_options_mobile/services/paper_service.dart';
 import 'package:robinhood_options_mobile/utils/auth.dart';
 import 'package:robinhood_options_mobile/model/combo_order.dart';
 import 'package:robinhood_options_mobile/model/combo_order_store.dart';
@@ -2115,6 +2116,11 @@ https://api.schwabapi.com/marketdata/v1/instruments?symbol=Google&projection=sea
       Bounds chartBoundsFilter = Bounds.trading,
       ChartDateSpan chartDateSpanFilter = ChartDateSpan.day,
       String? chartInterval}) async {
+    final span = convertChartSpanFilter(chartDateSpanFilter);
+    final bounds = convertChartBoundsFilter(chartBoundsFilter);
+    var rtn = convertChartSpanFilterWithInterval(chartDateSpanFilter);
+    String rhInterval = chartInterval ?? rtn[1];
+
     var (periodType, period, frequencyType, frequency) =
         _convertSchwabSpanAndInterval(chartDateSpanFilter, chartInterval);
     var needExtended = chartBoundsFilter == Bounds.trading ||
@@ -2123,38 +2129,62 @@ https://api.schwabapi.com/marketdata/v1/instruments?symbol=Google&projection=sea
     var url =
         '$endpoint/marketdata/v1/pricehistory?symbol=${Uri.encodeComponent(symbolOrInstrumentId)}&periodType=$periodType&period=$period&frequencyType=$frequencyType&frequency=$frequency&needExtendedHoursData=$needExtended&needPreviousClose=true';
 
-    var resultJson = await getJson(user, url);
     List<InstrumentHistorical> historicals = [];
-    if (resultJson != null && resultJson['candles'] != null) {
-      for (var c in resultJson['candles']) {
-        historicals.add(InstrumentHistorical(
-          DateTime.fromMillisecondsSinceEpoch(c['datetime'] as int,
-              isUtc: true),
-          parseDouble(c['open']),
-          parseDouble(c['close']),
-          parseDouble(c['high']),
-          parseDouble(c['low']),
-          (c['volume'] as num?)?.toInt() ?? 0,
-          'regular',
-          false,
-        ));
+    double? previousClose;
+    DateTime? previousCloseDate;
+
+    try {
+      var resultJson = await getJson(user, url);
+      if (resultJson != null && resultJson['candles'] != null) {
+        for (var c in resultJson['candles']) {
+          historicals.add(InstrumentHistorical(
+            DateTime.fromMillisecondsSinceEpoch(c['datetime'] as int,
+                isUtc: true),
+            parseDouble(c['open']),
+            parseDouble(c['close']),
+            parseDouble(c['high']),
+            parseDouble(c['low']),
+            (c['volume'] as num?)?.toInt() ?? 0,
+            'regular',
+            false,
+          ));
+        }
+        if (resultJson['previousClose'] != null) {
+          previousClose = parseDouble(resultJson['previousClose']);
+        }
+        if (resultJson['previousCloseDate'] != null) {
+          previousCloseDate = DateTime.fromMillisecondsSinceEpoch(
+              (resultJson['previousCloseDate'] as num).toInt(),
+              isUtc: true);
+        }
+      }
+    } catch (e) {
+      debugPrint('Error fetching Schwab pricehistory: $e');
+    }
+
+    if (historicals.isEmpty) {
+      try {
+        final yahooParameters = PaperService.chartDataParameters(
+            chartDateSpanFilter,
+            chartInterval: chartInterval);
+        historicals = await YahooService().getHistoricals(
+          symbolOrInstrumentId,
+          yahooParameters.range,
+          yahooParameters.interval,
+        );
+      } catch (e) {
+        debugPrint('Error fetching fallback historicals from Yahoo: $e');
       }
     }
 
     var instrumentHistorical = InstrumentHistoricals(
       '$endpoint/marketdata/v1/quotes?symbols=${Uri.encodeComponent(symbolOrInstrumentId)}',
       symbolOrInstrumentId,
-      '$frequency$frequencyType',
-      chartDateSpanFilter.name,
-      chartBoundsFilter.name,
-      resultJson != null && resultJson['previousClose'] != null
-          ? parseDouble(resultJson['previousClose'])
-          : null,
-      resultJson != null && resultJson['previousCloseDate'] != null
-          ? DateTime.fromMillisecondsSinceEpoch(
-              resultJson['previousCloseDate'] as int,
-              isUtc: true)
-          : null,
+      rhInterval,
+      span,
+      bounds,
+      previousClose,
+      previousCloseDate,
       historicals.isNotEmpty ? historicals.first.openPrice : null,
       historicals.isNotEmpty ? historicals.first.beginsAt : null,
       symbolOrInstrumentId,
@@ -2162,6 +2192,7 @@ https://api.schwabapi.com/marketdata/v1/instruments?symbol=Google&projection=sea
       historicals,
     );
     store.set(instrumentHistorical);
+    store.addOrUpdate(instrumentHistorical);
     return instrumentHistorical;
   }
 

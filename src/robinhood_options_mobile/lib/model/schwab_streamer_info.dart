@@ -23,7 +23,8 @@ class SchwabStreamerInfo {
 
     dynamic info;
     if (json is Map<String, dynamic>) {
-      if (json['streamerInfo'] is List && (json['streamerInfo'] as List).isNotEmpty) {
+      if (json['streamerInfo'] is List &&
+          (json['streamerInfo'] as List).isNotEmpty) {
         info = json['streamerInfo'][0];
       } else if (json['streamerInfo'] is Map<String, dynamic>) {
         info = json['streamerInfo'];
@@ -42,13 +43,15 @@ class SchwabStreamerInfo {
               'wss://streamer-api.schwab.com/ws')
           .toString(),
       schwabClientCustomerId:
-          (info['schwabClientCustomerId'] ?? info['customerId'] ?? '').toString(),
+          (info['schwabClientCustomerId'] ?? info['customerId'] ?? '')
+              .toString(),
       schwabClientCorrelId:
           (info['schwabClientCorrelId'] ?? info['correlId'] ?? '').toString(),
       schwabClientChannel:
           (info['schwabClientChannel'] ?? info['channel'] ?? '').toString(),
       schwabClientFunctionId:
-          (info['schwabClientFunctionId'] ?? info['functionId'] ?? '').toString(),
+          (info['schwabClientFunctionId'] ?? info['functionId'] ?? '')
+              .toString(),
     );
   }
 

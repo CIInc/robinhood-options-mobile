@@ -55,10 +55,12 @@ class RiskCircuitBreakerService {
     if (user != null && firestoreService != null) {
       user.riskCircuitBreakerConfig = newConfig;
       try {
-        final docRef = firestoreService.userCollection.doc(user.email ?? user.name);
+        final docRef =
+            firestoreService.userCollection.doc(user.email ?? user.name);
         await firestoreService.updateUser(docRef, user);
       } catch (e) {
-        debugPrint('Error updating user RiskCircuitBreakerConfig in Firestore: $e');
+        debugPrint(
+            'Error updating user RiskCircuitBreakerConfig in Firestore: $e');
       }
     }
   }
@@ -100,7 +102,8 @@ class RiskCircuitBreakerService {
         allowed: false,
         isCoolingOff: true,
         remainingCoolingOff: _config.remainingCoolingOff,
-        reason: 'Cooling-off lock active. Trading suspended until ${_formatDateTime(_config.coolingOffUntil)} to prevent emotional trading.',
+        reason:
+            'Cooling-off lock active. Trading suspended until ${_formatDateTime(_config.coolingOffUntil)} to prevent emotional trading.',
         triggerType: 'cooling_off',
       );
     }
@@ -109,7 +112,8 @@ class RiskCircuitBreakerService {
     if (_config.isTripped) {
       return RiskEvaluationResult(
         allowed: false,
-        reason: _config.tripReason ?? 'Circuit breaker tripped. Order execution locked.',
+        reason: _config.tripReason ??
+            'Circuit breaker tripped. Order execution locked.',
         triggerType: 'tripped',
       );
     }
@@ -140,8 +144,10 @@ class RiskCircuitBreakerService {
     }
 
     // 4. Max Daily Percentage Loss Breach
-    if (_config.maxDailyLossPercent != null && _config.maxDailyLossPercent! > 0) {
-      if (dayPnLPercent < 0 && dayPnLPercent.abs() >= _config.maxDailyLossPercent!) {
+    if (_config.maxDailyLossPercent != null &&
+        _config.maxDailyLossPercent! > 0) {
+      if (dayPnLPercent < 0 &&
+          dayPnLPercent.abs() >= _config.maxDailyLossPercent!) {
         _tripCircuitBreaker(
           'Daily portfolio loss limit reached (-${dayPnLPercent.abs().toStringAsFixed(2)}% >= ${_config.maxDailyLossPercent!.toStringAsFixed(2)}% threshold). Execution suspended to protect capital.',
           triggerType: 'daily_loss_percent',
@@ -157,7 +163,9 @@ class RiskCircuitBreakerService {
     }
 
     // 5. Max Drawdown Breach (Peak-to-Trough)
-    if (_config.maxDrawdownPercent != null && _config.maxDrawdownPercent! > 0 && equity > 0) {
+    if (_config.maxDrawdownPercent != null &&
+        _config.maxDrawdownPercent! > 0 &&
+        equity > 0) {
       final peak = _config.peakPortfolioEquity ?? equity;
       if (peak > 0 && equity < peak) {
         final currentDrawdown = ((peak - equity) / peak) * 100.0;
@@ -184,7 +192,8 @@ class RiskCircuitBreakerService {
       if (marginBufferPercent <= _config.minMarginBufferPercent!) {
         return RiskEvaluationResult(
           allowed: false,
-          reason: 'Margin buffer too low (${marginBufferPercent.toStringAsFixed(1)}% <= ${_config.minMarginBufferPercent!.toStringAsFixed(1)}% requirement). New orders blocked to prevent margin calls.',
+          reason:
+              'Margin buffer too low (${marginBufferPercent.toStringAsFixed(1)}% <= ${_config.minMarginBufferPercent!.toStringAsFixed(1)}% requirement). New orders blocked to prevent margin calls.',
           triggerType: 'margin_buffer',
         );
       }
@@ -236,14 +245,16 @@ class RiskCircuitBreakerService {
   void tripManually({String? reason, int? durationMinutes}) {
     final dur = durationMinutes ?? _config.coolingOffDurationMinutes;
     _config.isTripped = true;
-    _config.tripReason = reason ?? 'Manual risk circuit breaker triggered by trader.';
+    _config.tripReason =
+        reason ?? 'Manual risk circuit breaker triggered by trader.';
     _config.trippedAt = DateTime.now();
     _config.coolingOffUntil = DateTime.now().add(Duration(minutes: dur));
     saveToLocal();
   }
 
   /// Reset the circuit breaker and lift cooling-off suspension
-  Future<void> resetCircuitBreaker({User? user, FirestoreService? firestoreService}) async {
+  Future<void> resetCircuitBreaker(
+      {User? user, FirestoreService? firestoreService}) async {
     _config.isTripped = false;
     _config.tripReason = null;
     _config.coolingOffUntil = null;
@@ -254,10 +265,12 @@ class RiskCircuitBreakerService {
     if (user != null && firestoreService != null) {
       user.riskCircuitBreakerConfig = _config;
       try {
-        final docRef = firestoreService.userCollection.doc(user.email ?? user.name);
+        final docRef =
+            firestoreService.userCollection.doc(user.email ?? user.name);
         await firestoreService.updateUser(docRef, user);
       } catch (e) {
-        debugPrint('Error updating user RiskCircuitBreakerConfig in Firestore: $e');
+        debugPrint(
+            'Error updating user RiskCircuitBreakerConfig in Firestore: $e');
       }
     }
   }

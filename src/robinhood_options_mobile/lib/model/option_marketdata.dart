@@ -345,16 +345,31 @@ class OptionMarketData {
                         parseDouble(json['3'] ?? json['askPrice'])!) /
                     2
                 : existing?.adjustedMarkPrice),
-        askPrice = parseDouble(json['3'] ?? json['askPrice']) ?? existing?.askPrice,
+        askPrice =
+            parseDouble(json['3'] ?? json['askPrice']) ?? existing?.askPrice,
         askSize = (json['askSize'] as num?)?.toInt() ?? existing?.askSize ?? 0,
-        bidPrice = parseDouble(json['2'] ?? json['bidPrice']) ?? existing?.bidPrice,
+        bidPrice =
+            parseDouble(json['2'] ?? json['bidPrice']) ?? existing?.bidPrice,
         bidSize = (json['bidSize'] as num?)?.toInt() ?? existing?.bidSize ?? 0,
         breakEvenPrice = existing?.breakEvenPrice,
         highPrice = parseDouble(json['highPrice']) ?? existing?.highPrice,
-        instrument = (json['key'] ?? json['0'] ?? json['symbol'] ?? existing?.instrument ?? '').toString(),
-        instrumentId = (json['key'] ?? json['0'] ?? json['symbol'] ?? existing?.instrumentId ?? '').toString(),
-        lastTradePrice = parseDouble(json['4'] ?? json['lastPrice']) ?? existing?.lastTradePrice,
-        lastTradeSize = (json['lastTradeSize'] as num?)?.toInt() ?? existing?.lastTradeSize ?? 0,
+        instrument = (json['key'] ??
+                json['0'] ??
+                json['symbol'] ??
+                existing?.instrument ??
+                '')
+            .toString(),
+        instrumentId = (json['key'] ??
+                json['0'] ??
+                json['symbol'] ??
+                existing?.instrumentId ??
+                '')
+            .toString(),
+        lastTradePrice = parseDouble(json['4'] ?? json['lastPrice']) ??
+            existing?.lastTradePrice,
+        lastTradeSize = (json['lastTradeSize'] as num?)?.toInt() ??
+            existing?.lastTradeSize ??
+            0,
         lowPrice = parseDouble(json['lowPrice']) ?? existing?.lowPrice,
         markPrice = parseDouble(json['markPrice']) ??
             ((parseDouble(json['2'] ?? json['bidPrice']) != null &&
@@ -363,18 +378,30 @@ class OptionMarketData {
                         parseDouble(json['3'] ?? json['askPrice'])!) /
                     2
                 : existing?.markPrice),
-        openInterest = (json['8'] ?? json['openInterest'] as num?)?.toInt() ?? existing?.openInterest ?? 0,
+        openInterest = (json['8'] ?? json['openInterest'] as num?)?.toInt() ??
+            existing?.openInterest ??
+            0,
         previousCloseDate = existing?.previousCloseDate,
-        previousClosePrice = parseDouble(json['closePrice']) ?? existing?.previousClosePrice,
-        volume = (json['7'] ?? json['totalVolume'] as num?)?.toInt() ?? existing?.volume ?? 0,
+        previousClosePrice =
+            parseDouble(json['closePrice']) ?? existing?.previousClosePrice,
+        volume = (json['7'] ?? json['totalVolume'] as num?)?.toInt() ??
+            existing?.volume ??
+            0,
         symbol = existing?.symbol ??
             ((json['key'] ?? json['0'] ?? '').toString().split(' ').first),
-        occSymbol = (json['key'] ?? json['0'] ?? json['symbol'] ?? existing?.occSymbol ?? '').toString(),
+        occSymbol = (json['key'] ??
+                json['0'] ??
+                json['symbol'] ??
+                existing?.occSymbol ??
+                '')
+            .toString(),
         chanceOfProfitLong = existing?.chanceOfProfitLong,
         chanceOfProfitShort = existing?.chanceOfProfitShort,
         delta = parseDouble(json['16'] ?? json['delta']) ?? existing?.delta,
         gamma = parseDouble(json['17'] ?? json['gamma']) ?? existing?.gamma,
-        impliedVolatility = parseDouble(json['9'] ?? json['volatility'] ?? json['impliedVolatility']) ?? existing?.impliedVolatility,
+        impliedVolatility = parseDouble(
+                json['9'] ?? json['volatility'] ?? json['impliedVolatility']) ??
+            existing?.impliedVolatility,
         rho = parseDouble(json['20'] ?? json['rho']) ?? existing?.rho,
         theta = parseDouble(json['18'] ?? json['theta']) ?? existing?.theta,
         vega = parseDouble(json['19'] ?? json['vega']) ?? existing?.vega,

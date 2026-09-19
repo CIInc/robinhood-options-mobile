@@ -161,10 +161,7 @@ class User {
             portfolioPrivacy: json['portfolioPrivacy'] != null ? PortfolioPrivacySettings.fromJson(json['portfolioPrivacy'] as Map<String, dynamic>) : null,
             followersCount: (json['followersCount'] as num?)?.toInt() ?? 0,
             followingCount: (json['followingCount'] as num?)?.toInt() ?? 0,
-            riskCircuitBreakerConfig: json['riskCircuitBreakerConfig'] != null
-                ? RiskCircuitBreakerConfig.fromJson(
-                    json['riskCircuitBreakerConfig'] as Map<String, dynamic>)
-                : null,
+            riskCircuitBreakerConfig: json['riskCircuitBreakerConfig'] != null ? RiskCircuitBreakerConfig.fromJson(json['riskCircuitBreakerConfig'] as Map<String, dynamic>) : null,
             subscriptionStatus: json['subscriptionStatus'] as String?,
             trialStartDate: json['trialStartDate'] != null ? (json['trialStartDate'] as Timestamp).toDate() : null,
             subscriptionExpiryDate: json['subscriptionExpiryDate'] != null ? (json['subscriptionExpiryDate'] as Timestamp).toDate() : null,

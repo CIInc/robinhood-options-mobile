@@ -68,7 +68,8 @@ void main() {
     });
 
     test('copyWith updates specified fields only', () {
-      final config = RiskCircuitBreakerConfig(enabled: false, maxDailyLossAmount: 500);
+      final config =
+          RiskCircuitBreakerConfig(enabled: false, maxDailyLossAmount: 500);
       final updated = config.copyWith(enabled: true, maxDailyLossAmount: 1000);
 
       expect(updated.enabled, true);
@@ -181,10 +182,12 @@ void main() {
       expect(result.allowed, false);
       expect(result.triggerType, 'drawdown');
       expect(service.config.isTripped, true);
-      expect(service.config.tripReason, contains('Maximum portfolio drawdown reached'));
+      expect(service.config.tripReason,
+          contains('Maximum portfolio drawdown reached'));
     });
 
-    test('Blocks execution when margin buffer falls below required threshold', () {
+    test('Blocks execution when margin buffer falls below required threshold',
+        () {
       final service = RiskCircuitBreakerService(
         initialConfig: RiskCircuitBreakerConfig(
           enabled: true,
@@ -235,7 +238,8 @@ void main() {
       service.recordTradeOutcome(isWin: false, pnl: -75);
       expect(service.config.currentConsecutiveLosses, 3);
       expect(service.config.isTripped, true);
-      expect(service.config.tripReason, contains('Consecutive loss limit reached'));
+      expect(service.config.tripReason,
+          contains('Consecutive loss limit reached'));
     });
 
     test('Winning trade resets consecutive losses count', () {
@@ -316,7 +320,8 @@ void main() {
         riskCircuitBreakerConfig: config,
       );
 
-      final cbAlert = alerts.firstWhere((a) => a.id == 'risk-circuit-breaker-cooling-off');
+      final cbAlert =
+          alerts.firstWhere((a) => a.id == 'risk-circuit-breaker-cooling-off');
       expect(cbAlert.severity, PortfolioAlertSeverity.critical);
       expect(cbAlert.title, contains('Trading Suspended'));
       expect(cbAlert.detail, contains('Daily loss limit reached'));
@@ -335,7 +340,8 @@ void main() {
         riskCircuitBreakerConfig: config,
       );
 
-      final cbAlert = alerts.firstWhere((a) => a.id == 'risk-circuit-breaker-tripped');
+      final cbAlert =
+          alerts.firstWhere((a) => a.id == 'risk-circuit-breaker-tripped');
       expect(cbAlert.severity, PortfolioAlertSeverity.critical);
       expect(cbAlert.title, 'Circuit Breaker Tripped');
       expect(cbAlert.detail, 'Max drawdown reached');
@@ -355,7 +361,8 @@ void main() {
         dayPnL: -420.0,
       );
 
-      final cbAlert = alerts.firstWhere((a) => a.id == 'risk-circuit-breaker-near-daily-loss');
+      final cbAlert = alerts
+          .firstWhere((a) => a.id == 'risk-circuit-breaker-near-daily-loss');
       expect(cbAlert.severity, PortfolioAlertSeverity.warning);
       expect(cbAlert.title, contains('Approaching Daily Loss Limit (84%)'));
       expect(cbAlert.metric, '-\$420');
@@ -378,4 +385,3 @@ void main() {
     });
   });
 }
-

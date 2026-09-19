@@ -548,6 +548,49 @@ class _UserInfoWidgetState extends State<UserInfoWidget> {
                 ),
                 child: Row(
                   children: [
+                    if (account.totalValue != null) ...[
+                      Expanded(
+                        flex: 4,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Portfolio Value",
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w500,
+                                color: colorScheme.outline,
+                              ),
+                            ),
+                            const SizedBox(height: 1),
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                showBalances
+                                    ? formatCurrency.format(account.totalValue!)
+                                    : '\$••••••',
+                                maxLines: 1,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: colorScheme.onSurface,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        height: 24,
+                        width: 1,
+                        color: colorScheme.outlineVariant,
+                      ),
+                      const SizedBox(width: 8),
+                    ],
                     Expanded(
                       flex: 4,
                       child: Column(
