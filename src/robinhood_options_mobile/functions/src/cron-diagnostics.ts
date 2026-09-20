@@ -216,7 +216,6 @@ export const cronDiagnostics = onRequest(async (request, response) => {
     logger.error("Error running diagnostics:", error);
     response.status(500).json({
       error: "Failed to run diagnostics",
-      message: error instanceof Error ? error.message : String(error),
     });
   }
 });
