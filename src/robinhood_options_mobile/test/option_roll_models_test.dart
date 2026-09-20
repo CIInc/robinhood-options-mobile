@@ -29,7 +29,11 @@ void main() {
         'chain_symbol': symbol,
         'expiration_date': expiration.toIso8601String().split('T').first,
         'id': id,
-        'min_ticks': {'above_tick': 0.05, 'below_tick': 0.01, 'cutoff_price': 3.0},
+        'min_ticks': {
+          'above_tick': 0.05,
+          'below_tick': 0.01,
+          'cutoff_price': 3.0
+        },
         'rhs_tradability': 'tradable',
         'state': 'active',
         'strike_price': strike.toString(),
@@ -470,4 +474,3 @@ void main() {
     });
   });
 }
-

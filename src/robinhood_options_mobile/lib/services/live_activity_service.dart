@@ -66,7 +66,8 @@ class LiveActivityService {
     double? initialPeakPrice,
   }) async {
     try {
-      OptionLiveActivitySession session = OptionLiveActivitySession.fromPosition(
+      OptionLiveActivitySession session =
+          OptionLiveActivitySession.fromPosition(
         position,
         trailingStopPercent: trailingStopPercent,
         customInitialPeakPrice: initialPeakPrice,

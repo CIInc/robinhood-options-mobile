@@ -21,7 +21,8 @@ enum OptionDefenseThreatLevel {
 class OptionDefenseThreat {
   final OptionDefenseThreatLevel level;
   final bool isTested;
-  final double? distanceToStrike; // Spot to strike % difference (e.g. +2.5% or -1.8%)
+  final double?
+      distanceToStrike; // Spot to strike % difference (e.g. +2.5% or -1.8%)
   final double? shortStrike;
   final double? underlyingPrice;
   final int daysToExpiration;
@@ -258,7 +259,8 @@ class OptionDefensePlaybook {
             ? position.strategy
             : (position.direction == 'credit' ? 'Credit Spread' : 'Option'))
         .toLowerCase();
-    final bool isSpread = strategy.contains('spread') || position.legs.length > 1;
+    final bool isSpread =
+        strategy.contains('spread') || position.legs.length > 1;
 
     if (level == OptionDefenseThreatLevel.critical) {
       // Critical Defense
@@ -287,7 +289,7 @@ class OptionDefensePlaybook {
           badge: 'STRIKE DEFENSE',
           objective: 'Roll strike higher and further out in time.',
           rationale:
-            'Moves the strike price closer to or above spot price to lower assignment risk, while using later expiration to finance the move.',
+              'Moves the strike price closer to or above spot price to lower assignment risk, while using later expiration to finance the move.',
           suggestedPreset: RollPreset.rollUpAndOut,
           urgency: OptionDefenseThreatLevel.critical,
           expectedImpact: 'Delta reduction with even or small credit',
@@ -304,7 +306,7 @@ class OptionDefensePlaybook {
           badge: 'STRIKE DEFENSE',
           objective: 'Roll strike lower and further out in time.',
           rationale:
-            'Lowers the put strike closer to current spot to reduce delta and lower cash assignment obligation.',
+              'Lowers the put strike closer to current spot to reduce delta and lower cash assignment obligation.',
           suggestedPreset: RollPreset.rollDownAndOut,
           urgency: OptionDefenseThreatLevel.critical,
           expectedImpact: 'Lowers breakeven and cash commitment',
@@ -360,7 +362,8 @@ class OptionDefensePlaybook {
         actionType: DefenseActionType.rollOutTime,
         title: 'Roll Out in Time (Same Strike)',
         badge: !recommendRollAway ? 'RECOMMENDED' : 'ALTERNATIVE',
-        objective: 'Extend expiration date while keeping the exact same strike.',
+        objective:
+            'Extend expiration date while keeping the exact same strike.',
         rationale:
             'Collects additional extrinsic credit without taking a strike concession, effectively lowering the trade breakeven.',
         suggestedPreset: RollPreset.rollOut,
@@ -417,13 +420,15 @@ class OptionDefensePlaybook {
         actionType: DefenseActionType.rollStrikeAway,
         title: isCall ? 'Roll Up & Out' : 'Roll Down & Out',
         badge: 'PROACTIVE DEFENSE',
-        objective: 'Move strike further away while keeping net credit positive.',
+        objective:
+            'Move strike further away while keeping net credit positive.',
         rationale:
             'Proactively widening the distance to spot prevents the underlying from breaching your short strike.',
         suggestedPreset:
             isCall ? RollPreset.rollUpAndOut : RollPreset.rollDownAndOut,
         urgency: OptionDefenseThreatLevel.caution,
-        expectedImpact: 'Reduces delta from ${absDelta?.toStringAsFixed(2) ?? "current"} to ~0.20',
+        expectedImpact:
+            'Reduces delta from ${absDelta?.toStringAsFixed(2) ?? "current"} to ~0.20',
         executionSteps: [
           'Roll out 30-45 days.',
           'Adjust strike 1 strike further OTM.',

@@ -30,7 +30,9 @@ void main() {
       expect(service.lastSyncError, isNull);
     });
 
-    test('reconnect callbacks execute when transitioning from offline to online', () async {
+    test(
+        'reconnect callbacks execute when transitioning from offline to online',
+        () async {
       final service = OfflineSyncService();
       service.setOffline(true);
 

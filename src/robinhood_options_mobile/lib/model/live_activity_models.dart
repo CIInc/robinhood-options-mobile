@@ -109,7 +109,8 @@ class OptionLiveActivitySession {
         ? peak * (1.0 - (trailingStopPercent / 100.0))
         : peak * (1.0 + (trailingStopPercent / 100.0));
 
-    final isTriggered = isDebit ? (markPrice <= stopPrice) : (markPrice >= stopPrice);
+    final isTriggered =
+        isDebit ? (markPrice <= stopPrice) : (markPrice >= stopPrice);
 
     final distancePercent = markPrice > 0
         ? ((markPrice - stopPrice).abs() / markPrice) * 100.0
@@ -120,14 +121,15 @@ class OptionLiveActivitySession {
         : 'N/A';
 
     final strike = position.optionInstrument?.strikePrice ??
-        (position.legs.isNotEmpty ? position.legs.first.strikePrice ?? 0.0 : 0.0);
+        (position.legs.isNotEmpty
+            ? position.legs.first.strikePrice ?? 0.0
+            : 0.0);
 
     final optType = position.optionInstrument?.type ??
         (position.legs.isNotEmpty ? position.legs.first.optionType : 'call');
 
-    final status = isTriggered
-        ? 'STOP TRIGGERED'
-        : (isZeroDte ? '0DTE Active' : 'Active');
+    final status =
+        isTriggered ? 'STOP TRIGGERED' : (isZeroDte ? '0DTE Active' : 'Active');
 
     return OptionLiveActivitySession(
       positionId: position.id,
@@ -186,9 +188,8 @@ class OptionLiveActivitySession {
         ? ((markPrice - updatedStop).abs() / markPrice) * 100.0
         : 0.0;
 
-    final status = isTriggered
-        ? 'STOP TRIGGERED'
-        : (is0DTE ? '0DTE Active' : 'Active');
+    final status =
+        isTriggered ? 'STOP TRIGGERED' : (is0DTE ? '0DTE Active' : 'Active');
 
     return OptionLiveActivitySession(
       positionId: positionId,
@@ -256,7 +257,8 @@ class OptionLiveActivitySession {
       trailingStopPrice: math.max(0.01, updatedStop),
       trailingStopDistancePercent: distancePercent,
       isTrailingStopTriggered: isTriggered,
-      statusText: isTriggered ? 'STOP TRIGGERED' : (is0DTE ? '0DTE Active' : 'Active'),
+      statusText:
+          isTriggered ? 'STOP TRIGGERED' : (is0DTE ? '0DTE Active' : 'Active'),
       lastUpdated: DateTime.now(),
       activityId: activityId,
     );
@@ -351,8 +353,7 @@ class OptionLiveActivitySession {
       changePercentToday:
           (json['changePercentToday'] as num?)?.toDouble() ?? 0.0,
       peakPrice: (json['peakPrice'] as num?)?.toDouble() ?? 0.0,
-      trailingStopPrice:
-          (json['trailingStopPrice'] as num?)?.toDouble() ?? 0.0,
+      trailingStopPrice: (json['trailingStopPrice'] as num?)?.toDouble() ?? 0.0,
       trailingStopDistancePercent:
           (json['trailingStopDistancePercent'] as num?)?.toDouble() ?? 0.0,
       isTrailingStopTriggered:

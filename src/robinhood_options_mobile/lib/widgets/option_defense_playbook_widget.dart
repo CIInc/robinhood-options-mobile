@@ -96,7 +96,8 @@ class _OptionDefensePlaybookWidgetState
         break;
       case OptionDefenseThreatLevel.breached:
         threatPrimaryColor = Colors.deepOrange.shade600;
-        threatContainerColor = Colors.deepOrange.shade900.withValues(alpha: 0.25);
+        threatContainerColor =
+            Colors.deepOrange.shade900.withValues(alpha: 0.25);
         onThreatContainerColor = Colors.deepOrange.shade200;
         threatIcon = Icons.warning_rounded;
         break;
@@ -117,7 +118,9 @@ class _OptionDefensePlaybookWidgetState
     final strategyName = widget.optionPosition.strategy.isNotEmpty
         ? widget.optionPosition.strategy.toUpperCase()
         : (widget.optionInstrument.type.toUpperCase() +
-            (widget.optionPosition.direction == 'credit' ? ' (SHORT)' : ' (LONG)'));
+            (widget.optionPosition.direction == 'credit'
+                ? ' (SHORT)'
+                : ' (LONG)'));
 
     return Scaffold(
       appBar: AppBar(
@@ -254,10 +257,10 @@ class _OptionDefensePlaybookWidgetState
                         value: threat.delta != null
                             ? threat.delta!.toStringAsFixed(2)
                             : '-',
-                        valueColor: threat.delta != null &&
-                                threat.delta!.abs() >= 0.40
-                            ? Colors.red.shade400
-                            : null,
+                        valueColor:
+                            threat.delta != null && threat.delta!.abs() >= 0.40
+                                ? Colors.red.shade400
+                                : null,
                       ),
                     ],
                   ),
@@ -356,7 +359,8 @@ class _OptionDefensePlaybookWidgetState
             const SizedBox(height: 12),
 
             // 4. Playbook Actions List
-            ..._playbook.actions.map((action) => _buildActionCard(context, action)),
+            ..._playbook.actions
+                .map((action) => _buildActionCard(context, action)),
 
             const SizedBox(height: 16),
 
@@ -612,7 +616,8 @@ class _OptionDefensePlaybookWidgetState
                               style: OutlinedButton.styleFrom(
                                 foregroundColor: Colors.red.shade400,
                                 side: BorderSide(color: Colors.red.shade400),
-                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 12),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(10),
                                 ),
@@ -630,7 +635,8 @@ class _OptionDefensePlaybookWidgetState
                               ),
                             )
                           : OutlinedButton.icon(
-                              icon: const Icon(Icons.check_circle_outline, size: 18),
+                              icon: const Icon(Icons.check_circle_outline,
+                                  size: 18),
                               label: const Text('Manage Position'),
                               onPressed: () => _navigateToRollAssistant(null),
                             ),

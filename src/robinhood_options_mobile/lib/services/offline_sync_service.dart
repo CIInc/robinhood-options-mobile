@@ -24,8 +24,10 @@ class OfflineSyncService extends ChangeNotifier {
   bool get isOfflineSimulation => _isOfflineSimulation;
 
   bool get isDataStale => OfflineCacheService.isDataStale(_lastSyncTime);
-  String get freshnessLabel => OfflineCacheService.formatRelativeTime(_lastSyncTime);
-  String get syncDateTimeLabel => OfflineCacheService.formatSyncDateTime(_lastSyncTime);
+  String get freshnessLabel =>
+      OfflineCacheService.formatRelativeTime(_lastSyncTime);
+  String get syncDateTimeLabel =>
+      OfflineCacheService.formatSyncDateTime(_lastSyncTime);
 
   OfflineSyncService() {
     _init();
@@ -42,7 +44,8 @@ class OfflineSyncService extends ChangeNotifier {
   /// Start periodic background connectivity check if enabled
   void startMonitoring({Duration interval = const Duration(seconds: 30)}) {
     _connectivityPollTimer?.cancel();
-    _connectivityPollTimer = Timer.periodic(interval, (_) => checkConnectivity());
+    _connectivityPollTimer =
+        Timer.periodic(interval, (_) => checkConnectivity());
   }
 
   /// Stop background connectivity monitoring
@@ -84,7 +87,8 @@ class OfflineSyncService extends ChangeNotifier {
     }
 
     if (wasOffline && !isOffline) {
-      debugPrint('OfflineSyncService: Connection restored. Triggering reconnect sync callbacks.');
+      debugPrint(
+          'OfflineSyncService: Connection restored. Triggering reconnect sync callbacks.');
       _triggerReconnectSync();
     }
 

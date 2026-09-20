@@ -386,14 +386,12 @@ class InstrumentPosition {
 
   Icon get trendingIconToday {
     return Icon(
-            gainLossToday > 0
-                ? Icons.trending_up
-                : (gainLossToday < 0
-                    ? Icons.trending_down
-                    : Icons.trending_flat),
-            color: (gainLossToday > 0
-                ? Colors.green
-                : (gainLossToday < 0 ? Colors.red : Colors.grey)));
+        gainLossToday > 0
+            ? Icons.trending_up
+            : (gainLossToday < 0 ? Icons.trending_down : Icons.trending_flat),
+        color: (gainLossToday > 0
+            ? Colors.green
+            : (gainLossToday < 0 ? Colors.red : Colors.grey)));
   }
 
   static List<dynamic> csvHeaders = [

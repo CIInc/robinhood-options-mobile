@@ -204,6 +204,7 @@ class _TradeSignalNotificationsPageState
                             suffixIcon: _searchQuery.isNotEmpty
                                 ? IconButton(
                                     icon: const Icon(Icons.clear),
+                                    tooltip: 'Clear search',
                                     onPressed: () {
                                       setState(() {
                                         _searchController.clear();

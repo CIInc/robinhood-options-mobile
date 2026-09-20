@@ -61,8 +61,7 @@ class _MultiLegMatrixOrderEntryWidgetState
           spotPrice: spotPrice,
         );
 
-    _limitPriceController.text =
-        _order.absNetPremium.toStringAsFixed(2);
+    _limitPriceController.text = _order.absNetPremium.toStringAsFixed(2);
   }
 
   @override
@@ -296,7 +295,8 @@ class _MultiLegMatrixOrderEntryWidgetState
               value: strategy,
               child: Text(
                 strategy,
-                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                style:
+                    const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
               ),
             );
           }).toList(),
@@ -327,7 +327,8 @@ class _MultiLegMatrixOrderEntryWidgetState
             if (_order.legs.length < 4)
               TextButton.icon(
                 style: TextButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   visualDensity: VisualDensity.compact,
                 ),
                 icon: const Icon(Icons.add, size: 16),
@@ -465,7 +466,8 @@ class _MultiLegMatrixOrderEntryWidgetState
               // Remove Leg
               if (_order.legs.length > 1)
                 IconButton(
-                  icon: const Icon(Icons.delete_outline, size: 16, color: Colors.grey),
+                  icon: const Icon(Icons.delete_outline,
+                      size: 16, color: Colors.grey),
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
                   tooltip: 'Remove Leg',
@@ -484,12 +486,14 @@ class _MultiLegMatrixOrderEntryWidgetState
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.calendar_today, size: 12, color: Colors.grey),
+                      const Icon(Icons.calendar_today,
+                          size: 12, color: Colors.grey),
                       const SizedBox(width: 4),
                       Flexible(
                         child: Text(
                           _dateFormat.format(leg.expirationDate),
-                          style: const TextStyle(fontSize: 11, color: Colors.blueAccent),
+                          style: const TextStyle(
+                              fontSize: 11, color: Colors.blueAccent),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
@@ -502,10 +506,12 @@ class _MultiLegMatrixOrderEntryWidgetState
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text('Mark: ', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                  const Text('Mark: ',
+                      style: TextStyle(fontSize: 11, color: Colors.grey)),
                   Text(
                     _currencyFormat.format(leg.premium),
-                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                        fontSize: 11, fontWeight: FontWeight.bold),
                   ),
                 ],
               ),
@@ -519,8 +525,11 @@ class _MultiLegMatrixOrderEntryWidgetState
   Widget _buildAnalyticsCard(ThemeData theme) {
     final netCredit = _order.isCredit;
     final netDebit = _order.isDebit;
-    final netLabel = netCredit ? 'NET CREDIT' : (netDebit ? 'NET DEBIT' : 'EVEN');
-    final netColor = netCredit ? Colors.green : (netDebit ? Colors.amber.shade800 : Colors.grey);
+    final netLabel =
+        netCredit ? 'NET CREDIT' : (netDebit ? 'NET DEBIT' : 'EVEN');
+    final netColor = netCredit
+        ? Colors.green
+        : (netDebit ? Colors.amber.shade800 : Colors.grey);
 
     final maxProfit = _order.totalMaxProfit;
     final maxLoss = _order.totalMaxLoss;
@@ -541,7 +550,8 @@ class _MultiLegMatrixOrderEntryWidgetState
             children: [
               Flexible(
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: netColor.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(4),
@@ -574,9 +584,12 @@ class _MultiLegMatrixOrderEntryWidgetState
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Max Profit', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                    const Text('Max Profit',
+                        style: TextStyle(fontSize: 10, color: Colors.grey)),
                     Text(
-                      maxProfit != null ? _currencyFormat.format(maxProfit) : 'Unlimited',
+                      maxProfit != null
+                          ? _currencyFormat.format(maxProfit)
+                          : 'Unlimited',
                       style: const TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
@@ -590,9 +603,12 @@ class _MultiLegMatrixOrderEntryWidgetState
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Max Loss', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                    const Text('Max Loss',
+                        style: TextStyle(fontSize: 10, color: Colors.grey)),
                     Text(
-                      maxLoss != null ? _currencyFormat.format(maxLoss) : 'Unlimited',
+                      maxLoss != null
+                          ? _currencyFormat.format(maxLoss)
+                          : 'Unlimited',
                       style: const TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
@@ -606,10 +622,12 @@ class _MultiLegMatrixOrderEntryWidgetState
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Risk / Reward', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                    const Text('Risk / Reward',
+                        style: TextStyle(fontSize: 10, color: Colors.grey)),
                     Text(
                       _order.riskRewardRatio,
-                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                          fontSize: 11, fontWeight: FontWeight.bold),
                     ),
                   ],
                 ),
@@ -620,10 +638,12 @@ class _MultiLegMatrixOrderEntryWidgetState
             const SizedBox(height: 6),
             Row(
               children: [
-                const Text('Breakeven: ', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                const Text('Breakeven: ',
+                    style: TextStyle(fontSize: 10, color: Colors.grey)),
                 Text(
                   breakevens.map((b) => _currencyFormat.format(b)).join(' & '),
-                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                      fontSize: 11, fontWeight: FontWeight.bold),
                 ),
               ],
             ),
@@ -665,7 +685,8 @@ class _MultiLegMatrixOrderEntryWidgetState
                       padding: const EdgeInsets.symmetric(horizontal: 6),
                       child: Text(
                         '${_order.quantity} cntr',
-                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                            fontSize: 12, fontWeight: FontWeight.bold),
                       ),
                     ),
                     IconButton(
@@ -687,8 +708,12 @@ class _MultiLegMatrixOrderEntryWidgetState
                 underline: const SizedBox(),
                 isDense: true,
                 items: const [
-                  DropdownMenuItem(value: 'Limit', child: Text('Limit', style: TextStyle(fontSize: 12))),
-                  DropdownMenuItem(value: 'Market', child: Text('Market', style: TextStyle(fontSize: 12))),
+                  DropdownMenuItem(
+                      value: 'Limit',
+                      child: Text('Limit', style: TextStyle(fontSize: 12))),
+                  DropdownMenuItem(
+                      value: 'Market',
+                      child: Text('Market', style: TextStyle(fontSize: 12))),
                 ],
                 onChanged: (val) {
                   if (val != null) setState(() => _order.orderType = val);
@@ -701,8 +726,12 @@ class _MultiLegMatrixOrderEntryWidgetState
                 underline: const SizedBox(),
                 isDense: true,
                 items: const [
-                  DropdownMenuItem(value: 'gtc', child: Text('GTC', style: TextStyle(fontSize: 12))),
-                  DropdownMenuItem(value: 'day', child: Text('Day', style: TextStyle(fontSize: 12))),
+                  DropdownMenuItem(
+                      value: 'gtc',
+                      child: Text('GTC', style: TextStyle(fontSize: 12))),
+                  DropdownMenuItem(
+                      value: 'day',
+                      child: Text('Day', style: TextStyle(fontSize: 12))),
                 ],
                 onChanged: (val) {
                   if (val != null) setState(() => _order.timeInForce = val);
@@ -717,14 +746,16 @@ class _MultiLegMatrixOrderEntryWidgetState
                 Expanded(
                   child: TextField(
                     controller: _limitPriceController,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
                     style: const TextStyle(fontSize: 12),
                     decoration: const InputDecoration(
                       labelText: 'Net Limit Price',
                       isDense: true,
                       prefixText: '\$ ',
                       border: OutlineInputBorder(),
-                      contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                      contentPadding:
+                          EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                     ),
                     onChanged: (val) {
                       final parsed = double.tryParse(val);
@@ -764,7 +795,9 @@ class _MultiLegMatrixOrderEntryWidgetState
         width: double.infinity,
         child: FilledButton.icon(
           style: FilledButton.styleFrom(
-            backgroundColor: _order.isCredit ? Colors.green.shade700 : theme.colorScheme.primary,
+            backgroundColor: _order.isCredit
+                ? Colors.green.shade700
+                : theme.colorScheme.primary,
             padding: const EdgeInsets.symmetric(vertical: 10),
           ),
           icon: const Icon(Icons.flash_on, size: 16),
@@ -794,7 +827,8 @@ class _MultiLegMatrixOrderEntryWidgetState
                   style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 8),
-                Text('Order Type: ${_order.orderType} (${_order.timeInForce.toUpperCase()})'),
+                Text(
+                    'Order Type: ${_order.orderType} (${_order.timeInForce.toUpperCase()})'),
                 Text(
                   'Net Price: ${_currencyFormat.format(_order.limitPrice ?? _order.absNetPremium)} '
                   '(${_order.isCredit ? "Credit" : "Debit"})',
@@ -804,7 +838,9 @@ class _MultiLegMatrixOrderEntryWidgetState
                   style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
                 const Divider(height: 16),
-                const Text('Leg Breakdown:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                const Text('Leg Breakdown:',
+                    style:
+                        TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
                 const SizedBox(height: 4),
                 ..._order.legs.map((leg) => Padding(
                       padding: const EdgeInsets.only(bottom: 4),

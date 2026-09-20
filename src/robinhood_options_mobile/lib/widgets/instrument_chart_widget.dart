@@ -294,10 +294,7 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
           _calculateIndicators(historicals);
 
           final double maxVolume = historicals.isNotEmpty
-              ? historicals
-                  .map((e) => e.volume)
-                  .reduce(math.max)
-                  .toDouble()
+              ? historicals.map((e) => e.volume).reduce(math.max).toDouble()
               : 0.0;
           final bool hasVolume = maxVolume > 0 && maxVolume.isFinite;
 
@@ -609,7 +606,8 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
                               Expanded(
                                 child: AnimatedSwitcher(
                                   duration: const Duration(milliseconds: 200),
-                                  layoutBuilder: (currentChild, previousChildren) {
+                                  layoutBuilder:
+                                      (currentChild, previousChildren) {
                                     return Stack(
                                       alignment: Alignment.centerLeft,
                                       fit: StackFit.passthrough,
@@ -799,8 +797,7 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
                   ? Expanded(child: noDataWidget)
                   : SizedBox(height: 340, child: noDataWidget),
               _buildDateFilters(),
-              if (widget.isFullScreen && !isCompact)
-                const SizedBox(height: 25),
+              if (widget.isFullScreen && !isCompact) const SizedBox(height: 25),
             ],
           );
         }
@@ -816,11 +813,10 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
                 height: 40,
                 child: CircularProgressIndicator.adaptive(
                   strokeWidth: 3,
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                      Theme.of(context)
-                          .colorScheme
-                          .primary
-                          .withValues(alpha: 0.7)),
+                  valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context)
+                      .colorScheme
+                      .primary
+                      .withValues(alpha: 0.7)),
                 )),
             const SizedBox(height: 20),
             Text(
@@ -1057,8 +1053,7 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
   }
 
   charts.NumericExtents _calculateChartExtents(List<double> values) {
-    final cleanValues =
-        values.where((v) => v.isFinite && !v.isNaN).toList();
+    final cleanValues = values.where((v) => v.isFinite && !v.isNaN).toList();
     if (cleanValues.isEmpty) {
       return const charts.NumericExtents(0.0, 1.0);
     }
@@ -1072,9 +1067,8 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
     }
 
     final width = (extents.max - extents.min).abs();
-    final padding = width <= 0.000001
-        ? (extents.min.abs() * 0.05) + 1.0
-        : width * 0.1;
+    final padding =
+        width <= 0.000001 ? (extents.min.abs() * 0.05) + 1.0 : width * 0.1;
 
     final minVal = extents.min - padding;
     final maxVal = extents.max + padding;
@@ -1102,19 +1096,14 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
           enabled: false,
           height: 32,
           child: Text('VIEW',
-              style:
-                  TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
         ),
         PopupMenuItem(
           value: 'type',
           child: Row(
             children: [
-              Icon(
-                  _showCandles
-                      ? Icons.candlestick_chart
-                      : Icons.show_chart,
-                  size: 18,
-                  color: Theme.of(context).colorScheme.primary),
+              Icon(_showCandles ? Icons.candlestick_chart : Icons.show_chart,
+                  size: 18, color: Theme.of(context).colorScheme.primary),
               const SizedBox(width: 12),
               Text(_showCandles ? 'Line Chart' : 'Candlestick'),
             ],
@@ -1125,10 +1114,7 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
             value: 'volume',
             child: Row(
               children: [
-                Icon(
-                    _showVolume
-                        ? Icons.bar_chart
-                        : Icons.bar_chart_outlined,
+                Icon(_showVolume ? Icons.bar_chart : Icons.bar_chart_outlined,
                     size: 18,
                     color: _showVolume
                         ? Theme.of(context).colorScheme.primary
@@ -1188,8 +1174,7 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
           enabled: false,
           height: 32,
           child: Text('INDICATOR PRESETS',
-              style:
-                  TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
         ),
         if (_showCandles)
           const PopupMenuItem(

@@ -158,16 +158,15 @@ class _OptionRollAssistantWidgetState extends State<OptionRollAssistantWidget> {
 
     // Sort available contracts by strike price ascending
     final sorted = List<OptionInstrument>.from(contracts)
-      ..sort((a, b) =>
-          (a.strikePrice ?? 0.0).compareTo(b.strikePrice ?? 0.0));
+      ..sort((a, b) => (a.strikePrice ?? 0.0).compareTo(b.strikePrice ?? 0.0));
 
     OptionInstrument? match;
 
     switch (preset) {
       case RollPreset.rollOut:
         // Find exact or closest same strike
-        match = sorted.firstWhereOrNull((c) =>
-            (c.strikePrice != null && (c.strikePrice! - oldStrike).abs() < 0.01));
+        match = sorted.firstWhereOrNull((c) => (c.strikePrice != null &&
+            (c.strikePrice! - oldStrike).abs() < 0.01));
         match ??= sorted.first;
         break;
 
@@ -688,8 +687,7 @@ class _OptionRollAssistantWidgetState extends State<OptionRollAssistantWidget> {
     }
 
     final sorted = List<OptionInstrument>.from(contracts)
-      ..sort((a, b) =>
-          (a.strikePrice ?? 0.0).compareTo(b.strikePrice ?? 0.0));
+      ..sort((a, b) => (a.strikePrice ?? 0.0).compareTo(b.strikePrice ?? 0.0));
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -725,7 +723,8 @@ class _OptionRollAssistantWidgetState extends State<OptionRollAssistantWidget> {
                 },
                 child: Container(
                   width: 104,
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: isSelected
                         ? theme.colorScheme.primaryContainer
@@ -1243,8 +1242,8 @@ class _OptionRollAssistantWidgetState extends State<OptionRollAssistantWidget> {
               context: context,
               builder: (context) => AlertDialog(
                 title: const Text('RiskGuard Warning'),
-                content: Text(
-                    riskResult.data['reason'] ?? 'Trade rejected by RiskGuard.'),
+                content: Text(riskResult.data['reason'] ??
+                    'Trade rejected by RiskGuard.'),
                 actions: [
                   TextButton(
                     onPressed: () => Navigator.pop(context, false),
