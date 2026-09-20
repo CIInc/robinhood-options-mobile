@@ -1,9 +1,462 @@
 import 'dart:math';
 
+import 'package:robinhood_options_mobile/model/forex_holding.dart';
+import 'package:robinhood_options_mobile/model/instrument_position.dart';
 import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/option_marketdata.dart';
 
+/// Represents a single asset or position's contribution to portfolio beta-weighted delta.
+class BetaDeltaDriver {
+  final String symbol;
+  final String assetClass; // 'Equity', 'Option', 'Futures', 'Crypto', 'Forex'
+  final double beta;
+  final double deltaShares;
+  final double dollarDelta;
+  final double dollarDelta1Pct;
+
+  const BetaDeltaDriver({
+    required this.symbol,
+    required this.assetClass,
+    required this.beta,
+    required this.deltaShares,
+    required this.dollarDelta,
+    required this.dollarDelta1Pct,
+  });
+}
+
+/// Aggregated cross-asset Greeks result normalized to a benchmark (e.g. SPY).
+class BetaWeightedGreeksResult {
+  final String benchmarkSymbol;
+  final double benchmarkPrice;
+  final double netDeltaShares; // Equivalent benchmark shares
+  final double dollarDelta1Pct; // Portfolio $ P&L per +1% move in benchmark
+  final double netGamma; // Aggregate options gamma
+  final double netTheta; // Aggregate daily theta decay ($/day)
+  final double netVega; // Aggregate vega ($/1% IV)
+
+  final double equityDeltaShares;
+  final double optionDeltaShares;
+  final double futuresDeltaShares;
+  final double forexDeltaShares;
+
+  final double equityDollarDelta;
+  final double optionDollarDelta;
+  final double futuresDollarDelta;
+  final double forexDollarDelta;
+
+  final String stance; // 'Bullish', 'Neutral', 'Bearish'
+  final int totalPositions;
+  final int pricedPositions;
+  final List<BetaDeltaDriver> topDrivers;
+
+  const BetaWeightedGreeksResult({
+    required this.benchmarkSymbol,
+    required this.benchmarkPrice,
+    required this.netDeltaShares,
+    required this.dollarDelta1Pct,
+    required this.netGamma,
+    required this.netTheta,
+    required this.netVega,
+    required this.equityDeltaShares,
+    required this.optionDeltaShares,
+    required this.futuresDeltaShares,
+    required this.forexDeltaShares,
+    required this.equityDollarDelta,
+    required this.optionDollarDelta,
+    required this.futuresDollarDelta,
+    required this.forexDollarDelta,
+    required this.stance,
+    required this.totalPositions,
+    required this.pricedPositions,
+    required this.topDrivers,
+  });
+
+  bool get hasData => pricedPositions > 0;
+}
+
 class AnalyticsUtils {
+  /// Aggregates cross-asset positions (stocks, options, futures, crypto/forex)
+  /// into beta-weighted Greeks normalized to a benchmark index (default: SPY).
+  ///
+  /// For each asset:
+  /// - Equities: Dollar Delta = shares * price
+  /// - Options: Dollar Delta = contracts * multiplier * delta * underlyingSpot
+  /// - Futures: Dollar Delta = notionalValue
+  /// - Forex/Crypto: Dollar Delta = marketValue
+  ///
+  /// Weighted Dollar Delta = Dollar Delta * Beta
+  /// Benchmark Equivalent Shares (Delta_beta) = Weighted Dollar Delta / Benchmark Price
+  /// Dollar Delta (1% Market Move) = Weighted Dollar Delta * 0.01
+  static BetaWeightedGreeksResult calculateBetaWeightedGreeks({
+    Iterable<InstrumentPosition>? equityPositions,
+    Iterable<OptionAggregatePosition>? optionPositions,
+    Iterable<dynamic>? futuresPositions,
+    Iterable<ForexHolding>? forexHoldings,
+    String benchmarkSymbol = 'SPY',
+    double? benchmarkPrice,
+    Map<String, double>? assetBetas,
+  }) {
+    final effectiveBenchmarkPrice =
+        (benchmarkPrice != null && benchmarkPrice > 0 && benchmarkPrice.isFinite)
+            ? benchmarkPrice
+            : _defaultBenchmarkPrice(benchmarkSymbol);
+
+    double totalWeightedDollarDelta = 0;
+    double equityDollarDelta = 0;
+    double optionDollarDelta = 0;
+    double futuresDollarDelta = 0;
+    double forexDollarDelta = 0;
+
+    double netGamma = 0;
+    double netTheta = 0;
+    double netVega = 0;
+
+    int totalPositions = 0;
+    int pricedPositions = 0;
+
+    final drivers = <BetaDeltaDriver>[];
+
+    // 1. Equities
+    if (equityPositions != null) {
+      for (final position in equityPositions) {
+        final quantity = position.quantity ?? 0.0;
+        if (quantity == 0 || !quantity.isFinite) continue;
+        totalPositions++;
+
+        final rawSymbol = position.instrumentObj?.symbol;
+        final rawName = position.instrumentObj?.simpleName;
+        final symbol = (rawSymbol != null && !_isId(rawSymbol))
+            ? rawSymbol
+            : ((rawName != null && !_isId(rawName)) ? rawName : 'Stock');
+        final price = position.instrumentObj?.quoteObj?.lastTradePrice ??
+            position.averageBuyPrice ??
+            0.0;
+        if (price <= 0 || !price.isFinite) continue;
+        pricedPositions++;
+
+        final beta = _resolveBeta(symbol, assetBetas, defaultBeta: 1.0);
+        final dollarDelta = quantity * price;
+        final weightedDollarDelta = dollarDelta * beta;
+        final deltaShares = weightedDollarDelta / effectiveBenchmarkPrice;
+
+        equityDollarDelta += weightedDollarDelta;
+        totalWeightedDollarDelta += weightedDollarDelta;
+
+        drivers.add(BetaDeltaDriver(
+          symbol: symbol,
+          assetClass: 'Equity',
+          beta: beta,
+          deltaShares: deltaShares,
+          dollarDelta: weightedDollarDelta,
+          dollarDelta1Pct: weightedDollarDelta * 0.01,
+        ));
+      }
+    }
+
+    // 2. Options
+    if (optionPositions != null) {
+      for (final position in optionPositions) {
+        final quantity = position.quantity;
+        final marketData = position.optionInstrument?.optionMarketData;
+        if (quantity == null || quantity == 0 || !quantity.isFinite) continue;
+        totalPositions++;
+
+        final chainSymbol = position.optionInstrument?.chainSymbol;
+        final instSymbol = position.instrumentObj?.symbol;
+        final posSymbol = position.symbol;
+
+        String cleanSymbol = '';
+        if (chainSymbol != null && !_isId(chainSymbol)) {
+          cleanSymbol = chainSymbol;
+        } else if (instSymbol != null && !_isId(instSymbol)) {
+          cleanSymbol = instSymbol;
+        } else if (!_isId(posSymbol)) {
+          cleanSymbol = posSymbol;
+        }
+
+        final multiplier = position.tradeValueMultiplier ?? 100.0;
+        final direction =
+            position.direction.toLowerCase() == 'credit' ? -1 : 1;
+        final scale = quantity * multiplier * direction;
+
+        final delta = marketData?.delta;
+        final gamma = marketData?.gamma;
+        final theta = marketData?.theta;
+        final vega = marketData?.vega;
+
+        final spotPrice = position.instrumentObj?.quoteObj?.lastTradePrice ??
+            position.optionInstrument?.strikePrice ??
+            0.0;
+
+        if (delta != null && delta.isFinite && spotPrice > 0) {
+          pricedPositions++;
+          final beta = _resolveBeta(cleanSymbol, assetBetas, defaultBeta: 1.0);
+          final rawDollarDelta = delta * scale * spotPrice;
+          final weightedDollarDelta = rawDollarDelta * beta;
+          final deltaShares = weightedDollarDelta / effectiveBenchmarkPrice;
+
+          optionDollarDelta += weightedDollarDelta;
+          totalWeightedDollarDelta += weightedDollarDelta;
+
+          drivers.add(BetaDeltaDriver(
+            symbol: cleanSymbol.isNotEmpty ? '$cleanSymbol (Opt)' : 'Option',
+            assetClass: 'Option',
+            beta: beta,
+            deltaShares: deltaShares,
+            dollarDelta: weightedDollarDelta,
+            dollarDelta1Pct: weightedDollarDelta * 0.01,
+          ));
+        }
+
+        if (gamma != null && gamma.isFinite) {
+          netGamma += gamma * scale;
+        }
+        if (theta != null && theta.isFinite) {
+          netTheta += theta * scale;
+        }
+        if (vega != null && vega.isFinite) {
+          netVega += vega * scale;
+        }
+      }
+    }
+
+    // 3. Futures
+    if (futuresPositions != null) {
+      for (final pos in futuresPositions) {
+        if (pos == null) continue;
+        totalPositions++;
+        double notional = 0.0;
+        String symbol = 'Futures';
+        if (pos is Map) {
+          notional = double.tryParse(pos['notionalValue']?.toString() ?? '') ??
+              (double.tryParse(pos['openPnlCalc']?.toString() ?? '') ?? 0.0);
+
+          final product = pos['product'] is Map ? pos['product'] as Map : null;
+          final contract = pos['contract'] is Map ? pos['contract'] as Map : null;
+
+          final productSymbol = product?['symbol']?.toString();
+          final contractRoot = contract?['rootSymbol']?.toString();
+          final contractSymbol = contract?['symbol']?.toString();
+          final contractName = contract?['name']?.toString();
+          final posSymbol = pos['symbol']?.toString();
+
+          if (productSymbol != null && !_isId(productSymbol)) {
+            symbol = productSymbol;
+          } else if (contractRoot != null && !_isId(contractRoot)) {
+            symbol = contractRoot;
+          } else if (contractSymbol != null && !_isId(contractSymbol)) {
+            symbol = contractSymbol;
+          } else if (posSymbol != null && !_isId(posSymbol)) {
+            symbol = posSymbol;
+          } else if (contractName != null && !_isId(contractName)) {
+            symbol = contractName;
+          }
+        }
+        if (notional != 0 && notional.isFinite) {
+          pricedPositions++;
+          final beta = _resolveFuturesBeta(symbol, assetBetas);
+          final weightedDollarDelta = notional * beta;
+          final deltaShares = weightedDollarDelta / effectiveBenchmarkPrice;
+
+          futuresDollarDelta += weightedDollarDelta;
+          totalWeightedDollarDelta += weightedDollarDelta;
+
+          drivers.add(BetaDeltaDriver(
+            symbol: symbol,
+            assetClass: 'Futures',
+            beta: beta,
+            deltaShares: deltaShares,
+            dollarDelta: weightedDollarDelta,
+            dollarDelta1Pct: weightedDollarDelta * 0.01,
+          ));
+        }
+      }
+    }
+
+    // 4. Forex / Crypto
+    if (forexHoldings != null) {
+      for (final holding in forexHoldings) {
+        final marketValue = holding.marketValue;
+        if (!marketValue.isFinite || marketValue == 0) continue;
+        totalPositions++;
+        pricedPositions++;
+
+        final rawCode = holding.currencyCode;
+        final isCrypto = rawCode.toUpperCase() == 'BTC' ||
+            rawCode.toUpperCase() == 'ETH' ||
+            rawCode.toUpperCase() == 'SOL' ||
+            rawCode.toUpperCase() == 'DOGE' ||
+            holding.currencyName.toLowerCase().contains('coin') ||
+            holding.currencyName.toLowerCase().contains('crypto');
+        final code = !_isId(rawCode)
+            ? rawCode
+            : (!_isId(holding.currencyName)
+                ? holding.currencyName
+                : (isCrypto ? 'Crypto' : 'Forex'));
+
+        final beta = _resolveForexCryptoBeta(code, isCrypto, assetBetas);
+        final weightedDollarDelta = marketValue * beta;
+        final deltaShares = weightedDollarDelta / effectiveBenchmarkPrice;
+
+        forexDollarDelta += weightedDollarDelta;
+        totalWeightedDollarDelta += weightedDollarDelta;
+
+        drivers.add(BetaDeltaDriver(
+          symbol: code,
+          assetClass: isCrypto ? 'Crypto' : 'Forex',
+          beta: beta,
+          deltaShares: deltaShares,
+          dollarDelta: weightedDollarDelta,
+          dollarDelta1Pct: weightedDollarDelta * 0.01,
+        ));
+      }
+    }
+
+    // Sort drivers by largest absolute dollar exposure
+    drivers.sort((a, b) => b.dollarDelta.abs().compareTo(a.dollarDelta.abs()));
+
+    final netDeltaShares =
+        totalWeightedDollarDelta / effectiveBenchmarkPrice;
+    final dollarDelta1Pct = totalWeightedDollarDelta * 0.01;
+
+    String stance = 'Neutral';
+    if (netDeltaShares > 10.0) {
+      stance = 'Bullish';
+    } else if (netDeltaShares < -10.0) {
+      stance = 'Bearish';
+    }
+
+    return BetaWeightedGreeksResult(
+      benchmarkSymbol: benchmarkSymbol,
+      benchmarkPrice: effectiveBenchmarkPrice,
+      netDeltaShares: netDeltaShares,
+      dollarDelta1Pct: dollarDelta1Pct,
+      netGamma: netGamma,
+      netTheta: netTheta,
+      netVega: netVega,
+      equityDeltaShares: equityDollarDelta / effectiveBenchmarkPrice,
+      optionDeltaShares: optionDollarDelta / effectiveBenchmarkPrice,
+      futuresDeltaShares: futuresDollarDelta / effectiveBenchmarkPrice,
+      forexDeltaShares: forexDollarDelta / effectiveBenchmarkPrice,
+      equityDollarDelta: equityDollarDelta,
+      optionDollarDelta: optionDollarDelta,
+      futuresDollarDelta: futuresDollarDelta,
+      forexDollarDelta: forexDollarDelta,
+      stance: stance,
+      totalPositions: totalPositions,
+      pricedPositions: pricedPositions,
+      topDrivers: drivers.take(6).toList(),
+    );
+  }
+
+  static double _defaultBenchmarkPrice(String symbol) {
+    switch (symbol.toUpperCase()) {
+      case 'QQQ':
+        return 480.0;
+      case 'DIA':
+        return 420.0;
+      case 'IWM':
+        return 210.0;
+      case 'SPY':
+      default:
+        return 540.0;
+    }
+  }
+
+  static double _resolveBeta(
+    String symbol,
+    Map<String, double>? assetBetas, {
+    double defaultBeta = 1.0,
+  }) {
+    if (symbol.isEmpty) return defaultBeta;
+    final upper = symbol.toUpperCase();
+    if (assetBetas != null && assetBetas.containsKey(upper)) {
+      final b = assetBetas[upper];
+      if (b != null && b.isFinite) return b;
+    }
+    // Check known leveraged / inverse ETFs
+    if (upper == 'SQQQ' || upper == 'SPXU' || upper == 'SOXS') return -3.0;
+    if (upper == 'TQQQ' || upper == 'UPRO' || upper == 'SOXL') return 3.0;
+    if (upper == 'QLD' || upper == 'SSO') return 2.0;
+    if (upper == 'PSQ' || upper == 'SH') return -1.0;
+    return defaultBeta;
+  }
+
+  static double _resolveFuturesBeta(
+    String symbol,
+    Map<String, double>? assetBetas,
+  ) {
+    final upper = symbol.toUpperCase();
+    if (assetBetas != null && assetBetas.containsKey(upper)) {
+      final b = assetBetas[upper];
+      if (b != null && b.isFinite) return b;
+    }
+    if (upper.contains('ES') || upper.contains('MES')) return 1.0;
+    if (upper.contains('NQ') || upper.contains('MNQ')) return 1.18;
+    if (upper.contains('YM') || upper.contains('MYM')) return 0.85;
+    if (upper.contains('RTY') || upper.contains('M2K')) return 1.25;
+    if (upper.contains('CL')) return 0.35;
+    if (upper.contains('GC')) return 0.05;
+    return 1.0;
+  }
+
+  static double _resolveForexCryptoBeta(
+    String code,
+    bool isCrypto,
+    Map<String, double>? assetBetas,
+  ) {
+    final upper = code.toUpperCase();
+    if (assetBetas != null && assetBetas.containsKey(upper)) {
+      final b = assetBetas[upper];
+      if (b != null && b.isFinite) return b;
+    }
+    if (isCrypto || upper == 'BTC' || upper == 'ETH' || upper == 'SOL') {
+      if (upper == 'BTC') return 1.4;
+      if (upper == 'ETH') return 1.6;
+      return 1.8;
+    }
+    // Fiat currency pairs
+    return 0.15;
+  }
+
+  /// Helper to check if a symbol or candidate string is actually an internal ID, UUID,
+  /// URL, stringified Map/JSON, or meaningless placeholder rather than a clean ticker symbol.
+  static bool _isId(String? s) {
+    if (s == null) return true;
+    final trimmed = s.trim();
+    if (trimmed.isEmpty) return true;
+    final lower = trimmed.toLowerCase();
+    if (lower == 'id' ||
+        lower == 'null' ||
+        lower == 'none' ||
+        lower == 'unknown' ||
+        lower == 'other') {
+      return true;
+    }
+    if (trimmed.startsWith('{') ||
+        trimmed.startsWith('[') ||
+        trimmed.startsWith('(')) {
+      return true;
+    }
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+      return true;
+    }
+    if (lower.startsWith('id:') || lower.startsWith('id=')) {
+      return true;
+    }
+    // UUID regex: 8-4-4-4-12 hex characters
+    final uuidRegex = RegExp(
+        r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$');
+    if (uuidRegex.hasMatch(trimmed)) return true;
+
+    // Hex-only string of 16 or more chars (e.g. 32-char hex UUID or hash)
+    if (trimmed.length >= 16 && RegExp(r'^[0-9a-fA-F-]+$').hasMatch(trimmed)) {
+      return true;
+    }
+
+    return false;
+  }
+
   /// Aggregates option Greeks using the position direction and contract size.
   /// Positions without usable market data are excluded from the totals.
   static Map<String, double> aggregateOptionGreeks(

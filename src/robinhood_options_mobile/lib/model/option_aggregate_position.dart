@@ -58,10 +58,11 @@ class OptionAggregatePosition {
 
   OptionAggregatePosition.fromJson(dynamic json)
       : id = json['id'],
-        chain = json['chain'],
-        account = json['account'],
-        symbol = json['symbol'],
-        strategy = json['strategy'],
+        chain = json['chain'] ?? json['chain_id'] ?? json['chainId'] ?? '',
+        account = json['account'] ?? '',
+        symbol =
+            json['symbol'] ?? json['chain_symbol'] ?? json['chainSymbol'] ?? '',
+        strategy = json['strategy'] ?? '',
         averageOpenPrice = parseDouble(json['average_open_price']),
         legs = OptionLeg.fromJsonArray(json['legs']),
         quantity = parseDouble(json['quantity']),

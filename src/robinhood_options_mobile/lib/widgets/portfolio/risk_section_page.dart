@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:robinhood_options_mobile/model/forex_holding_store.dart';
+import 'package:robinhood_options_mobile/model/futures_position_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
 import 'package:robinhood_options_mobile/model/option_position_store.dart';
 import 'package:robinhood_options_mobile/widgets/analytics_style_card.dart';
@@ -55,6 +57,11 @@ class _RiskSectionPageState extends State<RiskSectionPage> {
                 .toList();
             final healthScore = metrics['healthScore'] as double?;
 
+            final futuresStore =
+                Provider.of<FuturesPositionStore?>(context, listen: false);
+            final forexStore =
+                Provider.of<ForexHoldingStore?>(context, listen: false);
+
             return PortfolioSectionScaffold(
               title: 'Risk',
               subtitle: 'Score, drawdown, concentration & correlation',
@@ -87,7 +94,16 @@ class _RiskSectionPageState extends State<RiskSectionPage> {
                 if (healthScore != null)
                   _healthCard(context, healthScore, metrics),
                 PortfolioRiskSummaryWidget(positions: store.items),
-                PortfolioGreeksCard(positions: optionStore.items),
+                PortfolioGreeksCard(
+                  positions: optionStore.items,
+                  equityPositions: store.items,
+                  futuresPositions: futuresStore?.items,
+                  forexHoldings: forexStore?.items,
+                  benchmarkSymbol: controller.selectedBenchmark,
+                  onBenchmarkChanged: (newBenchmark) {
+                    controller.selectBenchmark(newBenchmark);
+                  },
+                ),
                 PortfolioStressTestCard(positions: store.items),
                 TailRiskCard(
                   positions: store.items,

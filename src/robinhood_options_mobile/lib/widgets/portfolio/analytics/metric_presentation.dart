@@ -433,52 +433,54 @@ class MetricPresentation {
                 ),
               ),
               // Content
-              SingleChildScrollView(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Definition
-                    _detailSection(
-                      context,
-                      'Definition',
-                      Icons.description,
-                      definition,
-                    ),
-                    const SizedBox(height: 16),
-                    // Example
-                    if (guidance['example'] != null)
+              Flexible(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Definition
                       _detailSection(
                         context,
-                        'Example',
-                        Icons.lightbulb_outline,
-                        guidance['example'] as String,
-                        backgroundColor: Theme.of(context)
-                            .colorScheme
-                            .tertiaryContainer
-                            .withValues(alpha: 0.3),
+                        'Definition',
+                        Icons.description,
+                        definition,
                       ),
-                    if (guidance['example'] != null) const SizedBox(height: 16),
-                    // Thresholds
-                    if (guidance['noThreshold'] != true &&
-                        (guidance['goodThreshold'] != null ||
-                            guidance['acceptableThreshold'] != null)) ...[
-                      _thresholdsSection(context, guidance),
                       const SizedBox(height: 16),
+                      // Example
+                      if (guidance['example'] != null)
+                        _detailSection(
+                          context,
+                          'Example',
+                          Icons.lightbulb_outline,
+                          guidance['example'] as String,
+                          backgroundColor: Theme.of(context)
+                              .colorScheme
+                              .tertiaryContainer
+                              .withValues(alpha: 0.3),
+                        ),
+                      if (guidance['example'] != null) const SizedBox(height: 16),
+                      // Thresholds
+                      if (guidance['noThreshold'] != true &&
+                          (guidance['goodThreshold'] != null ||
+                              guidance['acceptableThreshold'] != null)) ...[
+                        _thresholdsSection(context, guidance),
+                        const SizedBox(height: 16),
+                      ],
+                      // Tip
+                      if (guidance['tip'] != null)
+                        _detailSection(
+                          context,
+                          'Pro Tip',
+                          Icons.tips_and_updates,
+                          guidance['tip'] as String,
+                          backgroundColor: Theme.of(context)
+                              .colorScheme
+                              .secondaryContainer
+                              .withValues(alpha: 0.3),
+                        ),
                     ],
-                    // Tip
-                    if (guidance['tip'] != null)
-                      _detailSection(
-                        context,
-                        'Pro Tip',
-                        Icons.tips_and_updates,
-                        guidance['tip'] as String,
-                        backgroundColor: Theme.of(context)
-                            .colorScheme
-                            .secondaryContainer
-                            .withValues(alpha: 0.3),
-                      ),
-                  ],
+                  ),
                 ),
               ),
             ],
@@ -513,12 +515,14 @@ class MetricPresentation {
               Icon(icon,
                   size: 18, color: Theme.of(context).colorScheme.primary),
               const SizedBox(width: 8),
-              Text(
-                title,
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
+              Expanded(
+                child: Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                ),
               ),
             ],
           ),
@@ -561,12 +565,14 @@ class MetricPresentation {
               Icon(Icons.flag,
                   size: 18, color: Theme.of(context).colorScheme.primary),
               const SizedBox(width: 8),
-              Text(
-                'Performance Thresholds',
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
+              Expanded(
+                child: Text(
+                  'Performance Thresholds',
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                ),
               ),
             ],
           ),
@@ -625,11 +631,13 @@ class MetricPresentation {
             ),
           ),
           const SizedBox(width: 8),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 13,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
           ),
         ],
@@ -1124,102 +1132,104 @@ class MetricPresentation {
                 ),
               ),
               // Content
-              SingleChildScrollView(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  children: benchmarkInfo.entries.map((entry) {
-                    final info = entry.value;
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 16),
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        border: Border.all(
-                          color:
-                              (info['color'] as Color).withValues(alpha: 0.3),
-                          width: 2,
-                        ),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Row(
-                        children: [
-                          CircleAvatar(
-                            radius: 28,
-                            backgroundColor:
-                                (info['color'] as Color).withValues(alpha: 0.1),
-                            child: Icon(
-                              info['icon'] as IconData,
-                              color: info['color'] as Color,
-                              size: 28,
-                            ),
+              Flexible(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    children: benchmarkInfo.entries.map((entry) {
+                      final info = entry.value;
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 16),
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          border: Border.all(
+                            color:
+                                (info['color'] as Color).withValues(alpha: 0.3),
+                            width: 2,
                           ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Text(
-                                      entry.key,
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    if (selectedBenchmark == entry.key)
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 8, vertical: 2),
-                                        decoration: BoxDecoration(
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .primary,
-                                          borderRadius:
-                                              BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Row(
+                          children: [
+                            CircleAvatar(
+                              radius: 28,
+                              backgroundColor:
+                                  (info['color'] as Color).withValues(alpha: 0.1),
+                              child: Icon(
+                                info['icon'] as IconData,
+                                color: info['color'] as Color,
+                                size: 28,
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Text(
+                                        entry.key,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16,
                                         ),
-                                        child: Text(
-                                          'Active',
-                                          style: TextStyle(
-                                            fontSize: 10,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      if (selectedBenchmark == entry.key)
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 8, vertical: 2),
+                                          decoration: BoxDecoration(
                                             color: Theme.of(context)
                                                 .colorScheme
-                                                .onPrimary,
-                                            fontWeight: FontWeight.bold,
+                                                .primary,
+                                            borderRadius:
+                                                BorderRadius.circular(12),
+                                          ),
+                                          child: Text(
+                                            'Active',
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .onPrimary,
+                                              fontWeight: FontWeight.bold,
+                                            ),
                                           ),
                                         ),
-                                      ),
-                                  ],
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  info['name'] as String,
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurfaceVariant,
-                                    fontWeight: FontWeight.w600,
+                                    ],
                                   ),
-                                ),
-                                const SizedBox(height: 6),
-                                Text(
-                                  info['description'] as String,
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurfaceVariant,
-                                    height: 1.3,
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    info['name'] as String,
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurfaceVariant,
+                                      fontWeight: FontWeight.w600,
+                                    ),
                                   ),
-                                ),
-                              ],
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    info['description'] as String,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurfaceVariant,
+                                      height: 1.3,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }).toList(),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                  ),
                 ),
               ),
             ],

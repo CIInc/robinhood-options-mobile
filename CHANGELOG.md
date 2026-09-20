@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.51.0] - 2026-09-19
+**Beta-Weighted Portfolio Delta & Cross-Asset Greeks Engine ([#137](https://github.com/CIInc/robinhood-options-mobile/issues/137))**
+
+- **Beta-Weighted Portfolio Delta & Cross-Asset Greeks Engine (`AnalyticsUtils`, `PortfolioGreeksCard`, `RiskSectionPage`, [#137](https://github.com/CIInc/robinhood-options-mobile/issues/137)):**
+  - **Quantitative Cross-Asset Sensitivity Engine (`AnalyticsUtils.calculateBetaWeightedGreeks`)**:
+    - Normalizes multi-asset positions (equities, options, futures, crypto, forex) against standard liquid benchmark indices (SPY, QQQ, DIA, IWM) to compute equivalent benchmark shares ($\Delta_\beta$) and true market dollar risk per 1% move ($\$ \Delta_{1\%} = \Delta_\beta \times S_{\text{benchmark}} \times 0.01$).
+    - Supports underlying spot-price and contract-multiplier weighting for stock options ($100 \times \Delta \times S/S_B \times \beta$), futures contracts (/ES, /NQ, /YM, /RTY, /CL, /GC with explicit multipliers), and forex/crypto assets.
+    - Aggregates portfolio-wide Gamma ($\Gamma$), Vega ($\nu$), and daily Theta decay ($\Theta$).
+    - Implements robust beta resolution with asset-class fallbacks for leveraged ETFs, inverse ETFs, crypto pairs, and fiat currencies.
+  - **Interactive Greeks Dashboard Widget (`PortfolioGreeksCard` in `lib/widgets/portfolio/portfolio_greeks_card.dart`)**:
+    - Dual-view toggle (`SegmentedButton`): Seamless switching between normalized **Beta-Weighted Exposure** and classic **Raw Option Greeks**.
+    - Benchmark selector chips: Instant 1-tap switching between **SPY**, **QQQ**, **DIA**, and **IWM** with real-time recalculation of all equivalent shares and risk stance.
+    - Hero Net Market Exposure banner with equivalent share count, dollar risk per 1% move, and directional stance badge (Bullish, Neutral, Bearish).
+    - 4-Greek sensitivity tiles: Delta (1% Move), daily Theta decay, Vega (1% IV change), and aggregate Gamma.
+    - Asset class breakdown chips showing delta contribution across Stocks, Options, Futures, and Crypto.
+    - Ranked Top Delta Drivers list showing the top individual assets contributing to portfolio directional exposure.
+    - Educational modal bottom sheet with comprehensive mathematical formulas, interpretations, and hedging guidelines.
+  - **Portfolio Integration (`RiskSectionPage` in `lib/widgets/portfolio/risk_section_page.dart`)**:
+    - Connected `PortfolioGreeksCard` directly to `PortfolioAnalyticsController.selectedBenchmark`, benchmark quotes, equity positions, `FuturesPositionStore`, and `ForexHoldingStore`.
+  - **Comprehensive Test Suite & Documentation**:
+    - Complete unit test suite in `test/beta_weighted_greeks_test.dart` and widget test suite in `test/portfolio_greeks_card_test.dart`.
+    - Detailed architectural guide and math formulation in [`docs/beta-weighted-portfolio-greeks.md`](docs/beta-weighted-portfolio-greeks.md).
+
 ## [0.50.0] - 2026-09-19
 **iOS Live Activities & Dynamic Island, Landscape Multi-Leg Order Matrix, Offline Mode & Options Defense Playbook ([#160](https://github.com/CIInc/robinhood-options-mobile/issues/160), [#117](https://github.com/CIInc/robinhood-options-mobile/issues/117), [#87](https://github.com/CIInc/robinhood-options-mobile/issues/87), [#158](https://github.com/CIInc/robinhood-options-mobile/issues/158))**
 

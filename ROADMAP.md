@@ -411,7 +411,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - **Apple Watch & Wear OS Companion App Foundation:** Glanceable portfolio P&L, price alerts, and watchlists on wearables.
 - **0DTE Flow & Intraday Gamma Squeeze Radar:** Real-time 0DTE call/put flow volume, dealer gamma flip velocity, and gamma squeeze probability gauge ([Tracking: #115](https://github.com/CIInc/robinhood-options-mobile/issues/115)).
 - **Earnings IV Crush Probability & Straddle Pricing Estimator:** Implied earnings move vs. actual historical moves over 12 quarters, post-earnings IV crush calculation, and expected value (EV) straddle pricing distributions.
-- **Beta-Weighted Portfolio Delta & Cross-Asset Greeks Engine:** Portfolio-wide beta-weighting ($\Delta_{\beta-SPY}$) and aggregate Gamma/Vega across stocks, options, crypto, and futures to quantify true market-move dollar risk.
+- ✅ **Beta-Weighted Portfolio Delta & Cross-Asset Greeks Engine:** Portfolio-wide beta-weighting ($\Delta_{\beta-SPY}$) and aggregate Gamma/Vega across stocks, options, crypto, futures, and forex to quantify true market-move dollar risk ([Tracking: #137](https://github.com/CIInc/robinhood-options-mobile/issues/137)).
 - **Realized vs. Implied Volatility (IV) Cone & Rank/Percentile:** 30d/60d IV percentile metrics, volatility skew charts, and pre-earnings IV crush risk gauge.
 - **Implied Volatility Surface 3D Visualizer:** Interactive 3D surface plot across strikes and expiration dates with strike interpolation.
 - **Delta-Neutral Strategy Builder:** Multi-leg hedging tool calculating dynamic delta offsets and automated rebalancing suggestions.
@@ -856,7 +856,7 @@ Q3 2026 shifts focus from basic execution to **Advanced Intelligence** and **Reg
 - [x] **Multi-Account & Retirement Expansion** (v0.45.0): Full multi-account hydration including Traditional/Roth IRAs, annual contribution limits, Robinhood Gold match tracker, spending accounts, connected external OAuth agents, and notification center - **Medium** (2 weeks)
 - [ ] **Automated DRIP with Threshold** ([#23](https://github.com/CIInc/robinhood-options-mobile/issues/23)): Dividend reinvestment at price thresholds - **Small** (1 week)
 - [x] **Benchmark Comparison** ([#18](https://github.com/CIInc/robinhood-options-mobile/issues/18)): Compare against market indices - **Small** (1 week)
-- [ ] **Beta-Weighted Portfolio Delta & Cross-Asset Greeks Engine** (v0.51.0): Portfolio-wide beta-weighting ($\Delta_{\beta-SPY}$) and aggregate Gamma/Vega across stocks, options, crypto, futures, and forex to quantify true market-move dollar risk - **Medium** (2-3 weeks)
+- [x] **Beta-Weighted Portfolio Delta & Cross-Asset Greeks Engine** (v0.51.0): Portfolio-wide beta-weighting ($\Delta_{\beta-SPY}$) and aggregate Gamma/Vega across stocks, options, crypto, futures, and forex to quantify true market-move dollar risk ([Tracking: #137](https://github.com/CIInc/robinhood-options-mobile/issues/137)) - **Medium** (2-3 weeks)
 
 #### Research & Quantitative ([Tracking: #137](https://github.com/CIInc/robinhood-options-mobile/issues/137))
 - [x] **Alpha Factor Discovery**: Research engine for signal correlation - **Medium** (3-4 weeks)
