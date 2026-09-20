@@ -40,6 +40,10 @@
 - **[Option Chain Screener](option-strategy-builder.md#option-chain-screener):** Advanced filtering (Greeks, IV) and AI-powered contract recommendations.
 - **[Strategy Builder](option-strategy-builder.md#multi-leg-strategy-builder):** Construct complex multi-leg options strategies (Spreads, Straddles) with visual analysis.
 - **[Options Strategy Roll Assistant](options-strategy-roll-assistant.md):** 1-tap rolling wizard for covered calls, cash-secured puts, and spreads with real-time net credit/debit, breakeven updates, Greeks shift comparison, and multi-leg order execution.
+- **[Multi-Leg Options Defense & Roll Playbook](options-defense-and-roll-playbook.md):** Automated threat detection engine and tactical advisory playbook for tested options positions, short legs, and credit spreads with 1-tap transfer to the Roll Assistant.
+- **[Landscape Charting & Multi-Column Matrix View](landscape-chart-matrix.md):** Full-width widescreen charting mode with collapsible multi-leg order entry for tablet and mobile devices.
+- **[iOS Live Activities & Dynamic Island Widget](ios-live-activities-and-dynamic-island.md):** Real-time lock screen widget for active option positions, mark price updates, P&L status, and intraday 0DTE trailing stops during market hours.
+- **[Offline Mode & Resilient Caching](offline-mode-and-resilient-caching.md):** Persistent local cache for portfolio holdings, accounts, watchlists, quotes, and AI trade signals with reactive sync lifecycle and contextual status banners.
 - **[Advanced Order Types](advanced-order-types.md):** Execute Trailing Stop, Stop-Limit, and Time-in-Force (GTC, IOC, etc.) orders for better risk management.
 - **[Trade Signal Notifications](trade-signal-notifications.md):** Configurable push notifications for trade signals with filtering by type, symbol, and confidence. **New:** Rich notifications with charts and actionable data.
 - **[Crypto Trading](crypto-trading.md):** Dedicated interface for trading cryptocurrencies with advanced order management, modernized technical analysis card and bottom sheet modal, candlestick charts, preset tools, and adaptive volume handling.
@@ -560,7 +564,9 @@ For implementation details, see:
   - [ ] News alerts for portfolio holdings.
 
 - **Mobile & Usability Enhancements**
-  - [ ] Offline mode for portfolio and charts.
+  - [x] Offline mode for portfolio, watchlists, quotes, and AI trade signals with resilient caching and auto-sync.
+  - [x] iOS Live Activities & Dynamic Island Widget for real-time options tracking and 0DTE trailing stops.
+  - [x] Landscape Charting & Multi-Column Matrix View for full-screen technical analysis and multi-leg order execution.
   - [x] Push notifications for trade execution and alerts.
   - [x] Home screen widgets for quick updates.
 

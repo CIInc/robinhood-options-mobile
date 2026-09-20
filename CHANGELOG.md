@@ -3,7 +3,46 @@
 All notable changes to this project will be documented in this file.
 
 ## [0.50.0] - 2026-09-19
-**Offline Mode & Resilient Caching ([#87](https://github.com/CIInc/robinhood-options-mobile/issues/87)) & Multi-Leg Options Defense & Roll Playbook ([#158](https://github.com/CIInc/robinhood-options-mobile/issues/158))**
+**iOS Live Activities & Dynamic Island, Landscape Multi-Leg Order Matrix, Offline Mode & Options Defense Playbook ([#160](https://github.com/CIInc/robinhood-options-mobile/issues/160), [#117](https://github.com/CIInc/robinhood-options-mobile/issues/117), [#87](https://github.com/CIInc/robinhood-options-mobile/issues/87), [#158](https://github.com/CIInc/robinhood-options-mobile/issues/158))**
+
+- **iOS Live Activities & Dynamic Island Widget (`OptionLiveActivitySession`, `LiveActivityService`, `OptionLiveActivitySheet`, [#160](https://github.com/CIInc/robinhood-options-mobile/issues/160)):**
+  - Built real-time Lock Screen, StandBy mode, and Dynamic Island widget views for active options positions:
+    - **Native ActivityKit Integration (`PortfolioWidgetLiveActivity.swift`, `LiveActivityManager.swift`)**:
+      - Lock Screen / StandBy banner displaying symbol, strike, contract type, 0DTE flame badge, real-time mark price, market value, P&L ($ and %), and trailing stop buffer status.
+      - Dynamic Island layouts: compact leading/trailing, minimal symbol/alert, and expanded 3-region metrics with interactive trailing stop buffer bar.
+      - Enabled `NSSupportsLiveActivities` and `NSSupportsLiveActivitiesFrequentUpdates` in `ios/Runner/Info.plist`.
+      - Flutter-to-iOS bridge via `com.realizealpha.live_activity` MethodChannel.
+    - **Intraday 0DTE Trailing Stop Loss Engine (`OptionLiveActivitySession` in `lib/model/live_activity_models.dart`)**:
+      - On-device high-water mark tracking (`peakPrice = max(peakPrice, markPrice)`) with dynamic ratchet stop pricing: $\text{Stop Price} = \text{Peak Price} \times (1 - \text{Trailing Stop \%} / 100)$.
+      - Automatic 0DTE contract detection (`DTE == 0`) with urgent red `STOP` / `⚠️` breach alert states.
+    - **Lifecycle Service & Configuration UI (`LiveActivityService` & `OptionLiveActivitySheet`)**:
+      - Application singleton managing session state, high-water mark caching, and background status broadcasts.
+      - Sheet with Dynamic Island visual preview, trailing stop presets (5%, 10%, 15%, 20%, 25%), trigger price projections, and 1-tap start/update/stop controls.
+    - **Navigation & Deep Linking**:
+      - Integrated tracking triggers and `sensors` status icons across `OptionPositionsWidget` and `OptionInstrumentWidget`.
+      - Deep linking via `realizealpha://position/{symbol}` custom URL scheme.
+    - **Test Coverage & Documentation**:
+      - Unit and widget tests across `test/live_activity_models_test.dart` and `test/option_live_activity_sheet_test.dart`.
+      - Dedicated documentation guide in [`docs/ios-live-activities-and-dynamic-island.md`](docs/ios-live-activities-and-dynamic-island.md).
+
+- **Landscape Charting & Multi-Column Matrix View (`MultiLegMatrixOrderEntryWidget`, `MultiLegOrderEntry`, [#117](https://github.com/CIInc/robinhood-options-mobile/issues/117)):**
+  - Built widescreen charting and multi-leg execution environment for tablet, desktop, and mobile landscape orientations:
+    - **Multi-Leg Pricing & Risk Engine (`MultiLegOrderEntry` & `MultiLegOrderLeg` in `lib/model/multi_leg_order_entry.dart`)**:
+      - Computes signed premiums, aggregate net credit/debit, closed-form max profit / max loss calculations, dynamic breakeven points, and risk/reward ratios.
+      - Strategy templates: Vertical Spreads (Bull Call, Bear Put, Bull Put, Bear Call), Straddles, Strangles, and Iron Condors.
+    - **Interactive Matrix Order Entry (`MultiLegMatrixOrderEntryWidget` in `lib/widgets/multi_leg_matrix_order_entry_widget.dart`)**:
+      - Collapsible split-panel view embedded alongside full-screen candlestick and area charts.
+      - Interactive strike steppers, expiration selectors, leg action toggles (Buy/Sell, Call/Put), limit/market order type toggles, Time-in-Force (`gtc`/`day`), and quantity steppers.
+    - **Responsive Layout & Chart Integration**:
+      - Updated `FullScreenInstrumentChartWidget`, `InstrumentChartWidget`, and `ChartTimeSeriesWidget` to support wide split-panel chart scrubbing without interrupting order configuration.
+    - **Data Serialization & Error Resilience**:
+      - Hardened `OptionChain.expirationDates` serialization to concrete ISO 8601 string lists, eliminating lazy `MappedListIterable` exceptions.
+      - Enhanced `Constants.toEncodable` to defensively convert arbitrary Iterables and format DateTime instances.
+      - Added null-safe numeric and date parsing in `ForexHolding.fromJson` and `InstrumentPosition.fromJson` to ensure reliable offline snapshot restoration.
+      - Resolved `RenderFlex` overflow in `OfflineStatusBanner` using responsive `Wrap` layout.
+    - **Test Coverage & Documentation**:
+      - Unit and widget tests in `test/landscape_chart_matrix_test.dart` and cache snapshot round-trip validation in `test/offline_cache_service_test.dart`.
+      - Architectural documentation in [`docs/landscape-chart-matrix.md`](docs/landscape-chart-matrix.md).
 
 - **Offline Mode & Resilient Caching (`OfflineCacheService`, `OfflineSyncService`, `OfflineStatusBanner`, [#87](https://github.com/CIInc/robinhood-options-mobile/issues/87)):**
   - Built persistent local caching architecture for offline viewing and resilient network degradation handling:
