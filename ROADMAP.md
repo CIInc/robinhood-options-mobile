@@ -854,7 +854,7 @@ Q3 2026 shifts focus from basic execution to **Advanced Intelligence** and **Reg
 - [x] **Corporate Action Split Adjustments** (v0.45.0): Stock split payments, cash-in-lieu tracking, and ratio adjustments (`/corp_actions/v2/split_payments/`) - **Small** (1 week)
 - [x] **Shareholder Say Q&A Engagement** (v0.45.0): Verified shareholder Q&A viewing and submission for upcoming earnings calls (`/qa/events-section/`) - **Small** (1-2 weeks)
 - [x] **Multi-Account & Retirement Expansion** (v0.45.0): Full multi-account hydration including Traditional/Roth IRAs, annual contribution limits, Robinhood Gold match tracker, spending accounts, connected external OAuth agents, and notification center - **Medium** (2 weeks)
-- [ ] **Automated DRIP with Threshold** ([#23](https://github.com/CIInc/robinhood-options-mobile/issues/23)): Dividend reinvestment at price thresholds - **Small** (1 week)
+- [x] **Automated DRIP with Threshold** ([#23](https://github.com/CIInc/robinhood-options-mobile/issues/23)): Dividend reinvestment at price thresholds - **Small** (1 week)
 - [x] **Benchmark Comparison** ([#18](https://github.com/CIInc/robinhood-options-mobile/issues/18)): Compare against market indices - **Small** (1 week)
 - [x] **Beta-Weighted Portfolio Delta & Cross-Asset Greeks Engine** (v0.51.0): Portfolio-wide beta-weighting ($\Delta_{\beta-SPY}$) and aggregate Gamma/Vega across stocks, options, crypto, futures, and forex to quantify true market-move dollar risk ([Tracking: #137](https://github.com/CIInc/robinhood-options-mobile/issues/137)) - **Medium** (2-3 weeks)
 

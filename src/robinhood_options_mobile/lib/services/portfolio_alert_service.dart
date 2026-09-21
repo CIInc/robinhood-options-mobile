@@ -10,6 +10,7 @@ import 'package:robinhood_options_mobile/model/portfolio_alert.dart';
 import 'package:robinhood_options_mobile/model/unified_account.dart';
 import 'package:robinhood_options_mobile/model/wash_sale_record.dart';
 import 'package:robinhood_options_mobile/model/risk_circuit_breaker_config.dart';
+import 'package:robinhood_options_mobile/model/automated_drip_config.dart';
 import 'package:robinhood_options_mobile/services/tax_optimization_service.dart';
 
 /// Builds the Action Center feed: the ranked list of things worth acting on
@@ -45,6 +46,7 @@ class PortfolioAlertService {
     List<MarginCall>? marginCalls,
     List<WashSaleRecord>? washSales,
     RiskCircuitBreakerConfig? riskCircuitBreakerConfig,
+    AutomatedDripConfig? automatedDripConfig,
     double? dayPnL,
     double? dayPnLPercent,
   }) {
@@ -52,6 +54,7 @@ class PortfolioAlertService {
 
     alerts.addAll(
         _circuitBreakerAlerts(riskCircuitBreakerConfig, dayPnL, dayPnLPercent));
+    alerts.addAll(_dripAlerts(automatedDripConfig));
     alerts.addAll(
         _marginHealthAlerts(account, unifiedAccount, totalEquity, marginCalls));
     alerts.addAll(_pdtAlerts(account, totalEquity, dayTradeSummary));
@@ -541,6 +544,45 @@ class PortfolioAlertService {
         detail: 'Swings are materially wider than the benchmark.',
         metric: _percent.format(volatility),
         target: PortfolioAlertTarget.risk,
+      ));
+    }
+
+    return alerts;
+  }
+
+  static List<PortfolioAlert> _dripAlerts(AutomatedDripConfig? config) {
+    final alerts = <PortfolioAlert>[];
+    if (config == null || !config.enabled) return alerts;
+
+    final recentExecuted = config.transactions
+        .where((t) => t.status == 'executed')
+        .take(1);
+    for (final tx in recentExecuted) {
+      alerts.add(PortfolioAlert(
+        id: 'drip_exec_${tx.id}',
+        severity: PortfolioAlertSeverity.positive,
+        icon: Icons.autorenew,
+        title: 'DRIP Reinvested: ${tx.symbol}',
+        detail:
+            'Reinvested \$${tx.dividendAmount.toStringAsFixed(2)} for ${tx.sharesPurchased.toStringAsFixed(3)} shares at \$${tx.executionPrice.toStringAsFixed(2)}.',
+        metric: '\$${tx.dividendAmount.toStringAsFixed(2)}',
+        target: PortfolioAlertTarget.positions,
+      ));
+    }
+
+    final recentHeld = config.transactions
+        .where((t) => t.status == 'threshold_unmet')
+        .take(1);
+    for (final tx in recentHeld) {
+      alerts.add(PortfolioAlert(
+        id: 'drip_held_${tx.id}',
+        severity: PortfolioAlertSeverity.info,
+        icon: Icons.hourglass_top_outlined,
+        title: 'DRIP Paused: ${tx.symbol}',
+        detail:
+            'Price \$${tx.executionPrice.toStringAsFixed(2)} is above threshold (\$${tx.thresholdPrice?.toStringAsFixed(2) ?? 'Target'}). \$${tx.dividendAmount.toStringAsFixed(2)} held in cash.',
+        metric: '\$${tx.dividendAmount.toStringAsFixed(2)}',
+        target: PortfolioAlertTarget.rebalance,
       ));
     }
 

@@ -39,6 +39,7 @@ import 'package:robinhood_options_mobile/widgets/margin_health_widget.dart';
 import 'package:robinhood_options_mobile/widgets/stock_loan_widget.dart';
 import 'package:robinhood_options_mobile/widgets/banking_widget.dart';
 import 'package:robinhood_options_mobile/widgets/risk_circuit_breaker_settings_widget.dart';
+import 'package:robinhood_options_mobile/widgets/automated_drip_settings_widget.dart';
 import 'package:robinhood_options_mobile/widgets/tax_documents_widget.dart';
 import 'package:robinhood_options_mobile/widgets/corporate_actions_widget.dart';
 import 'package:robinhood_options_mobile/widgets/shareholder_qa_widget.dart';
@@ -1684,6 +1685,48 @@ class _UserWidgetState extends State<UserWidget> {
                                                   user: user,
                                                   firestoreService:
                                                       _firestoreService,
+                                                ),
+                                              ),
+                                            );
+                                            setState(() {});
+                                          },
+                                        ),
+
+                                        // Automated DRIP with Threshold
+                                        ListTile(
+                                          leading: CircleAvatar(
+                                            backgroundColor: Theme.of(context)
+                                                .colorScheme
+                                                .secondaryContainer,
+                                            foregroundColor: Theme.of(context)
+                                                .colorScheme
+                                                .onSecondaryContainer,
+                                            child: const Icon(
+                                                Icons.autorenew_outlined),
+                                          ),
+                                          title: const Text(
+                                              'Automated DRIP with Threshold'),
+                                          subtitle: Text(
+                                            user?.automatedDripConfig?.enabled ==
+                                                    true
+                                                ? 'Active • ${user?.automatedDripConfig?.instrumentRules.length ?? 0} Custom Rules'
+                                                : 'Disabled • Reinvest dividends on price dips',
+                                          ),
+                                          trailing:
+                                              const Icon(Icons.chevron_right),
+                                          onTap: () async {
+                                            await Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (context) =>
+                                                    AutomatedDripSettingsWidget(
+                                                  user: user,
+                                                  firestoreService:
+                                                      _firestoreService,
+                                                  brokerageUser:
+                                                      widget.brokerageUser,
+                                                  brokerageService:
+                                                      widget.service,
                                                 ),
                                               ),
                                             );

@@ -2,6 +2,35 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.51.1] - 2026-09-21
+**Automated DRIP with Price Threshold ([#23](https://github.com/CIInc/robinhood-options-mobile/issues/23))**
+
+- **Automated Dividend Reinvestment with Price Thresholds (`AutomatedDripConfig`, `AutomatedDripService`, `AutomatedDripSettingsWidget`, [#23](https://github.com/CIInc/robinhood-options-mobile/issues/23)):**
+  - **Dynamic Threshold Evaluation Engine (`AutomatedDripService.evaluateDividend`)**:
+    - Reinvests dividend payouts only when current instrument market price meets user-defined criteria rather than blindly buying at any market peak.
+    - Supports multiple threshold modes:
+      - `belowCostBasis`: Reinvest only when current market price is at or below the user's average purchase price.
+      - `belowFixedPrice`: Reinvest only when market price is at or below a user-specified dollar target price ($).
+      - `discountFromCostBasis`: Reinvest only when market price satisfies a required percentage discount (e.g. 5% or 10%) below cost basis.
+    - Holds dividend payout as uninvested cash when market price exceeds threshold criteria, preserving liquidity until market dips.
+  - **Automated Execution & Order Routing (`AutomatedDripService.executeReinvestment`)**:
+    - Evaluates incoming dividend payouts against global or symbol-specific rules.
+    - Routes automated buy orders (`market` or `limit` order type) via brokerage service (`placeInstrumentOrder`).
+    - Handles fractional and whole share calculation based on total dividend payout and execution price.
+  - **Notification & Action Center Integration (`PortfolioAlertService._dripAlerts`, `NotificationItem`)**:
+    - Dispatches positive in-app notification upon executed DRIP reinvestments detailing shares acquired and dollar amount.
+    - Dispatches informative alerts when dividends are held in cash because price exceeded the configured threshold.
+  - **Audit Log & Transaction History (`DripTransaction` in `AutomatedDripConfig`)**:
+    - Persistent audit trail tracking timestamp, symbol, dividend amount, share quantity, execution price vs. threshold price, status (`executed`, `threshold_unmet`, `skipped`), and order ID.
+    - In-app history viewer with clear and filter capabilities.
+  - **Dedicated Settings Screen & User Navigation (`AutomatedDripSettingsWidget` in `lib/widgets/automated_drip_settings_widget.dart`)**:
+    - Material 3 settings interface accessible directly from User Settings -> Trading & Automation.
+    - Interactive summary cards for total reinvested funds, execution counts, and active rules count.
+    - Custom per-symbol rule manager with dialog for adding, modifying, or pausing individual ticker rules.
+    - Built-in evaluation test simulation tool.
+  - **Comprehensive Test Suite**:
+    - Unit tests in `test/automated_drip_test.dart` and widget tests in `test/automated_drip_widget_test.dart`.
+
 ## [0.51.0] - 2026-09-19
 **Beta-Weighted Portfolio Delta & Cross-Asset Greeks Engine ([#137](https://github.com/CIInc/robinhood-options-mobile/issues/137))**
 

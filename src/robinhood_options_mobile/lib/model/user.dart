@@ -11,6 +11,7 @@ import 'package:robinhood_options_mobile/model/futures_strategy_config.dart';
 import 'package:robinhood_options_mobile/model/portfolio_privacy_settings.dart';
 import 'package:robinhood_options_mobile/model/rebalancing_config.dart';
 import 'package:robinhood_options_mobile/model/risk_circuit_breaker_config.dart';
+import 'package:robinhood_options_mobile/model/automated_drip_config.dart';
 
 class User {
   String? name;
@@ -62,6 +63,9 @@ class User {
   // Autonomous Risk Circuit Breakers & Tilt Guardrails
   RiskCircuitBreakerConfig? riskCircuitBreakerConfig;
 
+  // Automated DRIP with Threshold
+  AutomatedDripConfig? automatedDripConfig;
+
   // Subscription fields
   String? subscriptionStatus; // 'active', 'trial', 'none', 'expired'
   DateTime? trialStartDate;
@@ -96,6 +100,7 @@ class User {
       this.followersCount = 0,
       this.followingCount = 0,
       this.riskCircuitBreakerConfig,
+      this.automatedDripConfig,
       this.subscriptionStatus,
       this.trialStartDate,
       this.subscriptionExpiryDate,
@@ -162,6 +167,7 @@ class User {
             followersCount: (json['followersCount'] as num?)?.toInt() ?? 0,
             followingCount: (json['followingCount'] as num?)?.toInt() ?? 0,
             riskCircuitBreakerConfig: json['riskCircuitBreakerConfig'] != null ? RiskCircuitBreakerConfig.fromJson(json['riskCircuitBreakerConfig'] as Map<String, dynamic>) : null,
+            automatedDripConfig: json['automatedDripConfig'] != null ? AutomatedDripConfig.fromJson(json['automatedDripConfig'] as Map<String, dynamic>) : null,
             subscriptionStatus: json['subscriptionStatus'] as String?,
             trialStartDate: json['trialStartDate'] != null ? (json['trialStartDate'] as Timestamp).toDate() : null,
             subscriptionExpiryDate: json['subscriptionExpiryDate'] != null ? (json['subscriptionExpiryDate'] as Timestamp).toDate() : null,
@@ -201,6 +207,7 @@ class User {
       'followersCount': followersCount,
       'followingCount': followingCount,
       'riskCircuitBreakerConfig': riskCircuitBreakerConfig?.toJson(),
+      'automatedDripConfig': automatedDripConfig?.toJson(),
     };
   }
 
