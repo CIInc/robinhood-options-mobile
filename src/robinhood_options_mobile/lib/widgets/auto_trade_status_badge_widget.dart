@@ -240,7 +240,17 @@ class _AutoTradeStatusBadgeWidgetState extends State<AutoTradeStatusBadgeWidget>
           SizedBox(
             width: 22,
             height: 22,
-            child: Center(child: widget.userAvatar),
+            child: Center(
+              child: widget.userAvatar != null
+                  ? IconTheme.merge(
+                      data: const IconThemeData(size: 22),
+                      child: FittedBox(
+                        fit: BoxFit.contain,
+                        child: widget.userAvatar!,
+                      ),
+                    )
+                  : null,
+            ),
           ),
         ],
       ),
