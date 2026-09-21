@@ -1,4 +1,4 @@
-import { onCall } from "firebase-functions/v2/https";
+import { onCall, HttpsError } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import * as alphaagent from "./alpha-agent";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
@@ -158,6 +158,12 @@ export async function performTradeProposal(request: any) {
 export const initiateTradeProposal = onCall({
   secrets: ["TWELVE_DATA_API_KEY", "GEMINI_API_KEY"],
 }, async (request) => {
+  if (!request.auth) {
+    throw new HttpsError(
+      "unauthenticated",
+      "Authentication is required to initiate trade proposals."
+    );
+  }
   return performTradeProposal(request);
 });
 
@@ -169,6 +175,12 @@ export const initiateTradeProposal = onCall({
 export const seedAgenticTrading = onCall({
   secrets: ["TWELVE_DATA_API_KEY", "GEMINI_API_KEY"],
 }, async (request) => {
+  if (!request.auth) {
+    throw new HttpsError(
+      "unauthenticated",
+      "Authentication is required to seed agentic trading."
+    );
+  }
   const inputSymbols = request.data.symbols;
   const useFullList = request.data.full === true;
 
