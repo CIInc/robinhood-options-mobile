@@ -246,7 +246,12 @@ export function computeMACD(
   fastPeriod = 12,
   slowPeriod = 26,
   signalPeriod = 9
-): { macd: number; signal: number; histogram: number } | null {
+): {
+  macd: number;
+  signal: number;
+  histogram: number;
+  prevHistogram?: number;
+} | null {
   if (!prices || prices.length < slowPeriod + signalPeriod) return null;
 
   // Optimized computation using arrays O(N) instead of recurring O(N^2)
@@ -281,10 +286,21 @@ export function computeMACD(
 
   const histogram = macdLine - signalLine;
 
+  // Previous histogram (from second-to-last bar) to avoid recalculation
+  let prevHistogram: number | undefined;
+  if (signalLineSeries.length >= 2) {
+    const prevMacdLine = macdSeries[macdSeries.length - 2];
+    const prevSignalLine = signalLineSeries[signalLineSeries.length - 2];
+    if (prevSignalLine !== null && prevMacdLine !== undefined) {
+      prevHistogram = prevMacdLine - prevSignalLine;
+    }
+  }
+
   return {
     macd: macdLine,
     signal: signalLine,
     histogram,
+    prevHistogram,
   };
 }
 
@@ -719,7 +735,7 @@ export function computeADX(
   lows: number[],
   closes: number[],
   period = 14
-): { adx: number; plusDI: number; minusDI: number } | null {
+): { adx: number; plusDI: number; minusDI: number; prevAdx?: number } | null {
   if (!highs || !lows || !closes ||
     highs.length < period * 2 ||
     lows.length < period * 2 ||
@@ -814,8 +830,10 @@ export function computeADX(
   if (dx.length < period) return null;
 
   // Calculate ADX (smoothed average of DX)
+  let prevAdx: number | undefined;
   let adx = dx.slice(0, period).reduce((a, b) => a + b, 0) / period;
   for (let i = period; i < dx.length; i++) {
+    prevAdx = adx;
     adx = ((adx * (period - 1)) + dx[i]) / period;
   }
 
@@ -826,6 +844,7 @@ export function computeADX(
     adx,
     plusDI: lastPlusDI,
     minusDI: lastMinusDI,
+    prevAdx,
   };
 }
 
@@ -1917,17 +1936,8 @@ export function evaluateMACD(
 
   const { histogram } = macd;
 
-  // Compute previous MACD for crossover detection
-  let prevHistogram: number | null = null;
-  if (prices.length > minPeriods + 1) {
-    const prevMACD = computeMACD(
-      prices.slice(0, -1),
-      fastPeriod,
-      slowPeriod,
-      signalPeriod
-    );
-    if (prevMACD) prevHistogram = prevMACD.histogram;
-  }
+  // Previous MACD for crossover detection (from pre-calculated prevHistogram)
+  const prevHistogram = macd.prevHistogram ?? null;
 
   // Bullish crossover: histogram crosses above zero
   if (prevHistogram !== null && histogram > 0 && prevHistogram <= 0) {
@@ -2857,17 +2867,8 @@ export function evaluateADX(
 
   const { adx, plusDI, minusDI } = adxResult;
 
-  // Previous ADX for trend change detection
-  let prevAdx: number | null = null;
-  if (closes.length > period * 2 + 1) {
-    const prevRes = computeADX(
-      highs.slice(0, -1),
-      lows.slice(0, -1),
-      closes.slice(0, -1),
-      period
-    );
-    if (prevRes) prevAdx = prevRes.adx;
-  }
+  // Previous ADX for trend change detection (from pre-calculated prevAdx)
+  const prevAdx = adxResult.prevAdx ?? null;
 
   const adxSlope = prevAdx !== null ? adx - prevAdx : 0;
 
@@ -2991,15 +2992,18 @@ export function evaluateWilliamsR(
     };
   }
 
-  // Calculate previous Williams %R for momentum detection
+  // Calculate previous Williams %R using trailing window slice
   let prevWilliamsR: number | null = null;
   if (closes.length > period) {
-    prevWilliamsR = computeWilliamsR(
-      highs.slice(0, -1),
-      lows.slice(0, -1),
-      closes.slice(0, -1),
-      period
-    );
+    const prevHighs = highs.slice(-period - 1, -1);
+    const prevLows = lows.slice(-period - 1, -1);
+    const prevClose = closes[closes.length - 2];
+    const prevHighestHigh = Math.max(...prevHighs);
+    const prevLowestLow = Math.min(...prevLows);
+    if (prevHighestHigh !== prevLowestLow) {
+      const denom = prevHighestHigh - prevLowestLow;
+      prevWilliamsR = ((prevHighestHigh - prevClose) / denom) * -100;
+    }
   }
 
   const oversoldThreshold = -80;
@@ -3756,8 +3760,12 @@ export function evaluateAllIndicators(
   const customVals = Object.values(customResults);
   const allVals = [...standardVals, ...customVals];
 
-  const buyCount = allVals.filter((i) => i.signal === "BUY").length;
-  const sellCount = allVals.filter((i) => i.signal === "SELL").length;
+  let buyCount = 0;
+  let sellCount = 0;
+  for (let i = 0; i < allVals.length; i++) {
+    if (allVals[i].signal === "BUY") buyCount++;
+    else if (allVals[i].signal === "SELL") sellCount++;
+  }
   // Counts unused removed
 
   // Process standard indicators
