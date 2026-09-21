@@ -726,11 +726,47 @@ class FuturesAutoTradingProvider with ChangeNotifier {
         };
 
         if (_config.requireApproval) {
-          _pendingOrders.insert(0, order);
-          if (userDocRef != null) {
-            await _addPendingOrderToFirestore(userDocRef, order);
+          final existingIndex = _pendingOrders.indexWhere((o) =>
+              (o['contractId'] == contractId ||
+                  (o['symbol'] != null && o['symbol'] == yahooSymbol)) &&
+              (o['action'] as String?)?.toUpperCase() ==
+                  action.toUpperCase());
+
+          if (existingIndex != -1) {
+            final existingOrder = _pendingOrders[existingIndex];
+            final existingPrice =
+                (existingOrder['price'] as num?)?.toDouble();
+            final newPrice = (proposal['price'] as num?)?.toDouble();
+            final existingQuantity = existingOrder['quantity'];
+            final newQuantity = proposal['quantity'];
+
+            final bool needsUpdate =
+                existingPrice != newPrice || existingQuantity != newQuantity;
+
+            if (needsUpdate) {
+              existingOrder['price'] = proposal['price'];
+              existingOrder['quantity'] = proposal['quantity'];
+              existingOrder['multiplier'] = multiplier;
+              existingOrder['proposal'] = proposal;
+              existingOrder['timestamp'] = DateTime.now().toIso8601String();
+
+              if (userDocRef != null) {
+                await _updatePendingOrderInFirestore(userDocRef, existingOrder);
+              }
+              notifyListeners();
+              _log('🕒 Futures order pending approval updated: $contractId');
+            } else {
+              _log(
+                  'ℹ️ Futures pending order for $contractId unchanged, skipping duplicate');
+            }
+          } else {
+            _pendingOrders.insert(0, order);
+            if (userDocRef != null) {
+              await _addPendingOrderToFirestore(userDocRef, order);
+            }
+            notifyListeners();
+            _log('🕒 Futures order pending approval: $contractId');
           }
-          _log('🕒 Futures order pending approval: $contractId');
         } else {
           await _executeOrder(
             order: order,
@@ -882,13 +918,30 @@ class FuturesAutoTradingProvider with ChangeNotifier {
           .collection('futures_pending_orders')
           .orderBy('timestamp', descending: true)
           .get();
-      _pendingOrders
-        ..clear()
-        ..addAll(snapshot.docs.map((doc) {
-          final data = doc.data();
-          data['firestoreId'] = doc.id;
-          return data;
-        }));
+      _pendingOrders.clear();
+      for (final doc in snapshot.docs) {
+        final data = doc.data();
+        data['firestoreId'] = doc.id;
+
+        final contractId = data['contractId'];
+        final symbol = data['symbol'];
+        final action = (data['action'] as String?)?.toUpperCase();
+
+        final existingIndex = _pendingOrders.indexWhere((o) =>
+            (o['contractId'] == contractId ||
+                (symbol != null && o['symbol'] == symbol)) &&
+            (o['action'] as String?)?.toUpperCase() == action);
+
+        if (existingIndex != -1) {
+          // Keep the newest (snapshot is ordered descending by timestamp)
+          // and delete older duplicate from Firestore
+          doc.reference.delete().catchError((e) {
+            _log('❌ Failed to delete duplicate futures pending order: $e');
+          });
+        } else {
+          _pendingOrders.add(data);
+        }
+      }
       notifyListeners();
     } catch (e) {
       _log('❌ Failed to load futures pending orders: $e');
@@ -901,6 +954,25 @@ class FuturesAutoTradingProvider with ChangeNotifier {
     final docRef =
         await userDocRef.collection('futures_pending_orders').add(payload);
     order['firestoreId'] = docRef.id;
+  }
+
+  Future<void> _updatePendingOrderInFirestore(
+      DocumentReference userDocRef, Map<String, dynamic> order) async {
+    try {
+      final firestoreId = order['firestoreId'] as String?;
+      if (firestoreId == null) {
+        await _addPendingOrderToFirestore(userDocRef, order);
+        return;
+      }
+      final payload = jsonDecode(jsonEncode(order)) as Map<String, dynamic>;
+      await userDocRef
+          .collection('futures_pending_orders')
+          .doc(firestoreId)
+          .update(payload);
+      _log('💾 Updated futures pending order in Firestore: $firestoreId');
+    } catch (e) {
+      _log('❌ Failed to update futures pending order in Firestore: $e');
+    }
   }
 
   Future<void> _removePendingOrderFromFirestore(

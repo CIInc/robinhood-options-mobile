@@ -74,9 +74,51 @@ void main() {
           equals(true));
     });
 
-    test('highWaterMarks tracking', () {
-      // Since high water marks are internal, we simulate cycles if we had more exposed methods
-      // For now, testing config update is the priority.
+    test('loadPendingOrdersFromFirestore deduplicates duplicate orders', () async {
+      final userDocRef = firestore.collection('users').doc('test-user');
+      final ordersCollection = userDocRef.collection('futures_pending_orders');
+
+      // Add older duplicate
+      await ordersCollection.add({
+        'contractId': 'ES',
+        'symbol': 'ES=F',
+        'action': 'BUY',
+        'quantity': 1,
+        'price': 4500.0,
+        'timestamp': DateTime(2023, 10, 25, 10, 0).toIso8601String(),
+      });
+
+      // Add newer duplicate
+      await ordersCollection.add({
+        'contractId': 'ES',
+        'symbol': 'ES=F',
+        'action': 'BUY',
+        'quantity': 2,
+        'price': 4510.0,
+        'timestamp': DateTime(2023, 10, 25, 10, 30).toIso8601String(),
+      });
+
+      // Add distinct order
+      await ordersCollection.add({
+        'contractId': 'NQ',
+        'symbol': 'NQ=F',
+        'action': 'BUY',
+        'quantity': 1,
+        'price': 15000.0,
+        'timestamp': DateTime(2023, 10, 25, 10, 15).toIso8601String(),
+      });
+
+      await provider.loadPendingOrdersFromFirestore(userDocRef);
+
+      expect(provider.pendingOrders.length, equals(2));
+      final esOrder =
+          provider.pendingOrders.firstWhere((o) => o['contractId'] == 'ES');
+      expect(esOrder['price'], equals(4510.0));
+      expect(esOrder['quantity'], equals(2));
+
+      // Older ES document should have been cleaned up from Firestore
+      final remainingDocs = await ordersCollection.get();
+      expect(remainingDocs.docs.length, equals(2));
     });
   });
 }

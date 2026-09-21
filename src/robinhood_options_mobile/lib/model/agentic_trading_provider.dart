@@ -771,6 +771,33 @@ class AgenticTradingProvider with ChangeNotifier {
     }
   }
 
+  /// Update an existing pending order in Firestore
+  Future<void> _updatePendingOrderInFirestore(
+      DocumentReference userDocRef, Map<String, dynamic> order) async {
+    try {
+      final firestoreId = order['firestoreId'] as String?;
+      if (firestoreId == null) {
+        await _addPendingOrderToFirestore(userDocRef, order);
+        return;
+      }
+
+      final ordersCollection = userDocRef.collection('pending_orders');
+      final orderToSave = Map<String, dynamic>.from(order);
+
+      // Remove UI-specific or complex objects before saving
+      if (orderToSave.containsKey('instrument') &&
+          orderToSave['instrument'] is! String &&
+          orderToSave['instrument'] is! Map) {
+        orderToSave.remove('instrument');
+      }
+
+      await ordersCollection.doc(firestoreId).update(orderToSave);
+      _log('💾 Updated pending order in Firestore: $firestoreId');
+    } catch (e) {
+      _log('❌ Failed to update pending order in Firestore: $e');
+    }
+  }
+
   /// Remove a single pending order from Firestore
   Future<void> _removePendingOrderFromFirestore(
       DocumentReference userDocRef, Map<String, dynamic> order) async {
@@ -814,7 +841,41 @@ class AgenticTradingProvider with ChangeNotifier {
             order.containsKey('action')) {
           // Store the Firestore document ID for future updates/deletes
           order['firestoreId'] = doc.id;
-          _pendingOrders.add(order);
+          final symbol = (order['symbol'] as String?)?.toUpperCase();
+          final action = (order['action'] as String?)?.toUpperCase();
+
+          final existingIndex = _pendingOrders.indexWhere((o) =>
+              (o['symbol'] as String?)?.toUpperCase() == symbol &&
+              (o['action'] as String?)?.toUpperCase() == action);
+
+          if (existingIndex != -1) {
+            // Duplicate detected from Firestore collection
+            final existingOrder = _pendingOrders[existingIndex];
+            final existingTime =
+                DateTime.tryParse(existingOrder['timestamp'] as String? ?? '') ??
+                    DateTime.fromMillisecondsSinceEpoch(0);
+            final orderTime =
+                DateTime.tryParse(order['timestamp'] as String? ?? '') ??
+                    DateTime.fromMillisecondsSinceEpoch(0);
+
+            if (orderTime.isAfter(existingTime)) {
+              // Delete older duplicate from Firestore
+              final oldFirestoreId = existingOrder['firestoreId'] as String?;
+              if (oldFirestoreId != null) {
+                ordersCollection.doc(oldFirestoreId).delete().catchError((e) {
+                  _log('❌ Failed to delete duplicate pending order: $e');
+                });
+              }
+              _pendingOrders[existingIndex] = order;
+            } else {
+              // Current doc is older duplicate; delete it
+              doc.reference.delete().catchError((e) {
+                _log('❌ Failed to delete duplicate pending order: $e');
+              });
+            }
+          } else {
+            _pendingOrders.add(order);
+          }
         }
       }
 
@@ -1438,6 +1499,54 @@ class AgenticTradingProvider with ChangeNotifier {
                   if (interval != null) {
                     reason += ' • $interval';
                   }
+                }
+
+                // Check for existing pending approval for the same recommendation
+                final existingIndex = _pendingOrders.indexWhere((o) =>
+                    (o['symbol'] as String?)?.toUpperCase() ==
+                        symbol.toUpperCase() &&
+                    (o['action'] as String?)?.toUpperCase() ==
+                        normalizedAction);
+
+                if (existingIndex != -1) {
+                  final existingOrder = _pendingOrders[existingIndex];
+                  final existingPrice =
+                      (existingOrder['price'] as num?)?.toDouble();
+                  final existingQuantity = existingOrder['quantity'];
+                  final existingReason = existingOrder['reason'];
+                  final existingConfidence = existingOrder['confidence'];
+
+                  final bool needsUpdate = existingPrice != currentPrice ||
+                      existingQuantity != quantity ||
+                      existingReason != reason ||
+                      existingConfidence != agentConfidence;
+
+                  if (needsUpdate) {
+                    existingOrder['price'] = currentPrice;
+                    existingOrder['quantity'] = quantity;
+                    existingOrder['reason'] = reason;
+                    existingOrder['confidence'] = agentConfidence;
+                    existingOrder['signal'] = signal;
+                    existingOrder['proposal'] = proposal;
+                    existingOrder['assessment'] = assessment;
+                    existingOrder['timestamp'] =
+                        DateTime.now().toIso8601String();
+                    if (instrument != null) {
+                      existingOrder['instrument'] = instrument;
+                    }
+
+                    if (userDocRef != null) {
+                      await _updatePendingOrderInFirestore(
+                          userDocRef, existingOrder);
+                    }
+                    notifyListeners();
+                    _log(
+                        '📝 Updated pending approval: $symbol ($normalizedAction $quantity @ \$$currentPrice)');
+                  } else {
+                    _log(
+                        'ℹ️ Pending approval for $symbol is up to date, skipping duplicate');
+                  }
+                  continue;
                 }
 
                 final pendingOrder = {
