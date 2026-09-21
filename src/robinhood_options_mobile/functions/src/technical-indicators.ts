@@ -246,7 +246,12 @@ export function computeMACD(
   fastPeriod = 12,
   slowPeriod = 26,
   signalPeriod = 9
-): { macd: number; signal: number; histogram: number } | null {
+): {
+  macd: number;
+  signal: number;
+  histogram: number;
+  prevHistogram?: number | null;
+} | null {
   if (!prices || prices.length < slowPeriod + signalPeriod) return null;
 
   // Optimized computation using arrays O(N) instead of recurring O(N^2)
@@ -281,10 +286,20 @@ export function computeMACD(
 
   const histogram = macdLine - signalLine;
 
+  let prevHistogram: number | null = null;
+  if (macdSeries.length > signalPeriod) {
+    const prevMacdLine = macdSeries[macdSeries.length - 2];
+    const prevSignalLine = signalLineSeries[signalLineSeries.length - 2];
+    if (prevSignalLine !== null) {
+      prevHistogram = prevMacdLine - prevSignalLine;
+    }
+  }
+
   return {
     macd: macdLine,
     signal: signalLine,
     histogram,
+    prevHistogram,
   };
 }
 
@@ -340,6 +355,8 @@ export function computeBollingerBandsArray(
   // For valid SMA values, calculate stdDev
   // smaValues[i] corresponds to prices[i].
   // SMA is valid starting from index (period - 1).
+  const varianceDenom = period > 1 ? (period - 1) : period; // Sample StdDev
+
   for (let i = 0; i < prices.length; i++) {
     const middle = smaValues[i];
     if (middle === null) {
@@ -347,12 +364,14 @@ export function computeBollingerBandsArray(
       continue;
     }
 
-    // Calculate StdDev for window ending at i
+    // Calculate StdDev for window ending at i without array allocation
     const start = i - period + 1;
-    const slice = prices.slice(start, i + 1);
-    const squaredDiffs = slice.map((p) => Math.pow(p - middle, 2));
-    const varianceDenom = period > 1 ? (period - 1) : period; // Sample StdDev
-    const variance = squaredDiffs.reduce((a, b) => a + b, 0) / varianceDenom;
+    let sumSquaredDiffs = 0;
+    for (let j = start; j <= i; j++) {
+      const diff = prices[j] - middle;
+      sumSquaredDiffs += diff * diff;
+    }
+    const variance = sumSquaredDiffs / varianceDenom;
     const standardDeviation = Math.sqrt(variance);
 
     result.push({
@@ -719,7 +738,12 @@ export function computeADX(
   lows: number[],
   closes: number[],
   period = 14
-): { adx: number; plusDI: number; minusDI: number } | null {
+): {
+  adx: number;
+  plusDI: number;
+  minusDI: number;
+  prevAdx?: number | null;
+} | null {
   if (!highs || !lows || !closes ||
     highs.length < period * 2 ||
     lows.length < period * 2 ||
@@ -815,7 +839,9 @@ export function computeADX(
 
   // Calculate ADX (smoothed average of DX)
   let adx = dx.slice(0, period).reduce((a, b) => a + b, 0) / period;
+  let prevAdx: number | null = null;
   for (let i = period; i < dx.length; i++) {
+    prevAdx = adx;
     adx = ((adx * (period - 1)) + dx[i]) / period;
   }
 
@@ -826,6 +852,7 @@ export function computeADX(
     adx,
     plusDI: lastPlusDI,
     minusDI: lastMinusDI,
+    prevAdx,
   };
 }
 
@@ -1007,6 +1034,29 @@ export function detectChartPattern(
   // 2. Double Top / Double Bottom
   const tolerancePct = 0.02; // 2% tolerance for peak/trough height similarity
 
+  // Helper for inline min/max over subarray range [start, end)
+  const rangeMin = (arr: number[], start: number, end: number): number => {
+    if (start >= end || start < 0 || end > arr.length) {
+      return Number.POSITIVE_INFINITY;
+    }
+    let min = arr[start];
+    for (let i = start + 1; i < end; i++) {
+      if (arr[i] < min) min = arr[i];
+    }
+    return min;
+  };
+
+  const rangeMax = (arr: number[], start: number, end: number): number => {
+    if (start >= end || start < 0 || end > arr.length) {
+      return Number.NEGATIVE_INFINITY;
+    }
+    let max = arr[start];
+    for (let i = start + 1; i < end; i++) {
+      if (arr[i] > max) max = arr[i];
+    }
+    return max;
+  };
+
   // Double Top
   if (peaks.length >= 2) {
     const idxA = peaks[peaks.length - 2];
@@ -1020,9 +1070,8 @@ export function detectChartPattern(
 
     if (similarHeight) {
       // Find the neckline (lowest trough between the two peaks)
-      const intervalPrices = windowPrices.slice(idxA, idxB);
-      const neckline = intervalPrices.length > 0 ?
-        Math.min(...intervalPrices) :
+      const neckline = idxB > idxA ?
+        rangeMin(windowPrices, idxA, idxB) :
         Number.POSITIVE_INFINITY;
 
       // Confirmation: Price breaks below neckline
@@ -1055,9 +1104,8 @@ export function detectChartPattern(
 
     if (similarOne) {
       // Find the neckline (highest peak between the two troughs)
-      const intervalPrices = windowPrices.slice(idxA, idxB);
-      const neckline = intervalPrices.length > 0 ?
-        Math.max(...intervalPrices) :
+      const neckline = idxB > idxA ?
+        rangeMax(windowPrices, idxA, idxB) :
         Number.NEGATIVE_INFINITY;
 
       // Confirmation: Price breaks above neckline
@@ -1094,11 +1142,9 @@ export function detectChartPattern(
     if (headHigher && shouldersLevel) {
       // Neckline: Line connecting the two troughs
       // Trough 1: between Left Shoulder and Head
-      const t1Slice = windowPrices.slice(idx1, idx2);
-      const t1 = t1Slice.length ? Math.min(...t1Slice) : 0;
+      const t1 = idx2 > idx1 ? rangeMin(windowPrices, idx1, idx2) : 0;
       // Trough 2: between Head and Right Shoulder
-      const t2Slice = windowPrices.slice(idx2, idx3);
-      const t2 = t2Slice.length ? Math.min(...t2Slice) : 0;
+      const t2 = idx3 > idx2 ? rangeMin(windowPrices, idx2, idx3) : 0;
 
       const necklineAvg = (t1 + t2) / 2;
 
@@ -1218,21 +1264,18 @@ export function detectChartPattern(
     const len = windowPrices.length;
 
     // Identify regions for Left Lip, Bottom, Right Lip, and Handle
-    const leftSlice = windowPrices.slice(0, Math.floor(len * 0.4));
-    const midSlice = windowPrices.slice(
+    const leftHigh = rangeMax(windowPrices, 0, Math.floor(len * 0.4));
+    const midLow = rangeMin(
+      windowPrices,
       Math.floor(len * 0.3),
       Math.floor(len * 0.7)
     );
-    const rightSlice = windowPrices.slice(
+    const rightHigh = rangeMax(
+      windowPrices,
       Math.floor(len * 0.6),
       Math.floor(len * 0.9)
     );
-    const handleSlice = windowPrices.slice(Math.floor(len * 0.85));
-
-    const leftHigh = Math.max(...leftSlice);
-    const midLow = Math.min(...midSlice);
-    const rightHigh = Math.max(...rightSlice);
-    const handleLow = Math.min(...handleSlice);
+    const handleLow = rangeMin(windowPrices, Math.floor(len * 0.85), len);
 
     // Heuristics: Depth > 2%, Rims within 15%, Handle retrace < 60% of depth
     const depth = (rightHigh - midLow) / rightHigh;
@@ -1916,18 +1959,7 @@ export function evaluateMACD(
   }
 
   const { histogram } = macd;
-
-  // Compute previous MACD for crossover detection
-  let prevHistogram: number | null = null;
-  if (prices.length > minPeriods + 1) {
-    const prevMACD = computeMACD(
-      prices.slice(0, -1),
-      fastPeriod,
-      slowPeriod,
-      signalPeriod
-    );
-    if (prevMACD) prevHistogram = prevMACD.histogram;
-  }
+  const prevHistogram = macd.prevHistogram ?? null;
 
   // Bullish crossover: histogram crosses above zero
   if (prevHistogram !== null && histogram > 0 && prevHistogram <= 0) {
@@ -2856,18 +2888,7 @@ export function evaluateADX(
   }
 
   const { adx, plusDI, minusDI } = adxResult;
-
-  // Previous ADX for trend change detection
-  let prevAdx: number | null = null;
-  if (closes.length > period * 2 + 1) {
-    const prevRes = computeADX(
-      highs.slice(0, -1),
-      lows.slice(0, -1),
-      closes.slice(0, -1),
-      period
-    );
-    if (prevRes) prevAdx = prevRes.adx;
-  }
+  const prevAdx = adxResult.prevAdx ?? null;
 
   const adxSlope = prevAdx !== null ? adx - prevAdx : 0;
 
@@ -2995,9 +3016,9 @@ export function evaluateWilliamsR(
   let prevWilliamsR: number | null = null;
   if (closes.length > period) {
     prevWilliamsR = computeWilliamsR(
-      highs.slice(0, -1),
-      lows.slice(0, -1),
-      closes.slice(0, -1),
+      highs.slice(-period - 1, -1),
+      lows.slice(-period - 1, -1),
+      closes.slice(-period - 1, -1),
       period
     );
   }
@@ -3516,48 +3537,55 @@ export function evaluateAllIndicators(
   // Pre-process: Filter out zero-volume data points (market closed/bad data)
   // This prevents skewing averages and triggering "Low volume (0% of avg)"
   if (symbolData.volumes && symbolData.volumes.length > 0) {
-    const validIndices: number[] = [];
     const limit = Math.min(symbolData.volumes.length, symbolData.closes.length);
     let hasZeroVolume = false;
 
     for (let i = 0; i < limit; i++) {
-      if (symbolData.volumes[i] > 0) {
-        validIndices.push(i);
-      } else {
+      if (symbolData.volumes[i] <= 0) {
         hasZeroVolume = true;
+        break;
       }
     }
 
-    const minBarsRequired = Math.max(
-      30, // priceMovement pattern scan
-      config.rsiPeriod || 14,
-      config.rocPeriod || 12,
-      config.marketFastPeriod || 10,
-      config.marketSlowPeriod || 30,
-      35, // MACD lookback
-      80 // Ichimoku (spanBPeriod 52 + displacement 26/lagging 26)
-    );
+    if (hasZeroVolume) {
+      const validIndices: number[] = [];
+      for (let i = 0; i < limit; i++) {
+        if (symbolData.volumes[i] > 0) {
+          validIndices.push(i);
+        }
+      }
 
-    // Only filter if we have some valid volumes
-    // AND enough bars remain for indicators.
-    // If ALL volumes are zero (e.g. Index like ^VIX),
-    // or filtering would drop below
-    // the minimum bars needed, keep the data as-is.
-    if (hasZeroVolume && validIndices.length >= minBarsRequired) {
-      const v = symbolData.volumes;
-      symbolData.closes = validIndices.map((i) => symbolData.closes[i]);
-      symbolData.volumes = validIndices.map((i) => v[i]);
-      if (symbolData.opens && symbolData.opens.length >= limit) {
-        const o = symbolData.opens;
-        symbolData.opens = validIndices.map((i) => o[i]);
-      }
-      if (symbolData.highs && symbolData.highs.length >= limit) {
-        const h = symbolData.highs;
-        symbolData.highs = validIndices.map((i) => h[i]);
-      }
-      if (symbolData.lows && symbolData.lows.length >= limit) {
-        const l = symbolData.lows;
-        symbolData.lows = validIndices.map((i) => l[i]);
+      const minBarsRequired = Math.max(
+        30, // priceMovement pattern scan
+        config.rsiPeriod || 14,
+        config.rocPeriod || 12,
+        config.marketFastPeriod || 10,
+        config.marketSlowPeriod || 30,
+        35, // MACD lookback
+        80 // Ichimoku (spanBPeriod 52 + displacement 26/lagging 26)
+      );
+
+      // Only filter if we have some valid volumes
+      // AND enough bars remain for indicators.
+      // If ALL volumes are zero (e.g. Index like ^VIX),
+      // or filtering would drop below
+      // the minimum bars needed, keep the data as-is.
+      if (validIndices.length >= minBarsRequired) {
+        const v = symbolData.volumes;
+        symbolData.closes = validIndices.map((i) => symbolData.closes[i]);
+        symbolData.volumes = validIndices.map((i) => v[i]);
+        if (symbolData.opens && symbolData.opens.length >= limit) {
+          const o = symbolData.opens;
+          symbolData.opens = validIndices.map((i) => o[i]);
+        }
+        if (symbolData.highs && symbolData.highs.length >= limit) {
+          const h = symbolData.highs;
+          symbolData.highs = validIndices.map((i) => h[i]);
+        }
+        if (symbolData.lows && symbolData.lows.length >= limit) {
+          const l = symbolData.lows;
+          symbolData.lows = validIndices.map((i) => l[i]);
+        }
       }
     }
   }
