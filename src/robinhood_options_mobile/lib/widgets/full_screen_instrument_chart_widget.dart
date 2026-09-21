@@ -101,7 +101,8 @@ class _FullScreenInstrumentChartWidgetState
             return Container(
               decoration: BoxDecoration(
                 color: Theme.of(context).scaffoldBackgroundColor,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(16)),
               ),
               child: MultiLegMatrixOrderEntryWidget(
                 instrument: widget.instrument,
@@ -149,7 +150,9 @@ class _FullScreenInstrumentChartWidgetState
                         _isMatrixOpen
                             ? Icons.view_sidebar
                             : Icons.view_sidebar_outlined,
-                        color: _isMatrixOpen ? Theme.of(context).colorScheme.primary : null,
+                        color: _isMatrixOpen
+                            ? Theme.of(context).colorScheme.primary
+                            : null,
                       ),
                       tooltip: _isMatrixOpen
                           ? 'Hide Strategy Matrix'
@@ -192,7 +195,8 @@ class _FullScreenInstrumentChartWidgetState
               floatingActionButton: !isWide
                   ? FloatingActionButton.extended(
                       icon: const Icon(Icons.table_chart, size: 18),
-                      label: const Text('Multi-Leg Matrix', style: TextStyle(fontSize: 12)),
+                      label: const Text('Multi-Leg Matrix',
+                          style: TextStyle(fontSize: 12)),
                       onPressed: _openMatrixBottomSheet,
                     )
                   : null,

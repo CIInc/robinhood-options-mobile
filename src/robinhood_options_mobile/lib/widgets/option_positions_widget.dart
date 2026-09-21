@@ -374,7 +374,7 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
 
       final isSecondaryPercent =
           secondaryDisplayValue == DisplayValue.totalReturnPercent ||
-          secondaryDisplayValue == DisplayValue.todayReturnPercent;
+              secondaryDisplayValue == DisplayValue.todayReturnPercent;
 
       secondaryTicks = <charts.TickSpec<num>>[];
       if (secondaryExtents.min < 0 && secondaryExtents.max > 0) {
@@ -406,11 +406,11 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
           primaryExtents.width > 0 ? primaryExtents.width * 0.1 : 0.05;
       final bool startsAtZero =
           widget.brokerageUser.displayValue == DisplayValue.marketValue ||
-          widget.brokerageUser.displayValue == DisplayValue.totalCost;
+              widget.brokerageUser.displayValue == DisplayValue.totalCost;
       final double minVal =
           startsAtZero ? 0.0 : primaryExtents.min - primaryPad;
-      primaryExtents = charts.NumericExtents(
-          minVal, primaryExtents.max + primaryPad);
+      primaryExtents =
+          charts.NumericExtents(minVal, primaryExtents.max + primaryPad);
     }
 
     var primaryMeasureAxis = widget.brokerageUser.displayValue ==
@@ -441,7 +441,8 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
           viewport: secondaryExtents,
           renderSpec: charts.SmallTickRendererSpec(
               labelStyle: charts.TextStyleSpec(color: axisLabelColor)),
-          tickProviderSpec: charts.StaticNumericTickProviderSpec(secondaryTicks),
+          tickProviderSpec:
+              charts.StaticNumericTickProviderSpec(secondaryTicks),
         );
       } else {
         secondaryMeasureAxis = charts.NumericAxisSpec(
@@ -451,7 +452,8 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
           tickFormatterSpec:
               charts.BasicNumericTickFormatterSpec.fromNumberFormat(
                   NumberFormat.compactSimpleCurrency()),
-          tickProviderSpec: charts.StaticNumericTickProviderSpec(secondaryTicks),
+          tickProviderSpec:
+              charts.StaticNumericTickProviderSpec(secondaryTicks),
         );
       }
     }
@@ -462,10 +464,9 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
             barRendererDecorator: charts.BarLabelDecorator<String>(),
             cornerStrategy: const charts.ConstCornerStrategy(10)),
         primaryMeasureAxis: primaryMeasureAxis,
-        secondaryMeasureAxis:
-            (barChartSeriesList.length > 1 && isDualAxis)
-                ? secondaryMeasureAxis
-                : null,
+        secondaryMeasureAxis: (barChartSeriesList.length > 1 && isDualAxis)
+            ? secondaryMeasureAxis
+            : null,
         customSeriesRenderers: [
           charts.BarTargetLineRendererConfig<String>(
               customRendererId: 'customLine',
@@ -862,7 +863,8 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
                         fontSize: 13,
                         color: Theme.of(context).colorScheme.onSurfaceVariant),
                   ),
-                  if (LiveActivityService.instance.isPositionTracked(op.id)) ...[
+                  if (LiveActivityService.instance
+                      .isPositionTracked(op.id)) ...[
                     const SizedBox(width: 6),
                     Icon(
                       Icons.sensors,
@@ -906,106 +908,110 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
                               )));
                 });
               },
-              onLongPress: op.optionInstrument != null && op.instrumentObj != null
-                  ? () {
-                      showModalBottomSheet(
-                        context: context,
-                        builder: (sheetContext) => SafeArea(
-                          child: Wrap(
-                            children: [
-                              ListTile(
-                                leading: const Icon(Icons.shield_outlined),
-                                title: const Text('Defense Playbook'),
-                                subtitle: const Text(
-                                    'Threat analysis and tactical defense maneuvers'),
-                                onTap: () {
-                                  Navigator.pop(sheetContext);
-                                  _handleNavigation(context, () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
+              onLongPress:
+                  op.optionInstrument != null && op.instrumentObj != null
+                      ? () {
+                          showModalBottomSheet(
+                            context: context,
+                            builder: (sheetContext) => SafeArea(
+                              child: Wrap(
+                                children: [
+                                  ListTile(
+                                    leading: const Icon(Icons.shield_outlined),
+                                    title: const Text('Defense Playbook'),
+                                    subtitle: const Text(
+                                        'Threat analysis and tactical defense maneuvers'),
+                                    onTap: () {
+                                      Navigator.pop(sheetContext);
+                                      _handleNavigation(context, () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                OptionDefensePlaybookWidget(
+                                              user: widget.brokerageUser,
+                                              service: widget.service,
+                                              instrument: op.instrumentObj!,
+                                              optionPosition: op,
+                                              optionInstrument:
+                                                  op.optionInstrument!,
+                                              analytics: widget.analytics,
+                                              observer: widget.observer,
+                                              generativeService:
+                                                  widget.generativeService,
+                                              appUser: widget.user,
+                                              userDocRef: widget.userDocRef,
+                                              initialIsPaperTrade:
+                                                  widget.brokerageUser.source ==
+                                                      BrokerageSource.paper,
+                                            ),
+                                          ),
+                                        );
+                                      });
+                                    },
+                                  ),
+                                  ListTile(
+                                    leading: const Icon(Icons.sync_alt),
+                                    title: const Text('Roll Assistant'),
+                                    subtitle: const Text(
+                                        '1-tap roll wizard for credit, strikes, and DTE extension'),
+                                    onTap: () {
+                                      Navigator.pop(sheetContext);
+                                      _handleNavigation(context, () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                OptionRollAssistantWidget(
+                                              user: widget.brokerageUser,
+                                              service: widget.service,
+                                              instrument: op.instrumentObj!,
+                                              optionPosition: op,
+                                              optionInstrument:
+                                                  op.optionInstrument!,
+                                              analytics: widget.analytics,
+                                              observer: widget.observer,
+                                              generativeService:
+                                                  widget.generativeService,
+                                              appUser: widget.user,
+                                              userDocRef: widget.userDocRef,
+                                              initialIsPaperTrade:
+                                                  widget.brokerageUser.source ==
+                                                      BrokerageSource.paper,
+                                            ),
+                                          ),
+                                        );
+                                      });
+                                    },
+                                  ),
+                                  ListTile(
+                                    leading: const Icon(Icons.sensors),
+                                    title: const Text(
+                                        'Live Activity & Dynamic Island'),
+                                    subtitle: const Text(
+                                        'Real-time lock screen position tracking & 0DTE trailing stop'),
+                                    onTap: () {
+                                      Navigator.pop(sheetContext);
+                                      showModalBottomSheet(
+                                        context: context,
+                                        showDragHandle: true,
+                                        isScrollControlled: true,
                                         builder: (context) =>
-                                            OptionDefensePlaybookWidget(
-                                          user: widget.brokerageUser,
-                                          service: widget.service,
-                                          instrument: op.instrumentObj!,
-                                          optionPosition: op,
-                                          optionInstrument: op.optionInstrument!,
-                                          analytics: widget.analytics,
-                                          observer: widget.observer,
-                                          generativeService:
-                                              widget.generativeService,
-                                          appUser: widget.user,
-                                          userDocRef: widget.userDocRef,
-                                          initialIsPaperTrade:
-                                              widget.brokerageUser.source ==
-                                                  BrokerageSource.paper,
+                                            OptionLiveActivitySheet(
+                                          position: op,
+                                          onSessionChanged: () {
+                                            setState(() {});
+                                          },
                                         ),
-                                      ),
-                                    );
-                                  });
-                                },
+                                      );
+                                    },
+                                  ),
+                                ],
                               ),
-                              ListTile(
-                                leading: const Icon(Icons.sync_alt),
-                                title: const Text('Roll Assistant'),
-                                subtitle: const Text(
-                                    '1-tap roll wizard for credit, strikes, and DTE extension'),
-                                onTap: () {
-                                  Navigator.pop(sheetContext);
-                                  _handleNavigation(context, () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) =>
-                                            OptionRollAssistantWidget(
-                                          user: widget.brokerageUser,
-                                          service: widget.service,
-                                          instrument: op.instrumentObj!,
-                                          optionPosition: op,
-                                          optionInstrument: op.optionInstrument!,
-                                          analytics: widget.analytics,
-                                          observer: widget.observer,
-                                          generativeService:
-                                              widget.generativeService,
-                                          appUser: widget.user,
-                                          userDocRef: widget.userDocRef,
-                                          initialIsPaperTrade:
-                                              widget.brokerageUser.source ==
-                                                  BrokerageSource.paper,
-                                        ),
-                                      ),
-                                    );
-                                  });
-                                },
-                              ),
-                              ListTile(
-                                leading: const Icon(Icons.sensors),
-                                title: const Text('Live Activity & Dynamic Island'),
-                                subtitle: const Text(
-                                    'Real-time lock screen position tracking & 0DTE trailing stop'),
-                                onTap: () {
-                                  Navigator.pop(sheetContext);
-                                  showModalBottomSheet(
-                                    context: context,
-                                    showDragHandle: true,
-                                    isScrollControlled: true,
-                                    builder: (context) =>
-                                        OptionLiveActivitySheet(
-                                      position: op,
-                                      onSessionChanged: () {
-                                        setState(() {});
-                                      },
-                                    ),
-                                  );
-                                },
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    }
-                  : null,
+                            ),
+                          );
+                        }
+                      : null,
             ),
             if (widget.brokerageUser.showPositionDetails) ...[
               _buildDetailScrollRow(
@@ -1462,8 +1468,7 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
         ));
   }
 
-  Widget _buildInteractiveTooltip(
-      BuildContext context, dynamic selectedDatum) {
+  Widget _buildInteractiveTooltip(BuildContext context, dynamic selectedDatum) {
     if (selectedDatum == null) return const SizedBox.shrink();
     final datum = selectedDatum;
     final symbol = datum['domain'] as String? ?? '';
@@ -1471,9 +1476,8 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
     final List<OptionAggregatePosition>? group =
         datum['group'] as List<OptionAggregatePosition>?;
 
-    final primaryLabel = datum['primaryLabel'] as String? ??
-        datum['label'] as String? ??
-        '';
+    final primaryLabel =
+        datum['primaryLabel'] as String? ?? datum['label'] as String? ?? '';
     final secondaryLabel = datum['secondaryLabel'] as String?;
     final primaryName =
         BrokerageUser.displayValueText(widget.brokerageUser.displayValue!);
@@ -1772,10 +1776,10 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
                     context,
                     label: BrokerageUser.displayValueText(
                         widget.brokerageUser.sortOptions!),
-                    icon: widget.brokerageUser.sortDirection ==
-                            SortDirection.desc
-                        ? Icons.arrow_downward
-                        : Icons.arrow_upward,
+                    icon:
+                        widget.brokerageUser.sortDirection == SortDirection.desc
+                            ? Icons.arrow_downward
+                            : Icons.arrow_upward,
                     onTap: () {
                       showModalBottomSheet<void>(
                           context: context,

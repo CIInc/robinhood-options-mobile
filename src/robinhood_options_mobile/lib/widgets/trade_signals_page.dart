@@ -93,6 +93,7 @@ class _TradeSignalsPageState extends State<TradeSignalsPage> {
                               backgroundImage: CachedNetworkImageProvider(
                                   auth.currentUser!.photoURL!)))
                       : const Icon(Icons.account_circle_outlined),
+                  tooltip: 'Account Profile',
                   onPressed: () async {
                     await showProfile(
                         context,

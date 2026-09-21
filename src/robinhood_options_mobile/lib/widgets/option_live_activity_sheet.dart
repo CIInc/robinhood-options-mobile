@@ -19,7 +19,8 @@ class OptionLiveActivitySheet extends StatefulWidget {
   });
 
   @override
-  State<OptionLiveActivitySheet> createState() => _OptionLiveActivitySheetState();
+  State<OptionLiveActivitySheet> createState() =>
+      _OptionLiveActivitySheetState();
 }
 
 class _OptionLiveActivitySheetState extends State<OptionLiveActivitySheet> {
@@ -52,9 +53,9 @@ class _OptionLiveActivitySheetState extends State<OptionLiveActivitySheet> {
     final isZeroDte = OptionLiveActivitySession.calculateIs0DTE(expDate);
     final daysToExpiry = OptionLiveActivitySession.calculateDTE(expDate);
 
-    final markPrice =
-        pos.optionInstrument?.optionMarketData?.adjustedMarkPrice ??
-            (pos.averageOpenPrice != null ? pos.averageOpenPrice! / 100.0 : 0.0);
+    final markPrice = pos
+            .optionInstrument?.optionMarketData?.adjustedMarkPrice ??
+        (pos.averageOpenPrice != null ? pos.averageOpenPrice! / 100.0 : 0.0);
 
     final isDebit = pos.direction.toLowerCase() != 'credit';
     final peak = _currentSession?.peakPrice ?? markPrice;
@@ -353,7 +354,8 @@ class _OptionLiveActivitySheetState extends State<OptionLiveActivitySheet> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                color:
+                    colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
                   color: colorScheme.outlineVariant.withValues(alpha: 0.5),
@@ -419,8 +421,8 @@ class _OptionLiveActivitySheetState extends State<OptionLiveActivitySheet> {
     );
   }
 
-  Widget _buildMetricColumn(
-      String title, String value, ThemeData theme, {Color? color}) {
+  Widget _buildMetricColumn(String title, String value, ThemeData theme,
+      {Color? color}) {
     return Column(
       children: [
         Text(

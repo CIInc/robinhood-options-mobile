@@ -241,8 +241,7 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
 
     if (isDualAxis) {
       final secondaryValues = chartPositions
-          .map((e) => widget.brokerageUser.getDisplayValueInstrumentPosition(
-              e,
+          .map((e) => widget.brokerageUser.getDisplayValueInstrumentPosition(e,
               displayValue: secondaryDisplayValue))
           .toList();
       final aligned = AlignedAxisExtents.compute(
@@ -254,7 +253,7 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
 
       final isSecondaryPercent =
           secondaryDisplayValue == DisplayValue.totalReturnPercent ||
-          secondaryDisplayValue == DisplayValue.todayReturnPercent;
+              secondaryDisplayValue == DisplayValue.todayReturnPercent;
 
       secondaryTicks = <charts.TickSpec<num>>[];
       if (secondaryExtents.min < 0 && secondaryExtents.max > 0) {
@@ -287,7 +286,7 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
       double primaryPad = extents.width > 0 ? extents.width * 0.1 : 0.05;
       final bool startsAtZero =
           widget.brokerageUser.displayValue == DisplayValue.marketValue ||
-          widget.brokerageUser.displayValue == DisplayValue.totalCost;
+              widget.brokerageUser.displayValue == DisplayValue.totalCost;
       final double minVal = startsAtZero ? 0.0 : extents.min - primaryPad;
       extents = charts.NumericExtents(minVal, extents.max + primaryPad);
     }
@@ -320,7 +319,8 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
           viewport: secondaryExtents,
           renderSpec: charts.SmallTickRendererSpec(
               labelStyle: charts.TextStyleSpec(color: axisLabelColor)),
-          tickProviderSpec: charts.StaticNumericTickProviderSpec(secondaryTicks),
+          tickProviderSpec:
+              charts.StaticNumericTickProviderSpec(secondaryTicks),
         );
       } else {
         secondaryMeasureAxis = charts.NumericAxisSpec(
@@ -330,7 +330,8 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
           tickFormatterSpec:
               charts.BasicNumericTickFormatterSpec.fromNumberFormat(
                   NumberFormat.compactSimpleCurrency()),
-          tickProviderSpec: charts.StaticNumericTickProviderSpec(secondaryTicks),
+          tickProviderSpec:
+              charts.StaticNumericTickProviderSpec(secondaryTicks),
         );
       }
     }
@@ -341,10 +342,9 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
             barRendererDecorator: charts.BarLabelDecorator<String>(),
             cornerStrategy: const charts.ConstCornerStrategy(10)),
         primaryMeasureAxis: primaryMeasureAxis,
-        secondaryMeasureAxis:
-            (barChartSeriesList.length > 1 && isDualAxis)
-                ? secondaryMeasureAxis
-                : null,
+        secondaryMeasureAxis: (barChartSeriesList.length > 1 && isDualAxis)
+            ? secondaryMeasureAxis
+            : null,
         customSeriesRenderers: [
           charts.BarTargetLineRendererConfig<String>(
               customRendererId: 'customLine',
@@ -1078,8 +1078,7 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
     );
   }
 
-  Widget _buildInteractiveTooltip(
-      BuildContext context, dynamic selectedDatum) {
+  Widget _buildInteractiveTooltip(BuildContext context, dynamic selectedDatum) {
     if (selectedDatum == null) return const SizedBox.shrink();
     final datum = selectedDatum;
     final symbol = datum['domain'] as String? ?? '';
@@ -1088,9 +1087,8 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
     final String name = position?.instrumentObj?.simpleName ??
         position?.instrumentObj?.name ??
         '';
-    final primaryLabel = datum['primaryLabel'] as String? ??
-        datum['label'] as String? ??
-        '';
+    final primaryLabel =
+        datum['primaryLabel'] as String? ?? datum['label'] as String? ?? '';
     final secondaryLabel = datum['secondaryLabel'] as String?;
     final primaryName =
         BrokerageUser.displayValueText(widget.brokerageUser.displayValue!);
@@ -1314,9 +1312,9 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
               borderRadius: BorderRadius.circular(24),
               border: Border.all(
                 color: Theme.of(context)
-                  .colorScheme
-                  .outlineVariant
-                  .withValues(alpha: 0.5),
+                    .colorScheme
+                    .outlineVariant
+                    .withValues(alpha: 0.5),
               ),
             ),
             child: IntrinsicHeight(
@@ -1356,10 +1354,10 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
                     context,
                     label: BrokerageUser.displayValueText(
                         widget.brokerageUser.sortOptions!),
-                    icon: widget.brokerageUser.sortDirection ==
-                            SortDirection.desc
-                        ? Icons.arrow_downward
-                        : Icons.arrow_upward,
+                    icon:
+                        widget.brokerageUser.sortDirection == SortDirection.desc
+                            ? Icons.arrow_downward
+                            : Icons.arrow_upward,
                     onTap: () {
                       showModalBottomSheet<void>(
                           context: context,

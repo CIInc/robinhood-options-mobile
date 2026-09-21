@@ -28,7 +28,11 @@ void main() {
         'chain_symbol': symbol,
         'expiration_date': expiration.toIso8601String().split('T').first,
         'id': id,
-        'min_ticks': {'above_tick': 0.05, 'below_tick': 0.01, 'cutoff_price': 3.0},
+        'min_ticks': {
+          'above_tick': 0.05,
+          'below_tick': 0.01,
+          'cutoff_price': 3.0
+        },
         'rhs_tradability': 'tradable',
         'state': 'active',
         'strike_price': strike.toString(),
@@ -118,16 +122,26 @@ void main() {
       expect(playbook.threat.threatReasons.isNotEmpty, isTrue);
 
       // Should contain Roll Up & Out and Roll Out recommendations
-      expect(playbook.actions.any((a) => a.actionType == DefenseActionType.rollStrikeAway), isTrue);
-      expect(playbook.actions.any((a) => a.suggestedPreset == RollPreset.rollUpAndOut), isTrue);
-      expect(playbook.actions.any((a) => a.suggestedPreset == RollPreset.rollOut), isTrue);
+      expect(
+          playbook.actions
+              .any((a) => a.actionType == DefenseActionType.rollStrikeAway),
+          isTrue);
+      expect(
+          playbook.actions
+              .any((a) => a.suggestedPreset == RollPreset.rollUpAndOut),
+          isTrue);
+      expect(
+          playbook.actions.any((a) => a.suggestedPreset == RollPreset.rollOut),
+          isTrue);
 
       final recommended = playbook.actions.firstWhere((a) => a.isRecommended);
       expect(recommended.actionType, DefenseActionType.rollStrikeAway);
       expect(recommended.suggestedPreset, RollPreset.rollUpAndOut);
     });
 
-    test('Cash-Secured Put in Critical Condition (Spot deep below strike + short DTE)', () {
+    test(
+        'Cash-Secured Put in Critical Condition (Spot deep below strike + short DTE)',
+        () {
       final putInstr = createInstrument(
         id: 'put_150',
         symbol: 'NVDA',
@@ -180,15 +194,27 @@ void main() {
       expect(playbook.threat.isTested, isTrue);
       expect(playbook.threat.level, OptionDefenseThreatLevel.critical);
       expect(playbook.threat.statusTitle, contains('CRITICAL'));
-      expect(playbook.threat.threatReasons.any((r) => r.contains('DTE')), isTrue);
+      expect(
+          playbook.threat.threatReasons.any((r) => r.contains('DTE')), isTrue);
 
       // Should recommend Roll Out (same strike), Roll Down & Out, and Close Position
-      expect(playbook.actions.any((a) => a.actionType == DefenseActionType.rollOutTime), isTrue);
-      expect(playbook.actions.any((a) => a.actionType == DefenseActionType.closePosition), isTrue);
-      expect(playbook.actions.any((a) => a.suggestedPreset == RollPreset.rollDownAndOut), isTrue);
+      expect(
+          playbook.actions
+              .any((a) => a.actionType == DefenseActionType.rollOutTime),
+          isTrue);
+      expect(
+          playbook.actions
+              .any((a) => a.actionType == DefenseActionType.closePosition),
+          isTrue);
+      expect(
+          playbook.actions
+              .any((a) => a.suggestedPreset == RollPreset.rollDownAndOut),
+          isTrue);
     });
 
-    test('Cash-Secured Put Approaching Strike (Caution level: within 2% distance)', () {
+    test(
+        'Cash-Secured Put Approaching Strike (Caution level: within 2% distance)',
+        () {
       final putInstr = createInstrument(
         id: 'put_100',
         symbol: 'AMD',
@@ -241,8 +267,14 @@ void main() {
       expect(playbook.threat.isTested, isTrue);
       expect(playbook.threat.level, OptionDefenseThreatLevel.caution);
       expect(playbook.threat.statusTitle, contains('CAUTION'));
-      expect(playbook.actions.any((a) => a.actionType == DefenseActionType.rollOutTime), isTrue);
-      expect(playbook.actions.any((a) => a.suggestedPreset == RollPreset.rollDownAndOut), isTrue);
+      expect(
+          playbook.actions
+              .any((a) => a.actionType == DefenseActionType.rollOutTime),
+          isTrue);
+      expect(
+          playbook.actions
+              .any((a) => a.suggestedPreset == RollPreset.rollDownAndOut),
+          isTrue);
     });
 
     test('Safe Position far OTM (Unthreatened)', () {
@@ -298,7 +330,10 @@ void main() {
       expect(playbook.threat.isTested, isFalse);
       expect(playbook.threat.level, OptionDefenseThreatLevel.safe);
       expect(playbook.threat.statusTitle, contains('SAFE'));
-      expect(playbook.actions.any((a) => a.actionType == DefenseActionType.holdOrTakeProfit), isTrue);
+      expect(
+          playbook.actions
+              .any((a) => a.actionType == DefenseActionType.holdOrTakeProfit),
+          isTrue);
     });
 
     test('Vertical Credit Spread tested recommends Convert to Iron Condor', () {
@@ -366,8 +401,12 @@ void main() {
       );
 
       expect(playbook.threat.isTested, isTrue);
-      expect(playbook.actions.any((a) => a.actionType == DefenseActionType.convertIronCondor), isTrue);
-      final ironCondorAction = playbook.actions.firstWhere((a) => a.actionType == DefenseActionType.convertIronCondor);
+      expect(
+          playbook.actions
+              .any((a) => a.actionType == DefenseActionType.convertIronCondor),
+          isTrue);
+      final ironCondorAction = playbook.actions.firstWhere(
+          (a) => a.actionType == DefenseActionType.convertIronCondor);
       expect(ironCondorAction.badge, 'ZERO MARGIN CREDIT');
     });
   });

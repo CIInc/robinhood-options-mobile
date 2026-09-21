@@ -41,7 +41,8 @@ class PortfolioSnapshot {
       };
 
   factory PortfolioSnapshot.fromJson(Map<String, dynamic> json) {
-    final timestamp = DateTime.tryParse(json['timestamp'] ?? '') ?? DateTime.now();
+    final timestamp =
+        DateTime.tryParse(json['timestamp'] ?? '') ?? DateTime.now();
 
     final accounts = (json['accounts'] as List<dynamic>? ?? [])
         .map((a) => Account.fromJson(a))
@@ -108,13 +109,16 @@ class OfflineCacheService {
         futuresPositions: futuresPositions ?? [],
       );
 
-      final jsonString = jsonEncode(snapshot.toJson(), toEncodable: Constants.toEncodable);
+      final jsonString =
+          jsonEncode(snapshot.toJson(), toEncodable: Constants.toEncodable);
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(keyPortfolioSnapshot, jsonString);
       await prefs.setString(keyLastSync, now.toIso8601String());
-      debugPrint('OfflineCacheService: Saved snapshot with ${accounts.length} accounts, ${stockPositions.length} stocks, ${optionPositions.length} options at $now');
+      debugPrint(
+          'OfflineCacheService: Saved snapshot with ${accounts.length} accounts, ${stockPositions.length} stocks, ${optionPositions.length} options at $now');
     } catch (e, stackTrace) {
-      debugPrint('OfflineCacheService: Error saving portfolio snapshot: $e\n$stackTrace');
+      debugPrint(
+          'OfflineCacheService: Error saving portfolio snapshot: $e\n$stackTrace');
     }
   }
 
@@ -131,16 +135,19 @@ class OfflineCacheService {
         return PortfolioSnapshot.fromJson(decoded);
       }
     } catch (e, stackTrace) {
-      debugPrint('OfflineCacheService: Error loading portfolio snapshot: $e\n$stackTrace');
+      debugPrint(
+          'OfflineCacheService: Error loading portfolio snapshot: $e\n$stackTrace');
     }
     return null;
   }
 
   /// Save trade signals to local cache.
-  static Future<void> saveTradeSignals(List<Map<String, dynamic>> signals) async {
+  static Future<void> saveTradeSignals(
+      List<Map<String, dynamic>> signals) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final jsonString = jsonEncode(signals, toEncodable: Constants.toEncodable);
+      final jsonString =
+          jsonEncode(signals, toEncodable: Constants.toEncodable);
       await prefs.setString(keyTradeSignals, jsonString);
     } catch (e) {
       debugPrint('OfflineCacheService: Error saving trade signals: $e');
@@ -241,7 +248,8 @@ class OfflineCacheService {
   }
 
   /// Evaluates whether the cached data is considered stale based on a threshold (default 15 mins).
-  static bool isDataStale(DateTime? timestamp, {Duration threshold = const Duration(minutes: 15)}) {
+  static bool isDataStale(DateTime? timestamp,
+      {Duration threshold = const Duration(minutes: 15)}) {
     if (timestamp == null) return true;
     return DateTime.now().difference(timestamp) > threshold;
   }

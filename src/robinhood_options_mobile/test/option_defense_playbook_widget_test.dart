@@ -60,7 +60,8 @@ class TestBrokerageService extends Fake implements IBrokerageService {
 }
 
 void main() {
-  testWidgets('OptionDefensePlaybookWidget renders threat diagnostics and playbook cards',
+  testWidgets(
+      'OptionDefensePlaybookWidget renders threat diagnostics and playbook cards',
       (WidgetTester tester) async {
     tester.view.physicalSize = const Size(800, 1400);
     tester.view.devicePixelRatio = 1.0;
@@ -74,7 +75,11 @@ void main() {
       'chain_symbol': 'AAPL',
       'expiration_date': expiration.toIso8601String().split('T').first,
       'id': 'call_aapl_180',
-      'min_ticks': {'above_tick': 0.05, 'below_tick': 0.01, 'cutoff_price': 3.0},
+      'min_ticks': {
+        'above_tick': 0.05,
+        'below_tick': 0.01,
+        'cutoff_price': 3.0
+      },
       'rhs_tradability': 'tradable',
       'state': 'active',
       'strike_price': '180.0',

@@ -1,4 +1,5 @@
-import 'package:community_charts_flutter/community_charts_flutter.dart' as charts;
+import 'package:community_charts_flutter/community_charts_flutter.dart'
+    as charts;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
@@ -10,7 +11,9 @@ import 'package:robinhood_options_mobile/widgets/chart_bar_widget.dart';
 
 void main() {
   group('Position Bar Chart Dual Values and CSV Export Tests', () {
-    test('InstrumentPosition CSV export generates correct header and row values', () {
+    test(
+        'InstrumentPosition CSV export generates correct header and row values',
+        () {
       final instrument = Instrument(
         id: 'aapl-id',
         url: '',
@@ -76,11 +79,19 @@ void main() {
       )..instrumentObj = instrument;
 
       final csvString = InstrumentPosition.generateCsvString([position]);
-      expect(csvString, contains('Symbol,Name,Quantity,Average Buy Price,Current Price,Market Value,Total Cost'));
-      expect(csvString, contains('AAPL,Apple,10.0,100.0,150.0,1500.0,1000.0,500.0,0.5,100.0,0.07142857142857142,https://api.robinhood.com/accounts/ACC1/'));
+      expect(
+          csvString,
+          contains(
+              'Symbol,Name,Quantity,Average Buy Price,Current Price,Market Value,Total Cost'));
+      expect(
+          csvString,
+          contains(
+              'AAPL,Apple,10.0,100.0,150.0,1500.0,1000.0,500.0,0.5,100.0,0.07142857142857142,https://api.robinhood.com/accounts/ACC1/'));
     });
 
-    test('OptionAggregatePosition CSV export generates correct header and row values', () {
+    test(
+        'OptionAggregatePosition CSV export generates correct header and row values',
+        () {
       final op = OptionAggregatePosition.fromJson({
         'id': 'op-pos-1',
         'chain': 'aapl-chain',
@@ -148,12 +159,21 @@ void main() {
         }
       });
 
-      final csvString = OptionAggregatePosition.generatePositionsCsvString([op]);
-      expect(csvString, contains('Symbol,Strategy,Option Type,Strike Price,Expiration Date,Quantity,Average Open Price,Current Price,Market Value,Total Cost'));
-      expect(csvString, contains('AAPL,call,call,160.0,2027-01-15,5.0,2.0,3.5,1750.0,10.0,1740.0,174.0,250.0,0.16666666666666666,https://api.robinhood.com/accounts/ACC1/'));
+      final csvString =
+          OptionAggregatePosition.generatePositionsCsvString([op]);
+      expect(
+          csvString,
+          contains(
+              'Symbol,Strategy,Option Type,Strike Price,Expiration Date,Quantity,Average Open Price,Current Price,Market Value,Total Cost'));
+      expect(
+          csvString,
+          contains(
+              'AAPL,call,call,160.0,2027-01-15,5.0,2.0,3.5,1750.0,10.0,1740.0,174.0,250.0,0.16666666666666666,https://api.robinhood.com/accounts/ACC1/'));
     });
 
-    test('BrokerageUser secondary measure pairs are consistently mapped for dual display', () {
+    test(
+        'BrokerageUser secondary measure pairs are consistently mapped for dual display',
+        () {
       final user = BrokerageUser.fromJson({
         'source': 'robinhood',
         'userName': 'test_user',
@@ -195,16 +215,20 @@ void main() {
       });
 
       // Total return with percent
-      final primaryText = user.getDisplayText(150.0, displayValue: DisplayValue.totalReturn);
-      final secondaryText = user.getDisplayText(0.152, displayValue: DisplayValue.totalReturnPercent);
+      final primaryText =
+          user.getDisplayText(150.0, displayValue: DisplayValue.totalReturn);
+      final secondaryText = user.getDisplayText(0.152,
+          displayValue: DisplayValue.totalReturnPercent);
 
       final combinedLabel = '$primaryText ($secondaryText)';
       expect(combinedLabel, contains('\$150.00'));
       expect(combinedLabel, contains('15.20%'));
 
       // Market value bar label does NOT include (Cost: ...) because the detail pane displays it
-      final mvText = user.getDisplayText(12500.0, displayValue: DisplayValue.marketValue);
-      final costText = user.getDisplayText(10000.0, displayValue: DisplayValue.totalCost);
+      final mvText =
+          user.getDisplayText(12500.0, displayValue: DisplayValue.marketValue);
+      final costText =
+          user.getDisplayText(10000.0, displayValue: DisplayValue.totalCost);
       const secondaryDisplayValue = DisplayValue.totalCost;
       String combinedBarLabel = mvText;
       if (costText.isNotEmpty) {
@@ -218,7 +242,9 @@ void main() {
       expect(combinedBarLabel, isNot(contains('Total Cost')));
     });
 
-    test('isDualAxis is only true for \$ vs % and false for marketValue vs totalCost', () {
+    test(
+        'isDualAxis is only true for \$ vs % and false for marketValue vs totalCost',
+        () {
       bool checkDualAxis(DisplayValue primary, DisplayValue? secondary) {
         return secondary != null &&
             ((primary == DisplayValue.totalReturn &&
@@ -232,36 +258,52 @@ void main() {
       }
 
       // marketValue <-> totalCost are both in currency units ($), so they share 1 axis
-      expect(checkDualAxis(DisplayValue.marketValue, DisplayValue.totalCost), isFalse);
-      expect(checkDualAxis(DisplayValue.totalCost, DisplayValue.marketValue), isFalse);
+      expect(checkDualAxis(DisplayValue.marketValue, DisplayValue.totalCost),
+          isFalse);
+      expect(checkDualAxis(DisplayValue.totalCost, DisplayValue.marketValue),
+          isFalse);
 
       // Return ($) <-> Return (%) have different units, so they use 2 axes (dual-axis)
-      expect(checkDualAxis(DisplayValue.totalReturn, DisplayValue.totalReturnPercent), isTrue);
-      expect(checkDualAxis(DisplayValue.totalReturnPercent, DisplayValue.totalReturn), isTrue);
-      expect(checkDualAxis(DisplayValue.todayReturn, DisplayValue.todayReturnPercent), isTrue);
-      expect(checkDualAxis(DisplayValue.todayReturnPercent, DisplayValue.todayReturn), isTrue);
+      expect(
+          checkDualAxis(
+              DisplayValue.totalReturn, DisplayValue.totalReturnPercent),
+          isTrue);
+      expect(
+          checkDualAxis(
+              DisplayValue.totalReturnPercent, DisplayValue.totalReturn),
+          isTrue);
+      expect(
+          checkDualAxis(
+              DisplayValue.todayReturn, DisplayValue.todayReturnPercent),
+          isTrue);
+      expect(
+          checkDualAxis(
+              DisplayValue.todayReturnPercent, DisplayValue.todayReturn),
+          isTrue);
     });
 
     test('Market Value bar chart x-axis extents start at 0', () {
       double computeMinExtent(DisplayValue displayValue, List<double> values) {
         var extents = charts.NumericExtents.fromValues(values);
         double primaryPad = extents.width > 0 ? extents.width * 0.1 : 0.05;
-        final bool startsAtZero =
-            displayValue == DisplayValue.marketValue ||
+        final bool startsAtZero = displayValue == DisplayValue.marketValue ||
             displayValue == DisplayValue.totalCost;
         return startsAtZero ? 0.0 : extents.min - primaryPad;
       }
 
       // Even if positions have high positive minimums (e.g. $5,000 - $12,000),
       // Market Value axis must start at 0
-      final mvMin = computeMinExtent(DisplayValue.marketValue, [5000.0, 8000.0, 12000.0]);
+      final mvMin =
+          computeMinExtent(DisplayValue.marketValue, [5000.0, 8000.0, 12000.0]);
       expect(mvMin, 0.0);
 
-      final costMin = computeMinExtent(DisplayValue.totalCost, [4000.0, 7000.0, 10000.0]);
+      final costMin =
+          computeMinExtent(DisplayValue.totalCost, [4000.0, 7000.0, 10000.0]);
       expect(costMin, 0.0);
 
       // Return charts can have negative baselines below min
-      final returnMin = computeMinExtent(DisplayValue.totalReturn, [100.0, 200.0, 500.0]);
+      final returnMin =
+          computeMinExtent(DisplayValue.totalReturn, [100.0, 200.0, 500.0]);
       expect(returnMin, lessThan(100.0));
     });
 
@@ -314,9 +356,11 @@ void main() {
         secondaryValues: [-0.01, 0.50],
       );
       final pZeroAsym = (0.0 - alignedAsymmetric.primaryExtents.min) /
-          (alignedAsymmetric.primaryExtents.max - alignedAsymmetric.primaryExtents.min);
+          (alignedAsymmetric.primaryExtents.max -
+              alignedAsymmetric.primaryExtents.min);
       final sZeroAsym = (0.0 - alignedAsymmetric.secondaryExtents.min) /
-          (alignedAsymmetric.secondaryExtents.max - alignedAsymmetric.secondaryExtents.min);
+          (alignedAsymmetric.secondaryExtents.max -
+              alignedAsymmetric.secondaryExtents.min);
       expect((pZeroAsym - sZeroAsym).abs(), lessThan(1e-9));
     });
   });

@@ -63,7 +63,8 @@ class MultiLegOrderLeg {
 
   factory MultiLegOrderLeg.fromJson(Map<String, dynamic> json) {
     return MultiLegOrderLeg(
-      id: json['id'] as String? ?? 'leg_${DateTime.now().millisecondsSinceEpoch}',
+      id: json['id'] as String? ??
+          'leg_${DateTime.now().millisecondsSinceEpoch}',
       action: LegAction.values.firstWhere(
         (e) => e.name == json['action'],
         orElse: () => LegAction.buy,
@@ -141,7 +142,8 @@ class MultiLegOrderEntry {
         final leg = legs.first;
         if (leg.isBuy && leg.isCall) return null; // Unlimited
         if (leg.isBuy && leg.isPut) {
-          return ((leg.strike - leg.premium) * 100.0).clamp(0.0, double.infinity);
+          return ((leg.strike - leg.premium) * 100.0)
+              .clamp(0.0, double.infinity);
         }
         if (leg.isSell) {
           return leg.premium * 100.0; // Limited to premium received
@@ -155,7 +157,8 @@ class MultiLegOrderEntry {
         final strikeDiff = (leg1.strike - leg2.strike).abs();
         if (isDebit) {
           // Debit spread: max profit is width - debit paid
-          return ((strikeDiff - absNetPremium) * 100.0).clamp(0.0, double.infinity);
+          return ((strikeDiff - absNetPremium) * 100.0)
+              .clamp(0.0, double.infinity);
         } else {
           // Credit spread: max profit is credit received
           return absNetPremium * 100.0;
@@ -202,7 +205,8 @@ class MultiLegOrderEntry {
           return absNetPremium * 100.0;
         } else {
           // Credit spread: max loss is width - credit received
-          return ((strikeDiff - absNetPremium) * 100.0).clamp(0.0, double.infinity);
+          return ((strikeDiff - absNetPremium) * 100.0)
+              .clamp(0.0, double.infinity);
         }
 
       case StrategyType.ironCondor:
@@ -221,8 +225,10 @@ class MultiLegOrderEntry {
         if (calls.length == 2) {
           callSpreadWidth = (calls[1].strike - calls[0].strike).abs();
         }
-        final maxSpreadWidth = putSpreadWidth > callSpreadWidth ? putSpreadWidth : callSpreadWidth;
-        return ((maxSpreadWidth - absNetPremium) * 100.0).clamp(0.0, double.infinity);
+        final maxSpreadWidth =
+            putSpreadWidth > callSpreadWidth ? putSpreadWidth : callSpreadWidth;
+        return ((maxSpreadWidth - absNetPremium) * 100.0)
+            .clamp(0.0, double.infinity);
 
       case StrategyType.straddle:
       case StrategyType.strangle:
@@ -267,18 +273,24 @@ class MultiLegOrderEntry {
 
       case StrategyType.vertical:
         if (legs.length != 2) return [];
-        final longLeg = legs.firstWhere((l) => l.isBuy, orElse: () => legs.first);
-        final shortLeg = legs.firstWhere((l) => l.isSell, orElse: () => legs.last);
+        final longLeg =
+            legs.firstWhere((l) => l.isBuy, orElse: () => legs.first);
+        final shortLeg =
+            legs.firstWhere((l) => l.isSell, orElse: () => legs.last);
 
         if (longLeg.isCall && shortLeg.isCall) {
           // Call spread
-          final lowerStrike = longLeg.strike < shortLeg.strike ? longLeg.strike : shortLeg.strike;
+          final lowerStrike = longLeg.strike < shortLeg.strike
+              ? longLeg.strike
+              : shortLeg.strike;
           return isDebit
               ? [lowerStrike + absNetPremium]
               : [lowerStrike + absNetPremium];
         } else if (longLeg.isPut && shortLeg.isPut) {
           // Put spread
-          final higherStrike = longLeg.strike > shortLeg.strike ? longLeg.strike : shortLeg.strike;
+          final higherStrike = longLeg.strike > shortLeg.strike
+              ? longLeg.strike
+              : shortLeg.strike;
           return isDebit
               ? [higherStrike - absNetPremium]
               : [higherStrike - absNetPremium];
@@ -308,7 +320,10 @@ class MultiLegOrderEntry {
           (l) => l.isSell && l.isCall,
           orElse: () => legs[2],
         );
-        return [shortPut.strike - absNetPremium, shortCall.strike + absNetPremium];
+        return [
+          shortPut.strike - absNetPremium,
+          shortCall.strike + absNetPremium
+        ];
 
       default:
         return [];
@@ -319,8 +334,10 @@ class MultiLegOrderEntry {
   String get riskRewardRatio {
     final profit = maxProfitPerContract;
     final loss = maxLossPerContract;
-    if (profit == null && loss != null) return 'Unlimited / \$${loss.toStringAsFixed(0)}';
-    if (profit != null && loss == null) return '\$${profit.toStringAsFixed(0)} / Unlimited';
+    if (profit == null && loss != null)
+      return 'Unlimited / \$${loss.toStringAsFixed(0)}';
+    if (profit != null && loss == null)
+      return '\$${profit.toStringAsFixed(0)} / Unlimited';
     if (profit != null && loss != null && loss > 0) {
       final ratio = profit / loss;
       return '1 : ${ratio.toStringAsFixed(2)}';
@@ -622,7 +639,8 @@ class MultiLegOrderEntry {
       symbol: symbol,
       underlyingPrice: spotPrice,
       strategyType: StrategyType.single,
-      strategyName: '${action == LegAction.buy ? 'Long' : 'Short'} ${type == LegType.call ? 'Call' : 'Put'}',
+      strategyName:
+          '${action == LegAction.buy ? 'Long' : 'Short'} ${type == LegType.call ? 'Call' : 'Put'}',
       legs: [
         MultiLegOrderLeg(
           id: 'leg_single_1',

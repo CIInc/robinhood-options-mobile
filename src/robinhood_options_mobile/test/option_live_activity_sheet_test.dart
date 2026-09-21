@@ -93,8 +93,7 @@ void main() {
       DateTime.now(),
       DateTime.now(),
       'code_123',
-    )
-      ..optionInstrument = instrument;
+    )..optionInstrument = instrument;
   }
 
   group('OptionLiveActivitySheet Widget Tests', () {
@@ -105,7 +104,8 @@ void main() {
       service.clearInternalState();
     });
 
-    testWidgets('renders contract details, 0DTE badge, and Dynamic Island preview',
+    testWidgets(
+        'renders contract details, 0DTE badge, and Dynamic Island preview',
         (WidgetTester tester) async {
       final now = DateTime.now();
       final todayExpiry = DateTime(now.year, now.month, now.day);

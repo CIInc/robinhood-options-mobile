@@ -857,7 +857,8 @@ class TradeSignalsProvider with ChangeNotifier {
         final cached = await OfflineCacheService.loadTradeSignals();
         if (cached.isNotEmpty) {
           _tradeSignals = cached;
-          debugPrint('TradeSignalsProvider: Loaded ${cached.length} cached trade signals for offline viewing');
+          debugPrint(
+              'TradeSignalsProvider: Loaded ${cached.length} cached trade signals for offline viewing');
           notifyListeners();
         }
       } catch (e) {

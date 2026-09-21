@@ -109,7 +109,8 @@ void main() {
       expect(lastSync, equals(now));
     });
 
-    test('save and load portfolio snapshot with instrument and option chain', () async {
+    test('save and load portfolio snapshot with instrument and option chain',
+        () async {
       final optionChain = OptionChain(
         'chain_AAPL',
         'AAPL',
@@ -168,8 +169,10 @@ void main() {
       final loadedStock = snapshot.stockPositions.first;
       expect(loadedStock.instrumentObj, isNotNull);
       expect(loadedStock.instrumentObj!.optionChainObj, isNotNull);
-      expect(loadedStock.instrumentObj!.optionChainObj!.expirationDates.length, equals(2));
-      expect(loadedStock.instrumentObj!.optionChainObj!.expirationDates.first, equals(DateTime(2026, 10, 16)));
+      expect(loadedStock.instrumentObj!.optionChainObj!.expirationDates.length,
+          equals(2));
+      expect(loadedStock.instrumentObj!.optionChainObj!.expirationDates.first,
+          equals(DateTime(2026, 10, 16)));
     });
 
     test('save and load portfolio snapshot with forex holdings', () async {
@@ -221,11 +224,13 @@ void main() {
         forexHoldings: [loadedForex],
         customTimestamp: now,
       );
-      final reloadedSnapshot = await OfflineCacheService.loadPortfolioSnapshot();
+      final reloadedSnapshot =
+          await OfflineCacheService.loadPortfolioSnapshot();
       expect(reloadedSnapshot, isNotNull);
       expect(reloadedSnapshot!.forexHoldings.length, equals(1));
       expect(reloadedSnapshot.forexHoldings.first.quantity, equals(0.0156));
-      expect(reloadedSnapshot.forexHoldings.first.directCostBasis, equals(499.95));
+      expect(
+          reloadedSnapshot.forexHoldings.first.directCostBasis, equals(499.95));
     });
 
     test('save and load trade signals', () async {
@@ -289,7 +294,9 @@ void main() {
 
     test('clearCache removes all keys', () async {
       await OfflineCacheService.saveWatchlistSymbols(['SPY']);
-      await OfflineCacheService.saveTradeSignals([{'symbol': 'SPY'}]);
+      await OfflineCacheService.saveTradeSignals([
+        {'symbol': 'SPY'}
+      ]);
 
       await OfflineCacheService.clearCache();
 
@@ -313,17 +320,20 @@ void main() {
 
       expect(OfflineCacheService.formatRelativeTime(now), equals('Just now'));
       expect(
-        OfflineCacheService.formatRelativeTime(now.subtract(const Duration(minutes: 5))),
+        OfflineCacheService.formatRelativeTime(
+            now.subtract(const Duration(minutes: 5))),
         equals('5m ago'),
       );
       expect(
-        OfflineCacheService.formatRelativeTime(now.subtract(const Duration(hours: 3))),
+        OfflineCacheService.formatRelativeTime(
+            now.subtract(const Duration(hours: 3))),
         equals('3h ago'),
       );
       expect(OfflineCacheService.formatRelativeTime(null), equals('Never'));
 
       final testDate = DateTime(2026, 10, 12, 10, 30);
-      expect(OfflineCacheService.formatSyncDateTime(testDate), equals('Oct 12, 10:30 AM'));
+      expect(OfflineCacheService.formatSyncDateTime(testDate),
+          equals('Oct 12, 10:30 AM'));
       expect(OfflineCacheService.formatSyncDateTime(null), equals('Unknown'));
     });
   });

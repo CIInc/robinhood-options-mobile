@@ -92,8 +92,7 @@ void main() {
         DateTime.now(),
         DateTime.now(),
         'code_123',
-      )
-        ..optionInstrument = instrument;
+      )..optionInstrument = instrument;
     }
 
     test('0DTE and DTE detection logic calculates correctly', () {
@@ -111,7 +110,9 @@ void main() {
       expect(OptionLiveActivitySession.calculateDTE(null), 0);
     });
 
-    test('initializes session with correct trailing stop math for long position', () {
+    test(
+        'initializes session with correct trailing stop math for long position',
+        () {
       final now = DateTime.now();
       final todayExpiry = DateTime(now.year, now.month, now.day);
       final pos = createMockPosition(
@@ -140,7 +141,8 @@ void main() {
       expect(session.statusText, '0DTE Active');
     });
 
-    test('trailing stop ratchets up on price increase and triggers on retrace', () {
+    test('trailing stop ratchets up on price increase and triggers on retrace',
+        () {
       final now = DateTime.now();
       final expiry = now.add(const Duration(days: 7));
       final pos = createMockPosition(
@@ -201,7 +203,9 @@ void main() {
       expect(session.statusText, 'STOP TRIGGERED');
     });
 
-    test('updating trailing stop percentage dynamically recalculates stop price', () {
+    test(
+        'updating trailing stop percentage dynamically recalculates stop price',
+        () {
       final now = DateTime.now();
       final pos = createMockPosition(
         symbol: 'NVDA',
@@ -227,7 +231,8 @@ void main() {
       expect(session.trailingStopPrice, closeTo(8.00, 0.001));
     });
 
-    test('serialization and deserialization roundtrip preserves all attributes', () {
+    test('serialization and deserialization roundtrip preserves all attributes',
+        () {
       final now = DateTime.now();
       final todayExpiry = DateTime(now.year, now.month, now.day);
       final pos = createMockPosition(
@@ -254,7 +259,8 @@ void main() {
       expect(restored.symbol, session.symbol);
       expect(restored.strikePrice, session.strikePrice);
       expect(restored.currentPrice, session.currentPrice);
-      expect(restored.trailingStopPrice, closeTo(session.trailingStopPrice, 0.001));
+      expect(restored.trailingStopPrice,
+          closeTo(session.trailingStopPrice, 0.001));
       expect(restored.isTrailingStopTriggered, session.isTrailingStopTriggered);
       expect(restored.is0DTE, session.is0DTE);
       expect(restored.activityId, session.activityId);

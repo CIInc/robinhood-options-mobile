@@ -18,7 +18,9 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('MultiLegOrderEntry Model Unit Tests', () {
-    test('Bull Call Spread calculates debit, max profit, max loss, and breakeven correctly', () {
+    test(
+        'Bull Call Spread calculates debit, max profit, max loss, and breakeven correctly',
+        () {
       final order = MultiLegOrderEntry(
         symbol: 'AAPL',
         underlyingPrice: 150.0,
@@ -67,7 +69,9 @@ void main() {
       expect(order.riskRewardRatio, contains('1 : 0.67'));
     });
 
-    test('Bull Put Spread calculates credit, max profit, max loss, and breakeven correctly', () {
+    test(
+        'Bull Put Spread calculates credit, max profit, max loss, and breakeven correctly',
+        () {
       final order = MultiLegOrderEntry(
         symbol: 'NVDA',
         underlyingPrice: 120.0,
@@ -110,7 +114,8 @@ void main() {
       expect(order.breakevens, [117.5]);
     });
 
-    test('Iron Condor calculates 4-leg credit and dual breakevens correctly', () {
+    test('Iron Condor calculates 4-leg credit and dual breakevens correctly',
+        () {
       final order = MultiLegOrderEntry.ironCondor(
         symbol: 'SPY',
         spotPrice: 500.0,
@@ -202,7 +207,8 @@ void main() {
         instrumentId: 'aapl_inst',
       );
 
-    testWidgets('Renders matrix view, strategy selector, and analytics card', (tester) async {
+    testWidgets('Renders matrix view, strategy selector, and analytics card',
+        (tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -240,7 +246,9 @@ void main() {
       expect(find.textContaining('Review Bull Call Spread'), findsOneWidget);
     });
 
-    testWidgets('Adding leg updates leg count and sets custom multi-leg strategy', (tester) async {
+    testWidgets(
+        'Adding leg updates leg count and sets custom multi-leg strategy',
+        (tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -267,7 +275,9 @@ void main() {
       expect(find.text('Custom Multi-Leg'), findsWidgets);
     });
 
-    testWidgets('Tapping Review Order opens confirmation dialog with leg breakdown', (tester) async {
+    testWidgets(
+        'Tapping Review Order opens confirmation dialog with leg breakdown',
+        (tester) async {
       MultiLegOrderEntry? submittedOrder;
 
       await tester.pumpWidget(
@@ -383,13 +393,16 @@ void main() {
       );
     }
 
-    testWidgets('Renders side-by-side widescreen layout on tablet/desktop viewport width', (tester) async {
+    testWidgets(
+        'Renders side-by-side widescreen layout on tablet/desktop viewport width',
+        (tester) async {
       tester.view.physicalSize = const Size(1024, 768);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
 
-      await tester.pumpWidget(createTestApp(surfaceSize: const Size(1024, 768)));
+      await tester
+          .pumpWidget(createTestApp(surfaceSize: const Size(1024, 768)));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 200));
 
@@ -418,7 +431,9 @@ void main() {
       expect(find.text('Multi-Leg Matrix Order'), findsOneWidget);
     });
 
-    testWidgets('Renders portrait layout with rotation action and FAB for matrix view', (tester) async {
+    testWidgets(
+        'Renders portrait layout with rotation action and FAB for matrix view',
+        (tester) async {
       tester.view.physicalSize = const Size(400, 800);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -446,7 +461,9 @@ void main() {
       expect(find.text('Multi-Leg Matrix Order'), findsOneWidget);
     });
 
-    testWidgets('Rotates full screen chart view from portrait to landscape without throwing Infinity or NaN toInt error', (tester) async {
+    testWidgets(
+        'Rotates full screen chart view from portrait to landscape without throwing Infinity or NaN toInt error',
+        (tester) async {
       // Provide historical data with zero volume and flat prices to trigger previous edge cases
       final historicals = List.generate(20, (i) {
         return InstrumentHistorical(
@@ -510,7 +527,9 @@ void main() {
       expect(find.text('AAPL Chart'), findsOneWidget);
     });
 
-    testWidgets('Full screen chart with zero-variance identical prices renders safely', (tester) async {
+    testWidgets(
+        'Full screen chart with zero-variance identical prices renders safely',
+        (tester) async {
       final flatHistoricals = List.generate(10, (i) {
         return InstrumentHistorical(
           DateTime(2026, 1, 1, 9, 30).add(Duration(minutes: 5 * i)),

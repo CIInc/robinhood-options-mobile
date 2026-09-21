@@ -1876,8 +1876,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                         padding: const EdgeInsets.symmetric(horizontal: 8)),
                     icon: const Icon(Icons.sync_alt, size: 20),
                     label: const FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Text("Roll")),
+                        fit: BoxFit.scaleDown, child: Text("Roll")),
                     onPressed: () => Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -1903,8 +1902,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                         padding: const EdgeInsets.symmetric(horizontal: 4)),
                     icon: const Icon(Icons.shield_outlined, size: 20),
                     label: const FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Text("Defense")),
+                        fit: BoxFit.scaleDown, child: Text("Defense")),
                     onPressed: () => Navigator.push(
                         context,
                         MaterialPageRoute(
