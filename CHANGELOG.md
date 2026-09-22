@@ -2,6 +2,40 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.51.2] - 2026-09-21
+**0DTE Flow & Intraday Gamma Squeeze Radar ([Tracking: #115](https://github.com/CIInc/robinhood-options-mobile/issues/115))**
+
+- **0DTE Flow & Intraday Gamma Squeeze Radar (`ZeroDteSqueezeRadarModel`, `ZeroDteSqueezeRadarService`, `ZeroDteSqueezeRadarWidget`, [Tracking: #115](https://github.com/CIInc/robinhood-options-mobile/issues/115)):**
+  - **Real-Time 0DTE Flow Velocity Engine (`ZeroDteSqueezeRadarService`)**:
+    - Same-day expiration (0DTE) options contract filter and aggregation across calls and puts.
+    - Tracks aggregate contract volume ($V_C, V_P$), total dollar premium ($\$P_C, \$P_P$), and call-put flow volume & premium ratios.
+    - Computes real-time flow velocity (contracts/min) and net call flow momentum ($\Delta V_C - \Delta V_P$).
+    - Identifies institutional sweeps, aggressive ask-side trades, and abnormal volume exceeding open interest ($V/OI > 1.0$).
+  - **Dealer Gamma Flip & Approach Velocity Tracking (`DealerGammaFlipMetrics`)**:
+    - Calculates spot price proximity to the dealer gamma flip strike ($K_{\text{flip}}$) in dollar terms and percentage ($|\Delta_{\text{flip}}|/S$).
+    - Quantifies approach velocity towards the gamma flip line and identifies transitions into dealer short gamma regimes ($\Gamma_{\text{dealer}} < 0$) where hedging reflexively fuels rallies.
+    - Monitors key resistance (Call Wall) and support (Put Wall) levels.
+  - **Calibrated Gamma Squeeze Probability Gauge (`ZeroDteSqueezeRadarResult`)**:
+    - Multi-factor probability scoring engine (0–100%) incorporating:
+      - 0DTE Call Flow Dominance & Velocity (up to 30 pts)
+      - Dealer Short Gamma Regime & Flip Proximity (up to 30 pts)
+      - OTM Volume vs. Open Interest Surge (up to 25 pts)
+      - Call Wall Penetration & Breakout Pressure (up to 15 pts)
+    - 4-tier risk classification: `Low` (<35%), `Elevated` (35–64%), `High` (65–84%), and `Critical Squeeze Imminent` (85–100%).
+  - **Custom Alert & Action Center Integration (`CustomAlert`, `PortfolioAlertService`)**:
+    - Added `AlertType.gamma_squeeze` to custom alert rules supporting conditions for probability threshold (`above`), velocity surge (`spike`), and flip breaches (`above_gamma_flip`, `below_gamma_flip`).
+    - Added `PortfolioAlertTarget.zeroDteRadar` in `PortfolioAlertService` to surface proactive alerts for high and extreme squeeze conditions directly in the Action Center feed.
+  - **Interactive Radar Dashboard Widget (`ZeroDteSqueezeRadarWidget` & `GammaExposureDashboardWidget`)**:
+    - Circular radial probability gauge with dynamic risk color styling and diagnostic thesis summary.
+    - Horizontal call vs. put volume bar, velocity breakdown tiles, and unusual Vol/OI fire badges.
+    - Dealer gamma flip panel displaying spot price, flip distance, and regime indicators.
+    - Contributing factor progress rows detailing point attribution and quantitative drivers.
+    - Quick actions bar with 1-tap "Set Squeeze Alert" modal and "GEX Profile" navigation.
+    - Integrated directly into `GammaExposureDashboardWidget` with a `SegmentedButton` view switcher (`[GEX Profile | 0DTE Squeeze Radar]`).
+  - **Comprehensive Test Suite**:
+    - Full quantitative unit test suite in `test/zero_dte_squeeze_radar_test.dart` verifying mathematical factor calculation, 0DTE filtering, JSON serialization, and alert triggers.
+    - Component widget test suite in `test/zero_dte_squeeze_radar_widget_test.dart` verifying gauge rendering, flow velocity cards, flip levels, and user callbacks.
+
 ## [0.51.1] - 2026-09-21
 **Automated DRIP with Price Threshold ([#23](https://github.com/CIInc/robinhood-options-mobile/issues/23))**
 

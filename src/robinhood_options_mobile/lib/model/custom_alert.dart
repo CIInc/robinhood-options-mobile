@@ -7,6 +7,7 @@ enum AlertType {
   moving_average,
   rsi,
   gex,
+  gamma_squeeze,
   dynamic_threshold,
   custom
 }

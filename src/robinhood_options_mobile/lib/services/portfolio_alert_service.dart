@@ -11,6 +11,7 @@ import 'package:robinhood_options_mobile/model/unified_account.dart';
 import 'package:robinhood_options_mobile/model/wash_sale_record.dart';
 import 'package:robinhood_options_mobile/model/risk_circuit_breaker_config.dart';
 import 'package:robinhood_options_mobile/model/automated_drip_config.dart';
+import 'package:robinhood_options_mobile/model/zero_dte_squeeze_radar_model.dart';
 import 'package:robinhood_options_mobile/services/tax_optimization_service.dart';
 
 /// Builds the Action Center feed: the ranked list of things worth acting on
@@ -47,6 +48,7 @@ class PortfolioAlertService {
     List<WashSaleRecord>? washSales,
     RiskCircuitBreakerConfig? riskCircuitBreakerConfig,
     AutomatedDripConfig? automatedDripConfig,
+    List<ZeroDteSqueezeRadarResult>? squeezeRadarResults,
     double? dayPnL,
     double? dayPnLPercent,
   }) {
@@ -54,6 +56,7 @@ class PortfolioAlertService {
 
     alerts.addAll(
         _circuitBreakerAlerts(riskCircuitBreakerConfig, dayPnL, dayPnLPercent));
+    alerts.addAll(_zeroDteSqueezeAlerts(squeezeRadarResults));
     alerts.addAll(_dripAlerts(automatedDripConfig));
     alerts.addAll(
         _marginHealthAlerts(account, unifiedAccount, totalEquity, marginCalls));
@@ -586,6 +589,41 @@ class PortfolioAlertService {
       ));
     }
 
+    return alerts;
+  }
+
+  static List<PortfolioAlert> _zeroDteSqueezeAlerts(
+      List<ZeroDteSqueezeRadarResult>? results) {
+    final alerts = <PortfolioAlert>[];
+    if (results == null || results.isEmpty) return alerts;
+
+    for (final radar in results) {
+      if (radar.riskLevel == GammaSqueezeRiskLevel.extreme) {
+        alerts.add(
+          PortfolioAlert(
+            id: 'squeeze_extreme_${radar.symbol}',
+            severity: PortfolioAlertSeverity.critical,
+            icon: Icons.bolt_rounded,
+            title: '${radar.symbol} Critical 0DTE Squeeze Imminent',
+            detail: radar.summary,
+            metric: '${radar.squeezeProbability.toStringAsFixed(0)}%',
+            target: PortfolioAlertTarget.zeroDteRadar,
+          ),
+        );
+      } else if (radar.riskLevel == GammaSqueezeRiskLevel.high) {
+        alerts.add(
+          PortfolioAlert(
+            id: 'squeeze_high_${radar.symbol}',
+            severity: PortfolioAlertSeverity.warning,
+            icon: Icons.radar_rounded,
+            title: '${radar.symbol} High Gamma Squeeze Probability',
+            detail: radar.summary,
+            metric: '${radar.squeezeProbability.toStringAsFixed(0)}%',
+            target: PortfolioAlertTarget.zeroDteRadar,
+          ),
+        );
+      }
+    }
     return alerts;
   }
 }

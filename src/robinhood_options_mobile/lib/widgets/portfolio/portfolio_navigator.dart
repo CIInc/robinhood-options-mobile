@@ -52,6 +52,8 @@ class PortfolioNavigator {
             context, PortfolioSection.strategies, sectionContext);
       case PortfolioAlertTarget.rebalance:
         return _openRebalance(context, sectionContext);
+      case PortfolioAlertTarget.zeroDteRadar:
+        return openSection(context, PortfolioSection.risk, sectionContext);
       case PortfolioAlertTarget.none:
         return Future.value();
     }

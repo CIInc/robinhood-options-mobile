@@ -113,6 +113,10 @@ class _CustomAlertsWidgetState extends State<CustomAlertsWidget> {
                         alert.condition == AlertCondition.below)
                     ? '\$${alert.value}M GEX'
                     : alert.condition.name.replaceAll('_', ' ').toUpperCase();
+              } else if (alert.type == AlertType.gamma_squeeze) {
+                valueText = alert.condition == AlertCondition.spike
+                    ? '${alert.value.toStringAsFixed(0)} cpm'
+                    : '${alert.value.toStringAsFixed(0)}% Squeeze Prob';
               } else if (alert.type == AlertType.dynamic_threshold) {
                 valueText = '${alert.value}x ATR';
               } else {
@@ -255,6 +259,8 @@ class _CustomAlertsWidgetState extends State<CustomAlertsWidget> {
         return const Icon(Icons.speed);
       case AlertType.gex:
         return const Icon(Icons.layers);
+      case AlertType.gamma_squeeze:
+        return const Icon(Icons.radar_rounded);
       case AlertType.dynamic_threshold:
         return const Icon(Icons.auto_graph);
       default:
@@ -503,6 +509,13 @@ class _AlertEditorDialogState extends State<AlertEditorDialog> {
           AlertCondition.above_gamma_flip,
           AlertCondition.below_gamma_flip,
         ];
+      case AlertType.gamma_squeeze:
+        return [
+          AlertCondition.above,
+          AlertCondition.spike,
+          AlertCondition.above_gamma_flip,
+          AlertCondition.below_gamma_flip,
+        ];
       case AlertType.dynamic_threshold:
         return [
           AlertCondition.above_band,
@@ -524,6 +537,12 @@ class _AlertEditorDialogState extends State<AlertEditorDialog> {
             rule.condition == AlertCondition.below)) {
       prefixText = '\$';
       suffixText = 'M Net GEX';
+    } else if (rule.type == AlertType.gamma_squeeze) {
+      if (rule.condition == AlertCondition.spike) {
+        suffixText = 'cpm';
+      } else {
+        suffixText = '% Prob';
+      }
     } else if (rule.type == AlertType.dynamic_threshold) {
       suffixText = 'x ATR';
     } else if (rule.type == AlertType.volatility ||

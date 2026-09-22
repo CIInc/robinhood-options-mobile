@@ -9,6 +9,7 @@ enum PortfolioAlertTarget {
   taxes,
   strategies,
   rebalance,
+  zeroDteRadar,
   none,
 }
 

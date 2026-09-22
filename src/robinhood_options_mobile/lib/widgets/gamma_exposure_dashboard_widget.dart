@@ -16,6 +16,7 @@ import 'package:robinhood_options_mobile/model/quote.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/widgets/gamma_exposure_widget.dart';
+import 'package:robinhood_options_mobile/widgets/zero_dte_squeeze_radar_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
 import 'package:robinhood_options_mobile/widgets/indicator_documentation_widget.dart';
 
@@ -55,6 +56,14 @@ enum GexSortOption {
   const GexSortOption(this.label);
 }
 
+enum GexDashboardView {
+  gexProfile('GEX Profile'),
+  zeroDteRadar('0DTE Squeeze Radar');
+
+  final String label;
+  const GexDashboardView(this.label);
+}
+
 class _GammaExposureDashboardWidgetState
     extends State<GammaExposureDashboardWidget> {
   final TextEditingController _searchController = TextEditingController();
@@ -62,6 +71,7 @@ class _GammaExposureDashboardWidgetState
   String _activeSymbol = 'SPY';
   final List<String> _recentSymbols = [];
   GexSortOption _selectedSortOption = GexSortOption.absNetGex;
+  GexDashboardView _selectedView = GexDashboardView.gexProfile;
 
   List<GammaExposureData>? _topGexData;
   bool _loadingTopGex = false;
@@ -1066,14 +1076,51 @@ class _GammaExposureDashboardWidgetState
             const SizedBox(height: 16),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: GammaExposureWidget(
-                symbol: _activeSymbol,
-                spotPrice: _activeInstrument?.symbol == _activeSymbol
-                    ? (_activeQuote?.lastTradePrice ??
-                        _activeInstrument?.quoteObj?.lastTradePrice)
-                    : null,
-                generativeService: widget.generativeService,
+              child: SegmentedButton<GexDashboardView>(
+                segments: const [
+                  ButtonSegment<GexDashboardView>(
+                    value: GexDashboardView.gexProfile,
+                    label: Text('GEX Profile'),
+                    icon: Icon(Icons.layers_outlined),
+                  ),
+                  ButtonSegment<GexDashboardView>(
+                    value: GexDashboardView.zeroDteRadar,
+                    label: Text('0DTE Squeeze Radar'),
+                    icon: Icon(Icons.radar_rounded),
+                  ),
+                ],
+                selected: {_selectedView},
+                onSelectionChanged: (Set<GexDashboardView> newSelection) {
+                  setState(() {
+                    _selectedView = newSelection.first;
+                  });
+                },
               ),
+            ),
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: _selectedView == GexDashboardView.gexProfile
+                  ? GammaExposureWidget(
+                      symbol: _activeSymbol,
+                      spotPrice: _activeInstrument?.symbol == _activeSymbol
+                          ? (_activeQuote?.lastTradePrice ??
+                              _activeInstrument?.quoteObj?.lastTradePrice)
+                          : null,
+                      generativeService: widget.generativeService,
+                    )
+                  : ZeroDteSqueezeRadarWidget(
+                      symbol: _activeSymbol,
+                      spotPrice: _activeInstrument?.symbol == _activeSymbol
+                          ? (_activeQuote?.lastTradePrice ??
+                              _activeInstrument?.quoteObj?.lastTradePrice)
+                          : null,
+                      onOpenGexAnalysis: () {
+                        setState(() {
+                          _selectedView = GexDashboardView.gexProfile;
+                        });
+                      },
+                    ),
             ),
             const SizedBox(height: 32),
             Padding(
