@@ -9,6 +9,7 @@ enum AlertType {
   gex,
   gamma_squeeze,
   earnings_iv_crush,
+  volatility_cone,
   dynamic_threshold,
   custom
 }
@@ -25,6 +26,9 @@ enum AlertCondition {
   below_gamma_flip,
   above_crush_probability,
   above_implied_move,
+  above_iv_rank,
+  below_iv_rank,
+  above_vrp,
   above_band,
   below_band
 }

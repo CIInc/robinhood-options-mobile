@@ -54,6 +54,7 @@ class PortfolioNavigator {
         return _openRebalance(context, sectionContext);
       case PortfolioAlertTarget.zeroDteRadar:
       case PortfolioAlertTarget.earningsIvCrush:
+      case PortfolioAlertTarget.volatilityCone:
         return openSection(context, PortfolioSection.risk, sectionContext);
       case PortfolioAlertTarget.none:
         return Future.value();

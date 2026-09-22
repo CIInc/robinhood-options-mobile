@@ -2,6 +2,41 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.51.4] - 2026-09-21
+**Realized vs. Implied Volatility (IV) Cone & Rank/Percentile ([Tracking: #137](https://github.com/CIInc/robinhood-options-mobile/issues/137))**
+
+- **Realized vs. Implied Volatility (IV) Cone & Rank/Percentile (`VolatilityConeModel`, `VolatilityConeService`, `VolatilityConeWidget`, [Tracking: #137](https://github.com/CIInc/robinhood-options-mobile/issues/137)):**
+  - **Rolling Realized Volatility Cone Engine (`VolatilityConeService`)**:
+    - Calculates annualized Realized Volatility across multi-horizon lookback windows (10d, 20d, 30d, 60d, 90d, 180d, 252d / 1Y) using log return standard deviations scaled by $\sqrt{252}$.
+    - Constructs historical rolling percentile bands (Min, 25th percentile, Median 50th, 75th percentile, and Max) across each tenor window to identify statistical dispersion.
+    - Compares current rolling realized movement against current market implied volatility (IV) to reveal statistically underpriced or overpriced options.
+  - **Multi-Timeframe IV Rank & Percentile Engine (`IvRankPercentileMetrics`)**:
+    - Derives 30-day, 60-day, and 90-day IV Rank relative to trailing 52-week volatility extremes ($IVR = \frac{IV - IV_{low}}{IV_{high} - IV_{low}} \times 100\%$).
+    - Computes IV Percentile representing the empirical frequency of trading days where implied volatility traded below current levels.
+  - **Strike Skew Surface & 25-Delta Risk Reversal (`VolatilitySkewAnalysis`)**:
+    - Strike-by-strike moneyness curve mapping OTM Puts, ATM, and OTM Calls.
+    - Quantifies Put Skew ($IV_{25\Delta Put} - IV_{ATM}$), Call Skew ($IV_{25\Delta Call} - IV_{ATM}$), and 25-Delta Risk Reversal ($IV_{25\Delta Put} - IV_{25\Delta Call}$).
+    - Automatic skew regime classification (`Steep Put Skew`, `Balanced Smile`, `Call Skew / Squeeze`, `Flat`).
+  - **Volatility Term Structure & Variance Risk Premium (VRP) (`VolatilityTermStructure`, `VolatilityRiskPremium`)**:
+    - Maps ATM IV across expiration dates (DTE) and classifies curvature into Contango (normal upward slope) vs. Backwardation (inverted / event risk).
+    - Computes Volatility Risk Premium ($VRP = IV_{30d} - RV_{30d}$) and $IV / RV$ ratio, highlighting positive variance collection edges for options sellers.
+  - **Tactical Strategy Playbook & Valuation Regimes (`VolatilityTacticalRecommendation`, `VolatilityRegime`)**:
+    - Categorizes overall market volatility into 4 regimes: `Cheap`, `Fair`, `Expensive`, and `Extreme`.
+    - Generates actionable defined-risk playbook structures matched to current regime and skew (Iron Condors, Bull Put Spreads, Long Straddles/Strangles, Calendar/Diagonal Spreads).
+  - **Portfolio Action Center & Custom Alert Integration (`PortfolioAlertService`, `CustomAlert`, `PortfolioAlertTarget`)**:
+    - Added `PortfolioAlertTarget.volatilityCone` in Action Center navigation.
+    - Alerts for holdings entering extreme volatility surges (IV Rank > 80%) or underpriced volatility dips (IV Rank < 25%).
+    - Added `AlertType.volatility_cone` with conditions `above_iv_rank`, `below_iv_rank`, and `above_vrp`.
+  - **Interactive Dashboard & Education Widget (`VolatilityConeWidget` & `InstrumentWidget`)**:
+    - Custom-painted visual Volatility Cone chart with shaded IQR band, Min-Max bounds, and interactive tenor inspection chips.
+    - Multi-timeframe IV Rank and Percentile cards with linear meters and 52-week boundaries.
+    - Strike Skew & Smile interactive chart with moneyness inspection table and term structure slope plot.
+    - Tactical Strategy Playbook with recommended badges, quantitative rationales, and Educational Guide modal dialog.
+    - Dedicated entry card in `InstrumentWidget` options analytics section.
+  - **Comprehensive Test Suite**:
+    - Unit tests in `test/volatility_cone_test.dart` verifying rolling RV mathematics, cone percentile sorting, multi-timeframe IV rank/percentile calculations, skew regimes, VRP, and alert triggers.
+    - Component widget tests in `test/volatility_cone_widget_test.dart` verifying multi-tab rendering, educational dialog, tab switching, and zero-overflow layout on narrow viewports (360px).
+
 ## [0.51.3] - 2026-09-21
 **Earnings IV Crush Probability & Straddle Pricing Estimator ([Tracking: #137](https://github.com/CIInc/robinhood-options-mobile/issues/137))**
 

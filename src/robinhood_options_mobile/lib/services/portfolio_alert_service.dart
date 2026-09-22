@@ -11,6 +11,7 @@ import 'package:robinhood_options_mobile/model/unified_account.dart';
 import 'package:robinhood_options_mobile/model/wash_sale_record.dart';
 import 'package:robinhood_options_mobile/model/custom_alert.dart';
 import 'package:robinhood_options_mobile/model/earnings_iv_crush_model.dart';
+import 'package:robinhood_options_mobile/model/volatility_cone_model.dart';
 import 'package:robinhood_options_mobile/model/risk_circuit_breaker_config.dart';
 import 'package:robinhood_options_mobile/model/automated_drip_config.dart';
 import 'package:robinhood_options_mobile/model/zero_dte_squeeze_radar_model.dart';
@@ -52,6 +53,7 @@ class PortfolioAlertService {
     AutomatedDripConfig? automatedDripConfig,
     List<ZeroDteSqueezeRadarResult>? squeezeRadarResults,
     List<EarningsIvCrushAnalysis>? earningsCrushAnalyses,
+    List<VolatilityConeAnalysis>? volatilityConeAnalyses,
     double? dayPnL,
     double? dayPnLPercent,
   }) {
@@ -61,6 +63,7 @@ class PortfolioAlertService {
         _circuitBreakerAlerts(riskCircuitBreakerConfig, dayPnL, dayPnLPercent));
     alerts.addAll(_zeroDteSqueezeAlerts(squeezeRadarResults));
     alerts.addAll(_earningsCrushAlerts(earningsCrushAnalyses));
+    alerts.addAll(_volatilityConeAlerts(volatilityConeAnalyses));
     alerts.addAll(_dripAlerts(automatedDripConfig));
     alerts.addAll(
         _marginHealthAlerts(account, unifiedAccount, totalEquity, marginCalls));
@@ -691,6 +694,80 @@ class PortfolioAlertService {
             rule.value;
       default:
         return analysis.summary.crushProbabilityScore >= rule.value;
+    }
+  }
+
+  static List<PortfolioAlert> _volatilityConeAlerts(
+      List<VolatilityConeAnalysis>? analyses) {
+    final alerts = <PortfolioAlert>[];
+    if (analyses == null || analyses.isEmpty) return alerts;
+
+    for (final analysis in analyses) {
+      final metrics = analysis.metrics30d;
+      final regime = analysis.overallRegime;
+
+      if (regime == VolatilityRegime.extreme) {
+        alerts.add(
+          PortfolioAlert(
+            id: 'volatility_cone_extreme_${analysis.symbol}',
+            severity: PortfolioAlertSeverity.warning,
+            icon: Icons.warning_amber_rounded,
+            title: '${analysis.symbol} Extreme Volatility Surge (IV Rank: ${metrics.ivRank.toStringAsFixed(0)}%)',
+            detail:
+                'Implied volatility (${(metrics.currentIv * 100).toStringAsFixed(1)}%) is trading at historical extremes vs. realized movement. High risk of mean-reverting IV collapse.',
+            metric: '${metrics.ivRank.toStringAsFixed(0)}% IVR',
+            target: PortfolioAlertTarget.volatilityCone,
+          ),
+        );
+      } else if (regime == VolatilityRegime.expensive) {
+        alerts.add(
+          PortfolioAlert(
+            id: 'volatility_cone_expensive_${analysis.symbol}',
+            severity: PortfolioAlertSeverity.info,
+            icon: Icons.arrow_upward_rounded,
+            title: '${analysis.symbol} Elevated Implied Volatility (IV Rank: ${metrics.ivRank.toStringAsFixed(0)}%)',
+            detail:
+                'Options trade above the 75th percentile of historical realized movement. Positive Variance Risk Premium favors credit collection structures.',
+            metric: '${metrics.ivRank.toStringAsFixed(0)}% IVR',
+            target: PortfolioAlertTarget.volatilityCone,
+          ),
+        );
+      } else if (regime == VolatilityRegime.cheap) {
+        alerts.add(
+          PortfolioAlert(
+            id: 'volatility_cone_cheap_${analysis.symbol}',
+            severity: PortfolioAlertSeverity.positive,
+            icon: Icons.arrow_downward_rounded,
+            title: '${analysis.symbol} Underpriced Volatility (IV Rank: ${metrics.ivRank.toStringAsFixed(0)}%)',
+            detail:
+                'Options trade in the bottom quartile of historical movement. Option purchase and calendar spreads offer high leverage at minimal extrinsic cost.',
+            metric: '${metrics.ivRank.toStringAsFixed(0)}% IVR',
+            target: PortfolioAlertTarget.volatilityCone,
+          ),
+        );
+      }
+    }
+    return alerts;
+  }
+
+  /// Evaluates a SmartAlertRule against a VolatilityConeAnalysis.
+  static bool evaluateVolatilityConeAlert({
+    required SmartAlertRule rule,
+    required VolatilityConeAnalysis analysis,
+  }) {
+    if (rule.type != AlertType.volatility_cone) return false;
+
+    switch (rule.condition) {
+      case AlertCondition.above_iv_rank:
+      case AlertCondition.above:
+        return analysis.metrics30d.ivRank >= rule.value;
+      case AlertCondition.below_iv_rank:
+      case AlertCondition.below:
+        return analysis.metrics30d.ivRank <= rule.value;
+      case AlertCondition.above_vrp:
+        return analysis.vrp.vrp30d >= (rule.value / 100.0);
+      default:
+        return analysis.metrics30d.ivRank >= rule.value;
     }
   }
 }

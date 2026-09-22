@@ -54,6 +54,7 @@ import 'package:robinhood_options_mobile/widgets/instrument_note_widget.dart';
 import 'package:robinhood_options_mobile/widgets/options_flow_widget.dart';
 import 'package:robinhood_options_mobile/widgets/gamma_exposure_widget.dart';
 import 'package:robinhood_options_mobile/widgets/earnings_iv_crush_widget.dart';
+import 'package:robinhood_options_mobile/widgets/volatility_cone_widget.dart';
 import 'package:robinhood_options_mobile/widgets/pnl_badge.dart';
 import 'package:robinhood_options_mobile/widgets/position_order_widget.dart';
 import 'package:robinhood_options_mobile/widgets/price_targets_widget.dart';
@@ -2909,6 +2910,95 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                               const SizedBox(height: 2.0),
                               Text(
                                 '12-quarter implied vs. actual moves & post-earnings crush',
+                                style: TextStyle(
+                                  fontSize: 12.0,
+                                  color: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
+                                      ?.color,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+                        Icon(Icons.arrow_forward_ios,
+                            size: 12,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurfaceVariant),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12.0),
+              Card(
+                elevation: 0,
+                margin: EdgeInsets.zero,
+                color: Theme.of(context)
+                    .colorScheme
+                    .surfaceContainerHighest
+                    .withValues(alpha: 0.25),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: BorderSide(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .outlineVariant
+                        .withValues(alpha: 0.4),
+                  ),
+                ),
+                child: InkWell(
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => VolatilityConeWidget(
+                          symbol: instrument.symbol,
+                          spotPrice: instrument.quoteObj?.lastTradePrice,
+                          user: widget.user,
+                          brokerageUser: widget.brokerageUser,
+                          service: widget.service,
+                          instrument: instrument,
+                          optionsChains: instrument.optionChainObj != null
+                              ? [instrument.optionChainObj!.toJson()]
+                              : null,
+                        ),
+                      ),
+                    );
+                  },
+                  borderRadius: BorderRadius.circular(16.0),
+                  child: Padding(
+                    padding: const EdgeInsets.all(14.0),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8.0),
+                          decoration: BoxDecoration(
+                            color: Colors.purple.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(10.0),
+                          ),
+                          child: const Icon(Icons.stacked_line_chart_rounded,
+                              color: Colors.purple, size: 20),
+                        ),
+                        const SizedBox(width: 12.0),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Volatility Cone & IV Rank',
+                                style: TextStyle(
+                                  fontSize: 15.0,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 2.0),
+                              Text(
+                                'Realized vs. implied vol cone, 30d/60d/90d rank & strike skew',
                                 style: TextStyle(
                                   fontSize: 12.0,
                                   color: Theme.of(context)
