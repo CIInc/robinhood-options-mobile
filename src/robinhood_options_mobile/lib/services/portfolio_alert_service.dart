@@ -9,6 +9,8 @@ import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/portfolio_alert.dart';
 import 'package:robinhood_options_mobile/model/unified_account.dart';
 import 'package:robinhood_options_mobile/model/wash_sale_record.dart';
+import 'package:robinhood_options_mobile/model/custom_alert.dart';
+import 'package:robinhood_options_mobile/model/earnings_iv_crush_model.dart';
 import 'package:robinhood_options_mobile/model/risk_circuit_breaker_config.dart';
 import 'package:robinhood_options_mobile/model/automated_drip_config.dart';
 import 'package:robinhood_options_mobile/model/zero_dte_squeeze_radar_model.dart';
@@ -49,6 +51,7 @@ class PortfolioAlertService {
     RiskCircuitBreakerConfig? riskCircuitBreakerConfig,
     AutomatedDripConfig? automatedDripConfig,
     List<ZeroDteSqueezeRadarResult>? squeezeRadarResults,
+    List<EarningsIvCrushAnalysis>? earningsCrushAnalyses,
     double? dayPnL,
     double? dayPnLPercent,
   }) {
@@ -57,6 +60,7 @@ class PortfolioAlertService {
     alerts.addAll(
         _circuitBreakerAlerts(riskCircuitBreakerConfig, dayPnL, dayPnLPercent));
     alerts.addAll(_zeroDteSqueezeAlerts(squeezeRadarResults));
+    alerts.addAll(_earningsCrushAlerts(earningsCrushAnalyses));
     alerts.addAll(_dripAlerts(automatedDripConfig));
     alerts.addAll(
         _marginHealthAlerts(account, unifiedAccount, totalEquity, marginCalls));
@@ -625,5 +629,68 @@ class PortfolioAlertService {
       }
     }
     return alerts;
+  }
+
+  static List<PortfolioAlert> _earningsCrushAlerts(
+      List<EarningsIvCrushAnalysis>? analyses) {
+    final alerts = <PortfolioAlert>[];
+    if (analyses == null || analyses.isEmpty) return alerts;
+
+    for (final analysis in analyses) {
+      final summary = analysis.summary;
+      final days = analysis.daysToEarnings;
+      final countdown = days != null ? ' in $days days' : '';
+
+      if (summary.riskTier == EarningsIvCrushRiskTier.extreme) {
+        alerts.add(
+          PortfolioAlert(
+            id: 'earnings_crush_extreme_${analysis.symbol}',
+            severity: PortfolioAlertSeverity.warning,
+            icon: Icons.compress_rounded,
+            title: '${analysis.symbol} Extreme IV Crush Risk$countdown',
+            detail:
+                'Options pricing implies a ±${summary.averageImpliedMovePct}% move vs. historical actual of ±${summary.averageActualMovePct}%. Historical post-earnings IV drops ${summary.averageIvCrushPct}%. Protect long unhedged options.',
+            metric: '${summary.crushProbabilityScore.toStringAsFixed(0)}%',
+            target: PortfolioAlertTarget.earningsIvCrush,
+          ),
+        );
+      } else if (summary.riskTier == EarningsIvCrushRiskTier.high) {
+        alerts.add(
+          PortfolioAlert(
+            id: 'earnings_crush_high_${analysis.symbol}',
+            severity: PortfolioAlertSeverity.info,
+            icon: Icons.event_note_rounded,
+            title: '${analysis.symbol} Elevated Earnings IV Crush$countdown',
+            detail:
+                'Options historically overpriced in ${summary.overpricingRatePct}% of past quarters. Historical seller win rate favors straddle/condor selling over unhedged buying.',
+            metric: '${summary.crushProbabilityScore.toStringAsFixed(0)}%',
+            target: PortfolioAlertTarget.earningsIvCrush,
+          ),
+        );
+      }
+    }
+    return alerts;
+  }
+
+  /// Evaluates a SmartAlertRule against an EarningsIvCrushAnalysis.
+  static bool evaluateEarningsCrushAlert({
+    required SmartAlertRule rule,
+    required EarningsIvCrushAnalysis analysis,
+  }) {
+    if (rule.type != AlertType.earnings_iv_crush) return false;
+
+    switch (rule.condition) {
+      case AlertCondition.above_crush_probability:
+      case AlertCondition.above:
+        return analysis.summary.crushProbabilityScore >= rule.value;
+      case AlertCondition.below:
+        return analysis.summary.crushProbabilityScore <= rule.value;
+      case AlertCondition.above_implied_move:
+        return (analysis.straddleEstimate?.impliedMovePct ??
+                analysis.summary.averageImpliedMovePct) >=
+            rule.value;
+      default:
+        return analysis.summary.crushProbabilityScore >= rule.value;
+    }
   }
 }

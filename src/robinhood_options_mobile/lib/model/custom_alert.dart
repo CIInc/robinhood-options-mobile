@@ -8,6 +8,7 @@ enum AlertType {
   rsi,
   gex,
   gamma_squeeze,
+  earnings_iv_crush,
   dynamic_threshold,
   custom
 }
@@ -22,6 +23,8 @@ enum AlertCondition {
   below_put_wall,
   above_gamma_flip,
   below_gamma_flip,
+  above_crush_probability,
+  above_implied_move,
   above_band,
   below_band
 }

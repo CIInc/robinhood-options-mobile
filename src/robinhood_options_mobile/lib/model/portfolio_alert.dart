@@ -10,6 +10,7 @@ enum PortfolioAlertTarget {
   strategies,
   rebalance,
   zeroDteRadar,
+  earningsIvCrush,
   none,
 }
 

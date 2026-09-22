@@ -2,6 +2,36 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.51.3] - 2026-09-21
+**Earnings IV Crush Probability & Straddle Pricing Estimator ([Tracking: #137](https://github.com/CIInc/robinhood-options-mobile/issues/137))**
+
+- **Earnings IV Crush Probability & Straddle Pricing Estimator (`EarningsIvCrushModel`, `EarningsIvCrushService`, `EarningsIvCrushWidget`, [Tracking: #137](https://github.com/CIInc/robinhood-options-mobile/issues/137)):**
+  - **12-Quarter Empirical Earnings Move & IV Crush Engine (`EarningsIvCrushService`)**:
+    - Evaluates up to 12 historical reported quarters comparing pre-earnings implied moves against actual post-earnings 1-day moves.
+    - Computes historical pre-earnings IV vs. post-earnings IV drop percentage (`ivCrushPct = (IV_pre - IV_post) / IV_pre * 100`).
+    - Calculates options overpricing win rate (% of quarters where implied move exceeded actual move, favoring premium sellers).
+    - Derives a calibrated IV Crush Probability score (0–100%) and 4-tier risk classification: `Low` (<35%), `Moderate` (35–54%), `High` (55–74%), and `Extreme IV Crush Imminent` (75–100%).
+  - **Front-Month ATM Straddle Pricing & Expected Value (EV) Estimator (`StraddlePricingEstimate`)**:
+    - Automatic detection of nearest At-The-Money (ATM) strike from front-month options chains.
+    - Computes total straddle cost ($C_{\text{ATM}} + P_{\text{ATM}}$) in dollars and percentage of spot, along with upper and lower breakeven thresholds.
+    - Empirical Expected Value (EV) distribution for straddle sellers vs. straddle buyers based on historical quarterly move distributions:
+      $$\mathbb{E}[\text{Long EV}] = \frac{1}{N}\sum_{i=1}^N \max(0, S \cdot |\text{actualMove}_i| - \text{StraddleCost}) - \text{StraddleCost}$$
+      $$\mathbb{E}[\text{Short EV}] = -\mathbb{E}[\text{Long EV}]$$
+    - Generates actionable tactical recommendations (`Sell Premium / Iron Condor`, `Buy Straddle / Long Volatility`, or `Neutral / Directional Play`).
+  - **Portfolio Action Center & Custom Alert Integration (`PortfolioAlertService`, `CustomAlert`, `PortfolioAlertTarget`)**:
+    - Added `PortfolioAlertTarget.earningsIvCrush` in Action Center navigation.
+    - Proactive alerts for portfolio holdings with imminent earnings (<= 7 days) and high or extreme IV crush potential to prevent unhedged long option decay.
+    - Added `AlertType.earnings_iv_crush` with conditions `above_crush_probability` and `above_implied_move`.
+  - **Interactive Dashboard & Education Widget (`EarningsIvCrushWidget` & `InstrumentWidget`)**:
+    - Circular radial probability gauge with risk tier styling and countdown badge.
+    - ATM Straddle Pricing & EV cards detailing seller vs buyer win probability and dollar expectations.
+    - 12-quarter historical move matrix featuring toggleable comparison bars and detailed EPS beat/miss tables.
+    - Educational expandable section breaking down IV crush mechanics, vega decay, and defined-risk tactics.
+    - Dedicated navigation entry in `InstrumentWidget` under "Quantitative & Research Tools".
+  - **Comprehensive Test Suite**:
+    - Complete unit test suite in `test/earnings_iv_crush_test.dart` verifying mathematical factor derivation, 12-quarter empirical processing, JSON round-trip cycles, and alert triggers.
+    - Component widget test suite in `test/earnings_iv_crush_widget_test.dart` verifying gauge rendering, straddle EV cards, history list view toggles, education expansion, and callbacks.
+
 ## [0.51.2] - 2026-09-21
 **0DTE Flow & Intraday Gamma Squeeze Radar ([Tracking: #115](https://github.com/CIInc/robinhood-options-mobile/issues/115))**
 
