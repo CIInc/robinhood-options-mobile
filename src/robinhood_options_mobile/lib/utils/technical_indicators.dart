@@ -427,11 +427,19 @@ class TechnicalIndicators {
     List<double?> smoothDmPlus = List.filled(candles.length, null);
     List<double?> smoothDmMinus = List.filled(candles.length, null);
 
-    atr[period - 1] = tr.sublist(0, period).reduce((a, b) => a + b) / period;
-    smoothDmPlus[period - 1] =
-        dmPlus.sublist(0, period).reduce((a, b) => a + b) / period;
-    smoothDmMinus[period - 1] =
-        dmMinus.sublist(0, period).reduce((a, b) => a + b) / period;
+    // Performance Optimization: Compute initial period sums directly with a loop
+    // to avoid memory allocations from `sublist` and higher-order function overhead from `reduce`.
+    double sumTr = 0.0;
+    double sumDmPlus = 0.0;
+    double sumDmMinus = 0.0;
+    for (int i = 0; i < period; i++) {
+      sumTr += tr[i];
+      sumDmPlus += dmPlus[i];
+      sumDmMinus += dmMinus[i];
+    }
+    atr[period - 1] = sumTr / period;
+    smoothDmPlus[period - 1] = sumDmPlus / period;
+    smoothDmMinus[period - 1] = sumDmMinus / period;
 
     for (int i = period; i < candles.length; i++) {
       atr[i] = (atr[i - 1]! * (period - 1) + tr[i]) / period;

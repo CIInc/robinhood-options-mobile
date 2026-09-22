@@ -143,7 +143,8 @@ void main() {
       expect(result.topDrivers.first.beta, -3.0);
     });
 
-    test('calculates options delta beta-weighting with underlying spot price', () {
+    test('calculates options delta beta-weighting with underlying spot price',
+        () {
       final underlying = Instrument.forSymbol('NVDA')
         ..quoteObj = _makeQuote('NVDA', 120.0);
 
@@ -202,7 +203,8 @@ void main() {
       expect(result.stance, 'Bullish');
     });
 
-    test('combines cross-asset holdings (stocks, options, futures, crypto)', () {
+    test('combines cross-asset holdings (stocks, options, futures, crypto)',
+        () {
       // 1. Stock: 50 shares of MSFT at $400, beta 1.1 -> $20,000 * 1.1 = $22,000
       final msftStock = _makeStockPosition(
         symbol: 'MSFT',
@@ -231,8 +233,8 @@ void main() {
         null,
         'long_put',
       )
-        ..instrumentObj = (Instrument.forSymbol('SPY')
-          ..quoteObj = _makeQuote('SPY', 500.0))
+        ..instrumentObj =
+            (Instrument.forSymbol('SPY')..quoteObj = _makeQuote('SPY', 500.0))
         ..optionInstrument = _makeOptionInstrument(
           symbol: 'SPY',
           type: 'put',
@@ -259,7 +261,8 @@ void main() {
           'type': 'cryptocurrency',
         },
         'quantity': '0.15',
-      })..quoteObj = ForexQuote.fromJson({
+      })
+        ..quoteObj = ForexQuote.fromJson({
           'symbol': 'BTC',
           'id': 'btc-quote',
           'mark_price': '66666.67',
@@ -338,7 +341,9 @@ void main() {
       expect(qqqResult.netDeltaShares, closeTo(50.0, 0.001));
     });
 
-    test('sanitizes driver symbols avoiding raw IDs, UUIDs, or stringified maps', () {
+    test(
+        'sanitizes driver symbols avoiding raw IDs, UUIDs, or stringified maps',
+        () {
       // 1. Futures position with nested map containing 'id' and 'rootSymbol'
       final futuresWithMap = {
         'contractId': '9330028e-455f-4acf-9954-77f60b19151d',
@@ -380,8 +385,8 @@ void main() {
         null,
         'long_call',
       )
-        ..instrumentObj = (Instrument.forSymbol('AAPL')
-          ..quoteObj = _makeQuote('AAPL', 200.0))
+        ..instrumentObj =
+            (Instrument.forSymbol('AAPL')..quoteObj = _makeQuote('AAPL', 200.0))
         ..optionInstrument = _makeOptionInstrument(
           symbol: 'AAPL',
           type: 'call',
@@ -399,10 +404,11 @@ void main() {
         'average_buy_price': '100.0',
         'quantity': '10.0',
         'avg_cost_affected': false,
-      })..instrumentObj =
-          (Instrument.forSymbol('6a256052-716b-4521-a324-447dc13c0fe3')
-            ..quoteObj =
-                _makeQuote('6a256052-716b-4521-a324-447dc13c0fe3', 100.0));
+      })
+        ..instrumentObj =
+            (Instrument.forSymbol('6a256052-716b-4521-a324-447dc13c0fe3')
+              ..quoteObj =
+                  _makeQuote('6a256052-716b-4521-a324-447dc13c0fe3', 100.0));
 
       final result = AnalyticsUtils.calculateBetaWeightedGreeks(
         equityPositions: [uuidEquity],
