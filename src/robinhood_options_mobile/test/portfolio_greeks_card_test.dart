@@ -243,7 +243,8 @@ void main() {
       expect(find.text('Interpreting Portfolio Stance'), findsOneWidget);
     });
 
-    testWidgets('renders without RenderFlex overflow in a narrow 320px viewport',
+    testWidgets(
+        'renders without RenderFlex overflow in a narrow 320px viewport',
         (tester) async {
       tester.view.physicalSize = const Size(322, 800);
       tester.view.devicePixelRatio = 1.0;

@@ -3,7 +3,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:robinhood_options_mobile/widgets/portfolio/analytics/metric_presentation.dart';
 
 void main() {
-  testWidgets('showMetricDetails renders without overflow in constrained viewport',
+  testWidgets(
+      'showMetricDetails renders without overflow in constrained viewport',
       (WidgetTester tester) async {
     // Set a constrained viewport height where dialog content might exceed bounds
     tester.view.physicalSize = const Size(400, 500);
@@ -24,10 +25,12 @@ void main() {
                   'Sharpe Ratio',
                   'A comprehensive definition explaining how this metric measures risk-adjusted performance over long horizons.',
                   {
-                    'example': 'An example showing how portfolio A compares with portfolio B with higher returns but significantly higher volatility.',
+                    'example':
+                        'An example showing how portfolio A compares with portfolio B with higher returns but significantly higher volatility.',
                     'goodThreshold': 1.5,
                     'acceptableThreshold': 1.0,
-                    'tip': 'Focus on optimizing Sharpe ratio rather than raw absolute returns to avoid excessive downside drawdown.',
+                    'tip':
+                        'Focus on optimizing Sharpe ratio rather than raw absolute returns to avoid excessive downside drawdown.',
                   },
                 );
               },
@@ -46,7 +49,8 @@ void main() {
     expect(find.byType(SingleChildScrollView), findsOneWidget);
   });
 
-  testWidgets('showBenchmarkInfo renders without overflow in constrained viewport',
+  testWidgets(
+      'showBenchmarkInfo renders without overflow in constrained viewport',
       (WidgetTester tester) async {
     tester.view.physicalSize = const Size(400, 500);
     tester.view.devicePixelRatio = 1.0;

@@ -33,12 +33,14 @@ class OfflineStatusBanner extends StatelessWidget {
         final badgeText = isStale ? 'Stale Data' : 'Cached Snapshot';
         final statusTitle =
             syncService.isOffline ? 'Offline Mode' : 'Viewing Cached Data';
+        final syncStatusText =
+            isSyncing ? 'Syncing data...' : 'Synced $syncTime ($freshness)';
 
         return Padding(
           padding: padding,
           child: Semantics(
             liveRegion: true,
-            label: '$statusTitle, $badgeText. Synced $syncTime ($freshness)',
+            label: '$statusTitle, $badgeText. $syncStatusText',
             child: Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -127,19 +129,25 @@ class OfflineStatusBanner extends StatelessWidget {
                     const SizedBox(
                       width: 24,
                       height: 24,
-                      child: CircularProgressIndicator(strokeWidth: 2.5),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        semanticsLabel: 'Syncing data',
+                      ),
                     )
                   else
-                    TextButton.icon(
-                      onPressed: onRetry ?? () => syncService.triggerSync(),
-                      style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 6),
-                        minimumSize: Size.zero,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    Tooltip(
+                      message: 'Retry sync',
+                      child: TextButton.icon(
+                        onPressed: onRetry ?? () => syncService.triggerSync(),
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 6),
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                        icon: const Icon(Icons.refresh_rounded, size: 16),
+                        label: const Text('Retry'),
                       ),
-                      icon: const Icon(Icons.refresh_rounded, size: 16),
-                      label: const Text('Retry'),
                     ),
                 ],
               ),

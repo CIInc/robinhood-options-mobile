@@ -459,7 +459,8 @@ class MetricPresentation {
                               .tertiaryContainer
                               .withValues(alpha: 0.3),
                         ),
-                      if (guidance['example'] != null) const SizedBox(height: 16),
+                      if (guidance['example'] != null)
+                        const SizedBox(height: 16),
                       // Thresholds
                       if (guidance['noThreshold'] != true &&
                           (guidance['goodThreshold'] != null ||
@@ -1153,8 +1154,8 @@ class MetricPresentation {
                           children: [
                             CircleAvatar(
                               radius: 28,
-                              backgroundColor:
-                                  (info['color'] as Color).withValues(alpha: 0.1),
+                              backgroundColor: (info['color'] as Color)
+                                  .withValues(alpha: 0.1),
                               child: Icon(
                                 info['icon'] as IconData,
                                 color: info['color'] as Color,
