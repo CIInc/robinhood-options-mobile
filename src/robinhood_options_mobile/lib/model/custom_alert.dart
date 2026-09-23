@@ -10,6 +10,7 @@ enum AlertType {
   gamma_squeeze,
   earnings_iv_crush,
   volatility_cone,
+  iv_surface,
   dynamic_threshold,
   custom
 }
@@ -29,6 +30,9 @@ enum AlertCondition {
   above_iv_rank,
   below_iv_rank,
   above_vrp,
+  surface_inversion,
+  above_surface_skew,
+  arbitrage_detected,
   above_band,
   below_band
 }

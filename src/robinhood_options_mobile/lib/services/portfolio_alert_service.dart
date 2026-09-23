@@ -12,6 +12,7 @@ import 'package:robinhood_options_mobile/model/wash_sale_record.dart';
 import 'package:robinhood_options_mobile/model/custom_alert.dart';
 import 'package:robinhood_options_mobile/model/earnings_iv_crush_model.dart';
 import 'package:robinhood_options_mobile/model/volatility_cone_model.dart';
+import 'package:robinhood_options_mobile/model/iv_surface_model.dart';
 import 'package:robinhood_options_mobile/model/risk_circuit_breaker_config.dart';
 import 'package:robinhood_options_mobile/model/automated_drip_config.dart';
 import 'package:robinhood_options_mobile/model/zero_dte_squeeze_radar_model.dart';
@@ -54,6 +55,7 @@ class PortfolioAlertService {
     List<ZeroDteSqueezeRadarResult>? squeezeRadarResults,
     List<EarningsIvCrushAnalysis>? earningsCrushAnalyses,
     List<VolatilityConeAnalysis>? volatilityConeAnalyses,
+    List<IvSurfaceAnalysis>? ivSurfaceAnalyses,
     double? dayPnL,
     double? dayPnLPercent,
   }) {
@@ -64,6 +66,7 @@ class PortfolioAlertService {
     alerts.addAll(_zeroDteSqueezeAlerts(squeezeRadarResults));
     alerts.addAll(_earningsCrushAlerts(earningsCrushAnalyses));
     alerts.addAll(_volatilityConeAlerts(volatilityConeAnalyses));
+    alerts.addAll(_ivSurfaceAlerts(ivSurfaceAnalyses));
     alerts.addAll(_dripAlerts(automatedDripConfig));
     alerts.addAll(
         _marginHealthAlerts(account, unifiedAccount, totalEquity, marginCalls));
@@ -748,6 +751,79 @@ class PortfolioAlertService {
       }
     }
     return alerts;
+  }
+
+  /// Generates Action Center alerts from 3D Implied Volatility Surface analyses.
+  static List<PortfolioAlert> _ivSurfaceAlerts(
+      List<IvSurfaceAnalysis>? analyses) {
+    final alerts = <PortfolioAlert>[];
+    if (analyses == null || analyses.isEmpty) return alerts;
+
+    for (final analysis in analyses) {
+      final metrics = analysis.metrics;
+
+      if (metrics.regime == IvSurfaceRegime.backwardation) {
+        alerts.add(
+          PortfolioAlert(
+            id: 'iv_surface_inverted_${analysis.symbol}',
+            severity: PortfolioAlertSeverity.warning,
+            icon: Icons.warning_amber_rounded,
+            title: '${analysis.symbol} Volatility Surface Inverted',
+            detail:
+                'Short-term options (${(metrics.atmShortTermIv * 100).toStringAsFixed(1)}%) trade at a sharp premium to back months (${(metrics.atmLongTermIv * 100).toStringAsFixed(1)}%). Indicates acute catalyst or stress.',
+            metric: '${(metrics.atmShortTermIv * 100).toStringAsFixed(0)}% IV',
+            target: PortfolioAlertTarget.ivSurface,
+          ),
+        );
+      } else if (metrics.hasArbitrage) {
+        alerts.add(
+          PortfolioAlert(
+            id: 'iv_surface_arbitrage_${analysis.symbol}',
+            severity: PortfolioAlertSeverity.info,
+            icon: Icons.auto_awesome_motion_rounded,
+            title: '${analysis.symbol} Pricing Anomaly on IV Surface',
+            detail:
+                '${metrics.arbitrageCount} potential calendar or butterfly spread pricing discrepancies detected across expiration tenors.',
+            metric: '${metrics.arbitrageCount} Spreads',
+            target: PortfolioAlertTarget.ivSurface,
+          ),
+        );
+      } else if (metrics.regime == IvSurfaceRegime.extremePutSkew) {
+        alerts.add(
+          PortfolioAlert(
+            id: 'iv_surface_skew_${analysis.symbol}',
+            severity: PortfolioAlertSeverity.info,
+            icon: Icons.shield_rounded,
+            title: '${analysis.symbol} Steep Downside Put Skew',
+            detail:
+                '25-Delta put/call risk reversal is ${(metrics.riskReversal25D * 100).toStringAsFixed(1)}% vol points, indicating heavy demand for downside tail protection.',
+            metric: '+${(metrics.riskReversal25D * 100).toStringAsFixed(0)}% Skew',
+            target: PortfolioAlertTarget.ivSurface,
+          ),
+        );
+      }
+    }
+    return alerts;
+  }
+
+  /// Evaluates a SmartAlertRule against an IvSurfaceAnalysis.
+  static bool evaluateIvSurfaceAlert({
+    required SmartAlertRule rule,
+    required IvSurfaceAnalysis analysis,
+  }) {
+    if (rule.type != AlertType.iv_surface) return false;
+
+    switch (rule.condition) {
+      case AlertCondition.surface_inversion:
+        return analysis.metrics.regime == IvSurfaceRegime.backwardation;
+      case AlertCondition.above_surface_skew:
+      case AlertCondition.above:
+        return analysis.metrics.riskReversal25D >= (rule.value / 100.0);
+      case AlertCondition.arbitrage_detected:
+        return analysis.metrics.hasArbitrage;
+      default:
+        return analysis.metrics.meanIv >= (rule.value / 100.0);
+    }
   }
 
   /// Evaluates a SmartAlertRule against a VolatilityConeAnalysis.

@@ -2,6 +2,40 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.51.5] - 2026-09-22
+**Implied Volatility Surface 3D Visualizer ([Tracking: #137](https://github.com/CIInc/robinhood-options-mobile/issues/137))**
+
+- **Implied Volatility Surface 3D Visualizer (`IvSurfaceModel`, `IvSurfaceService`, `IvSurface3dWidget`, [Tracking: #137](https://github.com/CIInc/robinhood-options-mobile/issues/137)):**
+  - **3D Implied Volatility Surface Engine (`IvSurfaceService`)**:
+    - Generates regularized 2D mesh grids across strike dimensions ($K / S_0$ moneyness from 70% to 130%) and tenor dimensions (DTE from 7 to 365+ days).
+    - Employs bilinear spline smoothing to regularize sparse and illiquid option strikes, building continuous implied volatility surfaces $\sigma_{\text{impl}}(K, T)$.
+    - Highlights At-The-Money (ATM) ridge lines across tenors to immediately expose term structure curvature.
+  - **Dupire Local Volatility Model ($\sigma_{\text{loc}}(K, T)$)**:
+    - Derives instantaneous local volatility using Dupire's continuous equation with discrete finite-difference approximations:
+      $$\sigma_{\text{loc}}^2(K, T) = \frac{\frac{\partial C}{\partial T}}{K^2 \frac{\partial^2 C}{\partial K^2}}$$
+    - Discloses strike-dependent diffusion levels and detects implied forward volatility dynamics across tenors.
+  - **Arbitrage Violation Detection Engine**:
+    - **Calendar Arbitrage**: Checks total implied variance monotonicity over time ($\partial(T\sigma^2) / \partial T \ge 0$).
+    - **Butterfly Arbitrage**: Checks risk-neutral probability density positivity ($\partial^2 C / \partial K^2 \ge 0$ via convex strike smile curvature).
+    - Quantifies total arbitrage penalty scores and violation coordinates across the surface grid.
+  - **2D Cross-Sectional Slice Analysis**:
+    - **Volatility Smile / Skew Slice**: Cross-section at fixed tenor (e.g. front-month 30 DTE, 60 DTE) plotting IV vs. strike moneyness.
+    - **Term Structure Slice**: Cross-section at fixed moneyness (ATM, 90% Put, 110% Call) plotting IV vs. Days to Expiration (DTE).
+  - **Interactive 3D Visualizer Widget (`IvSurface3dWidget`)**:
+    - Custom-painted depth-sorted 3D wireframe mesh (`_IvSurface3dPainter`) utilizing painter's algorithm with elevation z-shading.
+    - Interactive touch-drag yaw and pitch camera rotation, pinch-to-zoom scaling, and quick camera reset.
+    - Heatmap color gradient representing volatility intensity from cold low IV (cyan/blue) to median (green/yellow) to hot elevated IV (magenta/red).
+    - Multi-tab navigation switching seamlessly between 3D Surface View, 2D Cross-Section Slices, and Local Volatility / Arbitrage Diagnostics.
+    - Comprehensive Educational Guide modal explaining surface skew, Dupire diffusion, and arbitrage conditions.
+  - **Portfolio Action Center & Custom Alert Integration (`PortfolioAlertService`, `CustomAlert`, `PortfolioAlertTarget`)**:
+    - Added `PortfolioAlertTarget.ivSurface` in Action Center navigation.
+    - Added `AlertType.iv_surface` with trigger conditions: `surface_inversion` (front-month backwardation inversion > 8%), `above_surface_skew` (25-delta put skew > 12%), and `arbitrage_detected` (presence of calendar or butterfly arbitrage).
+  - **Instrument Analytics Integration**:
+    - Embedded "3D Volatility Surface" action card with live ATM IV, 25-Delta Put Skew, and Term Structure Slope indicators into `InstrumentWidget` options analytics section.
+  - **Comprehensive Test Suite**:
+    - Unit tests in `test/iv_surface_test.dart` verifying mesh grid construction, bilinear interpolation, Dupire local volatility calculations, calendar/butterfly arbitrage detection, and alert evaluations.
+    - Component widget tests in `test/iv_surface_widget_test.dart` verifying 3D painter canvas rendering, slice tab switches, diagnostic table generation, educational dialog, and zero-overflow layout on narrow 360px viewports.
+
 ## [0.51.4] - 2026-09-21
 **Realized vs. Implied Volatility (IV) Cone & Rank/Percentile ([Tracking: #137](https://github.com/CIInc/robinhood-options-mobile/issues/137))**
 

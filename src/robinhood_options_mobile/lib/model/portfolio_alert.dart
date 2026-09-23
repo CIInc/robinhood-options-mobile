@@ -12,6 +12,7 @@ enum PortfolioAlertTarget {
   zeroDteRadar,
   earningsIvCrush,
   volatilityCone,
+  ivSurface,
   none,
 }
 

@@ -55,6 +55,7 @@ class PortfolioNavigator {
       case PortfolioAlertTarget.zeroDteRadar:
       case PortfolioAlertTarget.earningsIvCrush:
       case PortfolioAlertTarget.volatilityCone:
+      case PortfolioAlertTarget.ivSurface:
         return openSection(context, PortfolioSection.risk, sectionContext);
       case PortfolioAlertTarget.none:
         return Future.value();
