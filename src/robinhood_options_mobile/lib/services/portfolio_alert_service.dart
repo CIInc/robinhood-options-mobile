@@ -13,6 +13,7 @@ import 'package:robinhood_options_mobile/model/custom_alert.dart';
 import 'package:robinhood_options_mobile/model/earnings_iv_crush_model.dart';
 import 'package:robinhood_options_mobile/model/volatility_cone_model.dart';
 import 'package:robinhood_options_mobile/model/iv_surface_model.dart';
+import 'package:robinhood_options_mobile/model/delta_neutral_model.dart';
 import 'package:robinhood_options_mobile/model/risk_circuit_breaker_config.dart';
 import 'package:robinhood_options_mobile/model/automated_drip_config.dart';
 import 'package:robinhood_options_mobile/model/zero_dte_squeeze_radar_model.dart';
@@ -56,6 +57,7 @@ class PortfolioAlertService {
     List<EarningsIvCrushAnalysis>? earningsCrushAnalyses,
     List<VolatilityConeAnalysis>? volatilityConeAnalyses,
     List<IvSurfaceAnalysis>? ivSurfaceAnalyses,
+    List<DeltaNeutralAnalysis>? deltaNeutralAnalyses,
     double? dayPnL,
     double? dayPnLPercent,
   }) {
@@ -67,6 +69,7 @@ class PortfolioAlertService {
     alerts.addAll(_earningsCrushAlerts(earningsCrushAnalyses));
     alerts.addAll(_volatilityConeAlerts(volatilityConeAnalyses));
     alerts.addAll(_ivSurfaceAlerts(ivSurfaceAnalyses));
+    alerts.addAll(_deltaNeutralAlerts(deltaNeutralAnalyses));
     alerts.addAll(_dripAlerts(automatedDripConfig));
     alerts.addAll(
         _marginHealthAlerts(account, unifiedAccount, totalEquity, marginCalls));
@@ -844,6 +847,69 @@ class PortfolioAlertService {
         return analysis.vrp.vrp30d >= (rule.value / 100.0);
       default:
         return analysis.metrics30d.ivRank >= rule.value;
+    }
+  }
+
+  static List<PortfolioAlert> _deltaNeutralAlerts(
+    List<DeltaNeutralAnalysis>? deltaNeutralAnalyses,
+  ) {
+    if (deltaNeutralAnalyses == null || deltaNeutralAnalyses.isEmpty) {
+      return const [];
+    }
+
+    final alerts = <PortfolioAlert>[];
+    for (final analysis in deltaNeutralAnalyses) {
+      final drift = analysis.netDelta - analysis.targetDelta;
+      final deltaSign = drift >= 0 ? '+' : '';
+      final deltaStr = '$deltaSign${drift.toStringAsFixed(1)} Δ';
+
+      if (analysis.driftStatus == DeltaDriftStatus.severeDrift) {
+        alerts.add(
+          PortfolioAlert(
+            id: 'delta_neutral_severe_${analysis.symbol}',
+            severity: PortfolioAlertSeverity.warning,
+            icon: Icons.error_outline_rounded,
+            title: '${analysis.symbol} Severe Delta Imbalance ($deltaStr)',
+            detail: analysis.rebalanceSuggestion.summaryText,
+            metric: deltaStr,
+            target: PortfolioAlertTarget.deltaNeutral,
+          ),
+        );
+      } else if (analysis.driftStatus == DeltaDriftStatus.mildDrift) {
+        alerts.add(
+          PortfolioAlert(
+            id: 'delta_neutral_mild_${analysis.symbol}',
+            severity: PortfolioAlertSeverity.info,
+            icon: Icons.tune_rounded,
+            title: '${analysis.symbol} Delta Rebalance Suggested',
+            detail: analysis.rebalanceSuggestion.summaryText,
+            metric: deltaStr,
+            target: PortfolioAlertTarget.deltaNeutral,
+          ),
+        );
+      }
+    }
+    return alerts;
+  }
+
+  /// Evaluates a SmartAlertRule against a DeltaNeutralAnalysis.
+  static bool evaluateDeltaNeutralAlert({
+    required SmartAlertRule rule,
+    required DeltaNeutralAnalysis analysis,
+  }) {
+    if (rule.type != AlertType.delta_neutral) return false;
+
+    final drift = (analysis.netDelta - analysis.targetDelta).abs();
+    switch (rule.condition) {
+      case AlertCondition.delta_drift_exceeded:
+      case AlertCondition.above:
+        return drift >= rule.value;
+      case AlertCondition.below:
+        return drift <= rule.value;
+      case AlertCondition.delta_rebalance_required:
+        return analysis.driftStatus != DeltaDriftStatus.neutral;
+      default:
+        return drift >= rule.value;
     }
   }
 }

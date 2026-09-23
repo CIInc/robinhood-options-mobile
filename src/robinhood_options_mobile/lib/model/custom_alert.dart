@@ -11,6 +11,7 @@ enum AlertType {
   earnings_iv_crush,
   volatility_cone,
   iv_surface,
+  delta_neutral,
   dynamic_threshold,
   custom
 }
@@ -33,6 +34,8 @@ enum AlertCondition {
   surface_inversion,
   above_surface_skew,
   arbitrage_detected,
+  delta_drift_exceeded,
+  delta_rebalance_required,
   above_band,
   below_band
 }

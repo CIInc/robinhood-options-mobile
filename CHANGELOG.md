@@ -2,6 +2,36 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.51.6] - 2026-09-22
+**Delta-Neutral Strategy Builder ([Tracking: #137](https://github.com/CIInc/robinhood-options-mobile/issues/137), [Tracking: #108](https://github.com/CIInc/robinhood-options-mobile/issues/108))**
+
+- **Delta-Neutral Strategy Builder (`DeltaPositionLeg`, `DeltaNeutralModel`, `DeltaNeutralService`, `DeltaNeutralBuilderWidget`, [Tracking: #137](https://github.com/CIInc/robinhood-options-mobile/issues/137), [Tracking: #108](https://github.com/CIInc/robinhood-options-mobile/issues/108)):**
+  - **Quantitative Greeks & Delta Engine (`DeltaNeutralService`)**:
+    - Aggregates multi-leg portfolio Greek sensitivities: Net Delta ($\Delta_{\text{net}}$), Net Gamma ($\Gamma_{\text{net}}$), Net Theta ($\Theta_{\text{net}}$), and Net Vega ($\mathcal{V}_{\text{net}}$) across stock shares and option contracts.
+    - Full mathematical Black-Scholes Greeks fallback engine with standard normal cumulative distribution approximations for pricing, delta, gamma, theta, and vega.
+    - Dollar-delta risk calculation quantifying dollar portfolio gain or loss per 1% move in the underlying spot price.
+  - **Dynamic Delta Offsets & Automated Rebalancing Suggestions**:
+    - **Linear Equity Share Offsets**: Calculates exact underlying shares ($N = - \Delta_{\text{drift}}$) to eliminate directional risk without adding unwanted gamma or altering theta decay.
+    - **Option Contract Offsets**: Identifies optimal option strike and expiration candidates (~35 DTE, near-the-money or 30-50 delta) to re-neutralize delta while adjusting gamma curvature or collecting theta credit.
+    - **Customizable Neutrality Tolerance Band**: Real-time slider adjusting tolerance band from $\pm 2$ to $\pm 50 \Delta$ with instant severity updates (`neutral`, `mildDrift`, `severeDrift`).
+  - **Spot-Shift Scenario Simulation & Interactive Delta Drift Curve**:
+    - Custom-painted interactive canvas (`_DeltaScenarioChartPainter`) modeling non-linear delta drift across underlying spot price shifts ($-20\%$ to $+20\%$) using second-order Taylor expansion $\Delta(S) \approx \Delta_0 + \Gamma_0 \cdot \Delta S$.
+    - Shaded delta-neutral tolerance band visualization with zero-baseline reference and current spot vertical marker.
+    - Segmented toggle to switch between Delta Curve ($\Delta$) and simulated position P&L Curve (\$).
+    - Scenario breakdown matrix detailing projected underlying price, net delta, estimated P&L, and tolerance status across 13 discrete spot shifts.
+  - **Pre-Configured Delta-Neutral Strategy Templates**:
+    - 1-tap template loaders for **ATM Long Straddle** (high-gamma volatility expansion), **Delta-Neutral Covered Collar** (100 shares + collar with delta-neutral strikes), and **Call Ratio Backspread** (1 short ATM call + 2 long OTM calls).
+    - "Load My Positions" button to dynamically import open stock shares and option aggregate positions for the active symbol from user brokerage/paper accounts.
+  - **Portfolio Action Center & Smart Alert Integration**:
+    - Added `PortfolioAlertTarget.deltaNeutral` in Action Center navigation and Section mapping.
+    - Added `AlertType.delta_neutral` with trigger conditions: `delta_drift_exceeded` and `delta_rebalance_required`.
+    - Integrated automatic portfolio-wide delta drift monitoring in `PortfolioAlertService` generating warning alerts for severe delta imbalances and informational alerts for mild drift.
+  - **Instrument Integration**:
+    - Embedded "Delta-Neutral Builder" quick intelligence card in `InstrumentWidget` options analytics section.
+  - **Comprehensive Test Suite**:
+    - Unit tests in `test/delta_neutral_test.dart` verifying leg math, Black-Scholes derivations, net Greek aggregation, share/option offset calculations, scenario point curves, JSON serialization, and alert evaluations.
+    - Widget tests in `test/delta_neutral_widget_test.dart` verifying multi-tab layout, tolerance band slider, scenario chart and matrix rendering, and strategy template switching.
+
 ## [0.51.5] - 2026-09-22
 **Implied Volatility Surface 3D Visualizer ([Tracking: #137](https://github.com/CIInc/robinhood-options-mobile/issues/137))**
 
