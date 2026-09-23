@@ -1,4 +1,3 @@
-
 # Roadmap
 
 This document outlines the planned features and enhancements for RealizeAlpha.
@@ -24,6 +23,7 @@ This document outlines the planned features and enhancements for RealizeAlpha.
   - [Cash Management, Banking & Retirement](#cash-management-banking--retirement)
   - [Infrastructure & Security](#infrastructure--security)
 - [Planned Enhancements 🚀](#planned-enhancements-)
+  - [Delivery Priorities](#delivery-priorities)
   - [Portfolio & Analysis](#portfolio--analysis)
   - [Trading & Automation](#trading--automation)
   - [Social & Community](#social--community)
@@ -41,22 +41,21 @@ This document outlines the planned features and enhancements for RealizeAlpha.
 
 ## Summary
 
-**RealizeAlpha** is a comprehensive mobile trading platform with advanced AI-powered features. This roadmap tracks both completed achievements and planned enhancements across 25+ major categories.
+**RealizeAlpha** is a mobile trading platform for multi-account investing, trading, and options analytics. This roadmap separates delivered work from planned milestones and longer-term ideas. Check marks indicate implementation status; future dates are targets and may change. GitHub issues hold detailed requirements and discussion.
+
+**Last reviewed:** September 22, 2026 · **Current app version:** 0.51.6 (development version)
 
 ### Quick Stats
-- **Completed Features**: 14 major categories (346+ items)
-- **Planned Enhancements**: 24+ categories (89+ items)
-- **Open GitHub Issues**: 35 active issues (23 feature & tracking epics + 12 enhancement/maintenance issues)
-- **Focus Areas**: Institutional options analytics (GEX, 0DTE, IV surfaces), AI devil's advocate, autonomous risk guardrails, multi-broker smart routing, and differentiated retail trading features
+- **Completed checklist items:** 355
+- **Planned checklist items:** 88
+- **Open GitHub issues:** 37 (as of September 22, 2026)
+- **Planning focus:** Address high-priority reliability and test gaps, then deliver copy-trading transparency and safeguards; scope community work only after trust, moderation, and measurement criteria are defined.
 
 ### Key Highlights
-- ✅ **Recently Completed**: Delta-Neutral Strategy Builder ([Tracking: #137](https://github.com/CIInc/robinhood-options-mobile/issues/137), [Tracking: #108](https://github.com/CIInc/robinhood-options-mobile/issues/108), v0.51.6), Implied Volatility Surface 3D Visualizer ([Tracking: #137](https://github.com/CIInc/robinhood-options-mobile/issues/137), v0.51.5), Realized vs. Implied Volatility (IV) Cone & Rank/Percentile ([Tracking: #137](https://github.com/CIInc/robinhood-options-mobile/issues/137), v0.51.4), Earnings IV Crush Probability & Straddle Pricing Estimator ([Tracking: #137](https://github.com/CIInc/robinhood-options-mobile/issues/137), v0.51.3), 0DTE Flow & Intraday Gamma Squeeze Radar ([Tracking: #115](https://github.com/CIInc/robinhood-options-mobile/issues/115), v0.51.2), Automated DRIP with Dynamic Price Thresholds ([#23](https://github.com/CIInc/robinhood-options-mobile/issues/23), v0.51.1), Beta-Weighted Portfolio Delta & Cross-Asset Greeks Engine ([Tracking: #137](https://github.com/CIInc/robinhood-options-mobile/issues/137), v0.51.0), iOS Live Activities & Dynamic Island Widget ([#160](https://github.com/CIInc/robinhood-options-mobile/issues/160), v0.50.0), Landscape Charting & Multi-Column Matrix View ([#117](https://github.com/CIInc/robinhood-options-mobile/issues/117), v0.50.0), Offline Mode & Resilient Caching ([#87](https://github.com/CIInc/robinhood-options-mobile/issues/87), v0.50.0), Multi-Leg Options Defense & Roll Playbook ([#158](https://github.com/CIInc/robinhood-options-mobile/issues/158), v0.50.0), Options Strategy Roll Assistant ([#157](https://github.com/CIInc/robinhood-options-mobile/issues/157), v0.49.0), Dual-Value Position Bar Charts with Zero-Tick Synchronization ([#19](https://github.com/CIInc/robinhood-options-mobile/issues/19), v0.49.0), Android Adaptive Splash Screen Brand Parity (v0.49.0), Schwab Real-Time WebSocket Streamer ([#145](https://github.com/CIInc/robinhood-options-mobile/issues/145), v0.48.5), Synchronized Position Detail Scrolling ([#7](https://github.com/CIInc/robinhood-options-mobile/issues/7), v0.48.5), Autonomous Risk Circuit Breakers ([Tracking: #142](https://github.com/CIInc/robinhood-options-mobile/issues/142), v0.48.5), and Tax Optimization Suite & Wash Sale Detector ([Tracking: #114](https://github.com/CIInc/robinhood-options-mobile/issues/114), v0.48.0).
-- 🚀 **Next Milestone**: **Options Analytics Pro, 0DTE Squeeze Radar & Volatility Surfaces** (v0.51.0 - Q4 November 2026).
-- **Key Differentiators**: On-device Gamma Exposure (GEX), 0DTE Intraday Pinning Radar, AI Devil's Advocate Stress Testing, Biometric Tilt Guardian, Beta-Weighted Portfolio Greeks, and Zero-Knowledge Proof (ZKP) Social Trading.
-- 🎯 **2026 Priorities**: 
-  - **Q3 (Completed)**: AI Portfolio Architect, Schwab WebSocket Streamer, Autonomous Circuit Breakers, Tax Optimization Suite, Dual-Value Bar Charts, Options Roll Assistant
-  - **Q4 (Active)**: Options Analytics Pro, 0DTE Squeeze Radar & Earnings IV Crush (v0.51.0), Social Trading 2.0 & Arena Tournaments (v0.52.0)
-- 🚀 **2027+ Vision**: Multi-Broker Smart Order Routing, SEC EDGAR Disclosures Engine, Multi-Model AI Consensus, Desktop Pro Multi-Pane, ZKP Social Trading, Spatial AR/VR Trading
+- ✅ **Recently Completed (v0.51.0-v0.51.6):** Beta-weighted portfolio Greeks, automated DRIP thresholds, 0DTE gamma squeeze radar, earnings IV crush analysis, IV cone and surface, and the Delta-Neutral Strategy Builder. See the release timeline for issue links and details.
+- **Next proposed milestone:** **v0.52.0 (target: December 2026; tentative)** — copy-trading transparency and safeguards, with social discussion as a candidate pending scope and moderation requirements. Tournaments remain exploratory until separately defined.
+- **Later candidates (v0.53.0+):** Schwab execution and account-history improvements, multi-broker routing, SEC disclosures, and expanded AI research. These are planning targets, not release commitments.
+- **Longer-term exploration:** Desktop workflows, privacy-preserving performance proofs, wearable clients, and spatial interfaces remain exploratory until scoped and prioritized.
 
 ## Release Versions & Timeline
 
@@ -406,7 +405,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ **Offline Mode & Resilient Caching:** Encrypted local cache for portfolio holdings, watchlists, quotes, and AI trade signals with background sync and status banner ([#87](https://github.com/CIInc/robinhood-options-mobile/issues/87)).
 - ✅ **Multi-Leg Options Defense & Roll Playbook:** Automated defensive action recommendations and tactical playbook when short legs are tested (e.g. rolling out in time, widening spreads, inverted strangles, converting to iron condors) ([#158](https://github.com/CIInc/robinhood-options-mobile/issues/158)).
 
-### v0.51.0 (2026 Q4 - November)
+### v0.51.x (Current development version: 0.51.6)
 **Options Analytics Pro, 0DTE Squeeze Radar & Volatility Surfaces**
 - ✅ **0DTE Flow & Intraday Gamma Squeeze Radar:** Real-time 0DTE call/put flow volume, dealer gamma flip velocity, and gamma squeeze probability gauge ([Tracking: #115](https://github.com/CIInc/robinhood-options-mobile/issues/115)).
 - ✅ **Earnings IV Crush Probability & Straddle Pricing Estimator:** Implied earnings move vs. actual historical moves over 12 quarters, post-earnings IV crush calculation, and expected value (EV) straddle pricing distributions ([Tracking: #137](https://github.com/CIInc/robinhood-options-mobile/issues/137)).
@@ -415,13 +414,13 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ **Implied Volatility Surface 3D Visualizer:** Interactive 3D surface plot across strikes and expiration dates with strike interpolation, Dupire local volatility calculations, arbitrage violation checks, and 2D cross-sectional slice analysis ([Tracking: #137](https://github.com/CIInc/robinhood-options-mobile/issues/137), v0.51.5).
 - ✅ **Delta-Neutral Strategy Builder:** Multi-leg hedging tool calculating dynamic delta offsets, automated share/option rebalancing suggestions, and spot-shift scenario modeling ([Tracking: #137](https://github.com/CIInc/robinhood-options-mobile/issues/137), [Tracking: #108](https://github.com/CIInc/robinhood-options-mobile/issues/108), v0.51.6).
 
-### v0.52.0 (2026 Q4 - December)
-**Social Trading 2.0, Copy-Trading Transparency & Arena Tournaments**
+### v0.52.0 (Tentative target: December 2026)
+**Copy-Trading Transparency & Social Foundations**
 - **Copy-Trading Slippage & Divergence Analytics:** Audit report showing follower fill latency (ms), price slippage vs. leader, and net return tracking ([Tracking: #141](https://github.com/CIInc/robinhood-options-mobile/issues/141)).
 - **Automated Copy-Trading Risk Guardian:** Follower protective guardrails specifying max capital allocation per trade, auto-disconnect on leader drawdown divergence, and max slippage abort.
-- **Trading Arenas & Verified Paper Tournaments:** Weekly/monthly trading challenges with live leaderboards, verifiable track records, and milestone achievement badges ([Tracking: #113](https://github.com/CIInc/robinhood-options-mobile/issues/113)).
-- **Social Discussion & Comment Threads:** Granular discussions on shared trade ideas and portfolios with author pinned comments, community sentiment polling, and upvoting.
-- **Side-by-Side Multi-Trader Portfolio Comparison:** Multi-trader benchmarking comparing Sharpe ratio, drawdown, and win rate on a single unified chart.
+- **Social Discussion & Comment Threads (candidate):** Discussion on shared trade ideas and portfolios; define moderation, reporting, privacy, and retention requirements before scheduling.
+- **Trading Arenas & Verified Paper Tournaments (exploratory):** Keep paper-only; define fair scoring, anti-abuse controls, and a separate tracked issue before assigning a release.
+- **Side-by-Side Multi-Trader Portfolio Comparison (candidate):** Benchmark risk-adjusted performance only where privacy settings and comparable measurement periods permit.
 
 ### v0.53.0 (2027 Q1 - January)
 **Institutional Multi-Brokerage, Smart Order Routing & SEC Disclosures**
@@ -459,10 +458,10 @@ Mapping features to specific versions helps users anticipate releases and unders
 
 **High Risk 🔴**
 
-1. **High-Frequency Mobile GPU Rendering & Thermal Overhead** (Impacts: Q4 2026 - Options Analytics Pro & 3D IV Surfaces)
-   - **Challenge**: Real-time 0DTE gamma ladders, interactive 3D IV surface meshes, and sub-second quote streaming can induce thermal throttling and battery drain on mobile devices
-   - **Mitigation**: Implement on-demand mesh downsampling, viewport-aware tick updates, background stream pausing, and compute isolation using Dart isolates
-   - **Timeline Impact**: Requires 1-2 weeks of GPU/CPU profiling across iOS and Android test devices
+1. **On-Device Options Analytics Performance** (Impacts: current v0.51.x development build)
+    - **Challenge**: Implemented 0DTE analytics, 3D IV surfaces, and sub-second quote streaming may induce thermal throttling or battery drain on mobile devices
+    - **Mitigation**: Profile representative iOS and Android devices; use on-demand mesh downsampling, viewport-aware updates, background stream pausing, and compute isolation where measurements justify it
+    - **Timeline Impact**: Validate on target devices before treating performance as production-ready
    - **Mitigation Owner**: Mobile Engineering + Performance Team
 
 2. **Cross-Broker Concurrent Authentication & Token Orchestration** (Impacts: Q1 2027 - Multi-Broker & Smart Order Routing)
@@ -810,19 +809,20 @@ Mapping features to specific versions helps users anticipate releases and unders
 
 ## Planned Enhancements 🚀
 
+### Delivery Priorities
+
+This sequence is the planning order; version dates below are tentative, not release commitments. GitHub issue labels establish urgency, while unchecked roadmap items remain candidates until their acceptance criteria and dependencies are clear.
+
+1. **Reliability and execution safety:** Prioritize technical debt and performance ([#124](https://github.com/CIInc/robinhood-options-mobile/issues/124)), widget coverage ([#90](https://github.com/CIInc/robinhood-options-mobile/issues/90)), and Schwab order preview/margin verification ([#122](https://github.com/CIInc/robinhood-options-mobile/issues/122)); all carry high-priority labels. Resolve the deferred MFA provider and cost decision ([#89](https://github.com/CIInc/robinhood-options-mobile/issues/89)) before scheduling implementation.
+2. **Copy-trading transparency and safeguards:** For the proposed v0.52 work ([#141](https://github.com/CIInc/robinhood-options-mobile/issues/141)), establish fill/slippage measurement, follower exposure limits, and clear stop/disconnect behavior before expanding automation. Keep server-side execution gated on a security and credential-custody design.
+3. **Social foundations:** Scope discussion and portfolio comparison under the social tracker ([#113](https://github.com/CIInc/robinhood-options-mobile/issues/113)) with moderation, privacy, and reporting requirements. Tournaments are exploratory until scoring integrity and abuse controls are specified.
+4. **Research and new integrations:** Revisit SEC/EDGAR ingestion ([#143](https://github.com/CIInc/robinhood-options-mobile/issues/143)) after data-source terms, update cadence, provenance, and operating cost are validated. Keep multimodal sentiment and other provider-dependent work behind measurable evaluation plans.
+
 
 ### Portfolio & Analysis
 
-**Target:** Advanced analytics, AI insights, and comprehensive alert system
-
 **Strategic Rationale:**
-Q3 2026 shifts focus from basic execution to **Advanced Intelligence** and **Regime-Aware Trading**. The introduction of the AI Portfolio Architect and News Intelligence transforms RealizeAlpha into a proactive AI-powered advisor. By correlating institutional data (GEX) with real-time news sentiment and automated asset allocation, we provide a professional edge previously unavailable to retail traders. Strategic importance: **Institutional Intelligence & AI Orchestration**
-
-**Business Impact:**
-- AI Assistant: 80% user engagement expected
-- Advanced Analytics: 60% increase in session time
-- Custom Alerts: Reduces support requests by 40%
-- Combined NPS impact: +20 points
+Prioritize analytical correctness, understandable risk presentation, and evidence-backed alerts. New model-based recommendations should include source/freshness context and be evaluated before they influence execution.
 
 **Technical Complexity:** High (AI integration, real-time data, complex calculations)
 **User Impact:** Very High (daily use features)
@@ -936,7 +936,7 @@ Q3 2026 shifts focus from basic execution to **Advanced Intelligence** and **Reg
 **Target:** Advanced execution, algorithmic trading, and copy trading evolution.
 
 **Strategic Rationale:**
-Execution speed and automation differentiate professional tools from retail apps. Copy trading provides a passive income stream for users.
+Improve copy-trade transparency and follower controls before increasing automation. Execution changes must preserve explicit user approval, account isolation, and credential security.
 
 #### Copy Trading Evolution ([Tracking: #141](https://github.com/CIInc/robinhood-options-mobile/issues/141))
 - [ ] **Trader Comparison**: Side-by-side performance comparison of potential leaders - **Medium** (2-3 weeks)
@@ -960,16 +960,8 @@ Execution speed and automation differentiate professional tools from retail apps
 
 ### Social & Community
 
-**Target:** Community features with chat, leaderboards, and social engagement
-
 **Strategic Rationale:**
-Q3 launches the social/community ecosystem. Investor Groups already exist (✅), but lack engagement (chat, leaderboards, shared content). Social features are viral growth drivers—users share app with friends/family, creating network effects. Leaderboards gamify the experience, increasing daily engagement. This initiative targets growth and retention. Strategic importance: **Viral Growth & Network Effects**
-
-**Business Impact:**
-- Group Chat: 5x message frequency expected
-- Leaderboards: 3x daily active group members
-- Social Sharing: 2-3x referral rate
-- Expected MAU growth: 200%+ from social features
+Social features already delivered include groups, following, feeds, and leaderboards. Remaining work should focus on useful discussion and privacy-respecting comparisons; defer growth mechanics until moderation and fair-performance measurement are specified.
 
 **Technical Complexity:** Medium (real-time messaging, social APIs)
 **User Impact:** High (engagement features)
@@ -1005,16 +997,8 @@ Q3 launches the social/community ecosystem. Investor Groups already exist (✅),
 
 ### Platform Foundation & Operations
 
-**Target:** World-class reliability, security, and developer experience.
-
 **Strategic Rationale:**
-Technical debt accumulation slows velocity. Investing in testing, CI/CD, and security is critical for scaling from 10k to 100k users. Security breaches are existential risks. "Polish" features like deep linking and haptics drive app store ratings. This initiative targets production readiness. Strategic importance: **Reliability & Scalability**
-
-**Business Impact:**
-- CI/CD: 50% faster release cycles
-- Tech Debt Reduction: 30% reduction in bug reports
-- Security Audit: Mandatory for institutional partnerships
-- App Store Rating: Target 4.8+ stars (from current 4.5)
+Keep reliability, account security, and test coverage ahead of feature breadth. Define measurable performance budgets and focused acceptance criteria for platform work before assigning release targets.
 
 **Technical Complexity:** High (DevOps, cryptography, legacy refactoring)
 **User Impact:** Indirect but critical (speed, uptime, trust)
