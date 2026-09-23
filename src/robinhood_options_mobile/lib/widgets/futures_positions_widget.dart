@@ -400,7 +400,7 @@ class _FuturesPositionsWidgetState extends State<FuturesPositionsWidget> {
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Icon(
-                              Icons.account_balance_wallet_outlined,
+                              Icons.candlestick_chart,
                               size: 18,
                               color: Theme.of(context).colorScheme.primary,
                             ),

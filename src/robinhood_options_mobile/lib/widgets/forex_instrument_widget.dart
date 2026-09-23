@@ -10,7 +10,6 @@ import 'package:firebase_auth/firebase_auth.dart' as auth;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:intl/intl.dart';
 //import 'package:charts_flutter/flutter.dart' as charts;
@@ -23,7 +22,6 @@ import 'package:robinhood_options_mobile/model/forex_historicals.dart';
 import 'package:robinhood_options_mobile/model/forex_holding.dart';
 import 'package:robinhood_options_mobile/model/forex_holding_store.dart';
 import 'package:robinhood_options_mobile/model/forex_quote.dart';
-import 'package:robinhood_options_mobile/model/generative_provider.dart';
 import 'package:robinhood_options_mobile/model/instrument_historicals_selection_store.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
@@ -188,6 +186,7 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget>
           },
         ),
         floatingActionButton: FloatingActionButton(
+          tooltip: 'AI Market Insights',
           onPressed: () => _openAIChat(context, widget.holding.currencyCode),
           child: const Icon(Icons.auto_awesome),
         ));
@@ -359,10 +358,6 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget>
       },
     ));
 
-    if (auth.FirebaseAuth.instance.currentUser != null) {
-      slivers.add(_buildAIInsights(context));
-    }
-
     slivers.add(
       SliverToBoxAdapter(
           child: Align(
@@ -499,153 +494,34 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget>
     }
   }
 
-  Future<void> _generateAIContent(
-      GenerativeProvider provider, Prompt prompt) async {
-    provider.startGenerating(prompt.key);
-    try {
-      final genService = widget.generativeService ?? _generativeService;
-      final response =
-          await genService.generateContentFromServer(prompt, null, null, null);
-      provider.setGenerativeResponse(prompt.key, response);
-    } catch (_) {
-      provider.setGenerativeResponse(
-          prompt.key, 'Failed to generate insight. Please try again.');
-    }
-  }
-
-  Widget _buildAIInsights(BuildContext context) {
-    return Consumer<GenerativeProvider>(
-        builder: (context, generativeProvider, child) {
-      final symbol = widget.holding.currencyCode;
-      final keys = {
-        'summary': 'insight-$symbol-summary',
-        'sentiment': 'insight-$symbol-sentiment',
-        'keyLevels': 'insight-$symbol-key-levels',
-        'strategy': 'insight-$symbol-strategy',
-      };
-
-      return SliverToBoxAdapter(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Card(
-            elevation: 0,
-            color: Theme.of(context)
-                .colorScheme
-                .surfaceContainerHighest
-                .withValues(alpha: 0.3),
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            child: ExpansionTile(
-              leading: Icon(Icons.auto_awesome,
-                  color: Theme.of(context).colorScheme.primary),
-              title: const Text('AI Market Insights',
-                  style: TextStyle(fontWeight: FontWeight.bold)),
-              subtitle: const Text('Analysis & Trade Ideas'),
-              initiallyExpanded: keys.values.any((key) =>
-                  generativeProvider.promptResponses[key]?.isNotEmpty == true),
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: keys.entries.map((entry) {
-                      final isGenerating = generativeProvider.generating &&
-                          generativeProvider.generatingPrompt == entry.value;
-                      return ActionChip(
-                        avatar: isGenerating
-                            ? const SizedBox(
-                                width: 12,
-                                height: 12,
-                                child:
-                                    CircularProgressIndicator(strokeWidth: 2))
-                            : Icon(_analysisIcon(entry.key), size: 16),
-                        label: Text(_analysisLabel(entry.key)),
-                        onPressed: isGenerating
-                            ? null
-                            : () => _generateAIContent(
-                                generativeProvider,
-                                GenerativeService.buildInstrumentAnalysisPrompt(
-                                    symbol: symbol, type: entry.key)),
-                      );
-                    }).toList()
-                      ..add(ActionChip(
-                        avatar: const Icon(Icons.chat, size: 16),
-                        label: const Text('Ask Assistant'),
-                        onPressed: () => _openAIChat(context, symbol),
-                      )),
-                  ),
-                ),
-                ...keys.entries
-                    .where((entry) =>
-                        generativeProvider
-                            .promptResponses[entry.value]?.isNotEmpty ==
-                        true)
-                    .map((entry) => Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(_analysisLabel(entry.key),
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.bold)),
-                              const SizedBox(height: 8),
-                              MarkdownBody(
-                                data: generativeProvider
-                                    .promptResponses[entry.value]!,
-                              ),
-                            ],
-                          ),
-                        )),
-              ],
-            ),
-          ),
-        ),
-      );
-    });
-  }
-
-  String _analysisLabel(String type) {
-    switch (type) {
-      case 'keyLevels':
-        return 'Key Levels';
-      default:
-        return '${type[0].toUpperCase()}${type.substring(1)}';
-    }
-  }
-
-  IconData _analysisIcon(String type) {
-    switch (type) {
-      case 'summary':
-        return Icons.summarize;
-      case 'sentiment':
-        return Icons.bar_chart;
-      case 'keyLevels':
-        return Icons.layers;
-      default:
-        return Icons.lightbulb;
-    }
-  }
-
   void _openAIChat(BuildContext context, String symbol) {
     final prompts = [
       Prompt(
-        key: 'forex-$symbol-summary',
+        key: 'forex-$symbol-insight-summary',
         title: '$symbol Summary',
-        prompt: 'Summarize the forex pair or currency $symbol, including its '
-            'current market context, major drivers, and key risks.',
+        prompt: 'Summarize the forex pair $symbol, including recent price '
+            'action, relevant market context, major drivers, and key risks. '
+            'Keep the analysis concise and educational.',
       ),
       Prompt(
-        key: 'forex-$symbol-trend',
-        title: '$symbol Trend',
-        prompt: 'Analyze the technical trend for forex $symbol and describe '
-            'important support, resistance, momentum, and reversal risks.',
+        key: 'forex-$symbol-insight-sentiment',
+        title: '$symbol Sentiment',
+        prompt: 'Assess the current bullish and bearish factors for forex '
+            '$symbol. Distinguish observable market drivers from uncertainty.',
       ),
       Prompt(
-        key: 'forex-$symbol-strategy',
+        key: 'forex-$symbol-insight-key-levels',
+        title: '$symbol Key Levels',
+        prompt: 'Discuss notable support and resistance areas for forex '
+            '$symbol based on recent price action, and explain what could '
+            'invalidate those levels. Avoid presenting estimates as certain.',
+      ),
+      Prompt(
+        key: 'forex-$symbol-insight-strategy',
         title: '$symbol Strategy',
-        prompt: 'Discuss potential risk-aware trading approaches for forex '
-            '$symbol. Do not assume a specific position or guarantee an outcome.',
+        prompt: 'Outline a risk-aware forex trading approach for $symbol, '
+            'including possible confirmation and invalidation conditions. '
+            'Do not assume a position or guarantee an outcome.',
       ),
     ];
 
