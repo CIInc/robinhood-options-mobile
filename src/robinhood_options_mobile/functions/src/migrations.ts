@@ -1,4 +1,4 @@
-import { onCall } from "firebase-functions/v2/https";
+import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { getFirestore } from "firebase-admin/firestore";
 import * as logger from "firebase-functions/logger";
 
@@ -11,6 +11,18 @@ export const migrateSignalsDate = onCall({
   memory: "512MiB",
   timeoutSeconds: 540, // Max timeout for heavy migrations
 }, async (request) => {
+  if (!request.auth || !request.auth.uid) {
+    throw new HttpsError(
+      "unauthenticated",
+      "Authentication is required to perform migrations."
+    );
+  }
+  if (request.auth.token?.role !== "admin") {
+    throw new HttpsError(
+      "permission-denied",
+      "Only admin users can perform migrations."
+    );
+  }
   logger.info("Request data:", request.data);
   const db = getFirestore();
   const signalsRef = db.collection("signals");
