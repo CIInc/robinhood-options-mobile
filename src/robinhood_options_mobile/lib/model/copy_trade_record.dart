@@ -54,6 +54,14 @@ class CopyTradeRecord {
   final String? error;
   final String status; // pending_approval, approved, rejected
   final bool isInverse;
+  final DateTime? executionTime;
+  final double? executedPrice;
+  final int? fillLatencyMs;
+  final double? priceSlippage;
+  final double? slippageBps;
+  final double? leaderReturnPct;
+  final double? followerReturnPct;
+  final double? returnDivergencePct;
 
   CopyTradeRecord({
     required this.id,
@@ -75,14 +83,21 @@ class CopyTradeRecord {
     this.error,
     this.status = 'approved',
     this.isInverse = false,
+    this.executionTime,
+    this.executedPrice,
+    this.fillLatencyMs,
+    this.priceSlippage,
+    this.slippageBps,
+    this.leaderReturnPct,
+    this.followerReturnPct,
+    this.returnDivergencePct,
   });
 
   CopyTradeRecord.fromDocument(DocumentSnapshot doc)
       : this.fromJson(doc.data() as Map<String, dynamic>, doc.id);
 
-  CopyTradeRecord.fromJson(Map<String, dynamic> json, String id)
-      : id = id,
-        sourceUserId = json['sourceUserId'],
+  CopyTradeRecord.fromJson(Map<String, dynamic> json, this.id)
+      : sourceUserId = json['sourceUserId'],
         targetUserId = json['targetUserId'],
         groupId = json['groupId'],
         orderType = json['orderType'],
@@ -98,10 +113,121 @@ class CopyTradeRecord {
                 .map((e) => CopyTradeLeg.fromJson(e))
                 .toList()
             : null,
-        timestamp = (json['timestamp'] as Timestamp).toDate(),
+        timestamp = json['timestamp'] is Timestamp
+            ? (json['timestamp'] as Timestamp).toDate()
+            : (json['timestamp'] is String
+                ? DateTime.tryParse(json['timestamp']) ?? DateTime.now()
+                : DateTime.now()),
         executed = json['executed'] ?? false,
         executionResult = json['executionResult'],
         error = json['error'],
         status = json['status'] ?? 'approved',
-        isInverse = json['isInverse'] ?? false;
+        isInverse = json['isInverse'] ?? false,
+        executionTime = json['executionTime'] != null
+            ? (json['executionTime'] is Timestamp
+                ? (json['executionTime'] as Timestamp).toDate()
+                : (json['executionTime'] is String
+                    ? DateTime.tryParse(json['executionTime'])
+                    : null))
+            : null,
+        executedPrice = parseDouble(json['executedPrice']),
+        fillLatencyMs = json['fillLatencyMs'] is num
+            ? (json['fillLatencyMs'] as num).toInt()
+            : null,
+        priceSlippage = parseDouble(json['priceSlippage']),
+        slippageBps = parseDouble(json['slippageBps']),
+        leaderReturnPct = parseDouble(json['leaderReturnPct']),
+        followerReturnPct = parseDouble(json['followerReturnPct']),
+        returnDivergencePct = parseDouble(json['returnDivergencePct']);
+
+  Map<String, dynamic> toJson() {
+    return {
+      'sourceUserId': sourceUserId,
+      'targetUserId': targetUserId,
+      'groupId': groupId,
+      'orderType': orderType,
+      'originalOrderId': originalOrderId,
+      'symbol': symbol,
+      'side': side,
+      'originalQuantity': originalQuantity,
+      'copiedQuantity': copiedQuantity,
+      'price': price,
+      if (strategy != null) 'strategy': strategy,
+      if (legs != null)
+        'legs': legs!
+            .map((e) => {
+                  'expirationDate': e.expirationDate?.toIso8601String(),
+                  'strikePrice': e.strikePrice,
+                  'optionType': e.optionType,
+                  'side': e.side,
+                  'positionEffect': e.positionEffect,
+                  'ratioQuantity': e.ratioQuantity,
+                })
+            .toList(),
+      'timestamp': Timestamp.fromDate(timestamp),
+      'executed': executed,
+      if (executionResult != null) 'executionResult': executionResult,
+      if (error != null) 'error': error,
+      'status': status,
+      'isInverse': isInverse,
+      if (executionTime != null)
+        'executionTime': Timestamp.fromDate(executionTime!),
+      if (executedPrice != null) 'executedPrice': executedPrice,
+      if (fillLatencyMs != null) 'fillLatencyMs': fillLatencyMs,
+      if (priceSlippage != null) 'priceSlippage': priceSlippage,
+      if (slippageBps != null) 'slippageBps': slippageBps,
+      if (leaderReturnPct != null) 'leaderReturnPct': leaderReturnPct,
+      if (followerReturnPct != null) 'followerReturnPct': followerReturnPct,
+      if (returnDivergencePct != null)
+        'returnDivergencePct': returnDivergencePct,
+    };
+  }
+
+  /// Follower's executed fill price, falling back to original price if missing.
+  double get effectiveExecutedPrice => executedPrice ?? price;
+
+  /// Effective latency in milliseconds from leader signal to follower execution.
+  int? get effectiveFillLatencyMs {
+    if (fillLatencyMs != null) return fillLatencyMs;
+    if (executionTime != null) {
+      final delta = executionTime!.difference(timestamp).inMilliseconds;
+      return delta >= 0 ? delta : 0;
+    }
+    return null;
+  }
+
+  /// Dollar slippage per unit/share:
+  /// For Buy: executedPrice - price (positive = unfavorable / paid premium)
+  /// For Sell: price - executedPrice (positive = unfavorable / sold at discount)
+  double get dollarSlippage {
+    if (priceSlippage != null) return priceSlippage!;
+    if (executedPrice == null) return 0.0;
+    final isBuy = side.toLowerCase().contains('buy');
+    return isBuy ? (executedPrice! - price) : (price - executedPrice!);
+  }
+
+  /// Slippage in basis points relative to leader price.
+  double get effectiveSlippageBps {
+    if (slippageBps != null) return slippageBps!;
+    if (price <= 0) return 0.0;
+    return (dollarSlippage / price) * 10000.0;
+  }
+
+  /// Returns true if execution achieved a better fill price than the leader.
+  bool get isFavorableSlippage => dollarSlippage < -0.0001;
+
+  /// Returns true if execution suffered a worse fill price than the leader.
+  bool get isUnfavorableSlippage => dollarSlippage > 0.0001;
+
+  /// Returns true if execution matched the leader's price within sub-cent tolerance.
+  bool get isZeroSlippage => !isFavorableSlippage && !isUnfavorableSlippage;
+
+  /// Effective net return divergence between follower and leader.
+  double? get effectiveReturnDivergencePct {
+    if (returnDivergencePct != null) return returnDivergencePct;
+    if (followerReturnPct != null && leaderReturnPct != null) {
+      return followerReturnPct! - leaderReturnPct!;
+    }
+    return null;
+  }
 }

@@ -43,16 +43,16 @@ This document outlines the planned features and enhancements for RealizeAlpha.
 
 **RealizeAlpha** is a mobile trading platform for multi-account investing, trading, and options analytics. This roadmap separates delivered work from planned milestones and longer-term ideas. Check marks indicate implementation status; future dates are targets and may change. GitHub issues hold detailed requirements and discussion.
 
-**Last reviewed:** September 22, 2026 · **Current app version:** 0.51.6 (development version)
+**Last reviewed:** September 22, 2026 · **Current app version:** 0.52.0 (development version)
 
 ### Quick Stats
-- **Completed checklist items:** 355
-- **Planned checklist items:** 88
+- **Completed checklist items:** 356
+- **Planned checklist items:** 87
 - **Open GitHub issues:** 37 (as of September 22, 2026)
 - **Planning focus:** Address high-priority reliability and test gaps, then deliver copy-trading transparency and safeguards; scope community work only after trust, moderation, and measurement criteria are defined.
 
 ### Key Highlights
-- ✅ **Recently Completed (v0.51.0-v0.51.6):** Beta-weighted portfolio Greeks, automated DRIP thresholds, 0DTE gamma squeeze radar, earnings IV crush analysis, IV cone and surface, and the Delta-Neutral Strategy Builder. See the release timeline for issue links and details.
+- ✅ **Recently Completed (v0.51.0-v0.52.0):** Beta-weighted portfolio Greeks, automated DRIP thresholds, 0DTE gamma squeeze radar, earnings IV crush analysis, IV cone and surface, Delta-Neutral Strategy Builder, and Copy-Trading Slippage & Fill Divergence Analytics. See the release timeline for issue links and details.
 - **Next proposed milestone:** **v0.52.0 (target: December 2026; tentative)** — copy-trading transparency and safeguards, with social discussion as a candidate pending scope and moderation requirements. Tournaments remain exploratory until separately defined.
 - **Later candidates (v0.53.0+):** Schwab execution and account-history improvements, multi-broker routing, SEC disclosures, and expanded AI research. These are planning targets, not release commitments.
 - **Longer-term exploration:** Desktop workflows, privacy-preserving performance proofs, wearable clients, and spatial interfaces remain exploratory until scoped and prioritized.
@@ -416,7 +416,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 
 ### v0.52.0 (Tentative target: December 2026)
 **Copy-Trading Transparency & Social Foundations**
-- **Copy-Trading Slippage & Divergence Analytics:** Audit report showing follower fill latency (ms), price slippage vs. leader, and net return tracking ([Tracking: #141](https://github.com/CIInc/robinhood-options-mobile/issues/141)).
+- ✅ **Copy-Trading Slippage & Divergence Analytics:** Audit report showing follower fill latency (ms), price slippage vs. leader, and net return tracking ([Tracking: #141](https://github.com/CIInc/robinhood-options-mobile/issues/141)).
 - **Automated Copy-Trading Risk Guardian:** Follower protective guardrails specifying max capital allocation per trade, auto-disconnect on leader drawdown divergence, and max slippage abort.
 - **Social Discussion & Comment Threads (candidate):** Discussion on shared trade ideas and portfolios; define moderation, reporting, privacy, and retention requirements before scheduling.
 - **Trading Arenas & Verified Paper Tournaments (exploratory):** Keep paper-only; define fair scoring, anti-abuse controls, and a separate tracked issue before assigning a release.
@@ -942,7 +942,7 @@ Improve copy-trade transparency and follower controls before increasing automati
 - [ ] **Trader Comparison**: Side-by-side performance comparison of potential leaders - **Medium** (2-3 weeks)
 - [ ] **Time-Based Analysis**: Cumulative P&L growth visualization over time - **Medium** (2-3 weeks)
 - [ ] **Export History**: CSV export of copy trade history and performance - **Small** (1 week)
-- [ ] **Copy-Trading Slippage & Fill Divergence Analytics** (v0.52.0, [Tracking: #141](https://github.com/CIInc/robinhood-options-mobile/issues/141)): Track execution latency (ms), fill price delta vs. leader, and performance drift - **Small** (1-2 weeks)
+- [x] **Copy-Trading Slippage & Fill Divergence Analytics** (v0.52.0, [Tracking: #141](https://github.com/CIInc/robinhood-options-mobile/issues/141)): Track execution latency (ms), fill price delta vs. leader, and performance drift - **Small** (1-2 weeks)
 - [ ] **Automated Copy-Trading Risk Guardian** (v0.52.0, [Tracking: #141](https://github.com/CIInc/robinhood-options-mobile/issues/141)): Follower protective guardrails specifying max capital allocation per trade, auto-disconnect on leader drawdown divergence, and max slippage abort - **Medium** (2-3 weeks)
 - [ ] **Server-Side Auto-Execute**: Secure server-side execution to reduce latency and remove client dependency (requires secure key management) - **Large** (4-6 weeks)
 

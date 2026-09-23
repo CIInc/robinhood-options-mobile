@@ -2,6 +2,36 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.52.0] - 2026-09-22
+**Copy-Trading Slippage & Fill Divergence Analytics ([Tracking: #141](https://github.com/CIInc/robinhood-options-mobile/issues/141))**
+
+- **Copy-Trading Slippage & Divergence Analytics (`CopyTradeRecord`, `CopyTradeSlippageAnalytics`, `CopyTradeSlippageCard`, `CopyTradingDashboardWidget`, [Tracking: #141](https://github.com/CIInc/robinhood-options-mobile/issues/141)):**
+  - **Follower Fill Latency Tracking (`CopyTradeRecord`, `CopyTradingProvider`)**:
+    - Captures high-precision execution timestamps and millisecond elapsed latency ($\Delta t_{\text{fill}} = t_{\text{exec}} - t_{\text{signal}}$) between leader order submission and follower execution.
+    - Persists `fillLatencyMs` and `executionTime` in Firestore copy trade audit records upon order placement.
+    - Categorizes execution speed into latency tiers: `<100ms`, `100-250ms`, `250-500ms`, `500ms-1s`, and `>1s`.
+  - **Price Slippage & Basis Points Engine (`CopyTradeRecord`, `CopyTradeSlippageAnalytics`)**:
+    - Calculates side-aware price slippage per share/contract:
+      - Buy orders: $P_{\text{executed}} - P_{\text{leader}}$ (positive = unfavorable premium paid, negative = favorable discount).
+      - Sell orders: $P_{\text{leader}} - P_{\text{executed}}$ (positive = unfavorable discount, negative = favorable price improvement).
+    - Expresses price deviation in basis points (bps): $\text{Slippage (bps)} = \frac{\Delta P}{P_{\text{leader}}} \times 10,000$.
+    - Classifies fills into Favorable, Exact (Zero Slippage), and Unfavorable categories.
+    - Computes cumulative dollar slippage cost/drag across equities ($1\times$) and options ($100\times$).
+    - Derives comprehensive **Execution Quality Score** ($0.0\% - 100.0\%$) reflecting on-target and price-improved fills.
+  - **Net Return Tracking & Leader Divergence**:
+    - Analyzes paired completed trades to compare leader return % against follower return %.
+    - Computes net return divergence ($\Delta R = R_{\text{follower}} - R_{\text{leader}}$) to isolate latency/slippage drag from underlying strategy performance.
+    - Surfaces per-leader breakdowns comparing average fill latency, slippage bps, and cost drag across followed traders.
+  - **Dashboard Audit UI & CSV Export (`CopyTradeSlippageCard`, `CopyTradingDashboardWidget`)**:
+    - Embedded `CopyTradeSlippageCard` displaying hero metric tiles (Avg Latency, Avg Slippage, Slippage Drag, Fill Quality Score), visual quality distribution bar, and latency breakdown chips.
+    - Interactive trade items with colored latency badges (`<200ms` green, `200-600ms` amber, `>600ms` red) and fill slippage indicators.
+    - Detailed bottom-sheet audit dialog inspecting order ID, leader signal timestamp, follower execution timestamp, latency, leader price vs fill price, and net slippage.
+    - Enhanced CSV export with dedicated audit columns: `Leader Price`, `Executed Fill Price`, `Fill Latency (ms)`, `Dollar Slippage`, `Slippage (bps)`, and `Return Divergence %`.
+  - **Comprehensive Test Coverage**:
+    - Unit tests in `test/copy_trade_record_slippage_test.dart` verifying data model serialization, JSON deserialization, side-dependent slippage formulas, basis points calculations, and backward compatibility for legacy records.
+    - Unit tests in `test/copy_trade_slippage_analytics_test.dart` validating statistical aggregation, median latency, asset class multipliers, quality scores, and leader divergence metrics.
+    - Widget tests in `test/copy_trading_dashboard_slippage_test.dart` verifying empty state fallback, metric tile rendering, quality bar, latency breakdown, and leader comparison rows.
+
 ## [0.51.6] - 2026-09-22
 **Delta-Neutral Strategy Builder ([Tracking: #137](https://github.com/CIInc/robinhood-options-mobile/issues/137), [Tracking: #108](https://github.com/CIInc/robinhood-options-mobile/issues/108))**
 

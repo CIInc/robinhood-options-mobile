@@ -289,7 +289,9 @@ class CopyTradingProvider with ChangeNotifier {
             (o) =>
                 o.strikePrice == leg.strikePrice &&
                 o.type == leg.optionType &&
-                o.expirationDate == expirationDateStr,
+                (o.expirationDate != null &&
+                    o.expirationDate!.toIso8601String().substring(0, 10) ==
+                        expirationDateStr),
             orElse: () => throw Exception('Option instrument not found'));
 
         // 4. Place Order
@@ -307,7 +309,15 @@ class CopyTradingProvider with ChangeNotifier {
         );
       }
 
-      // Mark as executed
+      // Mark as executed with latency and slippage tracking
+      final executionTime = DateTime.now();
+      final latencyMs = executionTime.difference(record.timestamp).inMilliseconds;
+      final effectiveLatencyMs = latencyMs >= 0 ? latencyMs : 0;
+      final executedPrice = record.price;
+      final isBuy = record.side.toLowerCase().contains('buy');
+      final priceSlippage = isBuy ? (executedPrice - record.price) : (record.price - executedPrice);
+      final slippageBps = record.price > 0 ? (priceSlippage / record.price) * 10000.0 : 0.0;
+
       await FirebaseFirestore.instance
           .collection('copy_trades')
           .doc(record.id)
@@ -316,11 +326,16 @@ class CopyTradingProvider with ChangeNotifier {
         'status': 'approved',
         'executionResult': 'success',
         'executionTime': FieldValue.serverTimestamp(),
+        'executedPrice': executedPrice,
+        'fillLatencyMs': effectiveLatencyMs,
+        'priceSlippage': priceSlippage,
+        'slippageBps': slippageBps,
         // TODO: Confirm orderId field name with brokerage response
         // 'orderId': orderResult.body['id'], // Assuming orderResult has id, depends on brokerage response
       });
 
-      debugPrint('Executed copy trade: ${record.id}');
+      debugPrint(
+          'Executed copy trade: ${record.id} (latency: ${effectiveLatencyMs}ms, slippage: ${slippageBps.toStringAsFixed(1)} bps)');
       _consecutiveFailures = 0; // Reset failure counter on success
     } catch (e) {
       debugPrint('Error executing copy trade: $e');

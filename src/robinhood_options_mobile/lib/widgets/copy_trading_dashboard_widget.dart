@@ -10,6 +10,7 @@ import 'package:community_charts_flutter/community_charts_flutter.dart'
 import 'package:robinhood_options_mobile/widgets/chart_pie_widget.dart'
     as pie_chart;
 import 'package:robinhood_options_mobile/widgets/copy_trade_requests_widget.dart';
+import 'package:robinhood_options_mobile/widgets/copy_trade_slippage_card.dart';
 
 class CopyTradingDashboardWidget extends StatefulWidget {
   const CopyTradingDashboardWidget({super.key});
@@ -69,6 +70,10 @@ class _CopyTradingDashboardWidgetState
                       child: Column(
                         children: [
                           _buildSummary(filteredTrades, completedTrades),
+                          CopyTradeSlippageCard(
+                            trades: filteredTrades,
+                            completedTrades: completedTrades,
+                          ),
                           _buildPerformanceChart(completedTrades),
                           _buildTraderComparison(completedTrades),
                           _buildCharts(filteredTrades),
@@ -292,12 +297,17 @@ class _CopyTradingDashboardWidgetState
       'Side',
       'Order Type',
       'Quantity',
-      'Price',
+      'Leader Price',
+      'Executed Fill Price',
+      'Fill Latency (ms)',
+      'Dollar Slippage',
+      'Slippage (bps)',
       'Executed',
       'Result',
       'Error',
       'P&L',
-      'Return %'
+      'Return %',
+      'Return Divergence %',
     ]);
 
     for (var trade in trades) {
@@ -315,6 +325,12 @@ class _CopyTradingDashboardWidgetState
         // Not a closing trade or not matched
       }
 
+      final latency = trade.effectiveFillLatencyMs;
+      final fillPrice = trade.effectiveExecutedPrice;
+      final dollarSlippage = trade.dollarSlippage;
+      final slippageBps = trade.effectiveSlippageBps;
+      final divergence = trade.effectiveReturnDivergencePct;
+
       rows.add([
         trade.timestamp.toIso8601String(),
         trade.symbol,
@@ -322,11 +338,16 @@ class _CopyTradingDashboardWidgetState
         trade.orderType,
         trade.copiedQuantity,
         trade.price,
+        fillPrice,
+        latency != null ? latency.toString() : '',
+        trade.executed ? dollarSlippage.toStringAsFixed(4) : '',
+        trade.executed ? slippageBps.toStringAsFixed(2) : '',
         trade.executed,
         trade.executionResult ?? '',
         trade.error ?? '',
         pnl != null ? pnl.toStringAsFixed(2) : '',
-        returnPct != null ? '${(returnPct * 100).toStringAsFixed(2)}%' : ''
+        returnPct != null ? '${(returnPct * 100).toStringAsFixed(2)}%' : '',
+        divergence != null ? '${(divergence * 100).toStringAsFixed(2)}%' : '',
       ]);
     }
 
@@ -522,11 +543,59 @@ class _CopyTradingDashboardWidgetState
   Widget _buildTradeItem(CopyTradeRecord trade) {
     final dateFormat = DateFormat('MMM d, y HH:mm');
     final currencyFormat = NumberFormat.simpleCurrency();
+    final latency = trade.effectiveFillLatencyMs;
+    final slippageBps = trade.effectiveSlippageBps;
 
     return ListTile(
-      title: Text('${trade.side.toUpperCase()} ${trade.symbol}'),
-      subtitle:
+      title: Row(
+        children: [
+          Text(
+            '${trade.side.toUpperCase()} ${trade.symbol}',
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          if (trade.executed && latency != null) ...[
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: (latency < 200
+                        ? Colors.green
+                        : (latency < 600 ? Colors.amber : Colors.redAccent))
+                    .withAlpha(35),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                '${latency}ms',
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  color: latency < 200
+                      ? Colors.green
+                      : (latency < 600 ? Colors.amber[800] : Colors.redAccent),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
           Text('${dateFormat.format(trade.timestamp)} • ${trade.orderType}'),
+          if (trade.executed && trade.executedPrice != null)
+            Text(
+              'Fill: ${currencyFormat.format(trade.effectiveExecutedPrice)} • Slippage: ${slippageBps >= 0 ? "+" : ""}${slippageBps.toStringAsFixed(1)} bps',
+              style: TextStyle(
+                fontSize: 11,
+                color: trade.isFavorableSlippage
+                    ? Colors.green
+                    : (trade.isUnfavorableSlippage
+                        ? Colors.orange
+                        : Colors.grey),
+              ),
+            ),
+        ],
+      ),
       trailing: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.end,
@@ -552,8 +621,119 @@ class _CopyTradingDashboardWidgetState
           ),
         ],
       ),
-      onTap: () {
-        // TODO: Show trade details
+      onTap: () => _showTradeDetails(trade),
+    );
+  }
+
+  void _showTradeDetails(CopyTradeRecord trade) {
+    final dateFormat = DateFormat('MMM d, y HH:mm:ss');
+    final currencyFormat = NumberFormat.simpleCurrency();
+    final latency = trade.effectiveFillLatencyMs;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Copy Trade Audit',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                ListTile(
+                  dense: true,
+                  leading: const Icon(Icons.tag),
+                  title: const Text('Order ID'),
+                  subtitle: Text(trade.id),
+                ),
+                ListTile(
+                  dense: true,
+                  leading: const Icon(Icons.person),
+                  title: const Text('Leader'),
+                  subtitle: Text(trade.sourceUserId),
+                ),
+                ListTile(
+                  dense: true,
+                  leading: const Icon(Icons.access_time),
+                  title: const Text('Leader Signal Time'),
+                  subtitle: Text(dateFormat.format(trade.timestamp)),
+                ),
+                if (trade.executionTime != null)
+                  ListTile(
+                    dense: true,
+                    leading: const Icon(Icons.done_all),
+                    title: const Text('Follower Execution Time'),
+                    subtitle: Text(dateFormat.format(trade.executionTime!)),
+                  ),
+                if (latency != null)
+                  ListTile(
+                    dense: true,
+                    leading: const Icon(Icons.speed),
+                    title: const Text('Fill Latency'),
+                    subtitle: Text('$latency ms'),
+                  ),
+                ListTile(
+                  dense: true,
+                  leading: const Icon(Icons.price_check),
+                  title: const Text('Leader Price vs Fill Price'),
+                  subtitle: Text(
+                      'Leader: ${currencyFormat.format(trade.price)} | Follower: ${currencyFormat.format(trade.effectiveExecutedPrice)}'),
+                ),
+                if (trade.executed)
+                  ListTile(
+                    dense: true,
+                    leading: const Icon(Icons.compare_arrows),
+                    title: const Text('Price Slippage'),
+                    subtitle: Text(
+                      '${trade.dollarSlippage >= 0 ? "+" : ""}${currencyFormat.format(trade.dollarSlippage)} (${trade.effectiveSlippageBps >= 0 ? "+" : ""}${trade.effectiveSlippageBps.toStringAsFixed(1)} bps)',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: trade.isFavorableSlippage
+                            ? Colors.green
+                            : (trade.isUnfavorableSlippage
+                                ? Colors.orange
+                                : Colors.grey),
+                      ),
+                    ),
+                  ),
+                if (trade.executionResult != null)
+                  ListTile(
+                    dense: true,
+                    leading: const Icon(Icons.info_outline),
+                    title: const Text('Execution Result'),
+                    subtitle: Text(trade.executionResult!),
+                  ),
+                if (trade.error != null)
+                  ListTile(
+                    dense: true,
+                    leading: const Icon(Icons.error_outline, color: Colors.red),
+                    title: const Text('Error'),
+                    subtitle: Text(trade.error!),
+                  ),
+              ],
+            ),
+          ),
+        );
       },
     );
   }
