@@ -206,6 +206,21 @@ void main() {
       await tester.pageBack();
       await tester.pump(const Duration(seconds: 1));
 
+        // Verify the Search page's curated lists flow in the same app session.
+        final allListsButton = find.text('All Lists');
+        final searchScrollable = find
+          .byWidgetPredicate((widget) =>
+            widget is Scrollable &&
+            widget.axisDirection == AxisDirection.down)
+          .first;
+        await tester.scrollUntilVisible(allListsButton, 500,
+          scrollable: searchScrollable);
+        await tester.tap(allListsButton);
+        await tester.pump(const Duration(milliseconds: 500));
+        expect(find.text('Bearish'), findsOneWidget);
+        await tester.pageBack();
+        await tester.pump(const Duration(milliseconds: 500));
+
       // 6. Navigate to Signals (Index 3)
       debugPrint('Navigating to Signals...');
       final signalsTab = find.descendant(
@@ -262,6 +277,69 @@ void main() {
         await tester.pump(const Duration(milliseconds: 300));
       }
       expect(find.text('1D'), findsAtLeastNWidgets(1));
+
+      final portfolioScrollable = find
+          .byWidgetPredicate((widget) =>
+              widget is Scrollable &&
+              widget.axisDirection == AxisDirection.down)
+          .first;
+      final aiCoach = find.text('AI Trading Coach');
+      await tester.scrollUntilVisible(aiCoach, 500,
+          scrollable: portfolioScrollable);
+      expect(aiCoach, findsOneWidget);
+      final autoTradingCard = find.text('Stocks Auto-Trading');
+      await tester.scrollUntilVisible(autoTradingCard, 500,
+          scrollable: portfolioScrollable);
+      expect(autoTradingCard, findsOneWidget);
+
+      final configureButton = find.descendant(
+        of: find.ancestor(
+          of: autoTradingCard,
+          matching: find.byType(Card),
+        ),
+        matching: find.byIcon(Icons.settings_outlined),
+      );
+      expect(configureButton, findsOneWidget);
+      await tester.tap(configureButton);
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(find.text('Stocks Auto-Trading'), findsAtLeastNWidgets(1));
+    });
+
+    testWidgets('Guest can open a paper trading account',
+        (WidgetTester tester) async {
+      SharedPreferences.setMockInitialValues({});
+      app.main();
+
+      for (int i = 0; i < 10; i++) {
+        await tester.pump(const Duration(milliseconds: 500));
+      }
+      expect(find.text('Welcome to RealizeAlpha'), findsOneWidget);
+
+      await tester.tap(find.text('Link Brokerage Account'));
+      for (int i = 0; i < 5; i++) {
+        await tester.pump(const Duration(milliseconds: 500));
+      }
+      expect(find.text('Select Brokerage'), findsOneWidget);
+
+      await tester.tap(find.text('Paper Trading'));
+      for (int i = 0; i < 5; i++) {
+        await tester.pump(const Duration(milliseconds: 500));
+      }
+
+      final openPaperAccount = find.text('Open Paper Account');
+      await tester.scrollUntilVisible(
+        openPaperAccount,
+        500,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(openPaperAccount);
+      for (int i = 0; i < 15; i++) {
+        await tester.pump(const Duration(milliseconds: 500));
+      }
+
+      expect(find.text('Welcome to RealizeAlpha', skipOffstage: true),
+          findsNothing);
+      expect(find.text('Portfolio'), findsOneWidget);
     });
   });
 }

@@ -7,6 +7,8 @@ import 'package:robinhood_options_mobile/model/copy_trade_record.dart';
 import 'package:robinhood_options_mobile/model/instrument_store.dart';
 import 'package:robinhood_options_mobile/model/investor_group.dart';
 import 'package:robinhood_options_mobile/model/option_instrument_store.dart';
+import 'package:robinhood_options_mobile/model/quote_store.dart';
+import 'package:robinhood_options_mobile/services/copy_trade_risk_guardian_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 
 class CopyTradingProvider with ChangeNotifier {
@@ -24,6 +26,7 @@ class CopyTradingProvider with ChangeNotifier {
   final AccountStore _accountStore = AccountStore();
   final InstrumentStore _instrumentStore = InstrumentStore();
   final OptionInstrumentStore _optionInstrumentStore = OptionInstrumentStore();
+  final QuoteStore _quoteStore = QuoteStore();
 
   void initialize(String firebaseUserId, BrokerageUser brokerageUser,
       IBrokerageService service) {
@@ -140,12 +143,53 @@ class CopyTradingProvider with ChangeNotifier {
       final group = InvestorGroup.fromJson(groupDoc.data()!);
       final settings = group.getCopyTradeSettings(_firebaseUserId!);
 
-      if (settings != null && settings.autoExecute) {
+      if (settings != null && settings.autoExecute && settings.enabled) {
+        if (settings.isRiskGuardianTripped) {
+          debugPrint('Risk Guardian tripped. Aborting auto-execution.');
+          await FirebaseFirestore.instance
+              .collection('copy_trades')
+              .doc(record.id)
+              .update({
+            'status': 'aborted',
+            'executionResult': 'aborted_risk_guardian_tripped',
+            'error':
+                'Risk Guardian circuit breaker is tripped: ${settings.riskGuardianTripReason ?? 'Protection active'}',
+            'executionTime': FieldValue.serverTimestamp(),
+          });
+          return;
+        }
         debugPrint('Auto-executing copy trade: ${record.id}');
         await _executeTrade(record);
       }
     } catch (e) {
       debugPrint('Error checking auto-execute: $e');
+    }
+  }
+
+  /// Resets the Risk Guardian trip state and re-enables copy trading for a group
+  Future<void> resetRiskGuardian(String groupId) async {
+    if (_firebaseUserId == null) return;
+    try {
+      final groupDoc = await FirebaseFirestore.instance
+          .collection('investor_groups')
+          .doc(groupId)
+          .get();
+      if (!groupDoc.exists) return;
+      final group = InvestorGroup.fromJson(groupDoc.data()!);
+      final settings = group.getCopyTradeSettings(_firebaseUserId!);
+      if (settings != null) {
+        CopyTradeRiskGuardianService.resetGuardian(settings);
+        settings.enabled = true; // allow resuming
+        await FirebaseFirestore.instance
+            .collection('investor_groups')
+            .doc(groupId)
+            .update({
+          'memberCopyTradeSettings.${_firebaseUserId}': settings.toJson(),
+        });
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('Error resetting Risk Guardian: $e');
     }
   }
 
@@ -216,6 +260,86 @@ class CopyTradingProvider with ChangeNotifier {
       return;
     }
 
+    // 1. Fetch Investor Group Settings for Risk Guardian checks
+    CopyTradeSettings? settings;
+    try {
+      final groupDoc = await FirebaseFirestore.instance
+          .collection('investor_groups')
+          .doc(record.groupId)
+          .get();
+      if (groupDoc.exists) {
+        final group = InvestorGroup.fromJson(groupDoc.data()!);
+        settings = group.getCopyTradeSettings(_firebaseUserId!);
+      }
+    } catch (e) {
+      debugPrint('Error loading settings for risk evaluation: $e');
+    }
+
+    // Risk Guardian Check: If already tripped, abort trade
+    if (settings != null && settings.isRiskGuardianTripped) {
+      await FirebaseFirestore.instance
+          .collection('copy_trades')
+          .doc(record.id)
+          .update({
+        'status': 'aborted',
+        'executionResult': 'aborted_risk_guardian_tripped',
+        'error':
+            'Risk Guardian is tripped: ${settings.riskGuardianTripReason ?? 'Protection active'}',
+        'executionTime': FieldValue.serverTimestamp(),
+      });
+      return;
+    }
+
+    // Risk Guardian Check: Auto-disconnect on leader drawdown & return divergence
+    if (settings != null && settings.autoDisconnectOnDivergence == true) {
+      try {
+        final historySnapshot = await FirebaseFirestore.instance
+            .collection('copy_trades')
+            .where('targetUserId', isEqualTo: _firebaseUserId)
+            .where('executed', isEqualTo: true)
+            .limit(50)
+            .get();
+        final executedTrades = historySnapshot.docs
+            .map((d) => CopyTradeRecord.fromDocument(d))
+            .toList();
+
+        final divergenceResult =
+            CopyTradeRiskGuardianService.evaluateDivergence(
+          settings: settings,
+          trades: executedTrades,
+        );
+
+        if (divergenceResult.shouldDisconnect) {
+          final tripReason = divergenceResult.tripReason ??
+              'Divergence threshold exceeded';
+          CopyTradeRiskGuardianService.tripGuardian(settings, tripReason);
+
+          await FirebaseFirestore.instance
+              .collection('investor_groups')
+              .doc(record.groupId)
+              .update({
+            'memberCopyTradeSettings.${_firebaseUserId}': settings.toJson(),
+          });
+
+          await FirebaseFirestore.instance
+              .collection('copy_trades')
+              .doc(record.id)
+              .update({
+            'status': 'aborted',
+            'executionResult': 'aborted_risk_guardian_tripped',
+            'error':
+                'Risk Guardian triggered auto-disconnect: $tripReason',
+            'executionTime': FieldValue.serverTimestamp(),
+          });
+          debugPrint(
+              'Risk Guardian tripped & auto-disconnected: $tripReason');
+          return;
+        }
+      } catch (e) {
+        debugPrint('Error evaluating divergence in Risk Guardian: $e');
+      }
+    }
+
     // Check daily limit
     final withinLimit = await _checkDailyLimit(record);
     if (!withinLimit) {
@@ -231,31 +355,105 @@ class CopyTradingProvider with ChangeNotifier {
     }
 
     try {
-      // 1. Get Account
+      // 2. Get Account
       final accounts = await _service!
           .getAccounts(_brokerageUser!, _accountStore, null, null);
       if (accounts.isEmpty) {
         throw Exception('No accounts found for copy trading');
       }
       final account = accounts.first; // Use first account for now
+      final accountEquity = account.totalValue ?? account.buyingPower;
+
+      // Risk Guardian Check: Max Capital Allocation per trade
+      final effectiveSettings = settings ?? CopyTradeSettings();
+      final allocResult = CopyTradeRiskGuardianService.evaluateAllocation(
+        record: record,
+        settings: effectiveSettings,
+        accountEquity: accountEquity,
+      );
+
+      if (!allocResult.isAllowed) {
+        await FirebaseFirestore.instance
+            .collection('copy_trades')
+            .doc(record.id)
+            .update({
+          'status': 'aborted',
+          'executionResult': 'aborted_allocation_limit',
+          'error': allocResult.abortReason ??
+              'Capital allocation limit exceeded',
+          'executionTime': FieldValue.serverTimestamp(),
+        });
+        debugPrint(
+            'Copy trade aborted due to allocation limit: ${allocResult.abortReason}');
+        return;
+      }
+
+      final executionQuantity = allocResult.allowedQuantity;
+
+      // Risk Guardian Check: Max Slippage Abort
+      double currentMarketPrice = record.price;
+      final isBuy = record.side.toLowerCase().contains('buy');
+      try {
+        if (record.orderType == 'instrument') {
+          final quote = await _service!.getQuote(
+              _brokerageUser!, _quoteStore, record.symbol);
+          final quotePrice = isBuy
+              ? (quote.askPrice ?? quote.lastTradePrice)
+              : (quote.bidPrice ?? quote.lastTradePrice);
+          if (quotePrice != null && quotePrice > 0) {
+            currentMarketPrice = quotePrice;
+          }
+        }
+      } catch (e) {
+        debugPrint(
+            'Could not fetch market quote for slippage evaluation: $e');
+      }
+
+      final slippageResult = CopyTradeRiskGuardianService.evaluateSlippage(
+        record: record,
+        currentMarketPrice: currentMarketPrice,
+        settings: effectiveSettings,
+      );
+
+      if (!slippageResult.isAllowed) {
+        await FirebaseFirestore.instance
+            .collection('copy_trades')
+            .doc(record.id)
+            .update({
+          'status': 'aborted',
+          'executed': false,
+          'executionResult': 'aborted_max_slippage',
+          'error': slippageResult.abortReason,
+          'priceSlippage': slippageResult.priceDifference,
+          'slippageBps': slippageResult.slippageBps,
+          'executionTime': FieldValue.serverTimestamp(),
+        });
+        debugPrint(
+            'Copy trade aborted due to excessive slippage: ${slippageResult.abortReason}');
+        return;
+      }
+
+      final orderPrice = (effectiveSettings.overridePrice ?? false)
+          ? currentMarketPrice
+          : record.price;
 
       if (record.orderType == 'instrument') {
-        // 2. Get Instrument
+        // 3. Get Instrument
         final instrument = await _service!.getInstrumentBySymbol(
             _brokerageUser!, _instrumentStore, record.symbol);
         if (instrument == null) {
           throw Exception('Instrument not found: ${record.symbol}');
         }
 
-        // 3. Place Order
+        // 4. Place Order
         await _service!.placeInstrumentOrder(
           _brokerageUser!,
           account,
           instrument,
           record.symbol,
           record.side == 'buy' ? 'buy' : 'sell',
-          record.price,
-          record.copiedQuantity.toInt(),
+          orderPrice,
+          executionQuantity.toInt(),
           type: 'limit',
           timeInForce: 'gfd',
         );
@@ -270,14 +468,14 @@ class CopyTradingProvider with ChangeNotifier {
           throw Exception('Incomplete leg data');
         }
 
-        // 2. Get Underlying Instrument
+        // 3. Get Underlying Instrument
         final instrument = await _service!.getInstrumentBySymbol(
             _brokerageUser!, _instrumentStore, record.symbol);
         if (instrument == null) {
           throw Exception('Instrument not found: ${record.symbol}');
         }
 
-        // 3. Find Option Instrument
+        // 4. Find Option Instrument
         final expirationDateStr =
             leg.expirationDate!.toIso8601String().substring(0, 10);
         final options = await _service!
@@ -294,7 +492,7 @@ class CopyTradingProvider with ChangeNotifier {
                         expirationDateStr),
             orElse: () => throw Exception('Option instrument not found'));
 
-        // 4. Place Order
+        // 5. Place Order
         await _service!.placeOptionsOrder(
           _brokerageUser!,
           account,
@@ -302,8 +500,8 @@ class CopyTradingProvider with ChangeNotifier {
           record.side == 'buy' ? 'buy' : 'sell', // Direction
           leg.positionEffect ?? 'open', // Position effect
           record.side == 'buy' ? 'debit' : 'credit', // Credit/Debit
-          record.price,
-          record.copiedQuantity.toInt(),
+          orderPrice,
+          executionQuantity.toInt(),
           type: 'limit',
           timeInForce: 'gfd',
         );
@@ -311,12 +509,15 @@ class CopyTradingProvider with ChangeNotifier {
 
       // Mark as executed with latency and slippage tracking
       final executionTime = DateTime.now();
-      final latencyMs = executionTime.difference(record.timestamp).inMilliseconds;
+      final latencyMs =
+          executionTime.difference(record.timestamp).inMilliseconds;
       final effectiveLatencyMs = latencyMs >= 0 ? latencyMs : 0;
-      final executedPrice = record.price;
-      final isBuy = record.side.toLowerCase().contains('buy');
-      final priceSlippage = isBuy ? (executedPrice - record.price) : (record.price - executedPrice);
-      final slippageBps = record.price > 0 ? (priceSlippage / record.price) * 10000.0 : 0.0;
+      final executedPrice = currentMarketPrice;
+      final priceSlippage = isBuy
+          ? (executedPrice - record.price)
+          : (record.price - executedPrice);
+      final slippageBps =
+          record.price > 0 ? (priceSlippage / record.price) * 10000.0 : 0.0;
 
       await FirebaseFirestore.instance
           .collection('copy_trades')
@@ -330,8 +531,7 @@ class CopyTradingProvider with ChangeNotifier {
         'fillLatencyMs': effectiveLatencyMs,
         'priceSlippage': priceSlippage,
         'slippageBps': slippageBps,
-        // TODO: Confirm orderId field name with brokerage response
-        // 'orderId': orderResult.body['id'], // Assuming orderResult has id, depends on brokerage response
+        'copiedQuantity': executionQuantity,
       });
 
       debugPrint(

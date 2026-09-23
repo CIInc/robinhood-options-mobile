@@ -40,6 +40,11 @@ class _CopyTradeSettingsWidgetState extends State<CopyTradeSettingsWidget> {
   final _endTimeController = TextEditingController();
   final _stopLossAdjustmentController = TextEditingController();
   final _takeProfitAdjustmentController = TextEditingController();
+  final _maxAllocationPerTradeController = TextEditingController();
+  final _maxAllocationPctController = TextEditingController();
+  final _maxSlippageBpsController = TextEditingController();
+  final _maxLeaderDrawdownPctController = TextEditingController();
+  final _maxReturnDivergencePctController = TextEditingController();
 
   final List<String> _availableSectors = [
     'Technology',
@@ -80,6 +85,11 @@ class _CopyTradeSettingsWidgetState extends State<CopyTradeSettingsWidget> {
     _endTimeController.dispose();
     _stopLossAdjustmentController.dispose();
     _takeProfitAdjustmentController.dispose();
+    _maxAllocationPerTradeController.dispose();
+    _maxAllocationPctController.dispose();
+    _maxSlippageBpsController.dispose();
+    _maxLeaderDrawdownPctController.dispose();
+    _maxReturnDivergencePctController.dispose();
     super.dispose();
   }
 
@@ -139,10 +149,29 @@ class _CopyTradeSettingsWidgetState extends State<CopyTradeSettingsWidget> {
             _takeProfitAdjustmentController.text =
                 settings.takeProfitAdjustment.toString();
           }
+          if (settings.maxAllocationPerTrade != null) {
+            _maxAllocationPerTradeController.text =
+                settings.maxAllocationPerTrade.toString();
+          }
+          if (settings.maxAllocationPct != null) {
+            _maxAllocationPctController.text =
+                settings.maxAllocationPct.toString();
+          }
+          _maxSlippageBpsController.text =
+              (settings.maxSlippageBps ?? 75.0).toStringAsFixed(0);
+          if (settings.maxLeaderDrawdownPct != null) {
+            _maxLeaderDrawdownPctController.text =
+                settings.maxLeaderDrawdownPct.toString();
+          }
+          if (settings.maxReturnDivergencePct != null) {
+            _maxReturnDivergencePctController.text =
+                settings.maxReturnDivergencePct.toString();
+          }
         });
       } else {
         setState(() {
           _settings = CopyTradeSettings();
+          _maxSlippageBpsController.text = '75';
         });
       }
     }
@@ -209,6 +238,29 @@ class _CopyTradeSettingsWidgetState extends State<CopyTradeSettingsWidget> {
         takeProfitAdjustment: _takeProfitAdjustmentController.text.isNotEmpty
             ? double.tryParse(_takeProfitAdjustmentController.text)
             : null,
+        maxAllocationPerTrade:
+            _maxAllocationPerTradeController.text.isNotEmpty
+                ? double.tryParse(_maxAllocationPerTradeController.text)
+                : null,
+        maxAllocationPct: _maxAllocationPctController.text.isNotEmpty
+            ? double.tryParse(_maxAllocationPctController.text)
+            : null,
+        maxSlippageBps: _maxSlippageBpsController.text.isNotEmpty
+            ? double.tryParse(_maxSlippageBpsController.text)
+            : 75.0,
+        autoDisconnectOnDivergence:
+            _settings!.autoDisconnectOnDivergence ?? false,
+        maxLeaderDrawdownPct:
+            _maxLeaderDrawdownPctController.text.isNotEmpty
+                ? double.tryParse(_maxLeaderDrawdownPctController.text)
+                : null,
+        maxReturnDivergencePct:
+            _maxReturnDivergencePctController.text.isNotEmpty
+                ? double.tryParse(_maxReturnDivergencePctController.text)
+                : null,
+        isRiskGuardianTripped: _settings!.isRiskGuardianTripped,
+        riskGuardianTripReason: _settings!.riskGuardianTripReason,
+        riskGuardianTrippedAt: _settings!.riskGuardianTrippedAt,
       );
 
       widget.group.setCopyTradeSettings(auth.currentUser!.uid, settings);
@@ -788,6 +840,270 @@ class _CopyTradeSettingsWidgetState extends State<CopyTradeSettingsWidget> {
                           });
                         },
                       ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Card(
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: (_settings!.isRiskGuardianTripped)
+                      ? BorderSide(
+                          color: Theme.of(context).colorScheme.error,
+                          width: 1.5)
+                      : BorderSide.none,
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            _settings!.isRiskGuardianTripped
+                                ? Icons.gpp_bad
+                                : Icons.gpp_good,
+                            color: _settings!.isRiskGuardianTripped
+                                ? Theme.of(context).colorScheme.error
+                                : Colors.teal,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Risk Guardian & Capital Safeguards',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleMedium
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                            ),
+                          ),
+                          if (_settings!.isRiskGuardianTripped)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .errorContainer,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                'TRIPPED',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 10,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onErrorContainer,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Follower-specific protections against sudden drawdowns, outsized positions, and unfavorable execution slippage.',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Theme.of(context).hintColor,
+                            ),
+                      ),
+                      if (_settings!.isRiskGuardianTripped) ...[
+                        const SizedBox(height: 12),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .errorContainer
+                                .withValues(alpha: 0.7),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Circuit Breaker Active',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onErrorContainer,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                _settings!.riskGuardianTripReason ??
+                                    'Risk Guardian has paused copy trading.',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onErrorContainer,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              ElevatedButton.icon(
+                                onPressed: () {
+                                  setState(() {
+                                    _settings!.isRiskGuardianTripped = false;
+                                    _settings!.riskGuardianTripReason = null;
+                                    _settings!.riskGuardianTrippedAt = null;
+                                  });
+                                },
+                                icon: const Icon(Icons.restart_alt, size: 16),
+                                label: const Text('Reset Circuit Breaker'),
+                                style: ElevatedButton.styleFrom(
+                                  visualDensity: VisualDensity.compact,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 16),
+                      // Max Allocation Per Trade ($)
+                      TextFormField(
+                        key: const Key('maxAllocationPerTradeField'),
+                        controller: _maxAllocationPerTradeController,
+                        decoration: const InputDecoration(
+                          labelText: 'Max Allocation Per Trade (\$, optional)',
+                          helperText:
+                              'Hard dollar cap for any single copied trade',
+                          border: OutlineInputBorder(),
+                          filled: true,
+                          prefixIcon: Icon(Icons.shield_outlined),
+                        ),
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.allow(
+                              RegExp(r'^\d+\.?\d{0,2}')),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      // Max Allocation % of Equity
+                      TextFormField(
+                        key: const Key('maxAllocationPctField'),
+                        controller: _maxAllocationPctController,
+                        decoration: const InputDecoration(
+                          labelText: 'Max Allocation % of Portfolio (optional)',
+                          helperText:
+                              'Max % of follower equity per trade (e.g. 5 for 5%)',
+                          border: OutlineInputBorder(),
+                          filled: true,
+                          prefixIcon: Icon(Icons.pie_chart_outline),
+                          suffixText: '%',
+                        ),
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.allow(
+                              RegExp(r'^\d+\.?\d{0,2}')),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      // Max Slippage Abort Threshold
+                      TextFormField(
+                        key: const Key('maxSlippageBpsField'),
+                        controller: _maxSlippageBpsController,
+                        decoration: const InputDecoration(
+                          labelText: 'Max Slippage Abort Threshold (bps)',
+                          helperText:
+                              'Abort trade if market price slippage exceeds this limit (e.g. 75 bps = 0.75%)',
+                          border: OutlineInputBorder(),
+                          filled: true,
+                          prefixIcon: Icon(Icons.speed),
+                          suffixText: 'bps',
+                        ),
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.allow(
+                              RegExp(r'^\d+\.?\d{0,1}')),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        children: [25, 50, 75, 100, 200].map((bps) {
+                          final isSelected = _maxSlippageBpsController.text ==
+                              bps.toString();
+                          return ChoiceChip(
+                            label: Text(
+                                '$bps bps (${(bps / 100).toStringAsFixed(2)}%)'),
+                            selected: isSelected,
+                            onSelected: (selected) {
+                              if (selected) {
+                                setState(() {
+                                  _maxSlippageBpsController.text =
+                                      bps.toString();
+                                });
+                              }
+                            },
+                          );
+                        }).toList(),
+                      ),
+                      const SizedBox(height: 16),
+                      // Auto-Disconnect on Divergence
+                      SwitchListTile(
+                        title: const Text('Auto-Disconnect on Divergence'),
+                        subtitle: const Text(
+                            'Safely disconnect if leader drawdown or return divergence exceeds limits'),
+                        value: _settings!.autoDisconnectOnDivergence ?? false,
+                        onChanged: (value) {
+                          setState(() {
+                            _settings!.autoDisconnectOnDivergence = value;
+                          });
+                        },
+                      ),
+                      if (_settings!.autoDisconnectOnDivergence ?? false) ...[
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextFormField(
+                                key: const Key('maxLeaderDrawdownPctField'),
+                                controller: _maxLeaderDrawdownPctController,
+                                decoration: const InputDecoration(
+                                  labelText: 'Max Leader DD (%)',
+                                  helperText: 'Disconnect if DD exceeds',
+                                  border: OutlineInputBorder(),
+                                  filled: true,
+                                  suffixText: '%',
+                                ),
+                                keyboardType: TextInputType.number,
+                                inputFormatters: [
+                                  FilteringTextInputFormatter.allow(
+                                      RegExp(r'^\d+\.?\d{0,1}')),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: TextFormField(
+                                key: const Key('maxReturnDivergencePctField'),
+                                controller:
+                                    _maxReturnDivergencePctController,
+                                decoration: const InputDecoration(
+                                  labelText: 'Max Divergence (%)',
+                                  helperText: 'Disconnect if lag exceeds',
+                                  border: OutlineInputBorder(),
+                                  filled: true,
+                                  suffixText: '%',
+                                ),
+                                keyboardType: TextInputType.number,
+                                inputFormatters: [
+                                  FilteringTextInputFormatter.allow(
+                                      RegExp(r'^\d+\.?\d{0,1}')),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ],
                   ),
                 ),

@@ -39,6 +39,15 @@ interface CopyTradeSettings {
   inverse?: boolean;
   stopLossAdjustment?: number;
   takeProfitAdjustment?: number;
+  maxAllocationPerTrade?: number;
+  maxAllocationPct?: number;
+  maxSlippageBps?: number;
+  autoDisconnectOnDivergence?: boolean;
+  maxLeaderDrawdownPct?: number;
+  maxReturnDivergencePct?: number;
+  isRiskGuardianTripped?: boolean;
+  riskGuardianTripReason?: string;
+  riskGuardianTrippedAt?: string;
 }
 
 /**
@@ -81,8 +90,17 @@ interface CopyTradeRecord {
   }[];
   timestamp: FieldValue; // server timestamp placeholder
   executed: boolean;
-  status?: "pending_approval" | "approved" | "rejected" | "executed";
+  status?: "pending_approval" | "approved" | "rejected" | "executed" | "aborted";
+  executionResult?: string;
+  error?: string;
   isInverse?: boolean;
+  executedPrice?: number;
+  fillLatencyMs?: number;
+  priceSlippage?: number;
+  slippageBps?: number;
+  leaderReturnPct?: number;
+  followerReturnPct?: number;
+  returnDivergencePct?: number;
 }
 
 /**
@@ -141,6 +159,7 @@ function shouldCopyTrade(
   marketCap?: number
 ): boolean {
   if (!settings.enabled) return false;
+  if (settings.isRiskGuardianTripped) return false;
 
   // Symbol Whitelist
   if (
@@ -408,10 +427,13 @@ export const onInstrumentOrderCreated = onDocumentCreated(
               quantity = settings.maxQuantity;
             }
 
-            if (settings.maxAmount) {
+            const effectiveMaxAmount =
+              settings.maxAllocationPerTrade || settings.maxAmount;
+            if (effectiveMaxAmount && price > 0) {
               const totalAmount = quantity * price;
-              if (totalAmount > settings.maxAmount) {
-                quantity = settings.maxAmount / price;
+              if (totalAmount > effectiveMaxAmount) {
+                quantity = effectiveMaxAmount / price;
+                quantity = Math.round(quantity * 10000) / 10000;
               }
             }
 
@@ -716,11 +738,13 @@ export const onOptionOrderCreated = onDocumentCreated(
               quantity = settings.maxQuantity;
             }
 
-            if (settings.maxAmount) {
+            const effectiveMaxOptionAmount =
+              settings.maxAllocationPerTrade || settings.maxAmount;
+            if (effectiveMaxOptionAmount && price > 0) {
               const totalAmount =
                 quantity * price * 100; // Options are per 100 shares
-              if (totalAmount > settings.maxAmount) {
-                quantity = settings.maxAmount / (price * 100);
+              if (totalAmount > effectiveMaxOptionAmount) {
+                quantity = Math.floor(effectiveMaxOptionAmount / (price * 100));
               }
             }
 

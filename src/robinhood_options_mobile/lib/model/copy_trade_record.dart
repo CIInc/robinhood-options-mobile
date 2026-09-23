@@ -230,4 +230,22 @@ class CopyTradeRecord {
     }
     return null;
   }
+
+  /// Returns true if the copy trade was aborted by Risk Guardian or safety limits.
+  bool get isAborted =>
+      status == 'aborted' ||
+      (executionResult != null && executionResult!.startsWith('aborted'));
+
+  /// Returns true if aborted specifically due to excessive price slippage.
+  bool get isAbortedMaxSlippage =>
+      executionResult == 'aborted_max_slippage';
+
+  /// Returns true if aborted specifically due to capital allocation limits.
+  bool get isAbortedAllocation =>
+      executionResult == 'aborted_allocation_limit' ||
+      executionResult == 'aborted_min_allocation';
+
+  /// Returns true if aborted because the Risk Guardian circuit breaker was tripped.
+  bool get isAbortedRiskGuardian =>
+      executionResult == 'aborted_risk_guardian_tripped';
 }

@@ -18,6 +18,12 @@ Members can configure copy trading settings for each investor group they belong 
 - **Copy Percentage**: Copy a percentage of the original trade size (e.g., 50%). Supports fractional shares for stocks and rounds down to nearest integer for options (min 1 contract).
 - **Max Quantity**: Limit the maximum number of shares/contracts to copy
 - **Max Amount**: Limit the maximum dollar amount per trade
+- **Risk Guardian & Capital Safeguards** *(v0.52.0)*:
+  - **Max Allocation Per Trade**: Dollar cap bounding the maximum capital committed to any single copied order. Automatically clamps share/contract quantity down to avoid exceeding limit.
+  - **Max Equity Allocation %**: Percent cap of the follower's total portfolio equity (e.g., 5%). Clamps orders dynamically according to real-time portfolio balance.
+  - **Max Slippage Abort Threshold (bps)**: Maximum unfavorable price slippage allowed before aborting order execution (e.g., 50 bps = 0.50%, 75 bps = 0.75%). If real-time quote slips unfavorably relative to leader fill price, the trade is aborted to protect follower capital.
+  - **Auto-Disconnect on Leader Drawdown & Divergence**: Automatically trips circuit breaker and ceases copy-trading if leader drawdown exceeds threshold (e.g., 15%) or cumulative return divergence exceeds threshold (e.g., 5%).
+  - **Circuit Trip & Reset Protection**: Once tripped, pending/incoming copy executions are blocked until the follower explicitly reviews telemetry and taps "Reset Guardian & Reconnect".
 - **Override Price**: Use current market price instead of the copied trade's price
 - **Inverse Copying**: Copy trades in the opposite direction (e.g., buy when the leader sells). Useful for hedging or contrarian strategies.
 - **Exit Strategies**:
@@ -36,6 +42,7 @@ A centralized hub for managing all copy trading activities:
 - **Trade History**: View a comprehensive list of all copied trades with status indicators.
 - **Filtering**: Filter trades by status (Pending, Approved, Rejected, Completed), date range, and symbol.
 - **Performance Metrics**: Track the performance of copied trades (P&L, win rate).
+- **Risk Guardian Telemetry Card** *(v0.52.0)*: Real-time status display of capital guardrails (max allocation cap, max slippage bps, auto-disconnect triggers), active circuit breaker trips with 1-tap "Reset Guardian & Reconnect", and a count of protected aborted orders.
 - **Trader Comparison**: Compare performance across different traders you are copying.
 - **Time-Based Analysis**: Visualize cumulative P&L growth over time.
 - **Request Management**: Review and act on pending copy trade requests.
@@ -172,6 +179,16 @@ class CopyTradeSettings {
   double? maxQuantity;
   double? maxAmount;
   bool? overridePrice;
+  // Risk Guardian & Capital Safeguards (v0.52.0)
+  double? maxAllocationPerTrade;      // Dollar cap per trade
+  double? maxAllocationPct;           // Portfolio equity % cap (e.g., 5.0%)
+  double? maxSlippageBps;             // Slippage abort threshold (e.g., 75 bps)
+  bool? autoDisconnectOnDivergence;   // Auto-disconnect circuit breaker toggle
+  double? maxLeaderDrawdownPct;       // Drawdown trigger (e.g., 15.0%)
+  double? maxReturnDivergencePct;     // Divergence trigger (e.g., 5.0%)
+  bool? isRiskGuardianTripped;        // Live trip status flag
+  String? riskGuardianTripReason;     // Trip reason
+  DateTime? riskGuardianTrippedAt;    // Trip timestamp
 }
 ```
 
@@ -200,6 +217,8 @@ Created by backend functions in Firestore collection `copy_trades`:
   strategy?: string; // For options
   timestamp: Timestamp;
   executed: boolean;
+  status?: 'pending' | 'approved' | 'rejected' | 'completed' | 'failed' | 'aborted';
+  executionResult?: 'executed' | 'skipped_max_amount' | 'skipped_max_quantity' | 'aborted_max_slippage' | 'aborted_allocation_limit' | 'aborted_risk_guardian_tripped';
 }
 ```
 

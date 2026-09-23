@@ -10,6 +10,7 @@ import 'package:community_charts_flutter/community_charts_flutter.dart'
 import 'package:robinhood_options_mobile/widgets/chart_pie_widget.dart'
     as pie_chart;
 import 'package:robinhood_options_mobile/widgets/copy_trade_requests_widget.dart';
+import 'package:robinhood_options_mobile/widgets/copy_trade_risk_guardian_card.dart';
 import 'package:robinhood_options_mobile/widgets/copy_trade_slippage_card.dart';
 
 class CopyTradingDashboardWidget extends StatefulWidget {
@@ -70,6 +71,9 @@ class _CopyTradingDashboardWidgetState
                       child: Column(
                         children: [
                           _buildSummary(filteredTrades, completedTrades),
+                          CopyTradeRiskGuardianCard(
+                            trades: filteredTrades,
+                          ),
                           CopyTradeSlippageCard(
                             trades: filteredTrades,
                             completedTrades: completedTrades,
@@ -553,7 +557,24 @@ class _CopyTradingDashboardWidgetState
             '${trade.side.toUpperCase()} ${trade.symbol}',
             style: const TextStyle(fontWeight: FontWeight.bold),
           ),
-          if (trade.executed && latency != null) ...[
+          if (trade.isAborted) ...[
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: Colors.redAccent.withAlpha(35),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: const Text(
+                'ABORTED',
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.redAccent,
+                ),
+              ),
+            ),
+          ] else if (trade.executed && latency != null) ...[
             const SizedBox(width: 8),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -582,7 +603,17 @@ class _CopyTradingDashboardWidgetState
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('${dateFormat.format(trade.timestamp)} • ${trade.orderType}'),
-          if (trade.executed && trade.executedPrice != null)
+          if (trade.isAborted && trade.error != null)
+            Text(
+              trade.error!,
+              style: const TextStyle(
+                fontSize: 11,
+                color: Colors.redAccent,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            )
+          else if (trade.executed && trade.executedPrice != null)
             Text(
               'Fill: ${currencyFormat.format(trade.effectiveExecutedPrice)} • Slippage: ${slippageBps >= 0 ? "+" : ""}${slippageBps.toStringAsFixed(1)} bps',
               style: TextStyle(
@@ -607,15 +638,19 @@ class _CopyTradingDashboardWidgetState
           Text(
             trade.executed
                 ? 'Executed'
-                : (trade.executionResult == 'skipped_daily_limit'
-                    ? 'Skipped'
-                    : 'Pending'),
+                : (trade.isAborted
+                    ? 'Aborted'
+                    : (trade.executionResult == 'skipped_daily_limit'
+                        ? 'Skipped'
+                        : 'Pending')),
             style: TextStyle(
               color: trade.executed
                   ? Colors.green
-                  : (trade.executionResult == 'skipped_daily_limit'
-                      ? Colors.red
-                      : Colors.orange),
+                  : (trade.isAborted
+                      ? Colors.redAccent
+                      : (trade.executionResult == 'skipped_daily_limit'
+                          ? Colors.red
+                          : Colors.orange)),
               fontSize: 12,
             ),
           ),
@@ -723,7 +758,42 @@ class _CopyTradingDashboardWidgetState
                     title: const Text('Execution Result'),
                     subtitle: Text(trade.executionResult!),
                   ),
-                if (trade.error != null)
+                if (trade.isAborted)
+                  Container(
+                    margin: const EdgeInsets.symmetric(vertical: 8),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.redAccent.withAlpha(25),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.redAccent.withAlpha(80)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.shield, color: Colors.redAccent),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Risk Guardian Action',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.redAccent,
+                                ),
+                              ),
+                              Text(
+                                trade.error ??
+                                    'Trade safely aborted by Risk Guardian.',
+                                style: const TextStyle(fontSize: 12),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                else if (trade.error != null)
                   ListTile(
                     dense: true,
                     leading: const Icon(Icons.error_outline, color: Colors.red),
