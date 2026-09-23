@@ -258,7 +258,8 @@ export const analyzePriceTargets = https.onCall({ secrets: ["GEMINI_API_KEY"] },
         contents: prompt,
         config: {
           tools: [{ googleSearch: {} }],
-          maxOutputTokens: 400,
+          responseMimeType: "application/json",
+          maxOutputTokens: 1200,
           temperature: 0.2,
         },
       });
@@ -274,7 +275,8 @@ export const analyzePriceTargets = https.onCall({ secrets: ["GEMINI_API_KEY"] },
           contents: prompt,
           config: {
             tools: [{ googleSearch: {} }],
-            maxOutputTokens: 400,
+            responseMimeType: "application/json",
+            maxOutputTokens: 1200,
             temperature: 0.2,
           },
         });
