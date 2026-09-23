@@ -633,7 +633,8 @@ class _PortfolioGreeksCardState extends State<PortfolioGreeksCard> {
                 '• Weighted Dollar Delta = Dollar Delta × Beta\n'
                 '• Δ_SPY Shares = Weighted Dollar Delta ÷ SPY Price\n'
                 '• 1% Market Move P&L = Weighted Dollar Delta × 0.01',
-                style: theme.textTheme.bodyMedium?.copyWith(fontFamily: 'monospace'),
+                style: theme.textTheme.bodyMedium
+                    ?.copyWith(fontFamily: 'monospace'),
               ),
               const SizedBox(height: 16),
               Text(

@@ -66,13 +66,22 @@ void main() {
       expect(find.text('Retry'), findsOneWidget);
     });
 
-    testWidgets('renders progress indicator when syncing', (tester) async {
+    testWidgets('renders progress indicator and syncing semantics when syncing',
+        (tester) async {
       final syncService = OfflineSyncService();
       syncService.setOffline(true);
       syncService.setSyncing(true);
 
       await tester.pumpWidget(createTestWidget(syncService));
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      final indicator = tester.widget<CircularProgressIndicator>(
+          find.byType(CircularProgressIndicator));
+      expect(indicator.semanticsLabel, equals('Syncing data'));
+
+      final semanticsFinder = find.byWidgetPredicate((widget) =>
+          widget is Semantics &&
+          widget.properties.liveRegion == true &&
+          (widget.properties.label?.contains('Syncing data...') ?? false));
+      expect(semanticsFinder, findsOneWidget);
       expect(find.text('Retry'), findsNothing);
     });
 

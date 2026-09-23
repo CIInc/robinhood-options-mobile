@@ -96,10 +96,11 @@ class AnalyticsUtils {
     double? benchmarkPrice,
     Map<String, double>? assetBetas,
   }) {
-    final effectiveBenchmarkPrice =
-        (benchmarkPrice != null && benchmarkPrice > 0 && benchmarkPrice.isFinite)
-            ? benchmarkPrice
-            : _defaultBenchmarkPrice(benchmarkSymbol);
+    final effectiveBenchmarkPrice = (benchmarkPrice != null &&
+            benchmarkPrice > 0 &&
+            benchmarkPrice.isFinite)
+        ? benchmarkPrice
+        : _defaultBenchmarkPrice(benchmarkSymbol);
 
     double totalWeightedDollarDelta = 0;
     double equityDollarDelta = 0;
@@ -175,8 +176,7 @@ class AnalyticsUtils {
         }
 
         final multiplier = position.tradeValueMultiplier ?? 100.0;
-        final direction =
-            position.direction.toLowerCase() == 'credit' ? -1 : 1;
+        final direction = position.direction.toLowerCase() == 'credit' ? -1 : 1;
         final scale = quantity * multiplier * direction;
 
         final delta = marketData?.delta;
@@ -232,7 +232,8 @@ class AnalyticsUtils {
               (double.tryParse(pos['openPnlCalc']?.toString() ?? '') ?? 0.0);
 
           final product = pos['product'] is Map ? pos['product'] as Map : null;
-          final contract = pos['contract'] is Map ? pos['contract'] as Map : null;
+          final contract =
+              pos['contract'] is Map ? pos['contract'] as Map : null;
 
           final productSymbol = product?['symbol']?.toString();
           final contractRoot = contract?['rootSymbol']?.toString();
@@ -315,8 +316,7 @@ class AnalyticsUtils {
     // Sort drivers by largest absolute dollar exposure
     drivers.sort((a, b) => b.dollarDelta.abs().compareTo(a.dollarDelta.abs()));
 
-    final netDeltaShares =
-        totalWeightedDollarDelta / effectiveBenchmarkPrice;
+    final netDeltaShares = totalWeightedDollarDelta / effectiveBenchmarkPrice;
     final dollarDelta1Pct = totalWeightedDollarDelta * 0.01;
 
     String stance = 'Neutral';
