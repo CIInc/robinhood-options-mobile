@@ -148,8 +148,12 @@ export function computeEMAArray(
   const result: (number | null)[] = Array(period - 1).fill(null);
 
   const multiplier = 2 / (period + 1);
-  // Initial SMA
-  let ema = prices.slice(0, period).reduce((a, b) => a + b, 0) / period;
+  // Initial SMA calculated without array slicing
+  let sum = 0;
+  for (let i = 0; i < period; i++) {
+    sum += prices[i];
+  }
+  let ema = sum / period;
   result.push(ema);
 
   for (let i = period; i < prices.length; i++) {
@@ -320,12 +324,16 @@ export function computeBollingerBands(
   const middle = computeSMA(prices, period);
   if (!middle) return null;
 
-  const slice = prices.slice(prices.length - period);
-  const squaredDiffs = slice.map((p) => Math.pow(p - middle, 2));
+  // Compute variance for Bollinger Bands without array allocation
+  let sumSquaredDiffs = 0;
+  const start = prices.length - period;
+  for (let i = start; i < prices.length; i++) {
+    const diff = prices[i] - middle;
+    sumSquaredDiffs += diff * diff;
+  }
   // Use sample standard deviation (N-1) for Bollinger Bands
   const varianceDenom = period > 1 ? (period - 1) : period;
-  const varianceSum = squaredDiffs.reduce((a, b) => a + b, 0);
-  const variance = varianceSum / varianceDenom;
+  const variance = sumSquaredDiffs / varianceDenom;
   const standardDeviation = Math.sqrt(variance);
 
   const upper = middle + stdDev * standardDeviation;
@@ -877,12 +885,14 @@ export function computeWilliamsR(
     return null;
   }
 
-  const recentHighs = highs.slice(-period);
-  const recentLows = lows.slice(-period);
+  const start = highs.length - period;
+  let highestHigh = highs[start];
+  let lowestLow = lows[start];
+  for (let i = start + 1; i < highs.length; i++) {
+    if (highs[i] > highestHigh) highestHigh = highs[i];
+    if (lows[i] < lowestLow) lowestLow = lows[i];
+  }
   const currentClose = closes[closes.length - 1];
-
-  const highestHigh = Math.max(...recentHighs);
-  const lowestLow = Math.min(...recentLows);
 
   if (highestHigh === lowestLow) return null;
 
@@ -2106,16 +2116,20 @@ export function evaluateBollingerBands(
   } else {
     // 2. Fallback: Bandwidth Squeeze (bandwidth is lowest in 6 months)
     if (bbArray.length >= 20) {
-      const recentBandwidths = bbArray
-        .slice(-120) // Check last ~6 months of data if available
-        .filter((b) => b !== null)
-        .map((b) => (b!.upper - b!.lower) / b!.middle);
-
-      if (recentBandwidths.length > 0) {
-        const minBandwidth = Math.min(...recentBandwidths);
-        if (bandwidth <= minBandwidth * 1.05) { // Within 5% of 6-month low
-          isSqueeze = true;
+      // Find min bandwidth over last 120 bars without array allocations
+      const start = Math.max(0, bbArray.length - 120);
+      let minBandwidth = Number.POSITIVE_INFINITY;
+      for (let i = start; i < bbArray.length; i++) {
+        const b = bbArray[i];
+        if (b !== null) {
+          const bw = (b.upper - b.lower) / b.middle;
+          if (bw < minBandwidth) minBandwidth = bw;
         }
+      }
+
+      if (Number.isFinite(minBandwidth) && bandwidth <= minBandwidth * 1.05) {
+        // Within 5% of 6-month low
+        isSqueeze = true;
       }
     }
   }
@@ -2748,14 +2762,14 @@ export function evaluateVWAP(
   const prevPrice = closes.length >= 2 ? closes[closes.length - 2] : null;
   const deviation = ((currentPrice - vwap) / vwap) * 100;
 
-  // Calculate VWAP bands (1 and 2 standard deviations)
-  const typicalPrices: number[] = [];
+  // Calculate VWAP bands (1 and 2 standard deviations) without array allocation
+  let varianceSum = 0;
   for (let i = 0; i < closes.length; i++) {
-    typicalPrices.push((highs[i] + lows[i] + closes[i]) / 3);
+    const tp = (highs[i] + lows[i] + closes[i]) / 3;
+    const diff = tp - vwap;
+    varianceSum += diff * diff;
   }
-  const squaredDiffs = typicalPrices.map((tp) => Math.pow(tp - vwap, 2));
-  const varianceSum = squaredDiffs.reduce((a, b) => a + b, 0);
-  const variance = varianceSum / (typicalPrices.length - 1);
+  const variance = closes.length > 1 ? varianceSum / (closes.length - 1) : 0;
   const stdDev = Math.sqrt(variance);
 
   const upperBand1 = vwap + stdDev;
@@ -3129,13 +3143,16 @@ export function computeIchimokuCloud(
   const currentIdx = closes.length - 1;
 
   // Helper to calculate midpoint of high and low over a period
+  // without array slicing
   const getMidpoint = (p: number, idx: number) => {
     const start = idx - p + 1;
     if (start < 0) return null;
-    const periodHighs = highs.slice(start, idx + 1);
-    const periodLows = lows.slice(start, idx + 1);
-    const maxH = Math.max(...periodHighs);
-    const minL = Math.min(...periodLows);
+    let maxH = highs[start];
+    let minL = lows[start];
+    for (let i = start + 1; i <= idx; i++) {
+      if (highs[i] > maxH) maxH = highs[i];
+      if (lows[i] < minL) minL = lows[i];
+    }
     return (maxH + minL) / 2;
   };
 
@@ -3305,15 +3322,22 @@ export function evaluateIchimokuCloud(
 export function computeCCI(prices: number[], period = 20): number | null {
   if (!prices || prices.length < period) return null;
 
-  const currentPrices = prices.slice(prices.length - period);
-  const sma = currentPrices.reduce((a, b) => a + b, 0) / period;
+  const start = prices.length - period;
+  let sum = 0;
+  for (let i = start; i < prices.length; i++) {
+    sum += prices[i];
+  }
+  const sma = sum / period;
 
-  const meanDeviation = currentPrices.reduce((acc, price) =>
-    acc + Math.abs(price - sma), 0) / period;
+  let sumAbsDev = 0;
+  for (let i = start; i < prices.length; i++) {
+    sumAbsDev += Math.abs(prices[i] - sma);
+  }
+  const meanDeviation = sumAbsDev / period;
 
   if (meanDeviation === 0) return 0;
 
-  const currentPrice = currentPrices[currentPrices.length - 1];
+  const currentPrice = prices[prices.length - 1];
   return (currentPrice - sma) / (0.015 * meanDeviation);
 }
 
@@ -3339,9 +3363,10 @@ export function evaluateCCI(
     };
   }
 
-  // Calculate Typical Prices
+  // Calculate Typical Prices for only the required period window
   const typicalPrices: number[] = [];
-  for (let i = 0; i < closes.length; i++) {
+  const start = closes.length - period;
+  for (let i = start; i < closes.length; i++) {
     typicalPrices.push((highs[i] + lows[i] + closes[i]) / 3);
   }
 
@@ -3981,10 +4006,11 @@ export function computeChaikinMoneyFlow(
   const len = Math.min(
     highs.length, lows.length, closes.length, volumes.length
   );
-  const moneyFlowVolumes: number[] = [];
-  const validVolumes: number[] = [];
+  let sumMfv = 0;
+  let sumVol = 0;
 
-  for (let i = 0; i < len; i++) {
+  // Calculate sum directly over the last period without allocating arrays
+  for (let i = len - period; i < len; i++) {
     const h = highs[i];
     const l = lows[i];
     const c = closes[i];
@@ -3993,19 +4019,8 @@ export function computeChaikinMoneyFlow(
     // Avoid division by zero if High == Low
     const divisor = h - l === 0 ? 0.000001 : h - l;
     const mfm = ((c - l) - (h - c)) / divisor;
-    const mfv = mfm * v;
-
-    moneyFlowVolumes.push(mfv);
-    validVolumes.push(v);
-  }
-
-  // Calculate sum for the last period
-  let sumMfv = 0;
-  let sumVol = 0;
-
-  for (let i = len - period; i < len; i++) {
-    sumMfv += moneyFlowVolumes[i];
-    sumVol += validVolumes[i];
+    sumMfv += mfm * v;
+    sumVol += v;
   }
 
   if (sumVol === 0) return 0;
