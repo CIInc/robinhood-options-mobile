@@ -49,12 +49,14 @@ class VolatilityConeService {
 
     // Baseline current 30D IV
     final double currentIv30 = overrideCurrentIv ??
-        termStructure?.points.firstWhere(
-          (p) => p.dte >= 15 && p.dte <= 45,
-          orElse: () => termStructure.points.isNotEmpty
-              ? termStructure.points.first
-              : const TermStructurePoint(dte: 30, atmIv: 0.32),
-        ).atmIv ??
+        termStructure?.points
+            .firstWhere(
+              (p) => p.dte >= 15 && p.dte <= 45,
+              orElse: () => termStructure.points.isNotEmpty
+                  ? termStructure.points.first
+                  : const TermStructurePoint(dte: 30, atmIv: 0.32),
+            )
+            .atmIv ??
         0.32;
 
     // 3. Compute Volatility Cone across standard tenors
@@ -94,16 +96,19 @@ class VolatilityConeService {
     // 5. Volatility Risk Premium (VRP) calculation
     final conePoint30 = conePoints.firstWhere(
       (p) => p.days == 30,
-      orElse: () => conePoints.isNotEmpty ? conePoints[0] : _defaultConePoint(30, '30D'),
+      orElse: () =>
+          conePoints.isNotEmpty ? conePoints[0] : _defaultConePoint(30, '30D'),
     );
-    final double rv30 = conePoint30.currentRv > 0 ? conePoint30.currentRv : 0.25;
+    final double rv30 =
+        conePoint30.currentRv > 0 ? conePoint30.currentRv : 0.25;
     final double vrp30 = currentIv30 - rv30;
     final double vrpRatio = rv30 > 0 ? currentIv30 / rv30 : 1.0;
     final vrp = VolatilityRiskPremium(
       vrp30d: vrp30,
       vrpRatio: vrpRatio,
       isRich: vrp30 > 0,
-      historicalVrpAvg: 0.035, // Typical index/equity long-run variance premium ~3.5%
+      historicalVrpAvg:
+          0.035, // Typical index/equity long-run variance premium ~3.5%
     );
 
     // 6. Pre-earnings IV elevation / crush warning
@@ -111,8 +116,10 @@ class VolatilityConeService {
     if (nextEarningsDate != null) {
       final daysToEarnings = max(0, nextEarningsDate.difference(now).inDays);
       if (daysToEarnings <= 21) {
-        final baselineIv = conePoint30.medianRv > 0 ? conePoint30.medianRv : 0.25;
-        final elevation = baselineIv > 0 ? (currentIv30 - baselineIv) / baselineIv : 0.0;
+        final baselineIv =
+            conePoint30.medianRv > 0 ? conePoint30.medianRv : 0.25;
+        final elevation =
+            baselineIv > 0 ? (currentIv30 - baselineIv) / baselineIv : 0.0;
         final isCrushImminent = daysToEarnings <= 7 && elevation > 0.15;
         preEarningsIndicator = PreEarningsCrushIndicator(
           daysToEarnings: daysToEarnings,
@@ -254,7 +261,8 @@ class VolatilityConeService {
     if (termStructure == null || termStructure.points.isEmpty) {
       // Slightly scale IV by tenor square root rule if term structure is unavailable
       final slopeFactor = 1.0 + (tenorDays - 30) * 0.0003;
-      return max(0.10, double.parse((fallbackIv * slopeFactor).toStringAsFixed(4)));
+      return max(
+          0.10, double.parse((fallbackIv * slopeFactor).toStringAsFixed(4)));
     }
 
     // Exact match
@@ -296,7 +304,9 @@ class VolatilityConeService {
     // Determine 52-week High and Low bounds for this volatility tenor
     final matchingCone = conePoints.firstWhere(
       (p) => p.days == tenorDays,
-      orElse: () => conePoints.isNotEmpty ? conePoints[0] : _defaultConePoint(tenorDays, label),
+      orElse: () => conePoints.isNotEmpty
+          ? conePoints[0]
+          : _defaultConePoint(tenorDays, label),
     );
 
     // Realistic annual volatility extremes
@@ -332,7 +342,8 @@ class VolatilityConeService {
       label: label,
       currentIv: currentIv,
       ivRank: double.parse(ivRank.toStringAsFixed(1)),
-      ivPercentile: double.parse(ivPercentile.clamp(1.0, 99.0).toStringAsFixed(1)),
+      ivPercentile:
+          double.parse(ivPercentile.clamp(1.0, 99.0).toStringAsFixed(1)),
       high52Week: double.parse(high52.toStringAsFixed(3)),
       low52Week: double.parse(low52.toStringAsFixed(3)),
     );
@@ -357,7 +368,9 @@ class VolatilityConeService {
       for (final q in optionQuotes) {
         // Parse strike from OCC symbol or mark price if present
         final strike = _extractStrikeFromOcc(q.occSymbol, spotPrice);
-        if (strike != null && q.impliedVolatility != null && q.impliedVolatility! > 0) {
+        if (strike != null &&
+            q.impliedVolatility != null &&
+            q.impliedVolatility! > 0) {
           quotesByStrike.putIfAbsent(strike, () => []).add(q);
         }
       }
@@ -406,7 +419,19 @@ class VolatilityConeService {
     if (points.length < 5) {
       points.clear();
       // Generate standard equity skew (90% to 110% moneyness)
-      final moneynessSteps = [0.85, 0.90, 0.925, 0.95, 0.975, 1.00, 1.025, 1.05, 1.075, 1.10, 1.15];
+      final moneynessSteps = [
+        0.85,
+        0.90,
+        0.925,
+        0.95,
+        0.975,
+        1.00,
+        1.025,
+        1.05,
+        1.075,
+        1.10,
+        1.15
+      ];
       for (final m in moneynessSteps) {
         final strike = double.parse((spotPrice * m).toStringAsFixed(1));
         // Downside put skew: IV increases as strike drops below 1.0
@@ -427,7 +452,9 @@ class VolatilityConeService {
 
     // Derive 25-Delta Put, ATM, and 25-Delta Call IVs
     final atmPoint = points.reduce((curr, next) =>
-        (curr.moneyness - 1.0).abs() < (next.moneyness - 1.0).abs() ? curr : next);
+        (curr.moneyness - 1.0).abs() < (next.moneyness - 1.0).abs()
+            ? curr
+            : next);
     final atmIv = atmPoint.blendedIv;
 
     // Approximate 25-delta put (~93-95% moneyness) and 25-delta call (~105-107% moneyness)
@@ -441,15 +468,18 @@ class VolatilityConeService {
     );
 
     final putSkew = double.parse((put25.blendedIv - atmIv).toStringAsFixed(4));
-    final callSkew = double.parse((call25.blendedIv - atmIv).toStringAsFixed(4));
-    final riskReversal = double.parse((put25.blendedIv - call25.blendedIv).toStringAsFixed(4));
+    final callSkew =
+        double.parse((call25.blendedIv - atmIv).toStringAsFixed(4));
+    final riskReversal =
+        double.parse((put25.blendedIv - call25.blendedIv).toStringAsFixed(4));
 
     VolatilitySkewRegime regime;
     if (riskReversal > 0.04) {
       regime = VolatilitySkewRegime.steepPutSkew;
     } else if (riskReversal < -0.025) {
       regime = VolatilitySkewRegime.callSkewSqueeze;
-    } else if (riskReversal.abs() <= 0.025 && (putSkew.abs() <= 0.015 && callSkew.abs() <= 0.015)) {
+    } else if (riskReversal.abs() <= 0.025 &&
+        (putSkew.abs() <= 0.015 && callSkew.abs() <= 0.015)) {
       regime = VolatilitySkewRegime.flat;
     } else {
       regime = VolatilitySkewRegime.balancedSmile;
@@ -494,11 +524,14 @@ class VolatilityConeService {
               double iv = baseIv;
               if (optionQuotes != null && optionQuotes.isNotEmpty) {
                 final match = optionQuotes.firstWhere(
-                  (q) => q.occSymbol.contains(expStr.replaceAll('-', '').substring(2)) &&
+                  (q) =>
+                      q.occSymbol
+                          .contains(expStr.replaceAll('-', '').substring(2)) &&
                       q.impliedVolatility != null,
                   orElse: () => optionQuotes.first,
                 );
-                if (match.impliedVolatility != null && match.impliedVolatility! > 0) {
+                if (match.impliedVolatility != null &&
+                    match.impliedVolatility! > 0) {
                   iv = match.impliedVolatility!;
                 }
               }
@@ -563,7 +596,9 @@ class VolatilityConeService {
       return VolatilityRegime.extreme;
     }
 
-    if (metrics30d.ivRank >= 85 || (metrics30d.currentIv >= conePoint30.p75Rv && metrics30d.ivRank >= 75)) {
+    if (metrics30d.ivRank >= 85 ||
+        (metrics30d.currentIv >= conePoint30.p75Rv &&
+            metrics30d.ivRank >= 75)) {
       return VolatilityRegime.extreme;
     }
 
@@ -589,8 +624,10 @@ class VolatilityConeService {
   }) {
     final list = <VolatilityTacticalRecommendation>[];
 
-    final isPutSkewSteep = skew?.skewRegime == VolatilitySkewRegime.steepPutSkew;
-    final isBackwardation = termStructure?.regime == TermStructureRegime.backwardation;
+    final isPutSkewSteep =
+        skew?.skewRegime == VolatilitySkewRegime.steepPutSkew;
+    final isBackwardation =
+        termStructure?.regime == TermStructureRegime.backwardation;
 
     switch (regime) {
       case VolatilityRegime.extreme:
@@ -774,12 +811,15 @@ class VolatilityConeService {
     final median = max(0.15, currentIv * 0.95);
     final spread = median * 0.45 * decay;
 
-    final minRv = double.parse(max(0.08, median - spread * 1.4).toStringAsFixed(3));
-    final p25Rv = double.parse(max(minRv + 0.02, median - spread * 0.6).toStringAsFixed(3));
+    final minRv =
+        double.parse(max(0.08, median - spread * 1.4).toStringAsFixed(3));
+    final p25Rv = double.parse(
+        max(minRv + 0.02, median - spread * 0.6).toStringAsFixed(3));
     final medianRv = double.parse(median.toStringAsFixed(3));
     final p75Rv = double.parse((median + spread * 0.6).toStringAsFixed(3));
     final maxRv = double.parse((median + spread * 1.5).toStringAsFixed(3));
-    final currentRv = double.parse((median + (tenor.days.isEven ? 0.02 : -0.01)).toStringAsFixed(3));
+    final currentRv = double.parse(
+        (median + (tenor.days.isEven ? 0.02 : -0.01)).toStringAsFixed(3));
 
     final iv = _findIvForTenor(tenor.days, termStructure, currentIv);
 

@@ -77,8 +77,7 @@ class InstrumentDripRule {
       ),
       targetPrice: (json['targetPrice'] as num?)?.toDouble(),
       discountPercent: (json['discountPercent'] as num?)?.toDouble() ?? 5.0,
-      reinvestFullDividend:
-          (json['reinvestFullDividend'] as bool?) ?? true,
+      reinvestFullDividend: (json['reinvestFullDividend'] as bool?) ?? true,
       orderType: (json['orderType'] as String?) ?? 'market',
       notes: json['notes'] as String?,
     );

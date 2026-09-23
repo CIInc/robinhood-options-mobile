@@ -74,7 +74,8 @@ void main() {
           equals(true));
     });
 
-    test('loadPendingOrdersFromFirestore deduplicates duplicate orders', () async {
+    test('loadPendingOrdersFromFirestore deduplicates duplicate orders',
+        () async {
       final userDocRef = firestore.collection('users').doc('test-user');
       final ordersCollection = userDocRef.collection('futures_pending_orders');
 

@@ -85,7 +85,8 @@ void main() {
 
     test('copyWith updates specified fields only', () {
       final initial = AutomatedDripConfig(enabled: false);
-      final updated = initial.copyWith(enabled: true, defaultOrderType: 'limit');
+      final updated =
+          initial.copyWith(enabled: true, defaultOrderType: 'limit');
       expect(updated.enabled, true);
       expect(updated.defaultOrderType, 'limit');
       expect(updated.defaultMode, DripThresholdMode.belowCostBasis);
@@ -210,7 +211,8 @@ void main() {
         initialConfig: AutomatedDripConfig(
           enabled: true,
           defaultMode: DripThresholdMode.discountFromCostBasis,
-          defaultDiscountPercent: 10.0, // 10% discount from $100 = $90 max price
+          defaultDiscountPercent:
+              10.0, // 10% discount from $100 = $90 max price
         ),
       );
 

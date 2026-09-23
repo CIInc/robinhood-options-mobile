@@ -729,13 +729,11 @@ class FuturesAutoTradingProvider with ChangeNotifier {
           final existingIndex = _pendingOrders.indexWhere((o) =>
               (o['contractId'] == contractId ||
                   (o['symbol'] != null && o['symbol'] == yahooSymbol)) &&
-              (o['action'] as String?)?.toUpperCase() ==
-                  action.toUpperCase());
+              (o['action'] as String?)?.toUpperCase() == action.toUpperCase());
 
           if (existingIndex != -1) {
             final existingOrder = _pendingOrders[existingIndex];
-            final existingPrice =
-                (existingOrder['price'] as num?)?.toDouble();
+            final existingPrice = (existingOrder['price'] as num?)?.toDouble();
             final newPrice = (proposal['price'] as num?)?.toDouble();
             final existingQuantity = existingOrder['quantity'];
             final newQuantity = proposal['quantity'];

@@ -145,7 +145,9 @@ void main() {
       expect(call['vega']!, closeTo(put['vega']!, 0.001));
     });
 
-    test('computeAnalysis aggregates net Greeks and evaluates neutrality status', () {
+    test(
+        'computeAnalysis aggregates net Greeks and evaluates neutrality status',
+        () {
       // Create delta-neutral position: 1 Long Call (+50 Δ) + 1 Long Put (-50 Δ)
       final legs = [
         DeltaPositionLeg(
@@ -191,7 +193,9 @@ void main() {
       expect(analysis.netVega, closeTo(60.0, 0.01));
     });
 
-    test('computeAnalysis detects severe delta drift and recommends exact share hedge', () {
+    test(
+        'computeAnalysis detects severe delta drift and recommends exact share hedge',
+        () {
       // Position with +45.0 delta (mild drift on 10 Δ tolerance, severe if large)
       final legs = [
         DeltaPositionLeg(
@@ -219,8 +223,10 @@ void main() {
       expect(rebalance.primaryShareHedge, isNotNull);
       expect(rebalance.primaryShareHedge!.action, 'sell');
       expect(rebalance.primaryShareHedge!.quantity, 45.0);
-      expect(rebalance.primaryShareHedge!.resultingNetDelta, closeTo(0.0, 0.01));
-      expect(rebalance.primaryShareHedge!.estimatedCashFlow, lessThan(0.0)); // credit from selling
+      expect(
+          rebalance.primaryShareHedge!.resultingNetDelta, closeTo(0.0, 0.01));
+      expect(rebalance.primaryShareHedge!.estimatedCashFlow,
+          lessThan(0.0)); // credit from selling
     });
 
     test('calculateScenarioCurve computes non-linear spot shifts and PnL', () {
@@ -254,7 +260,8 @@ void main() {
       expect(centerPoint.projectedNetDelta, closeTo(50.0, 0.01));
 
       // At +10% shift (spot = 440), delta should increase by gamma * 40
-      final plusPoint = points.firstWhere((p) => (p.percentageShift - 0.10).abs() < 0.001);
+      final plusPoint =
+          points.firstWhere((p) => (p.percentageShift - 0.10).abs() < 0.001);
       expect(plusPoint.spotPrice, closeTo(440.0, 0.01));
       expect(plusPoint.projectedPnL, greaterThan(0.0));
       expect(plusPoint.projectedNetDelta, greaterThan(50.0));
@@ -342,7 +349,8 @@ void main() {
         deltaNeutralAnalyses: [severeAnalysis],
       );
 
-      final deltaAlert = alerts.firstWhere((a) => a.id.startsWith('delta_neutral_severe'));
+      final deltaAlert =
+          alerts.firstWhere((a) => a.id.startsWith('delta_neutral_severe'));
       expect(deltaAlert.severity, PortfolioAlertSeverity.warning);
       expect(deltaAlert.target, PortfolioAlertTarget.deltaNeutral);
       expect(deltaAlert.title, contains('GOOGL Severe Delta Imbalance'));
@@ -372,7 +380,8 @@ void main() {
         deltaNeutralAnalyses: [mildAnalysis],
       );
 
-      final deltaAlert = alerts.firstWhere((a) => a.id.startsWith('delta_neutral_mild'));
+      final deltaAlert =
+          alerts.firstWhere((a) => a.id.startsWith('delta_neutral_mild'));
       expect(deltaAlert.severity, PortfolioAlertSeverity.info);
       expect(deltaAlert.target, PortfolioAlertTarget.deltaNeutral);
     });
@@ -401,10 +410,12 @@ void main() {
         deltaNeutralAnalyses: [neutralAnalysis],
       );
 
-      expect(alerts.any((a) => a.target == PortfolioAlertTarget.deltaNeutral), isFalse);
+      expect(alerts.any((a) => a.target == PortfolioAlertTarget.deltaNeutral),
+          isFalse);
     });
 
-    test('evaluateDeltaNeutralAlert evaluates smart alert rules accurately', () {
+    test('evaluateDeltaNeutralAlert evaluates smart alert rules accurately',
+        () {
       final analysis = DeltaNeutralService.computeAnalysis(
         symbol: 'NVDA',
         spotPrice: 120.0,
@@ -427,21 +438,30 @@ void main() {
         condition: AlertCondition.delta_drift_exceeded,
         value: 20.0,
       );
-      expect(PortfolioAlertService.evaluateDeltaNeutralAlert(rule: driftRule, analysis: analysis), isTrue);
+      expect(
+          PortfolioAlertService.evaluateDeltaNeutralAlert(
+              rule: driftRule, analysis: analysis),
+          isTrue);
 
       const strictRule = SmartAlertRule(
         type: AlertType.delta_neutral,
         condition: AlertCondition.delta_drift_exceeded,
         value: 50.0,
       );
-      expect(PortfolioAlertService.evaluateDeltaNeutralAlert(rule: strictRule, analysis: analysis), isFalse);
+      expect(
+          PortfolioAlertService.evaluateDeltaNeutralAlert(
+              rule: strictRule, analysis: analysis),
+          isFalse);
 
       const rebalanceRequiredRule = SmartAlertRule(
         type: AlertType.delta_neutral,
         condition: AlertCondition.delta_rebalance_required,
         value: 0.0,
       );
-      expect(PortfolioAlertService.evaluateDeltaNeutralAlert(rule: rebalanceRequiredRule, analysis: analysis), isTrue);
+      expect(
+          PortfolioAlertService.evaluateDeltaNeutralAlert(
+              rule: rebalanceRequiredRule, analysis: analysis),
+          isTrue);
     });
   });
 }

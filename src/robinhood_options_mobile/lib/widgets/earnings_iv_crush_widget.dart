@@ -43,8 +43,8 @@ class EarningsIvCrushWidget extends StatefulWidget {
 class _EarningsIvCrushWidgetState extends State<EarningsIvCrushWidget> {
   final NumberFormat _currencyFormat =
       NumberFormat.currency(locale: 'en_US', symbol: '\$');
-  final NumberFormat _percentFormat =
-      NumberFormat.percentPattern('en_US')..maximumFractionDigits = 1;
+  final NumberFormat _percentFormat = NumberFormat.percentPattern('en_US')
+    ..maximumFractionDigits = 1;
 
   late EarningsIvCrushAnalysis _analysis;
   bool _isLoading = false;
@@ -397,8 +397,8 @@ class _EarningsIvCrushWidgetState extends State<EarningsIvCrushWidget> {
                       height: 58,
                       child: CircularProgressIndicator(
                         value: summary.crushProbabilityScore / 100.0,
-                        backgroundColor:
-                            theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+                        backgroundColor: theme.colorScheme.outlineVariant
+                            .withValues(alpha: 0.3),
                         color: tierColor,
                         strokeWidth: 6.0,
                       ),
@@ -440,8 +440,8 @@ class _EarningsIvCrushWidgetState extends State<EarningsIvCrushWidget> {
                   child: _buildMetricTile(
                     theme,
                     label: 'Expected Post-IV',
-                    value:
-                        _percentFormat.format(_analysis.postEarningsEstimatedIv),
+                    value: _percentFormat
+                        .format(_analysis.postEarningsEstimatedIv),
                     sublabel: 'Estimated Base',
                   ),
                 ),
@@ -530,7 +530,8 @@ class _EarningsIvCrushWidgetState extends State<EarningsIvCrushWidget> {
                     theme,
                     label: 'Straddle Cost',
                     value: _currencyFormat.format(straddle.straddleCost),
-                    sublabel: '${straddle.straddleCostPct.toStringAsFixed(1)}% of Spot',
+                    sublabel:
+                        '${straddle.straddleCostPct.toStringAsFixed(1)}% of Spot',
                   ),
                 ),
                 Expanded(
@@ -780,7 +781,8 @@ class _EarningsIvCrushWidgetState extends State<EarningsIvCrushWidget> {
                         value: 0,
                         icon: Icon(Icons.bar_chart_rounded, size: 16)),
                     ButtonSegment(
-                        value: 1, icon: Icon(Icons.table_rows_rounded, size: 16)),
+                        value: 1,
+                        icon: Icon(Icons.table_rows_rounded, size: 16)),
                   ],
                   selected: {_viewModeIndex},
                   onSelectionChanged: (val) {
@@ -951,7 +953,8 @@ class _EarningsIvCrushWidgetState extends State<EarningsIvCrushWidget> {
                 child: Text(
                   '±${q.impliedMovePct.toStringAsFixed(1)}%',
                   textAlign: TextAlign.end,
-                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
+                  style: const TextStyle(
+                      fontSize: 11, fontWeight: FontWeight.w500),
                 ),
               ),
             ],
@@ -984,8 +987,9 @@ class _EarningsIvCrushWidgetState extends State<EarningsIvCrushWidget> {
                           height: 8,
                           width: constraints.maxWidth * actualWidth,
                           decoration: BoxDecoration(
-                            color: (isUp ? Colors.green : theme.colorScheme.error)
-                                .withValues(alpha: 0.8),
+                            color:
+                                (isUp ? Colors.green : theme.colorScheme.error)
+                                    .withValues(alpha: 0.8),
                             borderRadius: BorderRadius.circular(4),
                           ),
                         ),

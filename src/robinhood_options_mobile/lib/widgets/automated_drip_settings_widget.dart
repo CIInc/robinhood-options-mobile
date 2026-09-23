@@ -93,8 +93,7 @@ class _AutomatedDripSettingsWidgetState
     final notesController =
         TextEditingController(text: existingRule?.notes ?? '');
 
-    DripThresholdMode mode =
-        existingRule?.thresholdMode ?? _config.defaultMode;
+    DripThresholdMode mode = existingRule?.thresholdMode ?? _config.defaultMode;
     String orderType = existingRule?.orderType ?? _config.defaultOrderType;
     bool isEnabled = existingRule?.enabled ?? true;
     bool isEditing = existingRule != null;
@@ -105,7 +104,8 @@ class _AutomatedDripSettingsWidgetState
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              title: Text(isEditing ? 'Edit DRIP Rule' : 'Add Custom DRIP Rule'),
+              title:
+                  Text(isEditing ? 'Edit DRIP Rule' : 'Add Custom DRIP Rule'),
               content: SizedBox(
                 width: double.maxFinite,
                 child: SingleChildScrollView(
@@ -114,134 +114,134 @@ class _AutomatedDripSettingsWidgetState
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       if (!isEditing) ...[
-                      TextField(
-                        controller: symbolController,
-                        textCapitalization: TextCapitalization.characters,
-                        decoration: const InputDecoration(
-                          labelText: 'Ticker Symbol',
-                          hintText: 'e.g. AAPL, SCHD, O',
-                          border: OutlineInputBorder(),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                    ],
-                    DropdownButtonFormField<DripThresholdMode>(
-                      isExpanded: true,
-                      initialValue: mode,
-                      decoration: const InputDecoration(
-                        labelText: 'Threshold Type',
-                        border: OutlineInputBorder(),
-                      ),
-                      items: const [
-                        DropdownMenuItem(
-                          value: DripThresholdMode.belowCostBasis,
-                          child: Text(
-                            'Below Average Cost Basis',
-                            overflow: TextOverflow.ellipsis,
+                        TextField(
+                          controller: symbolController,
+                          textCapitalization: TextCapitalization.characters,
+                          decoration: const InputDecoration(
+                            labelText: 'Ticker Symbol',
+                            hintText: 'e.g. AAPL, SCHD, O',
+                            border: OutlineInputBorder(),
                           ),
                         ),
-                        DropdownMenuItem(
-                          value: DripThresholdMode.belowFixedPrice,
-                          child: Text(
-                            'Below Fixed Target Price (\$)',
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        DropdownMenuItem(
-                          value: DripThresholdMode.discountFromCostBasis,
-                          child: Text(
-                            'Discount % Below Cost Basis',
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
+                        const SizedBox(height: 12),
                       ],
-                      onChanged: (val) {
-                        if (val != null) {
-                          setDialogState(() => mode = val);
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                    if (mode == DripThresholdMode.belowFixedPrice) ...[
-                      TextField(
-                        controller: targetPriceController,
-                        keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true),
+                      DropdownButtonFormField<DripThresholdMode>(
+                        isExpanded: true,
+                        initialValue: mode,
                         decoration: const InputDecoration(
-                          labelText: 'Target Maximum Buy Price (\$)',
-                          hintText: 'e.g. 150.00',
+                          labelText: 'Threshold Type',
                           border: OutlineInputBorder(),
-                          prefixText: '\$ ',
                         ),
+                        items: const [
+                          DropdownMenuItem(
+                            value: DripThresholdMode.belowCostBasis,
+                            child: Text(
+                              'Below Average Cost Basis',
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          DropdownMenuItem(
+                            value: DripThresholdMode.belowFixedPrice,
+                            child: Text(
+                              'Below Fixed Target Price (\$)',
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          DropdownMenuItem(
+                            value: DripThresholdMode.discountFromCostBasis,
+                            child: Text(
+                              'Discount % Below Cost Basis',
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                        onChanged: (val) {
+                          if (val != null) {
+                            setDialogState(() => mode = val);
+                          }
+                        },
                       ),
                       const SizedBox(height: 12),
-                    ],
-                    if (mode == DripThresholdMode.discountFromCostBasis) ...[
-                      TextField(
-                        controller: discountController,
-                        keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true),
-                        decoration: const InputDecoration(
-                          labelText: 'Required Discount %',
-                          hintText: 'e.g. 5.0',
-                          border: OutlineInputBorder(),
-                          suffixText: '%',
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                    ],
-                    DropdownButtonFormField<String>(
-                      isExpanded: true,
-                      initialValue: orderType,
-                      decoration: const InputDecoration(
-                        labelText: 'Order Type',
-                        border: OutlineInputBorder(),
-                      ),
-                      items: const [
-                        DropdownMenuItem(
-                          value: 'market',
-                          child: Text(
-                            'Market Order',
-                            overflow: TextOverflow.ellipsis,
+                      if (mode == DripThresholdMode.belowFixedPrice) ...[
+                        TextField(
+                          controller: targetPriceController,
+                          keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true),
+                          decoration: const InputDecoration(
+                            labelText: 'Target Maximum Buy Price (\$)',
+                            hintText: 'e.g. 150.00',
+                            border: OutlineInputBorder(),
+                            prefixText: '\$ ',
                           ),
                         ),
-                        DropdownMenuItem(
-                          value: 'limit',
-                          child: Text(
-                            'Limit Order',
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
+                        const SizedBox(height: 12),
                       ],
-                      onChanged: (val) {
-                        if (val != null) {
-                          setDialogState(() => orderType = val);
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: notesController,
-                      decoration: const InputDecoration(
-                        labelText: 'Notes (Optional)',
-                        hintText: 'e.g. Only accumulate on dips',
-                        border: OutlineInputBorder(),
+                      if (mode == DripThresholdMode.discountFromCostBasis) ...[
+                        TextField(
+                          controller: discountController,
+                          keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true),
+                          decoration: const InputDecoration(
+                            labelText: 'Required Discount %',
+                            hintText: 'e.g. 5.0',
+                            border: OutlineInputBorder(),
+                            suffixText: '%',
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                      ],
+                      DropdownButtonFormField<String>(
+                        isExpanded: true,
+                        initialValue: orderType,
+                        decoration: const InputDecoration(
+                          labelText: 'Order Type',
+                          border: OutlineInputBorder(),
+                        ),
+                        items: const [
+                          DropdownMenuItem(
+                            value: 'market',
+                            child: Text(
+                              'Market Order',
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          DropdownMenuItem(
+                            value: 'limit',
+                            child: Text(
+                              'Limit Order',
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                        onChanged: (val) {
+                          if (val != null) {
+                            setDialogState(() => orderType = val);
+                          }
+                        },
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    SwitchListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: const Text('Rule Enabled'),
-                      value: isEnabled,
-                      onChanged: (val) {
-                        setDialogState(() => isEnabled = val);
-                      },
-                    ),
-                  ],
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: notesController,
+                        decoration: const InputDecoration(
+                          labelText: 'Notes (Optional)',
+                          hintText: 'e.g. Only accumulate on dips',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text('Rule Enabled'),
+                        value: isEnabled,
+                        onChanged: (val) {
+                          setDialogState(() => isEnabled = val);
+                        },
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            actions: [
+              actions: [
                 TextButton(
                   onPressed: () => Navigator.of(dialogContext).pop(),
                   child: const Text('Cancel'),
@@ -519,10 +519,9 @@ class _AutomatedDripSettingsWidgetState
                   ListTile(
                     contentPadding: EdgeInsets.zero,
                     title: const Text('Default Order Type'),
-                    subtitle: Text(
-                        _config.defaultOrderType == 'market'
-                            ? 'Market Order (Best execution)'
-                            : 'Limit Order (Capped at threshold)'),
+                    subtitle: Text(_config.defaultOrderType == 'market'
+                        ? 'Market Order (Best execution)'
+                        : 'Limit Order (Capped at threshold)'),
                     trailing: const Icon(Icons.chevron_right),
                     onTap: () {
                       _saveConfig(_config.copyWith(
@@ -616,8 +615,8 @@ class _AutomatedDripSettingsWidgetState
                           visualDensity: VisualDensity.compact,
                           padding: EdgeInsets.zero,
                           backgroundColor: colorScheme.errorContainer,
-                          labelStyle: TextStyle(
-                              color: colorScheme.onErrorContainer),
+                          labelStyle:
+                              TextStyle(color: colorScheme.onErrorContainer),
                         ),
                     ],
                   ),
@@ -811,7 +810,8 @@ class _AutomatedDripSettingsWidgetState
                 title: const Text('Below Average Cost Basis'),
                 subtitle: const Text(
                     'Reinvest only when current market price is at or below your average cost basis.'),
-                selected: _config.defaultMode == DripThresholdMode.belowCostBasis,
+                selected:
+                    _config.defaultMode == DripThresholdMode.belowCostBasis,
                 onTap: () {
                   Navigator.pop(context);
                   _saveConfig(_config.copyWith(

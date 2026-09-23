@@ -851,9 +851,9 @@ class AgenticTradingProvider with ChangeNotifier {
           if (existingIndex != -1) {
             // Duplicate detected from Firestore collection
             final existingOrder = _pendingOrders[existingIndex];
-            final existingTime =
-                DateTime.tryParse(existingOrder['timestamp'] as String? ?? '') ??
-                    DateTime.fromMillisecondsSinceEpoch(0);
+            final existingTime = DateTime.tryParse(
+                    existingOrder['timestamp'] as String? ?? '') ??
+                DateTime.fromMillisecondsSinceEpoch(0);
             final orderTime =
                 DateTime.tryParse(order['timestamp'] as String? ?? '') ??
                     DateTime.fromMillisecondsSinceEpoch(0);

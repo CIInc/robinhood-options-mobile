@@ -87,7 +87,8 @@ class _VolatilityConeWidgetState extends State<VolatilityConeWidget>
               final dateStr = e['report']['date'] as String?;
               if (dateStr != null) {
                 final d = DateTime.tryParse(dateStr);
-                if (d != null && d.isAfter(now.subtract(const Duration(days: 1)))) {
+                if (d != null &&
+                    d.isAfter(now.subtract(const Duration(days: 1)))) {
                   resolvedEarnings = d;
                   break;
                 }
@@ -165,9 +166,15 @@ class _VolatilityConeWidgetState extends State<VolatilityConeWidget>
           unselectedLabelColor: colorScheme.onSurfaceVariant,
           indicatorColor: colorScheme.primary,
           tabs: const [
-            Tab(icon: Icon(Icons.stacked_line_chart_rounded, size: 20), text: 'Cone & Rank'),
-            Tab(icon: Icon(Icons.area_chart_rounded, size: 20), text: 'Skew & Smile'),
-            Tab(icon: Icon(Icons.playlist_add_check_circle_rounded, size: 20), text: 'Playbook'),
+            Tab(
+                icon: Icon(Icons.stacked_line_chart_rounded, size: 20),
+                text: 'Cone & Rank'),
+            Tab(
+                icon: Icon(Icons.area_chart_rounded, size: 20),
+                text: 'Skew & Smile'),
+            Tab(
+                icon: Icon(Icons.playlist_add_check_circle_rounded, size: 20),
+                text: 'Playbook'),
           ],
         ),
       ),
@@ -317,7 +324,8 @@ class _VolatilityConeWidgetState extends State<VolatilityConeWidget>
                     color: regime.color(context).withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(regime.icon, color: regime.color(context), size: 28),
+                  child:
+                      Icon(regime.icon, color: regime.color(context), size: 28),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
@@ -357,7 +365,11 @@ class _VolatilityConeWidgetState extends State<VolatilityConeWidget>
   }
 
   Widget _buildMultiTimeframeCards(VolatilityConeAnalysis analysis) {
-    final metrics = [analysis.metrics30d, analysis.metrics60d, analysis.metrics90d];
+    final metrics = [
+      analysis.metrics30d,
+      analysis.metrics60d,
+      analysis.metrics90d
+    ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -372,10 +384,12 @@ class _VolatilityConeWidgetState extends State<VolatilityConeWidget>
             final isNarrow = constraints.maxWidth < 420;
             if (isNarrow) {
               return Column(
-                children: metrics.map((m) => Padding(
-                  padding: const EdgeInsets.only(bottom: 8.0),
-                  child: _buildSingleMetricCard(m),
-                )).toList(),
+                children: metrics
+                    .map((m) => Padding(
+                          padding: const EdgeInsets.only(bottom: 8.0),
+                          child: _buildSingleMetricCard(m),
+                        ))
+                    .toList(),
               );
             }
             return Row(
@@ -409,7 +423,8 @@ class _VolatilityConeWidgetState extends State<VolatilityConeWidget>
               children: [
                 Text(
                   metric.label,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                  style: const TextStyle(
+                      fontWeight: FontWeight.bold, fontSize: 13),
                 ),
                 Text(
                   '${(metric.currentIv * 100).toStringAsFixed(1)}% IV',
@@ -428,7 +443,8 @@ class _VolatilityConeWidgetState extends State<VolatilityConeWidget>
                 const Text('IV Rank', style: TextStyle(fontSize: 11)),
                 Text(
                   '${metric.ivRank.toStringAsFixed(0)}%',
-                  style: TextStyle(fontWeight: FontWeight.bold, color: color, fontSize: 12),
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold, color: color, fontSize: 12),
                 ),
               ],
             ),
@@ -438,7 +454,8 @@ class _VolatilityConeWidgetState extends State<VolatilityConeWidget>
               child: LinearProgressIndicator(
                 value: (metric.ivRank / 100.0).clamp(0.0, 1.0),
                 minHeight: 6,
-                backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                backgroundColor:
+                    Theme.of(context).colorScheme.surfaceContainerHighest,
                 valueColor: AlwaysStoppedAnimation<Color>(color),
               ),
             ),
@@ -449,7 +466,8 @@ class _VolatilityConeWidgetState extends State<VolatilityConeWidget>
                 const Text('IV Percentile', style: TextStyle(fontSize: 11)),
                 Text(
                   '${metric.ivPercentile.toStringAsFixed(0)}%',
-                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w600, fontSize: 12),
                 ),
               ],
             ),
@@ -529,9 +547,12 @@ class _VolatilityConeWidgetState extends State<VolatilityConeWidget>
       spacing: 14,
       runSpacing: 6,
       children: [
-        _buildLegendItem(Colors.amber.shade700, 'Current Implied Vol (IV)', isLine: true),
-        _buildLegendItem(Colors.blue.shade600, 'Current Realized Vol (RV)', isLine: true),
-        _buildLegendItem(Colors.purple.shade300.withValues(alpha: 0.5), '25%–75% Band (IQR)'),
+        _buildLegendItem(Colors.amber.shade700, 'Current Implied Vol (IV)',
+            isLine: true),
+        _buildLegendItem(Colors.blue.shade600, 'Current Realized Vol (RV)',
+            isLine: true),
+        _buildLegendItem(Colors.purple.shade300.withValues(alpha: 0.5),
+            '25%–75% Band (IQR)'),
         _buildLegendItem(Colors.grey.withValues(alpha: 0.3), 'Min–Max Range'),
       ],
     );
@@ -569,7 +590,8 @@ class _VolatilityConeWidgetState extends State<VolatilityConeWidget>
           return Padding(
             padding: const EdgeInsets.only(right: 8.0),
             child: ChoiceChip(
-              label: Text('${p.label} (${(p.currentRv * 100).toStringAsFixed(0)}% RV)'),
+              label: Text(
+                  '${p.label} (${(p.currentRv * 100).toStringAsFixed(0)}% RV)'),
               selected: isSelected,
               onSelected: (sel) {
                 setState(() {
@@ -606,18 +628,25 @@ class _VolatilityConeWidgetState extends State<VolatilityConeWidget>
                   style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: (isRich ? Colors.orange.shade800 : Colors.green.shade700)
+                    color: (isRich
+                            ? Colors.orange.shade800
+                            : Colors.green.shade700)
                         .withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
-                    isRich ? 'IV > RV (+${vrpPct.toStringAsFixed(1)}%)' : 'IV < RV (${vrpPct.toStringAsFixed(1)}%)',
+                    isRich
+                        ? 'IV > RV (+${vrpPct.toStringAsFixed(1)}%)'
+                        : 'IV < RV (${vrpPct.toStringAsFixed(1)}%)',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
-                      color: isRich ? Colors.orange.shade800 : Colors.green.shade700,
+                      color: isRich
+                          ? Colors.orange.shade800
+                          : Colors.green.shade700,
                     ),
                   ),
                 ),
@@ -688,14 +717,17 @@ class _VolatilityConeWidgetState extends State<VolatilityConeWidget>
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                    color:
+                        Theme.of(context).colorScheme.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
                     '25Δ Risk Reversal: ${(skew.riskReversal25Delta * 100).toStringAsFixed(1)}%',
-                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                        fontSize: 12, fontWeight: FontWeight.bold),
                   ),
                 ),
               ],
@@ -743,7 +775,10 @@ class _VolatilityConeWidgetState extends State<VolatilityConeWidget>
     return Container(
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+        color: Theme.of(context)
+            .colorScheme
+            .surfaceContainerHighest
+            .withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Column(
@@ -751,7 +786,9 @@ class _VolatilityConeWidgetState extends State<VolatilityConeWidget>
         children: [
           Text(label, style: const TextStyle(fontSize: 10)),
           const SizedBox(height: 2),
-          Text(value, style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: color)),
+          Text(value,
+              style: TextStyle(
+                  fontSize: 13, fontWeight: FontWeight.bold, color: color)),
         ],
       ),
     );
@@ -797,24 +834,34 @@ class _VolatilityConeWidgetState extends State<VolatilityConeWidget>
                 dataRowMinHeight: 28,
                 dataRowMaxHeight: 32,
                 columns: const [
-                  DataColumn(label: Text('Strike', style: TextStyle(fontSize: 11))),
-                  DataColumn(label: Text('Moneyness', style: TextStyle(fontSize: 11))),
-                  DataColumn(label: Text('Type', style: TextStyle(fontSize: 11))),
-                  DataColumn(label: Text('Blended IV', style: TextStyle(fontSize: 11))),
+                  DataColumn(
+                      label: Text('Strike', style: TextStyle(fontSize: 11))),
+                  DataColumn(
+                      label: Text('Moneyness', style: TextStyle(fontSize: 11))),
+                  DataColumn(
+                      label: Text('Type', style: TextStyle(fontSize: 11))),
+                  DataColumn(
+                      label:
+                          Text('Blended IV', style: TextStyle(fontSize: 11))),
                 ],
                 rows: skew.points.map((p) {
                   return DataRow(cells: [
-                    DataCell(Text('\$${p.strike.toStringAsFixed(1)}', style: const TextStyle(fontSize: 11))),
-                    DataCell(Text('${(p.moneyness * 100).toStringAsFixed(0)}%', style: const TextStyle(fontSize: 11))),
+                    DataCell(Text('\$${p.strike.toStringAsFixed(1)}',
+                        style: const TextStyle(fontSize: 11))),
+                    DataCell(Text('${(p.moneyness * 100).toStringAsFixed(0)}%',
+                        style: const TextStyle(fontSize: 11))),
                     DataCell(Text(p.optionType.toUpperCase(),
                         style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
                           color: p.optionType == 'put'
                               ? Colors.orange.shade800
-                              : (p.optionType == 'call' ? Colors.green.shade700 : Colors.blue),
+                              : (p.optionType == 'call'
+                                  ? Colors.green.shade700
+                                  : Colors.blue),
                         ))),
-                    DataCell(Text('${(p.blendedIv * 100).toStringAsFixed(1)}%', style: const TextStyle(fontSize: 11))),
+                    DataCell(Text('${(p.blendedIv * 100).toStringAsFixed(1)}%',
+                        style: const TextStyle(fontSize: 11))),
                   ]);
                 }).toList(),
               ),
@@ -844,7 +891,8 @@ class _VolatilityConeWidgetState extends State<VolatilityConeWidget>
                   style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: term.regime.color(context).withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(8),
@@ -889,8 +937,12 @@ class _VolatilityConeWidgetState extends State<VolatilityConeWidget>
       padding: const EdgeInsets.all(16.0),
       children: [
         Card(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-          color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.4),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          color: Theme.of(context)
+              .colorScheme
+              .primaryContainer
+              .withValues(alpha: 0.4),
           child: Padding(
             padding: const EdgeInsets.all(14.0),
             child: Row(
@@ -924,7 +976,8 @@ class _VolatilityConeWidgetState extends State<VolatilityConeWidget>
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
         side: rec.isRecommended
-            ? BorderSide(color: Theme.of(context).colorScheme.primary, width: 1.5)
+            ? BorderSide(
+                color: Theme.of(context).colorScheme.primary, width: 1.5)
             : BorderSide.none,
       ),
       child: Padding(
@@ -938,12 +991,15 @@ class _VolatilityConeWidgetState extends State<VolatilityConeWidget>
                 Expanded(
                   child: Row(
                     children: [
-                      Icon(rec.icon, color: Theme.of(context).colorScheme.primary, size: 22),
+                      Icon(rec.icon,
+                          color: Theme.of(context).colorScheme.primary,
+                          size: 22),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           rec.title,
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 15),
                         ),
                       ),
                     ],
@@ -951,7 +1007,8 @@ class _VolatilityConeWidgetState extends State<VolatilityConeWidget>
                 ),
                 if (rec.isRecommended)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
                       color: Theme.of(context).colorScheme.primary,
                       borderRadius: BorderRadius.circular(6),
@@ -976,24 +1033,32 @@ class _VolatilityConeWidgetState extends State<VolatilityConeWidget>
               ),
               child: Text(
                 rec.strategyType,
-                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+                style:
+                    const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
               ),
             ),
             const SizedBox(height: 10),
-            Text(rec.description, style: const TextStyle(fontSize: 13, height: 1.3)),
+            Text(rec.description,
+                style: const TextStyle(fontSize: 13, height: 1.3)),
             const SizedBox(height: 8),
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+                color: Theme.of(context)
+                    .colorScheme
+                    .surfaceContainerHighest
+                    .withValues(alpha: 0.4),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Rationale: ', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                  const Text('Rationale: ',
+                      style:
+                          TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                   Expanded(
-                    child: Text(rec.rationale, style: const TextStyle(fontSize: 11)),
+                    child: Text(rec.rationale,
+                        style: const TextStyle(fontSize: 11)),
                   ),
                 ],
               ),
@@ -1137,9 +1202,11 @@ class _VolatilityConePainter extends CustomPainter {
 
     for (double v = 0.10; v <= maxVol; v += 0.15) {
       final y = getY(v);
-      canvas.drawLine(Offset(leftPad, y), Offset(size.width - rightPad, y), gridPaint);
+      canvas.drawLine(
+          Offset(leftPad, y), Offset(size.width - rightPad, y), gridPaint);
       final tp = TextPainter(
-        text: TextSpan(text: '${(v * 100).toStringAsFixed(0)}%', style: textStyle),
+        text: TextSpan(
+            text: '${(v * 100).toStringAsFixed(0)}%', style: textStyle),
         textDirection: TextDirection.ltr,
       )..layout();
       tp.paint(canvas, Offset(2, y - 6));
@@ -1228,13 +1295,15 @@ class _VolatilityConePainter extends CustomPainter {
 
       // RV point
       final rvY = getY(p.currentRv);
-      canvas.drawCircle(Offset(x, rvY), 4, Paint()..color = Colors.blue.shade600);
+      canvas.drawCircle(
+          Offset(x, rvY), 4, Paint()..color = Colors.blue.shade600);
       canvas.drawCircle(Offset(x, rvY), 2, Paint()..color = Colors.white);
 
       // IV point
       if (p.currentIv != null) {
         final ivY = getY(p.currentIv!);
-        canvas.drawCircle(Offset(x, ivY), 4, Paint()..color = Colors.amber.shade700);
+        canvas.drawCircle(
+            Offset(x, ivY), 4, Paint()..color = Colors.amber.shade700);
         canvas.drawCircle(Offset(x, ivY), 2, Paint()..color = Colors.white);
       }
 

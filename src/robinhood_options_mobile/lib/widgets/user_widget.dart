@@ -1707,7 +1707,8 @@ class _UserWidgetState extends State<UserWidget> {
                                           title: const Text(
                                               'Automated DRIP with Threshold'),
                                           subtitle: Text(
-                                            user?.automatedDripConfig?.enabled ==
+                                            user?.automatedDripConfig
+                                                        ?.enabled ==
                                                     true
                                                 ? 'Active • ${user?.automatedDripConfig?.instrumentRules.length ?? 0} Custom Rules'
                                                 : 'Disabled • Reinvest dividends on price dips',

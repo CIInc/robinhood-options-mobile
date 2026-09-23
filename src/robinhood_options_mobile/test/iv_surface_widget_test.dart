@@ -117,7 +117,8 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Volatility Surface Guide'), findsOneWidget);
-      expect(find.text('What is an Implied Volatility Surface?'), findsOneWidget);
+      expect(
+          find.text('What is an Implied Volatility Surface?'), findsOneWidget);
       expect(find.text('Volatility Smile & Skew'), findsOneWidget);
       expect(find.text('Dupire Local Volatility'), findsOneWidget);
 

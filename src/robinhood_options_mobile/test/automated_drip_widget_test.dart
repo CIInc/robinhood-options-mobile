@@ -110,7 +110,8 @@ void main() {
           findsOneWidget);
     });
 
-    testWidgets('Opens Add Custom DRIP Rule dialog without overflow on narrow screen',
+    testWidgets(
+        'Opens Add Custom DRIP Rule dialog without overflow on narrow screen',
         (tester) async {
       // Simulate narrow mobile screen (iPhone SE / small mobile: 320x568)
       tester.view.physicalSize = const Size(320, 568);
@@ -147,4 +148,3 @@ void main() {
     });
   });
 }
-

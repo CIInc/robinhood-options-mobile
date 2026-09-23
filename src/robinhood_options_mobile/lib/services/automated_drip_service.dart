@@ -80,7 +80,8 @@ class AutomatedDripService {
               firestoreService.userCollection.doc(user.email ?? user.name);
           await firestoreService.updateUser(docRef, user);
         } catch (e) {
-          debugPrint('Error updating user AutomatedDripConfig in Firestore: $e');
+          debugPrint(
+              'Error updating user AutomatedDripConfig in Firestore: $e');
         }
       }
     }
@@ -102,7 +103,8 @@ class AutomatedDripService {
     User? user,
     FirestoreService? firestoreService,
   }) async {
-    final updatedRules = Map<String, InstrumentDripRule>.from(_config.instrumentRules);
+    final updatedRules =
+        Map<String, InstrumentDripRule>.from(_config.instrumentRules);
     updatedRules[rule.symbol.toUpperCase()] = rule;
     _config = _config.copyWith(instrumentRules: updatedRules);
     await updateConfig(_config, user: user, firestoreService: firestoreService);
@@ -114,7 +116,8 @@ class AutomatedDripService {
     User? user,
     FirestoreService? firestoreService,
   }) async {
-    final updatedRules = Map<String, InstrumentDripRule>.from(_config.instrumentRules);
+    final updatedRules =
+        Map<String, InstrumentDripRule>.from(_config.instrumentRules);
     updatedRules.remove(symbol.toUpperCase());
     _config = _config.copyWith(instrumentRules: updatedRules);
     await updateConfig(_config, user: user, firestoreService: firestoreService);
@@ -186,7 +189,8 @@ class AutomatedDripService {
                 : 'Price \$${currentPrice.toStringAsFixed(2)} exceeds fallback target \$${thresholdPrice.toStringAsFixed(2)}. Dividend held in cash.';
           } else {
             meetsThreshold = false;
-            reason = 'Cost basis unavailable for $upperSymbol; cannot evaluate threshold.';
+            reason =
+                'Cost basis unavailable for $upperSymbol; cannot evaluate threshold.';
           }
         } else if (currentPrice <= thresholdPrice) {
           meetsThreshold = true;
@@ -201,7 +205,8 @@ class AutomatedDripService {
 
       case DripThresholdMode.discountFromCostBasis:
         if (costBasis != null && costBasis > 0) {
-          final discount = rule.discountPercent ?? _config.defaultDiscountPercent;
+          final discount =
+              rule.discountPercent ?? _config.defaultDiscountPercent;
           thresholdPrice = costBasis * (1.0 - (discount / 100.0));
           if (currentPrice <= thresholdPrice) {
             meetsThreshold = true;
@@ -214,7 +219,8 @@ class AutomatedDripService {
           }
         } else {
           meetsThreshold = false;
-          reason = 'Cost basis unavailable for discount calculation on $upperSymbol.';
+          reason =
+              'Cost basis unavailable for discount calculation on $upperSymbol.';
         }
         break;
     }
@@ -270,7 +276,8 @@ class AutomatedDripService {
         notes: eval.reason,
       );
 
-      await _recordTransaction(tx, user: user, firestoreService: firestoreService);
+      await _recordTransaction(tx,
+          user: user, firestoreService: firestoreService);
       return tx;
     }
 
@@ -293,7 +300,9 @@ class AutomatedDripService {
           instrument,
           symbol,
           'buy',
-          eval.rule.orderType == 'limit' ? eval.thresholdPrice ?? currentPrice : null,
+          eval.rule.orderType == 'limit'
+              ? eval.thresholdPrice ?? currentPrice
+              : null,
           quantityToOrder,
           type: eval.rule.orderType,
           trigger: 'immediate',
@@ -327,7 +336,8 @@ class AutomatedDripService {
       notes: notes,
     );
 
-    await _recordTransaction(tx, user: user, firestoreService: firestoreService);
+    await _recordTransaction(tx,
+        user: user, firestoreService: firestoreService);
     return tx;
   }
 
@@ -337,7 +347,8 @@ class AutomatedDripService {
     User? user,
     FirestoreService? firestoreService,
   }) async {
-    final updatedList = List<DripTransaction>.from(_config.transactions)..insert(0, tx);
+    final updatedList = List<DripTransaction>.from(_config.transactions)
+      ..insert(0, tx);
     // Keep max 100 recent transactions
     if (updatedList.length > 100) {
       updatedList.removeRange(100, updatedList.length);
@@ -364,9 +375,8 @@ class AutomatedDripService {
     }
 
     // 1. Notify of recent executions
-    final recentExecuted = _config.transactions
-        .where((t) => t.status == 'executed')
-        .take(2);
+    final recentExecuted =
+        _config.transactions.where((t) => t.status == 'executed').take(2);
 
     for (final tx in recentExecuted) {
       alerts.add(PortfolioAlert(

@@ -142,7 +142,8 @@ enum SliceType { smileByDte, termStructureByMoneyness }
 class IvSurfaceSlice {
   final SliceType sliceType;
   final double paramValue; // DTE for smile, moneyness for term structure
-  final String paramLabel; // e.g. '30 DTE', 'ATM (1.00x)', '10% OTM Put (0.90x)'
+  final String
+      paramLabel; // e.g. '30 DTE', 'ATM (1.00x)', '10% OTM Put (0.90x)'
   final List<double> xValues; // Strike prices or DTE days
   final List<String> xLabels;
   final List<double> ivValues;
@@ -433,8 +434,8 @@ class IvSurfaceAnalysis {
               arbitrageCount: 0,
             ),
       arbitrageViolations: (json['arbitrage_violations'] as List<dynamic>?)
-              ?.map((a) =>
-                  ArbitrageViolation.fromJson(a as Map<String, dynamic>))
+              ?.map(
+                  (a) => ArbitrageViolation.fromJson(a as Map<String, dynamic>))
               .toList() ??
           [],
       smileSlices: (json['smile_slices'] as List<dynamic>?)

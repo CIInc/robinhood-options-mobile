@@ -234,7 +234,8 @@ class ZeroDteSqueezeRadarService {
     double? dist;
     double? distPct;
     bool isNear = false;
-    bool inShortZone = gexData.dealerPositioning == DealerPositioning.shortGamma;
+    bool inShortZone =
+        gexData.dealerPositioning == DealerPositioning.shortGamma;
 
     if (flip != null && spotPrice > 0) {
       dist = spotPrice - flip;
@@ -396,7 +397,8 @@ class ZeroDteSqueezeRadarService {
     }
 
     final triggered = score >= 8.0;
-    final callWallStr = callWall != null ? '\$${callWall.toStringAsFixed(1)}' : 'N/A';
+    final callWallStr =
+        callWall != null ? '\$${callWall.toStringAsFixed(1)}' : 'N/A';
 
     final desc = triggered
         ? 'Spot price is pressing against or penetrating Call Wall ($callWallStr). Squeeze potential expands as gamma peaks.'

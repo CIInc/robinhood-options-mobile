@@ -76,7 +76,8 @@ extension GammaSqueezeRiskLevelX on GammaSqueezeRiskLevel {
   }
 
   bool get isActionable =>
-      this == GammaSqueezeRiskLevel.high || this == GammaSqueezeRiskLevel.extreme;
+      this == GammaSqueezeRiskLevel.high ||
+      this == GammaSqueezeRiskLevel.extreme;
 }
 
 /// Aggregate metrics for 0DTE (same-day expiration) call and put flow.

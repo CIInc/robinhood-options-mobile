@@ -288,13 +288,16 @@ void main() {
   });
 
   group('VolatilityConeService Calculations', () {
-    test('calculateAnnualizedRv returns correct scaling for constant prices', () {
+    test('calculateAnnualizedRv returns correct scaling for constant prices',
+        () {
       final constantPrices = List.filled(30, 100.0);
       final rv = VolatilityConeService.calculateAnnualizedRv(constantPrices);
       expect(rv, equals(0.0));
     });
 
-    test('calculateAnnualizedRv computes expected standard deviation on price steps', () {
+    test(
+        'calculateAnnualizedRv computes expected standard deviation on price steps',
+        () {
       // Alternating 100 and 102
       final prices = <double>[];
       for (int i = 0; i < 40; i++) {
@@ -343,7 +346,9 @@ void main() {
       expect(analysis.recommendations.isNotEmpty, isTrue);
     });
 
-    test('computeAnalysis with historical candles produces robust empirical percentiles', () {
+    test(
+        'computeAnalysis with historical candles produces robust empirical percentiles',
+        () {
       final random = Random(12345);
       final candles = <InstrumentHistorical>[];
       double current = 150.0;
@@ -377,7 +382,9 @@ void main() {
       expect(point30.currentIv, equals(0.55));
     });
 
-    test('Pre-earnings IV crush warning is triggered when earnings are imminent', () {
+    test(
+        'Pre-earnings IV crush warning is triggered when earnings are imminent',
+        () {
       final now = DateTime(2026, 9, 21);
       final earningsDate = DateTime(2026, 9, 25); // 4 days away
 
@@ -395,7 +402,8 @@ void main() {
       expect(analysis.overallRegime, equals(VolatilityRegime.extreme));
     });
 
-    test('PortfolioAlertService generates appropriate Volatility Cone alerts', () {
+    test('PortfolioAlertService generates appropriate Volatility Cone alerts',
+        () {
       final expensiveAnalysis = VolatilityConeService.computeAnalysis(
         symbol: 'NVDA',
         spotPrice: 120.0,
@@ -416,7 +424,9 @@ void main() {
       );
     });
 
-    test('PortfolioAlertService evaluateVolatilityConeAlert checks rule conditions', () {
+    test(
+        'PortfolioAlertService evaluateVolatilityConeAlert checks rule conditions',
+        () {
       final analysis = VolatilityConeService.computeAnalysis(
         symbol: 'AMD',
         spotPrice: 160.0,

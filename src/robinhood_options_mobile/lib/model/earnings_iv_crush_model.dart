@@ -251,15 +251,12 @@ class EarningsIvCrushSummary {
   factory EarningsIvCrushSummary.fromJson(Map<String, dynamic> json) {
     return EarningsIvCrushSummary(
       quartersAnalyzed: json['quartersAnalyzed'] as int,
-      averageImpliedMovePct:
-          (json['averageImpliedMovePct'] as num).toDouble(),
+      averageImpliedMovePct: (json['averageImpliedMovePct'] as num).toDouble(),
       averageActualMovePct: (json['averageActualMovePct'] as num).toDouble(),
-      impliedVsActualSpread:
-          (json['impliedVsActualSpread'] as num).toDouble(),
+      impliedVsActualSpread: (json['impliedVsActualSpread'] as num).toDouble(),
       overpricingRatePct: (json['overpricingRatePct'] as num).toDouble(),
       averageIvCrushPct: (json['averageIvCrushPct'] as num).toDouble(),
-      crushProbabilityScore:
-          (json['crushProbabilityScore'] as num).toDouble(),
+      crushProbabilityScore: (json['crushProbabilityScore'] as num).toDouble(),
       riskTier: EarningsIvCrushRiskTier.values.firstWhere(
         (e) => e.name == json['riskTier'],
         orElse: () => EarningsIvCrushRiskTier.moderate,
@@ -340,8 +337,7 @@ class StraddlePricingEstimate {
           (json['expectedPostEarningsIv'] as num).toDouble(),
       longStraddleEv: (json['longStraddleEv'] as num).toDouble(),
       shortStraddleEv: (json['shortStraddleEv'] as num).toDouble(),
-      sellerWinProbability:
-          (json['sellerWinProbability'] as num).toDouble(),
+      sellerWinProbability: (json['sellerWinProbability'] as num).toDouble(),
       buyerWinProbability: (json['buyerWinProbability'] as num).toDouble(),
       recommendedStrategy: StraddleStrategyRecommendation.values.firstWhere(
         (e) => e.name == json['recommendedStrategy'],
@@ -411,8 +407,7 @@ class EarningsIvCrushAnalysis {
       summary: EarningsIvCrushSummary.fromJson(
           json['summary'] as Map<String, dynamic>),
       quarters: (json['quarters'] as List<dynamic>)
-          .map((e) =>
-              EarningsQuarterRecord.fromJson(e as Map<String, dynamic>))
+          .map((e) => EarningsQuarterRecord.fromJson(e as Map<String, dynamic>))
           .toList(),
       straddleEstimate: json['straddleEstimate'] != null
           ? StraddlePricingEstimate.fromJson(

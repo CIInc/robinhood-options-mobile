@@ -372,7 +372,8 @@ void main() {
   });
 
   group('CustomAlert & PortfolioAlertService Integration Tests', () {
-    test('evaluateEarningsCrushAlert evaluates probability and implied move rules',
+    test(
+        'evaluateEarningsCrushAlert evaluates probability and implied move rules',
         () {
       final now = DateTime(2026, 9, 21);
       final analysis = EarningsIvCrushAnalysis(
@@ -457,7 +458,8 @@ void main() {
           isTrue);
     });
 
-    test('PortfolioAlertService generates action center alerts for earnings IV crush',
+    test(
+        'PortfolioAlertService generates action center alerts for earnings IV crush',
         () {
       final now = DateTime(2026, 9, 21);
       final extremeAnalysis = EarningsIvCrushAnalysis(

@@ -21,7 +21,8 @@ void main() {
     spotPrice: 502.50,
     squeezeProbability: 82.0,
     riskLevel: GammaSqueezeRiskLevel.high,
-    summary: 'HIGH ALERT: 82% Squeeze Risk. Heavy 0DTE call sweeps with spot testing dealer flip thresholds.',
+    summary:
+        'HIGH ALERT: 82% Squeeze Risk. Heavy 0DTE call sweeps with spot testing dealer flip thresholds.',
     flowSummary: const ZeroDteFlowSummary(
       totalCallVolume: 24500,
       totalPutVolume: 6200,
@@ -57,7 +58,8 @@ void main() {
       ),
       SqueezeFactor(
         title: 'Dealer Short Gamma & Flip Proximity',
-        description: 'Dealers in Short Gamma with spot 0.5% from Flip (\$500.0).',
+        description:
+            'Dealers in Short Gamma with spot 0.5% from Flip (\$500.0).',
         score: 25.0,
         maxScore: 30.0,
         isTriggered: true,
@@ -98,7 +100,8 @@ void main() {
   }
 
   group('ZeroDteSqueezeRadarWidget Tests', () {
-    testWidgets('Renders probability gauge and risk badge correctly', (tester) async {
+    testWidgets('Renders probability gauge and risk badge correctly',
+        (tester) async {
       setLargeTestWindow(tester);
       await tester.pumpWidget(createWidgetUnderTest());
       await tester.pumpAndSettle();
@@ -124,7 +127,8 @@ void main() {
       expect(find.text('3.4x'), findsOneWidget);
     });
 
-    testWidgets('Renders dealer gamma flip panel with key levels', (tester) async {
+    testWidgets('Renders dealer gamma flip panel with key levels',
+        (tester) async {
       setLargeTestWindow(tester);
       await tester.pumpWidget(createWidgetUnderTest());
       await tester.pumpAndSettle();
@@ -153,7 +157,8 @@ void main() {
       expect(find.text('12 / 15 pts'), findsOneWidget);
     });
 
-    testWidgets('Taps GEX Profile button triggering onOpenGexAnalysis callback', (tester) async {
+    testWidgets('Taps GEX Profile button triggering onOpenGexAnalysis callback',
+        (tester) async {
       setLargeTestWindow(tester);
       bool gexOpened = false;
 

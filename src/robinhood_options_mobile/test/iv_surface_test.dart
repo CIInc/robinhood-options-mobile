@@ -114,16 +114,14 @@ void main() {
     });
 
     test('IvSurfaceRegime display helpers', () {
-      expect(IvSurfaceRegime.contango.displayName,
-          contains('Contango (Normal)'));
+      expect(
+          IvSurfaceRegime.contango.displayName, contains('Contango (Normal)'));
       expect(IvSurfaceRegime.backwardation.displayName,
           contains('Backwardation (Inverted)'));
       expect(IvSurfaceRegime.extremePutSkew.displayName,
           contains('Extreme Put Skew'));
-      expect(IvSurfaceRegime.callSkew.displayName,
-          contains('Call Skew'));
-      expect(IvSurfaceRegime.flat.displayName,
-          contains('Flat Surface'));
+      expect(IvSurfaceRegime.callSkew.displayName, contains('Call Skew'));
+      expect(IvSurfaceRegime.flat.displayName, contains('Flat Surface'));
     });
 
     test('IvSurfaceMetrics and IvSurfaceAnalysis JSON round-trip', () {
@@ -189,8 +187,10 @@ void main() {
 
       expect(analysis.symbol, equals('SPY'));
       expect(analysis.spotPrice, equals(500.0));
-      expect(analysis.grid.strikeCount, equals(IvSurfaceService.defaultStrikeGridCount));
-      expect(analysis.grid.dteCount, equals(IvSurfaceService.defaultGridDtes.length));
+      expect(analysis.grid.strikeCount,
+          equals(IvSurfaceService.defaultStrikeGridCount));
+      expect(analysis.grid.dteCount,
+          equals(IvSurfaceService.defaultGridDtes.length));
 
       // Check positive finite IV values across the grid
       for (int s = 0; s < analysis.grid.strikeCount; s++) {
@@ -340,7 +340,8 @@ void main() {
         ivSurfaceAnalyses: [analysis],
       );
 
-      expect(alerts.any((a) => a.id.contains('iv_surface_inverted_NVDA')), isTrue);
+      expect(
+          alerts.any((a) => a.id.contains('iv_surface_inverted_NVDA')), isTrue);
       final invertedAlert =
           alerts.firstWhere((a) => a.id.contains('iv_surface_inverted_NVDA'));
       expect(invertedAlert.severity, equals(PortfolioAlertSeverity.warning));
@@ -394,7 +395,8 @@ void main() {
         ivSurfaceAnalyses: [analysis],
       );
 
-      expect(alerts.any((a) => a.id.contains('iv_surface_arbitrage_AAPL')), isTrue);
+      expect(alerts.any((a) => a.id.contains('iv_surface_arbitrage_AAPL')),
+          isTrue);
       final arbAlert =
           alerts.firstWhere((a) => a.id.contains('iv_surface_arbitrage_AAPL'));
       expect(arbAlert.metric, equals('2 Spreads'));
@@ -439,8 +441,10 @@ void main() {
         condition: AlertCondition.surface_inversion,
         value: 0.0,
       );
-      expect(PortfolioAlertService.evaluateIvSurfaceAlert(
-          rule: ruleInversion, analysis: analysis), isTrue);
+      expect(
+          PortfolioAlertService.evaluateIvSurfaceAlert(
+              rule: ruleInversion, analysis: analysis),
+          isTrue);
 
       // Rule: above surface skew 10%
       const ruleSkew = SmartAlertRule(
@@ -448,8 +452,10 @@ void main() {
         condition: AlertCondition.above_surface_skew,
         value: 10.0, // 10%
       );
-      expect(PortfolioAlertService.evaluateIvSurfaceAlert(
-          rule: ruleSkew, analysis: analysis), isTrue);
+      expect(
+          PortfolioAlertService.evaluateIvSurfaceAlert(
+              rule: ruleSkew, analysis: analysis),
+          isTrue);
 
       // Rule: arbitrage detected
       const ruleArb = SmartAlertRule(
@@ -457,8 +463,10 @@ void main() {
         condition: AlertCondition.arbitrage_detected,
         value: 0.0,
       );
-      expect(PortfolioAlertService.evaluateIvSurfaceAlert(
-          rule: ruleArb, analysis: analysis), isTrue);
+      expect(
+          PortfolioAlertService.evaluateIvSurfaceAlert(
+              rule: ruleArb, analysis: analysis),
+          isTrue);
     });
   });
 }

@@ -570,9 +570,8 @@ class PortfolioAlertService {
     final alerts = <PortfolioAlert>[];
     if (config == null || !config.enabled) return alerts;
 
-    final recentExecuted = config.transactions
-        .where((t) => t.status == 'executed')
-        .take(1);
+    final recentExecuted =
+        config.transactions.where((t) => t.status == 'executed').take(1);
     for (final tx in recentExecuted) {
       alerts.add(PortfolioAlert(
         id: 'drip_exec_${tx.id}',
@@ -586,9 +585,8 @@ class PortfolioAlertService {
       ));
     }
 
-    final recentHeld = config.transactions
-        .where((t) => t.status == 'threshold_unmet')
-        .take(1);
+    final recentHeld =
+        config.transactions.where((t) => t.status == 'threshold_unmet').take(1);
     for (final tx in recentHeld) {
       alerts.add(PortfolioAlert(
         id: 'drip_held_${tx.id}',
@@ -718,7 +716,8 @@ class PortfolioAlertService {
             id: 'volatility_cone_extreme_${analysis.symbol}',
             severity: PortfolioAlertSeverity.warning,
             icon: Icons.warning_amber_rounded,
-            title: '${analysis.symbol} Extreme Volatility Surge (IV Rank: ${metrics.ivRank.toStringAsFixed(0)}%)',
+            title:
+                '${analysis.symbol} Extreme Volatility Surge (IV Rank: ${metrics.ivRank.toStringAsFixed(0)}%)',
             detail:
                 'Implied volatility (${(metrics.currentIv * 100).toStringAsFixed(1)}%) is trading at historical extremes vs. realized movement. High risk of mean-reverting IV collapse.',
             metric: '${metrics.ivRank.toStringAsFixed(0)}% IVR',
@@ -731,7 +730,8 @@ class PortfolioAlertService {
             id: 'volatility_cone_expensive_${analysis.symbol}',
             severity: PortfolioAlertSeverity.info,
             icon: Icons.arrow_upward_rounded,
-            title: '${analysis.symbol} Elevated Implied Volatility (IV Rank: ${metrics.ivRank.toStringAsFixed(0)}%)',
+            title:
+                '${analysis.symbol} Elevated Implied Volatility (IV Rank: ${metrics.ivRank.toStringAsFixed(0)}%)',
             detail:
                 'Options trade above the 75th percentile of historical realized movement. Positive Variance Risk Premium favors credit collection structures.',
             metric: '${metrics.ivRank.toStringAsFixed(0)}% IVR',
@@ -744,7 +744,8 @@ class PortfolioAlertService {
             id: 'volatility_cone_cheap_${analysis.symbol}',
             severity: PortfolioAlertSeverity.positive,
             icon: Icons.arrow_downward_rounded,
-            title: '${analysis.symbol} Underpriced Volatility (IV Rank: ${metrics.ivRank.toStringAsFixed(0)}%)',
+            title:
+                '${analysis.symbol} Underpriced Volatility (IV Rank: ${metrics.ivRank.toStringAsFixed(0)}%)',
             detail:
                 'Options trade in the bottom quartile of historical movement. Option purchase and calendar spreads offer high leverage at minimal extrinsic cost.',
             metric: '${metrics.ivRank.toStringAsFixed(0)}% IVR',
@@ -800,7 +801,8 @@ class PortfolioAlertService {
             title: '${analysis.symbol} Steep Downside Put Skew',
             detail:
                 '25-Delta put/call risk reversal is ${(metrics.riskReversal25D * 100).toStringAsFixed(1)}% vol points, indicating heavy demand for downside tail protection.',
-            metric: '+${(metrics.riskReversal25D * 100).toStringAsFixed(0)}% Skew',
+            metric:
+                '+${(metrics.riskReversal25D * 100).toStringAsFixed(0)}% Skew',
             target: PortfolioAlertTarget.ivSurface,
           ),
         );

@@ -19,13 +19,16 @@ class EarningsIvCrushService {
 
     // 1. Determine next earnings date and days countdown
     DateTime? resolvedNextDate = nextEarningsDate;
-    if (resolvedNextDate == null && rawEarnings != null && rawEarnings.isNotEmpty) {
+    if (resolvedNextDate == null &&
+        rawEarnings != null &&
+        rawEarnings.isNotEmpty) {
       for (final e in rawEarnings) {
         if (e is Map<String, dynamic> && e['report'] != null) {
           final dateStr = e['report']['date'] as String?;
           if (dateStr != null) {
             final parsed = DateTime.tryParse(dateStr);
-            if (parsed != null && parsed.isAfter(now.subtract(const Duration(days: 1)))) {
+            if (parsed != null &&
+                parsed.isAfter(now.subtract(const Duration(days: 1)))) {
               resolvedNextDate = parsed;
               break;
             }
@@ -120,7 +123,8 @@ class EarningsIvCrushService {
         EarningsBeatMiss beatMiss = EarningsBeatMiss.inline;
         if (epsActual != null && epsEstimate != null) {
           if (epsEstimate.abs() > 0.001) {
-            surprisePct = ((epsActual - epsEstimate) / epsEstimate.abs()) * 100.0;
+            surprisePct =
+                ((epsActual - epsEstimate) / epsEstimate.abs()) * 100.0;
           }
           if (epsActual > epsEstimate + 0.005) {
             beatMiss = EarningsBeatMiss.beat;
@@ -131,7 +135,8 @@ class EarningsIvCrushService {
 
         // Calibrate deterministic realistic IV and moves for this historical quarter
         final quarterIndex = records.length;
-        final seed = (symbol.hashCode + reportDate.millisecondsSinceEpoch) % 1000;
+        final seed =
+            (symbol.hashCode + reportDate.millisecondsSinceEpoch) % 1000;
         final quarterData = _generateQuarterMetrics(
           quarterIndex: quarterIndex,
           seed: seed,
@@ -153,7 +158,8 @@ class EarningsIvCrushService {
           impliedMovePct: quarterData.impliedMovePct,
           actualMovePct: quarterData.actualMovePct,
           moveDirection: quarterData.moveDirection,
-          impliedOverpriced: quarterData.impliedMovePct >= quarterData.actualMovePct,
+          impliedOverpriced:
+              quarterData.impliedMovePct >= quarterData.actualMovePct,
           beatMiss: beatMiss,
         ));
       }
@@ -169,7 +175,8 @@ class EarningsIvCrushService {
       for (int i = 0; i < needed; i++) {
         final quarterIndex = records.length;
         final pastQuarterDate = lastDate.subtract(Duration(days: 91 * (i + 1)));
-        final seed = (symbol.hashCode + pastQuarterDate.millisecondsSinceEpoch) % 1000;
+        final seed =
+            (symbol.hashCode + pastQuarterDate.millisecondsSinceEpoch) % 1000;
 
         final beatMissVal = (seed % 3 == 0)
             ? EarningsBeatMiss.miss
@@ -204,7 +211,8 @@ class EarningsIvCrushService {
           impliedMovePct: quarterData.impliedMovePct,
           actualMovePct: quarterData.actualMovePct,
           moveDirection: quarterData.moveDirection,
-          impliedOverpriced: quarterData.impliedMovePct >= quarterData.actualMovePct,
+          impliedOverpriced:
+              quarterData.impliedMovePct >= quarterData.actualMovePct,
           beatMiss: beatMissVal,
         ));
       }
@@ -337,9 +345,8 @@ class EarningsIvCrushService {
       crushProbabilityScore: score,
       riskTier: riskTier,
       maxHistoricalMovePct: double.parse(maxMove.toStringAsFixed(2)),
-      minHistoricalMovePct: minMove.isFinite
-          ? double.parse(minMove.toStringAsFixed(2))
-          : 0.0,
+      minHistoricalMovePct:
+          minMove.isFinite ? double.parse(minMove.toStringAsFixed(2)) : 0.0,
       upMovesCount: upCount,
       downMovesCount: downCount,
     );
@@ -415,20 +422,26 @@ class EarningsIvCrushService {
     // Fallback: Black-Scholes estimate for front-month straddle if chain is empty or incomplete
     if (!foundChain || (callPrice + putPrice) <= 0) {
       // Round to nearest sensible strike interval
-      final interval = spotPrice > 200 ? 5.0 : spotPrice > 50 ? 2.5 : 1.0;
+      final interval = spotPrice > 200
+          ? 5.0
+          : spotPrice > 50
+              ? 2.5
+              : 1.0;
       atmStrike = (spotPrice / interval).round() * interval;
 
       // Approximate 1-week or front-expiration ATM option value using Brenner-Subrahmanyam:
       // ATM Straddle ~ 0.8 * S * sigma * sqrt(T)
-      final t = max(0.015, (daysToEarnings != null ? (daysToEarnings + 2) : 7) / 365.0);
+      final t = max(
+          0.015, (daysToEarnings != null ? (daysToEarnings + 2) : 7) / 365.0);
       final estimatedStraddle = 0.8 * spotPrice * currentIv * sqrt(t);
       callPrice = double.parse((estimatedStraddle / 2.0).toStringAsFixed(2));
       putPrice = double.parse((estimatedStraddle / 2.0).toStringAsFixed(2));
     }
 
-    final straddleCost = double.parse((callPrice + putPrice).toStringAsFixed(2));
-    final straddleCostPct = double.parse(
-        ((straddleCost / spotPrice) * 100.0).toStringAsFixed(2));
+    final straddleCost =
+        double.parse((callPrice + putPrice).toStringAsFixed(2));
+    final straddleCostPct =
+        double.parse(((straddleCost / spotPrice) * 100.0).toStringAsFixed(2));
     final impliedMovePct = straddleCostPct;
 
     final upperBreakeven =
@@ -457,8 +470,8 @@ class EarningsIvCrushService {
 
     final buyerWinProbability =
         double.parse(((buyerWins / count) * 100.0).toStringAsFixed(1));
-    final sellerWinProbability = double.parse(
-        (100.0 - buyerWinProbability).toStringAsFixed(1));
+    final sellerWinProbability =
+        double.parse((100.0 - buyerWinProbability).toStringAsFixed(1));
 
     // 3. Tactical Strategy Recommendation
     StraddleStrategyRecommendation recommendation;

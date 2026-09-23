@@ -83,7 +83,8 @@ void main() {
 
       // Check Automated Rebalancing Suggestions
       expect(find.text('Automated Rebalancing Suggestions'), findsOneWidget);
-      expect(find.textContaining('Rebalancing frequency depends on volatility'), findsOneWidget);
+      expect(find.textContaining('Rebalancing frequency depends on volatility'),
+          findsOneWidget);
     });
 
     testWidgets('Switches to Scenario Curve tab and renders chart and matrix',
@@ -146,11 +147,13 @@ void main() {
       await tester.pumpAndSettle();
 
       // Should switch back to Legs & Builder tab and display SnackBar
-      expect(find.text('Loaded Delta-Neutral Covered Collar template.'), findsOneWidget);
+      expect(find.text('Loaded Delta-Neutral Covered Collar template.'),
+          findsOneWidget);
       expect(find.textContaining('Active Legs (3)'), findsOneWidget);
     });
 
-    testWidgets('Renders Scenario Curve tab on narrow mobile viewport (370px) without overflow',
+    testWidgets(
+        'Renders Scenario Curve tab on narrow mobile viewport (370px) without overflow',
         (WidgetTester tester) async {
       tester.view.physicalSize = const Size(370, 800);
       tester.view.devicePixelRatio = 1.0;
@@ -181,7 +184,8 @@ void main() {
       expect(find.text('Delta (Δ)'), findsWidgets);
     });
 
-    testWidgets('Scenario Curve interactive touch scrubbing and inspection card',
+    testWidgets(
+        'Scenario Curve interactive touch scrubbing and inspection card',
         (WidgetTester tester) async {
       setLargeTestWindow(tester);
 

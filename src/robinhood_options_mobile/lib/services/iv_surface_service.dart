@@ -328,21 +328,17 @@ class IvSurfaceService {
         double dwDt;
         if (t == 0) {
           final double tNext = dtes[t + 1] / 365.0;
-          final double wNext =
-              ivMatrix[s][t + 1] * ivMatrix[s][t + 1] * tNext;
+          final double wNext = ivMatrix[s][t + 1] * ivMatrix[s][t + 1] * tNext;
           dwDt = (wNext - w) / max(0.001, tNext - tYears);
         } else if (t == tCount - 1) {
           final double tPrev = dtes[t - 1] / 365.0;
-          final double wPrev =
-              ivMatrix[s][t - 1] * ivMatrix[s][t - 1] * tPrev;
+          final double wPrev = ivMatrix[s][t - 1] * ivMatrix[s][t - 1] * tPrev;
           dwDt = (w - wPrev) / max(0.001, tYears - tPrev);
         } else {
           final double tPrev = dtes[t - 1] / 365.0;
           final double tNext = dtes[t + 1] / 365.0;
-          final double wPrev =
-              ivMatrix[s][t - 1] * ivMatrix[s][t - 1] * tPrev;
-          final double wNext =
-              ivMatrix[s][t + 1] * ivMatrix[s][t + 1] * tNext;
+          final double wPrev = ivMatrix[s][t - 1] * ivMatrix[s][t - 1] * tPrev;
+          final double wNext = ivMatrix[s][t + 1] * ivMatrix[s][t + 1] * tNext;
           dwDt = (wNext - wPrev) / max(0.001, tNext - tPrev);
         }
 
@@ -353,14 +349,13 @@ class IvSurfaceService {
         if (s > 0 && s < sCount - 1) {
           final double yPrev = log(moneynessValues[s - 1]);
           final double yNext = log(moneynessValues[s + 1]);
-          final double wPrev =
-              ivMatrix[s - 1][t] * ivMatrix[s - 1][t] * tYears;
-          final double wNext =
-              ivMatrix[s + 1][t] * ivMatrix[s + 1][t] * tYears;
+          final double wPrev = ivMatrix[s - 1][t] * ivMatrix[s - 1][t] * tYears;
+          final double wNext = ivMatrix[s + 1][t] * ivMatrix[s + 1][t] * tYears;
 
           final double dy = yNext - yPrev;
           dwDy = (wNext - wPrev) / max(0.001, dy);
-          d2wDy2 = (wNext - 2.0 * w + wPrev) / max(0.0001, (dy * 0.5) * (dy * 0.5));
+          d2wDy2 =
+              (wNext - 2.0 * w + wPrev) / max(0.0001, (dy * 0.5) * (dy * 0.5));
         }
 
         // Dupire denominator
@@ -412,7 +407,8 @@ class IvSurfaceService {
               dte: grid.dtes[t],
               description:
                   'Calendar arbitrage at strike \$${strike.toStringAsFixed(1)}: total variance drops from ${w1.toStringAsFixed(3)} (${grid.dtes[t]}D) to ${w2.toStringAsFixed(3)} (${grid.dtes[t + 1]}D).',
-              severity: diff > 0.02 ? 'critical' : (diff > 0.008 ? 'medium' : 'low'),
+              severity:
+                  diff > 0.02 ? 'critical' : (diff > 0.008 ? 'medium' : 'low'),
               discrepancy: diff,
             ),
           );
@@ -517,8 +513,7 @@ class IvSurfaceService {
     final double ivPut25 = grid.ivMatrix[put25Idx][shortDteIdx];
     final double ivCall25 = grid.ivMatrix[call25Idx][shortDteIdx];
     final double riskReversal25D = ivPut25 - ivCall25;
-    final double butterflySkew =
-        ivPut25 + ivCall25 - 2.0 * atmShortTermIv;
+    final double butterflySkew = ivPut25 + ivCall25 - 2.0 * atmShortTermIv;
 
     // Regime classification
     IvSurfaceRegime regime;

@@ -176,8 +176,7 @@ class _ZeroDteSqueezeRadarWidgetState extends State<ZeroDteSqueezeRadarWidget> {
                     value: (prob / 100.0).clamp(0.0, 1.0),
                     strokeWidth: 12,
                     strokeCap: StrokeCap.round,
-                    backgroundColor:
-                        theme.colorScheme.surfaceContainerHighest,
+                    backgroundColor: theme.colorScheme.surfaceContainerHighest,
                     valueColor: AlwaysStoppedAnimation<Color>(riskColor),
                   ),
                 ),
@@ -257,7 +256,8 @@ class _ZeroDteSqueezeRadarWidgetState extends State<ZeroDteSqueezeRadarWidget> {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.primaryContainer.withValues(alpha: 0.5),
+                    color: theme.colorScheme.primaryContainer
+                        .withValues(alpha: 0.5),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
@@ -285,7 +285,8 @@ class _ZeroDteSqueezeRadarWidgetState extends State<ZeroDteSqueezeRadarWidget> {
                     ),
                   ),
                   Expanded(
-                    flex: max(((1.0 - flow.callPutVolumeRatio) * 100).toInt(), 1),
+                    flex:
+                        max(((1.0 - flow.callPutVolumeRatio) * 100).toInt(), 1),
                     child: Container(
                       height: 12,
                       color: Colors.red,
@@ -334,7 +335,8 @@ class _ZeroDteSqueezeRadarWidgetState extends State<ZeroDteSqueezeRadarWidget> {
                   child: _buildMetricTile(
                     theme,
                     label: 'Net Flow Velocity',
-                    value: '${flow.netVelocity >= 0 ? "+" : ""}${flow.netVelocity.toStringAsFixed(0)} /min',
+                    value:
+                        '${flow.netVelocity >= 0 ? "+" : ""}${flow.netVelocity.toStringAsFixed(0)} /min',
                     icon: flow.netVelocity >= 0
                         ? Icons.trending_up
                         : Icons.trending_down,
@@ -415,7 +417,8 @@ class _ZeroDteSqueezeRadarWidgetState extends State<ZeroDteSqueezeRadarWidget> {
                   decoration: BoxDecoration(
                     color: regimeColor.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: regimeColor.withValues(alpha: 0.3)),
+                    border:
+                        Border.all(color: regimeColor.withValues(alpha: 0.3)),
                   ),
                   child: Text(
                     regimeLabel,
@@ -485,8 +488,7 @@ class _ZeroDteSqueezeRadarWidgetState extends State<ZeroDteSqueezeRadarWidget> {
     );
   }
 
-  Widget _buildContributingFactorsCard(
-      BuildContext context, ThemeData theme) {
+  Widget _buildContributingFactorsCard(BuildContext context, ThemeData theme) {
     return Card(
       elevation: 0,
       color: theme.colorScheme.surfaceContainerLow,
@@ -517,9 +519,8 @@ class _ZeroDteSqueezeRadarWidgetState extends State<ZeroDteSqueezeRadarWidget> {
 
   Widget _buildFactorRow(
       BuildContext context, ThemeData theme, SqueezeFactor factor) {
-    final color = factor.isTriggered
-        ? Colors.deepOrange
-        : theme.colorScheme.primary;
+    final color =
+        factor.isTriggered ? Colors.deepOrange : theme.colorScheme.primary;
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6.0),
@@ -534,7 +535,8 @@ class _ZeroDteSqueezeRadarWidgetState extends State<ZeroDteSqueezeRadarWidget> {
                 style: TextStyle(
                   fontWeight: FontWeight.w600,
                   fontSize: 13,
-                  color: factor.isTriggered ? color : theme.colorScheme.onSurface,
+                  color:
+                      factor.isTriggered ? color : theme.colorScheme.onSurface,
                 ),
               ),
               Text(

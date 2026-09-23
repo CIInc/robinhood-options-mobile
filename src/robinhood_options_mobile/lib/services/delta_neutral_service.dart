@@ -150,13 +150,15 @@ class DeltaNeutralService {
     // Summary description
     final String summaryText;
     if (driftStatus == DeltaDriftStatus.neutral) {
-      summaryText = 'Position is within delta-neutral tolerance (${toleranceBand.toStringAsFixed(1)} Δ). No rebalancing required.';
+      summaryText =
+          'Position is within delta-neutral tolerance (${toleranceBand.toStringAsFixed(1)} Δ). No rebalancing required.';
     } else {
       final dir = deltaDrift > 0 ? 'Long' : 'Short';
       final hedgeDesc = primaryShareHedge != null
           ? primaryShareHedge.description
           : 'Rebalance option contracts';
-      summaryText = '$dir delta drift (+${deltaDrift.abs().toStringAsFixed(1)} Δ). Recommended: $hedgeDesc.';
+      summaryText =
+          '$dir delta drift (+${deltaDrift.abs().toStringAsFixed(1)} Δ). Recommended: $hedgeDesc.';
     }
 
     return DeltaNeutralRebalanceSuggestion(
@@ -191,7 +193,8 @@ class DeltaNeutralService {
     if (needPositiveDelta) {
       // Buy Call with ~0.40 to 0.50 delta
       const callDelta = 0.50;
-      final int contracts = math.max(1, (targetDeltaOffset / (callDelta * 100)).round());
+      final int contracts =
+          math.max(1, (targetDeltaOffset / (callDelta * 100)).round());
       final strike = (spotPrice * 1.0).roundToDouble();
       final estPrice = spotPrice * 0.035; // ~3.5% of spot for ATM 30DTE call
       final resultingDelta = currentNetDelta + (contracts * 100 * callDelta);
@@ -207,18 +210,22 @@ class DeltaNeutralService {
           contractUnitDelta: callDelta,
           resultingNetDelta: resultingDelta,
           estimatedCashFlow: contracts * 100 * estPrice,
-          description: 'Buy ${contracts}x \$${strike.toStringAsFixed(0)} Call (35 DTE)',
-          rationale: 'Long Call offset introduces positive delta (+${(contracts * 100 * callDelta).toStringAsFixed(1)}) '
+          description:
+              'Buy ${contracts}x \$${strike.toStringAsFixed(0)} Call (35 DTE)',
+          rationale:
+              'Long Call offset introduces positive delta (+${(contracts * 100 * callDelta).toStringAsFixed(1)}) '
               'and long gamma to profit from high-volatility upside swings.',
         ),
       );
 
       // Sell Put Candidate (Credit)
       const putDelta = -0.40;
-      final int putContracts = math.max(1, (targetDeltaOffset / (-putDelta * 100)).round());
+      final int putContracts =
+          math.max(1, (targetDeltaOffset / (-putDelta * 100)).round());
       final putStrike = (spotPrice * 0.97).roundToDouble();
       final estPutPrice = spotPrice * 0.025;
-      final resultingPutDelta = currentNetDelta + (putContracts * 100 * (-putDelta));
+      final resultingPutDelta =
+          currentNetDelta + (putContracts * 100 * (-putDelta));
 
       candidates.add(
         DeltaOffsetRecommendation(
@@ -231,15 +238,18 @@ class DeltaNeutralService {
           contractUnitDelta: putDelta,
           resultingNetDelta: resultingPutDelta,
           estimatedCashFlow: -(putContracts * 100 * estPutPrice), // Credit
-          description: 'Sell ${putContracts}x \$${putStrike.toStringAsFixed(0)} Put (35 DTE)',
-          rationale: 'Short Put offset generates net credit while adding +${(putContracts * 100 * (-putDelta)).toStringAsFixed(1)} delta '
+          description:
+              'Sell ${putContracts}x \$${putStrike.toStringAsFixed(0)} Put (35 DTE)',
+          rationale:
+              'Short Put offset generates net credit while adding +${(putContracts * 100 * (-putDelta)).toStringAsFixed(1)} delta '
               'and positive theta decay.',
         ),
       );
     } else {
       // We need negative delta: Buy Put or Sell Call
       const putDelta = -0.50;
-      final int contracts = math.max(1, (-targetDeltaOffset / (-putDelta * 100)).round());
+      final int contracts =
+          math.max(1, (-targetDeltaOffset / (-putDelta * 100)).round());
       final strike = (spotPrice * 1.0).roundToDouble();
       final estPrice = spotPrice * 0.035;
       final resultingDelta = currentNetDelta + (contracts * 100 * putDelta);
@@ -255,18 +265,22 @@ class DeltaNeutralService {
           contractUnitDelta: putDelta,
           resultingNetDelta: resultingDelta,
           estimatedCashFlow: contracts * 100 * estPrice,
-          description: 'Buy ${contracts}x \$${strike.toStringAsFixed(0)} Put (35 DTE)',
-          rationale: 'Long Put offset provides downside crash protection and negative delta offset '
+          description:
+              'Buy ${contracts}x \$${strike.toStringAsFixed(0)} Put (35 DTE)',
+          rationale:
+              'Long Put offset provides downside crash protection and negative delta offset '
               '(${(contracts * 100 * putDelta).toStringAsFixed(1)} Δ) with long volatility exposure.',
         ),
       );
 
       // Sell Call Candidate (Credit)
       const callDelta = 0.40;
-      final int callContracts = math.max(1, (-targetDeltaOffset / (callDelta * 100)).round());
+      final int callContracts =
+          math.max(1, (-targetDeltaOffset / (callDelta * 100)).round());
       final callStrike = (spotPrice * 1.03).roundToDouble();
       final estCallPrice = spotPrice * 0.025;
-      final resultingCallDelta = currentNetDelta - (callContracts * 100 * callDelta);
+      final resultingCallDelta =
+          currentNetDelta - (callContracts * 100 * callDelta);
 
       candidates.add(
         DeltaOffsetRecommendation(
@@ -279,8 +293,10 @@ class DeltaNeutralService {
           contractUnitDelta: callDelta,
           resultingNetDelta: resultingCallDelta,
           estimatedCashFlow: -(callContracts * 100 * estCallPrice), // Credit
-          description: 'Sell ${callContracts}x \$${callStrike.toStringAsFixed(0)} Call (35 DTE)',
-          rationale: 'Short Call offset generates premium income while shaving off '
+          description:
+              'Sell ${callContracts}x \$${callStrike.toStringAsFixed(0)} Call (35 DTE)',
+          rationale:
+              'Short Call offset generates premium income while shaving off '
               '-${(callContracts * 100 * callDelta).toStringAsFixed(1)} delta.',
         ),
       );
@@ -338,7 +354,10 @@ class DeltaNeutralService {
               ? rawUnitDelta.clamp(0.0, 1.0)
               : rawUnitDelta.clamp(-1.0, 0.0);
 
-          final legDelta = clampedUnitDelta * leg.multiplier * leg.quantity * leg.sideMultiplier;
+          final legDelta = clampedUnitDelta *
+              leg.multiplier *
+              leg.quantity *
+              leg.sideMultiplier;
           projectedNetDelta += legDelta;
 
           // Taylor expansion for option PnL: Delta * dS + 0.5 * Gamma * (dS)^2
@@ -350,7 +369,8 @@ class DeltaNeutralService {
         }
       }
 
-      final bool inTol = (projectedNetDelta - targetDelta).abs() <= toleranceBand;
+      final bool inTol =
+          (projectedNetDelta - targetDelta).abs() <= toleranceBand;
 
       points.add(
         DeltaScenarioPoint(
@@ -378,7 +398,8 @@ class DeltaNeutralService {
     DateTime? expirationDate,
   }) {
     final exp = expirationDate ?? DateTime.now().add(const Duration(days: 30));
-    final roundedSpot = (spotPrice / 5).round() * 5.0; // round to nearest $5 strike
+    final roundedSpot =
+        (spotPrice / 5).round() * 5.0; // round to nearest $5 strike
 
     switch (templateType) {
       case DeltaNeutralHedgingType.straddleStrangle:
@@ -605,7 +626,8 @@ class DeltaNeutralService {
 
     // 1. Stock position
     if (existingStockQuantity != null && existingStockQuantity.abs() > 0.0001) {
-      final side = existingStockQuantity > 0 ? PositionSide.long : PositionSide.short;
+      final side =
+          existingStockQuantity > 0 ? PositionSide.long : PositionSide.short;
       legs.add(
         DeltaPositionLeg(
           id: 'imported_stock_$symbol',
@@ -629,14 +651,18 @@ class DeltaNeutralService {
             ? PositionSide.short
             : PositionSide.long;
 
-        final isCall = (leg.positionType?.toLowerCase().contains('call') ?? false) ||
-            leg.optionType.toLowerCase().contains('call') ||
-            pos.strategy.toLowerCase().contains('call');
+        final isCall =
+            (leg.positionType?.toLowerCase().contains('call') ?? false) ||
+                leg.optionType.toLowerCase().contains('call') ||
+                pos.strategy.toLowerCase().contains('call');
         final legType = isCall ? DeltaLegType.call : DeltaLegType.put;
 
         // Find matching OptionInstrument for Greeks
         final matchingInst = optionInstruments?.firstWhere(
-          (inst) => inst.url == leg.option || inst.id == leg.id || inst.id == leg.option,
+          (inst) =>
+              inst.url == leg.option ||
+              inst.id == leg.id ||
+              inst.id == leg.option,
           orElse: () => OptionInstrument(
             '',
             symbol,
@@ -658,7 +684,8 @@ class DeltaNeutralService {
           ),
         );
 
-        final strike = leg.strikePrice ?? matchingInst?.strikePrice ?? spotPrice;
+        final strike =
+            leg.strikePrice ?? matchingInst?.strikePrice ?? spotPrice;
         final exp = leg.expirationDate ?? matchingInst?.expirationDate;
 
         final md = matchingInst?.optionMarketData;
@@ -670,7 +697,8 @@ class DeltaNeutralService {
 
         // Failover to Black-Scholes if Greeks are 0 or missing
         if (uDelta == 0.0 && exp != null) {
-          final t = math.max(0.001, exp.difference(DateTime.now()).inDays / 365);
+          final t =
+              math.max(0.001, exp.difference(DateTime.now()).inDays / 365);
           final greeks = calculateBlackScholesGreeks(
             spotPrice: spotPrice,
             strikePrice: strike,
@@ -727,7 +755,8 @@ class DeltaNeutralService {
     final sigma = math.max(0.01, volatility);
     final r = riskFreeRate;
 
-    final d1 = (math.log(S / K) + (r + 0.5 * sigma * sigma) * T) / (sigma * math.sqrt(T));
+    final d1 = (math.log(S / K) + (r + 0.5 * sigma * sigma) * T) /
+        (sigma * math.sqrt(T));
     final d2 = d1 - sigma * math.sqrt(T);
 
     final nd1 = _normalCdf(d1);

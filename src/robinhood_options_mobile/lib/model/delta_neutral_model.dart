@@ -206,12 +206,16 @@ class DeltaPositionLeg {
 
   /// Descriptive label (e.g. "Long 100 Shares" or "Short 1x $150 Call (Oct 24)").
   String get description {
-    final qtyStr = quantity % 1 == 0 ? quantity.toInt().toString() : quantity.toStringAsFixed(1);
+    final qtyStr = quantity % 1 == 0
+        ? quantity.toInt().toString()
+        : quantity.toStringAsFixed(1);
     final sideStr = side == PositionSide.long ? 'Long' : 'Short';
     if (legType == DeltaLegType.stock) {
       return '$sideStr $qtyStr Shares';
     }
-    final expStr = expirationDate != null ? DateFormat('MMM d').format(expirationDate!) : '';
+    final expStr = expirationDate != null
+        ? DateFormat('MMM d').format(expirationDate!)
+        : '';
     final typeStr = legType == DeltaLegType.call ? 'Call' : 'Put';
     final strikeStr = strike != null ? '\$${strike!.toStringAsFixed(1)}' : '';
     return '$sideStr ${qtyStr}x $strikeStr $typeStr ($expStr)';
@@ -272,7 +276,8 @@ class DeltaPositionLeg {
 
   factory DeltaPositionLeg.fromJson(Map<String, dynamic> json) {
     return DeltaPositionLeg(
-      id: json['id'] as String? ?? 'leg_${DateTime.now().millisecondsSinceEpoch}',
+      id: json['id'] as String? ??
+          'leg_${DateTime.now().millisecondsSinceEpoch}',
       symbol: json['symbol'] as String? ?? '',
       legType: DeltaLegType.values.firstWhere(
         (e) => e.name == json['leg_type'],
@@ -307,7 +312,8 @@ class DeltaOffsetRecommendation {
   final DateTime? expirationDate;
   final double? contractUnitDelta;
   final double resultingNetDelta;
-  final double estimatedCashFlow; // positive for cost/debit, negative for credit
+  final double
+      estimatedCashFlow; // positive for cost/debit, negative for credit
   final String description;
   final String rationale;
 
@@ -353,8 +359,10 @@ class DeltaOffsetRecommendation {
           ? DateTime.tryParse(json['expiration_date'] as String)
           : null,
       contractUnitDelta: (json['contract_unit_delta'] as num?)?.toDouble(),
-      resultingNetDelta: (json['resulting_net_delta'] as num?)?.toDouble() ?? 0.0,
-      estimatedCashFlow: (json['estimated_cash_flow'] as num?)?.toDouble() ?? 0.0,
+      resultingNetDelta:
+          (json['resulting_net_delta'] as num?)?.toDouble() ?? 0.0,
+      estimatedCashFlow:
+          (json['estimated_cash_flow'] as num?)?.toDouble() ?? 0.0,
       description: json['description'] as String? ?? '',
       rationale: json['rationale'] as String? ?? '',
     );
@@ -389,7 +397,8 @@ class DeltaScenarioPoint {
     return DeltaScenarioPoint(
       spotPrice: (json['spot_price'] as num?)?.toDouble() ?? 0.0,
       percentageShift: (json['percentage_shift'] as num?)?.toDouble() ?? 0.0,
-      projectedNetDelta: (json['projected_net_delta'] as num?)?.toDouble() ?? 0.0,
+      projectedNetDelta:
+          (json['projected_net_delta'] as num?)?.toDouble() ?? 0.0,
       projectedPnL: (json['projected_pnl'] as num?)?.toDouble() ?? 0.0,
       isInTolerance: json['is_in_tolerance'] as bool? ?? true,
     );
@@ -543,8 +552,8 @@ class DeltaNeutralAnalysis {
               summaryText: 'Neutral',
             ),
       scenarioPoints: (json['scenario_points'] as List<dynamic>?)
-              ?.map((e) =>
-                  DeltaScenarioPoint.fromJson(e as Map<String, dynamic>))
+              ?.map(
+                  (e) => DeltaScenarioPoint.fromJson(e as Map<String, dynamic>))
               .toList() ??
           const [],
       calculatedAt: json['calculated_at'] != null

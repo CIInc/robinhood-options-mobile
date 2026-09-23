@@ -231,7 +231,8 @@ class _IvSurface3dWidgetState extends State<IvSurface3dWidget>
                     color: metrics.regime.badgeColor.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                        color: metrics.regime.badgeColor.withValues(alpha: 0.5)),
+                        color:
+                            metrics.regime.badgeColor.withValues(alpha: 0.5)),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -253,7 +254,8 @@ class _IvSurface3dWidgetState extends State<IvSurface3dWidget>
                 const SizedBox(width: 12),
                 _buildCompactMetricChip(
                   label: 'ATM IV',
-                  value: '${(metrics.atmShortTermIv * 100).toStringAsFixed(1)}%',
+                  value:
+                      '${(metrics.atmShortTermIv * 100).toStringAsFixed(1)}%',
                 ),
                 const SizedBox(width: 8),
                 _buildCompactMetricChip(
@@ -275,8 +277,7 @@ class _IvSurface3dWidgetState extends State<IvSurface3dWidget>
               return GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onTapUp: (details) {
-                  _handleCanvasTap(
-                      details.localPosition, canvasSize, analysis);
+                  _handleCanvasTap(details.localPosition, canvasSize, analysis);
                 },
                 onScaleStart: (details) {
                   _lastFocalPoint = details.focalPoint;
@@ -317,8 +318,7 @@ class _IvSurface3dWidgetState extends State<IvSurface3dWidget>
                         ),
                       ),
                     ),
-                    if (_inspectedStrikeIdx != null &&
-                        _inspectedDteIdx != null)
+                    if (_inspectedStrikeIdx != null && _inspectedDteIdx != null)
                       Positioned(
                         top: 10,
                         left: 16,
@@ -452,8 +452,7 @@ class _IvSurface3dWidgetState extends State<IvSurface3dWidget>
     });
   }
 
-  Widget _buildInspectedNodeCard(
-      IvSurfaceAnalysis analysis, ThemeData theme) {
+  Widget _buildInspectedNodeCard(IvSurfaceAnalysis analysis, ThemeData theme) {
     if (_inspectedStrikeIdx == null || _inspectedDteIdx == null) {
       return const SizedBox.shrink();
     }
@@ -776,8 +775,8 @@ class _IvSurface3dWidgetState extends State<IvSurface3dWidget>
         // Summary Card
         Card(
           elevation: 0,
-          color: theme.colorScheme.surfaceContainerHighest
-              .withValues(alpha: 0.25),
+          color:
+              theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.25),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
             side: BorderSide(
@@ -969,10 +968,9 @@ class _IvSurface3dWidgetState extends State<IvSurface3dWidget>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(label,
-                  style:
-                      const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-              Text(subtitle,
-                  style: TextStyle(fontSize: 11, color: color)),
+                  style: const TextStyle(
+                      fontSize: 14, fontWeight: FontWeight.w600)),
+              Text(subtitle, style: TextStyle(fontSize: 11, color: color)),
             ],
           ),
         ),
@@ -1170,8 +1168,8 @@ class _IvSurface3dWidgetState extends State<IvSurface3dWidget>
     final norm = ((val - minVal) / range).clamp(0.0, 1.0);
 
     if (norm < 0.25) {
-      return Color.lerp(const Color(0xFF1E88E5), const Color(0xFF00ACC1),
-          norm / 0.25)!;
+      return Color.lerp(
+          const Color(0xFF1E88E5), const Color(0xFF00ACC1), norm / 0.25)!;
     } else if (norm < 0.5) {
       return Color.lerp(const Color(0xFF00ACC1), const Color(0xFF43A047),
           (norm - 0.25) / 0.25)!;
@@ -1425,10 +1423,9 @@ class _IvSurface3dPainter extends CustomPainter {
     );
 
     _drawLabel(canvas, 'OTM Puts', projectedPoints[0][0], textStyle);
-    _drawLabel(
-        canvas, 'OTM Calls', projectedPoints[sCount - 1][0], textStyle);
-    _drawLabel(
-        canvas, '${grid.dtes.last}D Back', projectedPoints[sCount ~/ 2][tCount - 1], textStyle);
+    _drawLabel(canvas, 'OTM Calls', projectedPoints[sCount - 1][0], textStyle);
+    _drawLabel(canvas, '${grid.dtes.last}D Back',
+        projectedPoints[sCount ~/ 2][tCount - 1], textStyle);
 
     // 6. Highlight inspected node if selected
     if (inspectedStrikeIdx != null &&
@@ -1459,8 +1456,8 @@ class _IvSurface3dPainter extends CustomPainter {
     )..layout();
     textPainter.paint(
       canvas,
-      Offset(
-          position.dx - textPainter.width / 2, position.dy - textPainter.height),
+      Offset(position.dx - textPainter.width / 2,
+          position.dy - textPainter.height),
     );
   }
 
@@ -1563,8 +1560,8 @@ class _Iv2dSlicePainter extends CustomPainter {
           color.withValues(alpha: 0.35),
           color.withValues(alpha: 0.02),
         ],
-      ).createShader(Rect.fromLTWH(
-          padding.left, padding.top, chartWidth, chartHeight));
+      ).createShader(
+          Rect.fromLTWH(padding.left, padding.top, chartWidth, chartHeight));
     canvas.drawPath(fillPath, fillPaint);
 
     // Stroke line
@@ -1585,24 +1582,21 @@ class _Iv2dSlicePainter extends CustomPainter {
       fontSize: 10,
       color: theme.textTheme.bodySmall?.color ?? Colors.grey,
     );
-    _drawYAxisLabel(
-        canvas,
-        '${(maxDisplayIv * 100).toStringAsFixed(0)}%',
-        Offset(2, padding.top),
-        textStyle);
-    _drawYAxisLabel(
-        canvas,
-        '${(minDisplayIv * 100).toStringAsFixed(0)}%',
-        Offset(2, padding.top + chartHeight - 10),
-        textStyle);
+    _drawYAxisLabel(canvas, '${(maxDisplayIv * 100).toStringAsFixed(0)}%',
+        Offset(2, padding.top), textStyle);
+    _drawYAxisLabel(canvas, '${(minDisplayIv * 100).toStringAsFixed(0)}%',
+        Offset(2, padding.top + chartHeight - 10), textStyle);
 
     // X Axis Labels (first, middle, last)
+    _drawXAxisLabel(canvas, slice.xLabels.first,
+        Offset(padding.left, size.height - 18), textStyle);
     _drawXAxisLabel(
-        canvas, slice.xLabels.first, Offset(padding.left, size.height - 18), textStyle);
-    _drawXAxisLabel(
-        canvas, slice.xLabels[count ~/ 2], Offset(padding.left + chartWidth / 2 - 20, size.height - 18), textStyle);
-    _drawXAxisLabel(
-        canvas, slice.xLabels.last, Offset(padding.left + chartWidth - 30, size.height - 18), textStyle);
+        canvas,
+        slice.xLabels[count ~/ 2],
+        Offset(padding.left + chartWidth / 2 - 20, size.height - 18),
+        textStyle);
+    _drawXAxisLabel(canvas, slice.xLabels.last,
+        Offset(padding.left + chartWidth - 30, size.height - 18), textStyle);
   }
 
   void _drawYAxisLabel(

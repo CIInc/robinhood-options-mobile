@@ -479,7 +479,8 @@ void main() {
         expect(updatedOrder['price'], equals(155.0));
         expect(updatedOrder['quantity'], equals(12));
         expect(updatedOrder['confidence'], equals(92));
-        expect(updatedOrder['reason'], equals('Stronger continuation breakout'));
+        expect(
+            updatedOrder['reason'], equals('Stronger continuation breakout'));
       } finally {
         MarketHours.testTime = null;
       }
@@ -517,8 +518,7 @@ void main() {
         );
 
         expect(provider.pendingOrders.length, equals(2));
-        final symbols =
-            provider.pendingOrders.map((o) => o['symbol']).toSet();
+        final symbols = provider.pendingOrders.map((o) => o['symbol']).toSet();
         expect(symbols, containsAll(['AAPL', 'MSFT']));
       } finally {
         MarketHours.testTime = null;

@@ -2927,9 +2927,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                         ),
                         Icon(Icons.arrow_forward_ios,
                             size: 12,
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onSurfaceVariant),
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant),
                       ],
                     ),
                   ),
@@ -3016,9 +3015,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                         ),
                         Icon(Icons.arrow_forward_ios,
                             size: 12,
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onSurfaceVariant),
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant),
                       ],
                     ),
                   ),
@@ -3105,9 +3103,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                         ),
                         Icon(Icons.arrow_forward_ios,
                             size: 12,
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onSurfaceVariant),
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant),
                       ],
                     ),
                   ),
@@ -3194,9 +3191,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                         ),
                         Icon(Icons.arrow_forward_ios,
                             size: 12,
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onSurfaceVariant),
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant),
                       ],
                     ),
                   ),

@@ -164,10 +164,18 @@ class _DeltaNeutralBuilderWidgetState extends State<DeltaNeutralBuilderWidget>
           controller: _tabController,
           isScrollable: true,
           tabs: const [
-            Tab(icon: Icon(Icons.layers_outlined, size: 18), text: 'Legs & Builder'),
-            Tab(icon: Icon(Icons.tune_rounded, size: 18), text: 'Rebalance & Offsets'),
-            Tab(icon: Icon(Icons.show_chart_rounded, size: 18), text: 'Scenario Curve'),
-            Tab(icon: Icon(Icons.auto_awesome_outlined, size: 18), text: 'Templates'),
+            Tab(
+                icon: Icon(Icons.layers_outlined, size: 18),
+                text: 'Legs & Builder'),
+            Tab(
+                icon: Icon(Icons.tune_rounded, size: 18),
+                text: 'Rebalance & Offsets'),
+            Tab(
+                icon: Icon(Icons.show_chart_rounded, size: 18),
+                text: 'Scenario Curve'),
+            Tab(
+                icon: Icon(Icons.auto_awesome_outlined, size: 18),
+                text: 'Templates'),
           ],
         ),
       ),
@@ -386,8 +394,7 @@ class _DeltaNeutralBuilderWidgetState extends State<DeltaNeutralBuilderWidget>
   // Tab 1: Legs & Strategy Builder
   // --------------------------------------------------------------------------
 
-  Widget _buildLegsTab(
-      DeltaNeutralAnalysis analysis, ColorScheme colorScheme) {
+  Widget _buildLegsTab(DeltaNeutralAnalysis analysis, ColorScheme colorScheme) {
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       children: [
@@ -555,7 +562,8 @@ class _DeltaNeutralBuilderWidgetState extends State<DeltaNeutralBuilderWidget>
                         const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
                     child: Row(
                       children: [
-                        Icon(Icons.swap_horiz, size: 14, color: colorScheme.primary),
+                        Icon(Icons.swap_horiz,
+                            size: 14, color: colorScheme.primary),
                         const SizedBox(width: 4),
                         Text(
                           'Side: ${leg.side.label}',
@@ -659,7 +667,8 @@ class _DeltaNeutralBuilderWidgetState extends State<DeltaNeutralBuilderWidget>
                   children: [
                     const Text(
                       'Neutrality Tolerance Band',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                      style:
+                          TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                     ),
                     Text(
                       '±${_toleranceBand.toStringAsFixed(1)} Δ',
@@ -713,7 +722,8 @@ class _DeltaNeutralBuilderWidgetState extends State<DeltaNeutralBuilderWidget>
               Expanded(
                 child: Text(
                   rebalance.summaryText,
-                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                  style: const TextStyle(
+                      fontSize: 13, fontWeight: FontWeight.w600),
                 ),
               ),
             ],
@@ -726,10 +736,12 @@ class _DeltaNeutralBuilderWidgetState extends State<DeltaNeutralBuilderWidget>
         ),
         const SizedBox(height: 8),
         if (rebalance.primaryShareHedge != null)
-          _buildOffsetCard(rebalance.primaryShareHedge!, colorScheme, isPrimary: true),
+          _buildOffsetCard(rebalance.primaryShareHedge!, colorScheme,
+              isPrimary: true),
         if (rebalance.primaryOptionHedge != null)
           _buildOffsetCard(rebalance.primaryOptionHedge!, colorScheme),
-        ...rebalance.alternativeHedges.map((alt) => _buildOffsetCard(alt, colorScheme)),
+        ...rebalance.alternativeHedges
+            .map((alt) => _buildOffsetCard(alt, colorScheme)),
         const SizedBox(height: 16),
         // Advisory note
         Card(
@@ -878,7 +890,9 @@ class _DeltaNeutralBuilderWidgetState extends State<DeltaNeutralBuilderWidget>
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      hedge.estimatedCashFlow >= 0 ? 'Est. Capital' : 'Est. Credit',
+                      hedge.estimatedCashFlow >= 0
+                          ? 'Est. Capital'
+                          : 'Est. Credit',
                       style: TextStyle(
                           fontSize: 10, color: colorScheme.onSurfaceVariant),
                     ),
@@ -1052,8 +1066,12 @@ class _DeltaNeutralBuilderWidgetState extends State<DeltaNeutralBuilderWidget>
                           fontWeight: FontWeight.bold,
                           fontSize: 12,
                           color: _showPnLCurve
-                              ? (hp.projectedPnL >= 0 ? Colors.green : Colors.red)
-                              : (hp.isInTolerance ? Colors.green : Colors.orange),
+                              ? (hp.projectedPnL >= 0
+                                  ? Colors.green
+                                  : Colors.red)
+                              : (hp.isInTolerance
+                                  ? Colors.green
+                                  : Colors.orange),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -1088,7 +1106,8 @@ class _DeltaNeutralBuilderWidgetState extends State<DeltaNeutralBuilderWidget>
               if (maxX <= minX) return;
 
               // Account for padding (12px each side)
-              final innerWidth = (chartWidth - 24.0).clamp(1.0, double.infinity);
+              final innerWidth =
+                  (chartWidth - 24.0).clamp(1.0, double.infinity);
               final innerX = (localX - 12.0).clamp(0.0, innerWidth);
               final targetSpot = minX + (innerX / innerWidth) * (maxX - minX);
 
@@ -1120,7 +1139,8 @@ class _DeltaNeutralBuilderWidgetState extends State<DeltaNeutralBuilderWidget>
                 height: 240,
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.2),
+                  color: colorScheme.surfaceContainerHighest
+                      .withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
                     color: colorScheme.outlineVariant.withValues(alpha: 0.3),
@@ -1157,28 +1177,39 @@ class _DeltaNeutralBuilderWidgetState extends State<DeltaNeutralBuilderWidget>
           children: [
             TableRow(
               decoration: BoxDecoration(
-                color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+                color:
+                    colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
               ),
               children: const [
                 Padding(
                   padding: EdgeInsets.symmetric(vertical: 6, horizontal: 4),
-                  child: Text('Spot Move', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                  child: Text('Spot Move',
+                      style:
+                          TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                 ),
                 Padding(
                   padding: EdgeInsets.symmetric(vertical: 6, horizontal: 4),
-                  child: Text('Underlying', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                  child: Text('Underlying',
+                      style:
+                          TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                 ),
                 Padding(
                   padding: EdgeInsets.symmetric(vertical: 6, horizontal: 4),
-                  child: Text('Net Delta', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                  child: Text('Net Delta',
+                      style:
+                          TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                 ),
                 Padding(
                   padding: EdgeInsets.symmetric(vertical: 6, horizontal: 4),
-                  child: Text('Est. P&L', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                  child: Text('Est. P&L',
+                      style:
+                          TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                 ),
                 Padding(
                   padding: EdgeInsets.symmetric(vertical: 6, horizontal: 4),
-                  child: Text('Status', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                  child: Text('Status',
+                      style:
+                          TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                 ),
               ],
             ),
@@ -1186,7 +1217,8 @@ class _DeltaNeutralBuilderWidgetState extends State<DeltaNeutralBuilderWidget>
               final idx = entry.key;
               final pt = entry.value;
               final isHovered = _hoveredScenarioIndex == idx;
-              final pctStr = '${pt.percentageShift >= 0 ? "+" : ""}${(pt.percentageShift * 100).toStringAsFixed(1)}%';
+              final pctStr =
+                  '${pt.percentageShift >= 0 ? "+" : ""}${(pt.percentageShift * 100).toStringAsFixed(1)}%';
               final pnlColor = pt.projectedPnL >= 0 ? Colors.green : Colors.red;
               return TableRow(
                 decoration: isHovered
@@ -1205,8 +1237,10 @@ class _DeltaNeutralBuilderWidgetState extends State<DeltaNeutralBuilderWidget>
                         });
                       },
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
-                        child: Text(pctStr, style: const TextStyle(fontSize: 11)),
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 6, horizontal: 4),
+                        child:
+                            Text(pctStr, style: const TextStyle(fontSize: 11)),
                       ),
                     ),
                   ),
@@ -1219,8 +1253,10 @@ class _DeltaNeutralBuilderWidgetState extends State<DeltaNeutralBuilderWidget>
                         });
                       },
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
-                        child: Text('\$${pt.spotPrice.toStringAsFixed(1)}', style: const TextStyle(fontSize: 11)),
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 6, horizontal: 4),
+                        child: Text('\$${pt.spotPrice.toStringAsFixed(1)}',
+                            style: const TextStyle(fontSize: 11)),
                       ),
                     ),
                   ),
@@ -1233,13 +1269,15 @@ class _DeltaNeutralBuilderWidgetState extends State<DeltaNeutralBuilderWidget>
                         });
                       },
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 6, horizontal: 4),
                         child: Text(
                           '${pt.projectedNetDelta >= 0 ? "+" : ""}${pt.projectedNetDelta.toStringAsFixed(1)} Δ',
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
-                            color: pt.isInTolerance ? Colors.green : Colors.orange,
+                            color:
+                                pt.isInTolerance ? Colors.green : Colors.orange,
                           ),
                         ),
                       ),
@@ -1254,10 +1292,14 @@ class _DeltaNeutralBuilderWidgetState extends State<DeltaNeutralBuilderWidget>
                         });
                       },
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 6, horizontal: 4),
                         child: Text(
                           '${pt.projectedPnL >= 0 ? "+" : ""}\$${pt.projectedPnL.toStringAsFixed(0)}',
-                          style: TextStyle(fontSize: 11, color: pnlColor, fontWeight: FontWeight.w600),
+                          style: TextStyle(
+                              fontSize: 11,
+                              color: pnlColor,
+                              fontWeight: FontWeight.w600),
                         ),
                       ),
                     ),
@@ -1271,11 +1313,15 @@ class _DeltaNeutralBuilderWidgetState extends State<DeltaNeutralBuilderWidget>
                         });
                       },
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 6, horizontal: 4),
                         child: Icon(
-                          pt.isInTolerance ? Icons.check_circle : Icons.warning_amber_rounded,
+                          pt.isInTolerance
+                              ? Icons.check_circle
+                              : Icons.warning_amber_rounded,
                           size: 14,
-                          color: pt.isInTolerance ? Colors.green : Colors.orange,
+                          color:
+                              pt.isInTolerance ? Colors.green : Colors.orange,
                         ),
                       ),
                     ),
@@ -1552,7 +1598,8 @@ class _DeltaNeutralBuilderWidgetState extends State<DeltaNeutralBuilderWidget>
                           );
                         } else {
                           final isCall = selectedType == DeltaLegType.call;
-                          final g = DeltaNeutralService.calculateBlackScholesGreeks(
+                          final g =
+                              DeltaNeutralService.calculateBlackScholesGreeks(
                             spotPrice: _spotPrice,
                             strikePrice: strike,
                             timeToExpirationYears: 30 / 365,
@@ -1759,8 +1806,8 @@ class _DeltaScenarioChartPainter extends CustomPainter {
       ..color = colorScheme.primary.withValues(alpha: 0.5)
       ..strokeWidth = 1.2
       ..style = PaintingStyle.stroke;
-    canvas.drawLine(
-        Offset(currentSpotX, 0), Offset(currentSpotX, size.height), spotLinePaint);
+    canvas.drawLine(Offset(currentSpotX, 0), Offset(currentSpotX, size.height),
+        spotLinePaint);
 
     // 4. Plot Curve Path
     final path = Path();
@@ -1778,9 +1825,7 @@ class _DeltaScenarioChartPainter extends CustomPainter {
     }
 
     final curvePaint = Paint()
-      ..color = showPnL
-          ? Colors.teal
-          : (colorScheme.primary)
+      ..color = showPnL ? Colors.teal : (colorScheme.primary)
       ..strokeWidth = 2.5
       ..style = PaintingStyle.stroke;
 

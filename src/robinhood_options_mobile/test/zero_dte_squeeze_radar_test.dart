@@ -9,7 +9,8 @@ import 'package:robinhood_options_mobile/services/zero_dte_squeeze_radar_service
 
 void main() {
   group('ZeroDteSqueezeRadarModel Tests', () {
-    test('GammaSqueezeRiskLevel properties and thresholds work as expected', () {
+    test('GammaSqueezeRiskLevel properties and thresholds work as expected',
+        () {
       expect(GammaSqueezeRiskLevel.low.shortLabel, equals('Low'));
       expect(GammaSqueezeRiskLevel.low.isActionable, isFalse);
 
@@ -140,7 +141,9 @@ void main() {
   });
 
   group('ZeroDteSqueezeRadarService Quantitative Engine Tests', () {
-    test('Calculates low squeeze probability under normal long gamma conditions', () {
+    test(
+        'Calculates low squeeze probability under normal long gamma conditions',
+        () {
       final now = DateTime(2026, 9, 21, 10, 0);
 
       const gexData = GammaExposureData(
@@ -173,7 +176,9 @@ void main() {
       expect(radar.flipMetrics.isNearFlip, isFalse);
     });
 
-    test('Detects extreme gamma squeeze when heavy 0DTE call sweeps hit short gamma regime', () {
+    test(
+        'Detects extreme gamma squeeze when heavy 0DTE call sweeps hit short gamma regime',
+        () {
       final now = DateTime(2026, 9, 21, 14, 0);
 
       const gexData = GammaExposureData(
@@ -298,8 +303,10 @@ void main() {
     });
   });
 
-  group('CustomAlert & PortfolioAlertService Squeeze Radar Integration Tests', () {
-    test('evaluateSqueezeAlert correctly triggers for probability threshold', () {
+  group('CustomAlert & PortfolioAlertService Squeeze Radar Integration Tests',
+      () {
+    test('evaluateSqueezeAlert correctly triggers for probability threshold',
+        () {
       final result = ZeroDteSqueezeRadarResult(
         symbol: 'NVDA',
         spotPrice: 120.0,
@@ -341,7 +348,8 @@ void main() {
         condition: AlertCondition.above,
         value: 70.0,
       );
-      expect(ZeroDteSqueezeRadarService.evaluateSqueezeAlert(result, probRule), isTrue);
+      expect(ZeroDteSqueezeRadarService.evaluateSqueezeAlert(result, probRule),
+          isTrue);
 
       // Rule: trigger when probability >= 80% (should be false)
       const higherProbRule = SmartAlertRule(
@@ -349,7 +357,10 @@ void main() {
         condition: AlertCondition.above,
         value: 80.0,
       );
-      expect(ZeroDteSqueezeRadarService.evaluateSqueezeAlert(result, higherProbRule), isFalse);
+      expect(
+          ZeroDteSqueezeRadarService.evaluateSqueezeAlert(
+              result, higherProbRule),
+          isFalse);
 
       // Rule: trigger on call velocity spike >= 200 contracts/min
       const velocityRule = SmartAlertRule(
@@ -357,7 +368,9 @@ void main() {
         condition: AlertCondition.spike,
         value: 200.0,
       );
-      expect(ZeroDteSqueezeRadarService.evaluateSqueezeAlert(result, velocityRule), isTrue);
+      expect(
+          ZeroDteSqueezeRadarService.evaluateSqueezeAlert(result, velocityRule),
+          isTrue);
 
       // Rule: trigger on gamma flip condition
       const flipRule = SmartAlertRule(
@@ -365,7 +378,8 @@ void main() {
         condition: AlertCondition.above_gamma_flip,
         value: 0.0,
       );
-      expect(ZeroDteSqueezeRadarService.evaluateSqueezeAlert(result, flipRule), isTrue);
+      expect(ZeroDteSqueezeRadarService.evaluateSqueezeAlert(result, flipRule),
+          isTrue);
     });
 
     test('PortfolioAlertService generates high & extreme squeeze alerts', () {
@@ -408,7 +422,8 @@ void main() {
         squeezeRadarResults: [extremeResult],
       );
 
-      final squeezeAlert = alerts.firstWhere((a) => a.id == 'squeeze_extreme_SPY');
+      final squeezeAlert =
+          alerts.firstWhere((a) => a.id == 'squeeze_extreme_SPY');
       expect(squeezeAlert.severity, equals(PortfolioAlertSeverity.critical));
       expect(squeezeAlert.target, equals(PortfolioAlertTarget.zeroDteRadar));
       expect(squeezeAlert.metric, equals('92%'));

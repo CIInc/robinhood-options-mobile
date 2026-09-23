@@ -95,7 +95,8 @@ void main() {
       await tester.pumpAndSettle();
 
       // Check Playbook content
-      expect(find.textContaining('Strategies optimized for AAPL'), findsOneWidget);
+      expect(
+          find.textContaining('Strategies optimized for AAPL'), findsOneWidget);
       expect(find.textContaining('Rationale:'), findsWidgets);
     });
 

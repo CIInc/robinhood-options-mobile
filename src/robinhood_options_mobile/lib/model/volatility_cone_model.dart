@@ -253,18 +253,22 @@ class VolatilitySkewAnalysis {
 
   factory VolatilitySkewAnalysis.fromJson(Map<String, dynamic> json) {
     return VolatilitySkewAnalysis(
-      expirationDate: DateTime.tryParse(json['expiration_date'] as String? ?? '') ?? DateTime.now(),
+      expirationDate:
+          DateTime.tryParse(json['expiration_date'] as String? ?? '') ??
+              DateTime.now(),
       daysToExpiration: json['days_to_expiration'] as int? ?? 30,
       atmIv: (json['atm_iv'] as num?)?.toDouble() ?? 0.0,
       putSkew25Delta: (json['put_skew_25_delta'] as num?)?.toDouble() ?? 0.0,
       callSkew25Delta: (json['call_skew_25_delta'] as num?)?.toDouble() ?? 0.0,
-      riskReversal25Delta: (json['risk_reversal_25_delta'] as num?)?.toDouble() ?? 0.0,
+      riskReversal25Delta:
+          (json['risk_reversal_25_delta'] as num?)?.toDouble() ?? 0.0,
       skewRegime: VolatilitySkewRegime.values.firstWhere(
         (r) => r.name == json['skew_regime'],
         orElse: () => VolatilitySkewRegime.balancedSmile,
       ),
       points: (json['points'] as List<dynamic>?)
-              ?.map((p) => VolatilitySkewPoint.fromJson(p as Map<String, dynamic>))
+              ?.map((p) =>
+                  VolatilitySkewPoint.fromJson(p as Map<String, dynamic>))
               .toList() ??
           [],
     );
@@ -291,7 +295,9 @@ class TermStructurePoint {
 
   factory TermStructurePoint.fromJson(Map<String, dynamic> json) {
     return TermStructurePoint(
-      expirationDate: DateTime.tryParse(json['expiration_date'] as String? ?? '') ?? DateTime.now(),
+      expirationDate:
+          DateTime.tryParse(json['expiration_date'] as String? ?? '') ??
+              DateTime.now(),
       dte: json['dte'] as int? ?? 0,
       atmIv: (json['atm_iv'] as num?)?.toDouble() ?? 0.0,
     );
@@ -361,14 +367,16 @@ class VolatilityTermStructure {
   factory VolatilityTermStructure.fromJson(Map<String, dynamic> json) {
     return VolatilityTermStructure(
       points: (json['points'] as List<dynamic>?)
-              ?.map((p) => TermStructurePoint.fromJson(p as Map<String, dynamic>))
+              ?.map(
+                  (p) => TermStructurePoint.fromJson(p as Map<String, dynamic>))
               .toList() ??
           [],
       regime: TermStructureRegime.values.firstWhere(
         (r) => r.name == json['regime'],
         orElse: () => TermStructureRegime.contango,
       ),
-      frontToBackSlope: (json['front_to_back_slope'] as num?)?.toDouble() ?? 0.0,
+      frontToBackSlope:
+          (json['front_to_back_slope'] as num?)?.toDouble() ?? 0.0,
     );
   }
 }
@@ -399,7 +407,8 @@ class VolatilityRiskPremium {
       vrp30d: (json['vrp_30d'] as num?)?.toDouble() ?? 0.0,
       vrpRatio: (json['vrp_ratio'] as num?)?.toDouble() ?? 1.0,
       isRich: json['is_rich'] as bool? ?? true,
-      historicalVrpAvg: (json['historical_vrp_avg'] as num?)?.toDouble() ?? 0.03,
+      historicalVrpAvg:
+          (json['historical_vrp_avg'] as num?)?.toDouble() ?? 0.03,
     );
   }
 }
@@ -482,7 +491,8 @@ extension VolatilityRegimeX on VolatilityRegime {
 /// Actionable options strategy recommendation generated from Volatility Cone & Skew analysis.
 class VolatilityTacticalRecommendation {
   final String title;
-  final String strategyType; // 'Net Credit', 'Net Debit', 'Neutral / Range', 'Directional'
+  final String
+      strategyType; // 'Net Credit', 'Net Debit', 'Neutral / Range', 'Directional'
   final String description;
   final String rationale;
   final IconData icon;
@@ -606,7 +616,8 @@ class VolatilityConeAnalysis {
       symbol: json['symbol'] as String? ?? '',
       spotPrice: (json['spot_price'] as num?)?.toDouble() ?? 0.0,
       conePoints: (json['cone_points'] as List<dynamic>?)
-              ?.map((p) => VolatilityConePoint.fromJson(p as Map<String, dynamic>))
+              ?.map((p) =>
+                  VolatilityConePoint.fromJson(p as Map<String, dynamic>))
               .toList() ??
           [],
       metrics30d: IvRankPercentileMetrics.fromJson(
