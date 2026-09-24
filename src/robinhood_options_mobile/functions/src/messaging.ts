@@ -1,4 +1,4 @@
-import { onCall } from "firebase-functions/v2/https";
+import { onCall, HttpsError } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import { getMessaging } from "firebase-admin/messaging";
 
@@ -6,10 +6,19 @@ const messaging = getMessaging();
 
 export const sendEachForMulticast = onCall(async (request) => {
   logger.info(request, { structuredData: true });
-  if (request.auth == null ||
-    request.auth?.uid == null ||
-    request.auth?.token.role != "admin") {
-    return "Not authorized.";
+  // SECURITY: Require authentication
+  if (!request.auth || !request.auth.uid) {
+    throw new HttpsError(
+      "unauthenticated",
+      "Authentication is required to send notifications."
+    );
+  }
+  // SECURITY: Require admin role for multicast messaging
+  if (request.auth.token?.role !== "admin") {
+    throw new HttpsError(
+      "permission-denied",
+      "Admin permissions are required to send notifications."
+    );
   }
   const title = request.data.title as string;
   const body = request.data.body as string;
