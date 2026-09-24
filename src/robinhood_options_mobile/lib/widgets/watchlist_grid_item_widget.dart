@@ -74,7 +74,52 @@ class WatchlistGridItemWidget extends StatelessWidget {
             ? changePercentToday < 0
             : false);
 
-    return Card(
+    String symbolText = '';
+    if (instrumentObj != null) {
+      symbolText = instrumentObj.symbol;
+    } else if (forexObj != null) {
+      symbolText = forexObj.symbol;
+    } else if (optionInstrument != null && optionStrategy == null) {
+      symbolText = optionInstrument.chainSymbol;
+    } else if (optionStrategy != null) {
+      symbolText = optionStrategy.optionInstrumentObj != null
+          ? optionStrategy.optionInstrumentObj!.chainSymbol
+          : optionStrategy.chainSymbol ?? optionStrategy.name ?? "";
+    }
+
+    final double pctForLabel =
+        (instrumentObj != null && instrumentObj.quoteObj != null)
+            ? instrumentObj.quoteObj!.changePercentToday
+            : changePercentToday;
+    final String pctStr = formatPercentage.format(pctForLabel.abs());
+    final String directionText = isPositive
+        ? 'up $pctStr'
+        : (isNegative ? 'down $pctStr' : '$pctStr change');
+
+    String descriptionText = '';
+    if (instrumentObj != null) {
+      descriptionText = instrumentObj.simpleName ?? instrumentObj.name;
+    } else if (optionInstrument != null && optionStrategy == null) {
+      descriptionText = optionInstrument.expirationDate != null
+          ? "${formatCompactDate.format(optionInstrument.expirationDate!)} ${formatCurrency.format(optionInstrument.strikePrice)} ${optionInstrument.type.toUpperCase()}"
+          : "${formatCurrency.format(optionInstrument.strikePrice)} ${optionInstrument.type.toUpperCase()}";
+    } else if (optionStrategy != null) {
+      descriptionText = optionStrategy.optionInstrumentObj != null
+          ? (optionStrategy.optionInstrumentObj!.expirationDate != null
+              ? "${formatCompactDate.format(optionStrategy.optionInstrumentObj!.expirationDate!)} ${formatCurrency.format(optionStrategy.optionInstrumentObj!.strikePrice)} ${optionStrategy.optionInstrumentObj!.type}"
+              : "${formatCurrency.format(optionStrategy.optionInstrumentObj!.strikePrice)} ${optionStrategy.optionInstrumentObj!.type}")
+          : optionStrategy.name ?? optionStrategy.strategy ?? "";
+    }
+
+    final semanticLabel =
+        '$symbolText, $directionText${descriptionText.isNotEmpty ? ", $descriptionText" : ""}';
+
+    return Semantics(
+      container: true,
+      button: true,
+      label: semanticLabel,
+      excludeSemantics: true,
+      child: Card(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12.0),
           side: BorderSide(
@@ -409,6 +454,8 @@ class WatchlistGridItemWidget extends StatelessWidget {
               }
             }
           },
-        ));
+        ),
+      ),
+    );
   }
 }
