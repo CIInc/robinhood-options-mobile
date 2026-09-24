@@ -164,7 +164,9 @@ class InstrumentOrder {
         url = "",
         account = json['accountNumber'].toString(),
         position = "",
-        cancel = null,
+        cancel = json['cancelable'] == true && json['accountNumber'] != null
+            ? 'accounts/${json['accountNumber']}/orders/${json['orderId']}'
+            : null,
         instrument =
             json['orderLegCollection'][0]['instrument']['symbol'].toString(),
         instrumentId = json['orderLegCollection'][0]['instrument']

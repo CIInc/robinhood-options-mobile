@@ -289,6 +289,12 @@ abstract class IBrokerageService {
       String trigger = 'immediate',
       String timeInForce = 'gtc'});
 
+  /// Previews an order before execution for pre-trade margin and validation checks.
+  Future<dynamic> previewOrder(
+      BrokerageUser user, Account account, Map<String, dynamic> orderPayload) {
+    return Future.value(null);
+  }
+
   // Combo Orders (Stock + Option Packages)
   Future<List<ComboOrder>> getComboOrders(BrokerageUser user,
       {String? accountNumber, int? limit}) {

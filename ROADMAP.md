@@ -1036,8 +1036,8 @@ Keep reliability, account security, and test coverage ahead of feature breadth. 
         - [x] Market operating hours and trading session status (`GET /marketdata/v1/markets`)
         - [x] Options expiration chains (`GET /marketdata/v1/expirationchain`) for fast expiration selectors
     - [ ] **Schwab Advanced Trading & Execution** ([#122](https://github.com/CIInc/robinhood-options-mobile/issues/122)):
-        - [ ] Order preview and margin validation (`POST /trader/v1/accounts/{accountNumber}/previewOrder`) for pre-trade buying power and commission check
-        - [ ] In-flight order replacement and modification (`PUT /trader/v1/accounts/{accountNumber}/orders/{orderId}`)
+        - [x] Order preview and margin validation (`POST /trader/v1/accounts/{accountNumber}/previewOrder`) for pre-trade buying power and commission check
+        - [x] In-flight order replacement and modification (`PUT /trader/v1/accounts/{accountNumber}/orders/{orderId}`)
         - [ ] Multi-leg strategy options chains (`GET /marketdata/v1/chains?strategy=...`)
     - [ ] **Schwab Account Activity & Transactions** ([#91](https://github.com/CIInc/robinhood-options-mobile/issues/91)):
         - [ ] Historical trade transactions, dividends, and cash movements (`GET /trader/v1/accounts/{accountNumber}/transactions`) for realized P&L and dividend tracking

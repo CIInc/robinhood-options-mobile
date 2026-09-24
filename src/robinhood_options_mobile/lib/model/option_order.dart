@@ -99,10 +99,19 @@ class OptionOrder {
   OptionOrder.fromSchwabJson(dynamic json)
       : id = json['orderId'].toString(),
         chainId = json['orderLegCollection'][0]['instrument']['instrumentId']
-            .toString(),
-        chainSymbol =
-            json['orderLegCollection'][0]['instrument']['underlyingSymbol'],
-        cancelUrl = null,
+                ?.toString() ??
+            '',
+        chainSymbol = json['orderLegCollection'][0]['instrument']
+                    ['underlyingSymbol']
+                ?.toString() ??
+            json['orderLegCollection'][0]['instrument']['symbol']
+                ?.toString()
+                .split(' ')
+                .first ??
+            '',
+        cancelUrl = json['cancelable'] == true && json['accountNumber'] != null
+            ? 'accounts/${json['accountNumber']}/orders/${json['orderId']}'
+            : null,
         canceledQuantity = (((json['quantity'] as num?) ?? 0) -
                 ((json['filledQuantity'] as num?) ?? 0) -
                 ((json['remainingQuantity'] as num?) ?? 0))

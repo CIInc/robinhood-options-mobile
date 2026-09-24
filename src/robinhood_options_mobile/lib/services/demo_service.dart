@@ -1460,6 +1460,12 @@ class DemoService implements IBrokerageService {
     ),
   ];
 
+  @override
+  Future<dynamic> previewOrder(
+      BrokerageUser user, Account account, Map<String, dynamic> orderPayload) async {
+    return null;
+  }
+
   final List<ComboOrder> _demoComboOrders = List.from(_defaultDemoComboOrders);
 
   @override

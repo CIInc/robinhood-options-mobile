@@ -5022,6 +5022,12 @@ WATCHLIST
   COMBO ORDERS & STRATEGIES
   */
 
+  @override
+  Future<dynamic> previewOrder(
+      BrokerageUser user, Account account, Map<String, dynamic> orderPayload) async {
+    return null;
+  }
+
   /// Fetches multi-leg combo orders (e.g. stock + options packages, collars, straddles)
   /// https://api.robinhood.com/combo/orders/
   @override

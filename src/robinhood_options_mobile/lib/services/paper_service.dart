@@ -1174,6 +1174,12 @@ class PaperService implements IBrokerageService {
     return Stream.value([]);
   }
 
+  @override
+  Future<dynamic> previewOrder(
+      BrokerageUser user, Account account, Map<String, dynamic> orderPayload) async {
+    return null;
+  }
+
   final List<ComboOrder> _paperComboOrders = [];
 
   @override

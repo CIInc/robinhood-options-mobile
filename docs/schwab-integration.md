@@ -42,9 +42,10 @@ The Charles Schwab Developer Portal ([developer.schwab.com](https://developer.sc
 ### 2. Accounts & Trading Production API (`/trader/v1`) — [Issue #91](https://github.com/CIInc/robinhood-options-mobile/issues/91), [Issue #122](https://github.com/CIInc/robinhood-options-mobile/issues/122)
 - **Accounts & Balances (`GET /trader/v1/accounts`):** Balances, positions, cash, and margin buying power (Implemented).
 - **Account Number Hashing (`GET /trader/v1/accountNumbers`):** Multi-account mapping between masked account numbers and encrypted hash values (Implemented).
-- **Order Placement (`POST /trader/v1/accounts/{accountNumber}/orders`):** Single-leg and multi-leg equity and options order routing (Implemented).
-- **Order Preview & Margin Check (`POST /trader/v1/accounts/{accountNumber}/previewOrder`):** Pre-trade validation of buying power impact, estimated commission, and margin requirements.
-- **In-Flight Order Modification (`PUT /trader/v1/accounts/{accountNumber}/orders/{orderId}`):** In-flight price and contract count adjustments for working orders.
+- **Order Placement (`POST /trader/v1/accounts/{accountNumber}/orders`):** Single-leg and multi-leg equity and options order routing via `SchwabService.placeInstrumentOrder`, `placeOptionsOrder`, and `placeMultiLegOptionsOrder` (Implemented).
+- **Order Preview & Margin Check (`POST /trader/v1/accounts/{accountNumber}/previewOrder`):** Pre-trade validation of buying power impact, estimated commission, regulatory fees (SEC, TAF, Opt Reg), and margin requirements via `SchwabService.previewOrder`, `previewEquityOrder`, `previewOptionsOrder`, and `previewMultiLegOptionsOrder`, integrated into `TradeInstrumentWidget` and `TradeOptionWidget` with `SchwabOrderPreviewCard` (Implemented).
+- **In-Flight Order Modification (`PUT /trader/v1/accounts/{accountNumber}/orders/{orderId}`):** In-flight price and contract count adjustments for working orders via `SchwabService.replaceOrder` (Implemented).
+- **Order Cancellation (`DELETE /trader/v1/accounts/{accountNumber}/orders/{orderId}`):** Working order cancellation with populated `cancel` and `cancelUrl` links (Implemented).
 - **Transaction History & Dividends (`GET /trader/v1/accounts/{accountNumber}/transactions`):** Historical executions, dividends, interest credits, and cash transfers for realized P&L calculations.
 - **User Preferences (`GET /trader/v1/userPreference`):** Account defaults and Streamer connection credentials.
 

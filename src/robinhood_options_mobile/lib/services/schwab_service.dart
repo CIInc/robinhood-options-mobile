@@ -70,6 +70,7 @@ import 'package:robinhood_options_mobile/model/spending_account.dart';
 import 'package:robinhood_options_mobile/model/external_token.dart';
 import 'package:robinhood_options_mobile/model/notification_item.dart';
 import 'package:robinhood_options_mobile/model/schwab_streamer_info.dart';
+import 'package:robinhood_options_mobile/model/schwab_order_preview.dart';
 import 'package:robinhood_options_mobile/services/schwab_streamer_service.dart';
 
 class SchwabService implements IBrokerageService {
@@ -1755,38 +1756,9 @@ https://api.schwabapi.com/trader/v1/orders?fromEnteredTime=2024-09-28T23%3A59%3A
       double? stopPrice,
       String timeInForce = 'gtc',
       Map<String, dynamic>? trailingPeg}) async {
-    var instruction = side.toUpperCase() == 'BUY'
-        ? (positionEffect.toUpperCase() == 'OPEN'
-            ? 'BUY_TO_OPEN'
-            : 'BUY_TO_CLOSE')
-        : (positionEffect.toUpperCase() == 'OPEN'
-            ? 'SELL_TO_OPEN'
-            : 'SELL_TO_CLOSE');
-
-    var orderType = type.toUpperCase();
-    var duration =
-        timeInForce.toUpperCase() == 'GTC' ? 'GOOD_TILL_CANCEL' : 'DAY';
-
-    var body = {
-      "orderType": orderType,
-      "session": "NORMAL",
-      "duration": duration,
-      "orderStrategyType": "SINGLE",
-      "price": price,
-      "orderLegCollection": [
-        {
-          "instruction": instruction,
-          "quantity": quantity,
-          "instrument": {"symbol": optionInstrument.id, "assetType": "OPTION"}
-        }
-      ]
-    };
-
-    if (orderType == 'STOP' || orderType == 'STOP_LIMIT') {
-      if (stopPrice != null) {
-        body['stopPrice'] = stopPrice;
-      }
-    }
+    var body = buildOptionsOrderPayload(
+        optionInstrument, side, positionEffect, creditOrDebit, price, quantity,
+        type: type, stopPrice: stopPrice, timeInForce: timeInForce);
 
     var url = "$endpoint/trader/v1/accounts/${account.accountNumber}/orders";
 
@@ -1818,39 +1790,9 @@ https://api.schwabapi.com/trader/v1/orders?fromEnteredTime=2024-09-28T23%3A59%3A
       {String type = 'limit',
       String trigger = 'immediate',
       String timeInForce = 'gtc'}) async {
-    var orderType = type.toUpperCase();
-    var duration =
-        timeInForce.toUpperCase() == 'GTC' ? 'GOOD_TILL_CANCEL' : 'DAY';
-
-    var orderLegCollection = legs.map((leg) {
-      var side = leg['side'];
-      var positionEffect = leg['position_effect'];
-      var optionInstrument = leg['option_instrument'] as OptionInstrument;
-      var legQuantity = leg['ratio_quantity'] ?? 1;
-
-      var instruction = side.toUpperCase() == 'BUY'
-          ? (positionEffect.toUpperCase() == 'OPEN'
-              ? 'BUY_TO_OPEN'
-              : 'BUY_TO_CLOSE')
-          : (positionEffect.toUpperCase() == 'OPEN'
-              ? 'SELL_TO_OPEN'
-              : 'SELL_TO_CLOSE');
-
-      return {
-        "instruction": instruction,
-        "quantity": quantity * legQuantity,
-        "instrument": {"symbol": optionInstrument.id, "assetType": "OPTION"}
-      };
-    }).toList();
-
-    var body = {
-      "orderType": orderType,
-      "session": "NORMAL",
-      "duration": duration,
-      "orderStrategyType": "SINGLE", // TODO: Verify strategy type for multi-leg
-      "price": price,
-      "orderLegCollection": orderLegCollection
-    };
+    var body = buildMultiLegOptionsOrderPayload(
+        legs, creditOrDebit, price, quantity,
+        type: type, timeInForce: timeInForce);
 
     var url = "$endpoint/trader/v1/accounts/${account.accountNumber}/orders";
 
@@ -1869,6 +1811,259 @@ https://api.schwabapi.com/trader/v1/orders?fromEnteredTime=2024-09-28T23%3A59%3A
       return jsonDecode(response.body);
     }
     return {"status": "success"};
+  }
+
+  /// Builds payload for single-leg Schwab option orders.
+  Map<String, dynamic> buildOptionsOrderPayload(
+      OptionInstrument optionInstrument,
+      String side,
+      String positionEffect,
+      String creditOrDebit,
+      double price,
+      int quantity,
+      {String type = 'limit',
+      double? stopPrice,
+      String timeInForce = 'gtc'}) {
+    var instruction = side.toUpperCase() == 'BUY'
+        ? (positionEffect.toUpperCase() == 'OPEN'
+            ? 'BUY_TO_OPEN'
+            : 'BUY_TO_CLOSE')
+        : (positionEffect.toUpperCase() == 'OPEN'
+            ? 'SELL_TO_OPEN'
+            : 'SELL_TO_CLOSE');
+
+    var orderType = type.toUpperCase();
+    var duration =
+        timeInForce.toUpperCase() == 'GTC' ? 'GOOD_TILL_CANCEL' : 'DAY';
+
+    var body = <String, dynamic>{
+      "orderType": orderType,
+      "session": "NORMAL",
+      "duration": duration,
+      "orderStrategyType": "SINGLE",
+      "price": price,
+      "orderLegCollection": [
+        {
+          "instruction": instruction,
+          "quantity": quantity,
+          "instrument": {"symbol": optionInstrument.id, "assetType": "OPTION"}
+        }
+      ]
+    };
+
+    if (orderType == 'STOP' || orderType == 'STOP_LIMIT') {
+      if (stopPrice != null) {
+        body['stopPrice'] = stopPrice;
+      }
+    }
+    return body;
+  }
+
+  /// Builds payload for multi-leg Schwab option orders.
+  Map<String, dynamic> buildMultiLegOptionsOrderPayload(
+      List<Map<String, dynamic>> legs,
+      String creditOrDebit,
+      double price,
+      int quantity,
+      {String type = 'limit',
+      String timeInForce = 'gtc'}) {
+    var orderType = type.toUpperCase();
+    var duration =
+        timeInForce.toUpperCase() == 'GTC' ? 'GOOD_TILL_CANCEL' : 'DAY';
+
+    var orderLegCollection = legs.map((leg) {
+      var side = leg['side']?.toString() ?? 'BUY';
+      var positionEffect = leg['position_effect']?.toString() ?? 'OPEN';
+      var optionInstrument = leg['option_instrument'] as OptionInstrument?;
+      var symbol = optionInstrument?.id ?? leg['symbol']?.toString() ?? '';
+      var legQuantity = (leg['ratio_quantity'] as num?)?.toInt() ?? 1;
+
+      var instruction = leg['instruction']?.toString() ??
+          (side.toUpperCase() == 'BUY'
+              ? (positionEffect.toUpperCase() == 'OPEN'
+                  ? 'BUY_TO_OPEN'
+                  : 'BUY_TO_CLOSE')
+              : (positionEffect.toUpperCase() == 'OPEN'
+                  ? 'SELL_TO_OPEN'
+                  : 'SELL_TO_CLOSE'));
+
+      return {
+        "instruction": instruction,
+        "quantity": quantity * legQuantity,
+        "instrument": {"symbol": symbol, "assetType": "OPTION"}
+      };
+    }).toList();
+
+    var strategyType = legs.length == 2
+        ? "VERTICAL"
+        : (legs.length > 2 ? "CUSTOM" : "SINGLE");
+
+    return {
+      "orderType": orderType,
+      "session": "NORMAL",
+      "duration": duration,
+      "orderStrategyType": strategyType,
+      "price": price,
+      "orderLegCollection": orderLegCollection
+    };
+  }
+
+  /// Builds payload for Schwab equity / stock orders.
+  Map<String, dynamic> buildEquityOrderPayload(
+      String symbol, String side, double? price, int quantity,
+      {String type = 'limit',
+      double? stopPrice,
+      String timeInForce = 'gtc'}) {
+    var rawType = type.toUpperCase().replaceAll(' ', '_');
+    String orderType;
+    if (rawType == 'MARKET') {
+      orderType = 'MARKET';
+    } else if (rawType == 'STOP') {
+      orderType = 'STOP';
+    } else if (rawType == 'STOP_LIMIT') {
+      orderType = 'STOP_LIMIT';
+    } else {
+      orderType = 'LIMIT';
+    }
+
+    var duration =
+        timeInForce.toUpperCase() == 'GTC' ? 'GOOD_TILL_CANCEL' : 'DAY';
+    var instruction = side.toUpperCase() == 'BUY' ? 'BUY' : 'SELL';
+
+    var body = <String, dynamic>{
+      "orderType": orderType,
+      "session": "NORMAL",
+      "duration": duration,
+      "orderStrategyType": "SINGLE",
+      "orderLegCollection": [
+        {
+          "instruction": instruction,
+          "quantity": quantity,
+          "instrument": {"symbol": symbol.toUpperCase(), "assetType": "EQUITY"}
+        }
+      ]
+    };
+
+    if (price != null && orderType != 'MARKET') {
+      body['price'] = price;
+    }
+    if (stopPrice != null &&
+        (orderType == 'STOP' || orderType == 'STOP_LIMIT')) {
+      body['stopPrice'] = stopPrice;
+    }
+    return body;
+  }
+
+  /// Previews an order before execution on Charles Schwab:
+  /// `POST /trader/v1/accounts/{accountNumber}/previewOrder`
+  @override
+  Future<SchwabOrderPreview> previewOrder(
+      BrokerageUser user, Account account, Map<String, dynamic> orderPayload) async {
+    var url =
+        "$endpoint/trader/v1/accounts/${account.accountNumber}/previewOrder";
+
+    var response = await user.oauth2Client!.post(
+      Uri.parse(url),
+      body: jsonEncode(orderPayload),
+      headers: {
+        "content-type": "application/json",
+        "accept": "application/json"
+      },
+    );
+
+    if (response.statusCode != 200 && response.statusCode != 201) {
+      throw Exception('Failed to preview order: ${response.body}');
+    }
+
+    if (response.body.isEmpty) {
+      throw Exception('Empty preview response from Schwab');
+    }
+
+    final json = jsonDecode(response.body);
+    if (json is Map<String, dynamic>) {
+      return SchwabOrderPreview.fromJson(json);
+    }
+    throw Exception('Unexpected preview response format from Schwab');
+  }
+
+  /// Previews a Schwab equity order with margin and commission breakdown.
+  Future<SchwabOrderPreview> previewEquityOrder(
+      BrokerageUser user,
+      Account account,
+      String symbol,
+      String side,
+      double? price,
+      int quantity,
+      {String type = 'limit',
+      double? stopPrice,
+      String timeInForce = 'gtc'}) async {
+    var body = buildEquityOrderPayload(symbol, side, price, quantity,
+        type: type, stopPrice: stopPrice, timeInForce: timeInForce);
+    return await previewOrder(user, account, body);
+  }
+
+  /// Previews a Schwab single-leg option order with margin and commission breakdown.
+  Future<SchwabOrderPreview> previewOptionsOrder(
+      BrokerageUser user,
+      Account account,
+      OptionInstrument optionInstrument,
+      String side,
+      String positionEffect,
+      String creditOrDebit,
+      double price,
+      int quantity,
+      {String type = 'limit',
+      double? stopPrice,
+      String timeInForce = 'gtc'}) async {
+    var body = buildOptionsOrderPayload(
+        optionInstrument, side, positionEffect, creditOrDebit, price, quantity,
+        type: type, stopPrice: stopPrice, timeInForce: timeInForce);
+    return await previewOrder(user, account, body);
+  }
+
+  /// Previews a Schwab multi-leg option order with margin and commission breakdown.
+  Future<SchwabOrderPreview> previewMultiLegOptionsOrder(
+      BrokerageUser user,
+      Account account,
+      List<Map<String, dynamic>> legs,
+      String creditOrDebit,
+      double price,
+      int quantity,
+      {String type = 'limit',
+      String timeInForce = 'gtc'}) async {
+    var body = buildMultiLegOptionsOrderPayload(
+        legs, creditOrDebit, price, quantity,
+        type: type, timeInForce: timeInForce);
+    return await previewOrder(user, account, body);
+  }
+
+  /// In-flight order replacement and modification on Schwab:
+  /// `PUT /trader/v1/accounts/{accountNumber}/orders/{orderId}`
+  Future<dynamic> replaceOrder(
+      BrokerageUser user,
+      Account account,
+      String orderId,
+      Map<String, dynamic> body) async {
+    var url =
+        "$endpoint/trader/v1/accounts/${account.accountNumber}/orders/$orderId";
+
+    var response = await user.oauth2Client!.put(
+      Uri.parse(url),
+      body: jsonEncode(body),
+      headers: {
+        "content-type": "application/json",
+        "accept": "application/json"
+      },
+    );
+
+    if (response.statusCode != 200 && response.statusCode != 201) {
+      throw Exception('Failed to replace order: ${response.body}');
+    }
+
+    if (response.body.isNotEmpty) {
+      return jsonDecode(response.body);
+    }
+    return {"status": "success", "orderId": orderId};
   }
 
   @override
@@ -1892,9 +2087,29 @@ https://api.schwabapi.com/trader/v1/orders?fromEnteredTime=2024-09-28T23%3A59%3A
       String timeInForce = 'gtc',
       Map<String, dynamic>? trailingPeg,
       String? taxLotSelectionType,
-      List<Map<String, dynamic>>? taxLots}) {
-    // TODO: implement placeInstrumentOrder
-    throw UnimplementedError();
+      List<Map<String, dynamic>>? taxLots}) async {
+    var body = buildEquityOrderPayload(symbol, side, price, quantity,
+        type: type, stopPrice: stopPrice, timeInForce: timeInForce);
+
+    var url = "$endpoint/trader/v1/accounts/${account.accountNumber}/orders";
+
+    var response = await user.oauth2Client!.post(
+      Uri.parse(url),
+      body: jsonEncode(body),
+      headers: {
+        "content-type": "application/json",
+        "accept": "application/json"
+      },
+    );
+
+    if (response.statusCode != 201 && response.statusCode != 200) {
+      throw Exception('Failed to place order: ${response.body}');
+    }
+
+    if (response.body.isNotEmpty) {
+      return jsonDecode(response.body);
+    }
+    return {"status": "success"};
   }
 
   @override
@@ -2732,16 +2947,31 @@ https://api.schwabapi.com/marketdata/v1/instruments?symbol=Google&projection=sea
   }
 
   @override
-  Future<dynamic> cancelOrder(BrokerageUser user, String cancel) {
+  Future<dynamic> cancelOrder(BrokerageUser user, String cancel) async {
     final parts = cancel.split('/').where((s) => s.isNotEmpty).toList();
+    final ordersIndex = parts.indexOf('orders');
+    if (ordersIndex > 0 && ordersIndex < parts.length - 1 && user.oauth2Client != null) {
+      final accountNumber = parts[ordersIndex - 1];
+      final orderId = parts[ordersIndex + 1];
+      final url = "$endpoint/trader/v1/accounts/$accountNumber/orders/$orderId";
+      final response = await user.oauth2Client!.delete(
+        Uri.parse(url),
+        headers: {
+          "accept": "application/json"
+        },
+      );
+      if (response.statusCode == 200 || response.statusCode == 204) {
+        return {"status": "cancelled", "orderId": orderId};
+      }
+    }
     final cancelIndex = parts.indexOf('cancel');
     final target = cancelIndex > 0 ? parts[cancelIndex - 1] : parts.last;
-    return Future.value({
+    return {
       'status': 'not_supported',
       'message':
           'Order cancellation is not supported for Schwab manual accounts.',
       'target': target,
-    });
+    };
   }
 
   @override

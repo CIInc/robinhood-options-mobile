@@ -17,7 +17,10 @@ import 'package:robinhood_options_mobile/model/paper_trading_store.dart';
 import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
+import 'package:robinhood_options_mobile/model/schwab_order_preview.dart';
+import 'package:robinhood_options_mobile/services/schwab_service.dart';
 import 'package:robinhood_options_mobile/services/risk_circuit_breaker_service.dart';
+import 'package:robinhood_options_mobile/widgets/schwab_order_preview_card.dart';
 import 'package:robinhood_options_mobile/widgets/slide_to_confirm_widget.dart';
 
 class TradeOptionWidget extends StatefulWidget {
@@ -67,6 +70,7 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
   double estimatedTotal = 0.0;
   bool _isPreviewing = false;
   String? _riskGuardWarning;
+  SchwabOrderPreview? _schwabPreview;
 
   @override
   void initState() {
@@ -714,22 +718,51 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
               ),
             ),
           ),
+          if (_schwabPreview != null) ...[
+            const SizedBox(height: 16),
+            SchwabOrderPreviewCard(preview: _schwabPreview!),
+          ],
           const SizedBox(height: 32),
-          SlideToConfirm(
-            onConfirmed: () {
-              _placeOrder();
-            },
-            text: "Slide to $positionType",
-            backgroundColor: theme.colorScheme.surfaceContainerHighest,
-            sliderColor: positionType == "Buy" ? Colors.green : Colors.red,
-            iconColor: Colors.white,
-            textColor: theme.colorScheme.onSurface,
-          ),
+          if (_schwabPreview?.hasRejections == true)
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.errorContainer,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.block, color: theme.colorScheme.onErrorContainer),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      "Order cannot be placed due to Schwab validation rejections. Please edit your order.",
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onErrorContainer,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else
+            SlideToConfirm(
+              onConfirmed: () {
+                _placeOrder();
+              },
+              text: "Slide to $positionType",
+              backgroundColor: theme.colorScheme.surfaceContainerHighest,
+              sliderColor: positionType == "Buy" ? Colors.green : Colors.red,
+              iconColor: Colors.white,
+              textColor: theme.colorScheme.onSurface,
+            ),
           const SizedBox(height: 16),
           TextButton(
             child: const Text("Edit Order"),
             onPressed: () {
               setState(() {
+                _schwabPreview = null;
                 _isPreviewing = false;
               });
             },
@@ -772,6 +805,7 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
     try {
       if (_isPaperTrade) {
         setState(() {
+          _schwabPreview = null;
           _isPreviewing = true;
           _riskGuardWarning = null;
         });
@@ -783,6 +817,52 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
         context,
         listen: false,
       );
+
+      SchwabOrderPreview? schwabPreview;
+      if (widget.user.source == BrokerageSource.schwab &&
+          widget.service is SchwabService &&
+          widget.optionInstrument != null &&
+          accountStore.items.isNotEmpty) {
+        final schwabService = widget.service as SchwabService;
+        final previewQty = int.tryParse(quantityCtl.text) ?? 1;
+        final limitPrice = (orderType == 'Limit' || orderType == 'Stop Limit')
+            ? (double.tryParse(priceCtl.text) ?? 0.0)
+            : 0.0;
+        final stopPrice = (orderType == 'Stop' || orderType == 'Stop Limit')
+            ? double.tryParse(stopPriceCtl.text)
+            : null;
+
+        String positionEffect = "open";
+        if (widget.optionPosition != null) {
+          if (widget.optionPosition!.direction == "debit") {
+            if (positionType == "Sell") {
+              positionEffect = "close";
+            }
+          } else if (widget.optionPosition!.direction == "credit") {
+            if (positionType == "Buy") {
+              positionEffect = "close";
+            }
+          }
+        }
+
+        try {
+          schwabPreview = await schwabService.previewOptionsOrder(
+            widget.user,
+            accountStore.items[0],
+            widget.optionInstrument!,
+            positionType == 'Buy' ? 'buy' : 'sell',
+            positionEffect,
+            'debit',
+            limitPrice,
+            previewQty,
+            type: orderType.toLowerCase().replaceAll(' ', '_'),
+            stopPrice: stopPrice,
+            timeInForce: timeInForce,
+          );
+        } catch (e) {
+          debugPrint('Schwab option order preview error: $e');
+        }
+      }
 
       final portfolioState = <String, dynamic>{};
       if (accountStore.items.isNotEmpty) {
@@ -831,6 +911,7 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
       final data = result.data;
       if (data['approved'] == true) {
         setState(() {
+          _schwabPreview = schwabPreview;
           _isPreviewing = true;
           _riskGuardWarning = null;
         });
@@ -856,6 +937,7 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
 
           if (proceed == true) {
             setState(() {
+              _schwabPreview = schwabPreview;
               _isPreviewing = true;
               _riskGuardWarning = data['reason'];
             });

@@ -1203,6 +1203,12 @@ class FidelityService implements IBrokerageService {
   }
 
   @override
+  Future<dynamic> previewOrder(
+      BrokerageUser user, Account account, Map<String, dynamic> orderPayload) async {
+    return null;
+  }
+
+  @override
   Future<List<ComboOrder>> getComboOrders(BrokerageUser user,
       {String? accountNumber, int? limit}) async {
     return [];
