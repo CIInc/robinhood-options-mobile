@@ -870,29 +870,32 @@ export function computeADX(
  * @param {number[]} lows - Array of low prices.
  * @param {number[]} closes - Array of close prices.
  * @param {number} period - Period for calculation (default 14).
+ * @param {number} [endIndex] - Optional end index (defaults to highs.length).
  * @return {number|null} The computed Williams %R or null if insufficient data.
  */
 export function computeWilliamsR(
   highs: number[],
   lows: number[],
   closes: number[],
-  period = 14
+  period = 14,
+  endIndex = highs ? highs.length : 0
 ): number | null {
   if (!highs || !lows || !closes ||
-    highs.length < period ||
-    lows.length < period ||
-    closes.length < period) {
+    endIndex < period ||
+    highs.length < endIndex ||
+    lows.length < endIndex ||
+    closes.length < endIndex) {
     return null;
   }
 
-  const start = highs.length - period;
+  const start = endIndex - period;
   let highestHigh = highs[start];
   let lowestLow = lows[start];
-  for (let i = start + 1; i < highs.length; i++) {
+  for (let i = start + 1; i < endIndex; i++) {
     if (highs[i] > highestHigh) highestHigh = highs[i];
     if (lows[i] < lowestLow) lowestLow = lows[i];
   }
-  const currentClose = closes[closes.length - 1];
+  const currentClose = closes[endIndex - 1];
 
   if (highestHigh === lowestLow) return null;
 
@@ -1581,16 +1584,25 @@ export function evaluateMomentum(
     }
 
     // Simplified RSI Trend (Short term momentum direction)
-    // Compare last 3 bars vs previous 3 bars
-    const recentAvg = recentRSI.slice(-3).reduce((a, b) => a + b, 0) / 3;
-    const prevAvg = recentRSI.length >= 6 ?
-      recentRSI.slice(-6, -3).reduce((a, b) => a + b, 0) / 3 :
+    // Compare last 3 bars vs previous 3 bars without array slicing
+    const n = recentRSI.length;
+    const recentAvg =
+      (recentRSI[n - 1] + recentRSI[n - 2] + recentRSI[n - 3]) / 3;
+    const prevAvg = n >= 6 ?
+      (recentRSI[n - 4] + recentRSI[n - 5] + recentRSI[n - 6]) / 3 :
       recentRSI[0];
     rsiTrend = recentAvg - prevAvg;
 
-    const recentP = prices.slice(-5).reduce((a, b) => a + b, 0) / 5;
-    const olderP = prices.slice(-10, -5).reduce((a, b) => a + b, 0) / 5;
-    priceTrend = ((recentP - olderP) / olderP) * 100;
+    const pLen = prices.length;
+    let sumRecentP = 0;
+    for (let i = pLen - 5; i < pLen; i++) sumRecentP += prices[i];
+    const recentP = sumRecentP / 5;
+
+    let sumOlderP = 0;
+    for (let i = pLen - 10; i < pLen - 5; i++) sumOlderP += prices[i];
+    const olderP = sumOlderP / 5;
+
+    priceTrend = olderP !== 0 ? ((recentP - olderP) / olderP) * 100 : 0;
   }
 
   // Prioritize divergence signals
@@ -1844,15 +1856,19 @@ export function evaluateVolume(
     };
   }
 
-  const recentVolumes = volumes.slice(-20);
-  const recentPrices = prices.slice(-20);
+  // Calculate volume summary directly without array slicing
+  const vLen = volumes.length;
+  const pLen = prices.length;
 
-  const currentVolume = recentVolumes[recentVolumes.length - 1];
-  const volSum = recentVolumes.reduce((a, b) => a + b, 0);
-  const avgVolume = volSum / recentVolumes.length;
+  let volSum = 0;
+  for (let i = vLen - 20; i < vLen; i++) {
+    volSum += volumes[i];
+  }
+  const avgVolume = volSum / 20;
+  const currentVolume = volumes[vLen - 1];
 
-  const currentPrice = recentPrices[recentPrices.length - 1];
-  const previousPrice = recentPrices[recentPrices.length - 2];
+  const currentPrice = prices[pLen - 1];
+  const previousPrice = prices[pLen - 2];
   const priceDiff = currentPrice - previousPrice;
   const priceChange = (priceDiff / previousPrice) * 100;
 
@@ -2603,26 +2619,40 @@ export function evaluateOBV(
   }
 
   const currentOBV = obv[obv.length - 1];
-  const recentOBV = obv.slice(-10);
-  const olderOBV = obv.slice(-20, -10);
+  const obvLen = obv.length;
+  const closeLen = closes.length;
 
-  // Helper to check for new highs/lows
-  const lookbackPeriod = 20;
-  const recentObvWindow = obv.slice(-lookbackPeriod);
-  const maxObv = Math.max(...recentObvWindow);
-  const minObv = Math.min(...recentObvWindow);
+  // Calculate recent/older averages and extrema without array allocations
+  let sumRecentOBV = 0;
+  let maxObv = obv[obvLen - 20];
+  let minObv = obv[obvLen - 20];
+  for (let i = obvLen - 10; i < obvLen; i++) {
+    sumRecentOBV += obv[i];
+  }
+  const recentAvg = sumRecentOBV / 10;
+
+  let sumOlderOBV = 0;
+  for (let i = obvLen - 20; i < obvLen - 10; i++) {
+    sumOlderOBV += obv[i];
+  }
+  const olderAvg = sumOlderOBV / 10;
+
+  for (let i = obvLen - 20; i < obvLen; i++) {
+    if (obv[i] > maxObv) maxObv = obv[i];
+    if (obv[i] < minObv) minObv = obv[i];
+  }
   const isNewHighOBV = currentOBV >= maxObv;
   const isNewLowOBV = currentOBV <= minObv;
 
-  const recentPrices = closes.slice(-lookbackPeriod);
-  const maxPrice = Math.max(...recentPrices);
-  const minPrice = Math.min(...recentPrices);
-  const currentPrice = closes[closes.length - 1];
+  const currentPrice = closes[closeLen - 1];
+  let maxPrice = closes[closeLen - 20];
+  let minPrice = closes[closeLen - 20];
+  for (let i = closeLen - 20; i < closeLen; i++) {
+    if (closes[i] > maxPrice) maxPrice = closes[i];
+    if (closes[i] < minPrice) minPrice = closes[i];
+  }
   const isNewHighPrice = currentPrice >= maxPrice;
   const isNewLowPrice = currentPrice <= minPrice;
-
-  const recentAvg = recentOBV.reduce((a, b) => a + b, 0) / recentOBV.length;
-  const olderAvg = olderOBV.reduce((a, b) => a + b, 0) / olderOBV.length;
   // Guard against division by zero when olderAvg is ~0
   const denom = Math.abs(olderAvg);
   const obvTrend = denom > 1e-9 ?
@@ -3026,14 +3056,15 @@ export function evaluateWilliamsR(
     };
   }
 
-  // Calculate previous Williams %R for momentum detection
+  // Calculate previous Williams %R for momentum detection without array slicing
   let prevWilliamsR: number | null = null;
   if (closes.length > period) {
     prevWilliamsR = computeWilliamsR(
-      highs.slice(-period - 1, -1),
-      lows.slice(-period - 1, -1),
-      closes.slice(-period - 1, -1),
-      period
+      highs,
+      lows,
+      closes,
+      period,
+      closes.length - 1
     );
   }
 
@@ -4086,12 +4117,15 @@ export function evaluateFibonacciRetracements(
   }
 
   const len = closes.length;
-  // Lookback slice
-  const recentHighs = highs.slice(len - period);
-  const recentLows = lows.slice(len - period);
+  const start = len - period;
 
-  const maxHigh = Math.max(...recentHighs);
-  const minLow = Math.min(...recentLows);
+  // Calculate max high and min low without array allocations
+  let maxHigh = highs[start];
+  let minLow = lows[start];
+  for (let i = start + 1; i < len; i++) {
+    if (highs[i] > maxHigh) maxHigh = highs[i];
+    if (lows[i] < minLow) minLow = lows[i];
+  }
   const currentPrice = closes[len - 1];
 
   if (maxHigh === minLow) {
