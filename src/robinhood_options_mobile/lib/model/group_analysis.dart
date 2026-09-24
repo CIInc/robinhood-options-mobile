@@ -108,6 +108,7 @@ class GroupAnalysisPost {
   final List<String> likes;
   final int commentsCount;
   final List<String> tags;
+  final Map<String, String> sentimentVotes;
   final DateTime createdAt;
   final DateTime? updatedAt;
 
@@ -129,6 +130,7 @@ class GroupAnalysisPost {
     this.likes = const [],
     this.commentsCount = 0,
     this.tags = const [],
+    this.sentimentVotes = const {},
     required this.createdAt,
     this.updatedAt,
   });
@@ -154,12 +156,38 @@ class GroupAnalysisPost {
 
   bool isLikedBy(String userId) => likes.contains(userId);
 
+  /// Community sentiment polling getters
+  int get bullishVotes =>
+      sentimentVotes.values.where((v) => v.toLowerCase() == 'bullish').length;
+  int get bearishVotes =>
+      sentimentVotes.values.where((v) => v.toLowerCase() == 'bearish').length;
+  int get neutralVotes =>
+      sentimentVotes.values.where((v) => v.toLowerCase() == 'neutral').length;
+  int get totalPollVotes => sentimentVotes.length;
+  double get bullishPollPct =>
+      totalPollVotes == 0 ? 0.0 : (bullishVotes / totalPollVotes) * 100.0;
+  double get bearishPollPct =>
+      totalPollVotes == 0 ? 0.0 : (bearishVotes / totalPollVotes) * 100.0;
+  double get neutralPollPct =>
+      totalPollVotes == 0 ? 0.0 : (neutralVotes / totalPollVotes) * 100.0;
+  String? userPollVote(String userId) => sentimentVotes[userId];
+
   factory GroupAnalysisPost.fromJson(
       Map<String, dynamic> json, String documentId) {
     DateTime parseDate(dynamic val) {
       if (val is Timestamp) return val.toDate();
       if (val is String) return DateTime.tryParse(val) ?? DateTime.now();
       return DateTime.now();
+    }
+
+    final rawVotes = json['sentimentVotes'];
+    final parsedVotes = <String, String>{};
+    if (rawVotes is Map) {
+      rawVotes.forEach((key, val) {
+        if (key != null && val != null) {
+          parsedVotes[key.toString()] = val.toString();
+        }
+      });
     }
 
     return GroupAnalysisPost(
@@ -187,6 +215,7 @@ class GroupAnalysisPost {
       tags:
           (json['tags'] as List<dynamic>?)?.map((e) => e.toString()).toList() ??
               const [],
+      sentimentVotes: parsedVotes,
       createdAt: parseDate(json['createdAt']),
       updatedAt:
           json['updatedAt'] != null ? parseDate(json['updatedAt']) : null,
@@ -219,6 +248,7 @@ class GroupAnalysisPost {
       'likes': likes,
       'commentsCount': commentsCount,
       'tags': tags,
+      if (sentimentVotes.isNotEmpty) 'sentimentVotes': sentimentVotes,
       'createdAt': Timestamp.fromDate(createdAt),
       if (updatedAt != null) 'updatedAt': Timestamp.fromDate(updatedAt!),
     };
@@ -242,6 +272,7 @@ class GroupAnalysisPost {
     List<String>? likes,
     int? commentsCount,
     List<String>? tags,
+    Map<String, String>? sentimentVotes,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -263,13 +294,14 @@ class GroupAnalysisPost {
       likes: likes ?? this.likes,
       commentsCount: commentsCount ?? this.commentsCount,
       tags: tags ?? this.tags,
+      sentimentVotes: sentimentVotes ?? this.sentimentVotes,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
   }
 }
 
-/// A comment posted to a shared analysis thread.
+/// A comment posted to a shared analysis or portfolio discussion thread.
 class GroupAnalysisComment {
   final String id;
   final String analysisId;
@@ -277,6 +309,11 @@ class GroupAnalysisComment {
   final String authorName;
   final String? authorPhotoUrl;
   final String content;
+  final bool isPinned;
+  final List<String> likes;
+  final bool isReported;
+  final String? reportReason;
+  final List<String> reportedBy;
   final DateTime createdAt;
 
   GroupAnalysisComment({
@@ -286,8 +323,17 @@ class GroupAnalysisComment {
     required this.authorName,
     this.authorPhotoUrl,
     required this.content,
+    this.isPinned = false,
+    this.likes = const [],
+    this.isReported = false,
+    this.reportReason,
+    this.reportedBy = const [],
     required this.createdAt,
   });
+
+  bool isLikedBy(String userId) => likes.contains(userId);
+  int get upvotesCount => likes.length;
+  bool isReportedBy(String userId) => reportedBy.contains(userId);
 
   factory GroupAnalysisComment.fromJson(
       Map<String, dynamic> json, String documentId) {
@@ -304,6 +350,17 @@ class GroupAnalysisComment {
       authorName: json['authorName'] as String? ?? 'Anonymous Member',
       authorPhotoUrl: json['authorPhotoUrl'] as String?,
       content: json['content'] as String? ?? '',
+      isPinned: json['isPinned'] as bool? ?? false,
+      likes: (json['likes'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          const [],
+      isReported: json['isReported'] as bool? ?? false,
+      reportReason: json['reportReason'] as String?,
+      reportedBy: (json['reportedBy'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          const [],
       createdAt: parseDate(json['createdAt']),
     );
   }
@@ -323,7 +380,42 @@ class GroupAnalysisComment {
       'authorName': authorName,
       if (authorPhotoUrl != null) 'authorPhotoUrl': authorPhotoUrl,
       'content': content,
+      'isPinned': isPinned,
+      'likes': likes,
+      'isReported': isReported,
+      if (reportReason != null) 'reportReason': reportReason,
+      'reportedBy': reportedBy,
       'createdAt': Timestamp.fromDate(createdAt),
     };
+  }
+
+  GroupAnalysisComment copyWith({
+    String? id,
+    String? analysisId,
+    String? authorId,
+    String? authorName,
+    String? authorPhotoUrl,
+    String? content,
+    bool? isPinned,
+    List<String>? likes,
+    bool? isReported,
+    String? reportReason,
+    List<String>? reportedBy,
+    DateTime? createdAt,
+  }) {
+    return GroupAnalysisComment(
+      id: id ?? this.id,
+      analysisId: analysisId ?? this.analysisId,
+      authorId: authorId ?? this.authorId,
+      authorName: authorName ?? this.authorName,
+      authorPhotoUrl: authorPhotoUrl ?? this.authorPhotoUrl,
+      content: content ?? this.content,
+      isPinned: isPinned ?? this.isPinned,
+      likes: likes ?? this.likes,
+      isReported: isReported ?? this.isReported,
+      reportReason: reportReason ?? this.reportReason,
+      reportedBy: reportedBy ?? this.reportedBy,
+      createdAt: createdAt ?? this.createdAt,
+    );
   }
 }

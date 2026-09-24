@@ -1675,6 +1675,276 @@ class FirestoreService {
     }
   }
 
+  Future<void> toggleGroupAnalysisCommentLike(
+      String groupId, String analysisId, String commentId, String userId) async {
+    try {
+      final docRef = investorGroupCollection
+          .doc(groupId)
+          .collection('analyses')
+          .doc(analysisId)
+          .collection('comments')
+          .doc(commentId);
+      final doc = await docRef.get();
+      if (!doc.exists) return;
+      final data = doc.data() ?? {};
+      final likes = List<String>.from(data['likes'] as List? ?? []);
+      if (likes.contains(userId)) {
+        likes.remove(userId);
+      } else {
+        likes.add(userId);
+      }
+      await docRef.update({'likes': likes});
+      debugPrint("Toggled comment like for $commentId: ${likes.length}");
+    } on FirebaseException catch (e) {
+      debugPrint('Failed to toggle comment like: ${e.message}');
+      rethrow;
+    }
+  }
+
+  Future<void> setGroupAnalysisCommentPinned(
+      String groupId, String analysisId, String commentId, bool isPinned) async {
+    try {
+      await investorGroupCollection
+          .doc(groupId)
+          .collection('analyses')
+          .doc(analysisId)
+          .collection('comments')
+          .doc(commentId)
+          .update({'isPinned': isPinned});
+      debugPrint("Comment $commentId pinned: $isPinned");
+    } on FirebaseException catch (e) {
+      debugPrint('Failed to set comment pinned: ${e.message}');
+      rethrow;
+    }
+  }
+
+  Future<void> reportGroupAnalysisComment(
+      String groupId, String analysisId, String commentId, String userId, String reason) async {
+    try {
+      final docRef = investorGroupCollection
+          .doc(groupId)
+          .collection('analyses')
+          .doc(analysisId)
+          .collection('comments')
+          .doc(commentId);
+      final doc = await docRef.get();
+      if (!doc.exists) return;
+      final data = doc.data() ?? {};
+      final reportedBy = List<String>.from(data['reportedBy'] as List? ?? []);
+      if (!reportedBy.contains(userId)) {
+        reportedBy.add(userId);
+      }
+      await docRef.update({
+        'isReported': true,
+        'reportReason': reason,
+        'reportedBy': reportedBy,
+      });
+      debugPrint("Comment $commentId reported by $userId for $reason");
+    } on FirebaseException catch (e) {
+      debugPrint('Failed to report comment: ${e.message}');
+      rethrow;
+    }
+  }
+
+  Future<void> deleteGroupAnalysisComment(
+      String groupId, String analysisId, String commentId) async {
+    try {
+      await investorGroupCollection
+          .doc(groupId)
+          .collection('analyses')
+          .doc(analysisId)
+          .collection('comments')
+          .doc(commentId)
+          .delete();
+      await investorGroupCollection
+          .doc(groupId)
+          .collection('analyses')
+          .doc(analysisId)
+          .update({'commentsCount': FieldValue.increment(-1)});
+      debugPrint("Comment $commentId deleted from $analysisId");
+    } on FirebaseException catch (e) {
+      debugPrint('Failed to delete comment: ${e.message}');
+      rethrow;
+    }
+  }
+
+  Future<void> voteGroupAnalysisSentiment(
+      String groupId, String analysisId, String userId, GroupAnalysisSentiment sentiment) async {
+    try {
+      final docRef = investorGroupCollection
+          .doc(groupId)
+          .collection('analyses')
+          .doc(analysisId);
+      final doc = await docRef.get();
+      if (!doc.exists) return;
+      final data = doc.data() ?? {};
+      final rawVotes = Map<String, dynamic>.from(data['sentimentVotes'] as Map? ?? {});
+      if (rawVotes[userId] == sentiment.name) {
+        await docRef.update({'sentimentVotes.$userId': FieldValue.delete()});
+      } else {
+        await docRef.update({'sentimentVotes.$userId': sentiment.name});
+      }
+      debugPrint("Voted sentiment $sentiment for analysis $analysisId by $userId");
+    } on FirebaseException catch (e) {
+      debugPrint('Failed to vote sentiment: ${e.message}');
+      rethrow;
+    }
+  }
+
+  Stream<List<GroupAnalysisComment>> getPortfolioCommentsStream(String targetUserId) {
+    return _db
+        .collection(userCollectionName)
+        .doc(targetUserId)
+        .collection('portfolio_comments')
+        .orderBy('createdAt', descending: false)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => GroupAnalysisComment.fromJson(doc.data(), doc.id))
+            .toList());
+  }
+
+  Future<DocumentReference> addPortfolioComment(
+      String targetUserId, GroupAnalysisComment comment) async {
+    try {
+      final commentsRef = _db
+          .collection(userCollectionName)
+          .doc(targetUserId)
+          .collection('portfolio_comments');
+      final docRef = comment.id.isNotEmpty
+          ? commentsRef.doc(comment.id)
+          : commentsRef.doc();
+      final data = comment.toJson();
+      data['id'] = docRef.id;
+      await docRef.set(data);
+      debugPrint("Portfolio comment added to user $targetUserId: ${docRef.id}");
+      return docRef;
+    } on FirebaseException catch (e) {
+      debugPrint('Failed to add portfolio comment: ${e.message}');
+      rethrow;
+    }
+  }
+
+  Future<void> togglePortfolioCommentLike(
+      String targetUserId, String commentId, String userId) async {
+    try {
+      final docRef = _db
+          .collection(userCollectionName)
+          .doc(targetUserId)
+          .collection('portfolio_comments')
+          .doc(commentId);
+      final doc = await docRef.get();
+      if (!doc.exists) return;
+      final data = doc.data() ?? {};
+      final likes = List<String>.from(data['likes'] as List? ?? []);
+      if (likes.contains(userId)) {
+        likes.remove(userId);
+      } else {
+        likes.add(userId);
+      }
+      await docRef.update({'likes': likes});
+    } on FirebaseException catch (e) {
+      debugPrint('Failed to toggle portfolio comment like: ${e.message}');
+      rethrow;
+    }
+  }
+
+  Future<void> setPortfolioCommentPinned(
+      String targetUserId, String commentId, bool isPinned) async {
+    try {
+      await _db
+          .collection(userCollectionName)
+          .doc(targetUserId)
+          .collection('portfolio_comments')
+          .doc(commentId)
+          .update({'isPinned': isPinned});
+    } on FirebaseException catch (e) {
+      debugPrint('Failed to pin portfolio comment: ${e.message}');
+      rethrow;
+    }
+  }
+
+  Future<void> reportPortfolioComment(
+      String targetUserId, String commentId, String userId, String reason) async {
+    try {
+      final docRef = _db
+          .collection(userCollectionName)
+          .doc(targetUserId)
+          .collection('portfolio_comments')
+          .doc(commentId);
+      final doc = await docRef.get();
+      if (!doc.exists) return;
+      final data = doc.data() ?? {};
+      final reportedBy = List<String>.from(data['reportedBy'] as List? ?? []);
+      if (!reportedBy.contains(userId)) {
+        reportedBy.add(userId);
+      }
+      await docRef.update({
+        'isReported': true,
+        'reportReason': reason,
+        'reportedBy': reportedBy,
+      });
+    } on FirebaseException catch (e) {
+      debugPrint('Failed to report portfolio comment: ${e.message}');
+      rethrow;
+    }
+  }
+
+  Future<void> deletePortfolioComment(String targetUserId, String commentId) async {
+    try {
+      await _db
+          .collection(userCollectionName)
+          .doc(targetUserId)
+          .collection('portfolio_comments')
+          .doc(commentId)
+          .delete();
+    } on FirebaseException catch (e) {
+      debugPrint('Failed to delete portfolio comment: ${e.message}');
+      rethrow;
+    }
+  }
+
+  Future<void> votePortfolioSentiment(
+      String targetUserId, String voterUserId, GroupAnalysisSentiment sentiment) async {
+    try {
+      final docRef = _db.collection(userCollectionName).doc(targetUserId);
+      final doc = await docRef.get();
+      if (!doc.exists) {
+        await docRef.set({
+          'portfolioSentimentVotes': {voterUserId: sentiment.name}
+        }, SetOptions(merge: true));
+        debugPrint("Voted portfolio sentiment for $targetUserId by $voterUserId");
+        return;
+      }
+      final data = doc.data() ?? {};
+      final rawVotes = Map<String, dynamic>.from(data['portfolioSentimentVotes'] as Map? ?? {});
+      if (rawVotes[voterUserId] == sentiment.name) {
+        await docRef.update({
+          'portfolioSentimentVotes.$voterUserId': FieldValue.delete(),
+        });
+      } else {
+        await docRef.update({
+          'portfolioSentimentVotes.$voterUserId': sentiment.name,
+        });
+      }
+      debugPrint("Voted portfolio sentiment for $targetUserId by $voterUserId");
+    } on FirebaseException catch (e) {
+      debugPrint('Failed to vote portfolio sentiment: ${e.message}');
+      rethrow;
+    }
+  }
+
+  Stream<Map<String, String>> getPortfolioSentimentStream(String targetUserId) {
+    return _db
+        .collection(userCollectionName)
+        .doc(targetUserId)
+        .snapshots()
+        .map((snapshot) {
+      final data = snapshot.data() ?? {};
+      final raw = data['portfolioSentimentVotes'] as Map? ?? {};
+      return raw.map((k, v) => MapEntry(k.toString(), v.toString()));
+    });
+  }
+
   /// Verified Track Record Methods
 
   Future<VerifiedTrackRecord?> getVerifiedTrackRecord(String userId) async {

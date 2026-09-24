@@ -20,6 +20,9 @@ import 'package:robinhood_options_mobile/widgets/copy_trade_button_widget.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
 import 'package:robinhood_options_mobile/widgets/top_portfolios_leaderboard_widget.dart';
 import 'package:robinhood_options_mobile/widgets/user_follow_list_dialog.dart';
+import 'package:robinhood_options_mobile/model/group_analysis.dart';
+import 'package:robinhood_options_mobile/widgets/social_comment_item_widget.dart';
+import 'package:robinhood_options_mobile/widgets/social_sentiment_poll_widget.dart';
 import 'package:share_plus/share_plus.dart';
 
 class TraderProfileWidget extends StatefulWidget {
@@ -51,6 +54,8 @@ class TraderProfileWidget extends StatefulWidget {
 class _TraderProfileWidgetState extends State<TraderProfileWidget> {
   final FirestoreService _firestoreService = FirestoreService();
   late Stream<DocumentSnapshot<User>> _userStream;
+  final TextEditingController _portfolioCommentController =
+      TextEditingController();
 
   DocumentReference<User> get userDocRef =>
       _firestoreService.userCollection.doc(widget.userId);
@@ -59,6 +64,12 @@ class _TraderProfileWidgetState extends State<TraderProfileWidget> {
   void initState() {
     super.initState();
     _userStream = userDocRef.snapshots();
+  }
+
+  @override
+  void dispose() {
+    _portfolioCommentController.dispose();
+    super.dispose();
   }
 
   @override
@@ -517,6 +528,12 @@ class _TraderProfileWidgetState extends State<TraderProfileWidget> {
                     child: _buildPublicRecentTradesCard(
                         context, targetUser, privacy, userDocRef),
                   ),
+
+                // Portfolio Discussion & Community Sentiment
+                SliverToBoxAdapter(
+                  child: _buildPortfolioDiscussionCard(
+                      context, targetUser, privacy),
+                ),
               ],
               const SliverToBoxAdapter(child: SizedBox(height: 40.0)),
             ],
@@ -1040,6 +1057,209 @@ class _TraderProfileWidgetState extends State<TraderProfileWidget> {
           observer: widget.observer,
           brokerageUser: widget.brokerageUser,
           service: widget.service,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPortfolioDiscussionCard(BuildContext context, User targetUser,
+      PortfolioPrivacySettings privacy) {
+    final theme = Theme.of(context);
+    final currentUserId = widget.auth.currentUser?.uid;
+    final isOwner = currentUserId != null && currentUserId == widget.userId;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+      child: Card(
+        elevation: 2,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.forum_rounded,
+                      size: 20, color: theme.colorScheme.primary),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Portfolio Discussion & Community Outlook',
+                      style: theme.textTheme.titleMedium
+                          ?.copyWith(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+
+              // Community Sentiment Polling on Trader's Portfolio
+              StreamBuilder<Map<String, String>>(
+                stream:
+                    _firestoreService.getPortfolioSentimentStream(widget.userId),
+                builder: (context, sentimentSnap) {
+                  final votes = sentimentSnap.data ?? {};
+                  return SocialSentimentPollWidget(
+                    title:
+                        'Community Outlook on ${targetUser.name ?? "Trader"}',
+                    votes: votes,
+                    currentUserId: currentUserId,
+                    onVote: currentUserId == null
+                        ? null
+                        : (sentiment) =>
+                            _firestoreService.votePortfolioSentiment(
+                              widget.userId,
+                              currentUserId,
+                              sentiment,
+                            ),
+                  );
+                },
+              ),
+              const SizedBox(height: 16),
+              const Divider(),
+              const SizedBox(height: 8),
+
+              // Comments Stream
+              StreamBuilder<List<GroupAnalysisComment>>(
+                stream:
+                    _firestoreService.getPortfolioCommentsStream(widget.userId),
+                builder: (context, commentsSnap) {
+                  if (commentsSnap.connectionState == ConnectionState.waiting &&
+                      !commentsSnap.hasData) {
+                    return const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(16.0),
+                        child: CircularProgressIndicator(),
+                      ),
+                    );
+                  }
+
+                  final rawComments = commentsSnap.data ?? [];
+                  if (rawComments.isEmpty) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 16.0),
+                      child: Center(
+                        child: Text(
+                          'No comments yet. Ask a question or share your perspective!',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                    );
+                  }
+
+                  // Pinned comments first, then chronological
+                  final comments = List<GroupAnalysisComment>.from(rawComments)
+                    ..sort((a, b) {
+                      if (a.isPinned != b.isPinned) {
+                        return a.isPinned ? -1 : 1;
+                      }
+                      return a.createdAt.compareTo(b.createdAt);
+                    });
+
+                  return ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: comments.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 8),
+                    itemBuilder: (context, index) {
+                      final c = comments[index];
+                      final canPin = isOwner;
+                      final canDelete = isOwner ||
+                          (currentUserId != null &&
+                              currentUserId == c.authorId);
+
+                      return SocialCommentItemWidget(
+                        comment: c,
+                        currentUserId: currentUserId,
+                        canPin: canPin,
+                        canDelete: canDelete,
+                        onToggleLike: currentUserId == null
+                            ? null
+                            : () => _firestoreService.togglePortfolioCommentLike(
+                                  widget.userId,
+                                  c.id,
+                                  currentUserId,
+                                ),
+                        onTogglePin: canPin
+                            ? () => _firestoreService.setPortfolioCommentPinned(
+                                  widget.userId,
+                                  c.id,
+                                  !c.isPinned,
+                                )
+                            : null,
+                        onDelete: canDelete
+                            ? () => _firestoreService.deletePortfolioComment(
+                                  widget.userId,
+                                  c.id,
+                                )
+                            : null,
+                        onReport: currentUserId == null
+                            ? null
+                            : (reason) =>
+                                _firestoreService.reportPortfolioComment(
+                                  widget.userId,
+                                  c.id,
+                                  currentUserId,
+                                  reason,
+                                ),
+                      );
+                    },
+                  );
+                },
+              ),
+
+              const SizedBox(height: 12),
+              // Comment input
+              if (currentUserId != null)
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _portfolioCommentController,
+                        textCapitalization: TextCapitalization.sentences,
+                        decoration: InputDecoration(
+                          hintText: 'Discuss portfolio strategy...',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(24),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 10,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton.filled(
+                      icon: const Icon(Icons.send, size: 18),
+                      onPressed: () async {
+                        final text = _portfolioCommentController.text.trim();
+                        if (text.isEmpty) return;
+                        _portfolioCommentController.clear();
+                        final comment = GroupAnalysisComment(
+                          id: '',
+                          analysisId: widget.userId,
+                          authorId: currentUserId,
+                          authorName: widget.auth.currentUser?.displayName ??
+                              'Community Member',
+                          authorPhotoUrl: widget.auth.currentUser?.photoURL,
+                          content: text,
+                          createdAt: DateTime.now(),
+                        );
+                        await _firestoreService.addPortfolioComment(
+                          widget.userId,
+                          comment,
+                        );
+                      },
+                    ),
+                  ],
+                ),
+            ],
+          ),
         ),
       ),
     );

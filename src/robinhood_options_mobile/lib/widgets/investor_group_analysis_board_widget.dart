@@ -7,6 +7,8 @@ import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/group_analysis.dart';
 import 'package:robinhood_options_mobile/model/investor_group.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
+import 'package:robinhood_options_mobile/widgets/social_comment_item_widget.dart';
+import 'package:robinhood_options_mobile/widgets/social_sentiment_poll_widget.dart';
 
 class InvestorGroupAnalysisBoardWidget extends StatefulWidget {
   final InvestorGroup group;
@@ -1125,6 +1127,23 @@ class _InvestorGroupAnalysisBoardWidgetState
                             color: theme.colorScheme.onSurface,
                           ),
                         ),
+                        const SizedBox(height: 20),
+
+                        // Community Sentiment Polling Widget
+                        SocialSentimentPollWidget(
+                          title: 'Community Sentiment on ${post.symbol}',
+                          votes: post.sentimentVotes,
+                          currentUserId: currentUserId,
+                          onVote: currentUserId == null
+                              ? null
+                              : (sentiment) => widget.firestoreService
+                                  .voteGroupAnalysisSentiment(
+                                  widget.group.id,
+                                  post.id,
+                                  currentUserId,
+                                  sentiment,
+                                ),
+                        ),
                         const SizedBox(height: 24),
                         const Divider(),
 
@@ -1161,8 +1180,8 @@ class _InvestorGroupAnalysisBoardWidgetState
                                 ),
                               );
                             }
-                            final comments = commentSnapshot.data ?? [];
-                            if (comments.isEmpty) {
+                            final rawComments = commentSnapshot.data ?? [];
+                            if (rawComments.isEmpty) {
                               return Padding(
                                 padding:
                                     const EdgeInsets.symmetric(vertical: 16),
@@ -1178,6 +1197,15 @@ class _InvestorGroupAnalysisBoardWidgetState
                               );
                             }
 
+                            // Sort: Pinned comments first, then chronological
+                            final comments = List<GroupAnalysisComment>.from(rawComments)
+                              ..sort((a, b) {
+                                if (a.isPinned != b.isPinned) {
+                                  return a.isPinned ? -1 : 1;
+                                }
+                                return a.createdAt.compareTo(b.createdAt);
+                              });
+
                             return ListView.separated(
                               shrinkWrap: true,
                               physics: const NeverScrollableScrollPhysics(),
@@ -1186,47 +1214,55 @@ class _InvestorGroupAnalysisBoardWidgetState
                                   const SizedBox(height: 8),
                               itemBuilder: (ctx, i) {
                                 final c = comments[i];
-                                return Container(
-                                  padding: const EdgeInsets.all(10),
-                                  decoration: BoxDecoration(
-                                    color: theme
-                                        .colorScheme.surfaceContainerHighest
-                                        .withValues(alpha: 0.3),
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        children: [
-                                          Text(
-                                            c.authorName,
-                                            style: const TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 12,
-                                            ),
+                                final canPin = isAdmin ||
+                                    (currentUserId != null &&
+                                        currentUserId == post.authorId);
+                                final canDelete = isAdmin ||
+                                    (currentUserId != null &&
+                                        (currentUserId == c.authorId ||
+                                            currentUserId == post.authorId));
+
+                                return SocialCommentItemWidget(
+                                  comment: c,
+                                  currentUserId: currentUserId,
+                                  canPin: canPin,
+                                  canDelete: canDelete,
+                                  onToggleLike: currentUserId == null
+                                      ? null
+                                      : () => widget.firestoreService
+                                          .toggleGroupAnalysisCommentLike(
+                                            widget.group.id,
+                                            post.id,
+                                            c.id,
+                                            currentUserId,
                                           ),
-                                          const Spacer(),
-                                          Text(
-                                            DateFormat.MMMd()
-                                                .add_jm()
-                                                .format(c.createdAt),
-                                            style: TextStyle(
-                                              fontSize: 10,
-                                              color: theme
-                                                  .colorScheme.onSurfaceVariant,
-                                            ),
+                                  onTogglePin: canPin
+                                      ? () => widget.firestoreService
+                                          .setGroupAnalysisCommentPinned(
+                                            widget.group.id,
+                                            post.id,
+                                            c.id,
+                                            !c.isPinned,
+                                          )
+                                      : null,
+                                  onDelete: canDelete
+                                      ? () => widget.firestoreService
+                                          .deleteGroupAnalysisComment(
+                                            widget.group.id,
+                                            post.id,
+                                            c.id,
+                                          )
+                                      : null,
+                                  onReport: currentUserId == null
+                                      ? null
+                                      : (reason) => widget.firestoreService
+                                          .reportGroupAnalysisComment(
+                                            widget.group.id,
+                                            post.id,
+                                            c.id,
+                                            currentUserId,
+                                            reason,
                                           ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        c.content,
-                                        style: const TextStyle(fontSize: 13),
-                                      ),
-                                    ],
-                                  ),
                                 );
                               },
                             );

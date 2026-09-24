@@ -29,7 +29,11 @@ Investor Groups 2.0 transforms community groups into a collaborative trading eco
   - Time Horizon (`Day Trade`, `Swing Trade`, `Short Term`, `Medium Term`, `Long Term`).
   - Entry Price, Target Price, and Stop Loss.
   - Automated calculations for Potential Return % and Risk/Reward Ratio.
-- **Discussion & Engagement**: Like counter with atomic user toggles and nested threaded comment sheets with live streaming updates.
+- **Discussion & Engagement (Enhanced v0.52.0)**:
+  - **Community Sentiment Polling**: Interactive Bullish, Bearish, and Neutral sentiment voting with real-time percentage distribution bars.
+  - **Author-Pinned Comments**: Authors and group admins can pin critical comments/guidelines to the top with a distinct `📌 Pinned by author` badge.
+  - **Comment Upvoting**: Atomic upvote/like button on individual comments.
+  - **Moderation & Reporting**: Flag inappropriate comments with standardized report reasons (spam, manipulation, harassment, offensive) and protective collapse banners.
 - **Pinned Theses**: Group admins can pin top research ideas to the top of the analysis board.
 
 ### 4. Verified Track Records for Group Leaders ([Tracking: #113](https://github.com/CIInc/robinhood-options-mobile/issues/113))
@@ -91,6 +95,7 @@ investor_groups/{groupId}/
     - likesCount: number
     - likedBy: string[]
     - isPinned: boolean
+    - sentimentVotes: map<string, string> (userId -> "bullish" | "bearish" | "neutral")
     - createdAt: timestamp
     - updatedAt: timestamp
 
@@ -100,6 +105,11 @@ investor_groups/{groupId}/
       - authorId: string
       - authorName: string
       - content: string
+      - isPinned: boolean
+      - likes: string[]
+      - isReported: boolean
+      - reportReason: string?
+      - reportedBy: string[]
       - createdAt: timestamp
 
   messages/{messageId}

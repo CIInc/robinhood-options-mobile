@@ -43,17 +43,17 @@ This document outlines the planned features and enhancements for RealizeAlpha.
 
 **RealizeAlpha** is a mobile trading platform for multi-account investing, trading, and options analytics. This roadmap separates delivered work from planned milestones and longer-term ideas. Check marks indicate implementation status; future dates are targets and may change. GitHub issues hold detailed requirements and discussion.
 
-**Last reviewed:** September 22, 2026 · **Current app version:** 0.52.0 (development version)
+**Last reviewed:** September 23, 2026 · **Current app version:** 0.52.0 (development version)
 
 ### Quick Stats
-- **Completed checklist items:** 359
-- **Planned checklist items:** 84
-- **Open GitHub issues:** 37 (as of September 22, 2026)
+- **Completed checklist items:** 361
+- **Planned checklist items:** 82
+- **Open GitHub issues:** 37 (as of September 23, 2026)
 - **Planning focus:** Address high-priority reliability and test gaps, then deliver copy-trading transparency and safeguards; scope community work only after trust, moderation, and measurement criteria are defined.
 
 ### Key Highlights
-- ✅ **Recently Completed (v0.51.0-v0.52.0):** Beta-weighted portfolio Greeks, automated DRIP thresholds, 0DTE gamma squeeze radar, earnings IV crush analysis, IV cone and surface, Delta-Neutral Strategy Builder, Copy-Trading Slippage & Fill Divergence Analytics, Automated Copy-Trading Risk Guardian, and Side-by-Side Multi-Trader Portfolio Comparison. See the release timeline for issue links and details.
-- **Next proposed milestone:** **v0.52.0 (target: December 2026; tentative)** — copy-trading transparency and safeguards, with social discussion as a candidate pending scope and moderation requirements. Tournaments remain exploratory until separately defined.
+- ✅ **Recently Completed (v0.51.0-v0.52.0):** Beta-weighted portfolio Greeks, automated DRIP thresholds, 0DTE gamma squeeze radar, earnings IV crush analysis, IV cone and surface, Delta-Neutral Strategy Builder, Copy-Trading Slippage & Fill Divergence Analytics, Automated Copy-Trading Risk Guardian, Side-by-Side Multi-Trader Portfolio Comparison, and Social Discussion & Comment Threads. See the release timeline for issue links and details.
+- **Next proposed milestone:** **v0.52.0 (target: December 2026; tentative)** — copy-trading transparency and safeguards, with social discussion delivered and verified. Tournaments remain exploratory until separately defined.
 - **Later candidates (v0.53.0+):** Schwab execution and account-history improvements, multi-broker routing, SEC disclosures, and expanded AI research. These are planning targets, not release commitments.
 - **Longer-term exploration:** Desktop workflows, privacy-preserving performance proofs, wearable clients, and spatial interfaces remain exploratory until scoped and prioritized.
 
@@ -419,7 +419,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ **Copy-Trading Slippage & Divergence Analytics:** Audit report showing follower fill latency (ms), price slippage vs. leader, and net return tracking ([Tracking: #141](https://github.com/CIInc/robinhood-options-mobile/issues/141)).
 - ✅ **Automated Copy-Trading Risk Guardian:** Follower protective guardrails specifying max capital allocation per trade, auto-disconnect on leader drawdown divergence, and max slippage abort ([Tracking: #141](https://github.com/CIInc/robinhood-options-mobile/issues/141), v0.52.0).
 - ✅ **Side-by-Side Multi-Trader Portfolio Comparison:** Benchmark risk-adjusted performance across 2 to 4 potential leaders with timeframe normalization (`1W`, `1M`, `3M`, `1Y`, `ALL`), 5-dimensional relative strength scoring, metric winner highlights, privacy masking, and 1-tap copy integration ([Tracking: #141](https://github.com/CIInc/robinhood-options-mobile/issues/141), [Tracking: #113](https://github.com/CIInc/robinhood-options-mobile/issues/113), v0.52.0).
-- **Social Discussion & Comment Threads (candidate):** Discussion on shared trade ideas and portfolios; define moderation, reporting, privacy, and retention requirements before scheduling.
+- ✅ **Social Discussion & Comment Threads:** Granular discussions on shared trade ideas and public portfolios with author-pinned comments, community sentiment polling (Bullish, Bearish, Neutral), comment upvoting, and moderation reporting controls ([Tracking: #113](https://github.com/CIInc/robinhood-options-mobile/issues/113), v0.52.0).
 - **Trading Arenas & Verified Paper Tournaments (exploratory):** Keep paper-only; define fair scoring, anti-abuse controls, and a separate tracked issue before assigning a release.
 
 ### v0.53.0 (2027 Q1 - January)
@@ -985,7 +985,7 @@ Social features already delivered include groups, following, feeds, and leaderbo
 - [x] **Follow Portfolios** ([#27](https://github.com/CIInc/robinhood-options-mobile/issues/27)): Follow other users' portfolios, privacy controls, activity feed, and trade alerts - **Small** (1-2 weeks)
 - [x] **Portfolio Comparison Tools** (v0.52.0, [Tracking: #113](https://github.com/CIInc/robinhood-options-mobile/issues/113), [Tracking: #141](https://github.com/CIInc/robinhood-options-mobile/issues/141)): Side-by-side multi-trader portfolio comparison across returns, risk, execution, and reputation - **Medium** (2-3 weeks)
 - [x] **Top Portfolios Leaderboard** ([#26](https://github.com/CIInc/robinhood-options-mobile/issues/26)): Showcase top-performing portfolios - **Medium** (2-3 weeks)
-- [ ] **Social Discussion & Comment Threads** (v0.52.0): Granular discussions on shared trade ideas and portfolios with author pinned comments, community sentiment polling, and upvoting - **Small** (1-2 weeks)
+- [x] **Social Discussion & Comment Threads** (v0.52.0, [Tracking: #113](https://github.com/CIInc/robinhood-options-mobile/issues/113)): Granular discussions on shared trade ideas and portfolios with author pinned comments, community sentiment polling, and upvoting - **Small** (1-2 weeks)
 - [x] **Social Feed**: Trade notifications, shared ideas, and portfolio updates ([#24](https://github.com/CIInc/robinhood-options-mobile/issues/24))
 - [x] **User Reputation System**: Community credibility tracking - **Medium** (2-3 weeks)
 - [ ] **Achievement Badges**: Gamification elements - **Small** (1 week)

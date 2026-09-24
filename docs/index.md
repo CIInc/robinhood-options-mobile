@@ -13,6 +13,7 @@
 - Historical data analysis for informed decision-making.
 - Cross-platform access for iOS and Android users.
 - Community-driven features for shared insights and discussions.
+  - **[Social Discussion & Comment Threads](social-discussion-threads.md):** Granular discussions on shared trade ideas and public portfolios with author-pinned comments, community sentiment polling, comment upvoting, and moderation reporting.
 - Enhanced security and privacy for user data.
   - **Balance Visibility Toggle:** Global privacy mask for sensitive P&L and equity data, including portfolio-chart axes, annotations, tooltips, and summary values.
 - **Watchlist Management:** Comprehensive tools to create, edit, and manage custom watchlists with real-time data tracking.
