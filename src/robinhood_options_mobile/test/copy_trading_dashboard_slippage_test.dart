@@ -21,10 +21,12 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Slippage & Latency Analytics'), findsOneWidget);
-      expect(find.textContaining('No executed copy trades yet'), findsOneWidget);
+      expect(
+          find.textContaining('No executed copy trades yet'), findsOneWidget);
     });
 
-    testWidgets('renders full slippage and divergence analytics when trades exist',
+    testWidgets(
+        'renders full slippage and divergence analytics when trades exist',
         (WidgetTester tester) async {
       final trades = [
         CopyTradeRecord(

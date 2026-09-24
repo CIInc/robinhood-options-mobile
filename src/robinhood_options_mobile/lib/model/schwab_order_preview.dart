@@ -48,8 +48,7 @@ class SchwabOrderPreview {
         'orderValidationResult': orderValidationResult!.toJson(),
       if (commissionAndFee != null)
         'commissionAndFee': commissionAndFee!.toJson(),
-      if (rootOrderBalance != null)
-        'orderBalance': rootOrderBalance!.toJson(),
+      if (rootOrderBalance != null) 'orderBalance': rootOrderBalance!.toJson(),
     };
   }
 
@@ -77,13 +76,11 @@ class SchwabOrderPreview {
 
   /// Detailed human-readable warning messages.
   List<String> get warningMessages =>
-      orderValidationResult?.warns.map((e) => e.displayMessage).toList() ??
-      [];
+      orderValidationResult?.warns.map((e) => e.displayMessage).toList() ?? [];
 
   /// Detailed human-readable alert messages.
   List<String> get alertMessages =>
-      orderValidationResult?.alerts.map((e) => e.displayMessage).toList() ??
-      [];
+      orderValidationResult?.alerts.map((e) => e.displayMessage).toList() ?? [];
 
   /// Estimated broker commission.
   double get estimatedCommission =>
@@ -103,24 +100,20 @@ class SchwabOrderPreview {
       orderStrategy?.orderValue ?? orderBalance?.orderValue;
 
   /// Post-trade projected buying power.
-  double? get projectedBuyingPower =>
-      orderBalance?.projectedBuyingPower;
+  double? get projectedBuyingPower => orderBalance?.projectedBuyingPower;
 
   /// Post-trade projected available funds.
-  double? get projectedAvailableFunds =>
-      orderBalance?.projectedAvailableFund;
+  double? get projectedAvailableFunds => orderBalance?.projectedAvailableFund;
 
   /// Estimated margin requirement impact.
-  double? get marginRequirement =>
-      orderBalance?.orderValue;
+  double? get marginRequirement => orderBalance?.orderValue;
 
   /// Underlying order balance summary (from root or orderStrategy).
   SchwabOrderBalance? get orderBalance =>
       rootOrderBalance ?? orderStrategy?.orderBalance;
 
   /// Buying power effect from the previewed order balance.
-  double? get buyingPowerEffect =>
-      orderBalance?.buyingPowerEffect;
+  double? get buyingPowerEffect => orderBalance?.buyingPowerEffect;
 
   /// Combined commission and fees if present.
   double? get totalCommissionAndFee =>
@@ -248,16 +241,13 @@ class SchwabOrderBalance {
       orderValue: (json['orderValue'] as num?)?.toDouble(),
       projectedAvailableFund:
           (json['projectedAvailableFund'] as num?)?.toDouble(),
-      projectedBuyingPower:
-          (json['projectedBuyingPower'] as num?)?.toDouble(),
-      projectedCommission:
-          (json['projectedCommission'] as num?)?.toDouble(),
+      projectedBuyingPower: (json['projectedBuyingPower'] as num?)?.toDouble(),
+      projectedCommission: (json['projectedCommission'] as num?)?.toDouble(),
       buyingPowerEffect: (json['buyingPowerEffect'] as num?)?.toDouble() ??
           (json['projectedBuyingPowerEffect'] as num?)?.toDouble(),
       projectedAvailableFundEffect:
           (json['projectedAvailableFundEffect'] as num?)?.toDouble(),
-      projectedCashBalance:
-          (json['projectedCashBalance'] as num?)?.toDouble(),
+      projectedCashBalance: (json['projectedCashBalance'] as num?)?.toDouble(),
       projectedMarginBalance:
           (json['projectedMarginBalance'] as num?)?.toDouble(),
     );
@@ -329,8 +319,7 @@ class SchwabOrderLeg {
       bidPrice: (json['bidPrice'] as num?)?.toDouble(),
       lastPrice: (json['lastPrice'] as num?)?.toDouble(),
       markPrice: (json['markPrice'] as num?)?.toDouble(),
-      projectedCommission:
-          (json['projectedCommission'] as num?)?.toDouble(),
+      projectedCommission: (json['projectedCommission'] as num?)?.toDouble(),
     );
   }
 
@@ -614,9 +603,8 @@ class SchwabFee {
               .toList()
           : (flatFee != null
               ? [
-                  SchwabFeeLeg(feeValues: [
-                    SchwabFeeValue(value: flatFee, type: 'FEE')
-                  ])
+                  SchwabFeeLeg(
+                      feeValues: [SchwabFeeValue(value: flatFee, type: 'FEE')])
                 ]
               : const []),
     );

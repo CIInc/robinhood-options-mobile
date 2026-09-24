@@ -202,8 +202,10 @@ class _UserWidgetState extends State<UserWidget> {
                                 actions: [
                                   IconButton(
                                       icon: widget.auth.currentUser != null
-                                          ? ((widget.auth.currentUser!.photoURL ??
-                                                      (widget.auth.currentUser!.uid ==
+                                          ? ((widget.auth.currentUser!
+                                                          .photoURL ??
+                                                      (widget.auth.currentUser!
+                                                                  .uid ==
                                                               widget.userId
                                                           ? user?.photoUrl
                                                           : null)) ==
@@ -213,8 +215,12 @@ class _UserWidgetState extends State<UserWidget> {
                                                   maxRadius: 12,
                                                   backgroundImage:
                                                       CachedNetworkImageProvider(
-                                                          (widget.auth.currentUser!.photoURL ??
-                                                              user?.photoUrl)!)))
+                                                          (widget
+                                                                  .auth
+                                                                  .currentUser!
+                                                                  .photoURL ??
+                                                              user
+                                                                  ?.photoUrl)!)))
                                           : const Icon(
                                               Icons.account_circle_outlined),
                                       onPressed: () async {
@@ -2321,21 +2327,21 @@ class _UserWidgetState extends State<UserWidget> {
                                           Navigator.push(
                                               context,
                                               MaterialPageRoute(
-                                                  builder: (BuildContext
-                                                          context) =>
-                                                      UsersWidget(
-                                                        widget.auth,
-                                                        widget.service!,
-                                                        analytics:
-                                                            widget.analytics,
-                                                        observer:
-                                                            widget.observer,
-                                                        brokerageUser: widget
-                                                            .brokerageUser!,
-                                                        user: user,
-                                                        userDocRef:
-                                                            userDocumentReference,
-                                                      )));
+                                                  builder:
+                                                      (BuildContext context) =>
+                                                          UsersWidget(
+                                                            widget.auth,
+                                                            widget.service!,
+                                                            analytics: widget
+                                                                .analytics,
+                                                            observer:
+                                                                widget.observer,
+                                                            brokerageUser: widget
+                                                                .brokerageUser!,
+                                                            user: user,
+                                                            userDocRef:
+                                                                userDocumentReference,
+                                                          )));
                                         }
                                       },
                                     ),

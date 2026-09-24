@@ -38,7 +38,8 @@ void main() {
       expect(find.text('CIRCUIT TRIPPED'), findsNothing);
     });
 
-    testWidgets('renders tripped state with alert banner and reset button', (tester) async {
+    testWidgets('renders tripped state with alert banner and reset button',
+        (tester) async {
       bool resetCalled = false;
       final settings = CopyTradeSettings(
         enabled: false,
@@ -46,7 +47,8 @@ void main() {
         maxSlippageBps: 50.0,
         autoDisconnectOnDivergence: true,
         isRiskGuardianTripped: true,
-        riskGuardianTripReason: 'Leader peak drawdown reached 18.2%, exceeding 15% threshold',
+        riskGuardianTripReason:
+            'Leader peak drawdown reached 18.2%, exceeding 15% threshold',
         riskGuardianTrippedAt: DateTime(2026, 9, 23, 10, 0, 0),
       );
 
@@ -69,7 +71,8 @@ void main() {
       expect(find.text('Risk Guardian'), findsOneWidget);
       expect(find.text('CIRCUIT TRIPPED'), findsOneWidget);
       expect(find.text('Copy Trading Auto-Disconnected'), findsOneWidget);
-      expect(find.textContaining('Leader peak drawdown reached 18.2%'), findsOneWidget);
+      expect(find.textContaining('Leader peak drawdown reached 18.2%'),
+          findsOneWidget);
       expect(find.text('Reset Guardian & Reconnect'), findsOneWidget);
 
       await tester.tap(find.text('Reset Guardian & Reconnect'));
@@ -78,7 +81,8 @@ void main() {
       expect(resetCalled, isTrue);
     });
 
-    testWidgets('renders protected orders banner when aborted trades exist', (tester) async {
+    testWidgets('renders protected orders banner when aborted trades exist',
+        (tester) async {
       final now = DateTime(2026, 9, 23, 10, 0, 0);
       final trades = [
         CopyTradeRecord(
@@ -114,7 +118,8 @@ void main() {
         ),
       );
 
-      expect(find.textContaining('Protected from 1 adverse orders'), findsOneWidget);
+      expect(find.textContaining('Protected from 1 adverse orders'),
+          findsOneWidget);
       expect(find.textContaining('1 slippage'), findsOneWidget);
     });
   });

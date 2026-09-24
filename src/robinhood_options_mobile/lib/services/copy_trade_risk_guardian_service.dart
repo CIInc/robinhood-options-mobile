@@ -100,7 +100,8 @@ class CopyTradeRiskGuardianService {
 
     // Also consider legacy maxAmount if specified and lower
     if (settings.maxAmount != null && settings.maxAmount! > 0) {
-      if (effectiveMaxAmount == null || settings.maxAmount! < effectiveMaxAmount) {
+      if (effectiveMaxAmount == null ||
+          settings.maxAmount! < effectiveMaxAmount) {
         effectiveMaxAmount = settings.maxAmount;
       }
     }

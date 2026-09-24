@@ -338,13 +338,16 @@ void main() {
       final results =
           await service.getInstrumentsByIds(user, store, ['NVDA', 'TSLA']);
       expect(results.length, 2);
-      expect(results.map((e) => e.symbol).toList(), containsAll(['NVDA', 'TSLA']));
+      expect(
+          results.map((e) => e.symbol).toList(), containsAll(['NVDA', 'TSLA']));
     });
 
-    testWidgets('OptionOrderWidget renders successfully for Schwab option order',
+    testWidgets(
+        'OptionOrderWidget renders successfully for Schwab option order',
         (tester) async {
       final service = SchwabService();
-      final user = BrokerageUser(BrokerageSource.schwab, 'schwab_user', null, null);
+      final user =
+          BrokerageUser(BrokerageSource.schwab, 'schwab_user', null, null);
       final instrumentStore = InstrumentStore();
       final quoteStore = QuoteStore();
 
@@ -404,4 +407,3 @@ void main() {
     });
   });
 }
-

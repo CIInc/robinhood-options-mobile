@@ -159,11 +159,9 @@ class CopyTradeSlippageAnalytics {
         if (latency < 100) {
           latencyBuckets['< 100ms'] = (latencyBuckets['< 100ms'] ?? 0) + 1;
         } else if (latency <= 250) {
-          latencyBuckets['100-250ms'] =
-              (latencyBuckets['100-250ms'] ?? 0) + 1;
+          latencyBuckets['100-250ms'] = (latencyBuckets['100-250ms'] ?? 0) + 1;
         } else if (latency <= 500) {
-          latencyBuckets['250-500ms'] =
-              (latencyBuckets['250-500ms'] ?? 0) + 1;
+          latencyBuckets['250-500ms'] = (latencyBuckets['250-500ms'] ?? 0) + 1;
         } else if (latency <= 1000) {
           latencyBuckets['500ms-1s'] = (latencyBuckets['500ms-1s'] ?? 0) + 1;
         } else {
@@ -194,8 +192,9 @@ class CopyTradeSlippageAnalytics {
     }
 
     latencies.sort();
-    final avgLatency =
-        latencies.isNotEmpty ? latencies.reduce((a, b) => a + b) / latencies.length : 0.0;
+    final avgLatency = latencies.isNotEmpty
+        ? latencies.reduce((a, b) => a + b) / latencies.length
+        : 0.0;
     final medianLatency = latencies.isNotEmpty
         ? (latencies.length % 2 == 1
             ? latencies[latencies.length ~/ 2].toDouble()
@@ -206,9 +205,8 @@ class CopyTradeSlippageAnalytics {
     final minLatency = latencies.isNotEmpty ? latencies.first : 0;
     final maxLatency = latencies.isNotEmpty ? latencies.last : 0;
 
-    final avgSlippageDollar = totalExecuted > 0
-        ? totalSlippageDollarSum / totalExecuted
-        : 0.0;
+    final avgSlippageDollar =
+        totalExecuted > 0 ? totalSlippageDollarSum / totalExecuted : 0.0;
     final avgSlippageBps =
         totalExecuted > 0 ? totalSlippageBpsSum / totalExecuted : 0.0;
 

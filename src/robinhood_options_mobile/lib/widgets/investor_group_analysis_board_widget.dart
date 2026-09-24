@@ -1137,12 +1137,12 @@ class _InvestorGroupAnalysisBoardWidgetState
                           onVote: currentUserId == null
                               ? null
                               : (sentiment) => widget.firestoreService
-                                  .voteGroupAnalysisSentiment(
-                                  widget.group.id,
-                                  post.id,
-                                  currentUserId,
-                                  sentiment,
-                                ),
+                                      .voteGroupAnalysisSentiment(
+                                    widget.group.id,
+                                    post.id,
+                                    currentUserId,
+                                    sentiment,
+                                  ),
                         ),
                         const SizedBox(height: 24),
                         const Divider(),
@@ -1198,13 +1198,14 @@ class _InvestorGroupAnalysisBoardWidgetState
                             }
 
                             // Sort: Pinned comments first, then chronological
-                            final comments = List<GroupAnalysisComment>.from(rawComments)
-                              ..sort((a, b) {
-                                if (a.isPinned != b.isPinned) {
-                                  return a.isPinned ? -1 : 1;
-                                }
-                                return a.createdAt.compareTo(b.createdAt);
-                              });
+                            final comments =
+                                List<GroupAnalysisComment>.from(rawComments)
+                                  ..sort((a, b) {
+                                    if (a.isPinned != b.isPinned) {
+                                      return a.isPinned ? -1 : 1;
+                                    }
+                                    return a.createdAt.compareTo(b.createdAt);
+                                  });
 
                             return ListView.separated(
                               shrinkWrap: true,
@@ -1230,7 +1231,7 @@ class _InvestorGroupAnalysisBoardWidgetState
                                   onToggleLike: currentUserId == null
                                       ? null
                                       : () => widget.firestoreService
-                                          .toggleGroupAnalysisCommentLike(
+                                              .toggleGroupAnalysisCommentLike(
                                             widget.group.id,
                                             post.id,
                                             c.id,
@@ -1238,7 +1239,7 @@ class _InvestorGroupAnalysisBoardWidgetState
                                           ),
                                   onTogglePin: canPin
                                       ? () => widget.firestoreService
-                                          .setGroupAnalysisCommentPinned(
+                                              .setGroupAnalysisCommentPinned(
                                             widget.group.id,
                                             post.id,
                                             c.id,
@@ -1247,7 +1248,7 @@ class _InvestorGroupAnalysisBoardWidgetState
                                       : null,
                                   onDelete: canDelete
                                       ? () => widget.firestoreService
-                                          .deleteGroupAnalysisComment(
+                                              .deleteGroupAnalysisComment(
                                             widget.group.id,
                                             post.id,
                                             c.id,
@@ -1256,7 +1257,7 @@ class _InvestorGroupAnalysisBoardWidgetState
                                   onReport: currentUserId == null
                                       ? null
                                       : (reason) => widget.firestoreService
-                                          .reportGroupAnalysisComment(
+                                              .reportGroupAnalysisComment(
                                             widget.group.id,
                                             post.id,
                                             c.id,

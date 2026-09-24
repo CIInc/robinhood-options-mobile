@@ -72,6 +72,7 @@ class _TopPortfoliosLeaderboardWidgetState
     });
     widget.onCompareModeChanged?.call(enabled);
   }
+
   List<TopPortfolioEntry> _lastEntries = [];
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
@@ -302,8 +303,8 @@ class _TopPortfoliosLeaderboardWidgetState
                 padding:
                     const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 decoration: BoxDecoration(
-                  color:
-                      theme.colorScheme.primaryContainer.withValues(alpha: 0.45),
+                  color: theme.colorScheme.primaryContainer
+                      .withValues(alpha: 0.45),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: theme.colorScheme.primary.withValues(alpha: 0.3),
@@ -582,7 +583,8 @@ class _TopPortfoliosLeaderboardWidgetState
                             avatar: const Icon(Icons.verified, size: 14),
                             label: const Text('Verified Only',
                                 style: TextStyle(fontSize: 11)),
-                            onDeleted: () => _updateFilters(verifiedOnly: false),
+                            onDeleted: () =>
+                                _updateFilters(verifiedOnly: false),
                           ),
                         ],
                       ),
@@ -1195,7 +1197,9 @@ class _TopPortfoliosLeaderboardWidgetState
                     children: [
                       IconButton(
                         icon: Icon(
-                          isSelected ? Icons.check_circle : Icons.compare_arrows,
+                          isSelected
+                              ? Icons.check_circle
+                              : Icons.compare_arrows,
                           size: 20,
                           color: isSelected ? theme.colorScheme.primary : null,
                         ),

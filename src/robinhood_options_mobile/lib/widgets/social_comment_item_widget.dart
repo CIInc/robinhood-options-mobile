@@ -41,14 +41,15 @@ class _SocialCommentItemWidgetState extends State<SocialCommentItemWidget> {
     final c = widget.comment;
     final isLiked =
         widget.currentUserId != null && c.isLikedBy(widget.currentUserId!);
-    final isReportedByMe = widget.currentUserId != null &&
-        c.isReportedBy(widget.currentUserId!);
+    final isReportedByMe =
+        widget.currentUserId != null && c.isReportedBy(widget.currentUserId!);
 
     if (isReportedByMe && !_revealed) {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.2),
+          color:
+              theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.2),
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
             color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
@@ -210,7 +211,9 @@ class _SocialCommentItemWidgetState extends State<SocialCommentItemWidget> {
                       child: Row(
                         children: [
                           Icon(
-                            c.isPinned ? Icons.push_pin_outlined : Icons.push_pin,
+                            c.isPinned
+                                ? Icons.push_pin_outlined
+                                : Icons.push_pin,
                             size: 16,
                           ),
                           const SizedBox(width: 8),
@@ -233,7 +236,8 @@ class _SocialCommentItemWidgetState extends State<SocialCommentItemWidget> {
                       value: 'delete',
                       child: Row(
                         children: [
-                          Icon(Icons.delete_outline, size: 16, color: Colors.red),
+                          Icon(Icons.delete_outline,
+                              size: 16, color: Colors.red),
                           SizedBox(width: 8),
                           Text('Delete Comment',
                               style: TextStyle(color: Colors.red)),

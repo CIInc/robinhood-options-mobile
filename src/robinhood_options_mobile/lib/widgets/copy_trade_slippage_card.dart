@@ -104,8 +104,8 @@ class CopyTradeSlippageCard extends StatelessWidget {
                     Text(
                       'Slippage & Divergence Audit',
                       style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ],
                 ),
@@ -130,7 +130,8 @@ class CopyTradeSlippageCard extends StatelessWidget {
                     context,
                     label: 'Avg Latency',
                     value: '${summary.averageLatencyMs.toStringAsFixed(0)} ms',
-                    subtitle: 'Median: ${summary.medianLatencyMs.toStringAsFixed(0)}ms',
+                    subtitle:
+                        'Median: ${summary.medianLatencyMs.toStringAsFixed(0)}ms',
                     color: latencyColor,
                   ),
                 ),
@@ -343,7 +344,8 @@ class CopyTradeSlippageCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey)),
+          Text(label,
+              style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey)),
           const SizedBox(height: 4),
           Text(
             value,
@@ -409,8 +411,8 @@ class CopyTradeSlippageCard extends StatelessWidget {
                 'Favorable: ${summary.favorableTradesCount}', Colors.green),
             _buildLegendItem(
                 'Exact: ${summary.neutralTradesCount}', Colors.blue),
-            _buildLegendItem(
-                'Unfavorable: ${summary.unfavorableTradesCount}', Colors.orange),
+            _buildLegendItem('Unfavorable: ${summary.unfavorableTradesCount}',
+                Colors.orange),
           ],
         ),
       ],

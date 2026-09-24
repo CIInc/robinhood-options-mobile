@@ -1154,7 +1154,8 @@ class _HistoryPageState extends State<HistoryPage>
                                   Text(
                                     "$orderDateFilterDisplay ${pastPositionsTotalRealized > 0 ? "+" : pastPositionsTotalRealized < 0 ? "-" : ""}${formatCurrency.format(pastPositionsTotalRealized.abs())} (${pastPositionsTotalRealized >= 0 ? "+" : ""}${formatPercentage.format(pastPositionsTotalRealizedPercent)}) • $pastPositionsTotalRoundTrips round trip${pastPositionsTotalRoundTrips == 1 ? '' : 's'}",
                                     style: TextStyle(
-                                      color: _amountColor(pastPositionsTotalRealized),
+                                      color: _amountColor(
+                                          pastPositionsTotalRealized),
                                       fontSize: 14,
                                       fontWeight: FontWeight.w600,
                                     ),
@@ -1309,7 +1310,8 @@ class _HistoryPageState extends State<HistoryPage>
                                           builder: (setState) => [
                                             buildOrderFilterWidget(setState),
                                             const SizedBox(height: 8),
-                                            buildOrderDateFilterWidget(setState),
+                                            buildOrderDateFilterWidget(
+                                                setState),
                                             const SizedBox(height: 25),
                                             buildStockOrderSymbolFilterWidget(
                                                 4, setState),
@@ -1329,11 +1331,7 @@ class _HistoryPageState extends State<HistoryPage>
                                   orderDateFilterSelection = 'Past Month';
                                   orderFilters
                                     ..clear()
-                                    ..addAll([
-                                      "confirmed",
-                                      "filled",
-                                      "queued"
-                                    ]);
+                                    ..addAll(["confirmed", "filled", "queued"]);
                                   stockSymbolFilters.clear();
                                 });
                               },
@@ -1379,7 +1377,7 @@ class _HistoryPageState extends State<HistoryPage>
                                         radius: 22,
                                         backgroundColor: order.side == 'buy'
                                             ? Colors.green
-                                            .withValues(alpha: 0.1)
+                                                .withValues(alpha: 0.1)
                                             : Colors.red.withValues(alpha: 0.1),
                                         foregroundColor: order.side == 'buy'
                                             ? Colors.green
@@ -1609,7 +1607,8 @@ class _HistoryPageState extends State<HistoryPage>
                                           builder: (setState) => [
                                             buildOrderFilterWidget(setState),
                                             const SizedBox(height: 8),
-                                            buildOrderDateFilterWidget(setState),
+                                            buildOrderDateFilterWidget(
+                                                setState),
                                             const SizedBox(height: 25),
                                             buildOptionOrderSymbolFilterWidget(
                                                 4, setState),
@@ -1629,11 +1628,7 @@ class _HistoryPageState extends State<HistoryPage>
                                   orderDateFilterSelection = 'Past Month';
                                   orderFilters
                                     ..clear()
-                                    ..addAll([
-                                      "confirmed",
-                                      "filled",
-                                      "queued"
-                                    ]);
+                                    ..addAll(["confirmed", "filled", "queued"]);
                                   optionSymbolFilters.clear();
                                 });
                               },
@@ -1872,7 +1867,8 @@ class _HistoryPageState extends State<HistoryPage>
                                           builder: (setState) => [
                                             buildOrderFilterWidget(setState),
                                             const SizedBox(height: 8),
-                                            buildOrderDateFilterWidget(setState),
+                                            buildOrderDateFilterWidget(
+                                                setState),
                                           ],
                                         );
                                       },
@@ -1889,11 +1885,7 @@ class _HistoryPageState extends State<HistoryPage>
                                   orderDateFilterSelection = 'Past Month';
                                   orderFilters
                                     ..clear()
-                                    ..addAll([
-                                      "confirmed",
-                                      "filled",
-                                      "queued"
-                                    ]);
+                                    ..addAll(["confirmed", "filled", "queued"]);
                                 });
                               },
                             ),
@@ -2131,7 +2123,8 @@ class _HistoryPageState extends State<HistoryPage>
                                             stockSymbolFilters.clear();
                                           },
                                           builder: (setState) => [
-                                            buildOrderDateFilterWidget(setState),
+                                            buildOrderDateFilterWidget(
+                                                setState),
                                             const SizedBox(height: 25),
                                             buildStockOrderSymbolFilterWidget(
                                                 4, setState),
@@ -2442,7 +2435,8 @@ class _HistoryPageState extends State<HistoryPage>
                                                 'Past Month';
                                           },
                                           builder: (setState) => [
-                                            buildOrderDateFilterWidget(setState),
+                                            buildOrderDateFilterWidget(
+                                                setState),
                                           ],
                                         );
                                       },
@@ -3083,9 +3077,8 @@ class _HistoryPageState extends State<HistoryPage>
   }) {
     Widget icon = Icon(
       activeFilterCount > 0 ? Icons.filter_alt : Icons.filter_list,
-      color: activeFilterCount > 0
-          ? Theme.of(context).colorScheme.primary
-          : null,
+      color:
+          activeFilterCount > 0 ? Theme.of(context).colorScheme.primary : null,
     );
     if (activeFilterCount > 0) {
       icon = Badge.count(
@@ -3648,8 +3641,7 @@ class _HistoryPageState extends State<HistoryPage>
                           Row(
                             children: [
                               Icon(Icons.tune,
-                                  color:
-                                      Theme.of(context).colorScheme.primary),
+                                  color: Theme.of(context).colorScheme.primary),
                               const SizedBox(width: 10),
                               Text(
                                 title,

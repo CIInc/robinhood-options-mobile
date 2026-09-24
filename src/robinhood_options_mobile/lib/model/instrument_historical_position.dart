@@ -346,8 +346,7 @@ class InstrumentCostBasisLookbackSummary {
       (acc, c) => acc + c.holdDuration.inSeconds,
     );
     final avgHold = allClosed.isNotEmpty
-        ? Duration(
-            seconds: (totalClosedHoldSecs / allClosed.length).round())
+        ? Duration(seconds: (totalClosedHoldSecs / allClosed.length).round())
         : Duration.zero;
 
     final totalRealized = summaries.fold<double>(

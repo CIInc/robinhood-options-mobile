@@ -310,8 +310,8 @@ class CopyTradingProvider with ChangeNotifier {
         );
 
         if (divergenceResult.shouldDisconnect) {
-          final tripReason = divergenceResult.tripReason ??
-              'Divergence threshold exceeded';
+          final tripReason =
+              divergenceResult.tripReason ?? 'Divergence threshold exceeded';
           CopyTradeRiskGuardianService.tripGuardian(settings, tripReason);
 
           await FirebaseFirestore.instance
@@ -327,12 +327,10 @@ class CopyTradingProvider with ChangeNotifier {
               .update({
             'status': 'aborted',
             'executionResult': 'aborted_risk_guardian_tripped',
-            'error':
-                'Risk Guardian triggered auto-disconnect: $tripReason',
+            'error': 'Risk Guardian triggered auto-disconnect: $tripReason',
             'executionTime': FieldValue.serverTimestamp(),
           });
-          debugPrint(
-              'Risk Guardian tripped & auto-disconnected: $tripReason');
+          debugPrint('Risk Guardian tripped & auto-disconnected: $tripReason');
           return;
         }
       } catch (e) {
@@ -379,8 +377,8 @@ class CopyTradingProvider with ChangeNotifier {
             .update({
           'status': 'aborted',
           'executionResult': 'aborted_allocation_limit',
-          'error': allocResult.abortReason ??
-              'Capital allocation limit exceeded',
+          'error':
+              allocResult.abortReason ?? 'Capital allocation limit exceeded',
           'executionTime': FieldValue.serverTimestamp(),
         });
         debugPrint(
@@ -395,8 +393,8 @@ class CopyTradingProvider with ChangeNotifier {
       final isBuy = record.side.toLowerCase().contains('buy');
       try {
         if (record.orderType == 'instrument') {
-          final quote = await _service!.getQuote(
-              _brokerageUser!, _quoteStore, record.symbol);
+          final quote = await _service!
+              .getQuote(_brokerageUser!, _quoteStore, record.symbol);
           final quotePrice = isBuy
               ? (quote.askPrice ?? quote.lastTradePrice)
               : (quote.bidPrice ?? quote.lastTradePrice);
@@ -405,8 +403,7 @@ class CopyTradingProvider with ChangeNotifier {
           }
         }
       } catch (e) {
-        debugPrint(
-            'Could not fetch market quote for slippage evaluation: $e');
+        debugPrint('Could not fetch market quote for slippage evaluation: $e');
       }
 
       final slippageResult = CopyTradeRiskGuardianService.evaluateSlippage(

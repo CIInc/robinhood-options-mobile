@@ -206,20 +206,24 @@ void main() {
           equals(6.0));
     });
 
-    test('setTopPortfolioEntry, getTopPortfolioEntry, and deleteTopPortfolioEntry work correctly', () async {
+    test(
+        'setTopPortfolioEntry, getTopPortfolioEntry, and deleteTopPortfolioEntry work correctly',
+        () async {
       const entry = TopPortfolioEntry(
         userId: 'test_trader',
         userName: 'Test Trader',
         returnPercent: 45.0,
         winRate: 70.0,
-        reputation: UserReputation(score: 65, tier: ReputationTier.masterTrader),
+        reputation:
+            UserReputation(score: 65, tier: ReputationTier.masterTrader),
       );
 
       // Set entry
       await firestoreService.setTopPortfolioEntry(entry);
 
       // Fetch entry
-      final fetched = await firestoreService.getTopPortfolioEntry('test_trader');
+      final fetched =
+          await firestoreService.getTopPortfolioEntry('test_trader');
       expect(fetched, isNotNull);
       expect(fetched!.userId, equals('test_trader'));
       expect(fetched.userName, equals('Test Trader'));
@@ -229,7 +233,8 @@ void main() {
       await firestoreService.deleteTopPortfolioEntry('test_trader');
 
       // Verify deletion
-      final deleted = await firestoreService.getTopPortfolioEntry('test_trader');
+      final deleted =
+          await firestoreService.getTopPortfolioEntry('test_trader');
       expect(deleted, isNull);
     });
   });

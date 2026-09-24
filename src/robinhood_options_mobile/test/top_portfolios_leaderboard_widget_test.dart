@@ -38,7 +38,8 @@ class FakeUser extends Fake implements firebase_auth.User {
   String? get photoURL => _photoURL;
 }
 
-class FakeFirebaseAuthWithUser extends Fake implements firebase_auth.FirebaseAuth {
+class FakeFirebaseAuthWithUser extends Fake
+    implements firebase_auth.FirebaseAuth {
   final firebase_auth.User _user;
   FakeFirebaseAuthWithUser(this._user);
 
@@ -488,7 +489,8 @@ void main() {
       expect(find.text('Compare (2)'), findsOneWidget);
     });
 
-    testWidgets('tapping publish floating action button opens PublishPortfolioBottomSheet',
+    testWidgets(
+        'tapping publish floating action button opens PublishPortfolioBottomSheet',
         (WidgetTester tester) async {
       tester.view.physicalSize = const Size(1080, 2400);
       tester.view.devicePixelRatio = 1.0;
@@ -511,12 +513,14 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Leaderboard Publication'), findsOneWidget);
-      expect(find.text('Manage your public visibility and ranking'), findsOneWidget);
+      expect(find.text('Manage your public visibility and ranking'),
+          findsOneWidget);
       expect(find.text('Status: Not Published'), findsOneWidget);
       expect(find.text('Publish Portfolio to Leaderboard'), findsOneWidget);
     });
 
-    testWidgets('empty state displays Publish My Portfolio button and tapping it opens bottom sheet',
+    testWidgets(
+        'empty state displays Publish My Portfolio button and tapping it opens bottom sheet',
         (WidgetTester tester) async {
       tester.view.physicalSize = const Size(1080, 2400);
       tester.view.devicePixelRatio = 1.0;
@@ -546,7 +550,8 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('No Portfolios Found'), findsOneWidget);
-      expect(find.text('No public portfolios match the current filters.'), findsOneWidget);
+      expect(find.text('No public portfolios match the current filters.'),
+          findsOneWidget);
       expect(find.text('Publish My Portfolio'), findsOneWidget);
 
       await tester.tap(find.text('Publish My Portfolio'));
@@ -555,7 +560,8 @@ void main() {
       expect(find.text('Leaderboard Publication'), findsOneWidget);
     });
 
-    testWidgets('PublishPortfolioBottomSheet publishes portfolio and updates Firestore',
+    testWidgets(
+        'PublishPortfolioBottomSheet publishes portfolio and updates Firestore',
         (WidgetTester tester) async {
       tester.view.physicalSize = const Size(1080, 2400);
       tester.view.devicePixelRatio = 1.0;
@@ -567,10 +573,14 @@ void main() {
       final user = FakeUser(uid: 'david', displayName: 'David Trader');
       final auth = FakeFirebaseAuthWithUser(user);
 
-      await fakeDb.collection(firestoreService.userCollectionName).doc('david').set({
+      await fakeDb
+          .collection(firestoreService.userCollectionName)
+          .doc('david')
+          .set({
         'id': 'david',
         'name': 'David Trader',
-        'portfolioPrivacy': const PortfolioPrivacySettings(isPublic: false).toJson(),
+        'portfolioPrivacy':
+            const PortfolioPrivacySettings(isPublic: false).toJson(),
       });
 
       await tester.pumpWidget(createWidgetUnderTest(auth: auth));
@@ -593,11 +603,15 @@ void main() {
       expect(entry.isPublic, isTrue);
 
       // User document privacy should have been updated to isPublic: true
-      final userDoc = await fakeDb.collection(firestoreService.userCollectionName).doc('david').get();
+      final userDoc = await fakeDb
+          .collection(firestoreService.userCollectionName)
+          .doc('david')
+          .get();
       expect(userDoc.data()!['portfolioPrivacy']['isPublic'], isTrue);
     });
 
-    testWidgets('PublishPortfolioBottomSheet unpublishes portfolio from leaderboard',
+    testWidgets(
+        'PublishPortfolioBottomSheet unpublishes portfolio from leaderboard',
         (WidgetTester tester) async {
       tester.view.physicalSize = const Size(1080, 2400);
       tester.view.devicePixelRatio = 1.0;
@@ -609,10 +623,14 @@ void main() {
       final user = FakeUser(uid: 'david', displayName: 'David Trader');
       final auth = FakeFirebaseAuthWithUser(user);
 
-      await fakeDb.collection(firestoreService.userCollectionName).doc('david').set({
+      await fakeDb
+          .collection(firestoreService.userCollectionName)
+          .doc('david')
+          .set({
         'id': 'david',
         'name': 'David Trader',
-        'portfolioPrivacy': const PortfolioPrivacySettings(isPublic: true).toJson(),
+        'portfolioPrivacy':
+            const PortfolioPrivacySettings(isPublic: true).toJson(),
       });
 
       // Pre-seed top portfolio entry
@@ -622,7 +640,8 @@ void main() {
           userName: 'David Trader',
           returnPercent: 25.0,
           winRate: 60.0,
-          reputation: UserReputation(score: 50, tier: ReputationTier.trustedTrader),
+          reputation:
+              UserReputation(score: 50, tier: ReputationTier.trustedTrader),
         ),
       );
 
@@ -645,7 +664,8 @@ void main() {
       expect(entry, isNull);
     });
 
-    testWidgets('tapping leaderboard card navigates to TraderProfileWidget smoothly and preserves state on return',
+    testWidgets(
+        'tapping leaderboard card navigates to TraderProfileWidget smoothly and preserves state on return',
         (WidgetTester tester) async {
       tester.view.physicalSize = const Size(1080, 2400);
       tester.view.devicePixelRatio = 1.0;
@@ -678,7 +698,8 @@ void main() {
       expect(find.text('Alice Capital'), findsWidgets);
     });
 
-    testWidgets('shows guidance banner and persistent bottom bar in compare mode with showAppBar: false',
+    testWidgets(
+        'shows guidance banner and persistent bottom bar in compare mode with showAppBar: false',
         (WidgetTester tester) async {
       tester.view.physicalSize = const Size(1080, 2400);
       tester.view.devicePixelRatio = 1.0;
@@ -720,7 +741,8 @@ void main() {
 
       // Verify guidance banner is visible
       expect(find.text('Compare Mode Active'), findsOneWidget);
-      expect(find.text('Select 2 to 4 traders to compare metrics side-by-side'), findsOneWidget);
+      expect(find.text('Select 2 to 4 traders to compare metrics side-by-side'),
+          findsOneWidget);
       expect(find.text('Exit'), findsOneWidget);
 
       // Verify persistent bottom bar is visible with selection count
@@ -799,7 +821,8 @@ void main() {
       expect(find.byType(Checkbox), findsNothing);
     });
 
-    testWidgets('tapping card row in compare mode still navigates to TraderProfileWidget',
+    testWidgets(
+        'tapping card row in compare mode still navigates to TraderProfileWidget',
         (WidgetTester tester) async {
       tester.view.physicalSize = const Size(1080, 2400);
       tester.view.devicePixelRatio = 1.0;

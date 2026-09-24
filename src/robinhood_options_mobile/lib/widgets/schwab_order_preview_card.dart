@@ -34,7 +34,8 @@ class SchwabOrderPreviewCard extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.error_outline, color: Colors.red, size: 20),
+                    const Icon(Icons.error_outline,
+                        color: Colors.red, size: 20),
                     const SizedBox(width: 8),
                     Text(
                       "Schwab Order Validation Rejected",

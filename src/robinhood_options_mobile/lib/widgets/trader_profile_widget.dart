@@ -1062,8 +1062,8 @@ class _TraderProfileWidgetState extends State<TraderProfileWidget> {
     );
   }
 
-  Widget _buildPortfolioDiscussionCard(BuildContext context, User targetUser,
-      PortfolioPrivacySettings privacy) {
+  Widget _buildPortfolioDiscussionCard(
+      BuildContext context, User targetUser, PortfolioPrivacySettings privacy) {
     final theme = Theme.of(context);
     final currentUserId = widget.auth.currentUser?.uid;
     final isOwner = currentUserId != null && currentUserId == widget.userId;
@@ -1096,8 +1096,8 @@ class _TraderProfileWidgetState extends State<TraderProfileWidget> {
 
               // Community Sentiment Polling on Trader's Portfolio
               StreamBuilder<Map<String, String>>(
-                stream:
-                    _firestoreService.getPortfolioSentimentStream(widget.userId),
+                stream: _firestoreService
+                    .getPortfolioSentimentStream(widget.userId),
                 builder: (context, sentimentSnap) {
                   final votes = sentimentSnap.data ?? {};
                   return SocialSentimentPollWidget(
@@ -1179,7 +1179,8 @@ class _TraderProfileWidgetState extends State<TraderProfileWidget> {
                         canDelete: canDelete,
                         onToggleLike: currentUserId == null
                             ? null
-                            : () => _firestoreService.togglePortfolioCommentLike(
+                            : () =>
+                                _firestoreService.togglePortfolioCommentLike(
                                   widget.userId,
                                   c.id,
                                   currentUserId,

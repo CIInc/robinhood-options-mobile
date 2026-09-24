@@ -80,7 +80,9 @@ void main() {
       expect(deserialized.isUnfavorableSlippage, false);
     });
 
-    test('should calculate buy order slippage correctly when not explicitly precomputed', () {
+    test(
+        'should calculate buy order slippage correctly when not explicitly precomputed',
+        () {
       final record = CopyTradeRecord(
         id: 'trade-buy',
         sourceUserId: 'l1',
@@ -100,12 +102,15 @@ void main() {
       );
 
       expect(record.dollarSlippage, closeTo(0.50, 0.0001));
-      expect(record.effectiveSlippageBps, closeTo((0.50 / 250.0) * 10000, 0.01));
+      expect(
+          record.effectiveSlippageBps, closeTo((0.50 / 250.0) * 10000, 0.01));
       expect(record.effectiveFillLatencyMs, 210);
       expect(record.isUnfavorableSlippage, true);
     });
 
-    test('should calculate sell order slippage correctly when not explicitly precomputed', () {
+    test(
+        'should calculate sell order slippage correctly when not explicitly precomputed',
+        () {
       final recordFavorable = CopyTradeRecord(
         id: 'trade-sell-fav',
         sourceUserId: 'l1',
@@ -125,7 +130,8 @@ void main() {
       );
 
       expect(recordFavorable.dollarSlippage, closeTo(-0.80, 0.0001));
-      expect(recordFavorable.effectiveSlippageBps, closeTo((-0.80 / 400.0) * 10000, 0.01));
+      expect(recordFavorable.effectiveSlippageBps,
+          closeTo((-0.80 / 400.0) * 10000, 0.01));
       expect(recordFavorable.isFavorableSlippage, true);
       expect(recordFavorable.isUnfavorableSlippage, false);
 
@@ -152,7 +158,9 @@ void main() {
       expect(recordUnfavorable.isFavorableSlippage, false);
     });
 
-    test('should maintain backward compatibility for historical records without new fields', () {
+    test(
+        'should maintain backward compatibility for historical records without new fields',
+        () {
       final legacyJson = {
         'sourceUserId': 'leader-old',
         'targetUserId': 'follower-old',

@@ -318,7 +318,8 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget>
                 child: FloatingActionButton.extended(
                   heroTag: 'leaderboard_publish_fab',
                   onPressed: () {
-                    widget.analytics.logEvent(name: 'leaderboard_publish_fab_pressed');
+                    widget.analytics
+                        .logEvent(name: 'leaderboard_publish_fab_pressed');
                     PublishPortfolioBottomSheet.show(
                       context,
                       auth: auth,

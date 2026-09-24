@@ -6,23 +6,33 @@ import 'package:robinhood_options_mobile/model/schwab_strategy_chain.dart';
 import 'package:robinhood_options_mobile/services/schwab_service.dart';
 import 'package:robinhood_options_mobile/widgets/schwab_strategy_chain_widget.dart';
 
-
 void main() {
   group('SchwabStrategyType Enum Tests', () {
     test('Correctly maps all 11 strategy values from strings', () {
-      expect(SchwabStrategyType.fromString('SINGLE'), SchwabStrategyType.single);
-      expect(SchwabStrategyType.fromString('COVERED'), SchwabStrategyType.covered);
-      expect(SchwabStrategyType.fromString('VERTICAL'), SchwabStrategyType.vertical);
-      expect(SchwabStrategyType.fromString('CALENDAR'), SchwabStrategyType.calendar);
-      expect(SchwabStrategyType.fromString('STRANGLE'), SchwabStrategyType.strangle);
-      expect(SchwabStrategyType.fromString('STRADDLE'), SchwabStrategyType.straddle);
-      expect(SchwabStrategyType.fromString('BUTTERFLY'), SchwabStrategyType.butterfly);
-      expect(SchwabStrategyType.fromString('CONDOR'), SchwabStrategyType.condor);
-      expect(SchwabStrategyType.fromString('DIAGONAL'), SchwabStrategyType.diagonal);
-      expect(SchwabStrategyType.fromString('COLLAR'), SchwabStrategyType.collar);
+      expect(
+          SchwabStrategyType.fromString('SINGLE'), SchwabStrategyType.single);
+      expect(
+          SchwabStrategyType.fromString('COVERED'), SchwabStrategyType.covered);
+      expect(SchwabStrategyType.fromString('VERTICAL'),
+          SchwabStrategyType.vertical);
+      expect(SchwabStrategyType.fromString('CALENDAR'),
+          SchwabStrategyType.calendar);
+      expect(SchwabStrategyType.fromString('STRANGLE'),
+          SchwabStrategyType.strangle);
+      expect(SchwabStrategyType.fromString('STRADDLE'),
+          SchwabStrategyType.straddle);
+      expect(SchwabStrategyType.fromString('BUTTERFLY'),
+          SchwabStrategyType.butterfly);
+      expect(
+          SchwabStrategyType.fromString('CONDOR'), SchwabStrategyType.condor);
+      expect(SchwabStrategyType.fromString('DIAGONAL'),
+          SchwabStrategyType.diagonal);
+      expect(
+          SchwabStrategyType.fromString('COLLAR'), SchwabStrategyType.collar);
       expect(SchwabStrategyType.fromString('ROLL'), SchwabStrategyType.roll);
       expect(SchwabStrategyType.fromString(null), SchwabStrategyType.single);
-      expect(SchwabStrategyType.fromString('UNKNOWN'), SchwabStrategyType.single);
+      expect(
+          SchwabStrategyType.fromString('UNKNOWN'), SchwabStrategyType.single);
     });
 
     test('Has correct paramValue and display names', () {
@@ -36,7 +46,9 @@ void main() {
   });
 
   group('SchwabStrategyChain Model Parsing Tests', () {
-    test('Parses VERTICAL strategy chain with composite Greeks and underlying quote', () {
+    test(
+        'Parses VERTICAL strategy chain with composite Greeks and underlying quote',
+        () {
       final json = {
         'symbol': 'AAPL',
         'status': 'SUCCESS',
@@ -182,7 +194,8 @@ void main() {
       expect(chain.packagesForExpiration(DateTime(2026, 10, 16)), hasLength(1));
     });
 
-    test('Parses STRADDLE strategy with Call and Put legs at identical strike', () {
+    test('Parses STRADDLE strategy with Call and Put legs at identical strike',
+        () {
       final json = {
         'symbol': 'TSLA',
         'status': 'SUCCESS',
@@ -328,7 +341,13 @@ void main() {
     });
 
     test('Parses COVERED, COLLAR, STRANGLE, and ROLL strategies cleanly', () {
-      for (final strategyName in ['COVERED', 'COLLAR', 'STRANGLE', 'ROLL', 'DIAGONAL']) {
+      for (final strategyName in [
+        'COVERED',
+        'COLLAR',
+        'STRANGLE',
+        'ROLL',
+        'DIAGONAL'
+      ]) {
         final json = {
           'symbol': 'MSFT',
           'status': 'SUCCESS',
@@ -341,7 +360,9 @@ void main() {
       }
     });
 
-    test('SchwabStrategyLeg converts cleanly to OptionMarketData and OptionInstrument', () {
+    test(
+        'SchwabStrategyLeg converts cleanly to OptionMarketData and OptionInstrument',
+        () {
       final leg = SchwabStrategyLeg(
         symbol: 'AAPL  261016C00220000',
         putCall: 'CALL',
@@ -393,7 +414,9 @@ void main() {
       expect(url, contains('includeUnderlyingQuote=true'));
     });
 
-    test('Constructs VERTICAL spread URL with strike, interval, fromDate, and range', () {
+    test(
+        'Constructs VERTICAL spread URL with strike, interval, fromDate, and range',
+        () {
       final url = SchwabService.buildStrategyChainUrl(
         endpoint: 'https://api.schwabapi.com',
         symbol: 'NVDA',
@@ -521,7 +544,8 @@ void main() {
             body: Card(
               child: ListTile(
                 title: Text(dummyChain.allPackages.first.strategyStrike!),
-                subtitle: Text('Mark: \$${dummyChain.allPackages.first.effectiveMark!.toStringAsFixed(2)}'),
+                subtitle: Text(
+                    'Mark: \$${dummyChain.allPackages.first.effectiveMark!.toStringAsFixed(2)}'),
                 trailing: const Text('NET DEBIT'),
                 onTap: () {
                   selectedPkg = dummyChain.allPackages.first;

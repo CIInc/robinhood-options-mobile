@@ -89,9 +89,7 @@ class _OptionOrderWidgetState extends State<OptionOrderWidget> {
                       ? quote.symbol
                       : widget.optionOrder.chainSymbol);
               futureInstrument = widget.service.getInstrument(
-                  widget.brokerageUser,
-                  instrumentStore,
-                  instrumentTarget);
+                  widget.brokerageUser, instrumentStore, instrumentTarget);
               return FutureBuilder<Instrument>(
                   future: futureInstrument,
                   builder:
@@ -102,8 +100,8 @@ class _OptionOrderWidgetState extends State<OptionOrderWidget> {
                       return _buildPage(instrument);
                     } else if (instrumentSnapshot.hasError) {
                       debugPrint("${instrumentSnapshot.error}");
-                      final fallback = Instrument.forSymbol(
-                          widget.optionOrder.chainSymbol);
+                      final fallback =
+                          Instrument.forSymbol(widget.optionOrder.chainSymbol);
                       fallback.quoteObj = quote;
                       return _buildPage(fallback);
                     }

@@ -318,13 +318,23 @@ void main() {
       expect(find.textContaining('split-adjusted'), findsWidgets);
     });
 
-    testWidgets('respects custom title parameter',
-        (WidgetTester tester) async {
+    testWidgets('respects custom title parameter', (WidgetTester tester) async {
       final orders = [
-        _makeOrder(id: 'o1', side: 'buy', quantity: 5, price: 50, date: DateTime(2025, 1, 1)),
-        _makeOrder(id: 'o2', side: 'sell', quantity: 5, price: 60, date: DateTime(2025, 1, 10)),
+        _makeOrder(
+            id: 'o1',
+            side: 'buy',
+            quantity: 5,
+            price: 50,
+            date: DateTime(2025, 1, 1)),
+        _makeOrder(
+            id: 'o2',
+            side: 'sell',
+            quantity: 5,
+            price: 60,
+            date: DateTime(2025, 1, 10)),
       ];
-      final summary = InstrumentCostBasisLookbackSummary.fromOrders(orders, symbol: 'TSLA');
+      final summary =
+          InstrumentCostBasisLookbackSummary.fromOrders(orders, symbol: 'TSLA');
 
       await tester.pumpWidget(
         MaterialApp(
@@ -347,10 +357,21 @@ void main() {
         (WidgetTester tester) async {
       InstrumentOrder? tappedOrder;
       final orders = [
-        _makeOrder(id: 'ord_buy_1', side: 'buy', quantity: 10, price: 100, date: DateTime(2025, 1, 1)),
-        _makeOrder(id: 'ord_sell_1', side: 'sell', quantity: 10, price: 120, date: DateTime(2025, 1, 5)),
+        _makeOrder(
+            id: 'ord_buy_1',
+            side: 'buy',
+            quantity: 10,
+            price: 100,
+            date: DateTime(2025, 1, 1)),
+        _makeOrder(
+            id: 'ord_sell_1',
+            side: 'sell',
+            quantity: 10,
+            price: 120,
+            date: DateTime(2025, 1, 5)),
       ];
-      final summary = InstrumentCostBasisLookbackSummary.fromOrders(orders, symbol: 'AAPL');
+      final summary =
+          InstrumentCostBasisLookbackSummary.fromOrders(orders, symbol: 'AAPL');
 
       await tester.pumpWidget(
         MaterialApp(

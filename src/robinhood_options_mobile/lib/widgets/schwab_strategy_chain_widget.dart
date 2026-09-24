@@ -69,14 +69,14 @@ class _SchwabStrategyChainWidgetState extends State<SchwabStrategyChainWidget> {
     setState(() {
       _futureChain = widget.service
           .getStrategyOptionChain(
-            widget.user,
-            widget.instrument.symbol,
-            strategy: _selectedStrategy.paramValue,
-            contractType: _selectedContractType,
-            interval: _selectedInterval,
-            fromDate: _selectedExpiration,
-            toDate: _selectedExpiration,
-          )
+        widget.user,
+        widget.instrument.symbol,
+        strategy: _selectedStrategy.paramValue,
+        contractType: _selectedContractType,
+        interval: _selectedInterval,
+        fromDate: _selectedExpiration,
+        toDate: _selectedExpiration,
+      )
           .then((chain) {
         if (chain is SchwabStrategyChain) {
           _cachedChain = chain;
@@ -253,7 +253,9 @@ class _SchwabStrategyChainWidgetState extends State<SchwabStrategyChainWidget> {
             items: _intervalOptions.map((opt) {
               return DropdownMenuItem<double?>(
                 value: opt,
-                child: Text(opt == null ? 'Any Interval' : '\$${opt.toStringAsFixed(opt % 1 == 0 ? 0 : 1)} spread'),
+                child: Text(opt == null
+                    ? 'Any Interval'
+                    : '\$${opt.toStringAsFixed(opt % 1 == 0 ? 0 : 1)} spread'),
               );
             }).toList(),
             onChanged: (val) {
@@ -324,14 +326,14 @@ class _SchwabStrategyChainWidgetState extends State<SchwabStrategyChainWidget> {
             children: [
               Text(
                 '${activePackages.length} Strategies Available',
-                style: theme.textTheme.labelMedium
-                    ?.copyWith(color: Colors.grey),
+                style:
+                    theme.textTheme.labelMedium?.copyWith(color: Colors.grey),
               ),
               if (chain.interval != null)
                 Text(
                   'Strike Interval: \$${chain.interval!.toStringAsFixed(1)}',
-                  style: theme.textTheme.labelMedium
-                      ?.copyWith(color: Colors.grey),
+                  style:
+                      theme.textTheme.labelMedium?.copyWith(color: Colors.grey),
                 ),
             ],
           ),
@@ -390,8 +392,7 @@ class _SchwabStrategyChainWidgetState extends State<SchwabStrategyChainWidget> {
                       Text(
                         '${(change ?? 0) >= 0 ? '+' : ''}${change?.toStringAsFixed(2) ?? ''} (${pctChange?.toStringAsFixed(2) ?? '0'}%)',
                         style: TextStyle(
-                          color:
-                              (change ?? 0) >= 0 ? Colors.green : Colors.red,
+                          color: (change ?? 0) >= 0 ? Colors.green : Colors.red,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -442,8 +443,8 @@ class _SchwabStrategyChainWidgetState extends State<SchwabStrategyChainWidget> {
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
                       color: isDebit
                           ? Colors.blue.withValues(alpha: 0.15)
@@ -570,8 +571,7 @@ class _SchwabStrategyChainWidgetState extends State<SchwabStrategyChainWidget> {
     final strikeStr = leg.strikePrice != null
         ? '\$${leg.strikePrice!.toStringAsFixed(1)}'
         : '';
-    final markStr =
-        leg.mark != null ? '\$${leg.mark!.toStringAsFixed(2)}' : '';
+    final markStr = leg.mark != null ? '\$${leg.mark!.toStringAsFixed(2)}' : '';
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2.0),

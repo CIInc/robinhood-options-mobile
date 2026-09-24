@@ -104,7 +104,8 @@ void main() {
       );
     });
 
-    testWidgets('Renders side-by-side comparison with traders, headers, and categories',
+    testWidgets(
+        'Renders side-by-side comparison with traders, headers, and categories',
         (tester) async {
       await tester.pumpWidget(
         MaterialApp(
@@ -131,7 +132,8 @@ void main() {
       expect(find.text('Bob Ross'), findsWidgets);
 
       // Check privacy banner
-      expect(find.textContaining('protect dollar portfolio privacy'), findsOneWidget);
+      expect(find.textContaining('protect dollar portfolio privacy'),
+          findsOneWidget);
 
       // Check Relative Strengths card
       expect(find.text('Multi-Factor Relative Strengths'), findsOneWidget);

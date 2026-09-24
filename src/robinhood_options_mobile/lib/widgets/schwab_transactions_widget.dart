@@ -160,7 +160,8 @@ class _SchwabTransactionsWidgetState extends State<SchwabTransactionsWidget> {
     final csv = Csv().encode(rows);
     SharePlus.instance.share(ShareParams(
       text: csv,
-      subject: 'Schwab_Transactions_${widget.initialAccountNumber ?? "account"}.csv',
+      subject:
+          'Schwab_Transactions_${widget.initialAccountNumber ?? "account"}.csv',
     ));
   }
 
@@ -211,8 +212,7 @@ class _SchwabTransactionsWidgetState extends State<SchwabTransactionsWidget> {
             children: [
               if (widget.embedded)
                 Padding(
-                  padding:
-                      const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -234,7 +234,8 @@ class _SchwabTransactionsWidgetState extends State<SchwabTransactionsWidget> {
                             tooltip: 'Export CSV',
                             onPressed: () async {
                               final transactions = await _futureTransactions;
-                              final filtered = _filterTransactions(transactions);
+                              final filtered =
+                                  _filterTransactions(transactions);
                               _exportCsv(filtered);
                             },
                           ),
@@ -245,58 +246,58 @@ class _SchwabTransactionsWidgetState extends State<SchwabTransactionsWidget> {
                 ),
               _buildSummaryCard(allTransactions),
               _buildFilterControls(),
-                Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Transactions (${filteredTransactions.length})',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                      ),
-                      if (_selectedType != 'ALL' || _symbolQuery.isNotEmpty)
-                        TextButton(
-                          child: const Text('Reset Filters'),
-                          onPressed: () {
-                            setState(() {
-                              _selectedType = 'ALL';
-                              _symbolQuery = '';
-                              _applyPreset('3M');
-                            });
-                            _loadTransactions();
-                          },
-                        ),
-                    ],
-                  ),
-                ),
-                if (filteredTransactions.isEmpty)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 40),
-                    child: Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.receipt_long_outlined,
-                              size: 48, color: Colors.grey.shade400),
-                          const SizedBox(height: 12),
-                          Text(
-                            'No transactions found for the selected criteria.',
-                            style: TextStyle(color: Colors.grey.shade600),
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Transactions (${filteredTransactions.length})',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
                           ),
-                        ],
-                      ),
                     ),
-                  )
-                else
-                  ...filteredTransactions.map((tx) => _buildTransactionTile(tx)),
-              ],
-            ),
-          );
-        },
-      );
+                    if (_selectedType != 'ALL' || _symbolQuery.isNotEmpty)
+                      TextButton(
+                        child: const Text('Reset Filters'),
+                        onPressed: () {
+                          setState(() {
+                            _selectedType = 'ALL';
+                            _symbolQuery = '';
+                            _applyPreset('3M');
+                          });
+                          _loadTransactions();
+                        },
+                      ),
+                  ],
+                ),
+              ),
+              if (filteredTransactions.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 40),
+                  child: Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.receipt_long_outlined,
+                            size: 48, color: Colors.grey.shade400),
+                        const SizedBox(height: 12),
+                        Text(
+                          'No transactions found for the selected criteria.',
+                          style: TextStyle(color: Colors.grey.shade600),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              else
+                ...filteredTransactions.map((tx) => _buildTransactionTile(tx)),
+            ],
+          ),
+        );
+      },
+    );
 
     if (widget.embedded) {
       return body;
@@ -511,7 +512,8 @@ class _SchwabTransactionsWidgetState extends State<SchwabTransactionsWidget> {
                 ),
                 ActionChip(
                   avatar: const Icon(Icons.calendar_today, size: 16),
-                  label: Text(_selectedDateRange != null && _datePreset == 'Custom'
+                  label: Text(_selectedDateRange != null &&
+                          _datePreset == 'Custom'
                       ? '${shortDateFormat.format(_selectedDateRange!.start)} - ${shortDateFormat.format(_selectedDateRange!.end)}'
                       : 'Custom Range'),
                   onPressed: () async {
@@ -572,9 +574,8 @@ class _SchwabTransactionsWidgetState extends State<SchwabTransactionsWidget> {
       iconColor = Colors.grey;
     }
 
-    final title = tx.primarySymbol != null
-        ? '${tx.type} • ${tx.primarySymbol}'
-        : tx.type;
+    final title =
+        tx.primarySymbol != null ? '${tx.type} • ${tx.primarySymbol}' : tx.type;
 
     return ListTile(
       leading: CircleAvatar(
@@ -676,8 +677,8 @@ class _SchwabTransactionsWidgetState extends State<SchwabTransactionsWidget> {
                     _buildDetailRow(
                         'Trade Date', dateFormat.format(tx.tradeDate!)),
                   if (tx.settlementDate != null)
-                    _buildDetailRow(
-                        'Settlement Date', dateFormat.format(tx.settlementDate!)),
+                    _buildDetailRow('Settlement Date',
+                        dateFormat.format(tx.settlementDate!)),
                   if (tx.orderId != null)
                     _buildDetailRow('Order ID', tx.orderId.toString()),
                   if (tx.positionId != null)
@@ -707,7 +708,9 @@ class _SchwabTransactionsWidgetState extends State<SchwabTransactionsWidget> {
                     ...tx.transferItems.map((item) {
                       return Card(
                         margin: const EdgeInsets.symmetric(vertical: 4),
-                        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                        color: Theme.of(context)
+                            .colorScheme
+                            .surfaceContainerHighest,
                         child: Padding(
                           padding: const EdgeInsets.all(12),
                           child: Column(
@@ -757,7 +760,8 @@ class _SchwabTransactionsWidgetState extends State<SchwabTransactionsWidget> {
                                 children: [
                                   Text('Amount: ${item.amount}'),
                                   if (item.price != null)
-                                    Text('Price: ${currencyFormat.format(item.price)}'),
+                                    Text(
+                                        'Price: ${currencyFormat.format(item.price)}'),
                                   Text(
                                     'Cost: ${currencyFormat.format(item.cost)}',
                                     style: const TextStyle(

@@ -206,20 +206,20 @@ void main() {
       await tester.pageBack();
       await tester.pump(const Duration(seconds: 1));
 
-        // Verify the Search page's curated lists flow in the same app session.
-        final allListsButton = find.text('All Lists');
-        final searchScrollable = find
+      // Verify the Search page's curated lists flow in the same app session.
+      final allListsButton = find.text('All Lists');
+      final searchScrollable = find
           .byWidgetPredicate((widget) =>
-            widget is Scrollable &&
-            widget.axisDirection == AxisDirection.down)
+              widget is Scrollable &&
+              widget.axisDirection == AxisDirection.down)
           .first;
-        await tester.scrollUntilVisible(allListsButton, 500,
+      await tester.scrollUntilVisible(allListsButton, 500,
           scrollable: searchScrollable);
-        await tester.tap(allListsButton);
-        await tester.pump(const Duration(milliseconds: 500));
-        expect(find.text('Bearish'), findsOneWidget);
-        await tester.pageBack();
-        await tester.pump(const Duration(milliseconds: 500));
+      await tester.tap(allListsButton);
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(find.text('Bearish'), findsOneWidget);
+      await tester.pageBack();
+      await tester.pump(const Duration(milliseconds: 500));
 
       // 6. Navigate to Signals (Index 3)
       debugPrint('Navigating to Signals...');

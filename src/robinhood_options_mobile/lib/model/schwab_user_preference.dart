@@ -62,22 +62,24 @@ class SchwabUserPreference {
   }
 
   /// Returns the primary account preference if designated, or the first account.
-  SchwabAccountPreference? get primaryAccount =>
-      accounts.firstWhere(
-        (a) => a.primaryAccount,
-        orElse: () => accounts.isNotEmpty
-            ? accounts.first
-            : const SchwabAccountPreference(
-                accountNumber: '',
-                primaryAccount: false,
-                type: '',
-              ),
-      ).accountNumber.isNotEmpty
-          ? accounts.firstWhere(
-              (a) => a.primaryAccount,
-              orElse: () => accounts.first,
-            )
-          : null;
+  SchwabAccountPreference? get primaryAccount => accounts
+          .firstWhere(
+            (a) => a.primaryAccount,
+            orElse: () => accounts.isNotEmpty
+                ? accounts.first
+                : const SchwabAccountPreference(
+                    accountNumber: '',
+                    primaryAccount: false,
+                    type: '',
+                  ),
+          )
+          .accountNumber
+          .isNotEmpty
+      ? accounts.firstWhere(
+          (a) => a.primaryAccount,
+          orElse: () => accounts.first,
+        )
+      : null;
 
   /// Looks up an account preference by account number or masked display ID.
   SchwabAccountPreference? findAccount(String accountNumber) {

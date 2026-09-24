@@ -7,7 +7,8 @@ void main() {
   group('CopyTradeRiskGuardianService - Allocation Guardrail Tests', () {
     final now = DateTime(2026, 9, 23, 10, 0, 0);
 
-    test('should allow full trade when no allocation limits are configured', () {
+    test('should allow full trade when no allocation limits are configured',
+        () {
       final record = CopyTradeRecord(
         id: 'r1',
         sourceUserId: 'trader1',
@@ -66,7 +67,8 @@ void main() {
       expect(result.tradeAmount, 500.0);
     });
 
-    test('should clamp quantity based on maxAllocationPct of account equity', () {
+    test('should clamp quantity based on maxAllocationPct of account equity',
+        () {
       final record = CopyTradeRecord(
         id: 'r3',
         sourceUserId: 'trader1',
@@ -125,7 +127,8 @@ void main() {
       expect(result.tradeAmount, 600.0);
     });
 
-    test('should abort option trade if allocation cap is less than 1 contract', () {
+    test('should abort option trade if allocation cap is less than 1 contract',
+        () {
       final record = CopyTradeRecord(
         id: 'r5',
         sourceUserId: 'trader1',
@@ -158,7 +161,9 @@ void main() {
   group('CopyTradeRiskGuardianService - Slippage Abort Guardrail Tests', () {
     final now = DateTime(2026, 9, 23, 10, 0, 0);
 
-    test('should allow buy order when current price equals leader price (zero slippage)', () {
+    test(
+        'should allow buy order when current price equals leader price (zero slippage)',
+        () {
       final record = CopyTradeRecord(
         id: 's1',
         sourceUserId: 'trader1',
@@ -186,7 +191,9 @@ void main() {
       expect(result.slippageBps, 0.0);
     });
 
-    test('should allow buy order with favorable slippage (cheaper market price)', () {
+    test(
+        'should allow buy order with favorable slippage (cheaper market price)',
+        () {
       final record = CopyTradeRecord(
         id: 's2',
         sourceUserId: 'trader1',
@@ -214,7 +221,8 @@ void main() {
       expect(result.slippageBps, -100.0);
     });
 
-    test('should allow buy order with unfavorable slippage below threshold', () {
+    test('should allow buy order with unfavorable slippage below threshold',
+        () {
       final record = CopyTradeRecord(
         id: 's3',
         sourceUserId: 'trader1',
@@ -242,7 +250,9 @@ void main() {
       expect(result.slippageBps, closeTo(40.0, 0.01));
     });
 
-    test('should abort buy order when unfavorable slippage exceeds maxSlippageBps', () {
+    test(
+        'should abort buy order when unfavorable slippage exceeds maxSlippageBps',
+        () {
       final record = CopyTradeRecord(
         id: 's4',
         sourceUserId: 'trader1',
@@ -271,7 +281,9 @@ void main() {
       expect(result.abortReason, contains('exceeded maximum threshold'));
     });
 
-    test('should abort sell order when market price drops significantly below leader exit', () {
+    test(
+        'should abort sell order when market price drops significantly below leader exit',
+        () {
       final record = CopyTradeRecord(
         id: 's5',
         sourceUserId: 'trader1',
@@ -302,10 +314,12 @@ void main() {
     });
   });
 
-  group('CopyTradeRiskGuardianService - Auto-Disconnect & Divergence Tests', () {
+  group('CopyTradeRiskGuardianService - Auto-Disconnect & Divergence Tests',
+      () {
     final now = DateTime(2026, 9, 23, 10, 0, 0);
 
-    test('should not disconnect when autoDisconnectOnDivergence is disabled', () {
+    test('should not disconnect when autoDisconnectOnDivergence is disabled',
+        () {
       final settings = CopyTradeSettings(
         autoDisconnectOnDivergence: false,
         maxLeaderDrawdownPct: 10.0,
@@ -320,7 +334,8 @@ void main() {
       expect(result.shouldDisconnect, isFalse);
     });
 
-    test('should trigger auto-disconnect when leader drawdown exceeds limit', () {
+    test('should trigger auto-disconnect when leader drawdown exceeds limit',
+        () {
       final settings = CopyTradeSettings(
         autoDisconnectOnDivergence: true,
         maxLeaderDrawdownPct: 15.0,
@@ -336,7 +351,9 @@ void main() {
       expect(result.tripReason, contains('Leader peak drawdown reached 18.5%'));
     });
 
-    test('should trigger auto-disconnect when follower return underperforms leader by more than divergence limit', () {
+    test(
+        'should trigger auto-disconnect when follower return underperforms leader by more than divergence limit',
+        () {
       final settings = CopyTradeSettings(
         targetUserId: 'leader_alice',
         autoDisconnectOnDivergence: true,
@@ -371,10 +388,12 @@ void main() {
 
       expect(result.shouldDisconnect, isTrue);
       expect(result.returnDivergencePct, closeTo(8.0, 0.01));
-      expect(result.tripReason, contains('Follower return lagged leader by 8.0%'));
+      expect(
+          result.tripReason, contains('Follower return lagged leader by 8.0%'));
     });
 
-    test('tripGuardian and resetGuardian should mutate settings state properly', () {
+    test('tripGuardian and resetGuardian should mutate settings state properly',
+        () {
       final settings = CopyTradeSettings(
         enabled: true,
         autoDisconnectOnDivergence: true,

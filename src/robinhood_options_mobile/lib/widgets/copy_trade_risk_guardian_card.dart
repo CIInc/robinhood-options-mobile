@@ -42,8 +42,7 @@ class CopyTradeRiskGuardianCard extends StatelessWidget {
         ? '${settings!.maxSlippageBps!.toStringAsFixed(0)} bps (${(settings!.maxSlippageBps! / 100).toStringAsFixed(2)}%)'
         : '75 bps (0.75%)';
 
-    final autoDisconnectEnabled =
-        settings?.autoDisconnectOnDivergence ?? false;
+    final autoDisconnectEnabled = settings?.autoDisconnectOnDivergence ?? false;
     final autoDisconnectText = autoDisconnectEnabled
         ? 'Active (DD: ${settings?.maxLeaderDrawdownPct?.toStringAsFixed(0) ?? 15}%, Div: ${settings?.maxReturnDivergencePct?.toStringAsFixed(0) ?? 5}%)'
         : 'Off';
@@ -133,7 +132,8 @@ class CopyTradeRiskGuardianCard extends StatelessWidget {
                 width: double.infinity,
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.errorContainer.withValues(alpha: 0.6),
+                  color:
+                      theme.colorScheme.errorContainer.withValues(alpha: 0.6),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Column(

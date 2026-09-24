@@ -164,8 +164,7 @@ class _BankingWidgetState extends State<BankingWidget>
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.error_outline,
-                      size: 48, color: Colors.red),
+                  const Icon(Icons.error_outline, size: 48, color: Colors.red),
                   const SizedBox(height: 12),
                   Text(
                     'Failed to load banking data',
@@ -189,12 +188,12 @@ class _BankingWidgetState extends State<BankingWidget>
           );
         }
 
-        final data = snapshot.data ??
-            (const <AchTransfer>[], const <AchRelationship>[]);
+        final data =
+            snapshot.data ?? (const <AchTransfer>[], const <AchRelationship>[]);
         final transfers = data.$1;
         final relationships = data.$2;
-        final summary = AchSummary.fromTransfersAndRelationships(
-            transfers, relationships);
+        final summary =
+            AchSummary.fromTransfersAndRelationships(transfers, relationships);
 
         return RefreshIndicator(
           onRefresh: () async => _loadData(),

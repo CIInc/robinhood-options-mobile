@@ -45,7 +45,8 @@ class SocialSentimentPollWidget extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.25),
+        color:
+            theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.25),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
@@ -210,11 +211,9 @@ class SocialSentimentPollWidget extends StatelessWidget {
                 '${pct.toStringAsFixed(0)}% ($count)',
                 style: TextStyle(
                   fontSize: 10,
-                  color: isSelected
-                      ? color
-                      : theme.colorScheme.onSurfaceVariant,
-                  fontWeight:
-                      isSelected ? FontWeight.bold : FontWeight.normal,
+                  color:
+                      isSelected ? color : theme.colorScheme.onSurfaceVariant,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                 ),
               ),
             ],

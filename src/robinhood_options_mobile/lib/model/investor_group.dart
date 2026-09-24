@@ -28,13 +28,20 @@ class CopyTradeSettings {
   double? takeProfitAdjustment; // Percentage
 
   // Risk Guardian guardrails
-  double? maxAllocationPerTrade; // Maximum capital allocation (in dollars) per trade
-  double? maxAllocationPct; // Maximum capital allocation (as percentage of equity) per trade
-  double? maxSlippageBps; // Maximum allowed slippage in basis points before aborting (e.g. 75 bps)
-  bool? autoDisconnectOnDivergence; // Auto-disconnect when leader drawdown or divergence exceeds limits
-  double? maxLeaderDrawdownPct; // Auto-disconnect if leader trailing drawdown exceeds X%
-  double? maxReturnDivergencePct; // Auto-disconnect if return divergence exceeds X%
-  bool isRiskGuardianTripped; // Whether Risk Guardian has triggered auto-disconnect
+  double?
+      maxAllocationPerTrade; // Maximum capital allocation (in dollars) per trade
+  double?
+      maxAllocationPct; // Maximum capital allocation (as percentage of equity) per trade
+  double?
+      maxSlippageBps; // Maximum allowed slippage in basis points before aborting (e.g. 75 bps)
+  bool?
+      autoDisconnectOnDivergence; // Auto-disconnect when leader drawdown or divergence exceeds limits
+  double?
+      maxLeaderDrawdownPct; // Auto-disconnect if leader trailing drawdown exceeds X%
+  double?
+      maxReturnDivergencePct; // Auto-disconnect if return divergence exceeds X%
+  bool
+      isRiskGuardianTripped; // Whether Risk Guardian has triggered auto-disconnect
   String? riskGuardianTripReason; // Reason why Risk Guardian was tripped
   DateTime? riskGuardianTrippedAt; // Timestamp when Risk Guardian was tripped
 
@@ -102,8 +109,10 @@ class CopyTradeSettings {
         copyTrailingStop = json['copyTrailingStop'] as bool? ?? false,
         inverse = json['inverse'] as bool? ?? false,
         stopLossAdjustment = (json['stopLossAdjustment'] as num?)?.toDouble(),
-        takeProfitAdjustment = (json['takeProfitAdjustment'] as num?)?.toDouble(),
-        maxAllocationPerTrade = (json['maxAllocationPerTrade'] as num?)?.toDouble(),
+        takeProfitAdjustment =
+            (json['takeProfitAdjustment'] as num?)?.toDouble(),
+        maxAllocationPerTrade =
+            (json['maxAllocationPerTrade'] as num?)?.toDouble(),
         maxAllocationPct = (json['maxAllocationPct'] as num?)?.toDouble(),
         maxSlippageBps = (json['maxSlippageBps'] as num?)?.toDouble() ?? 75.0,
         autoDisconnectOnDivergence =
@@ -112,15 +121,13 @@ class CopyTradeSettings {
             (json['maxLeaderDrawdownPct'] as num?)?.toDouble(),
         maxReturnDivergencePct =
             (json['maxReturnDivergencePct'] as num?)?.toDouble(),
-        isRiskGuardianTripped =
-            json['isRiskGuardianTripped'] as bool? ?? false,
+        isRiskGuardianTripped = json['isRiskGuardianTripped'] as bool? ?? false,
         riskGuardianTripReason = json['riskGuardianTripReason'] as String?,
         riskGuardianTrippedAt = json['riskGuardianTrippedAt'] != null
             ? (json['riskGuardianTrippedAt'] is Timestamp
                 ? (json['riskGuardianTrippedAt'] as Timestamp).toDate()
                 : (json['riskGuardianTrippedAt'] is String
-                    ? DateTime.tryParse(
-                        json['riskGuardianTrippedAt'] as String)
+                    ? DateTime.tryParse(json['riskGuardianTrippedAt'] as String)
                     : null))
             : null;
 

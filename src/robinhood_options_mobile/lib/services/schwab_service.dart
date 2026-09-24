@@ -299,8 +299,8 @@ class SchwabService implements IBrokerageService {
   }) {
     var queryParams = <String>[];
     if (startDate != null) {
-      queryParams.add(
-          'startDate=${Uri.encodeComponent(startDate.toIso8601String())}');
+      queryParams
+          .add('startDate=${Uri.encodeComponent(startDate.toIso8601String())}');
     }
     if (endDate != null) {
       queryParams
@@ -2072,9 +2072,8 @@ https://api.schwabapi.com/trader/v1/orders?fromEnteredTime=2024-09-28T23%3A59%3A
       };
     }).toList();
 
-    var strategyType = legs.length == 2
-        ? "VERTICAL"
-        : (legs.length > 2 ? "CUSTOM" : "SINGLE");
+    var strategyType =
+        legs.length == 2 ? "VERTICAL" : (legs.length > 2 ? "CUSTOM" : "SINGLE");
 
     return {
       "orderType": orderType,
@@ -2089,9 +2088,7 @@ https://api.schwabapi.com/trader/v1/orders?fromEnteredTime=2024-09-28T23%3A59%3A
   /// Builds payload for Schwab equity / stock orders.
   Map<String, dynamic> buildEquityOrderPayload(
       String symbol, String side, double? price, int quantity,
-      {String type = 'limit',
-      double? stopPrice,
-      String timeInForce = 'gtc'}) {
+      {String type = 'limit', double? stopPrice, String timeInForce = 'gtc'}) {
     var rawType = type.toUpperCase().replaceAll(' ', '_');
     String orderType;
     if (rawType == 'MARKET') {
@@ -2135,8 +2132,8 @@ https://api.schwabapi.com/trader/v1/orders?fromEnteredTime=2024-09-28T23%3A59%3A
   /// Previews an order before execution on Charles Schwab:
   /// `POST /trader/v1/accounts/{accountNumber}/previewOrder`
   @override
-  Future<SchwabOrderPreview> previewOrder(
-      BrokerageUser user, Account account, Map<String, dynamic> orderPayload) async {
+  Future<SchwabOrderPreview> previewOrder(BrokerageUser user, Account account,
+      Map<String, dynamic> orderPayload) async {
     var url =
         "$endpoint/trader/v1/accounts/${account.accountNumber}/previewOrder";
 
@@ -2165,13 +2162,8 @@ https://api.schwabapi.com/trader/v1/orders?fromEnteredTime=2024-09-28T23%3A59%3A
   }
 
   /// Previews a Schwab equity order with margin and commission breakdown.
-  Future<SchwabOrderPreview> previewEquityOrder(
-      BrokerageUser user,
-      Account account,
-      String symbol,
-      String side,
-      double? price,
-      int quantity,
+  Future<SchwabOrderPreview> previewEquityOrder(BrokerageUser user,
+      Account account, String symbol, String side, double? price, int quantity,
       {String type = 'limit',
       double? stopPrice,
       String timeInForce = 'gtc'}) async {
@@ -2217,11 +2209,8 @@ https://api.schwabapi.com/trader/v1/orders?fromEnteredTime=2024-09-28T23%3A59%3A
 
   /// In-flight order replacement and modification on Schwab:
   /// `PUT /trader/v1/accounts/{accountNumber}/orders/{orderId}`
-  Future<dynamic> replaceOrder(
-      BrokerageUser user,
-      Account account,
-      String orderId,
-      Map<String, dynamic> body) async {
+  Future<dynamic> replaceOrder(BrokerageUser user, Account account,
+      String orderId, Map<String, dynamic> body) async {
     var url =
         "$endpoint/trader/v1/accounts/${account.accountNumber}/orders/$orderId";
 
@@ -2295,10 +2284,12 @@ https://api.schwabapi.com/trader/v1/orders?fromEnteredTime=2024-09-28T23%3A59%3A
       BrokerageUser user, InstrumentStore store, String instrumentUrl) async {
     // 1. Check local cache by url, id, or symbol
     if (instrumentUrl.isNotEmpty) {
-      final cached = store.items.where((element) =>
-          element.url == instrumentUrl ||
-          element.id == instrumentUrl ||
-          element.symbol.toUpperCase() == instrumentUrl.toUpperCase()).toList();
+      final cached = store.items
+          .where((element) =>
+              element.url == instrumentUrl ||
+              element.id == instrumentUrl ||
+              element.symbol.toUpperCase() == instrumentUrl.toUpperCase())
+          .toList();
       if (cached.isNotEmpty) {
         return cached.first;
       }
@@ -2332,7 +2323,9 @@ https://api.schwabapi.com/trader/v1/orders?fromEnteredTime=2024-09-28T23%3A59%3A
     }
 
     // 4. Try fetching from Schwab marketdata instruments API
-    if (symbol.isNotEmpty && !symbol.startsWith('http') && symbol != 'UNKNOWN') {
+    if (symbol.isNotEmpty &&
+        !symbol.startsWith('http') &&
+        symbol != 'UNKNOWN') {
       try {
         final fetched = await getInstrumentBySymbol(user, store, symbol);
         if (fetched != null) {
@@ -2345,9 +2338,8 @@ https://api.schwabapi.com/trader/v1/orders?fromEnteredTime=2024-09-28T23%3A59%3A
     }
 
     // 5. Fallback minimal instrument
-    final fallbackSymbol = (symbol.isNotEmpty && !symbol.startsWith('http'))
-        ? symbol
-        : 'UNKNOWN';
+    final fallbackSymbol =
+        (symbol.isNotEmpty && !symbol.startsWith('http')) ? symbol : 'UNKNOWN';
     final fallback = Instrument.forSymbol(
       fallbackSymbol,
       instrumentUrl: instrumentUrl,
@@ -2942,20 +2934,31 @@ https://api.schwabapi.com/marketdata/v1/instruments?symbol=Google&projection=sea
     };
     if (strike != null) queryParams['strike'] = strike.toString();
     if (interval != null) queryParams['interval'] = interval.toString();
-    if (strikeCount != null) queryParams['strikeCount'] = strikeCount.toString();
-    if (range != null && range.isNotEmpty) queryParams['range'] = range.toUpperCase();
-    if (fromDate != null) queryParams['fromDate'] = DateFormat('yyyy-MM-dd').format(fromDate);
-    if (toDate != null) queryParams['toDate'] = DateFormat('yyyy-MM-dd').format(toDate);
+    if (strikeCount != null)
+      queryParams['strikeCount'] = strikeCount.toString();
+    if (range != null && range.isNotEmpty)
+      queryParams['range'] = range.toUpperCase();
+    if (fromDate != null)
+      queryParams['fromDate'] = DateFormat('yyyy-MM-dd').format(fromDate);
+    if (toDate != null)
+      queryParams['toDate'] = DateFormat('yyyy-MM-dd').format(toDate);
     if (volatility != null) queryParams['volatility'] = volatility.toString();
-    if (underlyingPrice != null) queryParams['underlyingPrice'] = underlyingPrice.toString();
-    if (interestRate != null) queryParams['interestRate'] = interestRate.toString();
-    if (daysToExpiration != null) queryParams['daysToExpiration'] = daysToExpiration.toString();
-    if (expMonth != null && expMonth.isNotEmpty) queryParams['expMonth'] = expMonth.toUpperCase();
-    if (optionType != null && optionType.isNotEmpty) queryParams['optionType'] = optionType.toUpperCase();
-    if (entitlement != null && entitlement.isNotEmpty) queryParams['entitlement'] = entitlement.toUpperCase();
+    if (underlyingPrice != null)
+      queryParams['underlyingPrice'] = underlyingPrice.toString();
+    if (interestRate != null)
+      queryParams['interestRate'] = interestRate.toString();
+    if (daysToExpiration != null)
+      queryParams['daysToExpiration'] = daysToExpiration.toString();
+    if (expMonth != null && expMonth.isNotEmpty)
+      queryParams['expMonth'] = expMonth.toUpperCase();
+    if (optionType != null && optionType.isNotEmpty)
+      queryParams['optionType'] = optionType.toUpperCase();
+    if (entitlement != null && entitlement.isNotEmpty)
+      queryParams['entitlement'] = entitlement.toUpperCase();
 
     final queryString = queryParams.entries
-        .map((e) => '${Uri.encodeQueryComponent(e.key)}=${Uri.encodeQueryComponent(e.value)}')
+        .map((e) =>
+            '${Uri.encodeQueryComponent(e.key)}=${Uri.encodeQueryComponent(e.value)}')
         .join('&');
 
     return '$endpoint/marketdata/v1/chains?$queryString';
@@ -3011,10 +3014,9 @@ https://api.schwabapi.com/marketdata/v1/instruments?symbol=Google&projection=sea
 
     final resultJson = await getJson(user, url);
     if (resultJson != null && resultJson is Map) {
-      return SchwabStrategyChain.fromJson(
-          resultJson is Map<String, dynamic>
-              ? resultJson
-              : Map<String, dynamic>.from(resultJson));
+      return SchwabStrategyChain.fromJson(resultJson is Map<String, dynamic>
+          ? resultJson
+          : Map<String, dynamic>.from(resultJson));
     }
     throw Exception('Failed to get Schwab strategy option chain for $symbol');
   }
@@ -3357,15 +3359,15 @@ https://api.schwabapi.com/marketdata/v1/instruments?symbol=Google&projection=sea
   Future<dynamic> cancelOrder(BrokerageUser user, String cancel) async {
     final parts = cancel.split('/').where((s) => s.isNotEmpty).toList();
     final ordersIndex = parts.indexOf('orders');
-    if (ordersIndex > 0 && ordersIndex < parts.length - 1 && user.oauth2Client != null) {
+    if (ordersIndex > 0 &&
+        ordersIndex < parts.length - 1 &&
+        user.oauth2Client != null) {
       final accountNumber = parts[ordersIndex - 1];
       final orderId = parts[ordersIndex + 1];
       final url = "$endpoint/trader/v1/accounts/$accountNumber/orders/$orderId";
       final response = await user.oauth2Client!.delete(
         Uri.parse(url),
-        headers: {
-          "accept": "application/json"
-        },
+        headers: {"accept": "application/json"},
       );
       if (response.statusCode == 200 || response.statusCode == 204) {
         return {"status": "cancelled", "orderId": orderId};

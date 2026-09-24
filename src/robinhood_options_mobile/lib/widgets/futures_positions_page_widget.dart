@@ -60,15 +60,15 @@ class _FuturesPositionsPageWidgetState
                   user: widget.user,
                   userDocRef: widget.userDocRef,
                   service: widget.service,
-                  userAvatar: (auth.currentUser!.photoURL ??
-                              widget.user?.photoUrl) ==
-                          null
-                      ? const Icon(Icons.account_circle)
-                      : CircleAvatar(
-                          maxRadius: 11,
-                          backgroundImage: CachedNetworkImageProvider(
-                              (auth.currentUser!.photoURL ??
-                                  widget.user?.photoUrl)!)),
+                  userAvatar:
+                      (auth.currentUser!.photoURL ?? widget.user?.photoUrl) ==
+                              null
+                          ? const Icon(Icons.account_circle)
+                          : CircleAvatar(
+                              maxRadius: 11,
+                              backgroundImage: CachedNetworkImageProvider(
+                                  (auth.currentUser!.photoURL ??
+                                      widget.user?.photoUrl)!)),
                   onProfileTap: () {
                     showProfile(
                         context,

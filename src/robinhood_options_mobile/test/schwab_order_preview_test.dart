@@ -47,7 +47,8 @@ void main() {
           'warns': [
             {
               'validationRuleName': 'HighVolatilityWarning',
-              'message': 'This symbol has experienced high intraday volatility.',
+              'message':
+                  'This symbol has experienced high intraday volatility.',
               'action': 'WARN',
             },
           ],
@@ -136,7 +137,8 @@ void main() {
       expect(preview.totalCommissionAndFee, isNull);
     });
 
-    test('SchwabOrderValidationResult filters empty message lists properly', () {
+    test('SchwabOrderValidationResult filters empty message lists properly',
+        () {
       final json = {
         'warns': [],
         'rejects': [],
@@ -151,8 +153,7 @@ void main() {
   });
 
   group('Schwab Cancellable Orders URL Mapping', () {
-    test(
-        'InstrumentOrder.fromSchwabJson sets cancel when cancelable is true',
+    test('InstrumentOrder.fromSchwabJson sets cancel when cancelable is true',
         () {
       final json = {
         'orderId': 55501,
@@ -185,8 +186,7 @@ void main() {
       );
     });
 
-    test(
-        'OptionOrder.fromSchwabJson sets cancelUrl when cancelable is true',
+    test('OptionOrder.fromSchwabJson sets cancelUrl when cancelable is true',
         () {
       final json = {
         'orderId': 77702,
@@ -220,7 +220,8 @@ void main() {
       );
     });
 
-    test('InstrumentOrder & OptionOrder do not set cancel/cancelUrl when cancelable is false',
+    test(
+        'InstrumentOrder & OptionOrder do not set cancel/cancelUrl when cancelable is false',
         () {
       final jsonEquity = {
         'orderId': 55502,
@@ -265,7 +266,8 @@ void main() {
   group('SchwabService Payload Construction Tests', () {
     final schwabService = SchwabService();
 
-    test('buildEquityOrderPayload constructs correct equity limit buy body', () {
+    test('buildEquityOrderPayload constructs correct equity limit buy body',
+        () {
       final body = schwabService.buildEquityOrderPayload(
         'TSLA',
         'BUY',
@@ -289,7 +291,8 @@ void main() {
       expect(legs[0]['instrument']['assetType'], 'EQUITY');
     });
 
-    test('buildEquityOrderPayload constructs stop limit sell with stopPrice', () {
+    test('buildEquityOrderPayload constructs stop limit sell with stopPrice',
+        () {
       final body = schwabService.buildEquityOrderPayload(
         'AMZN',
         'SELL',

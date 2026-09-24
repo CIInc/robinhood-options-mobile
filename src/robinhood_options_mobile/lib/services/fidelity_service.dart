@@ -1203,8 +1203,8 @@ class FidelityService implements IBrokerageService {
   }
 
   @override
-  Future<dynamic> previewOrder(
-      BrokerageUser user, Account account, Map<String, dynamic> orderPayload) async {
+  Future<dynamic> previewOrder(BrokerageUser user, Account account,
+      Map<String, dynamic> orderPayload) async {
     return null;
   }
 

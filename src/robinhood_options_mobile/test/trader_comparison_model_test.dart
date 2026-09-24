@@ -103,8 +103,8 @@ void main() {
       expect(summary.metrics, isNotEmpty);
 
       // Return metric: Trader B has highest return (120.0%)
-      final returnMetric = summary.metrics
-          .firstWhere((m) => m.label.contains('Return') && !m.label.contains('Drawdown'));
+      final returnMetric = summary.metrics.firstWhere(
+          (m) => m.label.contains('Return') && !m.label.contains('Drawdown'));
       expect(returnMetric.bestTraderIndex, equals(1)); // Trader B
       expect(returnMetric.formattedValues[1], equals('+120.0%'));
 
@@ -146,8 +146,8 @@ void main() {
         period: LeaderboardTimePeriod.oneMonth,
       );
 
-      final returnMetric = summary1M.metrics
-          .firstWhere((m) => m.label == '1M Return');
+      final returnMetric =
+          summary1M.metrics.firstWhere((m) => m.label == '1M Return');
       expect(returnMetric.formattedValues[0], equals('+10.2%'));
       expect(returnMetric.formattedValues[1], equals('+18.5%'));
       expect(returnMetric.formattedValues[2], equals('+3.2%'));

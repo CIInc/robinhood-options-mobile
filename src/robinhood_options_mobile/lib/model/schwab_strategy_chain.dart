@@ -126,8 +126,7 @@ class SchwabStrategyChain {
       if (daysToExpiration != null) 'daysToExpiration': daysToExpiration,
       if (numberOfContracts != null) 'numberOfContracts': numberOfContracts,
       if (underlying != null) 'underlying': underlying!.toJson(),
-      'monthlyStrategyList':
-          monthlyStrategies.map((e) => e.toJson()).toList(),
+      'monthlyStrategyList': monthlyStrategies.map((e) => e.toJson()).toList(),
     };
   }
 
@@ -351,7 +350,8 @@ class SchwabMonthlyStrategy {
       }
     }
     // Fall back to primaryLeg expirationDate if present in first package
-    if (packages.isNotEmpty && packages.first.primaryLeg?.expirationDate != null) {
+    if (packages.isNotEmpty &&
+        packages.first.primaryLeg?.expirationDate != null) {
       return packages.first.primaryLeg!.expirationDate;
     }
     return null;
@@ -457,9 +457,10 @@ class SchwabStrategyPackage {
   factory SchwabStrategyPackage.fromJson(Map<String, dynamic> json) {
     SchwabStrategyLeg? primary;
     if (json['primaryLeg'] != null && json['primaryLeg'] is Map) {
-      primary = SchwabStrategyLeg.fromJson(json['primaryLeg'] is Map<String, dynamic>
-          ? json['primaryLeg'] as Map<String, dynamic>
-          : Map<String, dynamic>.from(json['primaryLeg'] as Map));
+      primary = SchwabStrategyLeg.fromJson(
+          json['primaryLeg'] is Map<String, dynamic>
+              ? json['primaryLeg'] as Map<String, dynamic>
+              : Map<String, dynamic>.from(json['primaryLeg'] as Map));
     }
 
     SchwabStrategyLeg? secondary;

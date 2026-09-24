@@ -238,10 +238,9 @@ class _CopyTradeSettingsWidgetState extends State<CopyTradeSettingsWidget> {
         takeProfitAdjustment: _takeProfitAdjustmentController.text.isNotEmpty
             ? double.tryParse(_takeProfitAdjustmentController.text)
             : null,
-        maxAllocationPerTrade:
-            _maxAllocationPerTradeController.text.isNotEmpty
-                ? double.tryParse(_maxAllocationPerTradeController.text)
-                : null,
+        maxAllocationPerTrade: _maxAllocationPerTradeController.text.isNotEmpty
+            ? double.tryParse(_maxAllocationPerTradeController.text)
+            : null,
         maxAllocationPct: _maxAllocationPctController.text.isNotEmpty
             ? double.tryParse(_maxAllocationPctController.text)
             : null,
@@ -250,10 +249,9 @@ class _CopyTradeSettingsWidgetState extends State<CopyTradeSettingsWidget> {
             : 75.0,
         autoDisconnectOnDivergence:
             _settings!.autoDisconnectOnDivergence ?? false,
-        maxLeaderDrawdownPct:
-            _maxLeaderDrawdownPctController.text.isNotEmpty
-                ? double.tryParse(_maxLeaderDrawdownPctController.text)
-                : null,
+        maxLeaderDrawdownPct: _maxLeaderDrawdownPctController.text.isNotEmpty
+            ? double.tryParse(_maxLeaderDrawdownPctController.text)
+            : null,
         maxReturnDivergencePct:
             _maxReturnDivergencePctController.text.isNotEmpty
                 ? double.tryParse(_maxReturnDivergencePctController.text)
@@ -1029,8 +1027,8 @@ class _CopyTradeSettingsWidgetState extends State<CopyTradeSettingsWidget> {
                       Wrap(
                         spacing: 8,
                         children: [25, 50, 75, 100, 200].map((bps) {
-                          final isSelected = _maxSlippageBpsController.text ==
-                              bps.toString();
+                          final isSelected =
+                              _maxSlippageBpsController.text == bps.toString();
                           return ChoiceChip(
                             label: Text(
                                 '$bps bps (${(bps / 100).toStringAsFixed(2)}%)'),
@@ -1085,8 +1083,7 @@ class _CopyTradeSettingsWidgetState extends State<CopyTradeSettingsWidget> {
                             Expanded(
                               child: TextFormField(
                                 key: const Key('maxReturnDivergencePctField'),
-                                controller:
-                                    _maxReturnDivergencePctController,
+                                controller: _maxReturnDivergencePctController,
                                 decoration: const InputDecoration(
                                   labelText: 'Max Divergence (%)',
                                   helperText: 'Disconnect if lag exceeds',

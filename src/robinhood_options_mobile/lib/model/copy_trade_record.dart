@@ -237,8 +237,7 @@ class CopyTradeRecord {
       (executionResult != null && executionResult!.startsWith('aborted'));
 
   /// Returns true if aborted specifically due to excessive price slippage.
-  bool get isAbortedMaxSlippage =>
-      executionResult == 'aborted_max_slippage';
+  bool get isAbortedMaxSlippage => executionResult == 'aborted_max_slippage';
 
   /// Returns true if aborted specifically due to capital allocation limits.
   bool get isAbortedAllocation =>

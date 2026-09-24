@@ -299,9 +299,8 @@ class TraderComparisonSummary {
     for (final t in traders) {
       // 1. Return score: normalized 0-100 against maxReturn
       final ret = t.returnForPeriod(period);
-      final returnScore = ret <= 0
-          ? 0.0
-          : math.min(100.0, (ret / maxReturn) * 100.0);
+      final returnScore =
+          ret <= 0 ? 0.0 : math.min(100.0, (ret / maxReturn) * 100.0);
 
       // 2. Consistency: based on winRate (0-100)
       final consistencyScore = t.winRate.clamp(0.0, 100.0);
@@ -313,7 +312,8 @@ class TraderComparisonSummary {
 
       // 4. Capital preservation: inverted max drawdown (0% dd = 100, 30% dd = 0)
       final dd = t.maxDrawdownPercent.abs();
-      final preservationScore = math.max(0.0, (1.0 - (dd / 30.0)) * 100.0).clamp(0.0, 100.0);
+      final preservationScore =
+          math.max(0.0, (1.0 - (dd / 30.0)) * 100.0).clamp(0.0, 100.0);
 
       // 5. Reputation score: already 0-100
       final reputationScore = t.reputation.score.toDouble().clamp(0.0, 100.0);
@@ -337,7 +337,8 @@ class TraderComparisonSummary {
   }
 
   /// Groups metrics by their respective categories.
-  Map<TraderComparisonCategory, List<TraderComparisonMetric>> get metricsByCategory {
+  Map<TraderComparisonCategory, List<TraderComparisonMetric>>
+      get metricsByCategory {
     final map = <TraderComparisonCategory, List<TraderComparisonMetric>>{};
     for (final cat in TraderComparisonCategory.values) {
       map[cat] = metrics.where((m) => m.category == cat).toList();

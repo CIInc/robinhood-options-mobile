@@ -462,7 +462,8 @@ class _PublishPortfolioBottomSheetState
                 elevation: 0,
                 color: isPublished
                     ? colorScheme.primaryContainer.withValues(alpha: 0.3)
-                    : colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+                    : colorScheme.surfaceContainerHighest
+                        .withValues(alpha: 0.4),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                   side: BorderSide(
@@ -637,8 +638,7 @@ class _PublishPortfolioBottomSheetState
                       value: _allowFollowers,
                       title: const Text('Allow Followers'),
                       subtitle: const Text('Let other traders follow you'),
-                      secondary:
-                          const Icon(Icons.person_add_alt_1_outlined),
+                      secondary: const Icon(Icons.person_add_alt_1_outlined),
                       onChanged: (val) {
                         setState(() => _allowFollowers = val);
                         _updatePrivacyOnly();

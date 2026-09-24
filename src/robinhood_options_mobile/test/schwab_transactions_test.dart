@@ -349,7 +349,10 @@ void main() {
         symbol: 'NVDA',
       );
 
-      expect(url, startsWith('https://api.schwabapi.com/trader/v1/accounts/ACC_HASH_123/transactions?'));
+      expect(
+          url,
+          startsWith(
+              'https://api.schwabapi.com/trader/v1/accounts/ACC_HASH_123/transactions?'));
       expect(url, contains('startDate=2026-01-01T00%3A00%3A00.000Z'));
       expect(url, contains('endDate=2026-03-31T23%3A59%3A59.000Z'));
       expect(url, contains('types=TRADE%2CDIVIDEND_OR_INTEREST'));
@@ -401,7 +404,8 @@ void main() {
     testWidgets('SchwabTransactionsWidget renders summary cards and filters',
         (tester) async {
       final service = SchwabService();
-      final user = BrokerageUser(BrokerageSource.schwab, 'schwab_user', null, null);
+      final user =
+          BrokerageUser(BrokerageSource.schwab, 'schwab_user', null, null);
 
       await tester.pumpWidget(
         MaterialApp(
@@ -442,8 +446,7 @@ void main() {
 
       // Verify search input
       expect(
-          find.widgetWithText(
-              TextField, 'Search by symbol or description...'),
+          find.widgetWithText(TextField, 'Search by symbol or description...'),
           findsOneWidget);
     });
 

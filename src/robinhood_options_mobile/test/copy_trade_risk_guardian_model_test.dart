@@ -47,7 +47,9 @@ void main() {
       expect(restored.riskGuardianTrippedAt?.year, 2026);
     });
 
-    test('should apply default values when Risk Guardian fields are omitted in JSON', () {
+    test(
+        'should apply default values when Risk Guardian fields are omitted in JSON',
+        () {
       final json = <String, Object?>{
         'enabled': true,
         'autoExecute': false,

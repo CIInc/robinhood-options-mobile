@@ -217,7 +217,9 @@ void main() {
       expect(find.text('Alphabetical'), findsOneWidget);
     });
 
-    testWidgets('Leaderboard tab renders Publish floating action button matching other tabs', (tester) async {
+    testWidgets(
+        'Leaderboard tab renders Publish floating action button matching other tabs',
+        (tester) async {
       tester.view.physicalSize = const Size(1080, 2400);
       tester.view.devicePixelRatio = 1.0;
       FakeFirebaseAuth.mockUser = MockFirebaseUser();

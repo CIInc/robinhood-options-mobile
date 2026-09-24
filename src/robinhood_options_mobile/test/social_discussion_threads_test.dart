@@ -30,7 +30,8 @@ void main() {
       expect(comment.isLikedBy('user-1'), isTrue);
       expect(comment.isLikedBy('user-other'), isFalse);
       expect(comment.isReported, isTrue);
-      expect(comment.reportReason, equals('Misinformation / Market manipulation'));
+      expect(
+          comment.reportReason, equals('Misinformation / Market manipulation'));
       expect(comment.isReportedBy('user-99'), isTrue);
       expect(comment.isReportedBy('user-1'), isFalse);
 
@@ -38,7 +39,8 @@ void main() {
       expect(json['isPinned'], isTrue);
       expect(json['likes'], equals(['user-1', 'user-2', 'user-3']));
       expect(json['isReported'], isTrue);
-      expect(json['reportReason'], equals('Misinformation / Market manipulation'));
+      expect(
+          json['reportReason'], equals('Misinformation / Market manipulation'));
       expect(json['reportedBy'], equals(['user-99']));
 
       final restored = GroupAnalysisComment.fromJson(json, 'c-1');
@@ -46,7 +48,8 @@ void main() {
       expect(restored.upvotesCount, equals(3));
       expect(restored.likes, contains('user-2'));
       expect(restored.isReported, isTrue);
-      expect(restored.reportReason, equals('Misinformation / Market manipulation'));
+      expect(restored.reportReason,
+          equals('Misinformation / Market manipulation'));
       expect(restored.reportedBy, contains('user-99'));
 
       final unpinned = restored.copyWith(isPinned: false, likes: ['user-1']);
@@ -103,7 +106,8 @@ void main() {
       service = FirestoreService(firestore: fakeDb);
     });
 
-    test('group analysis comment pinning, upvoting, reporting, and deleting', () async {
+    test('group analysis comment pinning, upvoting, reporting, and deleting',
+        () async {
       const groupId = 'test-group-social';
       const analysisId = 'post-social-1';
 
@@ -133,24 +137,35 @@ void main() {
       await service.addGroupAnalysisComment(groupId, analysisId, comment1);
 
       // Verify comment added
-      var comments = await service.getGroupAnalysisCommentsStream(groupId, analysisId).first;
+      var comments = await service
+          .getGroupAnalysisCommentsStream(groupId, analysisId)
+          .first;
       expect(comments.length, equals(1));
       expect(comments.first.isPinned, isFalse);
       expect(comments.first.upvotesCount, equals(0));
 
       // Pin comment
-      await service.setGroupAnalysisCommentPinned(groupId, analysisId, 'c-1', true);
-      comments = await service.getGroupAnalysisCommentsStream(groupId, analysisId).first;
+      await service.setGroupAnalysisCommentPinned(
+          groupId, analysisId, 'c-1', true);
+      comments = await service
+          .getGroupAnalysisCommentsStream(groupId, analysisId)
+          .first;
       expect(comments.first.isPinned, isTrue);
 
       // Toggle upvote on and off
-      await service.toggleGroupAnalysisCommentLike(groupId, analysisId, 'c-1', 'user-charlie');
-      comments = await service.getGroupAnalysisCommentsStream(groupId, analysisId).first;
+      await service.toggleGroupAnalysisCommentLike(
+          groupId, analysisId, 'c-1', 'user-charlie');
+      comments = await service
+          .getGroupAnalysisCommentsStream(groupId, analysisId)
+          .first;
       expect(comments.first.upvotesCount, equals(1));
       expect(comments.first.isLikedBy('user-charlie'), isTrue);
 
-      await service.toggleGroupAnalysisCommentLike(groupId, analysisId, 'c-1', 'user-charlie');
-      comments = await service.getGroupAnalysisCommentsStream(groupId, analysisId).first;
+      await service.toggleGroupAnalysisCommentLike(
+          groupId, analysisId, 'c-1', 'user-charlie');
+      comments = await service
+          .getGroupAnalysisCommentsStream(groupId, analysisId)
+          .first;
       expect(comments.first.upvotesCount, equals(0));
 
       // Report comment
@@ -161,14 +176,18 @@ void main() {
         'user-reporter',
         'Spam or advertising',
       );
-      comments = await service.getGroupAnalysisCommentsStream(groupId, analysisId).first;
+      comments = await service
+          .getGroupAnalysisCommentsStream(groupId, analysisId)
+          .first;
       expect(comments.first.isReported, isTrue);
       expect(comments.first.reportReason, equals('Spam or advertising'));
       expect(comments.first.isReportedBy('user-reporter'), isTrue);
 
       // Delete comment and verify commentsCount decrements
       await service.deleteGroupAnalysisComment(groupId, analysisId, 'c-1');
-      comments = await service.getGroupAnalysisCommentsStream(groupId, analysisId).first;
+      comments = await service
+          .getGroupAnalysisCommentsStream(groupId, analysisId)
+          .first;
       expect(comments.isEmpty, isTrue);
 
       final postDoc = await fakeDb
@@ -180,7 +199,8 @@ void main() {
       expect(postDoc.data()!['commentsCount'], equals(0));
     });
 
-    test('group analysis sentiment voting toggles and updates correctly', () async {
+    test('group analysis sentiment voting toggles and updates correctly',
+        () async {
       const groupId = 'test-group-poll';
       const analysisId = 'post-poll-1';
 
@@ -212,7 +232,8 @@ void main() {
           .collection('analyses')
           .doc(analysisId)
           .get();
-      var votes = Map<String, dynamic>.from(postDoc.data()!['sentimentVotes'] as Map);
+      var votes =
+          Map<String, dynamic>.from(postDoc.data()!['sentimentVotes'] as Map);
       expect(votes['user-voter-1'], equals('bullish'));
 
       // Change vote to bearish
@@ -229,7 +250,8 @@ void main() {
           .collection('analyses')
           .doc(analysisId)
           .get();
-      votes = Map<String, dynamic>.from(postDoc.data()!['sentimentVotes'] as Map);
+      votes =
+          Map<String, dynamic>.from(postDoc.data()!['sentimentVotes'] as Map);
       expect(votes['user-voter-1'], equals('bearish'));
 
       // Toggle off same vote
@@ -246,11 +268,14 @@ void main() {
           .collection('analyses')
           .doc(analysisId)
           .get();
-      votes = Map<String, dynamic>.from(postDoc.data()!['sentimentVotes'] as Map);
+      votes =
+          Map<String, dynamic>.from(postDoc.data()!['sentimentVotes'] as Map);
       expect(votes.containsKey('user-voter-1'), isFalse);
     });
 
-    test('shared portfolio comments streaming, pinning, upvoting, and sentiment', () async {
+    test(
+        'shared portfolio comments streaming, pinning, upvoting, and sentiment',
+        () async {
       const targetUserId = 'trader-pro-123';
 
       final comment = GroupAnalysisComment(
@@ -264,12 +289,14 @@ void main() {
 
       await service.addPortfolioComment(targetUserId, comment);
 
-      var comments = await service.getPortfolioCommentsStream(targetUserId).first;
+      var comments =
+          await service.getPortfolioCommentsStream(targetUserId).first;
       expect(comments.length, equals(1));
       expect(comments.first.content, contains('hedge strategy'));
 
       // Upvote
-      await service.togglePortfolioCommentLike(targetUserId, 'port-c1', 'follower-2');
+      await service.togglePortfolioCommentLike(
+          targetUserId, 'port-c1', 'follower-2');
       comments = await service.getPortfolioCommentsStream(targetUserId).first;
       expect(comments.first.upvotesCount, equals(1));
 
@@ -347,7 +374,8 @@ void main() {
       expect(votedSentiment, equals(GroupAnalysisSentiment.bearish));
     });
 
-    testWidgets('SocialCommentItemWidget renders pinned status, likes, and actions',
+    testWidgets(
+        'SocialCommentItemWidget renders pinned status, likes, and actions',
         (WidgetTester tester) async {
       bool liked = false;
       bool pinToggled = false;
@@ -384,7 +412,8 @@ void main() {
       // Pinned badge
       expect(find.text('Pinned by author'), findsOneWidget);
       expect(find.text('Alpha Analyst'), findsOneWidget);
-      expect(find.text('Pinned note: Key level to watch is \$150.25.'), findsOneWidget);
+      expect(find.text('Pinned note: Key level to watch is \$150.25.'),
+          findsOneWidget);
       expect(find.text('2'), findsOneWidget);
 
       // Tap upvote
@@ -418,7 +447,8 @@ void main() {
       expect(reportedReason, equals('Spam or advertising'));
     });
 
-    testWidgets('SocialCommentItemWidget shows reported notice when reported by current user',
+    testWidgets(
+        'SocialCommentItemWidget shows reported notice when reported by current user',
         (WidgetTester tester) async {
       final reportedComment = GroupAnalysisComment(
         id: 'c-rep',

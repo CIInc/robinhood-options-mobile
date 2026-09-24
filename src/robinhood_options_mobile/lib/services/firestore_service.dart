@@ -1675,8 +1675,8 @@ class FirestoreService {
     }
   }
 
-  Future<void> toggleGroupAnalysisCommentLike(
-      String groupId, String analysisId, String commentId, String userId) async {
+  Future<void> toggleGroupAnalysisCommentLike(String groupId, String analysisId,
+      String commentId, String userId) async {
     try {
       final docRef = investorGroupCollection
           .doc(groupId)
@@ -1701,8 +1701,8 @@ class FirestoreService {
     }
   }
 
-  Future<void> setGroupAnalysisCommentPinned(
-      String groupId, String analysisId, String commentId, bool isPinned) async {
+  Future<void> setGroupAnalysisCommentPinned(String groupId, String analysisId,
+      String commentId, bool isPinned) async {
     try {
       await investorGroupCollection
           .doc(groupId)
@@ -1718,8 +1718,8 @@ class FirestoreService {
     }
   }
 
-  Future<void> reportGroupAnalysisComment(
-      String groupId, String analysisId, String commentId, String userId, String reason) async {
+  Future<void> reportGroupAnalysisComment(String groupId, String analysisId,
+      String commentId, String userId, String reason) async {
     try {
       final docRef = investorGroupCollection
           .doc(groupId)
@@ -1768,8 +1768,8 @@ class FirestoreService {
     }
   }
 
-  Future<void> voteGroupAnalysisSentiment(
-      String groupId, String analysisId, String userId, GroupAnalysisSentiment sentiment) async {
+  Future<void> voteGroupAnalysisSentiment(String groupId, String analysisId,
+      String userId, GroupAnalysisSentiment sentiment) async {
     try {
       final docRef = investorGroupCollection
           .doc(groupId)
@@ -1778,20 +1778,23 @@ class FirestoreService {
       final doc = await docRef.get();
       if (!doc.exists) return;
       final data = doc.data() ?? {};
-      final rawVotes = Map<String, dynamic>.from(data['sentimentVotes'] as Map? ?? {});
+      final rawVotes =
+          Map<String, dynamic>.from(data['sentimentVotes'] as Map? ?? {});
       if (rawVotes[userId] == sentiment.name) {
         await docRef.update({'sentimentVotes.$userId': FieldValue.delete()});
       } else {
         await docRef.update({'sentimentVotes.$userId': sentiment.name});
       }
-      debugPrint("Voted sentiment $sentiment for analysis $analysisId by $userId");
+      debugPrint(
+          "Voted sentiment $sentiment for analysis $analysisId by $userId");
     } on FirebaseException catch (e) {
       debugPrint('Failed to vote sentiment: ${e.message}');
       rethrow;
     }
   }
 
-  Stream<List<GroupAnalysisComment>> getPortfolioCommentsStream(String targetUserId) {
+  Stream<List<GroupAnalysisComment>> getPortfolioCommentsStream(
+      String targetUserId) {
     return _db
         .collection(userCollectionName)
         .doc(targetUserId)
@@ -1863,8 +1866,8 @@ class FirestoreService {
     }
   }
 
-  Future<void> reportPortfolioComment(
-      String targetUserId, String commentId, String userId, String reason) async {
+  Future<void> reportPortfolioComment(String targetUserId, String commentId,
+      String userId, String reason) async {
     try {
       final docRef = _db
           .collection(userCollectionName)
@@ -1889,7 +1892,8 @@ class FirestoreService {
     }
   }
 
-  Future<void> deletePortfolioComment(String targetUserId, String commentId) async {
+  Future<void> deletePortfolioComment(
+      String targetUserId, String commentId) async {
     try {
       await _db
           .collection(userCollectionName)
@@ -1903,8 +1907,8 @@ class FirestoreService {
     }
   }
 
-  Future<void> votePortfolioSentiment(
-      String targetUserId, String voterUserId, GroupAnalysisSentiment sentiment) async {
+  Future<void> votePortfolioSentiment(String targetUserId, String voterUserId,
+      GroupAnalysisSentiment sentiment) async {
     try {
       final docRef = _db.collection(userCollectionName).doc(targetUserId);
       final doc = await docRef.get();
@@ -1912,11 +1916,13 @@ class FirestoreService {
         await docRef.set({
           'portfolioSentimentVotes': {voterUserId: sentiment.name}
         }, SetOptions(merge: true));
-        debugPrint("Voted portfolio sentiment for $targetUserId by $voterUserId");
+        debugPrint(
+            "Voted portfolio sentiment for $targetUserId by $voterUserId");
         return;
       }
       final data = doc.data() ?? {};
-      final rawVotes = Map<String, dynamic>.from(data['portfolioSentimentVotes'] as Map? ?? {});
+      final rawVotes = Map<String, dynamic>.from(
+          data['portfolioSentimentVotes'] as Map? ?? {});
       if (rawVotes[voterUserId] == sentiment.name) {
         await docRef.update({
           'portfolioSentimentVotes.$voterUserId': FieldValue.delete(),

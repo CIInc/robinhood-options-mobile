@@ -139,56 +139,56 @@ class _AutoTradeStatusBadgeWidgetState extends State<AutoTradeStatusBadgeWidget>
       return const SizedBox.shrink();
     }
 
-        final isAutoTrading = agenticTradingProvider.showAutoTradingVisual;
-        final isEmergencyStop = agenticTradingProvider.emergencyStopActivated;
+    final isAutoTrading = agenticTradingProvider.showAutoTradingVisual;
+    final isEmergencyStop = agenticTradingProvider.emergencyStopActivated;
 
-        // Animation logic
-        final shouldAnimate = isAutoTrading || isEmergencyStop;
-        if (shouldAnimate) {
-          final newDuration = isEmergencyStop
-              ? const Duration(milliseconds: 800)
-              : const Duration(milliseconds: 1500);
+    // Animation logic
+    final shouldAnimate = isAutoTrading || isEmergencyStop;
+    if (shouldAnimate) {
+      final newDuration = isEmergencyStop
+          ? const Duration(milliseconds: 800)
+          : const Duration(milliseconds: 1500);
 
-          if (_animationController.duration != newDuration) {
-            _animationController.duration = newDuration;
-            if (_animationController.isAnimating) {
-              _animationController.repeat(reverse: true);
-            }
-          }
-
-          if (!_wasActive) {
-            _animationController.repeat(reverse: true);
-            HapticFeedback.mediumImpact();
-            _wasActive = true;
-          }
-        } else if (_wasActive) {
-          _animationController.stop();
-          _animationController.reset();
-          _wasActive = false;
+      if (_animationController.duration != newDuration) {
+        _animationController.duration = newDuration;
+        if (_animationController.isAnimating) {
+          _animationController.repeat(reverse: true);
         }
+      }
 
-        final status = _getStatusAttributes(context, agenticTradingProvider);
+      if (!_wasActive) {
+        _animationController.repeat(reverse: true);
+        HapticFeedback.mediumImpact();
+        _wasActive = true;
+      }
+    } else if (_wasActive) {
+      _animationController.stop();
+      _animationController.reset();
+      _wasActive = false;
+    }
 
-        // Calculate progress for countdown if in waiting state
-        double? progressValue;
-        if (status.title == 'Auto On') {
-          final countdown = agenticTradingProvider.autoTradeCountdownSeconds;
-          // Assuming 5 minute cycle (300 seconds)
-          progressValue = (300.0 - countdown) / 300.0;
-          if (progressValue < 0) progressValue = 0;
-          if (progressValue > 1) progressValue = 1;
-        }
+    final status = _getStatusAttributes(context, agenticTradingProvider);
 
-        if (widget.userAvatar != null) {
-          return _buildCombinedBadge(
-            context,
-            agenticTradingProvider,
-            status,
-            isAutoTrading,
-            isEmergencyStop,
-            progressValue,
-          );
-        }
+    // Calculate progress for countdown if in waiting state
+    double? progressValue;
+    if (status.title == 'Auto On') {
+      final countdown = agenticTradingProvider.autoTradeCountdownSeconds;
+      // Assuming 5 minute cycle (300 seconds)
+      progressValue = (300.0 - countdown) / 300.0;
+      if (progressValue < 0) progressValue = 0;
+      if (progressValue > 1) progressValue = 1;
+    }
+
+    if (widget.userAvatar != null) {
+      return _buildCombinedBadge(
+        context,
+        agenticTradingProvider,
+        status,
+        isAutoTrading,
+        isEmergencyStop,
+        progressValue,
+      );
+    }
 
     return _buildStandaloneBadge(
       context,

@@ -279,7 +279,8 @@ class _TraderComparisonWidgetState extends State<TraderComparisonWidget> {
                       child: GestureDetector(
                         onTap: () => _removeTrader(index),
                         child: Icon(Icons.close,
-                            size: 16, color: theme.colorScheme.onSurfaceVariant),
+                            size: 16,
+                            color: theme.colorScheme.onSurfaceVariant),
                       ),
                     ),
 
@@ -331,7 +332,8 @@ class _TraderComparisonWidgetState extends State<TraderComparisonWidget> {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
-                      color: trader.reputation.tier.color.withValues(alpha: 0.15),
+                      color:
+                          trader.reputation.tier.color.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
@@ -541,8 +543,8 @@ class _TraderComparisonWidgetState extends State<TraderComparisonWidget> {
                                   child: LinearProgressIndicator(
                                     value: (score / 100.0).clamp(0.0, 1.0),
                                     minHeight: 6,
-                                    backgroundColor:
-                                        theme.colorScheme.surfaceContainerHighest,
+                                    backgroundColor: theme
+                                        .colorScheme.surfaceContainerHighest,
                                     valueColor: AlwaysStoppedAnimation(color),
                                   ),
                                 ),
