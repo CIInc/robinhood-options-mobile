@@ -201,16 +201,20 @@ class _UserWidgetState extends State<UserWidget> {
                                 title: const Text('User'),
                                 actions: [
                                   IconButton(
-                                      icon: user != null
-                                          ? (user.photoUrl == null
+                                      icon: widget.auth.currentUser != null
+                                          ? ((widget.auth.currentUser!.photoURL ??
+                                                      (widget.auth.currentUser!.uid ==
+                                                              widget.userId
+                                                          ? user?.photoUrl
+                                                          : null)) ==
+                                                  null
                                               ? const Icon(Icons.account_circle)
                                               : CircleAvatar(
                                                   maxRadius: 12,
                                                   backgroundImage:
                                                       CachedNetworkImageProvider(
-                                                          user.photoUrl!
-                                                          //  ?? Constants .placeholderImage, // No longer used
-                                                          )))
+                                                          (widget.auth.currentUser!.photoURL ??
+                                                              user?.photoUrl)!)))
                                           : const Icon(
                                               Icons.account_circle_outlined),
                                       onPressed: () async {
@@ -2319,14 +2323,19 @@ class _UserWidgetState extends State<UserWidget> {
                                               MaterialPageRoute(
                                                   builder: (BuildContext
                                                           context) =>
-                                                      UsersWidget(widget.auth,
-                                                          widget.service!,
-                                                          analytics:
-                                                              widget.analytics,
-                                                          observer:
-                                                              widget.observer,
-                                                          brokerageUser: widget
-                                                              .brokerageUser!)));
+                                                      UsersWidget(
+                                                        widget.auth,
+                                                        widget.service!,
+                                                        analytics:
+                                                            widget.analytics,
+                                                        observer:
+                                                            widget.observer,
+                                                        brokerageUser: widget
+                                                            .brokerageUser!,
+                                                        user: user,
+                                                        userDocRef:
+                                                            userDocumentReference,
+                                                      )));
                                         }
                                       },
                                     ),

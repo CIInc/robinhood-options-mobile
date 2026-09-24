@@ -15,7 +15,10 @@ import 'package:robinhood_options_mobile/model/user_follow.dart';
 import 'package:robinhood_options_mobile/model/verified_track_record.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
+import 'package:robinhood_options_mobile/widgets/auto_trade_status_badge_widget.dart';
 import 'package:robinhood_options_mobile/widgets/copy_trade_button_widget.dart';
+import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
+import 'package:robinhood_options_mobile/widgets/top_portfolios_leaderboard_widget.dart';
 import 'package:robinhood_options_mobile/widgets/user_follow_list_dialog.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -47,17 +50,39 @@ class TraderProfileWidget extends StatefulWidget {
 
 class _TraderProfileWidgetState extends State<TraderProfileWidget> {
   final FirestoreService _firestoreService = FirestoreService();
+  late Stream<DocumentSnapshot<User>> _userStream;
+
+  DocumentReference<User> get userDocRef =>
+      _firestoreService.userCollection.doc(widget.userId);
+
+  @override
+  void initState() {
+    super.initState();
+    _userStream = userDocRef.snapshots();
+  }
+
+  @override
+  void didUpdateWidget(TraderProfileWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.userId != widget.userId) {
+      _userStream = userDocRef.snapshots();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final userDocRef = _firestoreService.userCollection.doc(widget.userId);
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
       appBar: AppBar(
         title: const Text('Trader Profile'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.compare_arrows),
+            tooltip: 'Compare with Top Leaders',
+            onPressed: () => _openLeaderboardForComparison(context),
+          ),
           IconButton(
             icon: const Icon(Icons.share),
             tooltip: 'Share Profile',
@@ -71,10 +96,43 @@ class _TraderProfileWidgetState extends State<TraderProfileWidget> {
               );
             },
           ),
+          if (widget.auth.currentUser != null)
+            AutoTradeStatusBadgeWidget(
+              service: widget.service,
+              userAvatar: widget.auth.currentUser!.photoURL == null
+                  ? const Icon(Icons.account_circle)
+                  : CircleAvatar(
+                      maxRadius: 11,
+                      backgroundImage: CachedNetworkImageProvider(
+                          widget.auth.currentUser!.photoURL!)),
+              onProfileTap: () {
+                showProfile(
+                    context,
+                    widget.auth,
+                    _firestoreService,
+                    widget.analytics,
+                    widget.observer,
+                    widget.brokerageUser,
+                    widget.service);
+              },
+            )
+          else
+            IconButton(
+                icon: const Icon(Icons.account_circle_outlined),
+                onPressed: () {
+                  showProfile(
+                      context,
+                      widget.auth,
+                      _firestoreService,
+                      widget.analytics,
+                      widget.observer,
+                      widget.brokerageUser,
+                      widget.service);
+                }),
         ],
       ),
       body: StreamBuilder<DocumentSnapshot<User>>(
-        stream: userDocRef.snapshots(),
+        stream: _userStream,
         builder: (context, userSnapshot) {
           if (userSnapshot.hasError) {
             if (_isPermissionDenied(userSnapshot.error)) {
@@ -114,11 +172,13 @@ class _TraderProfileWidgetState extends State<TraderProfileWidget> {
               ),
             );
           }
-          if (userSnapshot.connectionState == ConnectionState.waiting) {
+          if (userSnapshot.connectionState == ConnectionState.waiting &&
+              !userSnapshot.hasData &&
+              widget.initialUser == null) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          final targetUser = userSnapshot.data?.data();
+          final targetUser = userSnapshot.data?.data() ?? widget.initialUser;
           if (targetUser == null) {
             return const Center(child: Text('Trader not found'));
           }
@@ -964,6 +1024,22 @@ class _TraderProfileWidgetState extends State<TraderProfileWidget> {
               label: const Text('Go Back'),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  void _openLeaderboardForComparison(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => TopPortfoliosLeaderboardWidget(
+          auth: widget.auth,
+          firestoreService: _firestoreService,
+          analytics: widget.analytics,
+          observer: widget.observer,
+          brokerageUser: widget.brokerageUser,
+          service: widget.service,
         ),
       ),
     );

@@ -90,7 +90,8 @@ interface CopyTradeRecord {
   }[];
   timestamp: FieldValue; // server timestamp placeholder
   executed: boolean;
-  status?: "pending_approval" | "approved" | "rejected" | "executed" | "aborted";
+  status?: "pending_approval" | "approved" | "rejected"
+  | "executed" | "aborted";
   executionResult?: string;
   error?: string;
   isInverse?: boolean;

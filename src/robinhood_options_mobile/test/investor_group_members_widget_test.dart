@@ -49,11 +49,25 @@ class FakeUserDocSnapshot extends Fake implements DocumentSnapshot<User> {
   User? data() => _user;
 }
 
+class FakeQueryDocumentSnapshot extends Fake
+    implements QueryDocumentSnapshot<Map<String, dynamic>> {
+  final Map<String, dynamic> _data;
+  final String _id;
+  FakeQueryDocumentSnapshot(this._data, this._id);
+
+  @override
+  String get id => _id;
+
+  @override
+  Map<String, dynamic> data() => _data;
+}
+
 class FakeUserDocRef extends Fake implements DocumentReference<User> {
   final String _id;
   final User? _user;
+  final Map<String, List<Map<String, dynamic>>> collectionData;
 
-  FakeUserDocRef(this._id, [this._user]);
+  FakeUserDocRef(this._id, [this._user, this.collectionData = const {}]);
 
   @override
   String get id => _id;
@@ -65,17 +79,26 @@ class FakeUserDocRef extends Fake implements DocumentReference<User> {
 
   @override
   CollectionReference<Map<String, dynamic>> collection(String collectionPath) {
-    return FakeMapCollectionReference(collectionPath);
+    return FakeMapCollectionReference(
+      collectionPath,
+      collectionData[collectionPath] ?? const [],
+    );
   }
 }
 
 class FakeMapQuerySnapshot extends Fake
     implements QuerySnapshot<Map<String, dynamic>> {
+  final List<QueryDocumentSnapshot<Map<String, dynamic>>> _docs;
+  FakeMapQuerySnapshot([this._docs = const []]);
+
   @override
-  List<QueryDocumentSnapshot<Map<String, dynamic>>> get docs => [];
+  List<QueryDocumentSnapshot<Map<String, dynamic>>> get docs => _docs;
 }
 
 class FakeMapQuery extends Fake implements Query<Map<String, dynamic>> {
+  final List<QueryDocumentSnapshot<Map<String, dynamic>>> _docs;
+  FakeMapQuery([this._docs = const []]);
+
   @override
   Query<Map<String, dynamic>> orderBy(Object field,
           {bool descending = false}) =>
@@ -88,25 +111,30 @@ class FakeMapQuery extends Fake implements Query<Map<String, dynamic>> {
   Stream<QuerySnapshot<Map<String, dynamic>>> snapshots(
       {bool includeMetadataChanges = false,
       ListenSource source = ListenSource.defaultSource}) {
-    return Stream.value(FakeMapQuerySnapshot());
+    return Stream.value(FakeMapQuerySnapshot(_docs));
   }
 }
 
 class FakeMapCollectionReference extends Fake
     implements CollectionReference<Map<String, dynamic>> {
   final String path;
-  FakeMapCollectionReference(this.path);
+  final List<Map<String, dynamic>> docsData;
+  FakeMapCollectionReference(this.path, [this.docsData = const []]);
 
   @override
   Query<Map<String, dynamic>> orderBy(Object field,
           {bool descending = false}) =>
-      FakeMapQuery();
+      FakeMapQuery(
+        docsData.map((d) => FakeQueryDocumentSnapshot(d, 'id')).toList(),
+      );
 
   @override
   Stream<QuerySnapshot<Map<String, dynamic>>> snapshots(
       {bool includeMetadataChanges = false,
       ListenSource source = ListenSource.defaultSource}) {
-    return Stream.value(FakeMapQuerySnapshot());
+    return Stream.value(FakeMapQuerySnapshot(
+      docsData.map((d) => FakeQueryDocumentSnapshot(d, 'id')).toList(),
+    ));
   }
 }
 
@@ -409,6 +437,112 @@ void main() {
 
       // Tooltip changes to Single Select
       expect(find.byTooltip('Single Select'), findsOneWidget);
+    });
+
+    testWidgets('has only one trader profile link and no redundant links',
+        (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: InvestorGroupsMemberDetailWidget(
+            user: testUser,
+            userDoc: testUserDocRef,
+            firestoreService: mockFirestoreService,
+            groupRole: 'Admin',
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // Only one Profile button exists on the screen
+      expect(find.widgetWithText(OutlinedButton, 'Profile'), findsOneWidget);
+
+      // Redundant person icon button in AppBar is removed
+      expect(find.byIcon(Icons.person_pin_outlined), findsNothing);
+
+      // Redundant chevron link in AppBar is removed
+      expect(find.byIcon(Icons.chevron_right), findsNothing);
+    });
+
+    testWidgets(
+        'displays recent options and stock trade details without value cut-off',
+        (tester) async {
+      final docRefWithTrades = FakeUserDocRef(
+        'user-123',
+        testUser,
+        {
+          'option_orders': [
+            {
+              'id': 'opt-1',
+              'chain_id': 'chain-1',
+              'chain_symbol': 'NVDA',
+              'direction': 'debit',
+              'state': 'filled',
+              'quantity': 5.0,
+              'price': 2.45,
+              'processed_premium': 1225.0,
+              'ref_id': 'ref-1',
+              'time_in_force': 'gfd',
+              'trigger': 'immediate',
+              'type': 'limit',
+              'legs': [
+                {
+                  'id': 'leg-1',
+                  'option':
+                      'https://api.robinhood.com/options/instruments/opt-inst-1/',
+                  'ratio_quantity': 1,
+                  'side': 'buy',
+                  'option_type': 'call',
+                  'strike_price': 150.0,
+                  'expiration_date': '2026-06-20',
+                }
+              ],
+              'created_at': Timestamp.fromDate(DateTime(2026, 5, 1)),
+              'updated_at': Timestamp.fromDate(DateTime(2026, 5, 1)),
+            }
+          ],
+          'instrument_orders': [
+            {
+              'id': 'stk-1',
+              'instrument': 'https://api.robinhood.com/instruments/inst-1/',
+              'instrument_id': 'inst-1',
+              'side': 'buy',
+              'type': 'limit',
+              'state': 'filled',
+              'quantity': 10.0,
+              'price': 142.50,
+              'created_at': Timestamp.fromDate(DateTime(2026, 5, 1)),
+              'updated_at': Timestamp.fromDate(DateTime(2026, 5, 1)),
+            }
+          ],
+        },
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: InvestorGroupsMemberDetailWidget(
+            user: testUser,
+            userDoc: docRefWithTrades,
+            firestoreService: mockFirestoreService,
+            groupRole: 'Admin',
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // Check Option trade details
+      expect(find.text('NVDA'), findsOneWidget);
+      expect(find.text('CALL'), findsOneWidget);
+      expect(find.text('\$150'), findsOneWidget);
+      expect(find.text('Exp Jun 20, 26'), findsOneWidget);
+      expect(find.text('5 contracts'), findsOneWidget);
+      expect(find.text('@ \$2.45/ea'), findsOneWidget);
+
+      // Check Stock trade details
+      expect(find.text('10 shares'), findsOneWidget);
+      expect(find.text('@ \$142.50/ea'), findsOneWidget);
+      expect(find.text('LIMIT'), findsOneWidget);
     });
   });
 }

@@ -253,22 +253,22 @@ class Instrument {
       return Instrument.fromSchwabJson(json);
     }
     return Instrument(
-        id: json['id'],
-        url: json['url'],
-        quote: json['quote'],
-        fundamentals: json['fundamentals'],
-        splits: json['splits'],
-        state: json['state'],
-        market: json['market'],
+        id: json['id']?.toString() ?? json['symbol']?.toString() ?? '',
+        url: json['url']?.toString() ?? '',
+        quote: json['quote']?.toString() ?? '',
+        fundamentals: json['fundamentals']?.toString() ?? '',
+        splits: json['splits']?.toString() ?? '',
+        state: json['state']?.toString() ?? '',
+        market: json['market']?.toString() ?? '',
         simpleName: json['simple_name'],
-        name: json['name'],
-        tradeable: json['tradeable'],
-        tradability: json['tradability'],
-        symbol: json['symbol'],
-        bloombergUnique: json['bloomberg_unique'],
+        name: json['name']?.toString() ?? '',
+        tradeable: json['tradeable'] ?? false,
+        tradability: json['tradability']?.toString() ?? '',
+        symbol: json['symbol']?.toString() ?? '',
+        bloombergUnique: json['bloomberg_unique']?.toString() ?? '',
         marginInitialRatio: parseDouble(json['margin_initial_ratio']),
         maintenanceRatio: parseDouble(json['maintenance_ratio']),
-        country: json['country'],
+        country: json['country']?.toString() ?? '',
         dayTradeRatio: parseDouble(json['day_trade_ratio']),
         listDate: json['list_date'] == null
             ? null
@@ -276,10 +276,10 @@ class Instrument {
                 ? (json['list_date'] as Timestamp).toDate()
                 : DateTime.tryParse(json['list_date']),
         minTickSize: parseDouble(json['min_tick_size']),
-        type: json['type'],
+        type: json['type']?.toString() ?? '',
         tradeableChainId: json['tradable_chain_id'],
-        rhsTradability: json['rhs_tradability'],
-        fractionalTradability: json['fractional_tradability'],
+        rhsTradability: json['rhs_tradability']?.toString() ?? '',
+        fractionalTradability: json['fractional_tradability']?.toString() ?? '',
         defaultCollarFraction: parseDouble(json['default_collar_fraction']),
         ipoAccessStatus: json['ipo_access_status'],
         ipoAccessCobDeadline: json['ipo_access_cob_deadline'] == null
@@ -297,9 +297,9 @@ class Instrument {
                 : DateTime.tryParse(json['ipo_date']),
         ipoS1Url: json['ipo_s1_url'],
         ipoRoadshowUrl: json['ipo_roadshow_url'],
-        isSpac: json['is_spac'],
+        isSpac: json['is_spac'] ?? false,
         isTest: json['is_test'] ?? false,
-        ipoAccessSupportsDsp: json['ipo_access_supports_dsp'],
+        ipoAccessSupportsDsp: json['ipo_access_supports_dsp'] ?? false,
         // Dates may arrive as Timestamp (Firestore), DateTime (in-memory
         // round trip), or ISO string.
         dateCreated: json['date_created'] is Timestamp

@@ -315,7 +315,7 @@ class _ListsWidgetState extends State<ListsWidget>
             )
           else
             IconButton(
-                icon: const Icon(Icons.login),
+                icon: const Icon(Icons.account_circle_outlined),
                 onPressed: () async {
                   var response = await showProfile(
                       context,

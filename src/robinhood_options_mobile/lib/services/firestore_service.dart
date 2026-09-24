@@ -2642,6 +2642,11 @@ class FirestoreService {
     await topPortfolioCollection.doc(entry.userId).set(entry);
   }
 
+  /// Delete a top portfolio entry from the top_portfolios collection
+  Future<void> deleteTopPortfolioEntry(String userId) async {
+    await topPortfolioCollection.doc(userId).delete();
+  }
+
   /// Get a single top portfolio entry by user ID
   Future<TopPortfolioEntry?> getTopPortfolioEntry(String userId) async {
     try {

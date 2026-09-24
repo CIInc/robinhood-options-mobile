@@ -1797,7 +1797,23 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                               setState(() {});
                             }
                           },
-                        ),
+                        )
+                      else
+                        IconButton(
+                            icon: const Icon(Icons.account_circle_outlined),
+                            onPressed: () async {
+                              var response = await showProfile(
+                                  context,
+                                  auth,
+                                  _firestoreService,
+                                  widget.analytics,
+                                  widget.observer,
+                                  widget.brokerageUser,
+                                  widget.service);
+                              if (response != null) {
+                                setState(() {});
+                              }
+                            }),
                     ],
                     // actions: <Widget>[
                     //   IconButton(

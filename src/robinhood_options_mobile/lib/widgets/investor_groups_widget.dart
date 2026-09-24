@@ -16,6 +16,7 @@ import 'package:robinhood_options_mobile/widgets/copy_trading_dashboard_widget.d
 import 'package:robinhood_options_mobile/widgets/following_activity_feed_widget.dart';
 import 'package:robinhood_options_mobile/widgets/top_portfolios_leaderboard_widget.dart';
 import 'package:robinhood_options_mobile/widgets/users_widget.dart';
+import 'package:robinhood_options_mobile/widgets/publish_portfolio_sheet.dart';
 import 'package:robinhood_options_mobile/widgets/share_trade_idea_sheet.dart';
 import 'package:robinhood_options_mobile/model/verified_track_record.dart';
 
@@ -56,6 +57,7 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget>
   late final TabController _tabController;
   int _currentTabIndex = 0;
   int _pendingInvitationCount = 0;
+  bool _leaderboardCompareMode = false;
 
   @override
   void initState() {
@@ -153,6 +155,8 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget>
                             analytics: widget.analytics,
                             observer: widget.observer,
                             brokerageUser: widget.brokerageUser!,
+                            user: widget.user,
+                            userDocRef: widget.userDocRef,
                           ),
                         ),
                       );
@@ -260,6 +264,8 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget>
                   brokerageUser: widget.brokerageUser,
                   service: widget.service,
                   userRole: widget.user?.role,
+                  user: widget.user,
+                  userDocRef: widget.userDocRef,
                   showAppBar: false,
                   showFab: false,
                 ),
@@ -270,7 +276,16 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget>
                   observer: widget.observer,
                   brokerageUser: widget.brokerageUser,
                   service: widget.service,
+                  user: widget.user,
+                  userDocRef: widget.userDocRef,
                   showAppBar: false,
+                  onCompareModeChanged: (active) {
+                    if (_leaderboardCompareMode != active) {
+                      setState(() {
+                        _leaderboardCompareMode = active;
+                      });
+                    }
+                  },
                 ),
                 _buildGroupsTab(context),
               ],
@@ -290,6 +305,30 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget>
                   ),
                   icon: const Icon(Icons.add_rounded),
                   label: const Text('Share Idea'),
+                  elevation: 4,
+                ),
+              ),
+            // Floating Action Button - Publish Portfolio on Leaderboard (1)
+            if (auth.currentUser != null &&
+                _currentTabIndex == 1 &&
+                !_leaderboardCompareMode)
+              Positioned(
+                right: 16,
+                bottom: 16,
+                child: FloatingActionButton.extended(
+                  heroTag: 'leaderboard_publish_fab',
+                  onPressed: () {
+                    widget.analytics.logEvent(name: 'leaderboard_publish_fab_pressed');
+                    PublishPortfolioBottomSheet.show(
+                      context,
+                      auth: auth,
+                      firestoreService: widget.firestoreService,
+                      brokerageUser: widget.brokerageUser,
+                      service: widget.service,
+                    );
+                  },
+                  icon: const Icon(Icons.publish_rounded),
+                  label: const Text('Publish'),
                   elevation: 4,
                 ),
               ),

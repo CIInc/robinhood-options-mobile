@@ -9,6 +9,7 @@ import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
+import 'package:robinhood_options_mobile/widgets/auto_trade_status_badge_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_positions_widget.dart';
 import 'package:robinhood_options_mobile/widgets/more_menu_widget.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
@@ -63,22 +64,7 @@ class _OptionPositionsPageWidgetState extends State<OptionPositionsPageWidget> {
         pinned: true,
         actions: [
           IconButton(
-              icon: auth.currentUser != null
-                  ? (auth.currentUser!.photoURL == null
-                      ? const Icon(Icons.account_circle)
-                      : CircleAvatar(
-                          maxRadius: 12,
-                          backgroundImage: CachedNetworkImageProvider(
-                              auth.currentUser!.photoURL!
-                              //  ?? Constants .placeholderImage, // No longer used
-                              )))
-                  : const Icon(Icons.account_circle_outlined),
-              onPressed: () {
-                showProfile(context, auth, _firestoreService, widget.analytics,
-                    widget.observer, widget.brokerageUser, widget.service);
-              }),
-          IconButton(
-              icon: Icon(Icons.more_vert),
+              icon: const Icon(Icons.more_vert),
               onPressed: () async {
                 await showModalBottomSheet<void>(
                     context: context,
@@ -97,7 +83,7 @@ class _OptionPositionsPageWidgetState extends State<OptionPositionsPageWidget> {
                             stockSymbolFilters: null,
                             cryptoFilters: null, onSettingsChanged: (value) {
                           // debugPrint(
-                          //     "Settings changed ${jsonEncode(value)}");
+                          // "Settings changed ${jsonEncode(value)}");
                           debugPrint(
                               "showPositionDetails: ${widget.brokerageUser.showPositionDetails.toString()}");
                           debugPrint(
@@ -105,7 +91,39 @@ class _OptionPositionsPageWidgetState extends State<OptionPositionsPageWidget> {
                           setState(() {});
                         }));
                 // Navigator.pop(context);
-              })
+              }),
+          if (auth.currentUser != null)
+            AutoTradeStatusBadgeWidget(
+              user: widget.user,
+              userDocRef: widget.userDocRef,
+              service: widget.service,
+              userAvatar: (auth.currentUser!.photoURL ??
+                          widget.user?.photoUrl) ==
+                      null
+                  ? const Icon(Icons.account_circle)
+                  : CircleAvatar(
+                      maxRadius: 11,
+                      backgroundImage: CachedNetworkImageProvider(
+                          (auth.currentUser!.photoURL ??
+                              widget.user?.photoUrl)!)),
+              onProfileTap: () {
+                showProfile(context, auth, _firestoreService, widget.analytics,
+                    widget.observer, widget.brokerageUser, widget.service);
+              },
+            )
+          else
+            IconButton(
+                icon: const Icon(Icons.account_circle_outlined),
+                onPressed: () {
+                  showProfile(
+                      context,
+                      auth,
+                      _firestoreService,
+                      widget.analytics,
+                      widget.observer,
+                      widget.brokerageUser,
+                      widget.service);
+                }),
         ],
       ),
       OptionPositionsWidget(

@@ -46,13 +46,13 @@ This document outlines the planned features and enhancements for RealizeAlpha.
 **Last reviewed:** September 22, 2026 · **Current app version:** 0.52.0 (development version)
 
 ### Quick Stats
-- **Completed checklist items:** 357
-- **Planned checklist items:** 86
+- **Completed checklist items:** 359
+- **Planned checklist items:** 84
 - **Open GitHub issues:** 37 (as of September 22, 2026)
 - **Planning focus:** Address high-priority reliability and test gaps, then deliver copy-trading transparency and safeguards; scope community work only after trust, moderation, and measurement criteria are defined.
 
 ### Key Highlights
-- ✅ **Recently Completed (v0.51.0-v0.52.0):** Beta-weighted portfolio Greeks, automated DRIP thresholds, 0DTE gamma squeeze radar, earnings IV crush analysis, IV cone and surface, Delta-Neutral Strategy Builder, Copy-Trading Slippage & Fill Divergence Analytics, and Automated Copy-Trading Risk Guardian. See the release timeline for issue links and details.
+- ✅ **Recently Completed (v0.51.0-v0.52.0):** Beta-weighted portfolio Greeks, automated DRIP thresholds, 0DTE gamma squeeze radar, earnings IV crush analysis, IV cone and surface, Delta-Neutral Strategy Builder, Copy-Trading Slippage & Fill Divergence Analytics, Automated Copy-Trading Risk Guardian, and Side-by-Side Multi-Trader Portfolio Comparison. See the release timeline for issue links and details.
 - **Next proposed milestone:** **v0.52.0 (target: December 2026; tentative)** — copy-trading transparency and safeguards, with social discussion as a candidate pending scope and moderation requirements. Tournaments remain exploratory until separately defined.
 - **Later candidates (v0.53.0+):** Schwab execution and account-history improvements, multi-broker routing, SEC disclosures, and expanded AI research. These are planning targets, not release commitments.
 - **Longer-term exploration:** Desktop workflows, privacy-preserving performance proofs, wearable clients, and spatial interfaces remain exploratory until scoped and prioritized.
@@ -418,9 +418,9 @@ Mapping features to specific versions helps users anticipate releases and unders
 **Copy-Trading Transparency & Social Foundations**
 - ✅ **Copy-Trading Slippage & Divergence Analytics:** Audit report showing follower fill latency (ms), price slippage vs. leader, and net return tracking ([Tracking: #141](https://github.com/CIInc/robinhood-options-mobile/issues/141)).
 - ✅ **Automated Copy-Trading Risk Guardian:** Follower protective guardrails specifying max capital allocation per trade, auto-disconnect on leader drawdown divergence, and max slippage abort ([Tracking: #141](https://github.com/CIInc/robinhood-options-mobile/issues/141), v0.52.0).
+- ✅ **Side-by-Side Multi-Trader Portfolio Comparison:** Benchmark risk-adjusted performance across 2 to 4 potential leaders with timeframe normalization (`1W`, `1M`, `3M`, `1Y`, `ALL`), 5-dimensional relative strength scoring, metric winner highlights, privacy masking, and 1-tap copy integration ([Tracking: #141](https://github.com/CIInc/robinhood-options-mobile/issues/141), [Tracking: #113](https://github.com/CIInc/robinhood-options-mobile/issues/113), v0.52.0).
 - **Social Discussion & Comment Threads (candidate):** Discussion on shared trade ideas and portfolios; define moderation, reporting, privacy, and retention requirements before scheduling.
 - **Trading Arenas & Verified Paper Tournaments (exploratory):** Keep paper-only; define fair scoring, anti-abuse controls, and a separate tracked issue before assigning a release.
-- **Side-by-Side Multi-Trader Portfolio Comparison (candidate):** Benchmark risk-adjusted performance only where privacy settings and comparable measurement periods permit.
 
 ### v0.53.0 (2027 Q1 - January)
 **Institutional Multi-Brokerage, Smart Order Routing & SEC Disclosures**
@@ -940,7 +940,7 @@ Prioritize analytical correctness, understandable risk presentation, and evidenc
 Improve copy-trade transparency and follower controls before increasing automation. Execution changes must preserve explicit user approval, account isolation, and credential security.
 
 #### Copy Trading Evolution ([Tracking: #141](https://github.com/CIInc/robinhood-options-mobile/issues/141))
-- [ ] **Trader Comparison**: Side-by-side performance comparison of potential leaders - **Medium** (2-3 weeks)
+- [x] **Trader Comparison** (v0.52.0, [Tracking: #141](https://github.com/CIInc/robinhood-options-mobile/issues/141), [Tracking: #113](https://github.com/CIInc/robinhood-options-mobile/issues/113)): Side-by-side performance comparison of potential leaders with normalized timeframes and risk-adjusted metrics - **Medium** (2-3 weeks)
 - [ ] **Time-Based Analysis**: Cumulative P&L growth visualization over time - **Medium** (2-3 weeks)
 - [ ] **Export History**: CSV export of copy trade history and performance - **Small** (1 week)
 - [x] **Copy-Trading Slippage & Fill Divergence Analytics** (v0.52.0, [Tracking: #141](https://github.com/CIInc/robinhood-options-mobile/issues/141)): Track execution latency (ms), fill price delta vs. leader, and performance drift - **Small** (1-2 weeks)
@@ -983,7 +983,7 @@ Social features already delivered include groups, following, feeds, and leaderbo
 #### Social Feed & Engagement ([Tracking: #113](https://github.com/CIInc/robinhood-options-mobile/issues/113))
 - [ ] **Social Signal Sharing**: Share strategies with community - **Medium** (2-3 weeks)
 - [x] **Follow Portfolios** ([#27](https://github.com/CIInc/robinhood-options-mobile/issues/27)): Follow other users' portfolios, privacy controls, activity feed, and trade alerts - **Small** (1-2 weeks)
-- [ ] **Portfolio Comparison Tools**: Compare performance with other users - **Medium** (2-3 weeks)
+- [x] **Portfolio Comparison Tools** (v0.52.0, [Tracking: #113](https://github.com/CIInc/robinhood-options-mobile/issues/113), [Tracking: #141](https://github.com/CIInc/robinhood-options-mobile/issues/141)): Side-by-side multi-trader portfolio comparison across returns, risk, execution, and reputation - **Medium** (2-3 weeks)
 - [x] **Top Portfolios Leaderboard** ([#26](https://github.com/CIInc/robinhood-options-mobile/issues/26)): Showcase top-performing portfolios - **Medium** (2-3 weeks)
 - [ ] **Social Discussion & Comment Threads** (v0.52.0): Granular discussions on shared trade ideas and portfolios with author pinned comments, community sentiment polling, and upvoting - **Small** (1-2 weeks)
 - [x] **Social Feed**: Trade notifications, shared ideas, and portfolio updates ([#24](https://github.com/CIInc/robinhood-options-mobile/issues/24))

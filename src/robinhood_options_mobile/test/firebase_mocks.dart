@@ -42,8 +42,10 @@ class MockFirebasePlatform extends FirebasePlatform {
 }
 
 class FakeFirebaseAuth extends Fake implements FirebaseAuth {
+  static User? mockUser;
+
   @override
-  User? get currentUser => null;
+  User? get currentUser => mockUser;
 
   @override
   Stream<User?> authStateChanges() {

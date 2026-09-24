@@ -10,6 +10,7 @@ import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
+import 'package:robinhood_options_mobile/widgets/auto_trade_status_badge_widget.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
 import 'package:robinhood_options_mobile/widgets/user_listtile_widget.dart';
 
@@ -20,6 +21,8 @@ class UsersWidget extends StatefulWidget {
   final BrokerageUser brokerageUser;
   final IBrokerageService service;
   final FirestoreService? firestoreService;
+  final User? user;
+  final DocumentReference<User>? userDocRef;
   const UsersWidget(
     this.auth,
     this.service, {
@@ -28,6 +31,8 @@ class UsersWidget extends StatefulWidget {
     required this.observer,
     required this.brokerageUser,
     this.firestoreService,
+    this.user,
+    this.userDocRef,
   });
 
   @override
@@ -75,16 +80,21 @@ class _UsersWidgetState extends State<UsersWidget> {
                   centerTitle: false,
                   title: const Text('Discover Traders'),
                   actions: [
-                    IconButton(
-                        icon: auth.currentUser != null
-                            ? (auth.currentUser!.photoURL == null
-                                ? const Icon(Icons.account_circle)
-                                : CircleAvatar(
-                                    maxRadius: 12,
-                                    backgroundImage: CachedNetworkImageProvider(
-                                        auth.currentUser!.photoURL!)))
-                            : const Icon(Icons.login),
-                        onPressed: () {
+                    if (auth.currentUser != null)
+                      AutoTradeStatusBadgeWidget(
+                        user: widget.user,
+                        userDocRef: widget.userDocRef,
+                        service: widget.service,
+                        userAvatar: (auth.currentUser!.photoURL ??
+                                    widget.user?.photoUrl) ==
+                                null
+                            ? const Icon(Icons.account_circle)
+                            : CircleAvatar(
+                                maxRadius: 11,
+                                backgroundImage: CachedNetworkImageProvider(
+                                    (auth.currentUser!.photoURL ??
+                                        widget.user?.photoUrl)!)),
+                        onProfileTap: () {
                           showProfile(
                               context,
                               widget.auth,
@@ -93,7 +103,21 @@ class _UsersWidgetState extends State<UsersWidget> {
                               widget.observer,
                               widget.brokerageUser,
                               widget.service);
-                        })
+                        },
+                      )
+                    else
+                      IconButton(
+                          icon: const Icon(Icons.account_circle_outlined),
+                          onPressed: () {
+                            showProfile(
+                                context,
+                                widget.auth,
+                                _firestoreService,
+                                widget.analytics,
+                                widget.observer,
+                                widget.brokerageUser,
+                                widget.service);
+                          }),
                   ]),
               SliverPadding(
                   padding: const EdgeInsets.all(16.0),

@@ -46,18 +46,6 @@ class MockFirebaseUser extends Fake implements firebase_auth.User {
   String? get photoURL => null;
 }
 
-class MockFirebaseAuthWithUser extends Fake
-    implements firebase_auth.FirebaseAuth {
-  final firebase_auth.User _user;
-  MockFirebaseAuthWithUser(this._user);
-
-  @override
-  firebase_auth.User? get currentUser => _user;
-
-  @override
-  Stream<firebase_auth.User?> authStateChanges() => Stream.value(_user);
-}
-
 class MockAgenticTradingProvider extends ChangeNotifier
     implements AgenticTradingProvider {
   @override
@@ -227,6 +215,38 @@ void main() {
       expect(find.text('Most Members'), findsOneWidget);
       expect(find.text('Recent Activity'), findsOneWidget);
       expect(find.text('Alphabetical'), findsOneWidget);
+    });
+
+    testWidgets('Leaderboard tab renders Publish floating action button matching other tabs', (tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      FakeFirebaseAuth.mockUser = MockFirebaseUser();
+      addTearDown(() {
+        FakeFirebaseAuth.mockUser = null;
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      await tester.pumpWidget(createTestWidget());
+      await tester.pumpAndSettle();
+
+      // On Tab 0 (Feed), Share Idea FAB is present
+      expect(find.text('Share Idea'), findsOneWidget);
+      expect(find.text('Publish'), findsNothing);
+
+      // Switch to Tab 1 (Leaderboard)
+      await tester.tap(find.text('Leaderboard'));
+      await tester.pumpAndSettle();
+
+      // Publish FAB is now present to match other tabs
+      expect(find.text('Publish'), findsOneWidget);
+      expect(find.text('Share Idea'), findsNothing);
+      expect(find.text('Create Group'), findsNothing);
+
+      // Tapping Publish opens PublishPortfolioBottomSheet
+      await tester.tap(find.text('Publish'));
+      await tester.pumpAndSettle();
+      expect(find.text('Leaderboard Publication'), findsOneWidget);
     });
   });
 }

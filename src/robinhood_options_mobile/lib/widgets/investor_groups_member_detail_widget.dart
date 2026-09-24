@@ -58,6 +58,13 @@ class _InvestorGroupsMemberDetailWidgetState
   bool _multiSelectMode = false;
   late TabController _tabController;
 
+  late Stream<List<OptionOrder>> _optionOrdersStream;
+  late Stream<List<InstrumentOrder>> _instrumentOrdersStream;
+  late Stream<VerifiedTrackRecord?> _trackRecordStream;
+  final InstrumentStore _instrumentStore = InstrumentStore();
+  final Map<String, Instrument> _cachedInstruments = {};
+  bool _isFetchingInstruments = false;
+
   bool get _hasSelection =>
       _selectedOptionOrders.isNotEmpty || _selectedInstrumentOrders.isNotEmpty;
 
@@ -76,6 +83,76 @@ class _InvestorGroupsMemberDetailWidgetState
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    _initStreams();
+  }
+
+  void _initStreams() {
+    _optionOrdersStream = widget.userDoc
+        .collection(widget.firestoreService.optionOrderCollectionName)
+        .orderBy('created_at', descending: true)
+        .limit(30)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => OptionOrder.fromJson(doc.data()))
+            .where((o) => o.state != 'cancelled')
+            .toList());
+
+    _instrumentOrdersStream = widget.userDoc
+        .collection(widget.firestoreService.instrumentOrderCollectionName)
+        .orderBy('created_at', descending: true)
+        .limit(30)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => InstrumentOrder.fromJson(doc.data()))
+            .where((o) => o.state != 'cancelled')
+            .toList());
+
+    _trackRecordStream =
+        widget.firestoreService.streamVerifiedTrackRecord(widget.userDoc.id);
+  }
+
+  @override
+  void didUpdateWidget(InvestorGroupsMemberDetailWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.userDoc.id != widget.userDoc.id) {
+      _initStreams();
+    }
+  }
+
+  void _fetchMissingInstruments(List<InstrumentOrder> orders) {
+    if (_isFetchingInstruments ||
+        widget.brokerageService == null ||
+        widget.user.brokerageUsers.isEmpty) {
+      return;
+    }
+    final missingIds = orders
+        .map((o) => o.instrumentId)
+        .whereType<String>()
+        .where((id) => id.isNotEmpty && !_cachedInstruments.containsKey(id))
+        .toSet()
+        .toList();
+    if (missingIds.isEmpty) return;
+
+    _isFetchingInstruments = true;
+    widget.brokerageService!
+        .getInstrumentsByIds(
+      widget.user.brokerageUsers.first,
+      _instrumentStore,
+      missingIds,
+    )
+        .then((fetched) {
+      if (mounted) {
+        setState(() {
+          for (final inst in fetched) {
+            _cachedInstruments[inst.id] = inst;
+          }
+          _isFetchingInstruments = false;
+        });
+      }
+    }).catchError((e) {
+      _isFetchingInstruments = false;
+      debugPrint('Error fetching instruments: $e');
+    });
   }
 
   @override
@@ -114,50 +191,50 @@ class _InvestorGroupsMemberDetailWidgetState
 
   void _openFullProfile() {
     final userId = widget.userDoc.id;
-    final isSelf = auth.currentUser?.uid == userId;
+    // final isSelf = auth.currentUser?.uid == userId;
 
-    if (isSelf) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => Scaffold(
-            appBar: AppBar(
-              title: Text(widget.user.name ?? 'My Profile'),
-            ),
-            body: UserWidget(
-              auth,
-              userId: userId,
-              isProfileView: true,
-              analytics: widget.analytics ?? FirebaseAnalytics.instance,
-              observer: widget.observer ??
-                  FirebaseAnalyticsObserver(
-                      analytics:
-                          widget.analytics ?? FirebaseAnalytics.instance),
-              brokerageUser: widget.currentUser,
-              service: widget.brokerageService,
-            ),
-          ),
+    // if (isSelf) {
+    //   Navigator.push(
+    //     context,
+    //     MaterialPageRoute(
+    //       builder: (context) => Scaffold(
+    //         appBar: AppBar(
+    //           title: Text(widget.user.name ?? 'My Profile'),
+    //         ),
+    //         body: UserWidget(
+    //           auth,
+    //           userId: userId,
+    //           isProfileView: true,
+    //           analytics: widget.analytics ?? FirebaseAnalytics.instance,
+    //           observer: widget.observer ??
+    //               FirebaseAnalyticsObserver(
+    //                   analytics:
+    //                       widget.analytics ?? FirebaseAnalytics.instance),
+    //           brokerageUser: widget.currentUser,
+    //           service: widget.brokerageService,
+    //         ),
+    //       ),
+    //     ),
+    //   );
+    // } else {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => TraderProfileWidget(
+          auth: auth,
+          userId: userId,
+          analytics: widget.analytics ?? FirebaseAnalytics.instance,
+          observer: widget.observer ??
+              FirebaseAnalyticsObserver(
+                  analytics: widget.analytics ?? FirebaseAnalytics.instance),
+          brokerageUser: widget.currentUser,
+          service: widget.brokerageService,
+          initialUser: widget.user,
+          initialUserName: widget.user.name,
         ),
-      );
-    } else {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => TraderProfileWidget(
-            auth: auth,
-            userId: userId,
-            analytics: widget.analytics ?? FirebaseAnalytics.instance,
-            observer: widget.observer ??
-                FirebaseAnalyticsObserver(
-                    analytics: widget.analytics ?? FirebaseAnalytics.instance),
-            brokerageUser: widget.currentUser,
-            service: widget.brokerageService,
-            initialUser: widget.user,
-            initialUserName: widget.user.name,
-          ),
-        ),
-      );
-    }
+      ),
+    );
+    // }
   }
 
   Future<void> _copySingleTrade({
@@ -318,27 +395,8 @@ class _InvestorGroupsMemberDetailWidgetState
 
     return Scaffold(
       appBar: AppBar(
-        title: InkWell(
-          borderRadius: BorderRadius.circular(8),
-          onTap: _openFullProfile,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Flexible(child: Text(displayName)),
-                const SizedBox(width: 4),
-                const Icon(Icons.chevron_right, size: 18),
-              ],
-            ),
-          ),
-        ),
+        title: Text(displayName),
         actions: [
-          IconButton(
-            tooltip: 'View Full Trader Profile',
-            icon: const Icon(Icons.person_pin_outlined),
-            onPressed: _openFullProfile,
-          ),
           IconButton(
             tooltip: _multiSelectMode ? 'Single Select' : 'Multi-Select',
             icon: Icon(_multiSelectMode
@@ -385,7 +443,6 @@ class _InvestorGroupsMemberDetailWidgetState
   }
 
   Widget _buildMemberHeaderCard(ThemeData theme) {
-    final userId = widget.userDoc.id;
     final displayName =
         widget.user.name ?? widget.user.email ?? 'Community Member';
 
@@ -403,169 +460,157 @@ class _InvestorGroupsMemberDetailWidgetState
           ),
         ],
       ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(16),
-          onTap: () {
-            HapticFeedback.lightImpact();
-            _openFullProfile();
-          },
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
               children: [
-                Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 28,
-                      backgroundColor: theme.colorScheme.primaryContainer,
-                      backgroundImage: widget.user.photoUrl != null
-                          ? CachedNetworkImageProvider(widget.user.photoUrl!)
-                          : null,
-                      child: widget.user.photoUrl == null
-                          ? Text(
-                              displayName.isNotEmpty
-                                  ? displayName[0].toUpperCase()
-                                  : 'U',
-                              style: TextStyle(
-                                fontSize: 22,
-                                fontWeight: FontWeight.bold,
-                                color: theme.colorScheme.onPrimaryContainer,
-                              ),
-                            )
-                          : null,
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Flexible(
-                                child: Text(
-                                  displayName,
-                                  style: theme.textTheme.titleMedium?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              if (widget.groupRole != null) ...[
-                                const SizedBox(width: 8),
-                                _buildRoleChip(widget.groupRole!),
-                              ],
-                            ],
+                CircleAvatar(
+                  radius: 28,
+                  backgroundColor: theme.colorScheme.primaryContainer,
+                  backgroundImage: widget.user.photoUrl != null
+                      ? CachedNetworkImageProvider(widget.user.photoUrl!)
+                      : null,
+                  child: widget.user.photoUrl == null
+                      ? Text(
+                          displayName.isNotEmpty
+                              ? displayName[0].toUpperCase()
+                              : 'U',
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: theme.colorScheme.onPrimaryContainer,
                           ),
-                          if (widget.user.email != null) ...[
-                            const SizedBox(height: 2),
-                            Text(
-                              widget.user.email!,
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: _getSecondaryTextColor(),
+                        )
+                      : null,
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              displayName,
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
-                          ],
-                          const SizedBox(height: 6),
-                          StreamBuilder<VerifiedTrackRecord?>(
-                            stream: widget.firestoreService
-                                .streamVerifiedTrackRecord(userId),
-                            builder: (context, snapshot) {
-                              final record = snapshot.data;
-                              if (record != null && record.isVerified) {
-                                return Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 8, vertical: 3),
-                                  decoration: BoxDecoration(
-                                    color: record.tier.color.withValues(
-                                        alpha: _isDarkTheme ? 0.25 : 0.12),
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                      color: record.tier.color
-                                          .withValues(alpha: 0.5),
-                                      width: 1,
-                                    ),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(record.tier.icon,
-                                          size: 13, color: record.tier.color),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        '${record.tier.label} (${record.verifiedReturnPercent >= 0 ? '+' : ''}${record.verifiedReturnPercent.toStringAsFixed(1)}%)',
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.bold,
-                                          color: record.tier.color,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              }
-                              return const SizedBox.shrink();
-                            },
                           ),
+                          if (widget.groupRole != null) ...[
+                            const SizedBox(width: 8),
+                            _buildRoleChip(widget.groupRole!),
+                          ],
                         ],
                       ),
+                      if (widget.user.email != null) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          widget.user.email!,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: _getSecondaryTextColor(),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                      const SizedBox(height: 6),
+                      StreamBuilder<VerifiedTrackRecord?>(
+                        stream: _trackRecordStream,
+                        builder: (context, snapshot) {
+                          final record = snapshot.data;
+                          if (record != null && record.isVerified) {
+                            return Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: record.tier.color.withValues(
+                                    alpha: _isDarkTheme ? 0.25 : 0.12),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color:
+                                      record.tier.color.withValues(alpha: 0.5),
+                                  width: 1,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(record.tier.icon,
+                                      size: 13, color: record.tier.color),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    '${record.tier.label} (${record.verifiedReturnPercent >= 0 ? '+' : ''}${record.verifiedReturnPercent.toStringAsFixed(1)}%)',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                      color: record.tier.color,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }
+                          return const SizedBox.shrink();
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+                OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                    OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(
-                        visualDensity: VisualDensity.compact,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 6),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                  ),
+                  icon: const Icon(Icons.person_outline, size: 14),
+                  label: const Text('Profile', style: TextStyle(fontSize: 12)),
+                  onPressed: _openFullProfile,
+                ),
+              ],
+            ),
+            if (_multiSelectMode) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color:
+                      theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline,
+                        size: 16, color: theme.colorScheme.primary),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _hasSelection
+                            ? '$_totalSelectedCount trade${_totalSelectedCount != 1 ? 's' : ''} selected. Tap "Copy" below.'
+                            : 'Tap trades to select them for batch copy trading.',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: theme.colorScheme.onPrimaryContainer,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
-                      icon: const Icon(Icons.person_outline, size: 14),
-                      label:
-                          const Text('Profile', style: TextStyle(fontSize: 12)),
-                      onPressed: _openFullProfile,
                     ),
                   ],
                 ),
-                if (_multiSelectMode) ...[
-                  const SizedBox(height: 12),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.primaryContainer
-                          .withValues(alpha: 0.3),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(Icons.info_outline,
-                            size: 16, color: theme.colorScheme.primary),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            _hasSelection
-                                ? '$_totalSelectedCount trade${_totalSelectedCount != 1 ? 's' : ''} selected. Tap "Copy" below.'
-                                : 'Tap trades to select them for batch copy trading.',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: theme.colorScheme.onPrimaryContainer,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
+              ),
+            ],
+          ],
         ),
       ),
     );
@@ -671,24 +716,18 @@ class _InvestorGroupsMemberDetailWidgetState
 
   Widget _buildOptionOrdersStream({required int limit}) {
     return StreamBuilder<List<OptionOrder>>(
-      stream: widget.userDoc
-          .collection(widget.firestoreService.optionOrderCollectionName)
-          .orderBy('created_at', descending: true)
-          .limit(limit)
-          .snapshots()
-          .map((snapshot) => snapshot.docs
-              .map((doc) => OptionOrder.fromJson(doc.data()))
-              .where((o) => o.state != 'cancelled')
-              .toList()),
+      stream: _optionOrdersStream,
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
+        if (snapshot.connectionState == ConnectionState.waiting &&
+            !snapshot.hasData) {
           return const Padding(
             padding: EdgeInsets.all(24.0),
             child: Center(child: CircularProgressIndicator()),
           );
         }
 
-        final orders = snapshot.data ?? [];
+        final allOrders = snapshot.data ?? [];
+        final orders = allOrders.take(limit).toList();
         if (orders.isEmpty) {
           return Container(
             padding: const EdgeInsets.all(24),
@@ -708,7 +747,6 @@ class _InvestorGroupsMemberDetailWidgetState
         }
 
         final formatCurrency = NumberFormat.simpleCurrency();
-        final formatCompactNumber = NumberFormat.compact();
         final formatDate = DateFormat('yyyy-MM-dd');
         final formatCompactDate = DateFormat('MMM d');
         final formatCompactDate2 = DateFormat('MMM d, yy');
@@ -719,10 +757,45 @@ class _InvestorGroupsMemberDetailWidgetState
           itemCount: orders.length,
           itemBuilder: (context, index) {
             final o = orders[index];
-            Widget subtitle = Text(
-              '${o.state} ${o.updatedAt != null ? formatDate.format(o.updatedAt!) : ''}',
-              style: TextStyle(fontSize: 12, color: _getSecondaryTextColor()),
-            );
+            final isCredit = o.direction == 'credit';
+            final isSelected = _selectedOptionOrders.contains(o);
+            final leg = o.legs.isNotEmpty ? o.legs.first : null;
+            final isBuy = leg != null && leg.side?.toLowerCase() == 'buy';
+            final optionType = leg?.optionType.toUpperCase() ?? '';
+
+            final totalPremium = o.processedPremium ?? o.premium;
+            final totalPremiumStr = totalPremium != null
+                ? '${isCredit ? '+' : '-'}${formatCurrency.format(totalPremium.abs())}'
+                : '';
+
+            String strikeStr = '';
+            if (leg != null && leg.strikePrice != null) {
+              strikeStr = leg.strikePrice! % 1 == 0
+                  ? '\$${leg.strikePrice!.toInt()}'
+                  : formatCurrency.format(leg.strikePrice);
+            }
+
+            String expStr = '';
+            if (leg?.expirationDate != null) {
+              expStr = 'Exp ${formatCompactDate2.format(leg!.expirationDate!)}';
+            }
+
+            final quantityStr = o.quantity != null
+                ? '${o.quantity! % 1 == 0 ? o.quantity!.toInt() : o.quantity} ${o.quantity == 1 ? 'contract' : 'contracts'}'
+                : '';
+
+            String perContractStr = '';
+            if (o.price != null) {
+              perContractStr = '@ ${formatCurrency.format(o.price)}/ea';
+            } else if (totalPremium != null &&
+                o.quantity != null &&
+                o.quantity! > 0) {
+              final perContractPrice = totalPremium.abs() / (o.quantity! * 100);
+              perContractStr =
+                  '@ ${formatCurrency.format(perContractPrice)}/ea';
+            }
+
+            String? eventStr;
             if (o.optionEvents != null && o.optionEvents!.isNotEmpty) {
               final event = o.optionEvents!.first;
               final eventLabel = event.type == 'expiration'
@@ -735,20 +808,15 @@ class _InvestorGroupsMemberDetailWidgetState
                       ? formatCompactDate.format(event.eventDate!)
                       : formatCompactDate2.format(event.eventDate!))
                   : '';
-              subtitle = Text(
-                '${o.state} • $eventLabel $eventDateStr${event.underlyingPrice != null ? ' @ ${formatCurrency.format(event.underlyingPrice)}' : ''}',
-                style: TextStyle(fontSize: 12, color: _getSecondaryTextColor()),
-              );
+              eventStr =
+                  '$eventLabel $eventDateStr${event.underlyingPrice != null ? ' @ ${formatCurrency.format(event.underlyingPrice)}' : ''}';
             }
 
-            final isCredit = o.direction == 'credit';
-            final isSelected = _selectedOptionOrders.contains(o);
-            final leg = o.legs.isNotEmpty ? o.legs.first : null;
-            final isBuy = leg != null && leg.side?.toLowerCase() == 'buy';
-            final optionType = leg?.optionType.toUpperCase() ?? '';
+            final dateStr =
+                o.updatedAt != null ? formatDate.format(o.updatedAt!) : '';
 
             return Card(
-              margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
               elevation: isSelected ? 4 : 0,
               shape: RoundedRectangleBorder(
                 side: BorderSide(
@@ -759,95 +827,8 @@ class _InvestorGroupsMemberDetailWidgetState
                 ),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: ListTile(
-                leading: CircleAvatar(
-                  backgroundColor: (isBuy ? Colors.blue : Colors.purple)
-                      .withValues(alpha: _isDarkTheme ? 0.3 : 0.15),
-                  child: o.optionEvents != null && o.optionEvents!.isNotEmpty
-                      ? const Icon(Icons.check, size: 20)
-                      : Text(
-                          '${isBuy ? '+' : '-'}${o.quantity != null ? o.quantity!.round().toString() : ''}',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                            color: isBuy ? Colors.blue : Colors.purple,
-                          ),
-                        ),
-                ),
-                title: Row(
-                  children: [
-                    Text(
-                      o.chainSymbol,
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color:
-                            (optionType == 'CALL' ? Colors.green : Colors.red)
-                                .withValues(alpha: _isDarkTheme ? 0.3 : 0.15),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        optionType,
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          color:
-                              optionType == 'CALL' ? Colors.green : Colors.red,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      '\$${leg != null && leg.strikePrice != null ? formatCompactNumber.format(leg.strikePrice) : ''} • ${leg?.expirationDate != null ? formatCompactDate.format(leg!.expirationDate!) : ''}',
-                      style: TextStyle(
-                          fontSize: 12, color: _getSecondaryTextColor()),
-                    ),
-                  ],
-                ),
-                subtitle: subtitle,
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 5),
-                      decoration: BoxDecoration(
-                        color: (isCredit ? Colors.green : Colors.red)
-                            .withValues(alpha: _isDarkTheme ? 0.25 : 0.12),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        (isCredit ? '+' : '-') +
-                            (o.processedPremium != null
-                                ? formatCurrency.format(o.processedPremium)
-                                : o.premium != null
-                                    ? formatCurrency.format(o.premium)
-                                    : ''),
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                          color: isCredit
-                              ? Colors.green[_isDarkTheme ? 300 : 800]
-                              : Colors.red[_isDarkTheme ? 300 : 800],
-                        ),
-                      ),
-                    ),
-                    if (!_multiSelectMode &&
-                        widget.currentUser != null &&
-                        o.state == 'filled') ...[
-                      const SizedBox(width: 4),
-                      IconButton(
-                        icon: const Icon(Icons.content_copy, size: 18),
-                        tooltip: 'Copy Trade',
-                        onPressed: () => _copySingleTrade(optionOrder: o),
-                      ),
-                    ],
-                  ],
-                ),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(12),
                 onTap: () {
                   if (widget.currentUser == null ||
                       auth.currentUser == null ||
@@ -882,6 +863,186 @@ class _InvestorGroupsMemberDetailWidgetState
                     _selectedOptionOrders.add(o);
                   });
                 },
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 14,
+                            backgroundColor: (isBuy
+                                    ? Colors.blue
+                                    : Colors.purple)
+                                .withValues(alpha: _isDarkTheme ? 0.3 : 0.15),
+                            child: Text(
+                              '${isBuy ? '+' : '-'}${o.quantity != null ? o.quantity!.round().toString() : ''}',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: isBuy ? Colors.blue : Colors.purple,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            o.chainSymbol,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          if (optionType.isNotEmpty)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: (optionType == 'CALL'
+                                        ? Colors.green
+                                        : Colors.red)
+                                    .withValues(
+                                        alpha: _isDarkTheme ? 0.3 : 0.15),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                optionType,
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: optionType == 'CALL'
+                                      ? Colors.green
+                                      : Colors.red,
+                                ),
+                              ),
+                            ),
+                          const Spacer(),
+                          if (totalPremiumStr.isNotEmpty)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: (isCredit ? Colors.green : Colors.red)
+                                    .withValues(
+                                        alpha: _isDarkTheme ? 0.25 : 0.12),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                totalPremiumStr,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                  color: isCredit
+                                      ? Colors.green[_isDarkTheme ? 300 : 800]
+                                      : Colors.red[_isDarkTheme ? 300 : 800],
+                                ),
+                              ),
+                            ),
+                          if (!_multiSelectMode &&
+                              widget.currentUser != null &&
+                              o.state == 'filled') ...[
+                            const SizedBox(width: 4),
+                            IconButton(
+                              visualDensity: VisualDensity.compact,
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(
+                                  minWidth: 32, minHeight: 32),
+                              icon: const Icon(Icons.content_copy, size: 16),
+                              tooltip: 'Copy Trade',
+                              onPressed: () => _copySingleTrade(optionOrder: o),
+                            ),
+                          ],
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          if (strikeStr.isNotEmpty)
+                            Text(
+                              strikeStr,
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.w600, fontSize: 13),
+                            ),
+                          if (expStr.isNotEmpty)
+                            Text(
+                              expStr,
+                              style: TextStyle(
+                                  fontSize: 13,
+                                  color: _getSecondaryTextColor()),
+                            ),
+                          if (quantityStr.isNotEmpty) ...[
+                            Text('•',
+                                style:
+                                    TextStyle(color: _getSecondaryTextColor())),
+                            Text(
+                              quantityStr,
+                              style: TextStyle(
+                                  fontSize: 13,
+                                  color: _getSecondaryTextColor()),
+                            ),
+                          ],
+                          if (perContractStr.isNotEmpty) ...[
+                            Text('•',
+                                style:
+                                    TextStyle(color: _getSecondaryTextColor())),
+                            Text(
+                              perContractStr,
+                              style: TextStyle(
+                                  fontSize: 13,
+                                  color: _getSecondaryTextColor()),
+                            ),
+                          ],
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 2,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          Text(
+                            o.state.toUpperCase(),
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: _getSecondaryTextColor(),
+                            ),
+                          ),
+                          if (dateStr.isNotEmpty) ...[
+                            Text('•',
+                                style: TextStyle(
+                                    fontSize: 11,
+                                    color: _getSecondaryTextColor())),
+                            Text(
+                              dateStr,
+                              style: TextStyle(
+                                  fontSize: 11,
+                                  color: _getSecondaryTextColor()),
+                            ),
+                          ],
+                          if (eventStr != null) ...[
+                            Text('•',
+                                style: TextStyle(
+                                    fontSize: 11,
+                                    color: _getSecondaryTextColor())),
+                            Text(
+                              eventStr,
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w500,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
               ),
             );
           },
@@ -892,24 +1053,18 @@ class _InvestorGroupsMemberDetailWidgetState
 
   Widget _buildInstrumentOrdersStream({required int limit}) {
     return StreamBuilder<List<InstrumentOrder>>(
-      stream: widget.userDoc
-          .collection(widget.firestoreService.instrumentOrderCollectionName)
-          .orderBy('created_at', descending: true)
-          .limit(limit)
-          .snapshots()
-          .map((snapshot) => snapshot.docs
-              .map((doc) => InstrumentOrder.fromJson(doc.data()))
-              .where((o) => o.state != 'cancelled')
-              .toList()),
+      stream: _instrumentOrdersStream,
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
+        if (snapshot.connectionState == ConnectionState.waiting &&
+            !snapshot.hasData) {
           return const Padding(
             padding: EdgeInsets.all(24.0),
             child: Center(child: CircularProgressIndicator()),
           );
         }
 
-        final orders = snapshot.data ?? [];
+        final allOrders = snapshot.data ?? [];
+        final orders = allOrders.take(limit).toList();
         if (orders.isEmpty) {
           return Container(
             padding: const EdgeInsets.all(24),
@@ -928,184 +1083,251 @@ class _InvestorGroupsMemberDetailWidgetState
           );
         }
 
-        final instrumentIds =
-            orders.map((o) => o.instrumentId).cast<String>().toSet().toList();
+        for (var order in orders) {
+          order.instrumentObj ??= _cachedInstruments[order.instrumentId];
+        }
 
-        return FutureBuilder<List<Instrument>>(
-          future: widget.brokerageService != null &&
-                  widget.user.brokerageUsers.isNotEmpty
-              ? widget.brokerageService!.getInstrumentsByIds(
-                  widget.user.brokerageUsers.first,
-                  InstrumentStore(),
-                  instrumentIds,
-                )
-              : Future.value([]),
-          builder: (context, instrumentSnapshot) {
-            final instruments = instrumentSnapshot.data ?? [];
-            final instrumentMap = {for (var i in instruments) i.id: i};
-            for (var order in orders) {
-              order.instrumentObj = instrumentMap[order.instrumentId];
+        _fetchMissingInstruments(orders);
+
+        final formatCurrency = NumberFormat.simpleCurrency();
+        final formatDate = DateFormat('yyyy-MM-dd');
+
+        return ListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: orders.length,
+          itemBuilder: (context, index) {
+            final o = orders[index];
+            double amount = 0.0;
+            if ((o.price != null || o.averagePrice != null) &&
+                o.quantity != null) {
+              amount = (o.price ?? o.averagePrice!) *
+                  o.quantity! *
+                  (o.side == 'buy' ? -1 : 1);
             }
 
-            final formatCurrency = NumberFormat.simpleCurrency();
-            final formatDate = DateFormat('yyyy-MM-dd');
+            final isBuy = o.side == 'buy';
+            final isSelected = _selectedInstrumentOrders.contains(o);
+            final symbol = o.instrumentObj?.symbol ?? 'Stock';
 
-            return ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: orders.length,
-              itemBuilder: (context, index) {
-                final o = orders[index];
-                double amount = 0.0;
-                if ((o.price != null || o.averagePrice != null) &&
-                    o.quantity != null) {
-                  amount = (o.price ?? o.averagePrice!) *
-                      o.quantity! *
-                      (o.side == 'buy' ? -1 : 1);
-                }
+            final quantityStr = o.quantity != null
+                ? '${o.quantity! % 1 == 0 ? o.quantity!.round().toString() : o.quantity!.toStringAsFixed(2)} ${o.quantity == 1 ? 'share' : 'shares'}'
+                : '';
 
-                final isBuy = o.side == 'buy';
-                final isSelected = _selectedInstrumentOrders.contains(o);
-                final symbol = o.instrumentObj?.symbol ?? 'Stock';
+            final priceVal = o.price ?? o.averagePrice;
+            final priceStr = priceVal != null
+                ? '@ ${formatCurrency.format(priceVal)}/ea'
+                : '';
 
-                return Card(
-                  margin:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                  elevation: isSelected ? 4 : 0,
-                  shape: RoundedRectangleBorder(
-                    side: BorderSide(
-                      color: isSelected
-                          ? Theme.of(context).colorScheme.primary
-                          : _getCardBorderColor(),
-                      width: isSelected ? 2 : 1,
-                    ),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor:
-                          (isBuy ? Colors.green : Colors.deepOrange)
-                              .withValues(alpha: _isDarkTheme ? 0.3 : 0.15),
-                      child: Text(
-                        '${isBuy ? '+' : '-'}${o.quantity != null ? (o.quantity! % 1 == 0 ? o.quantity!.round().toString() : o.quantity!.toStringAsFixed(1)) : ''}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: isBuy ? Colors.green : Colors.deepOrange,
-                        ),
-                      ),
-                    ),
-                    title: Row(
-                      children: [
-                        Text(
-                          symbol,
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: (isBuy ? Colors.green : Colors.deepOrange)
+            final orderTypeStr = o.type.toUpperCase();
+
+            final amountStr = amount != 0.0
+                ? '${amount > 0 ? "+" : "-"}${formatCurrency.format(amount.abs())}'
+                : '';
+
+            final dateStr =
+                o.updatedAt != null ? formatDate.format(o.updatedAt!) : '';
+
+            return Card(
+              margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+              elevation: isSelected ? 4 : 0,
+              shape: RoundedRectangleBorder(
+                side: BorderSide(
+                  color: isSelected
+                      ? Theme.of(context).colorScheme.primary
+                      : _getCardBorderColor(),
+                  width: isSelected ? 2 : 1,
+                ),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(12),
+                onTap: () {
+                  if (widget.currentUser == null ||
+                      auth.currentUser == null ||
+                      o.state != 'filled') {
+                    return;
+                  }
+                  HapticFeedback.selectionClick();
+                  setState(() {
+                    if (_multiSelectMode) {
+                      if (isSelected) {
+                        _selectedInstrumentOrders.remove(o);
+                      } else {
+                        _selectedInstrumentOrders.add(o);
+                      }
+                    } else {
+                      _selectedInstrumentOrders
+                        ..clear()
+                        ..add(o);
+                      _selectedOptionOrders.clear();
+                    }
+                  });
+                },
+                onLongPress: () {
+                  if (widget.currentUser == null ||
+                      auth.currentUser == null ||
+                      o.state != 'filled') {
+                    return;
+                  }
+                  HapticFeedback.mediumImpact();
+                  setState(() {
+                    _multiSelectMode = true;
+                    _selectedInstrumentOrders.add(o);
+                  });
+                },
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 14,
+                            backgroundColor: (isBuy
+                                    ? Colors.green
+                                    : Colors.deepOrange)
                                 .withValues(alpha: _isDarkTheme ? 0.3 : 0.15),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            o.side.toUpperCase(),
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: isBuy ? Colors.green : Colors.deepOrange,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          '${o.type} @ ${o.price != null ? formatCurrency.format(o.price) : o.averagePrice != null ? formatCurrency.format(o.averagePrice) : ""}',
-                          style: TextStyle(
-                              fontSize: 12, color: _getSecondaryTextColor()),
-                        ),
-                      ],
-                    ),
-                    subtitle: Text(
-                      '${o.state} ${o.updatedAt != null ? formatDate.format(o.updatedAt!) : ""}',
-                      style: TextStyle(
-                          fontSize: 12, color: _getSecondaryTextColor()),
-                    ),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (amount != 0.0)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 5),
-                            decoration: BoxDecoration(
-                              color: (amount > 0 ? Colors.green : Colors.red)
-                                  .withValues(
-                                      alpha: _isDarkTheme ? 0.25 : 0.12),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
                             child: Text(
-                              '${amount > 0 ? "+" : "-"}${formatCurrency.format(amount.abs())}',
+                              isBuy ? 'B' : 'S',
                               style: TextStyle(
-                                fontSize: 13,
+                                fontSize: 11,
                                 fontWeight: FontWeight.bold,
-                                color: amount > 0
-                                    ? Colors.green[_isDarkTheme ? 300 : 800]
-                                    : Colors.red[_isDarkTheme ? 300 : 800],
+                                color: isBuy ? Colors.green : Colors.deepOrange,
                               ),
                             ),
                           ),
-                        if (!_multiSelectMode &&
-                            widget.currentUser != null &&
-                            o.state == 'filled') ...[
-                          const SizedBox(width: 4),
-                          IconButton(
-                            icon: const Icon(Icons.content_copy, size: 18),
-                            tooltip: 'Copy Trade',
-                            onPressed: () =>
-                                _copySingleTrade(instrumentOrder: o),
+                          const SizedBox(width: 8),
+                          Text(
+                            symbol,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: (isBuy ? Colors.green : Colors.deepOrange)
+                                  .withValues(alpha: _isDarkTheme ? 0.3 : 0.15),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              o.side.toUpperCase(),
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: isBuy ? Colors.green : Colors.deepOrange,
+                              ),
+                            ),
+                          ),
+                          const Spacer(),
+                          if (amountStr.isNotEmpty)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: (amount > 0 ? Colors.green : Colors.red)
+                                    .withValues(
+                                        alpha: _isDarkTheme ? 0.25 : 0.12),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                amountStr,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                  color: amount > 0
+                                      ? Colors.green[_isDarkTheme ? 300 : 800]
+                                      : Colors.red[_isDarkTheme ? 300 : 800],
+                                ),
+                              ),
+                            ),
+                          if (!_multiSelectMode &&
+                              widget.currentUser != null &&
+                              o.state == 'filled') ...[
+                            const SizedBox(width: 4),
+                            IconButton(
+                              visualDensity: VisualDensity.compact,
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(
+                                  minWidth: 32, minHeight: 32),
+                              icon: const Icon(Icons.content_copy, size: 16),
+                              tooltip: 'Copy Trade',
+                              onPressed: () =>
+                                  _copySingleTrade(instrumentOrder: o),
+                            ),
+                          ],
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          if (quantityStr.isNotEmpty)
+                            Text(
+                              quantityStr,
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.w600, fontSize: 13),
+                            ),
+                          if (priceStr.isNotEmpty) ...[
+                            Text('•',
+                                style:
+                                    TextStyle(color: _getSecondaryTextColor())),
+                            Text(
+                              priceStr,
+                              style: TextStyle(
+                                  fontSize: 13,
+                                  color: _getSecondaryTextColor()),
+                            ),
+                          ],
+                          Text('•',
+                              style:
+                                  TextStyle(color: _getSecondaryTextColor())),
+                          Text(
+                            orderTypeStr,
+                            style: TextStyle(
+                                fontSize: 13, color: _getSecondaryTextColor()),
                           ),
                         ],
-                      ],
-                    ),
-                    onTap: () {
-                      if (widget.currentUser == null ||
-                          auth.currentUser == null ||
-                          o.state != 'filled') {
-                        return;
-                      }
-                      HapticFeedback.selectionClick();
-                      setState(() {
-                        if (_multiSelectMode) {
-                          if (isSelected) {
-                            _selectedInstrumentOrders.remove(o);
-                          } else {
-                            _selectedInstrumentOrders.add(o);
-                          }
-                        } else {
-                          _selectedInstrumentOrders
-                            ..clear()
-                            ..add(o);
-                          _selectedOptionOrders.clear();
-                        }
-                      });
-                    },
-                    onLongPress: () {
-                      if (widget.currentUser == null ||
-                          auth.currentUser == null ||
-                          o.state != 'filled') {
-                        return;
-                      }
-                      HapticFeedback.mediumImpact();
-                      setState(() {
-                        _multiSelectMode = true;
-                        _selectedInstrumentOrders.add(o);
-                      });
-                    },
+                      ),
+                      const SizedBox(height: 6),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 2,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          Text(
+                            o.state.toUpperCase(),
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: _getSecondaryTextColor(),
+                            ),
+                          ),
+                          if (dateStr.isNotEmpty) ...[
+                            Text('•',
+                                style: TextStyle(
+                                    fontSize: 11,
+                                    color: _getSecondaryTextColor())),
+                            Text(
+                              dateStr,
+                              style: TextStyle(
+                                  fontSize: 11,
+                                  color: _getSecondaryTextColor()),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ],
                   ),
-                );
-              },
+                ),
+              ),
             );
           },
         );

@@ -106,21 +106,38 @@ class _AutoTradeStatusBadgeWidgetState extends State<AutoTradeStatusBadgeWidget>
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<AgenticTradingProvider>(
-      builder: (context, agenticTradingProvider, child) {
-        final config = agenticTradingProvider.config;
-        final autoTradeEnabled = config.autoTradeEnabled;
+    AgenticTradingProvider? provider;
+    try {
+      provider = Provider.of<AgenticTradingProvider>(context);
+    } catch (_) {
+      provider = null;
+    }
 
-        if (!autoTradeEnabled) {
-          if (widget.userAvatar != null) {
-            return IconButton(
-              icon: widget.userAvatar!,
-              tooltip: 'Profile',
-              onPressed: widget.onProfileTap,
-            );
-          }
-          return const SizedBox.shrink();
-        }
+    if (provider == null) {
+      if (widget.userAvatar != null) {
+        return IconButton(
+          icon: widget.userAvatar!,
+          tooltip: 'Profile',
+          onPressed: widget.onProfileTap,
+        );
+      }
+      return const SizedBox.shrink();
+    }
+
+    final agenticTradingProvider = provider;
+    final config = agenticTradingProvider.config;
+    final autoTradeEnabled = config.autoTradeEnabled;
+
+    if (!autoTradeEnabled) {
+      if (widget.userAvatar != null) {
+        return IconButton(
+          icon: widget.userAvatar!,
+          tooltip: 'Profile',
+          onPressed: widget.onProfileTap,
+        );
+      }
+      return const SizedBox.shrink();
+    }
 
         final isAutoTrading = agenticTradingProvider.showAutoTradingVisual;
         final isEmergencyStop = agenticTradingProvider.emergencyStopActivated;
@@ -173,15 +190,13 @@ class _AutoTradeStatusBadgeWidgetState extends State<AutoTradeStatusBadgeWidget>
           );
         }
 
-        return _buildStandaloneBadge(
-          context,
-          agenticTradingProvider,
-          status,
-          isAutoTrading,
-          isEmergencyStop,
-          progressValue,
-        );
-      },
+    return _buildStandaloneBadge(
+      context,
+      agenticTradingProvider,
+      status,
+      isAutoTrading,
+      isEmergencyStop,
+      progressValue,
     );
   }
 

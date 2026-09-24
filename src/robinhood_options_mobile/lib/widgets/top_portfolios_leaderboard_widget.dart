@@ -1,14 +1,19 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/top_portfolio_entry.dart';
+import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
+import 'package:robinhood_options_mobile/widgets/auto_trade_status_badge_widget.dart';
+import 'package:robinhood_options_mobile/widgets/publish_portfolio_sheet.dart';
+import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
+import 'package:robinhood_options_mobile/widgets/trader_comparison_widget.dart';
 import 'package:robinhood_options_mobile/widgets/trader_profile_widget.dart';
 
 /// Leaderboard showcasing top-performing portfolios with time-period filters,
@@ -20,7 +25,10 @@ class TopPortfoliosLeaderboardWidget extends StatefulWidget {
   final FirebaseAnalyticsObserver observer;
   final BrokerageUser? brokerageUser;
   final IBrokerageService? service;
+  final User? user;
+  final DocumentReference<User>? userDocRef;
   final bool showAppBar;
+  final ValueChanged<bool>? onCompareModeChanged;
 
   const TopPortfoliosLeaderboardWidget({
     super.key,
@@ -30,7 +38,10 @@ class TopPortfoliosLeaderboardWidget extends StatefulWidget {
     required this.observer,
     this.brokerageUser,
     this.service,
+    this.user,
+    this.userDocRef,
     this.showAppBar = true,
+    this.onCompareModeChanged,
   });
 
   @override
@@ -39,24 +50,75 @@ class TopPortfoliosLeaderboardWidget extends StatefulWidget {
 }
 
 class _TopPortfoliosLeaderboardWidgetState
-    extends State<TopPortfoliosLeaderboardWidget> {
+    extends State<TopPortfoliosLeaderboardWidget>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
   LeaderboardTimePeriod _selectedPeriod = LeaderboardTimePeriod.allTime;
   LeaderboardSortOption _selectedSort = LeaderboardSortOption.totalReturn;
   bool _verifiedOnly = false;
+  bool _compareMode = false;
+  final Set<String> _selectedUserIds = {};
+
+  void _setCompareMode(bool enabled, {String? initialUserId}) {
+    setState(() {
+      _compareMode = enabled;
+      if (!_compareMode) {
+        _selectedUserIds.clear();
+      } else if (initialUserId != null) {
+        _selectedUserIds.add(initialUserId);
+      }
+    });
+    widget.onCompareModeChanged?.call(enabled);
+  }
+  List<TopPortfolioEntry> _lastEntries = [];
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+  Stream<List<TopPortfolioEntry>>? _portfoliosStream;
+  final Map<String, Stream<bool>> _followingStreams = {};
 
   final NumberFormat _percentFormat =
       NumberFormat.decimalPercentPattern(decimalDigits: 1);
   final NumberFormat _compactNumberFormat = NumberFormat.compact();
 
+  void _initPortfoliosStream() {
+    _portfoliosStream = widget.firestoreService.getTopPortfoliosStream(
+      period: _selectedPeriod,
+      sortBy: _selectedSort,
+      verifiedOnly: _verifiedOnly,
+    );
+  }
+
+  void _updateFilters({
+    LeaderboardTimePeriod? period,
+    LeaderboardSortOption? sort,
+    bool? verifiedOnly,
+  }) {
+    setState(() {
+      if (period != null) _selectedPeriod = period;
+      if (sort != null) _selectedSort = sort;
+      if (verifiedOnly != null) _verifiedOnly = verifiedOnly;
+      _initPortfoliosStream();
+    });
+  }
+
   @override
   void initState() {
     super.initState();
+    _initPortfoliosStream();
     widget.analytics.logScreenView(
       screenName: 'top_portfolios_leaderboard',
       screenClass: 'TopPortfoliosLeaderboardWidget',
     );
+  }
+
+  @override
+  void didUpdateWidget(TopPortfoliosLeaderboardWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.firestoreService != widget.firestoreService) {
+      _initPortfoliosStream();
+    }
   }
 
   @override
@@ -67,6 +129,7 @@ class _TopPortfoliosLeaderboardWidgetState
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
@@ -74,16 +137,107 @@ class _TopPortfoliosLeaderboardWidgetState
       backgroundColor: isDark
           ? theme.colorScheme.surface
           : theme.colorScheme.surfaceContainerLowest,
+      bottomNavigationBar: _compareMode
+          ? SafeArea(
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? theme.colorScheme.surfaceContainer
+                      : theme.colorScheme.surface,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.08),
+                      blurRadius: 8,
+                      offset: const Offset(0, -2),
+                    ),
+                  ],
+                  border: Border(
+                    top: BorderSide(
+                      color: theme.colorScheme.outlineVariant
+                          .withValues(alpha: 0.35),
+                    ),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    TextButton.icon(
+                      onPressed: () => _setCompareMode(false),
+                      icon: const Icon(Icons.close, size: 18),
+                      label: const Text('Cancel'),
+                    ),
+                    const Spacer(),
+                    Text(
+                      '${_selectedUserIds.length} of 4 selected',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: theme.colorScheme.outline,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    FilledButton.icon(
+                      icon: const Icon(Icons.compare_arrows, size: 18),
+                      label: Text(_selectedUserIds.length >= 2
+                          ? 'Compare (${_selectedUserIds.length})'
+                          : 'Compare'),
+                      onPressed: _selectedUserIds.length >= 2
+                          ? () {
+                              final selected = _lastEntries
+                                  .where((e) =>
+                                      _selectedUserIds.contains(e.userId))
+                                  .toList();
+                              _launchComparison(selected);
+                            }
+                          : null,
+                    ),
+                  ],
+                ),
+              ),
+            )
+          : null,
+      floatingActionButton: _compareMode && _selectedUserIds.length >= 2
+          ? FloatingActionButton.extended(
+              heroTag: 'top_portfolios_compare_fab',
+              icon: const Icon(Icons.compare_arrows),
+              label: Text('Compare (${_selectedUserIds.length})'),
+              onPressed: () {
+                final selected = _lastEntries
+                    .where((e) => _selectedUserIds.contains(e.userId))
+                    .toList();
+                _launchComparison(selected);
+              },
+            )
+          : (widget.showAppBar &&
+                  widget.auth.currentUser != null &&
+                  !_compareMode
+              ? FloatingActionButton.extended(
+                  heroTag: 'top_portfolios_publish_fab',
+                  icon: const Icon(Icons.publish_rounded),
+                  label: const Text('Publish'),
+                  onPressed: () => _showPublishPortfolioSheet(context),
+                )
+              : null),
       body: CustomScrollView(
         slivers: [
           // AppBar
           if (widget.showAppBar)
             SliverAppBar(
-              title: const Text('Top Portfolios'),
+              title: Text(_compareMode
+                  ? 'Select Traders (${_selectedUserIds.length}/4)'
+                  : 'Top Portfolios'),
               floating: true,
               snap: true,
               pinned: false,
               actions: [
+                IconButton(
+                  icon: Icon(
+                    _compareMode ? Icons.close : Icons.compare_arrows,
+                    color: _compareMode ? theme.colorScheme.primary : null,
+                  ),
+                  tooltip: _compareMode ? 'Exit Compare' : 'Compare Traders',
+                  onPressed: () => _setCompareMode(!_compareMode),
+                ),
                 IconButton(
                   icon: const Icon(Icons.info_outline_rounded),
                   tooltip: 'Reputation System Info',
@@ -99,7 +253,100 @@ class _TopPortfoliosLeaderboardWidgetState
                   tooltip: 'Filter Leaderboard',
                   onPressed: () => _showFilterDialog(context),
                 ),
+                if (widget.auth.currentUser != null)
+                  AutoTradeStatusBadgeWidget(
+                    user: widget.user,
+                    userDocRef: widget.userDocRef,
+                    service: widget.service,
+                    userAvatar: (widget.auth.currentUser!.photoURL ??
+                                widget.user?.photoUrl) ==
+                            null
+                        ? const Icon(Icons.account_circle)
+                        : CircleAvatar(
+                            maxRadius: 11,
+                            backgroundImage: CachedNetworkImageProvider(
+                                (widget.auth.currentUser!.photoURL ??
+                                    widget.user?.photoUrl)!)),
+                    onProfileTap: () {
+                      showProfile(
+                          context,
+                          widget.auth,
+                          widget.firestoreService,
+                          widget.analytics,
+                          widget.observer,
+                          widget.brokerageUser,
+                          widget.service);
+                    },
+                  )
+                else
+                  IconButton(
+                      icon: const Icon(Icons.account_circle_outlined),
+                      onPressed: () {
+                        showProfile(
+                            context,
+                            widget.auth,
+                            widget.firestoreService,
+                            widget.analytics,
+                            widget.observer,
+                            widget.brokerageUser,
+                            widget.service);
+                      }),
               ],
+            ),
+
+          // Compare Mode Guidance Banner
+          if (_compareMode)
+            SliverToBoxAdapter(
+              child: Container(
+                margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(
+                  color:
+                      theme.colorScheme.primaryContainer.withValues(alpha: 0.45),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: theme.colorScheme.primary.withValues(alpha: 0.3),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.compare_arrows,
+                        size: 20, color: theme.colorScheme.primary),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Compare Mode Active',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: theme.colorScheme.onPrimaryContainer,
+                            ),
+                          ),
+                          Text(
+                            'Select 2 to 4 traders to compare metrics side-by-side',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              fontSize: 11,
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    TextButton(
+                      style: TextButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                      ),
+                      onPressed: () => _setCompareMode(false),
+                      child: const Text('Exit'),
+                    ),
+                  ],
+                ),
+              ),
             ),
 
           // Unified Single-Row Controls: Period Chips + Sort Chips + Action Buttons
@@ -158,9 +405,7 @@ class _TopPortfoliosLeaderboardWidgetState
                                     ),
                                     onSelected: (selected) {
                                       if (selected) {
-                                        setState(() {
-                                          _selectedPeriod = period;
-                                        });
+                                        _updateFilters(period: period);
                                         widget.analytics.logEvent(
                                           name: 'leaderboard_filter_period',
                                           parameters: {'period': period.name},
@@ -227,9 +472,7 @@ class _TopPortfoliosLeaderboardWidgetState
                                     ),
                                     onSelected: (selected) {
                                       if (selected) {
-                                        setState(() {
-                                          _selectedSort = opt;
-                                        });
+                                        _updateFilters(sort: opt);
                                         widget.analytics.logEvent(
                                           name: 'leaderboard_sort_changed',
                                           parameters: {'sort': opt.label},
@@ -339,9 +582,7 @@ class _TopPortfoliosLeaderboardWidgetState
                             avatar: const Icon(Icons.verified, size: 14),
                             label: const Text('Verified Only',
                                 style: TextStyle(fontSize: 11)),
-                            onDeleted: () {
-                              setState(() => _verifiedOnly = false);
-                            },
+                            onDeleted: () => _updateFilters(verifiedOnly: false),
                           ),
                         ],
                       ),
@@ -353,11 +594,7 @@ class _TopPortfoliosLeaderboardWidgetState
 
           // Main Stream Content
           StreamBuilder<List<TopPortfolioEntry>>(
-            stream: widget.firestoreService.getTopPortfoliosStream(
-              period: _selectedPeriod,
-              sortBy: _selectedSort,
-              verifiedOnly: _verifiedOnly,
-            ),
+            stream: _portfoliosStream,
             builder: (context, snapshot) {
               if (snapshot.hasError) {
                 return SliverFillRemaining(
@@ -388,14 +625,17 @@ class _TopPortfoliosLeaderboardWidgetState
                 );
               }
 
-              if (snapshot.connectionState == ConnectionState.waiting) {
+              if (snapshot.connectionState == ConnectionState.waiting &&
+                  !snapshot.hasData &&
+                  _lastEntries.isEmpty) {
                 return const SliverFillRemaining(
                   hasScrollBody: false,
                   child: Center(child: CircularProgressIndicator()),
                 );
               }
 
-              final allEntries = snapshot.data ?? [];
+              final allEntries = snapshot.data ?? _lastEntries;
+              _lastEntries = allEntries;
               final filteredEntries = _searchQuery.isEmpty
                   ? allEntries
                   : allEntries.where((e) {
@@ -434,18 +674,29 @@ class _TopPortfoliosLeaderboardWidgetState
                             ),
                           ),
                           const SizedBox(height: 16),
-                          if (_verifiedOnly || _searchQuery.isNotEmpty)
-                            OutlinedButton.icon(
-                              onPressed: () {
-                                setState(() {
-                                  _verifiedOnly = false;
-                                  _searchController.clear();
-                                  _searchQuery = '';
-                                });
-                              },
-                              icon: const Icon(Icons.refresh, size: 16),
-                              label: const Text('Reset Filters'),
-                            ),
+                          Wrap(
+                            alignment: WrapAlignment.center,
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              if (_verifiedOnly || _searchQuery.isNotEmpty)
+                                OutlinedButton.icon(
+                                  onPressed: () {
+                                    _updateFilters(verifiedOnly: false);
+                                    _searchController.clear();
+                                    _searchQuery = '';
+                                  },
+                                  icon: const Icon(Icons.refresh, size: 16),
+                                  label: const Text('Reset Filters'),
+                                ),
+                              FilledButton.icon(
+                                onPressed: () =>
+                                    _showPublishPortfolioSheet(context),
+                                icon: const Icon(Icons.publish, size: 16),
+                                label: const Text('Publish My Portfolio'),
+                              ),
+                            ],
+                          ),
                         ],
                       ),
                     ),
@@ -453,13 +704,16 @@ class _TopPortfoliosLeaderboardWidgetState
                 );
               }
 
+              final showPodium =
+                  _searchQuery.isEmpty && filteredEntries.length >= 3;
+              final totalItemCount =
+                  filteredEntries.length + (showPodium ? 1 : 0);
+
               return SliverList(
                 delegate: SliverChildBuilderDelegate(
                   (context, index) {
                     // Podium Header for top 3 traders (when no search query is active)
-                    if (index == 0 &&
-                        _searchQuery.isEmpty &&
-                        filteredEntries.length >= 3) {
+                    if (showPodium && index == 0) {
                       return Column(
                         children: [
                           _buildPodium(
@@ -472,10 +726,11 @@ class _TopPortfoliosLeaderboardWidgetState
                       );
                     }
 
-                    final entry = filteredEntries[index];
+                    final entryIndex = showPodium ? index - 1 : index;
+                    final entry = filteredEntries[entryIndex];
                     return _buildLeaderboardCard(context, entry);
                   },
-                  childCount: filteredEntries.length,
+                  childCount: totalItemCount,
                 ),
               );
             },
@@ -583,7 +838,7 @@ class _TopPortfoliosLeaderboardWidgetState
     final isPositive = returnVal >= 0;
 
     return GestureDetector(
-      onTap: () => _navigateToProfile(entry.userId),
+      onTap: () => _navigateToProfile(entry),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -690,6 +945,7 @@ class _TopPortfoliosLeaderboardWidgetState
     final returnVal = entry.returnForPeriod(_selectedPeriod);
     final isPositive = returnVal >= 0;
     final rank = entry.rank ?? 0;
+    final isSelected = _selectedUserIds.contains(entry.userId);
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 5.0),
@@ -697,12 +953,20 @@ class _TopPortfoliosLeaderboardWidgetState
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
         side: BorderSide(
-          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.35),
+          color: isSelected
+              ? theme.colorScheme.primary
+              : theme.colorScheme.outlineVariant.withValues(alpha: 0.35),
+          width: isSelected ? 1.8 : 1.0,
         ),
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
-        onTap: () => _navigateToProfile(entry.userId),
+        onTap: () => _navigateToProfile(entry),
+        onLongPress: () {
+          if (!_compareMode) {
+            _setCompareMode(true, initialUserId: entry.userId);
+          }
+        },
         child: Padding(
           padding: const EdgeInsets.all(14.0),
           child: Column(
@@ -712,11 +976,27 @@ class _TopPortfoliosLeaderboardWidgetState
               Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  // Rank Indicator
-                  Container(
-                    width: 32,
-                    alignment: Alignment.center,
-                    child: _buildRankBadge(context, rank),
+                  // Rank Indicator or Checkbox
+                  GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () {
+                      if (_compareMode) {
+                        _toggleTraderSelection(entry);
+                      } else {
+                        _setCompareMode(true, initialUserId: entry.userId);
+                      }
+                    },
+                    child: Container(
+                      width: 36,
+                      alignment: Alignment.center,
+                      child: _compareMode
+                          ? Checkbox(
+                              value: isSelected,
+                              visualDensity: VisualDensity.compact,
+                              onChanged: (_) => _toggleTraderSelection(entry),
+                            )
+                          : _buildRankBadge(context, rank),
+                    ),
                   ),
                   const SizedBox(width: 8),
 
@@ -909,12 +1189,87 @@ class _TopPortfoliosLeaderboardWidgetState
                   else
                     const Spacer(),
 
-                  // Follow/Unfollow Action Button
-                  _buildFollowActionButton(context, entry),
+                  // Compare Action and Follow/Unfollow Action Button
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: Icon(
+                          isSelected ? Icons.check_circle : Icons.compare_arrows,
+                          size: 20,
+                          color: isSelected ? theme.colorScheme.primary : null,
+                        ),
+                        tooltip: 'Compare Trader',
+                        visualDensity: VisualDensity.compact,
+                        onPressed: () {
+                          if (!_compareMode) {
+                            _setCompareMode(true, initialUserId: entry.userId);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                    'Selected ${entry.userName}. Select up to 3 more traders to compare.'),
+                                duration: const Duration(seconds: 2),
+                              ),
+                            );
+                          } else {
+                            _toggleTraderSelection(entry);
+                          }
+                        },
+                      ),
+                      const SizedBox(width: 4),
+                      _buildFollowActionButton(context, entry),
+                    ],
+                  ),
                 ],
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  void _toggleTraderSelection(TopPortfolioEntry entry) {
+    bool didExitCompareMode = false;
+    setState(() {
+      if (_selectedUserIds.contains(entry.userId)) {
+        _selectedUserIds.remove(entry.userId);
+        if (_selectedUserIds.isEmpty) {
+          _compareMode = false;
+          didExitCompareMode = true;
+        }
+      } else {
+        if (_selectedUserIds.length >= 4) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('You can compare up to 4 traders at once.'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        } else {
+          _selectedUserIds.add(entry.userId);
+        }
+      }
+    });
+    if (didExitCompareMode) {
+      widget.onCompareModeChanged?.call(false);
+    }
+  }
+
+  void _launchComparison(List<TopPortfolioEntry> selectedTraders) {
+    if (selectedTraders.length < 2) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => TraderComparisonWidget(
+          initialTraders: selectedTraders,
+          initialPeriod: _selectedPeriod,
+          auth: widget.auth,
+          firestoreService: widget.firestoreService,
+          analytics: widget.analytics,
+          observer: widget.observer,
+          brokerageUser: widget.brokerageUser,
+          service: widget.service,
         ),
       ),
     );
@@ -1046,11 +1401,16 @@ class _TopPortfoliosLeaderboardWidgetState
       return const SizedBox.shrink();
     }
 
-    return StreamBuilder<bool>(
-      stream: widget.firestoreService.isFollowingStream(
+    final followStream = _followingStreams.putIfAbsent(
+      '${currentUserId}_${entry.userId}',
+      () => widget.firestoreService.isFollowingStream(
         currentUserId,
         entry.userId,
       ),
+    );
+
+    return StreamBuilder<bool>(
+      stream: followStream,
       builder: (context, snapshot) {
         final isFollowing = snapshot.data ?? false;
 
@@ -1132,10 +1492,20 @@ class _TopPortfoliosLeaderboardWidgetState
     }
   }
 
-  void _navigateToProfile(String targetUserId) {
+  void _navigateToProfile(TopPortfolioEntry entry) {
     widget.analytics.logEvent(
       name: 'view_trader_from_leaderboard',
-      parameters: {'target_user_id': targetUserId},
+      parameters: {'target_user_id': entry.userId},
+    );
+
+    final initialUser = User(
+      name: entry.userName,
+      photoUrl: entry.userPhotoUrl,
+      location: entry.location,
+      devices: const [],
+      dateCreated: DateTime.now(),
+      brokerageUsers: const [],
+      followersCount: entry.followersCount,
     );
 
     Navigator.push(
@@ -1143,13 +1513,33 @@ class _TopPortfoliosLeaderboardWidgetState
       MaterialPageRoute(
         builder: (context) => TraderProfileWidget(
           auth: widget.auth,
-          userId: targetUserId,
+          userId: entry.userId,
+          initialUser: initialUser,
+          initialUserName: entry.userName,
           analytics: widget.analytics,
           observer: widget.observer,
           brokerageUser: widget.brokerageUser,
           service: widget.service,
         ),
       ),
+    );
+  }
+
+  /// Publish / Manage Portfolio Bottom Sheet
+  Future<void> _showPublishPortfolioSheet(BuildContext context) async {
+    widget.analytics.logEvent(name: 'leaderboard_open_publish');
+    await PublishPortfolioBottomSheet.show(
+      context,
+      auth: widget.auth,
+      firestoreService: widget.firestoreService,
+      brokerageUser: widget.brokerageUser,
+      service: widget.service,
+      onPublished: () {
+        if (mounted) setState(() {});
+      },
+      onUnpublished: () {
+        if (mounted) setState(() {});
+      },
     );
   }
 
@@ -1377,9 +1767,7 @@ class _TopPortfoliosLeaderboardWidgetState
                 ),
                 FilledButton(
                   onPressed: () {
-                    setState(() {
-                      _verifiedOnly = localVerified;
-                    });
+                    _updateFilters(verifiedOnly: localVerified);
                     Navigator.pop(context);
                   },
                   child: const Text('Apply'),

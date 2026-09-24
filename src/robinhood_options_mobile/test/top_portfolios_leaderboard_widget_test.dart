@@ -1,17 +1,53 @@
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/portfolio_privacy_settings.dart';
+import 'package:robinhood_options_mobile/model/top_portfolio_entry.dart';
 import 'package:robinhood_options_mobile/model/verified_track_record.dart';
 import 'package:robinhood_options_mobile/services/demo_service.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/widgets/top_portfolios_leaderboard_widget.dart';
 
 import 'firebase_mocks.dart';
+
+class FakeUser extends Fake implements firebase_auth.User {
+  final String _uid;
+  final String? _displayName;
+  final String? _photoURL;
+
+  FakeUser({
+    String uid = 'test_user',
+    String? displayName = 'Test Trader',
+    String? photoURL,
+  })  : _uid = uid,
+        _displayName = displayName,
+        _photoURL = photoURL;
+
+  @override
+  String get uid => _uid;
+
+  @override
+  String? get displayName => _displayName;
+
+  @override
+  String? get photoURL => _photoURL;
+}
+
+class FakeFirebaseAuthWithUser extends Fake implements firebase_auth.FirebaseAuth {
+  final firebase_auth.User _user;
+  FakeFirebaseAuthWithUser(this._user);
+
+  @override
+  firebase_auth.User? get currentUser => _user;
+
+  @override
+  Stream<firebase_auth.User?> authStateChanges() => Stream.value(_user);
+}
 
 class FakeObserver extends Fake implements FirebaseAnalyticsObserver {}
 
@@ -170,11 +206,11 @@ void main() {
           .set(charlieRecord.toJson());
     });
 
-    Widget createWidgetUnderTest() {
+    Widget createWidgetUnderTest({firebase_auth.FirebaseAuth? auth}) {
       return MaterialApp(
         theme: ThemeData(useMaterial3: true),
         home: TopPortfoliosLeaderboardWidget(
-          auth: FakeFirebaseAuth(),
+          auth: auth ?? FakeFirebaseAuth(),
           firestoreService: firestoreService,
           analytics: fakeAnalytics,
           observer: fakeObserver,
@@ -412,6 +448,398 @@ void main() {
       expect(
           find.text('Exclude traders who have marked their portfolio private'),
           findsNothing);
+    });
+
+    testWidgets('Tapping compare action enables compare mode and selection FAB',
+        (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      await tester.pumpWidget(createWidgetUnderTest());
+      await tester.pumpAndSettle();
+
+      // Find compare button in AppBar
+      final compareBtn = find.byTooltip('Compare Traders');
+      expect(compareBtn, findsOneWidget);
+      await tester.tap(compareBtn);
+      await tester.pumpAndSettle();
+
+      // Verify title updates to selection mode
+      expect(find.text('Select Traders (0/4)'), findsOneWidget);
+
+      // Checkboxes appear for comparing traders
+      final checkboxes = find.byType(Checkbox);
+      expect(checkboxes, findsWidgets);
+
+      // Select first two traders
+      await tester.tap(checkboxes.at(0));
+      await tester.pumpAndSettle();
+      expect(find.text('Select Traders (1/4)'), findsOneWidget);
+
+      await tester.tap(checkboxes.at(1));
+      await tester.pumpAndSettle();
+      expect(find.text('Select Traders (2/4)'), findsOneWidget);
+
+      // Compare FAB appears
+      expect(find.text('Compare (2)'), findsOneWidget);
+    });
+
+    testWidgets('tapping publish floating action button opens PublishPortfolioBottomSheet',
+        (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      final user = FakeUser(uid: 'user_123', displayName: 'David Trader');
+      final auth = FakeFirebaseAuthWithUser(user);
+
+      await tester.pumpWidget(createWidgetUnderTest(auth: auth));
+      await tester.pumpAndSettle();
+
+      final publishFab = find.byType(FloatingActionButton);
+      expect(publishFab, findsOneWidget);
+      expect(find.text('Publish'), findsOneWidget);
+
+      await tester.tap(publishFab);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Leaderboard Publication'), findsOneWidget);
+      expect(find.text('Manage your public visibility and ranking'), findsOneWidget);
+      expect(find.text('Status: Not Published'), findsOneWidget);
+      expect(find.text('Publish Portfolio to Leaderboard'), findsOneWidget);
+    });
+
+    testWidgets('empty state displays Publish My Portfolio button and tapping it opens bottom sheet',
+        (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      final emptyDb = FakeFirebaseFirestore();
+      final emptyFirestoreService = FirestoreService(firestore: emptyDb);
+      final user = FakeUser(uid: 'user_123', displayName: 'David Trader');
+      final auth = FakeFirebaseAuthWithUser(user);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData(useMaterial3: true),
+          home: TopPortfoliosLeaderboardWidget(
+            auth: auth,
+            firestoreService: emptyFirestoreService,
+            analytics: fakeAnalytics,
+            observer: fakeObserver,
+            brokerageUser: brokerageUser,
+            service: service,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('No Portfolios Found'), findsOneWidget);
+      expect(find.text('No public portfolios match the current filters.'), findsOneWidget);
+      expect(find.text('Publish My Portfolio'), findsOneWidget);
+
+      await tester.tap(find.text('Publish My Portfolio'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Leaderboard Publication'), findsOneWidget);
+    });
+
+    testWidgets('PublishPortfolioBottomSheet publishes portfolio and updates Firestore',
+        (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      final user = FakeUser(uid: 'david', displayName: 'David Trader');
+      final auth = FakeFirebaseAuthWithUser(user);
+
+      await fakeDb.collection(firestoreService.userCollectionName).doc('david').set({
+        'id': 'david',
+        'name': 'David Trader',
+        'portfolioPrivacy': const PortfolioPrivacySettings(isPublic: false).toJson(),
+      });
+
+      await tester.pumpWidget(createWidgetUnderTest(auth: auth));
+      await tester.pumpAndSettle();
+
+      // Open publish sheet
+      await tester.tap(find.text('Publish'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Status: Not Published'), findsOneWidget);
+
+      // Tap publish button
+      await tester.tap(find.text('Publish Portfolio to Leaderboard'));
+      await tester.pumpAndSettle();
+
+      // Sheet closes and entry should now exist in Firestore
+      final entry = await firestoreService.getTopPortfolioEntry('david');
+      expect(entry, isNotNull);
+      expect(entry!.userId, equals('david'));
+      expect(entry.isPublic, isTrue);
+
+      // User document privacy should have been updated to isPublic: true
+      final userDoc = await fakeDb.collection(firestoreService.userCollectionName).doc('david').get();
+      expect(userDoc.data()!['portfolioPrivacy']['isPublic'], isTrue);
+    });
+
+    testWidgets('PublishPortfolioBottomSheet unpublishes portfolio from leaderboard',
+        (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      final user = FakeUser(uid: 'david', displayName: 'David Trader');
+      final auth = FakeFirebaseAuthWithUser(user);
+
+      await fakeDb.collection(firestoreService.userCollectionName).doc('david').set({
+        'id': 'david',
+        'name': 'David Trader',
+        'portfolioPrivacy': const PortfolioPrivacySettings(isPublic: true).toJson(),
+      });
+
+      // Pre-seed top portfolio entry
+      await firestoreService.setTopPortfolioEntry(
+        const TopPortfolioEntry(
+          userId: 'david',
+          userName: 'David Trader',
+          returnPercent: 25.0,
+          winRate: 60.0,
+          reputation: UserReputation(score: 50, tier: ReputationTier.trustedTrader),
+        ),
+      );
+
+      await tester.pumpWidget(createWidgetUnderTest(auth: auth));
+      await tester.pumpAndSettle();
+
+      // Open publish sheet
+      await tester.tap(find.text('Publish'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Status: Published'), findsOneWidget);
+      expect(find.text('Unpublish'), findsOneWidget);
+
+      // Tap unpublish
+      await tester.tap(find.text('Unpublish'));
+      await tester.pumpAndSettle();
+
+      // Entry should now be removed from Firestore
+      final entry = await firestoreService.getTopPortfolioEntry('david');
+      expect(entry, isNull);
+    });
+
+    testWidgets('tapping leaderboard card navigates to TraderProfileWidget smoothly and preserves state on return',
+        (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      await tester.pumpWidget(createWidgetUnderTest());
+      await tester.pumpAndSettle();
+
+      // Alice Capital should be visible
+      expect(find.text('Alice Capital'), findsWidgets);
+
+      // Tap on Alice Capital
+      await tester.tap(find.text('Alice Capital').first);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+
+      // Navigated to TraderProfileWidget
+      expect(find.text('Trader Profile'), findsOneWidget);
+
+      // Pop back to Leaderboard
+      await tester.pageBack();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+
+      // Leaderboard view is still active and cards remain rendered without spinner
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+      expect(find.text('Alice Capital'), findsWidgets);
+    });
+
+    testWidgets('shows guidance banner and persistent bottom bar in compare mode with showAppBar: false',
+        (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      bool compareModeReported = false;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData(useMaterial3: true),
+          home: Scaffold(
+            body: TopPortfoliosLeaderboardWidget(
+              auth: FakeFirebaseAuth(),
+              firestoreService: firestoreService,
+              analytics: fakeAnalytics,
+              observer: fakeObserver,
+              brokerageUser: brokerageUser,
+              service: service,
+              showAppBar: false,
+              onCompareModeChanged: (active) {
+                compareModeReported = active;
+              },
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Tap compare button on first trader card
+      final compareButtons = find.byTooltip('Compare Trader');
+      expect(compareButtons, findsWidgets);
+      await tester.tap(compareButtons.first);
+      await tester.pumpAndSettle();
+
+      expect(compareModeReported, isTrue);
+
+      // Verify guidance banner is visible
+      expect(find.text('Compare Mode Active'), findsOneWidget);
+      expect(find.text('Select 2 to 4 traders to compare metrics side-by-side'), findsOneWidget);
+      expect(find.text('Exit'), findsOneWidget);
+
+      // Verify persistent bottom bar is visible with selection count
+      expect(find.text('1 of 4 selected'), findsOneWidget);
+      expect(find.text('Cancel'), findsOneWidget);
+      expect(find.widgetWithText(FilledButton, 'Compare'), findsOneWidget);
+
+      // Checkboxes appear
+      final checkboxes = find.byType(Checkbox);
+      expect(checkboxes, findsWidgets);
+
+      // Select second trader
+      await tester.tap(checkboxes.at(1));
+      await tester.pumpAndSettle();
+
+      expect(find.text('2 of 4 selected'), findsOneWidget);
+
+      // Tap Exit on the banner to cancel compare mode
+      await tester.tap(find.text('Exit'));
+      await tester.pumpAndSettle();
+
+      expect(compareModeReported, isFalse);
+      expect(find.text('Compare Mode Active'), findsNothing);
+      expect(find.text('2 of 4 selected'), findsNothing);
+    });
+
+    testWidgets('unchecking all traders automatically exits compare mode',
+        (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      bool compareModeReported = false;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData(useMaterial3: true),
+          home: Scaffold(
+            body: TopPortfoliosLeaderboardWidget(
+              auth: FakeFirebaseAuth(),
+              firestoreService: firestoreService,
+              analytics: fakeAnalytics,
+              observer: fakeObserver,
+              brokerageUser: brokerageUser,
+              service: service,
+              showAppBar: false,
+              onCompareModeChanged: (active) {
+                compareModeReported = active;
+              },
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Enter compare mode via first card
+      final compareButtons = find.byTooltip('Compare Trader');
+      await tester.tap(compareButtons.first);
+      await tester.pumpAndSettle();
+
+      expect(compareModeReported, isTrue);
+      expect(find.text('Compare Mode Active'), findsOneWidget);
+
+      // Deselect the trader by tapping the checked checkbox
+      final checkboxes = find.byType(Checkbox);
+      expect(checkboxes, findsWidgets);
+      await tester.tap(checkboxes.first);
+      await tester.pumpAndSettle();
+
+      // Compare mode should now auto-exit because 0 traders are selected
+      expect(compareModeReported, isFalse);
+      expect(find.text('Compare Mode Active'), findsNothing);
+      expect(find.byType(Checkbox), findsNothing);
+    });
+
+    testWidgets('tapping card row in compare mode still navigates to TraderProfileWidget',
+        (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData(useMaterial3: true),
+          home: Scaffold(
+            body: TopPortfoliosLeaderboardWidget(
+              auth: FakeFirebaseAuth(),
+              firestoreService: firestoreService,
+              analytics: fakeAnalytics,
+              observer: fakeObserver,
+              brokerageUser: brokerageUser,
+              service: service,
+              showAppBar: false,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Enter compare mode via first card
+      final compareButtons = find.byTooltip('Compare Trader');
+      await tester.tap(compareButtons.first);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Compare Mode Active'), findsOneWidget);
+
+      // Tap on Alice Capital text/card (outside checkbox)
+      await tester.tap(find.text('Alice Capital').first);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+
+      // Successfully navigated to TraderProfileWidget without app restart!
+      expect(find.text('Trader Profile'), findsOneWidget);
     });
   });
 }

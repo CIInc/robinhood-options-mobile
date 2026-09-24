@@ -1,4 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:flutter/cupertino.dart';
@@ -9,11 +10,14 @@ import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/group_activity.dart';
 import 'package:robinhood_options_mobile/model/group_analysis.dart';
 import 'package:robinhood_options_mobile/model/instrument_order.dart';
+import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/model/user_follow.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
+import 'package:robinhood_options_mobile/widgets/auto_trade_status_badge_widget.dart';
 import 'package:robinhood_options_mobile/widgets/copy_trade_button_widget.dart';
 import 'package:robinhood_options_mobile/widgets/share_trade_idea_sheet.dart';
+import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
 import 'package:robinhood_options_mobile/widgets/trader_profile_widget.dart';
 
 /// Unified Social Feed supporting followed trades, shared trade ideas,
@@ -26,6 +30,8 @@ class FollowingActivityFeedWidget extends StatefulWidget {
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
   final UserRole? userRole;
+  final User? user;
+  final DocumentReference<User>? userDocRef;
   final bool showAppBar;
   final bool showFab;
 
@@ -38,6 +44,8 @@ class FollowingActivityFeedWidget extends StatefulWidget {
     required this.analytics,
     required this.observer,
     this.userRole,
+    this.user,
+    this.userDocRef,
     this.showAppBar = true,
     this.showFab = true,
   });
@@ -109,7 +117,23 @@ class _FollowingActivityFeedWidgetState
         );
       }
       return Scaffold(
-        appBar: AppBar(title: const Text('Social Feed')),
+        appBar: AppBar(
+          title: const Text('Social Feed'),
+          actions: [
+            IconButton(
+                icon: const Icon(Icons.account_circle_outlined),
+                onPressed: () {
+                  showProfile(
+                      context,
+                      widget.auth,
+                      widget.firestoreService,
+                      widget.analytics,
+                      widget.observer,
+                      widget.brokerageUser,
+                      widget.service);
+                }),
+          ],
+        ),
         body: const Center(
           child: Text('Sign in to view your social feed.'),
         ),
@@ -126,6 +150,44 @@ class _FollowingActivityFeedWidgetState
                   tooltip: 'Refresh Feed',
                   onPressed: () => setState(() {}),
                 ),
+                if (widget.auth.currentUser != null)
+                  AutoTradeStatusBadgeWidget(
+                    user: widget.user,
+                    userDocRef: widget.userDocRef,
+                    service: widget.service,
+                    userAvatar: (widget.auth.currentUser!.photoURL ??
+                                widget.user?.photoUrl) ==
+                            null
+                        ? const Icon(Icons.account_circle)
+                        : CircleAvatar(
+                            maxRadius: 11,
+                            backgroundImage: CachedNetworkImageProvider(
+                                (widget.auth.currentUser!.photoURL ??
+                                    widget.user?.photoUrl)!)),
+                    onProfileTap: () {
+                      showProfile(
+                          context,
+                          widget.auth,
+                          widget.firestoreService,
+                          widget.analytics,
+                          widget.observer,
+                          widget.brokerageUser,
+                          widget.service);
+                    },
+                  )
+                else
+                  IconButton(
+                      icon: const Icon(Icons.account_circle_outlined),
+                      onPressed: () {
+                        showProfile(
+                            context,
+                            widget.auth,
+                            widget.firestoreService,
+                            widget.analytics,
+                            widget.observer,
+                            widget.brokerageUser,
+                            widget.service);
+                      }),
               ],
             )
           : null,

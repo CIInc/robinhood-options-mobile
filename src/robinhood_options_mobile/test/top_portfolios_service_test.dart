@@ -205,5 +205,32 @@ void main() {
       expect(entries[1].returnForPeriod(LeaderboardTimePeriod.oneMonth),
           equals(6.0));
     });
+
+    test('setTopPortfolioEntry, getTopPortfolioEntry, and deleteTopPortfolioEntry work correctly', () async {
+      const entry = TopPortfolioEntry(
+        userId: 'test_trader',
+        userName: 'Test Trader',
+        returnPercent: 45.0,
+        winRate: 70.0,
+        reputation: UserReputation(score: 65, tier: ReputationTier.masterTrader),
+      );
+
+      // Set entry
+      await firestoreService.setTopPortfolioEntry(entry);
+
+      // Fetch entry
+      final fetched = await firestoreService.getTopPortfolioEntry('test_trader');
+      expect(fetched, isNotNull);
+      expect(fetched!.userId, equals('test_trader'));
+      expect(fetched.userName, equals('Test Trader'));
+      expect(fetched.returnPercent, equals(45.0));
+
+      // Delete entry
+      await firestoreService.deleteTopPortfolioEntry('test_trader');
+
+      // Verify deletion
+      final deleted = await firestoreService.getTopPortfolioEntry('test_trader');
+      expect(deleted, isNull);
+    });
   });
 }

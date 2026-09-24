@@ -43,7 +43,7 @@ A centralized hub for managing all copy trading activities:
 - **Filtering**: Filter trades by status (Pending, Approved, Rejected, Completed), date range, and symbol.
 - **Performance Metrics**: Track the performance of copied trades (P&L, win rate).
 - **Risk Guardian Telemetry Card** *(v0.52.0)*: Real-time status display of capital guardrails (max allocation cap, max slippage bps, auto-disconnect triggers), active circuit breaker trips with 1-tap "Reset Guardian & Reconnect", and a count of protected aborted orders.
-- **Trader Comparison**: Compare performance across different traders you are copying.
+- **Side-by-Side Multi-Trader Portfolio Comparison** *(v0.52.0)*: Full-screen interactive comparison of 2 to 4 potential leaders or active copy targets across standardized timeframes (`1W`, `1M`, `3M`, `1Y`, `ALL`). Evaluates risk-adjusted metrics (Return, Win Rate, Profit Factor, Return/Drawdown ratio, Max Drawdown, Sharpe Ratio, Activity, and Reputation score), highlights category winners, visualizes 5-dimensional relative strengths, and preserves portfolio privacy via audited percentages and dollar balance masking (`$***`). Accessible from the Copy Trading Dashboard, Top Portfolios Leaderboard (multi-select compare mode), and Trader Profiles.
 - **Time-Based Analysis**: Visualize cumulative P&L growth over time.
 - **Request Management**: Review and act on pending copy trade requests.
 - **Export**: Download trade history and performance reports as CSV.

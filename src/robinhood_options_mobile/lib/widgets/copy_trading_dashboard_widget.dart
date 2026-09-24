@@ -9,9 +9,14 @@ import 'package:community_charts_flutter/community_charts_flutter.dart'
     as charts;
 import 'package:robinhood_options_mobile/widgets/chart_pie_widget.dart'
     as pie_chart;
+import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
+import 'package:robinhood_options_mobile/model/top_portfolio_entry.dart';
+import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/widgets/copy_trade_requests_widget.dart';
 import 'package:robinhood_options_mobile/widgets/copy_trade_risk_guardian_card.dart';
 import 'package:robinhood_options_mobile/widgets/copy_trade_slippage_card.dart';
+import 'package:robinhood_options_mobile/widgets/trader_comparison_widget.dart';
 
 class CopyTradingDashboardWidget extends StatefulWidget {
   const CopyTradingDashboardWidget({super.key});
@@ -188,10 +193,22 @@ class _CopyTradingDashboardWidgetState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
-            padding: EdgeInsets.all(16),
-            child: Text('Trader Performance',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Trader Performance',
+                    style:
+                        TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                if (tradesByTrader.length >= 2)
+                  TextButton.icon(
+                    icon: const Icon(Icons.compare_arrows, size: 18),
+                    label: const Text('Compare Side-by-Side'),
+                    onPressed: () => _openSideBySideComparison(tradesByTrader),
+                  ),
+              ],
+            ),
           ),
           ListView.builder(
             shrinkWrap: true,
@@ -224,6 +241,77 @@ class _CopyTradingDashboardWidgetState
         ],
       ),
     );
+  }
+
+  void _openSideBySideComparison(
+      Map<String, List<CompletedTrade>> tradesByTrader) {
+    final entries = <TopPortfolioEntry>[];
+    for (var entry in tradesByTrader.entries.take(4)) {
+      final traderId = entry.key;
+      final trades = entry.value;
+      final totalTrades = trades.length;
+      final winningTrades = trades.where((t) => t.pnl > 0).length;
+      final losingTrades = trades.where((t) => t.pnl <= 0).length;
+      final winRate =
+          totalTrades > 0 ? (winningTrades / totalTrades) * 100.0 : 0.0;
+      final grossProfit = trades
+          .where((t) => t.pnl > 0)
+          .fold<double>(0, (sum, t) => sum + t.pnl);
+      final grossLoss = trades
+          .where((t) => t.pnl < 0)
+          .fold<double>(0, (sum, t) => sum + t.pnl.abs());
+      final profitFactor = grossLoss > 0
+          ? grossProfit / grossLoss
+          : (grossProfit > 0 ? 10.0 : 1.0);
+      final avgReturnPct = totalTrades > 0
+          ? (trades.fold<double>(0, (sum, t) => sum + t.returnPct) /
+                  totalTrades) *
+              100.0
+          : 0.0;
+
+      final topEntry = TopPortfolioEntry(
+        userId: traderId,
+        userName:
+            'Trader ${traderId.length > 8 ? traderId.substring(0, 8) : traderId}',
+        returnPercent: avgReturnPct,
+        winRate: winRate,
+        totalTrades: totalTrades,
+        winningTrades: winningTrades,
+        losingTrades: losingTrades,
+        profitFactor: profitFactor,
+        sharpeRatio: 1.5,
+        maxDrawdownPercent: 5.0,
+        periodReturns: {
+          '1W': avgReturnPct * 0.15,
+          '1M': avgReturnPct * 0.35,
+          '3M': avgReturnPct * 0.65,
+          '1Y': avgReturnPct,
+          'ALL': avgReturnPct,
+        },
+        reputation: UserReputation.calculate(
+          returnPercent: avgReturnPct,
+          winRate: winRate,
+          totalTrades: totalTrades,
+        ),
+      );
+      entries.add(topEntry);
+    }
+
+    if (entries.length >= 2) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => TraderComparisonWidget(
+            initialTraders: entries,
+            auth: firebase_auth.FirebaseAuth.instance,
+            firestoreService: FirestoreService(),
+            analytics: FirebaseAnalytics.instance,
+            observer: FirebaseAnalyticsObserver(
+                analytics: FirebaseAnalytics.instance),
+          ),
+        ),
+      );
+    }
   }
 
   Widget _buildPerformanceChart(List<CompletedTrade> completedTrades) {
