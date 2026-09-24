@@ -32,6 +32,7 @@ import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
 import 'package:robinhood_options_mobile/model/interest_store.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
+import 'package:robinhood_options_mobile/utils/income_chart_viewport.dart';
 import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
 import 'package:robinhood_options_mobile/widgets/chart_pie_widget.dart';
 import 'package:robinhood_options_mobile/widgets/chart_time_series_widget.dart';
@@ -963,13 +964,9 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
           // showAxisLine: true,
           renderSpec: charts.SmallTickRendererSpec(
               labelStyle: charts.TextStyleSpec(color: axisLabelColor)),
-          viewport: dateFilter == 'All' ||
-                  // don't set viewport if the data is less than a year apart
-                  (groupedDividendsData.length > 1 &&
-                      groupedDividendsData.last.key
-                              .difference(groupedDividendsData.first.key)
-                              .inDays <
-                          365)
+          viewport: shouldUseAutomaticIncomeChartViewport(
+                  dateFilter: dateFilter,
+                  incomeDates: groupedCumulativeData.map((entry) => entry.key))
               ? null
               : charts.DateTimeExtents(
                   start:

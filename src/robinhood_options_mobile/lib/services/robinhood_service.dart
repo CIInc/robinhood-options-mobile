@@ -86,6 +86,8 @@ class _FuturesOrdersCacheEntry {
 class RobinhoodService implements IBrokerageService {
   static const _futuresMarginCacheTtl = Duration(minutes: 15);
   static const _futuresOrdersCacheTtl = Duration(minutes: 1);
+  static const _quoteBatchSize = 50;
+  static const _quoteBatchConcurrency = 3;
 
   @override
   String name = 'Robinhood';
@@ -100,7 +102,10 @@ class RobinhoodService implements IBrokerageService {
   @override
   String redirectUrl = '';
 
-  final FirestoreService _firestoreService = FirestoreService();
+  final FirestoreService _firestoreService;
+
+  RobinhoodService({FirestoreService? firestoreService})
+      : _firestoreService = firestoreService ?? FirestoreService();
 
   final robinHoodNummusEndpoint = Uri.parse('https://nummus.robinhood.com');
   final robinHoodSearchEndpoint = Uri.parse('https://bonfire.robinhood.com');
@@ -2726,40 +2731,46 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
   Future<List<Quote>> getQuoteByIds(
       BrokerageUser user, QuoteStore store, List<String> symbols,
       {bool fromCache = true}) async {
-    Iterable<Quote> cached = [];
+    final requestedSymbols = symbols.toSet();
+    List<Quote> cached = [];
     if (fromCache) {
-      cached = store.items.where((element) => symbols.contains(element.symbol));
+      cached = store.items
+          .where((element) => requestedSymbols.contains(element.symbol))
+          .toList();
     }
+    final cachedSymbols = cached.map((quote) => quote.symbol).toSet();
     var nonCached = symbols
-        .where((element) =>
-            !cached.any((cachedQuote) => cachedQuote.symbol == element))
+        .where((symbol) => !cachedSymbols.contains(symbol))
         .toSet()
         .toList();
     if (nonCached.isEmpty) {
-      return cached.toList();
+      return cached;
     }
 
-    List<Quote> list = cached.toList();
+    List<Quote> list = cached;
 
     var len = nonCached.length;
-    var size = 50;
-    List<List<dynamic>> chunks = [];
-    for (var i = 0; i < len; i += size) {
-      var end = (i + size < len) ? i + size : len;
+    List<List<String>> chunks = [];
+    for (var i = 0; i < len; i += _quoteBatchSize) {
+      var end = (i + _quoteBatchSize < len) ? i + _quoteBatchSize : len;
       chunks.add(nonCached.sublist(i, end));
     }
-    for (var chunk in chunks) {
-      var url =
-          "$endpoint/quotes/?symbols=${Uri.encodeComponent(chunk.join(","))}";
-      // https://api.robinhood.com/marketdata/quotes/?bounds=trading&include_inactive=true&instruments=https%3A%2F%2Fapi.robinhood.com%2Finstruments%2F6c62bf75-bc42-457a-8c58-24097799966b%2F%2Chttps%3A%2F%2Fapi.robinhood.com%2Finstruments%2Febab2398-028d-4939-9f1d-13bf38f81c50%2F%2Chttps%3A%2F%2Fapi.robinhood.com%2Finstruments%2Fcd822b83-39cd-49b5-a33b-9a08eb3f5103%2F%2Chttps%3A%2F%2Fapi.robinhood.com%2Finstruments%2F17302400-f9c0-423b-b370-beaf6cee021b%2F%2Chttps%3A%2F%2Fapi.robinhood.com%2Finstruments%2F24fb7b13-6679-40a5-9eba-360d648f9ea3%2F%2Chttps%3A%2F%2Fapi.robinhood.com%2Finstruments%2Ff1adc843-1a28-4cc5-b6d2-082271fdd126%2F%2Chttps%3A%2F%2Fapi.robinhood.com%2Finstruments%2F3a47ca97-d5a2-4a55-9045-053a588894de%2F%2Chttps%3A%2F%2Fapi.robinhood.com%2Finstruments%2Fb2e06903-5c44-46a4-bd42-2a696f9d68e1%2F%2Chttps%3A%2F%2Fapi.robinhood.com%2Finstruments%2F8a9fe49d-5d0a-4040-a19b-f3f4df44408f%2F%2Chttps%3A%2F%2Fapi.robinhood.com%2Finstruments%2F2ed64ef4-2c1a-44d6-832d-1be84741dc41%2F
-      var resultJson = await getJson(user, url);
+    for (var i = 0; i < chunks.length; i += _quoteBatchConcurrency) {
+      final batchGroup = chunks.skip(i).take(_quoteBatchConcurrency);
+      final quoteGroups = await Future.wait(batchGroup.map((chunk) async {
+        var url =
+            "$endpoint/quotes/?symbols=${Uri.encodeComponent(chunk.join(","))}";
+        var resultJson = await getJson(user, url);
+        return (resultJson['results'] as List)
+            .where((result) => result != null)
+            .map<Quote>((result) => Quote.fromJson(result))
+            .toList();
+      }));
 
-      for (var i = 0; i < resultJson['results'].length; i++) {
-        var result = resultJson['results'][i];
-        if (result != null) {
-          var op = Quote.fromJson(result);
-          list.add(op);
-          store.addOrUpdate(op);
+      for (final quoteGroup in quoteGroups) {
+        for (final quote in quoteGroup) {
+          list.add(quote);
+          store.addOrUpdate(quote);
         }
       }
     }

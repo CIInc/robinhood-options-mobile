@@ -1025,6 +1025,8 @@ Keep reliability, account security, and test coverage ahead of feature breadth. 
   - [x] Web app-promotion banners replace hidden native ad placements across web screens ([#124](https://github.com/CIInc/robinhood-options-mobile/issues/124))
   - [x] Clear Forex positions chart selection after navigation so the same bar can be selected again ([#124](https://github.com/CIInc/robinhood-options-mobile/issues/124))
   - [x] Clear Futures positions chart selection after navigation so the same bar can be selected again ([#124](https://github.com/CIInc/robinhood-options-mobile/issues/124))
+  - [x] Use all plotted income dates when selecting automatic chart viewport behavior ([#124](https://github.com/CIInc/robinhood-options-mobile/issues/124))
+  - [x] Deduplicate cached symbols and fetch Robinhood quote batches with bounded concurrency ([#124](https://github.com/CIInc/robinhood-options-mobile/issues/124))
 - [ ] **Security Audit & Infrastructure Roadmap** ([#135](https://github.com/CIInc/robinhood-options-mobile/issues/135)): Third-party security assessment, enterprise MCP hub, and zero-knowledge portfolio sharing
 
 #### Data & Integration
