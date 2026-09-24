@@ -43,18 +43,18 @@ This document outlines the planned features and enhancements for RealizeAlpha.
 
 **RealizeAlpha** is a mobile trading platform for multi-account investing, trading, and options analytics. This roadmap separates delivered work from planned milestones and longer-term ideas. Check marks indicate implementation status; future dates are targets and may change. GitHub issues hold detailed requirements and discussion.
 
-**Last reviewed:** September 23, 2026 · **Current app version:** 0.52.0 (development version)
+**Last reviewed:** September 24, 2026 · **Current app version:** 0.52.0 (development version)
 
 ### Quick Stats
-- **Completed checklist items:** 362
-- **Planned checklist items:** 81
-- **Open GitHub issues:** 36 (as of September 23, 2026)
-- **Planning focus:** Address high-priority reliability and test gaps, then deliver copy-trading transparency and safeguards; scope community work only after trust, moderation, and measurement criteria are defined.
+- **Completed checklist items:** 368
+- **Planned checklist items:** 76
+- **Open GitHub issues:** 36 (as of September 24, 2026)
+- **Planning focus:** Keep reliability and test coverage ahead of feature breadth, then prioritize brokerage expansion and execution improvements; measure the adoption and moderation quality of the newly delivered social and copy-trading tools.
 
 ### Key Highlights
-- ✅ **Recently Completed (v0.51.0-v0.52.0):** Beta-weighted portfolio Greeks, automated DRIP thresholds, 0DTE gamma squeeze radar, earnings IV crush analysis, IV cone and surface, Delta-Neutral Strategy Builder, Copy-Trading Slippage & Fill Divergence Analytics, Automated Copy-Trading Risk Guardian, Side-by-Side Multi-Trader Portfolio Comparison, and Social Discussion & Comment Threads. See the release timeline for issue links and details.
-- **Next proposed milestone:** **v0.52.0 (target: December 2026; tentative)** — copy-trading transparency and safeguards, with social discussion delivered and verified. Tournaments remain exploratory until separately defined.
-- **Later candidates (v0.53.0+):** Schwab execution and account-history improvements, multi-broker routing, SEC disclosures, and expanded AI research. These are planning targets, not release commitments.
+- ✅ **Recently Completed (v0.51.0-v0.52.0):** Beta-weighted portfolio Greeks, automated DRIP thresholds, 0DTE gamma squeeze radar, earnings IV crush analysis, IV cone and surface, Delta-Neutral Strategy Builder, copy-trading analytics and safeguards, Side-by-Side Multi-Trader Portfolio Comparison, Social Discussion & Comment Threads, and Schwab order previews and strategy chains. See the release timeline for issue links and details.
+- **Next proposed milestone:** **v0.53.0 (target: Q1 2027; tentative)** — brokerage expansion, institutional data, and execution improvements. Tournaments remain exploratory until separately defined.
+- **Later candidates (v0.53.0+):** Multi-broker routing, SEC disclosures, and expanded AI research. These are planning targets, not release commitments.
 - **Longer-term exploration:** Desktop workflows, privacy-preserving performance proofs, wearable clients, and spatial interfaces remain exploratory until scoped and prioritized.
 
 ## Release Versions & Timeline
@@ -414,18 +414,18 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ **Implied Volatility Surface 3D Visualizer:** Interactive 3D surface plot across strikes and expiration dates with strike interpolation, Dupire local volatility calculations, arbitrage violation checks, and 2D cross-sectional slice analysis ([Tracking: #137](https://github.com/CIInc/robinhood-options-mobile/issues/137), v0.51.5).
 - ✅ **Delta-Neutral Strategy Builder:** Multi-leg hedging tool calculating dynamic delta offsets, automated share/option rebalancing suggestions, and spot-shift scenario modeling ([Tracking: #137](https://github.com/CIInc/robinhood-options-mobile/issues/137), [Tracking: #108](https://github.com/CIInc/robinhood-options-mobile/issues/108), v0.51.6).
 
-### v0.52.0 (Tentative target: December 2026)
-**Copy-Trading Transparency & Social Foundations**
+### v0.52.0 ✅ (Released Sep 24, 2026)
+**Copy-Trading Transparency, Social Foundations & Schwab Execution**
 - ✅ **Copy-Trading Slippage & Divergence Analytics:** Audit report showing follower fill latency (ms), price slippage vs. leader, and net return tracking ([Tracking: #141](https://github.com/CIInc/robinhood-options-mobile/issues/141)).
 - ✅ **Automated Copy-Trading Risk Guardian:** Follower protective guardrails specifying max capital allocation per trade, auto-disconnect on leader drawdown divergence, and max slippage abort ([Tracking: #141](https://github.com/CIInc/robinhood-options-mobile/issues/141), v0.52.0).
 - ✅ **Side-by-Side Multi-Trader Portfolio Comparison:** Benchmark risk-adjusted performance across 2 to 4 potential leaders with timeframe normalization (`1W`, `1M`, `3M`, `1Y`, `ALL`), 5-dimensional relative strength scoring, metric winner highlights, privacy masking, and 1-tap copy integration ([Tracking: #141](https://github.com/CIInc/robinhood-options-mobile/issues/141), [Tracking: #113](https://github.com/CIInc/robinhood-options-mobile/issues/113), v0.52.0).
 - ✅ **Social Discussion & Comment Threads:** Granular discussions on shared trade ideas and public portfolios with author-pinned comments, community sentiment polling (Bullish, Bearish, Neutral), comment upvoting, and moderation reporting controls ([Tracking: #113](https://github.com/CIInc/robinhood-options-mobile/issues/113), v0.52.0).
+- ✅ **Schwab Advanced Execution & Strategy Chains:** Pre-trade order previews with fee and margin validation, in-flight order replacement, and multi-leg strategy option chains ([#122](https://github.com/CIInc/robinhood-options-mobile/issues/122), v0.52.0).
 - **Trading Arenas & Verified Paper Tournaments (exploratory):** Keep paper-only; define fair scoring, anti-abuse controls, and a separate tracked issue before assigning a release.
 
 ### v0.53.0 (2027 Q1 - January)
 **Institutional Multi-Brokerage, Smart Order Routing & SEC Disclosures**
-- ✅ **Schwab Advanced Execution, Order Preview & Strategy Chains:** In-flight order replacement and modification (`PUT /trader/v1/accounts/{account}/orders/{id}`), margin preview validation (`previewOrder`), and multi-leg option chains (`GET /marketdata/v1/chains?strategy=...`) ([#122](https://github.com/CIInc/robinhood-options-mobile/issues/122)).
-- **Schwab Account Activity & Historical Cash Transactions:** Sync historical dividends, margin interest charges, and cash movements (`GET /trader/v1/accounts/{account}/transactions`) ([#91](https://github.com/CIInc/robinhood-options-mobile/issues/91)).
+- ✅ **Schwab Account Activity & Historical Cash Transactions:** Sync historical dividends, margin interest charges, and cash movements (`GET /trader/v1/accounts/{account}/transactions`) and user preferences synchronization (`GET /trader/v1/userPreference`) ([#91](https://github.com/CIInc/robinhood-options-mobile/issues/91)).
 - **Smart Order Routing (SOR) & Cross-Broker Margin & Borrow Optimizer:** Dynamically evaluate and route equity/option orders between connected brokerages (Robinhood and Schwab) to minimize margin requirements and borrow rates ([#108](https://github.com/CIInc/robinhood-options-mobile/issues/108)).
 - **SEC EDGAR Real-Time 13F & Form 4 Insider Whales Ingestion:** Automated streaming parsing of 13F institutional disclosures, Form 4 insider cluster buys, and 8-K material events with portfolio overlap alerts ([Tracking: #143](https://github.com/CIInc/robinhood-options-mobile/issues/143)).
 - **Congress & Political Trading Tracker:** Automatic monitoring and alerts for congressional disclosures (STOCK Act filings) with portfolio overlap matching.
@@ -1039,9 +1039,9 @@ Keep reliability, account security, and test coverage ahead of feature breadth. 
         - [x] Order preview and margin validation (`POST /trader/v1/accounts/{accountNumber}/previewOrder`) for pre-trade buying power and commission check
         - [x] In-flight order replacement and modification (`PUT /trader/v1/accounts/{accountNumber}/orders/{orderId}`)
         - [x] Multi-leg strategy options chains (`GET /marketdata/v1/chains?strategy=...`)
-    - [ ] **Schwab Account Activity & Transactions** ([#91](https://github.com/CIInc/robinhood-options-mobile/issues/91)):
-        - [ ] Historical trade transactions, dividends, and cash movements (`GET /trader/v1/accounts/{accountNumber}/transactions`) for realized P&L and dividend tracking
-        - [ ] User preferences synchronization (`GET /trader/v1/userPreference`)
+    - [x] **Schwab Account Activity & Transactions** ([#91](https://github.com/CIInc/robinhood-options-mobile/issues/91)):
+        - [x] Historical trade transactions, dividends, and cash movements (`GET /trader/v1/accounts/{accountNumber}/transactions`) for realized P&L and dividend tracking
+        - [x] User preferences synchronization (`GET /trader/v1/userPreference`)
     - [x] **Schwab Real-Time WebSocket Streamer** ([#145](https://github.com/CIInc/robinhood-options-mobile/issues/145)):
         - [x] Streamer authentication and session handshake via `GET /trader/v1/userPreference` (`wss://streamer-api.schwab.com/ws`)
         - [x] Sub-second streaming quotes (`LEVELONE_EQUITIES`) and options Greeks (`LEVELONE_OPTIONS`)

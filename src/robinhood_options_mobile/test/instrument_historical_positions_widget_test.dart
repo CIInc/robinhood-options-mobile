@@ -317,5 +317,70 @@ void main() {
       expect(find.text('10 for 1 Split'), findsOneWidget);
       expect(find.textContaining('split-adjusted'), findsWidgets);
     });
+
+    testWidgets('respects custom title parameter',
+        (WidgetTester tester) async {
+      final orders = [
+        _makeOrder(id: 'o1', side: 'buy', quantity: 5, price: 50, date: DateTime(2025, 1, 1)),
+        _makeOrder(id: 'o2', side: 'sell', quantity: 5, price: 60, date: DateTime(2025, 1, 10)),
+      ];
+      final summary = InstrumentCostBasisLookbackSummary.fromOrders(orders, symbol: 'TSLA');
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SingleChildScrollView(
+              child: InstrumentHistoricalPositionsWidget(
+                summary: summary,
+                title: 'TSLA Past Positions',
+              ),
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('TSLA Past Positions'), findsOneWidget);
+      expect(find.text('Previous Positions'), findsNothing);
+    });
+
+    testWidgets('invokes onTapOrder callback when order tapped in bottom sheet',
+        (WidgetTester tester) async {
+      InstrumentOrder? tappedOrder;
+      final orders = [
+        _makeOrder(id: 'ord_buy_1', side: 'buy', quantity: 10, price: 100, date: DateTime(2025, 1, 1)),
+        _makeOrder(id: 'ord_sell_1', side: 'sell', quantity: 10, price: 120, date: DateTime(2025, 1, 5)),
+      ];
+      final summary = InstrumentCostBasisLookbackSummary.fromOrders(orders, symbol: 'AAPL');
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SingleChildScrollView(
+              child: InstrumentHistoricalPositionsWidget(
+                summary: summary,
+                onTapOrder: (order) {
+                  tappedOrder = order;
+                },
+              ),
+            ),
+          ),
+        ),
+      );
+
+      // Open bottom sheet
+      await tester.tap(find.byType(ListTile).first);
+      await tester.pumpAndSettle();
+
+      // Tap buy order in bottom sheet
+      final buyOrderFinder = find.textContaining('BUY 10 shares');
+      expect(buyOrderFinder, findsOneWidget);
+      await tester.ensureVisible(buyOrderFinder);
+      await tester.pumpAndSettle();
+      await tester.tap(buyOrderFinder);
+      await tester.pumpAndSettle();
+
+      expect(tappedOrder, isNotNull);
+      expect(tappedOrder!.id, 'ord_buy_1');
+    });
   });
 }

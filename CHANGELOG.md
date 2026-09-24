@@ -2,8 +2,8 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.52.0] - 2026-09-22
-**Copy-Trading Slippage & Fill Divergence Analytics ([Tracking: #141](https://github.com/CIInc/robinhood-options-mobile/issues/141))**
+## [0.52.0] - 2026-09-24
+**Copy-Trading Safeguards, Social Tools & Schwab Execution ([Tracking: #141](https://github.com/CIInc/robinhood-options-mobile/issues/141), [#113](https://github.com/CIInc/robinhood-options-mobile/issues/113), [#122](https://github.com/CIInc/robinhood-options-mobile/issues/122))**
 
 - **Copy-Trading Slippage & Divergence Analytics (`CopyTradeRecord`, `CopyTradeSlippageAnalytics`, `CopyTradeSlippageCard`, `CopyTradingDashboardWidget`, [Tracking: #141](https://github.com/CIInc/robinhood-options-mobile/issues/141)):**
   - **Follower Fill Latency Tracking (`CopyTradeRecord`, `CopyTradingProvider`)**:
@@ -31,6 +31,11 @@ All notable changes to this project will be documented in this file.
     - Unit tests in `test/copy_trade_record_slippage_test.dart` verifying data model serialization, JSON deserialization, side-dependent slippage formulas, basis points calculations, and backward compatibility for legacy records.
     - Unit tests in `test/copy_trade_slippage_analytics_test.dart` validating statistical aggregation, median latency, asset class multipliers, quality scores, and leader divergence metrics.
     - Widget tests in `test/copy_trading_dashboard_slippage_test.dart` verifying empty state fallback, metric tile rendering, quality bar, latency breakdown, and leader comparison rows.
+
+- **Copy-Trading Risk Guardian and Trader Comparison ([#141](https://github.com/CIInc/robinhood-options-mobile/issues/141), [#113](https://github.com/CIInc/robinhood-options-mobile/issues/113)):** Added per-trade and portfolio-equity allocation caps, pre-execution slippage limits, and circuit breakers for leader drawdown and return divergence. The dashboard now surfaces protected/aborted trades and guardian reset controls. Added privacy-aware comparison of two to four traders across normalized timeframes, risk-adjusted metrics, and relative-strength scoring, plus portfolio publishing and deletion controls.
+- **Social Discussion & Comment Threads ([#113](https://github.com/CIInc/robinhood-options-mobile/issues/113)):** Added discussions on shared analyses and public trader portfolios, including sentiment polls, author-pinned comments, upvotes, reporting, and moderation states. See [social discussion documentation](docs/social-discussion-threads.md).
+- **Schwab Execution and Strategy Chains ([#122](https://github.com/CIInc/robinhood-options-mobile/issues/122)):** Added equity, single-leg, and multi-leg order previews with fee, margin, buying-power, and validation details; hard preview rejections block order confirmation. Working orders can be replaced, cancellable orders expose cancellation links, and strategy option chains support verticals, calendars, straddles, strangles, collars, butterflies, condors, and custom strategies. Also fixed nullable buying-power handling and added order-template sorting fallback with a composite Firestore index.
+- **Verification:** Added model, service, Firestore, and widget tests for the new copy-trading, trader-comparison, social-discussion, and Schwab flows.
 
 ## [0.51.6] - 2026-09-22
 **Delta-Neutral Strategy Builder ([Tracking: #137](https://github.com/CIInc/robinhood-options-mobile/issues/137), [Tracking: #108](https://github.com/CIInc/robinhood-options-mobile/issues/108))**

@@ -15,6 +15,7 @@ class BankingWidget extends StatefulWidget {
   final IBrokerageService service;
   final Account? account;
   final int initialTabIndex;
+  final bool embedded;
 
   const BankingWidget({
     super.key,
@@ -22,6 +23,7 @@ class BankingWidget extends StatefulWidget {
     required this.service,
     this.account,
     this.initialTabIndex = 0,
+    this.embedded = false,
   });
 
   @override
@@ -148,6 +150,71 @@ class _BankingWidgetState extends State<BankingWidget>
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
+    final body = FutureBuilder<(List<AchTransfer>, List<AchRelationship>)>(
+      future: _futureData,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (snapshot.hasError) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.error_outline,
+                      size: 48, color: Colors.red),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Failed to load banking data',
+                    style: theme.textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '${snapshot.error}',
+                    style: theme.textTheme.bodySmall,
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                  FilledButton.icon(
+                    onPressed: _loadData,
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Retry'),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        final data = snapshot.data ??
+            (const <AchTransfer>[], const <AchRelationship>[]);
+        final transfers = data.$1;
+        final relationships = data.$2;
+        final summary = AchSummary.fromTransfersAndRelationships(
+            transfers, relationships);
+
+        return RefreshIndicator(
+          onRefresh: () async => _loadData(),
+          child: widget.embedded
+              ? _buildTransfersTab(transfers, relationships, summary)
+              : TabBarView(
+                  controller: _tabController,
+                  children: [
+                    _buildTransfersTab(transfers, relationships, summary),
+                    _buildLinkedAccountsTab(relationships, summary),
+                  ],
+                ),
+        );
+      },
+    );
+
+    if (widget.embedded) {
+      return body;
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Banking & Transfers'),
@@ -159,64 +226,7 @@ class _BankingWidgetState extends State<BankingWidget>
           ],
         ),
       ),
-      body: FutureBuilder<(List<AchTransfer>, List<AchRelationship>)>(
-        future: _futureData,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          if (snapshot.hasError) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.error_outline,
-                        size: 48, color: Colors.red),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Failed to load banking data',
-                      style: theme.textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      '${snapshot.error}',
-                      style: theme.textTheme.bodySmall,
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 16),
-                    FilledButton.icon(
-                      onPressed: _loadData,
-                      icon: const Icon(Icons.refresh),
-                      label: const Text('Retry'),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          }
-
-          final data = snapshot.data ??
-              (const <AchTransfer>[], const <AchRelationship>[]);
-          final transfers = data.$1;
-          final relationships = data.$2;
-          final summary = AchSummary.fromTransfersAndRelationships(
-              transfers, relationships);
-
-          return RefreshIndicator(
-            onRefresh: () async => _loadData(),
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _buildTransfersTab(transfers, relationships, summary),
-                _buildLinkedAccountsTab(relationships, summary),
-              ],
-            ),
-          );
-        },
-      ),
+      body: body,
     );
   }
 

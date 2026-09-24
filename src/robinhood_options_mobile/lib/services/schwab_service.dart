@@ -72,6 +72,8 @@ import 'package:robinhood_options_mobile/model/notification_item.dart';
 import 'package:robinhood_options_mobile/model/schwab_streamer_info.dart';
 import 'package:robinhood_options_mobile/model/schwab_order_preview.dart';
 import 'package:robinhood_options_mobile/model/schwab_strategy_chain.dart';
+import 'package:robinhood_options_mobile/model/schwab_transaction.dart';
+import 'package:robinhood_options_mobile/model/schwab_user_preference.dart';
 import 'package:robinhood_options_mobile/services/schwab_streamer_service.dart';
 
 class SchwabService implements IBrokerageService {
@@ -272,6 +274,143 @@ class SchwabService implements IBrokerageService {
       return null;
     }
     return SchwabStreamerInfo.fromUserPreference(resultJson);
+  }
+
+  /// Retrieves user preferences including account defaults, streamer connection
+  /// metadata, and market data offer permissions:
+  /// `GET /trader/v1/userPreference`
+  Future<SchwabUserPreference?> getUserPreferences(BrokerageUser user) async {
+    var url = '$endpoint/trader/v1/userPreference';
+    dynamic resultJson = await getJson(user, url);
+    if (resultJson == null || resultJson is! Map<String, dynamic>) {
+      return null;
+    }
+    return SchwabUserPreference.fromJson(resultJson);
+  }
+
+  /// Builds query URL for Schwab transaction history endpoint:
+  /// `GET /trader/v1/accounts/{accountNumber}/transactions`
+  String buildTransactionsUrl(
+    String accountNumber, {
+    DateTime? startDate,
+    DateTime? endDate,
+    List<String>? types,
+    String? symbol,
+  }) {
+    var queryParams = <String>[];
+    if (startDate != null) {
+      queryParams.add(
+          'startDate=${Uri.encodeComponent(startDate.toIso8601String())}');
+    }
+    if (endDate != null) {
+      queryParams
+          .add('endDate=${Uri.encodeComponent(endDate.toIso8601String())}');
+    }
+    if (types != null && types.isNotEmpty) {
+      queryParams.add('types=${Uri.encodeComponent(types.join(','))}');
+    }
+    if (symbol != null && symbol.isNotEmpty) {
+      queryParams.add('symbol=${Uri.encodeComponent(symbol)}');
+    }
+
+    var url = '$endpoint/trader/v1/accounts/$accountNumber/transactions';
+    if (queryParams.isNotEmpty) {
+      url += '?${queryParams.join('&')}';
+    }
+    return url;
+  }
+
+  /// Fetches historical transactions for a given Schwab account:
+  /// `GET /trader/v1/accounts/{accountNumber}/transactions`
+  Future<List<SchwabTransaction>> getSchwabTransactions(
+    BrokerageUser user, {
+    String? accountNumber,
+    DateTime? startDate,
+    DateTime? endDate,
+    List<String>? types,
+    String? symbol,
+  }) async {
+    try {
+      String? resolvedAccount = accountNumber;
+      if (resolvedAccount == null || resolvedAccount.isEmpty) {
+        try {
+          final prefs = await getUserPreferences(user);
+          resolvedAccount = prefs?.primaryAccount?.accountNumber;
+        } catch (_) {}
+      }
+      if (resolvedAccount == null || resolvedAccount.isEmpty) {
+        try {
+          final accounts = await getAccounts(user, AccountStore(), null, null);
+          if (accounts.isNotEmpty) {
+            resolvedAccount = accounts.first.accountNumber;
+          }
+        } catch (_) {}
+      }
+      if (resolvedAccount == null || resolvedAccount.isEmpty) {
+        return [];
+      }
+
+      final url = buildTransactionsUrl(
+        resolvedAccount,
+        startDate: startDate,
+        endDate: endDate,
+        types: types,
+        symbol: symbol,
+      );
+
+      dynamic resultJson = await getJson(user, url);
+      if (resultJson == null || resultJson is! List) {
+        return [];
+      }
+
+      return resultJson
+          .whereType<Map<String, dynamic>>()
+          .map((j) => SchwabTransaction.fromJson(j))
+          .toList();
+    } catch (e) {
+      debugPrint('SchwabService.getSchwabTransactions error: $e');
+      return [];
+    }
+  }
+
+  /// Fetches details of a specific transaction by activity ID:
+  /// `GET /trader/v1/accounts/{accountNumber}/transactions/{transactionId}`
+  Future<SchwabTransaction?> getSchwabTransaction(
+    BrokerageUser user,
+    String transactionId, {
+    String? accountNumber,
+  }) async {
+    try {
+      String? resolvedAccount = accountNumber;
+      if (resolvedAccount == null || resolvedAccount.isEmpty) {
+        try {
+          final prefs = await getUserPreferences(user);
+          resolvedAccount = prefs?.primaryAccount?.accountNumber;
+        } catch (_) {}
+      }
+      if (resolvedAccount == null || resolvedAccount.isEmpty) {
+        try {
+          final accounts = await getAccounts(user, AccountStore(), null, null);
+          if (accounts.isNotEmpty) {
+            resolvedAccount = accounts.first.accountNumber;
+          }
+        } catch (_) {}
+      }
+      if (resolvedAccount == null || resolvedAccount.isEmpty) {
+        return null;
+      }
+
+      var url =
+          '$endpoint/trader/v1/accounts/$resolvedAccount/transactions/$transactionId';
+      dynamic resultJson = await getJson(user, url);
+      if (resultJson == null || resultJson is! Map<String, dynamic>) {
+        return null;
+      }
+      return SchwabTransaction.fromJson(resultJson);
+    } catch (e) {
+      debugPrint('SchwabService.getSchwabTransaction error: $e');
+      return null;
+    }
   }
 
   SchwabStreamerService createStreamer(
@@ -1105,9 +1244,18 @@ https://api.schwabapi.com/trader/v1/accounts/C0182387A893E4CE03E26C081206E282EE3
 
   @override
   Future<List<Instrument>> getInstrumentsByIds(
-      BrokerageUser user, InstrumentStore store, List<String> ids) {
-    // TODO: implement getInstrumentsByIds
-    throw UnimplementedError();
+      BrokerageUser user, InstrumentStore store, List<String> ids) async {
+    final list = <Instrument>[];
+    for (final id in ids) {
+      if (id.isEmpty) continue;
+      try {
+        final instrument = await getInstrument(user, store, id);
+        list.add(instrument);
+      } catch (e) {
+        debugPrint('SchwabService.getInstrumentsByIds error for $id: $e');
+      }
+    }
+    return list;
   }
 
   @override
@@ -1174,7 +1322,36 @@ https://api.schwabapi.com/trader/v1/accounts/C0182387A893E4CE03E26C081206E282EE3
   Stream<List> streamDividends(
       BrokerageUser user, InstrumentStore instrumentStore,
       {DocumentReference? userDoc}) async* {
-    yield [];
+    try {
+      final transactions = await getSchwabTransactions(
+        user,
+        types: ['DIVIDEND_OR_INTEREST'],
+      );
+      final List<dynamic> dividends = [];
+      for (final tx in transactions) {
+        if (tx.isDividend) {
+          Instrument? instrumentObj;
+          if (tx.primarySymbol != null) {
+            instrumentObj = instrumentStore.items.firstWhereOrNull(
+              (i) => i.symbol.toUpperCase() == tx.primarySymbol!.toUpperCase(),
+            );
+            if (instrumentObj == null) {
+              instrumentObj = Instrument.fromSchwabJson({
+                'symbol': tx.primarySymbol,
+                'description': tx.description ?? tx.primarySymbol,
+                'assetType': 'stock',
+              });
+              instrumentStore.add(instrumentObj);
+            }
+          }
+          dividends.add(tx.toDividendMap(instrumentObj: instrumentObj));
+        }
+      }
+      yield dividends;
+    } catch (e) {
+      debugPrint('SchwabService.streamDividends error: $e');
+      yield [];
+    }
   }
 
   @override
@@ -2115,9 +2292,68 @@ https://api.schwabapi.com/trader/v1/orders?fromEnteredTime=2024-09-28T23%3A59%3A
 
   @override
   Future<Instrument> getInstrument(
-      BrokerageUser user, InstrumentStore store, String instrumentUrl) {
-    // TODO: implement getInstrument
-    throw UnimplementedError();
+      BrokerageUser user, InstrumentStore store, String instrumentUrl) async {
+    // 1. Check local cache by url, id, or symbol
+    if (instrumentUrl.isNotEmpty) {
+      final cached = store.items.where((element) =>
+          element.url == instrumentUrl ||
+          element.id == instrumentUrl ||
+          element.symbol.toUpperCase() == instrumentUrl.toUpperCase()).toList();
+      if (cached.isNotEmpty) {
+        return cached.first;
+      }
+    }
+
+    // 2. Extract symbol from URL or string
+    String symbol = instrumentUrl;
+    if (symbol.contains('symbol=')) {
+      final uri = Uri.tryParse(symbol);
+      final param = uri?.queryParameters['symbol'];
+      if (param != null && param.isNotEmpty) {
+        symbol = param;
+      }
+    } else if (symbol.startsWith('http')) {
+      final uri = Uri.tryParse(symbol);
+      if (uri != null && uri.pathSegments.isNotEmpty) {
+        symbol = uri.pathSegments.last;
+      }
+    }
+
+    // 3. Try Firestore cache if available
+    if (symbol.isNotEmpty && !symbol.startsWith('http')) {
+      try {
+        final firestore = _firestoreService ?? FirestoreService();
+        final cachedFirestore = await firestore.getInstrument(symbol: symbol);
+        if (cachedFirestore != null) {
+          store.addOrUpdate(cachedFirestore);
+          return cachedFirestore;
+        }
+      } catch (_) {}
+    }
+
+    // 4. Try fetching from Schwab marketdata instruments API
+    if (symbol.isNotEmpty && !symbol.startsWith('http') && symbol != 'UNKNOWN') {
+      try {
+        final fetched = await getInstrumentBySymbol(user, store, symbol);
+        if (fetched != null) {
+          store.addOrUpdate(fetched);
+          return fetched;
+        }
+      } catch (e) {
+        debugPrint('SchwabService.getInstrument error: $e');
+      }
+    }
+
+    // 5. Fallback minimal instrument
+    final fallbackSymbol = (symbol.isNotEmpty && !symbol.startsWith('http'))
+        ? symbol
+        : 'UNKNOWN';
+    final fallback = Instrument.forSymbol(
+      fallbackSymbol,
+      instrumentUrl: instrumentUrl,
+    );
+    store.addOrUpdate(fallback);
+    return fallback;
   }
 
 /*
@@ -2534,9 +2770,41 @@ https://api.schwabapi.com/marketdata/v1/instruments?symbol=Google&projection=sea
   @override
   Future<List> getDividends(BrokerageUser user, DividendStore dividendStore,
       InstrumentStore instrumentStore,
-      {String? instrumentId}) {
-    // TODO: implement getDividends
-    return Future.value([]);
+      {String? instrumentId}) async {
+    try {
+      final transactions = await getSchwabTransactions(
+        user,
+        types: ['DIVIDEND_OR_INTEREST'],
+        symbol: instrumentId,
+      );
+
+      final List<dynamic> dividends = [];
+      for (final tx in transactions) {
+        if (tx.isDividend) {
+          Instrument? instrumentObj;
+          if (tx.primarySymbol != null) {
+            instrumentObj = instrumentStore.items.firstWhereOrNull(
+              (i) => i.symbol.toUpperCase() == tx.primarySymbol!.toUpperCase(),
+            );
+            if (instrumentObj == null) {
+              instrumentObj = Instrument.fromSchwabJson({
+                'symbol': tx.primarySymbol,
+                'description': tx.description ?? tx.primarySymbol,
+                'assetType': 'stock',
+              });
+              instrumentStore.add(instrumentObj);
+            }
+          }
+          final map = tx.toDividendMap(instrumentObj: instrumentObj);
+          dividends.add(map);
+          dividendStore.addOrUpdate(map);
+        }
+      }
+      return dividends;
+    } catch (e) {
+      debugPrint('SchwabService.getDividends error: $e');
+      return [];
+    }
   }
 
   @override
@@ -3044,14 +3312,45 @@ https://api.schwabapi.com/marketdata/v1/instruments?symbol=Google&projection=sea
   Stream<List> streamInterests(
       BrokerageUser user, InstrumentStore instrumentStore,
       {DocumentReference? userDoc}) async* {
-    yield [];
+    try {
+      final transactions = await getSchwabTransactions(
+        user,
+        types: ['DIVIDEND_OR_INTEREST', 'MONEY_MARKET'],
+      );
+      final List<dynamic> interests = [];
+      for (final tx in transactions) {
+        if (tx.isInterest) {
+          interests.add(tx.toInterestMap());
+        }
+      }
+      yield interests;
+    } catch (e) {
+      debugPrint('SchwabService.streamInterests error: $e');
+      yield [];
+    }
   }
 
   @override
   Future<List> getInterests(BrokerageUser user, InterestStore dividendStore,
-      {String? instrumentId}) {
-    // TODO: implement getInterests
-    throw UnimplementedError();
+      {String? instrumentId}) async {
+    try {
+      final transactions = await getSchwabTransactions(
+        user,
+        types: ['DIVIDEND_OR_INTEREST', 'MONEY_MARKET'],
+      );
+      final List<dynamic> interests = [];
+      for (final tx in transactions) {
+        if (tx.isInterest) {
+          final map = tx.toInterestMap();
+          interests.add(map);
+          dividendStore.addOrUpdate(map);
+        }
+      }
+      return interests;
+    } catch (e) {
+      debugPrint('SchwabService.getInterests error: $e');
+      return [];
+    }
   }
 
   @override

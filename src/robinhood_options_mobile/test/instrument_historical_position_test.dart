@@ -448,5 +448,59 @@ void main() {
 
       expect(summary.totalRealizedGainLoss, 700.0);
     });
+
+    test('filterCycles correctly filters closed cycles and recalculates metrics', () {
+      final d1 = DateTime(2025, 1, 10);
+      final d2 = DateTime(2025, 1, 25);
+      final d3 = DateTime(2025, 3, 1);
+      final d4 = DateTime(2025, 3, 15);
+
+      final orders = [
+        _createOrder(id: 'o1', side: 'buy', quantity: 10, price: 100, createdAt: d1),
+        _createOrder(id: 'o2', side: 'sell', quantity: 10, price: 130, createdAt: d2),
+        _createOrder(id: 'o3', side: 'buy', quantity: 20, price: 50, createdAt: d3),
+        _createOrder(id: 'o4', side: 'sell', quantity: 20, price: 40, createdAt: d4),
+      ];
+
+      final summary = InstrumentCostBasisLookbackSummary.fromOrders(orders, symbol: 'XYZ');
+      expect(summary.totalRoundTrips, 2);
+      expect(summary.totalRealizedGainLoss, 100.0); // +300 - 200 = +100
+
+      // Filter only cycles closed in March
+      final marchSummary = summary.filterCycles((c) => c.closedAt!.month == 3);
+      expect(marchSummary.totalRoundTrips, 1);
+      expect(marchSummary.totalRealizedGainLoss, -200.0);
+      expect(marchSummary.winningTradesCount, 0);
+      expect(marchSummary.losingTradesCount, 1);
+      expect(marchSummary.winRate, 0.0);
+
+      // Filter with no matches
+      final emptyFiltered = summary.filterCycles((c) => c.closedAt!.year == 2020);
+      expect(emptyFiltered.totalRoundTrips, 0);
+      expect(emptyFiltered.hasHistory, isFalse);
+      expect(emptyFiltered.totalRealizedGainLoss, 0.0);
+    });
+
+    test('aggregate combines multiple ticker summaries into portfolio summary', () {
+      final d1 = DateTime(2025, 1, 10);
+      final d2 = DateTime(2025, 1, 20);
+
+      final s1 = InstrumentCostBasisLookbackSummary.fromOrders([
+        _createOrder(id: 'a1', side: 'buy', quantity: 10, price: 100, createdAt: d1),
+        _createOrder(id: 'a2', side: 'sell', quantity: 10, price: 120, createdAt: d2),
+      ], symbol: 'AAPL'); // +200
+
+      final s2 = InstrumentCostBasisLookbackSummary.fromOrders([
+        _createOrder(id: 't1', side: 'buy', quantity: 5, price: 200, createdAt: d1),
+        _createOrder(id: 't2', side: 'sell', quantity: 5, price: 250, createdAt: d2),
+      ], symbol: 'TSLA'); // +250
+
+      final portfolio = InstrumentCostBasisLookbackSummary.aggregate([s1, s2]);
+      expect(portfolio.totalRoundTrips, 2);
+      expect(portfolio.totalRealizedGainLoss, 450.0);
+      expect(portfolio.winningTradesCount, 2);
+      expect(portfolio.winRate, 1.0);
+      expect(portfolio.hasHistory, isTrue);
+    });
   });
 }

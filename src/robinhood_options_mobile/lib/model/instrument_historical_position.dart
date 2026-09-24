@@ -248,6 +248,149 @@ class InstrumentCostBasisLookbackSummary {
   bool get isProfitable => totalRealizedGainLoss > 0.0001;
   bool get isLoss => totalRealizedGainLoss < -0.0001;
 
+  /// Returns a new summary containing only closed cycles matching the predicate.
+  InstrumentCostBasisLookbackSummary filterCycles(
+      bool Function(InstrumentHistoricalPosition) predicate) {
+    final filteredClosed = closedCycles.where(predicate).toList();
+    if (filteredClosed.length == closedCycles.length) {
+      return this;
+    }
+    if (filteredClosed.isEmpty) {
+      return InstrumentCostBasisLookbackSummary(
+        symbol: symbol,
+        instrumentId: instrumentId,
+        cycles: const [],
+        closedCycles: const [],
+        splits: splits,
+        totalRealizedGainLoss: 0.0,
+        totalRealizedGainLossPercent: 0.0,
+        totalVolumeTraded: 0.0,
+        totalSharesTraded: 0.0,
+        totalRoundTrips: 0,
+        winningTradesCount: 0,
+        losingTradesCount: 0,
+        winRate: 0.0,
+        averageHoldDuration: Duration.zero,
+        overallAverageBuyPrice: 0.0,
+        overallAverageSellPrice: 0.0,
+        netCashFlow: 0.0,
+      );
+    }
+    final winning = filteredClosed.where((c) => c.isProfitable).length;
+    final losing = filteredClosed.where((c) => c.isLoss).length;
+    final winRate =
+        filteredClosed.isNotEmpty ? (winning / filteredClosed.length) : 0.0;
+    final totalClosedHoldSecs = filteredClosed.fold<int>(
+      0,
+      (acc, c) => acc + c.holdDuration.inSeconds,
+    );
+    final avgHold = filteredClosed.isNotEmpty
+        ? Duration(
+            seconds: (totalClosedHoldSecs / filteredClosed.length).round())
+        : Duration.zero;
+    final totalRealized = filteredClosed.fold<double>(
+      0.0,
+      (acc, c) => acc + c.realizedGainLoss,
+    );
+    final totalCost = filteredClosed.fold<double>(
+      0.0,
+      (acc, c) => acc + c.totalCostBasis,
+    );
+    final totalProceeds = filteredClosed.fold<double>(
+      0.0,
+      (acc, c) => acc + c.totalProceeds,
+    );
+    final totalShares = filteredClosed.fold<double>(
+      0.0,
+      (acc, c) => acc + c.totalShares,
+    );
+    final avgBuy = totalShares > 0 ? (totalCost / totalShares) : 0.0;
+    final avgSell = totalShares > 0 ? (totalProceeds / totalShares) : 0.0;
+    final realizedPct = totalCost > 0 ? (totalRealized / totalCost) : 0.0;
+
+    return InstrumentCostBasisLookbackSummary(
+      symbol: symbol,
+      instrumentId: instrumentId,
+      cycles: filteredClosed,
+      closedCycles: List.unmodifiable(filteredClosed),
+      splits: splits,
+      totalRealizedGainLoss: totalRealized,
+      totalRealizedGainLossPercent: realizedPct,
+      totalVolumeTraded: totalCost + totalProceeds,
+      totalSharesTraded: totalShares * 2,
+      totalRoundTrips: filteredClosed.length,
+      winningTradesCount: winning,
+      losingTradesCount: losing,
+      winRate: winRate,
+      averageHoldDuration: avgHold,
+      overallAverageBuyPrice: avgBuy,
+      overallAverageSellPrice: avgSell,
+      netCashFlow: totalProceeds - totalCost,
+    );
+  }
+
+  /// Combines multiple ticker lookback summaries into a portfolio-level summary.
+  static InstrumentCostBasisLookbackSummary aggregate(
+      List<InstrumentCostBasisLookbackSummary> summaries,
+      {String label = 'Portfolio'}) {
+    final allCycles = summaries.expand((s) => s.cycles).toList();
+    final allClosed = summaries.expand((s) => s.closedCycles).toList();
+    final allSplits = summaries.expand((s) => s.splits).toList();
+
+    final winning = allClosed.where((c) => c.isProfitable).length;
+    final losing = allClosed.where((c) => c.isLoss).length;
+    final winRate = allClosed.isNotEmpty ? (winning / allClosed.length) : 0.0;
+
+    final totalClosedHoldSecs = allClosed.fold<int>(
+      0,
+      (acc, c) => acc + c.holdDuration.inSeconds,
+    );
+    final avgHold = allClosed.isNotEmpty
+        ? Duration(
+            seconds: (totalClosedHoldSecs / allClosed.length).round())
+        : Duration.zero;
+
+    final totalRealized = summaries.fold<double>(
+      0.0,
+      (acc, s) => acc + s.totalRealizedGainLoss,
+    );
+    final totalCost = allClosed.fold<double>(
+      0.0,
+      (acc, c) => acc + c.totalCostBasis,
+    );
+    final totalProceeds = allClosed.fold<double>(
+      0.0,
+      (acc, c) => acc + c.totalProceeds,
+    );
+    final totalShares = allClosed.fold<double>(
+      0.0,
+      (acc, c) => acc + c.totalShares,
+    );
+    final avgBuy = totalShares > 0 ? (totalCost / totalShares) : 0.0;
+    final avgSell = totalShares > 0 ? (totalProceeds / totalShares) : 0.0;
+    final realizedPct = totalCost > 0 ? (totalRealized / totalCost) : 0.0;
+
+    return InstrumentCostBasisLookbackSummary(
+      symbol: label,
+      instrumentId: '',
+      cycles: List.unmodifiable(allCycles),
+      closedCycles: List.unmodifiable(allClosed),
+      splits: List.unmodifiable(allSplits),
+      totalRealizedGainLoss: totalRealized,
+      totalRealizedGainLossPercent: realizedPct,
+      totalVolumeTraded: totalCost + totalProceeds,
+      totalSharesTraded: totalShares * 2,
+      totalRoundTrips: allClosed.length,
+      winningTradesCount: winning,
+      losingTradesCount: losing,
+      winRate: winRate,
+      averageHoldDuration: avgHold,
+      overallAverageBuyPrice: avgBuy,
+      overallAverageSellPrice: avgSell,
+      netCashFlow: totalProceeds - totalCost,
+    );
+  }
+
   /// Reconstructs position cycles and metrics from a list of filled orders.
   factory InstrumentCostBasisLookbackSummary.fromOrders(
     List<InstrumentOrder> orders, {

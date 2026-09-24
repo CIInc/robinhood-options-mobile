@@ -8,6 +8,8 @@ See our [docs](https://ciinc.github.io/robinhood-options-mobile/) for use cases 
 
 ## Features
 
+*   **v0.52.0 Highlights:** Copy-trading allocation and slippage guardrails with leader-drawdown circuit breakers; privacy-aware trader comparisons; [moderated social discussions](docs/social-discussion-threads.md) and sentiment polls; and Schwab order previews, working-order replacement, and multi-leg strategy chains.
+
 *   **Brokerage Integration:** Connects securely to brokerage accounts (e.g., Robinhood) to fetch real-time data. **New:** Native Robinhood first-party API extensions for institutional hedge fund holdings, officer/director insider trades, retail order flow, short interest/borrow availability, unified accounts margin health, stock lending payments (SLIP), high-yield cash sweeps, ACH transfers & banking, 1099 tax documents & statements, corporate action split adjustments, Say Technologies shareholder Q&A, and Traditional/Roth IRAs (`ira_traditional`, `ira_roth`). **New:** Fidelity Account data import via CSV (positions & history) and Schwab integration enhancements. **Multi-Account Aggregation & Persistent Swapping:** View and manage positions across multiple accounts simultaneously with aggregate trading controls, and set a persistent active account inside the app with immediate workspace synchronization.
 *   **Model Context Protocol (MCP) Client:** Secure, local MCP Dart client enabling conversational AI agents to discover, inspect, and execute real-time brokerage actions (fetching balances, positions, orders, or watchlists) through local model-called tools directly within the device.
 *   **Options Chain Viewing:** Displays detailed options chains for various underlying assets.

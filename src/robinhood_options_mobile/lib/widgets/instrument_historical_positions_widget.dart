@@ -8,12 +8,14 @@ class InstrumentHistoricalPositionsWidget extends StatefulWidget {
   final InstrumentCostBasisLookbackSummary summary;
   final Function(InstrumentOrder)? onTapOrder;
   final bool showHeader;
+  final String? title;
 
   const InstrumentHistoricalPositionsWidget({
     super.key,
     required this.summary,
     this.onTapOrder,
     this.showHeader = true,
+    this.title,
   });
 
   @override
@@ -172,7 +174,7 @@ class _InstrumentHistoricalPositionsWidgetState
       children: [
         _buildSectionHeader(
           context: context,
-          title: 'Previous Positions',
+          title: widget.title ?? 'Previous Positions',
           subtitle:
               '${widget.summary.totalRoundTrips} round trip${widget.summary.totalRoundTrips == 1 ? "" : "s"} • Cost Basis Lookback',
           icon: Icons.history_toggle_off_rounded,
@@ -571,7 +573,9 @@ class _InstrumentHistoricalPositionsWidgetState
                     children: [
                       Expanded(
                         child: Text(
-                          'Round-Trip Execution Details',
+                          cycle.symbol.isNotEmpty
+                              ? '${cycle.symbol} Round-Trip Details'
+                              : 'Round-Trip Execution Details',
                           style: theme.textTheme.titleLarge?.copyWith(
                             fontWeight: FontWeight.bold,
                           ),
@@ -712,7 +716,7 @@ class _InstrumentHistoricalPositionsWidgetState
                     final orderTotal = orderQty * orderPrice;
                     final orderDate = order.createdAt ?? order.updatedAt;
 
-                    return Container(
+                    final orderCard = Container(
                       margin: const EdgeInsets.symmetric(vertical: 4),
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
@@ -770,9 +774,29 @@ class _InstrumentHistoricalPositionsWidgetState
                               fontWeight: FontWeight.bold,
                             ),
                           ),
+                          if (widget.onTapOrder != null) ...[
+                            const SizedBox(width: 4),
+                            Icon(
+                              Icons.chevron_right,
+                              size: 16,
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ],
                         ],
                       ),
                     );
+
+                    if (widget.onTapOrder != null) {
+                      return InkWell(
+                        onTap: () {
+                          Navigator.pop(bottomSheetContext);
+                          widget.onTapOrder!(order);
+                        },
+                        borderRadius: BorderRadius.circular(8),
+                        child: orderCard,
+                      );
+                    }
+                    return orderCard;
                   }),
                 ],
               ),

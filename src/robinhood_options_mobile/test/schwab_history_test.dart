@@ -1,13 +1,35 @@
+import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oauth2/oauth2.dart' as oauth2;
+import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
+import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/model/instrument_order.dart';
 import 'package:robinhood_options_mobile/model/instrument_order_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_store.dart';
 import 'package:robinhood_options_mobile/model/option_order.dart';
 import 'package:robinhood_options_mobile/model/option_order_store.dart';
+import 'package:robinhood_options_mobile/model/quote_store.dart';
+import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/schwab_service.dart';
+import 'package:robinhood_options_mobile/widgets/option_order_widget.dart';
+
+class FakeFirebaseAnalytics extends Fake implements FirebaseAnalytics {
+  @override
+  Future<void> logScreenView({
+    String? screenClass,
+    String? screenName,
+    Map<String, Object>? parameters,
+    AnalyticsCallOptions? callOptions,
+  }) async {}
+}
+
+class FakeFirebaseAnalyticsObserver extends Fake
+    implements FirebaseAnalyticsObserver {}
+
+class FakeGenerativeService extends Fake implements GenerativeService {}
 
 void main() {
   group('Schwab History & Orders Tests', () {
@@ -279,5 +301,107 @@ void main() {
           .first;
       expect(optionOrders, isEmpty);
     });
+
+    test('SchwabService.getInstrument returns cached instrument from store',
+        () async {
+      final service = SchwabService();
+      final user = BrokerageUser(BrokerageSource.schwab, 'user', null, null);
+      final store = InstrumentStore();
+      final inst = Instrument.forSymbol('AAPL', instrumentUrl: 'AAPL');
+      store.add(inst);
+
+      final result = await service.getInstrument(user, store, 'AAPL');
+      expect(result.symbol, 'AAPL');
+      expect(result.id, inst.id);
+    });
+
+    test(
+        'SchwabService.getInstrument handles symbol and returns fallback without throwing UnimplementedError',
+        () async {
+      final service = SchwabService();
+      // Client is null so network fails gracefully and falls back to Instrument.forSymbol
+      final user = BrokerageUser(BrokerageSource.schwab, 'user', null, null);
+      final store = InstrumentStore();
+
+      final result = await service.getInstrument(user, store, 'MSFT');
+      expect(result.symbol, 'MSFT');
+      expect(store.items.any((e) => e.symbol == 'MSFT'), isTrue);
+    });
+
+    test(
+        'SchwabService.getInstrumentsByIds returns instruments for symbol list',
+        () async {
+      final service = SchwabService();
+      final user = BrokerageUser(BrokerageSource.schwab, 'user', null, null);
+      final store = InstrumentStore();
+
+      final results =
+          await service.getInstrumentsByIds(user, store, ['NVDA', 'TSLA']);
+      expect(results.length, 2);
+      expect(results.map((e) => e.symbol).toList(), containsAll(['NVDA', 'TSLA']));
+    });
+
+    testWidgets('OptionOrderWidget renders successfully for Schwab option order',
+        (tester) async {
+      final service = SchwabService();
+      final user = BrokerageUser(BrokerageSource.schwab, 'schwab_user', null, null);
+      final instrumentStore = InstrumentStore();
+      final quoteStore = QuoteStore();
+
+      final optionOrder = OptionOrder.fromSchwabJson({
+        'orderId': 20001,
+        'orderType': 'LIMIT',
+        'status': 'FILLED',
+        'duration': 'DAY',
+        'price': 2.45,
+        'quantity': 2,
+        'filledQuantity': 2,
+        'remainingQuantity': 0,
+        'enteredTime': '2026-09-15T16:00:00.000Z',
+        'closeTime': '2026-09-15T16:05:00.000Z',
+        'orderLegCollection': [
+          {
+            'orderLegType': 'OPTION',
+            'instruction': 'BUY_TO_OPEN',
+            'instrument': {
+              'symbol': 'AAPL  260918C00150000',
+              'underlyingSymbol': 'AAPL',
+              'instrumentId': 54321,
+            },
+          },
+        ],
+      });
+
+      await tester.pumpWidget(
+        MultiProvider(
+          providers: [
+            ChangeNotifierProvider.value(value: instrumentStore),
+            ChangeNotifierProvider.value(value: quoteStore),
+          ],
+          child: MaterialApp(
+            home: OptionOrderWidget(
+              user,
+              service,
+              optionOrder,
+              analytics: FakeFirebaseAnalytics(),
+              observer: FakeFirebaseAnalyticsObserver(),
+              generativeService: FakeGenerativeService(),
+              user: null,
+              userDocRef: null,
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // Verify header components
+      expect(find.textContaining('AAPL'), findsWidgets);
+      expect(find.text('FILLED'), findsOneWidget);
+      expect(find.text('Order Detail'), findsOneWidget);
+      expect(find.text('Execution'), findsOneWidget);
+      expect(find.text('Quantity'), findsOneWidget);
+    });
   });
 }
+

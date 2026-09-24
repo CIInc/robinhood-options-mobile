@@ -78,16 +78,21 @@ class _OptionOrderWidgetState extends State<OptionOrderWidget> {
     }
 
     return Scaffold(
-      body: FutureBuilder(
+      body: FutureBuilder<Quote?>(
           future: futureQuote,
           builder: (context, AsyncSnapshot<Quote?> snapshot) {
             if (snapshot.hasData) {
               var quote = snapshot.data!;
+              final instrumentTarget = quote.instrument.isNotEmpty
+                  ? quote.instrument
+                  : (quote.symbol.isNotEmpty
+                      ? quote.symbol
+                      : widget.optionOrder.chainSymbol);
               futureInstrument = widget.service.getInstrument(
                   widget.brokerageUser,
                   instrumentStore,
-                  snapshot.data!.instrument);
-              return FutureBuilder(
+                  instrumentTarget);
+              return FutureBuilder<Instrument>(
                   future: futureInstrument,
                   builder:
                       (context, AsyncSnapshot<Instrument> instrumentSnapshot) {
@@ -97,12 +102,20 @@ class _OptionOrderWidgetState extends State<OptionOrderWidget> {
                       return _buildPage(instrument);
                     } else if (instrumentSnapshot.hasError) {
                       debugPrint("${instrumentSnapshot.error}");
-                      return Text("${instrumentSnapshot.error}");
+                      final fallback = Instrument.forSymbol(
+                          widget.optionOrder.chainSymbol);
+                      fallback.quoteObj = quote;
+                      return _buildPage(fallback);
                     }
-                    return Container();
+                    return const Center(child: CircularProgressIndicator());
                   });
+            } else if (snapshot.hasError) {
+              debugPrint("${snapshot.error}");
+              final fallback =
+                  Instrument.forSymbol(widget.optionOrder.chainSymbol);
+              return _buildPage(fallback);
             }
-            return Container();
+            return const Center(child: CircularProgressIndicator());
           }),
       /*
         floatingActionButton: (user != null && user.userName != null)
@@ -134,20 +147,22 @@ class _OptionOrderWidgetState extends State<OptionOrderWidget> {
                     spacing: 5,
                     children: [
               Text(
-                  "${widget.optionOrder.chainSymbol} \$${formatCompactNumber.format(widget.optionOrder.legs.first.strikePrice)} ${widget.optionOrder.strategy}",
+                  "${widget.optionOrder.chainSymbol}${widget.optionOrder.legs.isNotEmpty && widget.optionOrder.legs.first.strikePrice != null ? ' \$${formatCompactNumber.format(widget.optionOrder.legs.first.strikePrice)}' : ''}${widget.optionOrder.strategy.isNotEmpty ? ' ${widget.optionOrder.strategy}' : ''}",
                   style: TextStyle(
                       fontSize: 16.0,
                       fontWeight: FontWeight.bold,
                       color: Theme.of(context).appBarTheme.foregroundColor)),
-              Text(
-                  formatDate
-                      .format(widget.optionOrder.legs.first.expirationDate!),
-                  style: TextStyle(
-                      fontSize: 14.0,
-                      color: Theme.of(context)
-                          .appBarTheme
-                          .foregroundColor
-                          ?.withValues(alpha: 0.7)))
+              if (widget.optionOrder.legs.isNotEmpty &&
+                  widget.optionOrder.legs.first.expirationDate != null)
+                Text(
+                    formatDate
+                        .format(widget.optionOrder.legs.first.expirationDate!),
+                    style: TextStyle(
+                        fontSize: 14.0,
+                        color: Theme.of(context)
+                            .appBarTheme
+                            .foregroundColor
+                            ?.withValues(alpha: 0.7)))
             ]))),
       ),
       SliverToBoxAdapter(
@@ -211,12 +226,17 @@ class _OptionOrderWidgetState extends State<OptionOrderWidget> {
               if (widget.optionOrder.closingStrategy != null)
                 _buildDetailRow(
                     "Closing Strategy", widget.optionOrder.closingStrategy!),
-              const Divider(),
-              _buildSectionHeader("Timestamps"),
-              _buildDetailRow(
-                  "Created", formatDate.format(widget.optionOrder.createdAt!)),
-              _buildDetailRow(
-                  "Updated", formatDate.format(widget.optionOrder.updatedAt!)),
+              if (widget.optionOrder.createdAt != null ||
+                  widget.optionOrder.updatedAt != null) ...[
+                const Divider(),
+                _buildSectionHeader("Timestamps"),
+                if (widget.optionOrder.createdAt != null)
+                  _buildDetailRow("Created",
+                      formatDate.format(widget.optionOrder.createdAt!)),
+                if (widget.optionOrder.updatedAt != null)
+                  _buildDetailRow("Updated",
+                      formatDate.format(widget.optionOrder.updatedAt!)),
+              ],
               // if (widget.optionOrder.cancelUrl != null)
               //   _buildDetailRow("Cancel Url", widget.optionOrder.cancelUrl!),
             ],
@@ -314,12 +334,18 @@ class _OptionOrderWidgetState extends State<OptionOrderWidget> {
                   const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)));
       yield const Divider();
       yield _buildDetailRow(
-          "Expiration Date", formatDate.format(leg.expirationDate!));
-      yield _buildDetailRow("Position Type", "${leg.positionType}");
-      yield _buildDetailRow("Position Effect", "${leg.positionEffect}");
+          "Expiration Date",
+          leg.expirationDate != null
+              ? formatDate.format(leg.expirationDate!)
+              : "-");
+      yield _buildDetailRow("Position Type", leg.positionType ?? '-');
+      yield _buildDetailRow("Position Effect", leg.positionEffect ?? '-');
       yield _buildDetailRow("Option Type", leg.optionType);
       yield _buildDetailRow(
-          "Strike Price", formatCurrency.format(leg.strikePrice));
+          "Strike Price",
+          leg.strikePrice != null
+              ? formatCurrency.format(leg.strikePrice)
+              : "-");
       yield _buildDetailRow("Ratio Quantity", "${leg.ratioQuantity}");
     }
   }
@@ -372,32 +398,34 @@ class _OptionOrderWidgetState extends State<OptionOrderWidget> {
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
         ListTile(
-          // leading: const Icon(Icons.album),
-          title: Text('${instrument.simpleName}'),
+          title: Text(instrument.simpleName ?? instrument.symbol),
           subtitle: Text(instrument.name),
-          trailing: Wrap(
-            spacing: 8,
-            children: [
-              Icon(
-                  instrument.quoteObj!.changeToday > 0
-                      ? Icons.trending_up
-                      : (instrument.quoteObj!.changeToday < 0
-                          ? Icons.trending_down
-                          : Icons.trending_flat),
-                  color: (instrument.quoteObj!.changeToday > 0
-                      ? Colors.green
-                      : (instrument.quoteObj!.changeToday < 0
-                          ? Colors.red
-                          : Colors.grey))),
-              Text(
-                formatCurrency.format(
-                    instrument.quoteObj!.lastExtendedHoursTradePrice ??
-                        instrument.quoteObj!.lastTradePrice),
-                style: const TextStyle(fontSize: 18.0),
-                textAlign: TextAlign.right,
-              ),
-            ],
-          ),
+          trailing: instrument.quoteObj != null
+              ? Wrap(
+                  spacing: 8,
+                  children: [
+                    Icon(
+                        instrument.quoteObj!.changeToday > 0
+                            ? Icons.trending_up
+                            : (instrument.quoteObj!.changeToday < 0
+                                ? Icons.trending_down
+                                : Icons.trending_flat),
+                        color: (instrument.quoteObj!.changeToday > 0
+                            ? Colors.green
+                            : (instrument.quoteObj!.changeToday < 0
+                                ? Colors.red
+                                : Colors.grey))),
+                    Text(
+                      formatCurrency.format(
+                          (instrument.quoteObj!.lastExtendedHoursTradePrice ??
+                                  instrument.quoteObj!.lastTradePrice) ??
+                              0.0),
+                      style: const TextStyle(fontSize: 18.0),
+                      textAlign: TextAlign.right,
+                    ),
+                  ],
+                )
+              : null,
         ),
         Row(
           mainAxisAlignment: MainAxisAlignment.end,

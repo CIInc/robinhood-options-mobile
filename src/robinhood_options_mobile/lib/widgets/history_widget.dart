@@ -29,6 +29,8 @@ import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/services/plaid_service.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 import 'package:robinhood_options_mobile/services/schwab_service.dart';
+import 'package:robinhood_options_mobile/widgets/schwab_transactions_widget.dart';
+import 'package:robinhood_options_mobile/widgets/banking_widget.dart';
 import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
 import 'package:robinhood_options_mobile/widgets/chart_time_series_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
@@ -50,6 +52,8 @@ import 'package:robinhood_options_mobile/model/dividend_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
 import 'package:robinhood_options_mobile/model/chart_selection_store.dart';
 import 'package:robinhood_options_mobile/model/interest_store.dart';
+import 'package:robinhood_options_mobile/model/instrument_historical_position.dart';
+import 'package:robinhood_options_mobile/widgets/instrument_historical_positions_widget.dart';
 
 class _AggregateStreamState<T> {
   StreamController<List<T>>? controller;
@@ -434,7 +438,7 @@ class _HistoryPageState extends State<HistoryPage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 5, vsync: this);
+    _tabController = TabController(length: 7, vsync: this);
     widget.analytics.logScreenView(screenName: 'History');
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (widget.brokerageUser != null) {
@@ -874,6 +878,11 @@ class _HistoryPageState extends State<HistoryPage>
           : 0;
     }
 
+    List<InstrumentCostBasisLookbackSummary> pastPositionSummaries = [];
+    double pastPositionsTotalRealized = 0.0;
+    double pastPositionsTotalCostBasis = 0.0;
+    int pastPositionsTotalRoundTrips = 0;
+
     if (positionOrders != null) {
       positionOrderSymbols = positionOrders
           .where((element) => element.instrumentObj != null)
@@ -906,7 +915,76 @@ class _HistoryPageState extends State<HistoryPage>
                           : 0.0) *
                       (order.side == "buy" ? -1.0 : 1.0))
           : 0;
+
+      // Group position orders by symbol for historical position cycles reconstruction
+      final Map<String, List<InstrumentOrder>> ordersBySymbol = {};
+      for (final order in positionOrders) {
+        final symbol = order.instrumentObj?.symbol ??
+            (order.instrument.isNotEmpty ? order.instrument : '');
+        if (symbol.isNotEmpty) {
+          ordersBySymbol.putIfAbsent(symbol, () => []).add(order);
+        }
+      }
+
+      for (final entry in ordersBySymbol.entries) {
+        final symbol = entry.key;
+        final ordersForSymbol = entry.value;
+        final instrumentId = ordersForSymbol.first.instrumentId;
+        final splits = ordersForSymbol.first.instrumentObj?.splitsObj;
+
+        final rawSummary = InstrumentCostBasisLookbackSummary.fromOrders(
+          ordersForSymbol,
+          symbol: symbol,
+          instrumentId: instrumentId,
+          splits: splits,
+        );
+
+        if (rawSummary.hasHistory) {
+          if (stockSymbolFilters.isNotEmpty &&
+              !stockSymbolFilters.contains(symbol)) {
+            continue;
+          }
+
+          final filteredSummary = rawSummary.filterCycles((cycle) {
+            if (cycle.closedAt == null) return false;
+            if (orderDateFilterSelection == 'This Year') {
+              return cycle.closedAt!.year == DateTime.now().year;
+            }
+            if (days > 0) {
+              return cycle.closedAt!
+                      .add(Duration(days: days))
+                      .compareTo(DateTime.now()) >=
+                  0;
+            }
+            return true;
+          });
+
+          if (filteredSummary.hasHistory) {
+            pastPositionSummaries.add(filteredSummary);
+            pastPositionsTotalRealized += filteredSummary.totalRealizedGainLoss;
+            for (final c in filteredSummary.closedCycles) {
+              pastPositionsTotalCostBasis += c.totalCostBasis;
+            }
+            pastPositionsTotalRoundTrips += filteredSummary.totalRoundTrips;
+          }
+        }
+      }
+
+      pastPositionSummaries.sort((a, b) {
+        final aDate = a.closedCycles.isNotEmpty
+            ? a.closedCycles.last.closedAt ?? DateTime(0)
+            : DateTime(0);
+        final bDate = b.closedCycles.isNotEmpty
+            ? b.closedCycles.last.closedAt ?? DateTime(0)
+            : DateTime(0);
+        return bDate.compareTo(aDate);
+      });
     }
+
+    final double pastPositionsTotalRealizedPercent =
+        pastPositionsTotalCostBasis > 0
+            ? (pastPositionsTotalRealized / pastPositionsTotalCostBasis)
+            : 0.0;
 
     if (dividends != null) {
       filteredDividends = dividends
@@ -1032,11 +1110,13 @@ class _HistoryPageState extends State<HistoryPage>
                         unselectedLabelStyle: const TextStyle(
                             fontWeight: FontWeight.normal, fontSize: 14),
                         tabs: const <Widget>[
+                          Tab(text: 'Past Positions'),
                           Tab(text: 'Stocks'),
                           Tab(text: 'Options'),
                           Tab(text: 'Combos'),
                           Tab(text: 'Dividends'),
                           Tab(text: 'Interests'),
+                          Tab(text: 'Activity'),
                         ],
                       ),
                     ),
@@ -1061,37 +1141,39 @@ class _HistoryPageState extends State<HistoryPage>
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  "Stocks & ETFs",
-                                  style: TextStyle(
-                                      fontSize: 20.0,
-                                      fontWeight: FontWeight.bold),
-                                ),
-                                Text(
-                                  "$orderDateFilterDisplay ${positionOrdersBalance > 0 ? "+" : positionOrdersBalance < 0 ? "-" : ""}${formatCurrency.format(positionOrdersBalance.abs())}",
-                                  style: TextStyle(
-                                    color: Theme.of(context)
-                                        .textTheme
-                                        .bodySmall
-                                        ?.color,
-                                    fontSize: 14,
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    "Past Positions",
+                                    style: TextStyle(
+                                        fontSize: 20.0,
+                                        fontWeight: FontWeight.bold),
                                   ),
-                                ),
-                              ],
+                                  Text(
+                                    "$orderDateFilterDisplay ${pastPositionsTotalRealized > 0 ? "+" : pastPositionsTotalRealized < 0 ? "-" : ""}${formatCurrency.format(pastPositionsTotalRealized.abs())} (${pastPositionsTotalRealized >= 0 ? "+" : ""}${formatPercentage.format(pastPositionsTotalRealizedPercent)}) • $pastPositionsTotalRoundTrips round trip${pastPositionsTotalRoundTrips == 1 ? '' : 's'}",
+                                    style: TextStyle(
+                                      color: _amountColor(pastPositionsTotalRealized),
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ),
                             ),
+                            const SizedBox(width: 8),
                             Row(
+                              mainAxisSize: MainAxisSize.min,
                               children: [
                                 IconButton(
                                   icon: const Icon(Icons.filter_list),
                                   onPressed: () {
                                     _showFilterBottomSheet(
-                                      title: "Filter Stock Orders",
+                                      title: "Filter Past Positions",
                                       builder: (setState) => [
-                                        buildOrderFilterWidget(setState),
-                                        const SizedBox(height: 8),
                                         buildOrderDateFilterWidget(setState),
                                         const SizedBox(height: 25),
                                         buildStockOrderSymbolFilterWidget(
@@ -1100,8 +1182,161 @@ class _HistoryPageState extends State<HistoryPage>
                                     );
                                   },
                                 ),
-                                ..._buildSelectionActions(),
                               ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    if (pastPositionSummaries.isEmpty)
+                      _buildEmptyState("No past positions found.")
+                    else
+                      SliverList(
+                        delegate: SliverChildBuilderDelegate(
+                          (BuildContext context, int index) {
+                            final summary = pastPositionSummaries[index];
+                            return InstrumentHistoricalPositionsWidget(
+                              summary: summary,
+                              title: summary.symbol.isNotEmpty
+                                  ? '${summary.symbol} Past Positions'
+                                  : 'Previous Positions',
+                              onTapOrder: (order) {
+                                _handleReadOnlyAction(() {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => PositionOrderWidget(
+                                        widget.brokerageUser!,
+                                        widget.service!,
+                                        order,
+                                        analytics: widget.analytics,
+                                        observer: widget.observer,
+                                        generativeService:
+                                            widget.generativeService,
+                                        user: widget.user,
+                                        userDocRef: widget.userDoc,
+                                      ),
+                                    ),
+                                  );
+                                });
+                              },
+                            );
+                          },
+                          childCount: pastPositionSummaries.length,
+                        ),
+                      ),
+                    const SliverToBoxAdapter(
+                        child: SizedBox(
+                      height: 25.0,
+                    )),
+                  ],
+                  // TODO: Introduce web banner
+                  if (!kIsWeb) ...[
+                    const SliverToBoxAdapter(
+                        child: SizedBox(
+                      height: 25.0,
+                    )),
+                    SliverToBoxAdapter(
+                        child: AdBannerWidget(size: AdSize.mediumRectangle)),
+                  ],
+                  const SliverToBoxAdapter(
+                      child: SizedBox(
+                    height: 25.0,
+                  )),
+                  const SliverToBoxAdapter(child: DisclaimerWidget()),
+                  const SliverToBoxAdapter(
+                      child: SizedBox(
+                    height: 25.0,
+                  ))
+                ],
+              ),
+              CustomScrollView(
+                slivers: [
+                  if (positionOrders == null)
+                    _buildLoadingSkeleton()
+                  else ...[
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      "Stocks & ETFs",
+                                      style: TextStyle(
+                                          fontSize: 20.0,
+                                          fontWeight: FontWeight.bold),
+                                    ),
+                                    Text(
+                                      "$orderDateFilterDisplay ${positionOrdersBalance > 0 ? "+" : positionOrdersBalance < 0 ? "-" : ""}${formatCurrency.format(positionOrdersBalance.abs())}",
+                                      style: TextStyle(
+                                        color: Theme.of(context)
+                                            .textTheme
+                                            .bodySmall
+                                            ?.color,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                Row(
+                                  children: [
+                                    _buildFilterIconButton(
+                                      activeFilterCount:
+                                          _activeStockFilterCount,
+                                      tooltip: "Filter Stock Orders",
+                                      onPressed: () {
+                                        _showFilterBottomSheet(
+                                          title: "Filter Stock Orders",
+                                          onReset: () {
+                                            orderDateFilterSelection =
+                                                'Past Month';
+                                            orderFilters
+                                              ..clear()
+                                              ..addAll([
+                                                "confirmed",
+                                                "filled",
+                                                "queued"
+                                              ]);
+                                            stockSymbolFilters.clear();
+                                          },
+                                          builder: (setState) => [
+                                            buildOrderFilterWidget(setState),
+                                            const SizedBox(height: 8),
+                                            buildOrderDateFilterWidget(setState),
+                                            const SizedBox(height: 25),
+                                            buildStockOrderSymbolFilterWidget(
+                                                4, setState),
+                                          ],
+                                        );
+                                      },
+                                    ),
+                                    ..._buildSelectionActions(),
+                                  ],
+                                ),
+                              ],
+                            ),
+                            _buildActiveFiltersBar(
+                              symbolFilters: stockSymbolFilters,
+                              onResetAll: () {
+                                setState(() {
+                                  orderDateFilterSelection = 'Past Month';
+                                  orderFilters
+                                    ..clear()
+                                    ..addAll([
+                                      "confirmed",
+                                      "filled",
+                                      "queued"
+                                    ]);
+                                  stockSymbolFilters.clear();
+                                });
+                              },
                             ),
                           ],
                         ),
@@ -1144,7 +1379,7 @@ class _HistoryPageState extends State<HistoryPage>
                                         radius: 22,
                                         backgroundColor: order.side == 'buy'
                                             ? Colors.green
-                                                .withValues(alpha: 0.1)
+                                            .withValues(alpha: 0.1)
                                             : Colors.red.withValues(alpha: 0.1),
                                         foregroundColor: order.side == 'buy'
                                             ? Colors.green
@@ -1323,50 +1558,85 @@ class _HistoryPageState extends State<HistoryPage>
                     SliverToBoxAdapter(
                       child: Padding(
                         padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                const Text(
-                                  "Options",
-                                  style: TextStyle(
-                                      fontSize: 20.0,
-                                      fontWeight: FontWeight.bold),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      "Options",
+                                      style: TextStyle(
+                                          fontSize: 20.0,
+                                          fontWeight: FontWeight.bold),
+                                    ),
+                                    Text(
+                                      "$orderDateFilterDisplay ${optionOrdersPremiumBalance > 0 ? "+" : optionOrdersPremiumBalance < 0 ? "-" : ""}${formatCurrency.format(optionOrdersPremiumBalance.abs())}",
+                                      style: TextStyle(
+                                        color: Theme.of(context)
+                                            .textTheme
+                                            .bodySmall
+                                            ?.color,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                Text(
-                                  "$orderDateFilterDisplay ${optionOrdersPremiumBalance > 0 ? "+" : optionOrdersPremiumBalance < 0 ? "-" : ""}${formatCurrency.format(optionOrdersPremiumBalance.abs())}",
-                                  style: TextStyle(
-                                    color: Theme.of(context)
-                                        .textTheme
-                                        .bodySmall
-                                        ?.color,
-                                    fontSize: 14,
-                                  ),
+                                Row(
+                                  children: [
+                                    _buildFilterIconButton(
+                                      activeFilterCount:
+                                          _activeOptionFilterCount,
+                                      tooltip: "Filter Option Orders",
+                                      onPressed: () {
+                                        _showFilterBottomSheet(
+                                          title: "Filter Option Orders",
+                                          onReset: () {
+                                            orderDateFilterSelection =
+                                                'Past Month';
+                                            orderFilters
+                                              ..clear()
+                                              ..addAll([
+                                                "confirmed",
+                                                "filled",
+                                                "queued"
+                                              ]);
+                                            optionSymbolFilters.clear();
+                                          },
+                                          builder: (setState) => [
+                                            buildOrderFilterWidget(setState),
+                                            const SizedBox(height: 8),
+                                            buildOrderDateFilterWidget(setState),
+                                            const SizedBox(height: 25),
+                                            buildOptionOrderSymbolFilterWidget(
+                                                4, setState),
+                                          ],
+                                        );
+                                      },
+                                    ),
+                                    ..._buildSelectionActions(),
+                                  ],
                                 ),
                               ],
                             ),
-                            Row(
-                              children: [
-                                IconButton(
-                                  icon: const Icon(Icons.filter_list),
-                                  onPressed: () {
-                                    _showFilterBottomSheet(
-                                      title: "Filter Option Orders",
-                                      builder: (setState) => [
-                                        buildOrderFilterWidget(setState),
-                                        const SizedBox(height: 8),
-                                        buildOrderDateFilterWidget(setState),
-                                        const SizedBox(height: 25),
-                                        buildOptionOrderSymbolFilterWidget(
-                                            4, setState),
-                                      ],
-                                    );
-                                  },
-                                ),
-                                ..._buildSelectionActions(),
-                              ],
+                            _buildActiveFiltersBar(
+                              symbolFilters: optionSymbolFilters,
+                              onResetAll: () {
+                                setState(() {
+                                  orderDateFilterSelection = 'Past Month';
+                                  orderFilters
+                                    ..clear()
+                                    ..addAll([
+                                      "confirmed",
+                                      "filled",
+                                      "queued"
+                                    ]);
+                                  optionSymbolFilters.clear();
+                                });
+                              },
                             ),
                           ],
                         ),
@@ -1550,34 +1820,87 @@ class _HistoryPageState extends State<HistoryPage>
                   ],
                   if (optionEvents != null && filteredOptionEvents != null) ...[
                     SliverToBoxAdapter(
-                        child: ListTile(
-                      title: const Text(
-                        "Option Events",
-                        style: TextStyle(
-                            fontSize: 20.0, fontWeight: FontWeight.bold),
-                      ),
-                      subtitle: Text(orderDateFilterDisplay),
-                      // ${formatCompactNumber.format(filteredOptionEvents!.length)} of ${formatCompactNumber.format(optionEvents.length)} orders
-                      trailing: Wrap(
-                        children: [
-                          IconButton(
-                              icon: const Icon(Icons.filter_list),
-                              onPressed: () {
-                                _showFilterBottomSheet(
-                                  title: "Filter Option Events",
-                                  builder: (setState) => [
-                                    buildOrderFilterWidget(setState),
-                                    buildOrderDateFilterWidget(setState),
-                                    const SizedBox(height: 25),
-                                    buildOptionOrderSymbolFilterWidget(
-                                        4, setState),
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      "Option Events",
+                                      style: TextStyle(
+                                          fontSize: 20.0,
+                                          fontWeight: FontWeight.bold),
+                                    ),
+                                    Text(
+                                      orderDateFilterDisplay,
+                                      style: TextStyle(
+                                        color: Theme.of(context)
+                                            .textTheme
+                                            .bodySmall
+                                            ?.color,
+                                        fontSize: 14,
+                                      ),
+                                    ),
                                   ],
-                                );
-                              }),
-                          ..._buildSelectionActions(),
-                        ],
+                                ),
+                                Row(
+                                  children: [
+                                    _buildFilterIconButton(
+                                      activeFilterCount:
+                                          _activeOptionEventFilterCount,
+                                      tooltip: "Filter Option Events",
+                                      onPressed: () {
+                                        _showFilterBottomSheet(
+                                          title: "Filter Option Events",
+                                          onReset: () {
+                                            orderDateFilterSelection =
+                                                'Past Month';
+                                            orderFilters
+                                              ..clear()
+                                              ..addAll([
+                                                "confirmed",
+                                                "filled",
+                                                "queued"
+                                              ]);
+                                          },
+                                          builder: (setState) => [
+                                            buildOrderFilterWidget(setState),
+                                            const SizedBox(height: 8),
+                                            buildOrderDateFilterWidget(setState),
+                                          ],
+                                        );
+                                      },
+                                    ),
+                                    ..._buildSelectionActions(),
+                                  ],
+                                ),
+                              ],
+                            ),
+                            _buildActiveFiltersBar(
+                              symbolFilters: const [],
+                              onResetAll: () {
+                                setState(() {
+                                  orderDateFilterSelection = 'Past Month';
+                                  orderFilters
+                                    ..clear()
+                                    ..addAll([
+                                      "confirmed",
+                                      "filled",
+                                      "queued"
+                                    ]);
+                                });
+                              },
+                            ),
+                          ],
+                        ),
                       ),
-                    )),
+                    ),
                     if (filteredOptionEvents!.isEmpty)
                       _buildEmptyState("No option events found.")
                     else
@@ -1766,49 +2089,70 @@ class _HistoryPageState extends State<HistoryPage>
                     SliverToBoxAdapter(
                       child: Padding(
                         padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                const Text(
-                                  "Dividends",
-                                  style: TextStyle(
-                                      fontSize: 20.0,
-                                      fontWeight: FontWeight.bold),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      "Dividends",
+                                      style: TextStyle(
+                                          fontSize: 20.0,
+                                          fontWeight: FontWeight.bold),
+                                    ),
+                                    Text(
+                                      "$orderDateFilterDisplay ${dividendBalance > 0 ? "+" : dividendBalance < 0 ? "-" : ""}${formatCurrency.format(dividendBalance.abs())}",
+                                      style: TextStyle(
+                                        color: Theme.of(context)
+                                            .textTheme
+                                            .bodySmall
+                                            ?.color,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                Text(
-                                  "$orderDateFilterDisplay ${dividendBalance > 0 ? "+" : dividendBalance < 0 ? "-" : ""}${formatCurrency.format(dividendBalance.abs())}",
-                                  style: TextStyle(
-                                    color: Theme.of(context)
-                                        .textTheme
-                                        .bodySmall
-                                        ?.color,
-                                    fontSize: 14,
-                                  ),
+                                Row(
+                                  children: [
+                                    _buildFilterIconButton(
+                                      activeFilterCount:
+                                          _activeDividendFilterCount,
+                                      tooltip: "Filter Dividends",
+                                      onPressed: () {
+                                        _showFilterBottomSheet(
+                                          title: "Filter Dividends",
+                                          onReset: () {
+                                            orderDateFilterSelection =
+                                                'Past Month';
+                                            stockSymbolFilters.clear();
+                                          },
+                                          builder: (setState) => [
+                                            buildOrderDateFilterWidget(setState),
+                                            const SizedBox(height: 25),
+                                            buildStockOrderSymbolFilterWidget(
+                                                4, setState),
+                                          ],
+                                        );
+                                      },
+                                    ),
+                                    ..._buildSelectionActions(),
+                                  ],
                                 ),
                               ],
                             ),
-                            Row(
-                              children: [
-                                IconButton(
-                                  icon: const Icon(Icons.filter_list),
-                                  onPressed: () {
-                                    _showFilterBottomSheet(
-                                      title: "Filter Dividends",
-                                      builder: (setState) => [
-                                        buildOrderFilterWidget(setState),
-                                        buildOrderDateFilterWidget(setState),
-                                        const SizedBox(height: 25),
-                                        buildStockOrderSymbolFilterWidget(
-                                            4, setState),
-                                      ],
-                                    );
-                                  },
-                                ),
-                                ..._buildSelectionActions(),
-                              ],
+                            _buildActiveFiltersBar(
+                              symbolFilters: stockSymbolFilters,
+                              showStatus: false,
+                              onResetAll: () {
+                                setState(() {
+                                  orderDateFilterSelection = 'Past Month';
+                                  stockSymbolFilters.clear();
+                                });
+                              },
                             ),
                           ],
                         ),
@@ -2057,46 +2401,65 @@ class _HistoryPageState extends State<HistoryPage>
                     SliverToBoxAdapter(
                       child: Padding(
                         padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                const Text(
-                                  "Interest Payments",
-                                  style: TextStyle(
-                                      fontSize: 20.0,
-                                      fontWeight: FontWeight.bold),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      "Interest Payments",
+                                      style: TextStyle(
+                                          fontSize: 20.0,
+                                          fontWeight: FontWeight.bold),
+                                    ),
+                                    Text(
+                                      "$orderDateFilterDisplay ${interestBalance > 0 ? "+" : interestBalance < 0 ? "-" : ""}${formatCurrency.format(interestBalance.abs())}",
+                                      style: TextStyle(
+                                        color: Theme.of(context)
+                                            .textTheme
+                                            .bodySmall
+                                            ?.color,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                Text(
-                                  "$orderDateFilterDisplay ${interestBalance > 0 ? "+" : interestBalance < 0 ? "-" : ""}${formatCurrency.format(interestBalance.abs())}",
-                                  style: TextStyle(
-                                    color: Theme.of(context)
-                                        .textTheme
-                                        .bodySmall
-                                        ?.color,
-                                    fontSize: 14,
-                                  ),
+                                Row(
+                                  children: [
+                                    _buildFilterIconButton(
+                                      activeFilterCount:
+                                          _activeInterestFilterCount,
+                                      tooltip: "Filter Interest Payments",
+                                      onPressed: () {
+                                        _showFilterBottomSheet(
+                                          title: "Filter Interest Payments",
+                                          onReset: () {
+                                            orderDateFilterSelection =
+                                                'Past Month';
+                                          },
+                                          builder: (setState) => [
+                                            buildOrderDateFilterWidget(setState),
+                                          ],
+                                        );
+                                      },
+                                    ),
+                                    ..._buildSelectionActions(),
+                                  ],
                                 ),
                               ],
                             ),
-                            Row(
-                              children: [
-                                IconButton(
-                                  icon: const Icon(Icons.filter_list),
-                                  onPressed: () {
-                                    _showFilterBottomSheet(
-                                      title: "Filter Interest Payments",
-                                      builder: (setState) => [
-                                        buildOrderFilterWidget(setState),
-                                        buildOrderDateFilterWidget(setState),
-                                      ],
-                                    );
-                                  },
-                                ),
-                                ..._buildSelectionActions(),
-                              ],
+                            _buildActiveFiltersBar(
+                              symbolFilters: const [],
+                              showStatus: false,
+                              onResetAll: () {
+                                setState(() {
+                                  orderDateFilterSelection = 'Past Month';
+                                });
+                              },
                             ),
                           ],
                         ),
@@ -2280,9 +2643,24 @@ class _HistoryPageState extends State<HistoryPage>
                   ))
                 ],
               ),
-              // Center(child: Text("No option transactions found.")),
-              // Center(child: Text("No dividend distributions found.")),
-              // Center(child: Text("No interest payments found.")),
+              if (widget.brokerageUser?.source == BrokerageSource.schwab)
+                SchwabTransactionsWidget(
+                  user: widget.brokerageUser!,
+                  service: widget.service is SchwabService
+                      ? (widget.service as SchwabService)
+                      : SchwabService(),
+                  embedded: true,
+                )
+              else if (widget.brokerageUser != null && widget.service != null)
+                BankingWidget(
+                  brokerageUser: widget.brokerageUser!,
+                  service: widget.service!,
+                  embedded: true,
+                )
+              else
+                const Center(
+                  child: Text('No activity available.'),
+                ),
             ],
           )),
     );
@@ -2673,129 +3051,368 @@ class _HistoryPageState extends State<HistoryPage>
 
   String get orderDateFilterDisplay {
     return orderDateFilterSelection.toLowerCase();
-    // return orderDateFilterSelected == 0
-    //     ? "today"
-    //     : (orderDateFilterSelected == 1
-    //         ? "past week"
-    //         : (orderDateFilterSelected == 2
-    //             ? "past month"
-    //             : (orderDateFilterSelected == 3 ? "past year" : "")));
+  }
+
+  bool get _isDateFiltered => orderDateFilterSelection != 'All Time';
+  bool get _isStatusFiltered => orderFilters.length < 4;
+
+  int get _activeStockFilterCount =>
+      (_isStatusFiltered ? 1 : 0) +
+      (_isDateFiltered ? 1 : 0) +
+      stockSymbolFilters.length;
+
+  int get _activeOptionFilterCount =>
+      (_isStatusFiltered ? 1 : 0) +
+      (_isDateFiltered ? 1 : 0) +
+      optionSymbolFilters.length;
+
+  int get _activeOptionEventFilterCount =>
+      (_isStatusFiltered ? 1 : 0) +
+      (_isDateFiltered ? 1 : 0) +
+      optionSymbolFilters.length;
+
+  int get _activeDividendFilterCount =>
+      (_isDateFiltered ? 1 : 0) + stockSymbolFilters.length;
+
+  int get _activeInterestFilterCount => (_isDateFiltered ? 1 : 0);
+
+  Widget _buildFilterIconButton({
+    required VoidCallback onPressed,
+    required int activeFilterCount,
+    String tooltip = 'Filter',
+  }) {
+    Widget icon = Icon(
+      activeFilterCount > 0 ? Icons.filter_alt : Icons.filter_list,
+      color: activeFilterCount > 0
+          ? Theme.of(context).colorScheme.primary
+          : null,
+    );
+    if (activeFilterCount > 0) {
+      icon = Badge.count(
+        count: activeFilterCount,
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        textColor: Theme.of(context).colorScheme.onPrimary,
+        child: icon,
+      );
+    }
+    return IconButton(
+      icon: icon,
+      tooltip: activeFilterCount > 0
+          ? '$tooltip ($activeFilterCount active)'
+          : tooltip,
+      onPressed: onPressed,
+    );
+  }
+
+  Widget _buildActiveFiltersBar({
+    required List<String> symbolFilters,
+    required VoidCallback onResetAll,
+    bool showStatus = true,
+    bool showDate = true,
+  }) {
+    final chips = <Widget>[];
+
+    if (showDate && _isDateFiltered) {
+      chips.add(
+        InputChip(
+          avatar: const Icon(Icons.calendar_today, size: 14),
+          label: Text(orderDateFilterSelection),
+          onDeleted: () {
+            setState(() {
+              orderDateFilterSelection = 'All Time';
+            });
+          },
+        ),
+      );
+    }
+
+    if (showStatus && _isStatusFiltered) {
+      chips.add(
+        InputChip(
+          avatar: const Icon(Icons.flag_outlined, size: 14),
+          label: Text(
+            orderFilters.isEmpty
+                ? 'No status'
+                : orderFilters.map((s) => s.capitalize()).join(', '),
+          ),
+          onDeleted: () {
+            setState(() {
+              orderFilters
+                ..clear()
+                ..addAll(["confirmed", "queued", "filled", "cancelled"]);
+            });
+          },
+        ),
+      );
+    }
+
+    for (final sym in List<String>.from(symbolFilters)) {
+      chips.add(
+        InputChip(
+          label: Text(sym),
+          onDeleted: () {
+            setState(() {
+              symbolFilters.remove(sym);
+            });
+          },
+        ),
+      );
+    }
+
+    if (chips.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    chips.add(
+      ActionChip(
+        avatar: const Icon(Icons.clear_all, size: 14),
+        label: const Text('Reset All'),
+        onPressed: onResetAll,
+      ),
+    );
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: chips
+              .map((c) => Padding(
+                    padding: const EdgeInsets.only(right: 6),
+                    child: c,
+                  ))
+              .toList(),
+        ),
+      ),
+    );
   }
 
   Widget buildOrderFilterWidget(StateSetter setState) {
-    return SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        child: Row(children: [
-          Padding(
-            padding: const EdgeInsets.all(4.0),
-            child: FilterChip(
-              //avatar: const Icon(Icons.history_outlined),
-              //avatar: CircleAvatar(child: Text(optionCount.toString())),
-              label: const Text('Confirmed'),
-              selected: orderFilters.contains("confirmed"),
-              onSelected: (bool value) {
-                setState(() {
-                  if (value) {
-                    orderFilters.add("confirmed");
-                  } else {
-                    orderFilters.removeWhere((String name) {
-                      return name == "confirmed";
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+          child: Row(
+            children: [
+              Icon(Icons.flag_outlined,
+                  size: 18, color: Theme.of(context).colorScheme.primary),
+              const SizedBox(width: 8),
+              const Text(
+                'Order Status',
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+              ),
+            ],
+          ),
+        ),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Row(
+            children: [
+              for (final status in [
+                'confirmed',
+                'queued',
+                'filled',
+                'cancelled'
+              ])
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                  child: FilterChip(
+                    label: Text(status.capitalize()),
+                    selected: orderFilters.contains(status),
+                    onSelected: (bool value) {
+                      setState(() {
+                        if (value) {
+                          if (!orderFilters.contains(status)) {
+                            orderFilters.add(status);
+                          }
+                        } else {
+                          orderFilters.remove(status);
+                        }
+                      });
+                    },
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget buildOrderDateFilterWidget(StateSetter setState) {
+    const presets = [
+      'Today',
+      'Past Week',
+      'Past Month',
+      'Past 90 days',
+      'Past Year',
+      'All Time',
+    ];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+          child: Row(
+            children: [
+              Icon(Icons.calendar_today_outlined,
+                  size: 18, color: Theme.of(context).colorScheme.primary),
+              const SizedBox(width: 8),
+              const Text(
+                'Date Range',
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+              ),
+            ],
+          ),
+        ),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Row(
+            children: [
+              for (final preset in presets)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                  child: ChoiceChip(
+                    label: Text(preset),
+                    selected: orderDateFilterSelection == preset,
+                    onSelected: (bool value) {
+                      if (value) {
+                        setState(() {
+                          orderDateFilterSelection = preset;
+                        });
+                      }
+                    },
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget buildSymbolFilterSection({
+    required String title,
+    required List<String> availableSymbols,
+    required List<String> selectedSymbols,
+    StateSetter? modalSetState,
+  }) {
+    if (availableSymbols.isEmpty) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.label_outline,
+                      size: 18, color: Theme.of(context).colorScheme.primary),
+                  const SizedBox(width: 8),
+                  Text(
+                    '$title (${selectedSymbols.isEmpty ? "All" : "${selectedSymbols.length} selected"})',
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w600, fontSize: 15),
+                  ),
+                ],
+              ),
+              if (selectedSymbols.isNotEmpty)
+                TextButton(
+                  style: TextButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    padding: EdgeInsets.zero,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      selectedSymbols.clear();
                     });
-                  }
-                });
-                // Navigator.pop(context, 'dialog');
-              },
+                    if (modalSetState != null) modalSetState(() {});
+                  },
+                  child: const Text('Clear'),
+                )
+              else
+                TextButton(
+                  style: TextButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    padding: EdgeInsets.zero,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      selectedSymbols.addAll(availableSymbols);
+                    });
+                    if (modalSetState != null) modalSetState(() {});
+                  },
+                  child: const Text('Select All'),
+                ),
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxHeight: 180),
+            child: SingleChildScrollView(
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 6,
+                children: availableSymbols.map((sym) {
+                  final isSelected = selectedSymbols.contains(sym);
+                  return FilterChip(
+                    label: Text(sym),
+                    selected: isSelected,
+                    onSelected: (bool selected) {
+                      setState(() {
+                        if (selected) {
+                          selectedSymbols.add(sym);
+                        } else {
+                          selectedSymbols.remove(sym);
+                        }
+                      });
+                      if (modalSetState != null) modalSetState(() {});
+                    },
+                  );
+                }).toList(),
+              ),
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.all(4.0),
-            child: FilterChip(
-              //avatar: const Icon(Icons.history_outlined),
-              //avatar: CircleAvatar(child: Text(optionCount.toString())),
-              label: const Text('Queued'),
-              selected: orderFilters.contains("queued"),
-              onSelected: (bool value) {
-                setState(() {
-                  if (value) {
-                    orderFilters.add("queued");
-                  } else {
-                    orderFilters.removeWhere((String name) {
-                      return name == "queued";
-                    });
-                  }
-                });
-                // Navigator.pop(context, 'dialog');
-              },
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(4.0),
-            child: FilterChip(
-              //avatar: const Icon(Icons.history_outlined),
-              //avatar: CircleAvatar(child: Text(optionCount.toString())),
-              label: const Text('Filled'),
-              selected: orderFilters.contains("filled"),
-              onSelected: (bool value) {
-                setState(() {
-                  if (value) {
-                    orderFilters.add("filled");
-                  } else {
-                    orderFilters.removeWhere((String name) {
-                      return name == "filled";
-                    });
-                  }
-                });
-                // Navigator.pop(context, 'dialog');
-              },
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(4.0),
-            child: FilterChip(
-              //avatar: const Icon(Icons.history_outlined),
-              //avatar: CircleAvatar(child: Text(optionCount.toString())),
-              label: const Text('Cancelled'),
-              selected: orderFilters.contains("cancelled"),
-              onSelected: (bool value) {
-                setState(() {
-                  if (value) {
-                    orderFilters.add("cancelled");
-                  } else {
-                    orderFilters.removeWhere((String name) {
-                      return name == "cancelled";
-                    });
-                  }
-                });
-                // Navigator.pop(context, 'dialog');
-              },
-            ),
-          ),
-        ]));
+        ),
+      ],
+    );
   }
 
   Widget buildOptionOrderSymbolFilterWidget(int rowCount,
       [StateSetter? bottomSheetSetState]) {
-    var widgets = symbolFilterWidgets(optionOrderSymbols, optionSymbolFilters,
-            bottomSheetSetState: bottomSheetSetState)
-        .toList();
-    return symbolWidgets(widgets, rowCount: rowCount);
+    return buildSymbolFilterSection(
+      title: 'Option Symbols',
+      availableSymbols: optionOrderSymbols,
+      selectedSymbols: optionSymbolFilters,
+      modalSetState: bottomSheetSetState,
+    );
   }
 
   Widget buildStockOrderSymbolFilterWidget(int rowCount,
       [StateSetter? bottomSheetSetState]) {
-    var widgets = symbolFilterWidgets(positionOrderSymbols, stockSymbolFilters,
-            bottomSheetSetState: bottomSheetSetState)
-        .toList();
-    return symbolWidgets(widgets, rowCount: rowCount);
+    return buildSymbolFilterSection(
+      title: 'Stock Symbols',
+      availableSymbols: positionOrderSymbols,
+      selectedSymbols: stockSymbolFilters,
+      modalSetState: bottomSheetSetState,
+    );
   }
 
   Widget buildCryptoFilterWidget(int rowCount,
       [StateSetter? bottomSheetSetState]) {
-    var widgets = symbolFilterWidgets(cryptoSymbols, cryptoFilters,
-            bottomSheetSetState: bottomSheetSetState)
-        .toList();
-    return symbolWidgets(widgets, rowCount: rowCount);
+    return buildSymbolFilterSection(
+      title: 'Crypto Symbols',
+      availableSymbols: cryptoSymbols,
+      selectedSymbols: cryptoFilters,
+      modalSetState: bottomSheetSetState,
+    );
   }
 
   Iterable<Widget> symbolFilterWidgets(
@@ -2805,7 +3422,6 @@ class _HistoryPageState extends State<HistoryPage>
       yield Padding(
         padding: const EdgeInsets.all(4.0),
         child: FilterChip(
-          // avatar: CircleAvatar(child: Text(contractCount.toString())),
           label: Text(chainSymbol),
           selected: selectedSymbols.contains(chainSymbol),
           onSelected: (bool value) {
@@ -2821,127 +3437,10 @@ class _HistoryPageState extends State<HistoryPage>
             if (bottomSheetSetState != null) {
               bottomSheetSetState(() {});
             }
-            // Navigator.pop(context, 'dialog');
           },
         ),
       );
     }
-  }
-
-  Widget buildOrderDateFilterWidget(StateSetter setState) {
-    return SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        child: Row(children: [
-          Padding(
-            padding: const EdgeInsets.all(4.0),
-            child: ChoiceChip(
-              //avatar: const Icon(Icons.history_outlined),
-              //avatar: CircleAvatar(child: Text(optionCount.toString())),
-              label: const Text('Today'),
-              selected: orderDateFilterSelection == 'Today',
-              onSelected: (bool value) {
-                setState(() {
-                  if (value) {
-                    orderDateFilterSelection = 'Today';
-                  } else {
-                    //dateFilterSelected = null;
-                  }
-                });
-                // Navigator.pop(context, 'dialog');
-              },
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(4.0),
-            child: ChoiceChip(
-              //avatar: const Icon(Icons.history_outlined),
-              //avatar: CircleAvatar(child: Text(optionCount.toString())),
-              label: const Text('Past Week'),
-              selected: orderDateFilterSelection == 'Past Week',
-              onSelected: (bool value) {
-                setState(() {
-                  if (value) {
-                    orderDateFilterSelection = 'Past Week';
-                  } else {
-                    //dateFilterSelected = null;
-                  }
-                });
-                // Navigator.pop(context, 'dialog');
-              },
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(4.0),
-            child: ChoiceChip(
-              //avatar: const Icon(Icons.history_outlined),
-              //avatar: CircleAvatar(child: Text(optionCount.toString())),
-              label: const Text('Past Month'),
-              selected: orderDateFilterSelection == 'Past Month',
-              onSelected: (bool value) {
-                setState(() {
-                  if (value) {
-                    orderDateFilterSelection = 'Past Month';
-                  } else {}
-                });
-                // Navigator.pop(context, 'dialog');
-              },
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(4.0),
-            child: ChoiceChip(
-              //avatar: const Icon(Icons.history_outlined),
-              //avatar: CircleAvatar(child: Text(optionCount.toString())),
-              label: const Text('Past 90 days'),
-              selected: orderDateFilterSelection ==
-                  'Past 90 days', // orderDateFilterSelected == 2,
-              onSelected: (bool value) {
-                setState(() {
-                  if (value) {
-                    orderDateFilterSelection = 'Past 90 days';
-                    // orderDateFilterSelected = 2;
-                  } else {}
-                });
-                // Navigator.pop(context, 'dialog');
-              },
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(4.0),
-            child: ChoiceChip(
-              //avatar: const Icon(Icons.history_outlined),
-              //avatar: CircleAvatar(child: Text(optionCount.toString())),
-              label: const Text('Past Year'),
-              selected: orderDateFilterSelection == 'Past Year',
-              onSelected: (bool value) {
-                setState(() {
-                  if (value) {
-                    orderDateFilterSelection = 'Past Year';
-                  } else {}
-                });
-                // Navigator.pop(context, 'dialog');
-              },
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(4.0),
-            child: ChoiceChip(
-              //avatar: const Icon(Icons.history_outlined),
-              //avatar: CircleAvatar(child: Text(optionCount.toString())),
-              label: const Text('All Time'),
-              selected: orderDateFilterSelection == 'All Time',
-              onSelected: (bool value) {
-                setState(() {
-                  if (value) {
-                    orderDateFilterSelection = 'All Time';
-                  } else {}
-                });
-                // Navigator.pop(context, 'dialog');
-              },
-            ),
-          ),
-        ]));
   }
 
   List<Widget> _buildSelectionActions() {
@@ -3118,32 +3617,77 @@ class _HistoryPageState extends State<HistoryPage>
   Future<void> _showFilterBottomSheet({
     required String title,
     required List<Widget> Function(StateSetter setState) builder,
+    VoidCallback? onReset,
   }) async {
     await showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
       isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
       builder: (BuildContext context) {
         return StatefulBuilder(
-            builder: (BuildContext context, StateSetter setState) {
+            builder: (BuildContext context, StateSetter modalSetState) {
           return SafeArea(
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.start,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  ListTile(
-                    leading: const Icon(Icons.filter_list),
-                    title: Text(
-                      title,
-                      style: const TextStyle(
-                          fontSize: 20.0, fontWeight: FontWeight.bold),
+            child: Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 16, 8),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.tune,
+                                  color:
+                                      Theme.of(context).colorScheme.primary),
+                              const SizedBox(width: 10),
+                              Text(
+                                title,
+                                style: const TextStyle(
+                                    fontSize: 18.0,
+                                    fontWeight: FontWeight.bold),
+                              ),
+                            ],
+                          ),
+                          if (onReset != null)
+                            TextButton.icon(
+                              icon: const Icon(Icons.refresh, size: 16),
+                              label: const Text('Reset'),
+                              onPressed: () {
+                                modalSetState(() {
+                                  onReset();
+                                });
+                              },
+                            ),
+                        ],
+                      ),
                     ),
-                  ),
-                  ...builder(setState),
-                  const SizedBox(height: 25),
-                ],
+                    const Divider(height: 1),
+                    const SizedBox(height: 8),
+                    ...builder(modalSetState),
+                    const SizedBox(height: 16),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: FilledButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text('Apply Filters'),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           );
