@@ -385,52 +385,67 @@ class _AutoTradeStatusBadgeWidgetState extends State<AutoTradeStatusBadgeWidget>
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Tooltip(
-                      message: 'Profile',
-                      child: InkResponse(
-                        onTap: () {
-                          HapticFeedback.lightImpact();
-                          if (widget.onProfileTap != null) {
-                            widget.onProfileTap!();
-                          }
-                        },
-                        onLongPress: () =>
-                            _handleLongPress(context, agenticTradingProvider),
-                        radius: 16,
-                        child: Padding(
-                          padding: const EdgeInsets.all(3.0),
-                          child: avatarWidget,
+                    Semantics(
+                      button: true,
+                      label: 'User profile',
+                      hint:
+                          'Double tap to open profile, double tap and hold for emergency stop options',
+                      excludeSemantics: true,
+                      child: Tooltip(
+                        message: 'Profile',
+                        child: InkResponse(
+                          onTap: () {
+                            HapticFeedback.lightImpact();
+                            if (widget.onProfileTap != null) {
+                              widget.onProfileTap!();
+                            }
+                          },
+                          onLongPress: () =>
+                              _handleLongPress(context, agenticTradingProvider),
+                          radius: 16,
+                          child: Padding(
+                            padding: const EdgeInsets.all(3.0),
+                            child: avatarWidget,
+                          ),
                         ),
                       ),
                     ),
-                    Tooltip(
-                      message: status.tooltip,
-                      child: InkWell(
-                        onTap: () {
-                          HapticFeedback.lightImpact();
-                          if (widget.user != null &&
-                              widget.userDocRef != null) {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    AgenticTradingSettingsWidget(
-                                  user: widget.user!,
-                                  userDocRef: widget.userDocRef!,
-                                  service: widget.service,
+                    Semantics(
+                      button: true,
+                      label:
+                          'Auto-trade status: ${status.title}, ${status.subtitle}',
+                      hint:
+                          'Double tap for settings, double tap and hold for emergency stop options',
+                      excludeSemantics: true,
+                      child: Tooltip(
+                        message: status.tooltip,
+                        child: InkWell(
+                          onTap: () {
+                            HapticFeedback.lightImpact();
+                            if (widget.user != null &&
+                                widget.userDocRef != null) {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      AgenticTradingSettingsWidget(
+                                    user: widget.user!,
+                                    userDocRef: widget.userDocRef!,
+                                    service: widget.service,
+                                  ),
                                 ),
-                              ),
-                            );
-                          }
-                        },
-                        onLongPress: () =>
-                            _handleLongPress(context, agenticTradingProvider),
-                        borderRadius: const BorderRadius.horizontal(
-                          right: Radius.circular(20),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(4, 6, 8, 6),
-                          child: statusLabel,
+                              );
+                            }
+                          },
+                          onLongPress: () =>
+                              _handleLongPress(context, agenticTradingProvider),
+                          borderRadius: const BorderRadius.horizontal(
+                            right: Radius.circular(20),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(4, 6, 8, 6),
+                            child: statusLabel,
+                          ),
                         ),
                       ),
                     ),
@@ -454,155 +469,162 @@ class _AutoTradeStatusBadgeWidgetState extends State<AutoTradeStatusBadgeWidget>
   ) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4.0),
-      child: Tooltip(
-        message: status.tooltip,
-        child: GestureDetector(
-          onTapDown: (_) => setState(() => _isPressed = true),
-          onTapUp: (_) => setState(() => _isPressed = false),
-          onTapCancel: () => setState(() => _isPressed = false),
-          child: InkWell(
-            onTap: () {
-              HapticFeedback.lightImpact();
-              if (widget.user != null && widget.userDocRef != null) {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => AgenticTradingSettingsWidget(
-                      user: widget.user!,
-                      userDocRef: widget.userDocRef!,
-                      service: widget.service,
+      child: Semantics(
+        button: true,
+        label: 'Auto-trade status: ${status.title}, ${status.subtitle}',
+        hint:
+            'Double tap for settings, double tap and hold for emergency stop options',
+        excludeSemantics: true,
+        child: Tooltip(
+          message: status.tooltip,
+          child: GestureDetector(
+            onTapDown: (_) => setState(() => _isPressed = true),
+            onTapUp: (_) => setState(() => _isPressed = false),
+            onTapCancel: () => setState(() => _isPressed = false),
+            child: InkWell(
+              onTap: () {
+                HapticFeedback.lightImpact();
+                if (widget.user != null && widget.userDocRef != null) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => AgenticTradingSettingsWidget(
+                        user: widget.user!,
+                        userDocRef: widget.userDocRef!,
+                        service: widget.service,
+                      ),
                     ),
-                  ),
-                );
-              }
-            },
-            onLongPress: () =>
-                _handleLongPress(context, agenticTradingProvider),
-            borderRadius: BorderRadius.circular(20),
-            child: AnimatedBuilder(
-              animation: _animationController,
-              builder: (context, child) {
-                double scale = _isPressed ? 0.95 : 1.0;
-                if (isAutoTrading) {
-                  scale *= _scaleAnimation.value;
+                  );
                 }
+              },
+              onLongPress: () =>
+                  _handleLongPress(context, agenticTradingProvider),
+              borderRadius: BorderRadius.circular(20),
+              child: AnimatedBuilder(
+                animation: _animationController,
+                builder: (context, child) {
+                  double scale = _isPressed ? 0.95 : 1.0;
+                  if (isAutoTrading) {
+                    scale *= _scaleAnimation.value;
+                  }
 
-                return Transform.scale(
-                  scale: scale,
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 500),
-                    curve: Curves.easeInOut,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          status.color.withValues(alpha: 0.15),
-                          status.color.withValues(alpha: 0.05),
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
+                  return Transform.scale(
+                    scale: scale,
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 500),
+                      curve: Curves.easeInOut,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            status.color.withValues(alpha: 0.15),
+                            status.color.withValues(alpha: 0.05),
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: status.color.withValues(
+                              alpha: (isAutoTrading || isEmergencyStop)
+                                  ? _opacityAnimation.value
+                                  : 0.3),
+                          width: 1,
+                        ),
+                        boxShadow: (isAutoTrading || isEmergencyStop)
+                            ? [
+                                BoxShadow(
+                                  color: status.color.withValues(alpha: 0.2),
+                                  blurRadius: 8,
+                                  spreadRadius: 1,
+                                )
+                              ]
+                            : [],
                       ),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: status.color.withValues(
-                            alpha: (isAutoTrading || isEmergencyStop)
-                                ? _opacityAnimation.value
-                                : 0.3),
-                        width: 1,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
                       ),
-                      boxShadow: (isAutoTrading || isEmergencyStop)
-                          ? [
-                              BoxShadow(
-                                color: status.color.withValues(alpha: 0.2),
-                                blurRadius: 8,
-                                spreadRadius: 1,
-                              )
-                            ]
-                          : [],
-                    ),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (isAutoTrading)
-                          SizedBox(
-                            width: 12,
-                            height: 12,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor:
-                                  AlwaysStoppedAnimation<Color>(status.color),
-                            ),
-                          )
-                        else if (status.title == 'Auto On')
-                          SizedBox(
-                            width: 14,
-                            height: 14,
-                            child: TweenAnimationBuilder<double>(
-                              tween: Tween<double>(
-                                  begin: 0, end: progressValue ?? 0),
-                              duration: const Duration(milliseconds: 1000),
-                              builder: (context, value, _) =>
-                                  CircularProgressIndicator(
-                                value: value,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (isAutoTrading)
+                            SizedBox(
+                              width: 12,
+                              height: 12,
+                              child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                backgroundColor:
-                                    status.color.withValues(alpha: 0.2),
                                 valueColor:
                                     AlwaysStoppedAnimation<Color>(status.color),
                               ),
+                            )
+                          else if (status.title == 'Auto On')
+                            SizedBox(
+                              width: 14,
+                              height: 14,
+                              child: TweenAnimationBuilder<double>(
+                                tween: Tween<double>(
+                                    begin: 0, end: progressValue ?? 0),
+                                duration: const Duration(milliseconds: 1000),
+                                builder: (context, value, _) =>
+                                    CircularProgressIndicator(
+                                  value: value,
+                                  strokeWidth: 2,
+                                  backgroundColor:
+                                      status.color.withValues(alpha: 0.2),
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                      status.color),
+                                ),
+                              ),
+                            )
+                          else
+                            Icon(
+                              status.icon,
+                              size: 14,
+                              color: status.color,
                             ),
-                          )
-                        else
-                          Icon(
-                            status.icon,
-                            size: 14,
-                            color: status.color,
+                          const SizedBox(width: 8),
+                          Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              AnimatedSwitcher(
+                                duration: const Duration(milliseconds: 300),
+                                child: Text(
+                                  status.title.toUpperCase(),
+                                  key: ValueKey('title_${status.title}'),
+                                  style: TextStyle(
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.w900,
+                                    color: status.color.withValues(alpha: 0.9),
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 1),
+                              AnimatedSwitcher(
+                                duration: const Duration(milliseconds: 300),
+                                child: Text(
+                                  status.subtitle,
+                                  key: ValueKey('subtitle_${status.subtitle}'),
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    color: status.color,
+                                    fontFeatures: const [
+                                      FontFeature.tabularFigures()
+                                    ],
+                                    height: 1.0,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                        const SizedBox(width: 8),
-                        Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            AnimatedSwitcher(
-                              duration: const Duration(milliseconds: 300),
-                              child: Text(
-                                status.title.toUpperCase(),
-                                key: ValueKey('title_${status.title}'),
-                                style: TextStyle(
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.w900,
-                                  color: status.color.withValues(alpha: 0.9),
-                                  letterSpacing: 0.5,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 1),
-                            AnimatedSwitcher(
-                              duration: const Duration(milliseconds: 300),
-                              child: Text(
-                                status.subtitle,
-                                key: ValueKey('subtitle_${status.subtitle}'),
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w700,
-                                  color: status.color,
-                                  fontFeatures: const [
-                                    FontFeature.tabularFigures()
-                                  ],
-                                  height: 1.0,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                );
-              },
+                  );
+                },
+              ),
             ),
           ),
         ),

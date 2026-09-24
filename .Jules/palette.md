@@ -9,3 +9,7 @@
 ## 2026-04-03 - Unified Semantics for Watchlist Grid Cards
 **Learning:** Complex financial grid items (`WatchlistGridItemWidget`) containing disjointed elements (symbols, visual trend icons, percentage change numbers, and company names) cause fragmented screen reader navigation. Wrapping the card in `Semantics(container: true, button: true, label: ..., excludeSemantics: true)` provides a cohesive screen reader summary (e.g., "AAPL, up 2.50%, Apple Inc.") and prevents screen readers from stopping on unlabelled trend icons.
 **Action:** Wrap composite financial cards/tiles in `Semantics(container: true, button: true, label: ..., excludeSemantics: true)` to announce symbol, movement direction, and description as a single interactive action item.
+
+## 2026-04-05 - Semantics for Dual-Action AppBar Status Badges
+**Learning:** Composite status badges embedded in AppBars (`AutoTradeStatusBadgeWidget`) that respond to both single taps (opening settings) and long presses (emergency stop menu) are read as disjointed strings (e.g., "AUTO ON", "2:05") by screen readers unless explicitly wrapped in `Semantics(button: true, label: ..., hint: ..., excludeSemantics: true)`. Explicating the status label and gesture hints ensures screen reader users understand both tap and long-press capabilities.
+**Action:** Wrap dual-action AppBar badges in `Semantics(button: true, label: ..., hint: ..., excludeSemantics: true)` to announce the badge status clearly and explain available gestures.
