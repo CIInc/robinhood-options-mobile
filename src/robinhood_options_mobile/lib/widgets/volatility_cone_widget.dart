@@ -79,7 +79,7 @@ class _VolatilityConeWidgetState extends State<VolatilityConeWidget>
 
       DateTime? resolvedEarnings = widget.nextEarningsDate;
       if (resolvedEarnings == null && widget.instrument?.earningsObj != null) {
-        final earningsList = widget.instrument!.earningsObj as List<dynamic>?;
+        final earningsList = widget.instrument!.earningsObj;
         if (earningsList != null && earningsList.isNotEmpty) {
           final now = DateTime.now();
           for (final e in earningsList) {

@@ -46,8 +46,8 @@ This document outlines the planned features and enhancements for RealizeAlpha.
 **Last reviewed:** September 24, 2026 · **Current app version:** 0.52.0 (development version)
 
 ### Quick Stats
-- **Completed checklist items:** 369
-- **Planned checklist items:** 76
+- **Completed checklist items:** 372
+- **Planned checklist items:** 74
 - **Open GitHub issues:** 36 (as of September 24, 2026)
 - **Planning focus:** Keep reliability and test coverage ahead of feature breadth, then prioritize brokerage expansion and execution improvements; measure the adoption and moderation quality of the newly delivered social and copy-trading tools.
 
@@ -941,8 +941,8 @@ Improve copy-trade transparency and follower controls before increasing automati
 
 #### Copy Trading Evolution ([Tracking: #141](https://github.com/CIInc/robinhood-options-mobile/issues/141))
 - [x] **Trader Comparison** (v0.52.0, [Tracking: #141](https://github.com/CIInc/robinhood-options-mobile/issues/141), [Tracking: #113](https://github.com/CIInc/robinhood-options-mobile/issues/113)): Side-by-side performance comparison of potential leaders with normalized timeframes and risk-adjusted metrics - **Medium** (2-3 weeks)
-- [ ] **Time-Based Analysis**: Cumulative P&L growth visualization over time - **Medium** (2-3 weeks)
-- [ ] **Export History**: CSV export of copy trade history and performance - **Small** (1 week)
+- [x] **Time-Based Analysis** (v0.52.0, [Tracking: #141](https://github.com/CIInc/robinhood-options-mobile/issues/141)): Cumulative P&L growth visualization over time - **Medium** (2-3 weeks)
+- [x] **Export History** (v0.52.0, [Tracking: #141](https://github.com/CIInc/robinhood-options-mobile/issues/141)): CSV export of copy trade history and performance - **Small** (1 week)
 - [x] **Copy-Trading Slippage & Fill Divergence Analytics** (v0.52.0, [Tracking: #141](https://github.com/CIInc/robinhood-options-mobile/issues/141)): Track execution latency (ms), fill price delta vs. leader, and performance drift - **Small** (1-2 weeks)
 - [x] **Automated Copy-Trading Risk Guardian** (v0.52.0, [Tracking: #141](https://github.com/CIInc/robinhood-options-mobile/issues/141)): Follower protective guardrails specifying max capital allocation per trade, auto-disconnect on leader drawdown divergence, and max slippage abort - **Medium** (2-3 weeks)
 - [ ] **Server-Side Auto-Execute**: Secure server-side execution to reduce latency and remove client dependency (requires secure key management) - **Large** (4-6 weeks)
@@ -1023,6 +1023,8 @@ Keep reliability, account security, and test coverage ahead of feature breadth. 
 - [x] **Option Positions Widget Coverage** ([#90](https://github.com/CIInc/robinhood-options-mobile/issues/90)): Regression tests for grouped underlying summaries and individual contract list mode
 - [ ] **Performance & Technical Debt Optimization** ([#124](https://github.com/CIInc/robinhood-options-mobile/issues/124)): App size, market data batching, viewport fixes, and list scrolling performance
   - [x] Web app-promotion banners replace hidden native ad placements across web screens ([#124](https://github.com/CIInc/robinhood-options-mobile/issues/124))
+  - [x] Clear Forex positions chart selection after navigation so the same bar can be selected again ([#124](https://github.com/CIInc/robinhood-options-mobile/issues/124))
+  - [x] Clear Futures positions chart selection after navigation so the same bar can be selected again ([#124](https://github.com/CIInc/robinhood-options-mobile/issues/124))
 - [ ] **Security Audit & Infrastructure Roadmap** ([#135](https://github.com/CIInc/robinhood-options-mobile/issues/135)): Third-party security assessment, enterprise MCP hub, and zero-knowledge portfolio sharing
 
 #### Data & Integration

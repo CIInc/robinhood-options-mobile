@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
@@ -64,6 +66,7 @@ class _CopyTradingDashboardWidgetState
               ),
               IconButton(
                 icon: const Icon(Icons.download),
+                tooltip: 'Export CSV',
                 onPressed: () => _exportTrades(filteredTrades, completedTrades),
               ),
             ],
@@ -443,10 +446,13 @@ class _CopyTradingDashboardWidgetState
       ]);
     }
 
-    String csv = Csv().encode(rows);
+    final csv = Csv().encode(rows);
     SharePlus.instance.share(ShareParams(
-      text: csv,
-      subject: 'Copy Trade History.csv',
+      files: [
+        XFile.fromData(utf8.encode(csv), mimeType: 'text/csv'),
+      ],
+      fileNameOverrides: ['copy-trade-history.csv'],
+      subject: 'Copy Trade History',
     ));
   }
 

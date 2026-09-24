@@ -356,9 +356,9 @@ class _FuturesPositionsWidgetState extends State<FuturesPositionsWidget> {
                     (item) => _positionSymbol(item) == selected['domain'],
                     orElse: () => null,
                   );
-              setState(() {});
               _navigateToPosition(context, position);
             },
+            clearSelectionAfterSelect: true,
           );
           void openFuturesPage() {
             _handleNavigation(context, () {

@@ -231,12 +231,9 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
         behaviors: [
           charts.SeriesLegend(),
         ], onSelected: (dynamic historical) {
-      debugPrint(historical
-          .toString()); // {domain: QS, measure: -74.00000000000003, label: -$74.00}
-      // TODO: This setState is not desirable but is needed to reset the selection
-      // or the bar will not be clickable until deselected or another selection is made.
-      // Find a better way to do this
-      setState(() {});
+      if (historical == null) {
+        return;
+      }
       var holding = sortedFilteredHoldings.firstWhere(
           (element) => element.currencyCode == historical['domain']);
       Navigator.push(
@@ -253,7 +250,7 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
                     user: widget.user,
                     userDocRef: widget.userDocRef,
                   )));
-    });
+    }, clearSelectionAfterSelect: true);
 
     double? marketValue = widget.brokerageUser.getDisplayValueForexHoldings(
         sortedFilteredHoldings,

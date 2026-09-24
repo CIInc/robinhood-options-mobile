@@ -122,6 +122,7 @@ class BarChart extends StatefulWidget {
   final charts.NumericAxisSpec? secondaryMeasureAxis;
   //final List<charts.TickSpec<num>>? staticNumericTicks;
   final List<String>? hiddenSeries;
+  final bool clearSelectionAfterSelect;
   final void Function(dynamic) onSelected;
 
   const BarChart(this.seriesList,
@@ -136,6 +137,7 @@ class BarChart extends StatefulWidget {
       this.primaryMeasureAxis,
       this.secondaryMeasureAxis,
       required this.onSelected,
+      this.clearSelectionAfterSelect = false,
       //this.staticNumericTicks,
       this.hiddenSeries});
 
@@ -147,6 +149,7 @@ class BarChart extends StatefulWidget {
 
 class BarChartState extends State<BarChart> {
   bool _hasRendered = false;
+  int _selectionResetKey = 0;
 
   @override
   void didUpdateWidget(BarChart oldWidget) {
@@ -164,44 +167,51 @@ class BarChartState extends State<BarChart> {
   Widget build(BuildContext context) {
     final shouldAnimate = widget.animate && !_hasRendered;
     _hasRendered = true;
-    return charts.BarChart(
-      widget.seriesList,
-      defaultRenderer: widget.renderer,
-      animate: shouldAnimate,
-      vertical: widget.vertical,
-      barGroupingType: widget.barGroupingType,
-      //barRendererDecorator: charts.BarLabelDecorator<String>(),
-      primaryMeasureAxis: widget.primaryMeasureAxis,
-      secondaryMeasureAxis: widget.secondaryMeasureAxis,
-      domainAxis: widget.domainAxis,
-      customSeriesRenderers: widget.customSeriesRenderers ?? [],
-      selectionModels: [
-        charts.SelectionModelConfig(
-            type: charts.SelectionModelType.info,
-            changedListener: _onSelectionChanged)
-      ],
-      behaviors: widget.behaviors ??
-          [
-            // charts.SelectNearest(eventTrigger: charts.SelectionTrigger.tap),
-            // charts.LinePointHighlighter(
-            //     showHorizontalFollowLine:
-            //         charts.LinePointHighlighterFollowLineType.none,
-            //     showVerticalFollowLine:
-            //         charts.LinePointHighlighterFollowLineType.nearest,
-            //     dashPattern: const []),
-            //charts.InitialSelection(selectedDataConfig: [
-            //  charts.SeriesDatumConfig<DateTime>(
-            //      'Adjusted Equity', widget.closeDate)
-            //]),
-            // charts.SeriesLegend(),
-          ],
+    return KeyedSubtree(
+      key: ValueKey(_selectionResetKey),
+      child: charts.BarChart(
+        widget.seriesList,
+        defaultRenderer: widget.renderer,
+        animate: shouldAnimate,
+        vertical: widget.vertical,
+        barGroupingType: widget.barGroupingType,
+        //barRendererDecorator: charts.BarLabelDecorator<String>(),
+        primaryMeasureAxis: widget.primaryMeasureAxis,
+        secondaryMeasureAxis: widget.secondaryMeasureAxis,
+        domainAxis: widget.domainAxis,
+        customSeriesRenderers: widget.customSeriesRenderers ?? [],
+        selectionModels: [
+          charts.SelectionModelConfig(
+              type: charts.SelectionModelType.info,
+              changedListener: _onSelectionChanged)
+        ],
+        behaviors: widget.behaviors ??
+            [
+              // charts.SelectNearest(eventTrigger: charts.SelectionTrigger.tap),
+              // charts.LinePointHighlighter(
+              //     showHorizontalFollowLine:
+              //         charts.LinePointHighlighterFollowLineType.none,
+              //     showVerticalFollowLine:
+              //         charts.LinePointHighlighterFollowLineType.nearest,
+              //     dashPattern: const []),
+              //charts.InitialSelection(selectedDataConfig: [
+              //  charts.SeriesDatumConfig<DateTime>(
+              //      'Adjusted Equity', widget.closeDate)
+              //]),
+              // charts.SeriesLegend(),
+            ],
+      ),
     );
   }
 
   void _onSelectionChanged(charts.SelectionModel model) {
     if (model.hasDatumSelection) {
-      var selected = model.selectedDatum[0].datum;
+      final selected = model.selectedDatum[0].datum;
       widget.onSelected(selected);
+      if (widget.clearSelectionAfterSelect) {
+        setState(() => _selectionResetKey++);
+        widget.onSelected(null);
+      }
     } else {
       widget.onSelected(null);
     }

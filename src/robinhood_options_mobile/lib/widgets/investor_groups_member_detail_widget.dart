@@ -17,7 +17,6 @@ import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/copy_trade_button_widget.dart';
 import 'package:robinhood_options_mobile/widgets/trader_profile_widget.dart';
-import 'package:robinhood_options_mobile/widgets/user_widget.dart';
 
 /// Displays the details of a group member's portfolio and trade history
 /// with selection-based single and batch copy-trading capabilities.

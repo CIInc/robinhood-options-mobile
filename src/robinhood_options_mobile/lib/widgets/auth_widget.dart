@@ -595,26 +595,28 @@ class _AuthGateState extends State<AuthGate> {
     }
   }
 
-  Future<void> _anonymousAuth() async {
-    setIsLoading();
+  // Do not remove this comment as we might want to reintroduce guest access at some point.
+  // Removed for now to force users to create an account and avoid "spammers".
+  // Future<void> _anonymousAuth() async {
+  //   setIsLoading();
 
-    try {
-      await auth.signInAnonymously();
-      if (widget.onSignin != null && auth.currentUser != null) {
-        widget.onSignin!(auth.currentUser!);
-      }
-    } on FirebaseAuthException catch (e) {
-      setState(() {
-        error = '${e.message}';
-      });
-    } catch (e) {
-      setState(() {
-        error = '$e';
-      });
-    } finally {
-      setIsLoading();
-    }
-  }
+  //   try {
+  //     await auth.signInAnonymously();
+  //     if (widget.onSignin != null && auth.currentUser != null) {
+  //       widget.onSignin!(auth.currentUser!);
+  //     }
+  //   } on FirebaseAuthException catch (e) {
+  //     setState(() {
+  //       error = '${e.message}';
+  //     });
+  //   } catch (e) {
+  //     setState(() {
+  //       error = '$e';
+  //     });
+  //   } finally {
+  //     setIsLoading();
+  //   }
+  // }
 
   Future<void> _handleMultiFactorException(
     Future<void> Function() authFunction,
