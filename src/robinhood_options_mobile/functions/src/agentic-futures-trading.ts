@@ -1,4 +1,4 @@
-import { onCall } from "firebase-functions/v2/https";
+import { onCall, HttpsError } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import { getFirestore } from "firebase-admin/firestore";
 import * as indicators from "./technical-indicators";
@@ -261,6 +261,12 @@ export async function performFuturesSignal(request: any) {
 }
 
 export const getFuturesSignals = onCall(async (request) => {
+  if (!request.auth || !request.auth.uid) {
+    throw new HttpsError(
+      "unauthenticated",
+      "Authentication is required to get futures signals."
+    );
+  }
   try {
     return await performFuturesSignal(request);
   } catch (err) {
