@@ -486,7 +486,13 @@ void main() {
       expect(find.text('Select Traders (2/4)'), findsOneWidget);
 
       // Compare FAB appears
-      expect(find.text('Compare (2)'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(FloatingActionButton),
+          matching: find.text('Compare (2)'),
+        ),
+        findsOneWidget,
+      );
     });
 
     testWidgets(
