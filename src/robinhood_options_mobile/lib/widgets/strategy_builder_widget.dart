@@ -1460,7 +1460,7 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
                   Consumer<AccountStore>(
                     builder: (context, accountStore, child) {
                       final buyingPower = accountStore.items.isNotEmpty
-                          ? accountStore.items[0].buyingPower
+                          ? (accountStore.items[0].buyingPower ?? 0.0)
                           : 0.0;
                       return Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,

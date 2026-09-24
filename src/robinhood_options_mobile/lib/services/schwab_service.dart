@@ -71,6 +71,7 @@ import 'package:robinhood_options_mobile/model/external_token.dart';
 import 'package:robinhood_options_mobile/model/notification_item.dart';
 import 'package:robinhood_options_mobile/model/schwab_streamer_info.dart';
 import 'package:robinhood_options_mobile/model/schwab_order_preview.dart';
+import 'package:robinhood_options_mobile/model/schwab_strategy_chain.dart';
 import 'package:robinhood_options_mobile/services/schwab_streamer_service.dart';
 
 class SchwabService implements IBrokerageService {
@@ -2641,6 +2642,113 @@ https://api.schwabapi.com/marketdata/v1/instruments?symbol=Google&projection=sea
           );
     }
     throw Exception('Failed to get option chain');
+  }
+
+  /// Builds the URL for querying Schwab option chains with strategy and filter parameters.
+  /// `GET /marketdata/v1/chains`
+  static String buildStrategyChainUrl({
+    required String endpoint,
+    required String symbol,
+    String strategy = 'SINGLE',
+    String contractType = 'ALL',
+    double? strike,
+    double? interval,
+    int? strikeCount,
+    String? range,
+    DateTime? fromDate,
+    DateTime? toDate,
+    double? volatility,
+    double? underlyingPrice,
+    double? interestRate,
+    int? daysToExpiration,
+    String? expMonth,
+    String? optionType,
+    String? entitlement,
+    bool includeUnderlyingQuote = true,
+  }) {
+    final queryParams = <String, String>{
+      'symbol': symbol,
+      'contractType': contractType,
+      'includeUnderlyingQuote': includeUnderlyingQuote.toString(),
+      'strategy': strategy.toUpperCase(),
+    };
+    if (strike != null) queryParams['strike'] = strike.toString();
+    if (interval != null) queryParams['interval'] = interval.toString();
+    if (strikeCount != null) queryParams['strikeCount'] = strikeCount.toString();
+    if (range != null && range.isNotEmpty) queryParams['range'] = range.toUpperCase();
+    if (fromDate != null) queryParams['fromDate'] = DateFormat('yyyy-MM-dd').format(fromDate);
+    if (toDate != null) queryParams['toDate'] = DateFormat('yyyy-MM-dd').format(toDate);
+    if (volatility != null) queryParams['volatility'] = volatility.toString();
+    if (underlyingPrice != null) queryParams['underlyingPrice'] = underlyingPrice.toString();
+    if (interestRate != null) queryParams['interestRate'] = interestRate.toString();
+    if (daysToExpiration != null) queryParams['daysToExpiration'] = daysToExpiration.toString();
+    if (expMonth != null && expMonth.isNotEmpty) queryParams['expMonth'] = expMonth.toUpperCase();
+    if (optionType != null && optionType.isNotEmpty) queryParams['optionType'] = optionType.toUpperCase();
+    if (entitlement != null && entitlement.isNotEmpty) queryParams['entitlement'] = entitlement.toUpperCase();
+
+    final queryString = queryParams.entries
+        .map((e) => '${Uri.encodeQueryComponent(e.key)}=${Uri.encodeQueryComponent(e.value)}')
+        .join('&');
+
+    return '$endpoint/marketdata/v1/chains?$queryString';
+  }
+
+  /// Fetches multi-leg strategy option chains from Schwab Market Data API:
+  /// `GET /marketdata/v1/chains?strategy=...`
+  ///
+  /// Supports strategies:
+  /// `SINGLE`, `COVERED`, `VERTICAL`, `CALENDAR`, `STRANGLE`, `STRADDLE`,
+  /// `BUTTERFLY`, `CONDOR`, `DIAGONAL`, `COLLAR`, `ROLL`.
+  @override
+  Future<SchwabStrategyChain> getStrategyOptionChain(
+    BrokerageUser user,
+    String symbol, {
+    String strategy = 'SINGLE',
+    String contractType = 'ALL',
+    double? strike,
+    double? interval,
+    int? strikeCount,
+    String? range,
+    DateTime? fromDate,
+    DateTime? toDate,
+    double? volatility,
+    double? underlyingPrice,
+    double? interestRate,
+    int? daysToExpiration,
+    String? expMonth,
+    String? optionType,
+    String? entitlement,
+    bool includeUnderlyingQuote = true,
+  }) async {
+    final url = buildStrategyChainUrl(
+      endpoint: endpoint.toString(),
+      symbol: symbol,
+      strategy: strategy,
+      contractType: contractType,
+      strike: strike,
+      interval: interval,
+      strikeCount: strikeCount,
+      range: range,
+      fromDate: fromDate,
+      toDate: toDate,
+      volatility: volatility,
+      underlyingPrice: underlyingPrice,
+      interestRate: interestRate,
+      daysToExpiration: daysToExpiration,
+      expMonth: expMonth,
+      optionType: optionType,
+      entitlement: entitlement,
+      includeUnderlyingQuote: includeUnderlyingQuote,
+    );
+
+    final resultJson = await getJson(user, url);
+    if (resultJson != null && resultJson is Map) {
+      return SchwabStrategyChain.fromJson(
+          resultJson is Map<String, dynamic>
+              ? resultJson
+              : Map<String, dynamic>.from(resultJson));
+    }
+    throw Exception('Failed to get Schwab strategy option chain for $symbol');
   }
 
   @override

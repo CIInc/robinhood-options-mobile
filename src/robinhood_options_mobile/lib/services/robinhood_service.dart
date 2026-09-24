@@ -5028,6 +5028,30 @@ WATCHLIST
     return null;
   }
 
+  @override
+  Future<dynamic> getStrategyOptionChain(
+    BrokerageUser user,
+    String symbol, {
+    String strategy = 'SINGLE',
+    String contractType = 'ALL',
+    double? strike,
+    double? interval,
+    int? strikeCount,
+    String? range,
+    DateTime? fromDate,
+    DateTime? toDate,
+    double? volatility,
+    double? underlyingPrice,
+    double? interestRate,
+    int? daysToExpiration,
+    String? expMonth,
+    String? optionType,
+    String? entitlement,
+    bool includeUnderlyingQuote = true,
+  }) async {
+    return null;
+  }
+
   /// Fetches multi-leg combo orders (e.g. stock + options packages, collars, straddles)
   /// https://api.robinhood.com/combo/orders/
   @override

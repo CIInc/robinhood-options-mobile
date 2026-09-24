@@ -1209,6 +1209,30 @@ class FidelityService implements IBrokerageService {
   }
 
   @override
+  Future<dynamic> getStrategyOptionChain(
+    BrokerageUser user,
+    String symbol, {
+    String strategy = 'SINGLE',
+    String contractType = 'ALL',
+    double? strike,
+    double? interval,
+    int? strikeCount,
+    String? range,
+    DateTime? fromDate,
+    DateTime? toDate,
+    double? volatility,
+    double? underlyingPrice,
+    double? interestRate,
+    int? daysToExpiration,
+    String? expMonth,
+    String? optionType,
+    String? entitlement,
+    bool includeUnderlyingQuote = true,
+  }) async {
+    return null;
+  }
+
+  @override
   Future<List<ComboOrder>> getComboOrders(BrokerageUser user,
       {String? accountNumber, int? limit}) async {
     return [];

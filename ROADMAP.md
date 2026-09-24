@@ -46,9 +46,9 @@ This document outlines the planned features and enhancements for RealizeAlpha.
 **Last reviewed:** September 23, 2026 · **Current app version:** 0.52.0 (development version)
 
 ### Quick Stats
-- **Completed checklist items:** 361
-- **Planned checklist items:** 82
-- **Open GitHub issues:** 37 (as of September 23, 2026)
+- **Completed checklist items:** 362
+- **Planned checklist items:** 81
+- **Open GitHub issues:** 36 (as of September 23, 2026)
 - **Planning focus:** Address high-priority reliability and test gaps, then deliver copy-trading transparency and safeguards; scope community work only after trust, moderation, and measurement criteria are defined.
 
 ### Key Highlights
@@ -424,7 +424,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 
 ### v0.53.0 (2027 Q1 - January)
 **Institutional Multi-Brokerage, Smart Order Routing & SEC Disclosures**
-- **Schwab Advanced Execution & Order Replacement:** In-flight order replacement and modification (`PUT /trader/v1/accounts/{account}/orders/{id}`), margin preview validation (`previewOrder`), and multi-leg option chains ([#122](https://github.com/CIInc/robinhood-options-mobile/issues/122)).
+- ✅ **Schwab Advanced Execution, Order Preview & Strategy Chains:** In-flight order replacement and modification (`PUT /trader/v1/accounts/{account}/orders/{id}`), margin preview validation (`previewOrder`), and multi-leg option chains (`GET /marketdata/v1/chains?strategy=...`) ([#122](https://github.com/CIInc/robinhood-options-mobile/issues/122)).
 - **Schwab Account Activity & Historical Cash Transactions:** Sync historical dividends, margin interest charges, and cash movements (`GET /trader/v1/accounts/{account}/transactions`) ([#91](https://github.com/CIInc/robinhood-options-mobile/issues/91)).
 - **Smart Order Routing (SOR) & Cross-Broker Margin & Borrow Optimizer:** Dynamically evaluate and route equity/option orders between connected brokerages (Robinhood and Schwab) to minimize margin requirements and borrow rates ([#108](https://github.com/CIInc/robinhood-options-mobile/issues/108)).
 - **SEC EDGAR Real-Time 13F & Form 4 Insider Whales Ingestion:** Automated streaming parsing of 13F institutional disclosures, Form 4 insider cluster buys, and 8-K material events with portfolio overlap alerts ([Tracking: #143](https://github.com/CIInc/robinhood-options-mobile/issues/143)).
@@ -1035,10 +1035,10 @@ Keep reliability, account security, and test coverage ahead of feature breadth. 
         - [x] Market Movers index data (`GET /marketdata/v1/movers/{index}`) for `$DJI`, `$COMPX`, `$SPX`
         - [x] Market operating hours and trading session status (`GET /marketdata/v1/markets`)
         - [x] Options expiration chains (`GET /marketdata/v1/expirationchain`) for fast expiration selectors
-    - [ ] **Schwab Advanced Trading & Execution** ([#122](https://github.com/CIInc/robinhood-options-mobile/issues/122)):
+    - [x] **Schwab Advanced Trading & Execution** ([#122](https://github.com/CIInc/robinhood-options-mobile/issues/122)):
         - [x] Order preview and margin validation (`POST /trader/v1/accounts/{accountNumber}/previewOrder`) for pre-trade buying power and commission check
         - [x] In-flight order replacement and modification (`PUT /trader/v1/accounts/{accountNumber}/orders/{orderId}`)
-        - [ ] Multi-leg strategy options chains (`GET /marketdata/v1/chains?strategy=...`)
+        - [x] Multi-leg strategy options chains (`GET /marketdata/v1/chains?strategy=...`)
     - [ ] **Schwab Account Activity & Transactions** ([#91](https://github.com/CIInc/robinhood-options-mobile/issues/91)):
         - [ ] Historical trade transactions, dividends, and cash movements (`GET /trader/v1/accounts/{accountNumber}/transactions`) for realized P&L and dividend tracking
         - [ ] User preferences synchronization (`GET /trader/v1/userPreference`)

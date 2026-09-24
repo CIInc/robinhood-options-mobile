@@ -37,3 +37,11 @@ double? parseDouble(dynamic value) {
   }
   return null;
 }
+
+int? parseInt(dynamic value) {
+  if (value == null) return null;
+  if (value is num) return value.toInt();
+  if (value is String) return int.tryParse(value);
+  return null;
+}
+

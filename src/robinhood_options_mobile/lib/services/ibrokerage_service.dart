@@ -123,6 +123,29 @@ abstract class IBrokerageService {
       BrokerageUser user, List<String> ids);
   Future<OptionChain> getOptionChains(BrokerageUser user, String id);
 
+  /// Fetches multi-leg strategy option chains from brokerage market data where supported.
+  Future<dynamic> getStrategyOptionChain(
+    BrokerageUser user,
+    String symbol, {
+    String strategy = 'SINGLE',
+    String contractType = 'ALL',
+    double? strike,
+    double? interval,
+    int? strikeCount,
+    String? range,
+    DateTime? fromDate,
+    DateTime? toDate,
+    double? volatility,
+    double? underlyingPrice,
+    double? interestRate,
+    int? daysToExpiration,
+    String? expMonth,
+    String? optionType,
+    String? entitlement,
+    bool includeUnderlyingQuote = true,
+  }) =>
+      Future.value(null);
+
   // Instruments
   Future<Instrument> getInstrument(
       BrokerageUser user, InstrumentStore store, String instrumentUrl);

@@ -10,14 +10,29 @@ class OrderTemplateStore extends ChangeNotifier {
 
   Future<void> loadTemplates(String userId) async {
     try {
-      final snapshot = await _firestore
-          .collection('order_templates')
-          .where('userId', isEqualTo: userId)
-          .orderBy('createdAt', descending: true)
-          .get();
+      QuerySnapshot<Map<String, dynamic>> snapshot;
+      try {
+        snapshot = await _firestore
+            .collection('order_templates')
+            .where('userId', isEqualTo: userId)
+            .orderBy('createdAt', descending: true)
+            .get();
+      } on FirebaseException catch (fe) {
+        if (fe.code == 'failed-precondition') {
+          debugPrint(
+              'OrderTemplateStore: missing index, falling back to client-side sort: ${fe.message}');
+          snapshot = await _firestore
+              .collection('order_templates')
+              .where('userId', isEqualTo: userId)
+              .get();
+        } else {
+          rethrow;
+        }
+      }
 
       _templates =
           snapshot.docs.map((doc) => OrderTemplate.fromFirestore(doc)).toList();
+      _templates.sort((a, b) => b.createdAt.compareTo(a.createdAt));
       notifyListeners();
     } catch (e) {
       debugPrint('Error loading templates: $e');
