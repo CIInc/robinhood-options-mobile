@@ -48,6 +48,7 @@ import * as gammaExposureFuncs from "./gamma-exposure";
 import * as eventStudy from "./event-study";
 import * as screenerUniverse from "./screener-universe";
 import * as newsIntelligence from "./news-intelligence";
+import * as secEdgar from "./sec-edgar";
 import * as groupPerformanceAnalytics from "./group-performance-analytics";
 import * as instrumentOrderSync from "./instrument-order-sync";
 import { verifySubscription as verifySubscriptionFunc } from "./subscriptions";
@@ -151,6 +152,9 @@ export const aggregateWhaleWatch = whaleWatchCron.aggregateWhaleWatch;
 export const getGammaExposure = gammaExposureFuncs.getGammaExposure;
 export const getTopGammaExposure = gammaExposureFuncs.getTopGammaExposure;
 export const getNewsIntelligence = newsIntelligence.getNewsIntelligence;
+export const getSecDisclosures = secEdgar.getSecDisclosures;
+export const refreshTrackedSecDisclosures =
+  secEdgar.refreshTrackedSecDisclosures;
 export const getWatchlistNewsIntelligence =
   newsIntelligence.getWatchlistNewsIntelligence;
 export const getGroupPerformanceAnalytics =

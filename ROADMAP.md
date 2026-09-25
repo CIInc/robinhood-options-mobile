@@ -425,7 +425,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 ### v0.53.0 (2027 Q1 - January)
 **Institutional Multi-Brokerage & SEC Disclosures**
 - ✅ **Schwab Account Activity & Historical Cash Transactions:** Sync historical dividends, margin interest charges, and cash movements (`GET /trader/v1/accounts/{account}/transactions`) and user preferences synchronization (`GET /trader/v1/userPreference`) ([#91](https://github.com/CIInc/robinhood-options-mobile/issues/91)).
-- **SEC EDGAR Real-Time 13F & Form 4 Insider Whales Ingestion:** Automated streaming parsing of 13F institutional disclosures, Form 4 insider cluster buys, and 8-K material events with portfolio overlap alerts ([Tracking: #143](https://github.com/CIInc/robinhood-options-mobile/issues/143)).
+- ✅ **SEC EDGAR Disclosures:** Hourly refresh of recently researched symbols with 13F institutional holdings, 30-day Form 4 insider-buy clusters, 8-K material events, and portfolio-overlap notices ([#143](https://github.com/CIInc/robinhood-options-mobile/issues/143), v0.53.0).
 - **Congress & Political Trading Tracker:** Automatic monitoring and alerts for congressional disclosures (STOCK Act filings) with portfolio overlap matching.
 
 ### v0.54.0 (2027 Q1 - February)
@@ -1115,4 +1115,3 @@ We value community feedback! If you have suggestions for the roadmap or want to 
 1. **Open an Issue**: Submit feature requests or bug reports on GitHub.
 2. **Join the Discussion**: Participate in our community forums (coming soon).
 3. **Submit a PR**: We welcome focused pull requests that include relevant tests and documentation.
-
