@@ -40,6 +40,7 @@ import 'package:robinhood_options_mobile/widgets/list_widget.dart';
 import 'package:robinhood_options_mobile/widgets/lists_widget.dart';
 import 'package:robinhood_options_mobile/widgets/presets_widget.dart';
 import 'package:robinhood_options_mobile/widgets/whale_watch_dashboard_widget.dart';
+import 'package:robinhood_options_mobile/widgets/web_promotion_banner_widget.dart';
 import 'package:robinhood_options_mobile/widgets/gamma_exposure_dashboard_widget.dart';
 import 'package:robinhood_options_mobile/model/quote_store.dart';
 import 'package:robinhood_options_mobile/model/watchlist.dart';
@@ -1299,7 +1300,7 @@ class _SearchWidgetState extends State<SearchWidget>
                   child: SizedBox(
                 height: 25.0,
               )),
-              // TODO: Introduce web banner
+              if (kIsWeb) const WebPromotionBannerSliver(),
               if (!kIsWeb) ...[
                 SliverToBoxAdapter(
                     child: AdBannerWidget(

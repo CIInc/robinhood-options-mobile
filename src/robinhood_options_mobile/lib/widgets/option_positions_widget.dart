@@ -33,6 +33,7 @@ import 'package:robinhood_options_mobile/widgets/animated_price_text.dart';
 import 'package:robinhood_options_mobile/services/live_activity_service.dart';
 import 'package:robinhood_options_mobile/widgets/option_live_activity_sheet.dart';
 import 'package:robinhood_options_mobile/widgets/synchronized_scroll_controller.dart';
+import 'package:robinhood_options_mobile/widgets/web_promotion_banner_widget.dart';
 //import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
 /*
@@ -663,7 +664,7 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
                   }, childCount: sortedGroupedOptionAggregatePositions.length),
                 ),
           if (widget.showFooter) ...[
-            // TODO: Introduce web banner
+            if (kIsWeb) const WebPromotionBannerSliver(),
             if (!kIsWeb) ...[
               const SliverToBoxAdapter(
                   child: SizedBox(

@@ -27,6 +27,7 @@ import 'package:robinhood_options_mobile/widgets/more_menu_widget.dart';
 import 'package:robinhood_options_mobile/widgets/pnl_badge.dart';
 import 'package:robinhood_options_mobile/widgets/animated_price_text.dart';
 import 'package:robinhood_options_mobile/widgets/synchronized_scroll_controller.dart';
+import 'package:robinhood_options_mobile/widgets/web_promotion_banner_widget.dart';
 
 class InstrumentPositionsWidget extends StatefulWidget {
   const InstrumentPositionsWidget(
@@ -780,7 +781,7 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
             childCount: sortedFilteredPositions.length,
           ),
         ),
-        // TODO: Introduce web banner
+        if (kIsWeb) const WebPromotionBannerSliver(),
         if (!kIsWeb) ...[
           const SliverToBoxAdapter(
               child: SizedBox(

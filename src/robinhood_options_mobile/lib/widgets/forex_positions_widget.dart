@@ -27,6 +27,7 @@ import 'package:robinhood_options_mobile/widgets/animated_price_text.dart';
 import 'package:robinhood_options_mobile/widgets/synchronized_scroll_controller.dart';
 import 'package:robinhood_options_mobile/widgets/forex_positions_page_widget.dart';
 import 'package:robinhood_options_mobile/widgets/more_menu_widget.dart';
+import 'package:robinhood_options_mobile/widgets/web_promotion_banner_widget.dart';
 //import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
 /*
@@ -620,7 +621,7 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
             childCount: sortedFilteredHoldings.length,
           ),
         ),
-        // TODO: Introduce web banner
+        if (kIsWeb) const WebPromotionBannerSliver(),
         if (!kIsWeb) ...[
           const SliverToBoxAdapter(
               child: SizedBox(

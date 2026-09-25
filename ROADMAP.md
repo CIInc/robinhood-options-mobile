@@ -46,7 +46,7 @@ This document outlines the planned features and enhancements for RealizeAlpha.
 **Last reviewed:** September 24, 2026 · **Current app version:** 0.52.0 (development version)
 
 ### Quick Stats
-- **Completed checklist items:** 368
+- **Completed checklist items:** 369
 - **Planned checklist items:** 76
 - **Open GitHub issues:** 36 (as of September 24, 2026)
 - **Planning focus:** Keep reliability and test coverage ahead of feature breadth, then prioritize brokerage expansion and execution improvements; measure the adoption and moderation quality of the newly delivered social and copy-trading tools.
@@ -1022,6 +1022,7 @@ Keep reliability, account security, and test coverage ahead of feature breadth. 
 - [x] **CI/CD Pipeline**: Automated testing and deployment ([#70](https://github.com/CIInc/robinhood-options-mobile/issues/70))
 - [x] **Option Positions Widget Coverage** ([#90](https://github.com/CIInc/robinhood-options-mobile/issues/90)): Regression tests for grouped underlying summaries and individual contract list mode
 - [ ] **Performance & Technical Debt Optimization** ([#124](https://github.com/CIInc/robinhood-options-mobile/issues/124)): App size, market data batching, viewport fixes, and list scrolling performance
+  - [x] Web app-promotion banners replace hidden native ad placements across web screens ([#124](https://github.com/CIInc/robinhood-options-mobile/issues/124))
 - [ ] **Security Audit & Infrastructure Roadmap** ([#135](https://github.com/CIInc/robinhood-options-mobile/issues/135)): Third-party security assessment, enterprise MCP hub, and zero-knowledge portfolio sharing
 
 #### Data & Integration
