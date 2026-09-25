@@ -53,8 +53,8 @@ This document outlines the planned features and enhancements for RealizeAlpha.
 
 ### Key Highlights
 - ✅ **Recently Completed (v0.51.0-v0.52.0):** Beta-weighted portfolio Greeks, automated DRIP thresholds, 0DTE gamma squeeze radar, earnings IV crush analysis, IV cone and surface, Delta-Neutral Strategy Builder, copy-trading analytics and safeguards, Side-by-Side Multi-Trader Portfolio Comparison, Social Discussion & Comment Threads, and Schwab order previews and strategy chains. See the release timeline for issue links and details.
-- **Next proposed milestone:** **v0.53.0 (target: Q1 2027; tentative)** — brokerage expansion, institutional data, and execution improvements. Tournaments remain exploratory until separately defined.
-- **Later candidates (v0.53.0+):** Multi-broker routing, SEC disclosures, and expanded AI research. These are planning targets, not release commitments.
+- **Next proposed milestone:** **v0.53.0 (target: Q1 2027; tentative)** — brokerage expansion and institutional data. Tournaments remain exploratory until separately defined.
+- **Later candidates (v0.53.0+):** SEC disclosures and expanded AI research; multi-broker routing is planned for v0.56.0+. These are planning targets, not release commitments.
 - **Longer-term exploration:** Desktop workflows, privacy-preserving performance proofs, wearable clients, and spatial interfaces remain exploratory until scoped and prioritized.
 
 ## Release Versions & Timeline
@@ -423,9 +423,8 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ **Schwab Advanced Execution & Strategy Chains:** Pre-trade order previews with fee and margin validation, in-flight order replacement, and multi-leg strategy option chains ([#122](https://github.com/CIInc/robinhood-options-mobile/issues/122), v0.52.0).
 
 ### v0.53.0 (2027 Q1 - January)
-**Institutional Multi-Brokerage, Smart Order Routing & SEC Disclosures**
+**Institutional Multi-Brokerage & SEC Disclosures**
 - ✅ **Schwab Account Activity & Historical Cash Transactions:** Sync historical dividends, margin interest charges, and cash movements (`GET /trader/v1/accounts/{account}/transactions`) and user preferences synchronization (`GET /trader/v1/userPreference`) ([#91](https://github.com/CIInc/robinhood-options-mobile/issues/91)).
-- **Smart Order Routing (SOR) & Cross-Broker Margin & Borrow Optimizer:** Dynamically evaluate and route equity/option orders between connected brokerages (Robinhood and Schwab) to minimize margin requirements and borrow rates ([#108](https://github.com/CIInc/robinhood-options-mobile/issues/108)).
 - **SEC EDGAR Real-Time 13F & Form 4 Insider Whales Ingestion:** Automated streaming parsing of 13F institutional disclosures, Form 4 insider cluster buys, and 8-K material events with portfolio overlap alerts ([Tracking: #143](https://github.com/CIInc/robinhood-options-mobile/issues/143)).
 - **Congress & Political Trading Tracker:** Automatic monitoring and alerts for congressional disclosures (STOCK Act filings) with portfolio overlap matching.
 
@@ -449,8 +448,9 @@ Mapping features to specific versions helps users anticipate releases and unders
 - **Immersive Spatial Trading Interfaces (AR/VR):** Multidimensional market data visualization for spatial computing devices (VisionOS / Quest).
 
 ### v0.56.0 (2027 Q3+)
-**Apple Watch & Wear OS Companion**
+**Apple Watch & Wear OS Companion, Cross-Broker Execution**
 - **Apple Watch & Wear OS Companion App:** Glanceable portfolio P&L, price alerts, and watchlists on wearables.
+- **Smart Order Routing (SOR) & Cross-Broker Margin & Borrow Optimizer:** Dynamically evaluate and route equity/option orders between connected brokerages (Robinhood and Schwab) to minimize margin requirements and borrow rates ([#108](https://github.com/CIInc/robinhood-options-mobile/issues/108), v0.56.0+).
 
 ## Risks & Blockers
 
@@ -464,10 +464,10 @@ Mapping features to specific versions helps users anticipate releases and unders
     - **Timeline Impact**: Validate on target devices before treating performance as production-ready
    - **Mitigation Owner**: Mobile Engineering + Performance Team
 
-2. **Cross-Broker Concurrent Authentication & Token Orchestration** (Impacts: Q1 2027 - Multi-Broker & Smart Order Routing)
+2. **Cross-Broker Concurrent Authentication & Token Orchestration** (Impacts: Q1 2027 - Multi-Broker; v0.56.0+ - Smart Order Routing)
    - **Challenge**: Concurrently orchestrating OAuth2 token rotation, session handshakes, and secure keychain storage across multiple live brokerages (Schwab, Robinhood) without desync or auth loops
    - **Mitigation**: Independent broker token managers with dedicated mutex locks, silent background token refresh before expiration, and isolated session failure recovery
-   - **Timeline Impact**: Adds 1-2 weeks to multi-broker smart routing integration
+   - **Timeline Impact**: Adds 1-2 weeks to the cross-broker smart routing integration planned for v0.56.0+
    - **Mitigation Owner**: Backend + Security Engineering Team
 
 3. **Real-Time Data Streaming & Mobile Battery Consumption** (Impacts: Q4 2026 - Platform Scale & UX)
@@ -954,7 +954,7 @@ Improve copy-trade transparency and follower controls before increasing automati
 - [ ] **Strategy Marketplace**: Platform for users to share, rate, and clone successful Agentic Trading configurations - **Large** (6-8 weeks)
 - [ ] **Multi-Leg Order Templates**: Quick-entry templates for complex spreads - **Small** (1-2 weeks)
 - [x] **Combo Orders Support**: Stock + Option atomic order execution and history (`/combo/orders/`) - **Medium** (2-3 weeks)
-- [ ] **Smart Order Routing (SOR) & Cross-Broker Margin & Borrow Optimizer** (v0.53.0): Dynamically evaluate and route equity/option orders between connected brokerages (Schwab and Robinhood) to minimize margin requirements, borrow fees, and maximize uninvested cash yields - **Large** (6-8 weeks)
+- [ ] **Smart Order Routing (SOR) & Cross-Broker Margin & Borrow Optimizer** (v0.56.0+): Dynamically evaluate and route equity/option orders between connected brokerages (Schwab and Robinhood) to minimize margin requirements, borrow fees, and maximize uninvested cash yields - **Large** (6-8 weeks)
 
 #### Behavioral & Tilt Guardrails ([Tracking: #142](https://github.com/CIInc/robinhood-options-mobile/issues/142))
 - [x] **Autonomous Risk Circuit Breakers & Cooling-Off Lock** (v0.48.5, [Tracking: #142](https://github.com/CIInc/robinhood-options-mobile/issues/142)): Daily max loss, portfolio drawdown, and consecutive loss guardrails
@@ -1092,7 +1092,7 @@ Staying ahead of the curve requires exploring frontier technologies. Decentraliz
 - [x] **Strategy Validator & Backtesting Engine** ([#136](https://github.com/CIInc/robinhood-options-mobile/issues/136)): Strategy template validation and historical backtesting engine
 - [ ] **Advanced Monte Carlo Simulations**: Walk-forward analysis and multi-regime stress validation
 - [ ] **Alpha Discovery**: Custom factor testing and correlation matrices ([#137](https://github.com/CIInc/robinhood-options-mobile/issues/137))
-- [ ] **Smart Order Routing**: Execution optimization across venues ([#108](https://github.com/CIInc/robinhood-options-mobile/issues/108))
+- [ ] **Smart Order Routing (v0.56.0+):** Execution optimization across brokerages ([#108](https://github.com/CIInc/robinhood-options-mobile/issues/108))
 
 #### Social & Education
 - [ ] **Education & Learning Platform** ([#119](https://github.com/CIInc/robinhood-options-mobile/issues/119)): Interactive tutorials, strategy guides, options education modules, and video explanations
@@ -1115,5 +1115,4 @@ We value community feedback! If you have suggestions for the roadmap or want to 
 1. **Open an Issue**: Submit feature requests or bug reports on GitHub.
 2. **Join the Discussion**: Participate in our community forums (coming soon).
 3. **Submit a PR**: We welcome focused pull requests that include relevant tests and documentation.
-
 
