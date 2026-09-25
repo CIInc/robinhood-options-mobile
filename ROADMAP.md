@@ -1020,6 +1020,7 @@ Keep reliability, account security, and test coverage ahead of feature breadth. 
 - [x] **Biometric Authentication**: Face/fingerprint login ([#69](https://github.com/CIInc/robinhood-options-mobile/issues/69))
 - [ ] **End-to-End Encryption**: Sensitive data encryption
 - [x] **CI/CD Pipeline**: Automated testing and deployment ([#70](https://github.com/CIInc/robinhood-options-mobile/issues/70))
+- [x] **Option Positions Widget Coverage** ([#90](https://github.com/CIInc/robinhood-options-mobile/issues/90)): Regression tests for grouped underlying summaries and individual contract list mode
 - [ ] **Performance & Technical Debt Optimization** ([#124](https://github.com/CIInc/robinhood-options-mobile/issues/124)): App size, market data batching, viewport fixes, and list scrolling performance
 - [ ] **Security Audit & Infrastructure Roadmap** ([#135](https://github.com/CIInc/robinhood-options-mobile/issues/135)): Third-party security assessment, enterprise MCP hub, and zero-knowledge portfolio sharing
 
