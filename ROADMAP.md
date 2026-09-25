@@ -421,7 +421,6 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ **Side-by-Side Multi-Trader Portfolio Comparison:** Benchmark risk-adjusted performance across 2 to 4 potential leaders with timeframe normalization (`1W`, `1M`, `3M`, `1Y`, `ALL`), 5-dimensional relative strength scoring, metric winner highlights, privacy masking, and 1-tap copy integration ([Tracking: #141](https://github.com/CIInc/robinhood-options-mobile/issues/141), [Tracking: #113](https://github.com/CIInc/robinhood-options-mobile/issues/113), v0.52.0).
 - ✅ **Social Discussion & Comment Threads:** Granular discussions on shared trade ideas and public portfolios with author-pinned comments, community sentiment polling (Bullish, Bearish, Neutral), comment upvoting, and moderation reporting controls ([Tracking: #113](https://github.com/CIInc/robinhood-options-mobile/issues/113), v0.52.0).
 - ✅ **Schwab Advanced Execution & Strategy Chains:** Pre-trade order previews with fee and margin validation, in-flight order replacement, and multi-leg strategy option chains ([#122](https://github.com/CIInc/robinhood-options-mobile/issues/122), v0.52.0).
-- **Trading Arenas & Verified Paper Tournaments (exploratory):** Keep paper-only; define fair scoring, anti-abuse controls, and a separate tracked issue before assigning a release.
 
 ### v0.53.0 (2027 Q1 - January)
 **Institutional Multi-Brokerage, Smart Order Routing & SEC Disclosures**
@@ -442,6 +441,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 ### v0.55.0+ (2027 Q2+)
 **Frontier Horizons, Desktop Pro & Privacy-Preserving Social Trading**
 - **Zero-Knowledge Proofs (ZKP) for Private Social Trading:** Cryptographically verifiable track record badges (Sharpe, win rate, return %) without revealing account equity or dollar trade amounts.
+- **Trading Arenas & Verified Paper Tournaments (exploratory):** Keep paper-only; define fair scoring, anti-abuse controls, and a separate tracked issue before assigning a release ([Tracking: #113](https://github.com/CIInc/robinhood-options-mobile/issues/113), v0.55.0+).
 - **Desktop & iPad Multi-Pane Floating Workspace:** Native Flutter Desktop (macOS/Windows) and iPad split-view workspace with floating order pads, live depth, and detachable charts.
 - **Local OpenAPI & Quant Webhook Gateway:** Local WebSocket and REST API server embedded in the app allowing quant traders to stream market data, Greeks, and signals to Python/Node.js scripts.
 - **Hands-Free Voice-Activated Trade Drafting:** On-device speech recognition for conversational trade setup ("Roll my AAPL call up \$5 for net credit") with one-touch biometric confirmation.
@@ -978,7 +978,7 @@ Social features already delivered include groups, following, feeds, and leaderbo
 - [x] **Verified Track Records**: Cryptographic proof of historical performance and brokerage verification for public profiles ([Tracking: #113](https://github.com/CIInc/robinhood-options-mobile/issues/113)) - **Medium** (3-4 weeks)
 - [ ] **Video Rooms**: Live video chat for group strategy discussions - **Large** (4-5 weeks)
 - [x] **Collaborative Analysis Boards**: Shared thesis sharing, price targets, risk/reward calculations, and idea discussion ([Tracking: #113](https://github.com/CIInc/robinhood-options-mobile/issues/113)) - **Medium** (3-4 weeks)
-- [ ] **Trading Arenas & Verified Paper Tournaments** (v0.52.0, [Tracking: #113](https://github.com/CIInc/robinhood-options-mobile/issues/113)): Weekly/monthly trading challenges with live leaderboards, verifiable track records, and milestone achievement badges - **Medium** (3-4 weeks)
+- [ ] **Trading Arenas & Verified Paper Tournaments** (v0.55.0+, [Tracking: #113](https://github.com/CIInc/robinhood-options-mobile/issues/113)): Weekly/monthly trading challenges with live leaderboards, verifiable track records, and milestone achievement badges - **Medium** (3-4 weeks)
 - [ ] **Group Challenges & Competitions**: Gamified trading competitions with prizes - **Medium** (3-4 weeks)
 
 #### Social Feed & Engagement ([Tracking: #113](https://github.com/CIInc/robinhood-options-mobile/issues/113))
