@@ -24,6 +24,7 @@ import 'package:robinhood_options_mobile/widgets/auto_trade_status_badge_widget.
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/watchlist_grid_item_widget.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
+import 'package:robinhood_options_mobile/widgets/web_promotion_banner_widget.dart';
 
 enum SortType { alphabetical, change }
 
@@ -707,7 +708,7 @@ class _ListsWidgetState extends State<ListsWidget>
           )),
         ]
       ],
-      // TODO: Introduce web banner
+      if (kIsWeb) const WebPromotionBannerSliver(),
       if (!kIsWeb) ...[
         SliverToBoxAdapter(child: AdBannerWidget(size: AdSize.largeBanner)),
       ],

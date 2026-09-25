@@ -54,6 +54,7 @@ import 'package:robinhood_options_mobile/model/chart_selection_store.dart';
 import 'package:robinhood_options_mobile/model/interest_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_historical_position.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_historical_positions_widget.dart';
+import 'package:robinhood_options_mobile/widgets/web_promotion_banner_widget.dart';
 
 class _AggregateStreamState<T> {
   StreamController<List<T>>? controller;
@@ -1231,7 +1232,7 @@ class _HistoryPageState extends State<HistoryPage>
                       height: 25.0,
                     )),
                   ],
-                  // TODO: Introduce web banner
+                  if (kIsWeb) const WebPromotionBannerSliver(),
                   if (!kIsWeb) ...[
                     const SliverToBoxAdapter(
                         child: SizedBox(
@@ -1528,7 +1529,7 @@ class _HistoryPageState extends State<HistoryPage>
                       height: 25.0,
                     ))
                   ],
-                  // TODO: Introduce web banner
+                  if (kIsWeb) const WebPromotionBannerSliver(),
                   if (!kIsWeb) ...[
                     const SliverToBoxAdapter(
                         child: SizedBox(
@@ -2013,7 +2014,7 @@ class _HistoryPageState extends State<HistoryPage>
                     ))
                   ],
 
-                  // TODO: Introduce web banner
+                  if (kIsWeb) const WebPromotionBannerSliver(),
                   if (!kIsWeb) ...[
                     const SliverToBoxAdapter(
                         child: SizedBox(
@@ -2366,7 +2367,7 @@ class _HistoryPageState extends State<HistoryPage>
                       ),
                   ],
 
-                  // TODO: Introduce web banner
+                  if (kIsWeb) const WebPromotionBannerSliver(),
                   if (!kIsWeb) ...[
                     const SliverToBoxAdapter(
                         child: SizedBox(
@@ -2617,7 +2618,7 @@ class _HistoryPageState extends State<HistoryPage>
                         ),
                       ),
                   ],
-                  // TODO: Introduce web banner
+                  if (kIsWeb) const WebPromotionBannerSliver(),
                   if (!kIsWeb) ...[
                     const SliverToBoxAdapter(
                         child: SizedBox(

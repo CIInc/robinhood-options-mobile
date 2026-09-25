@@ -37,6 +37,7 @@ import 'package:robinhood_options_mobile/widgets/chart_pie_widget.dart';
 import 'package:robinhood_options_mobile/widgets/chart_time_series_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
+import 'package:robinhood_options_mobile/widgets/web_promotion_banner_widget.dart';
 //import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
 final ScrollController scrollController = ScrollController();
@@ -1877,7 +1878,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
           ))
       ],
       if (widget.showFooter) ...[
-        // TODO: Introduce web banner
+        if (kIsWeb) const WebPromotionBannerSliver(),
         if (!kIsWeb) ...[
           const SliverToBoxAdapter(
               child: SizedBox(
